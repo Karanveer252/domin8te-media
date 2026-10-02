@@ -1,0 +1,85 @@
+/* The jobs-cards switcher. Injected only by the local preview server
+   (serve.js); the deploy folder never carries it. Picks which treatment of
+   the four cards the page shows (html[data-cards]) from ?cards= or a cookie,
+   before the body paints, and puts a small bar in the corner to change it.
+   The scroll position survives the reload. */
+(function () {
+  if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;
+  var DESIGNS = [
+    ['railflow',  'Rail 5 new', 'Rail 5 with a bigger live ticket; cleared tickets ease to half size beside it, then to minis in the dock'],
+    ['railspike', 'Rail 1',   'Rail + spindle: the ticket drops onto the rail under the tip; cleared, it slides along the rail to the dock'],
+    ['railswing', 'Rail 2',   'Rail + spindle: a taller ticket swings in on its pin and settles'],
+    ['railslide', 'Rail 3',   'Rail + spindle: the ticket is pushed along the rail to the tip, then on to the dock; everything moves on one rail'],
+    ['railstack', 'Rail 4',   'Rail + spindle: cleared jobs keep their ticket, shrunk, hanging in the dock'],
+    ['railpair',  'Rail 5',   'Rail + spindle: the last cleared job stays hanging beside the live one, smaller, until the next is cleared'],
+    ['pinspot',  'Pinned',   'Spotlight x tickets: the big panel hangs from a pin, cleared jobs stub out along the bottom'],
+    ['docket',   'Docket',   'Spotlight x tickets: a full order docket drops onto its pin, cleared ones file into a column'],
+    ['railspot', 'Rail pass','Spotlight x tickets: the line held level as a rail, a wide panel under it, cleared pins to the left'],
+    ['queue',    'Queue',    'Spotlight x tickets: all four wait in a stack at the right, pulled out one at a time'],
+    ['spindle',  'Spindle',  'Spotlight x tickets: cleared tickets speared on the spike by the pass'],
+    ['rail',     'Rail',     'First five: the cards on the line, at twice the old spacing'],
+    ['ticket',   'Tickets',  'First five: tickets clipped to the line by a pin'],
+    ['spot',     'Spotlight','First five: one job at a time in a big frame'],
+    ['plate',    'Plates',   'First five: the name in the page’s own voice over a small plate'],
+    ['grid',     'Dossier',  'First five: a two by two grid the line threads over']
+  ];
+  var KEY = 'd8-cards-scroll';
+  var q = /[?&]cards=([a-z]+)/.exec(location.search), c = /(?:^|; )d8cards=([a-z]+)/.exec(document.cookie);
+  var pick = (q && q[1]) || (c && c[1]) || '';
+  var known = DESIGNS.some(function (d) { return d[0] === pick });
+  if (known) document.documentElement.setAttribute('data-cards', pick);
+  var current = document.documentElement.getAttribute('data-cards') || 'railflow';
+
+  try {
+    var y = sessionStorage.getItem(KEY);
+    if (y !== null) {
+      sessionStorage.removeItem(KEY);
+      window.addEventListener('load', function () { setTimeout(function () { window.scrollTo(0, +y) }, 60) });
+    }
+  } catch (e) {}
+
+  var css =
+    '.d8pv{position:fixed;left:16px;bottom:16px;z-index:2147483000;display:flex;align-items:center;gap:4px;' +
+    'padding:4px;border-radius:999px;background:rgba(14,14,14,.86);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);' +
+    'border:1px solid rgba(255,255,255,.14);box-shadow:0 8px 28px rgba(0,0,0,.45);font:600 12px/1 system-ui,-apple-system,Segoe UI,sans-serif;' +
+    'letter-spacing:.02em;color:#EDE8E1;cursor:auto}' +
+    '.d8pv__t{padding:0 8px 0 10px;color:rgba(237,232,225,.55);text-transform:uppercase;letter-spacing:.12em;font-size:10px;white-space:nowrap}' +
+    '.d8pv button{appearance:none;border:0;margin:0;padding:9px 13px;border-radius:999px;background:transparent;color:inherit;' +
+    'font:inherit;cursor:pointer;white-space:nowrap;transition:background-color .2s,color .2s}' +
+    '.d8pv button:hover{background:rgba(255,255,255,.08)}' +
+    '.d8pv button[aria-pressed="true"]{background:#FF5B1F;color:#0A0A0A}' +
+    '.d8pv button:focus-visible{outline:2px solid #FF5B1F;outline-offset:2px}' +
+    '@media (max-width:600px){.d8pv{left:8px;right:8px;bottom:76px;justify-content:center;flex-wrap:wrap;border-radius:18px}.d8pv__t{width:100%;text-align:center;padding:6px 0 2px}}';
+
+  function build() {
+    if (/[?&]bare=1/.test(location.search)) return;
+    var style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+    var bar = document.createElement('div');
+    bar.className = 'd8pv';
+    bar.setAttribute('role', 'group');
+    bar.setAttribute('aria-label', 'Jobs cards treatment');
+    var t = document.createElement('span');
+    t.className = 'd8pv__t';
+    t.textContent = 'Cards';
+    bar.appendChild(t);
+    DESIGNS.forEach(function (d) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = d[1];
+      b.title = d[2];
+      b.setAttribute('aria-pressed', current === d[0] ? 'true' : 'false');
+      b.addEventListener('click', function () { choose(d[0]) });
+      bar.appendChild(b);
+    });
+    document.body.appendChild(bar);
+  }
+  function choose(id) {
+    document.cookie = 'd8cards=' + id + '; path=/; max-age=31536000; SameSite=Lax';
+    try { sessionStorage.setItem(KEY, String(window.scrollY || 0)) } catch (e) {}
+    location.href = location.pathname;   /* drop any ?cards= so the cookie decides */
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build);
+  else build();
+})();

@@ -1,0 +1,10 @@
+{
+ "task": "novideo",
+ "noJs": {
+  "mode": "story",
+  "loader": "none",
+  "band0": "1",
+  "hold": "none",
+  "docH": 9
+ }
+}

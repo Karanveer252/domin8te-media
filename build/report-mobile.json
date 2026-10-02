@@ -1,0 +1,231 @@
+{
+ "task": "mobile",
+ "iphone": {
+  "mode": "js story ready",
+  "y": 0,
+  "cam": "none",
+  "pw": "",
+  "tip": "none",
+  "offb": "9000px",
+  "cut": "",
+  "ten": "",
+  "grip": "",
+  "brk": "",
+  "strain": "1",
+  "tipr": "4px",
+  "lit": "0000",
+  "bands": [
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   }
+  ],
+  "words": [],
+  "scrollW": 375,
+  "innerW": 375,
+  "docH": 10.5
+ },
+ "iphoneErrors": [],
+ "small": {
+  "mode": "js story ready",
+  "y": 0,
+  "cam": "none",
+  "pw": "",
+  "tip": "none",
+  "offb": "9000px",
+  "cut": "",
+  "ten": "",
+  "grip": "",
+  "brk": "",
+  "strain": "1",
+  "tipr": "4px",
+  "lit": "0000",
+  "bands": [
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   }
+  ],
+  "words": [],
+  "scrollW": 375,
+  "innerW": 375,
+  "docH": 12.2
+ },
+ "smallErrors": [],
+ "tablet": {
+  "mode": "js story ready",
+  "y": 0,
+  "cam": "none",
+  "pw": "",
+  "tip": "none",
+  "offb": "9000px",
+  "cut": "",
+  "ten": "",
+  "grip": "",
+  "brk": "",
+  "strain": "1",
+  "tipr": "4px",
+  "lit": "0000",
+  "bands": [
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   }
+  ],
+  "words": [],
+  "scrollW": 768,
+  "innerW": 768,
+  "docH": 8.3
+ },
+ "tabletErrors": [],
+ "landscape": {
+  "mode": "js story ready",
+  "y": 0,
+  "cam": "none",
+  "pw": "",
+  "tip": "none",
+  "offb": "9000px",
+  "cut": "",
+  "ten": "",
+  "grip": "",
+  "brk": "",
+  "strain": "1",
+  "tipr": "4px",
+  "lit": "0000",
+  "bands": [
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   }
+  ],
+  "words": [],
+  "scrollW": 812,
+  "innerW": 812,
+  "docH": 17.9
+ },
+ "landscapeErrors": []
+}

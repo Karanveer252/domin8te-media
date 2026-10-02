@@ -1,0 +1,324 @@
+{
+  "deck": "domin8temedia.com copy, v2",
+  "notes": {
+    "typography": "Curly apostrophes and quotes are intentional. Keep them when building.",
+    "ai": "AI is not mentioned anywhere on the page, by choice. Nothing on the page needs it.",
+    "f4Sub": "film.f4.sub is empty on purpose. The four panel lines are the reading on this screen, each one answering a note from f3. A sub here would be a fifth thing to read while the panels light up, and every draft of it restated the ongoing promise outside its three placements (hero, f5, picker).",
+    "stepLabels": "The third label is “From then on”, not “Every week”. Posting is weekly, but website changes, review replies and fresh ads happen when something changes, and no weekly ad cadence is confirmed.",
+    "ads": "Ads copy says we make and run them. “Facebook, Instagram and Google” is the owner-speak for Meta and Google placements. “Your own ad money” says who pays without stating a budget or amount."
+  },
+
+  "meta": {
+    "title": "Restaurant websites, ads, social and SEO | Domin8te Media",
+    "description": "Keep cooking while one small studio runs your website, ads, weekly posts and Google listing. For independent restaurants and cafes."
+  },
+  "og": {
+    "title": "We’ll post the specials. You keep cooking them.",
+    "description": "Keep cooking while one small studio runs your website, ads, weekly posts and Google listing. For independent restaurants and cafes."
+  },
+
+  "header": {
+    "navHow": "How it works",
+    "navWork": "Examples",
+    "navContact": "Get your plan"
+  },
+
+  "hero": {
+    "badgeTag": "Try it",
+    "badgeText": "What’s slipping? See how we’d fix it",
+    "h1": {
+      "line1": "We’ll post the specials.",
+      "line2": "You keep cooking them."
+    },
+    "sub": "For independent restaurants and cafes, we run the website, ads and Google listing too, so none of it waits for midnight.",
+    "primaryCta": "Get your plan",
+    "secondaryCta": "See how it works",
+    "alts": {
+      "h1": {
+        "options": [
+          { "line1": "We’ll post the specials.", "line2": "You keep cooking them." },
+          { "line1": "We’ll post the specials,", "line2": "run the ads and fix Google." },
+          { "line1": "Chalk it on the board.", "line2": "We’ll put it online for you." },
+          { "line1": "You cook. We’ll post it.", "line2": "And fix the menu on Google." }
+        ],
+        "pick": 0,
+        "why": "The relief sits in the white line and is made of a thing only a food business has: the specials. The grey line hands the owner back the job they want, with a grin. Swap in “dentist” and both lines die. The sub carries the other three jobs and the audience."
+      },
+      "sub": {
+        "options": [
+          "For independent restaurants and cafes, we run the website, ads and Google listing too, so none of it waits for midnight.",
+          "We also build your website, run your ads and keep your Google listing up to date, for independent restaurants and cafes.",
+          "For independent restaurants and cafes. The website, the ads and your Google listing are ours too, so midnight is yours again.",
+          "One small studio for independent restaurants and cafes, running your website, ads and Google listing as well as the posts."
+        ],
+        "pick": 0,
+        "why": "Audience first, so “this is for me” lands in the first three words. “Too” ties the other three jobs to the posts in the headline, “run” says all four are kept up, and it ends on what the owner stops doing: marketing at midnight."
+      }
+    }
+  },
+
+  "film": {
+    "f1": {
+      "line1": "Tell us once.",
+      "line2": "We update the site and Google.",
+      "sub": "Closed Monday for a staff day? It goes on your site, your Google listing and your next post.",
+      "alts": {
+        "options": [
+          { "line1": "Tell us once.", "line2": "We update the site and Google.", "sub": "Closed Monday for a staff day? It goes on your site, your Google listing and your next post." },
+          { "line1": "Tell us once.", "line2": "We change it everywhere.", "sub": "One studio runs all four side by side, so a new menu or new hours reach each of them." },
+          { "line1": "Say it once.", "line2": "The site and Google follow.", "sub": "A new brunch menu goes on your site, your Google listing and your next post from one message." },
+          { "line1": "One message from you,", "line2": "then site and Google match.", "sub": "Your site, your Google listing and your posts all get the change, and you only said it once." }
+        ],
+        "pick": 0,
+        "why": "Line 2 names only places we run, so “everywhere” can no longer be read as delivery apps or the chalkboard. The sub gives one real change and the three places it lands."
+      }
+    },
+    "f2": {
+      "line1": "The jobs stuck by the prep list."
+    },
+    "f3": {
+      "line1": "Waiting for your day off.",
+      "line2": "If you get one.",
+      "notes": [
+        "menu pdf won’t open",
+        "no post since the 4th",
+        "make the Friday ad",
+        "hours wrong on Google"
+      ]
+    },
+    "f4": {
+      "line1": "We clear them like tickets",
+      "line2": "on a Saturday night.",
+      "sub": "",
+      "panels": {
+        "website": { "title": "Website", "line": "A menu that opens on any phone." },
+        "adCreatives": { "title": "Ads", "line": "We make the Friday ad and run it." },
+        "socialMedia": { "title": "Social media", "line": "We fill the gap in your feed." },
+        "seo": { "title": "SEO", "line": "On the map, with the right hours." }
+      }
+    },
+    "f5": {
+      "line1": "Off your hands,",
+      "line2": "even when the menu changes.",
+      "sub": "You don’t chase us. Anything that needs your okay, like a new ad, comes ready to approve.",
+      "alts": {
+        "options": [
+          { "line1": "Off your hands,", "line2": "even when the menu changes.", "sub": "You don’t chase us. Anything that needs your okay, like a new ad, comes ready to approve." },
+          { "line1": "Off your hands.", "line2": "And it stays off them.", "sub": "When a post or an ad needs your okay, it comes to you ready. The rest is ours to do." },
+          { "line1": "Off your hands,", "line2": "like a plate off the pass.", "sub": "You approve what needs you. The posting, listing updates and review replies are ours." },
+          { "line1": "Out of the weeds.", "line2": "And kept out of them.", "sub": "Anything that needs your say, like a new ad, comes to you ready to approve." }
+        ],
+        "pick": 0,
+        "why": "The hand on screen makes “off your hands” literal, and the grey line states the ongoing promise as a thing that happens in a restaurant, not as a frequency. The sub is honest that some things need the owner’s okay, and makes that the easy part."
+      }
+    },
+    "f6": {
+      "line": "A small studio. Front of house, online."
+    }
+  },
+
+  "work": {
+    "heading": {
+      "line1": "Finished looks like this.",
+      "line2": "Four jobs, one bistro we made up."
+    },
+    "intro": "These are in-house examples. Real projects take their place as soon as a client says we can show them.",
+    "items": {
+      "website": {
+        "title": "Website",
+        "claim": "For the person outside your door, checking the menu.",
+        "detail": "Menu, hours, directions and booking up top, quick to load on two bars of signal. No PDF menus."
+      },
+      "adCreatives": {
+        "title": "Ads",
+        "claim": "Clear enough to read at scrolling speed.",
+        "detail": "One offer per ad and only a few words, sized for feeds and stories and made to look like your place."
+      },
+      "socialMedia": {
+        "title": "Social media",
+        "claim": "Something worth posting, even in a week when nothing’s new.",
+        "detail": "Built from the specials board and whatever’s new in the window, with one look from post to post."
+      },
+      "seo": {
+        "title": "SEO",
+        "claim": "For the person a street away, searching “dinner near me”.",
+        "detail": "An accurate listing, answered reviews and a site written around what locals search for."
+      }
+    },
+    "demo": {
+      "restaurantName": "Bistro Fennel",
+      "restaurantKind": "neighbourhood bistro",
+      "siteUrl": "bistrofennel.example",
+      "website": {
+        "heroLine": "Walk-ins welcome until 10pm",
+        "button": "Book a table"
+      },
+      "ad": {
+        "headline": "Mussel night is back",
+        "smallLine": "Tuesdays from 5pm"
+      },
+      "social": {
+        "captions": [
+          "Squash is on the board tonight, with brown butter and sage.",
+          "Mussel night is back on Tuesday. Walk-ins welcome.",
+          "Closed Monday for a staff day. See you Tuesday."
+        ]
+      },
+      "search": {
+        "query": "dinner near me",
+        "listingName": "Bistro Fennel",
+        "hoursLine": "Open now · Closes 10pm",
+        "reviewSnippet": "Walked in on a Friday without booking and still got a table.",
+        "reviewLabel": "Example review",
+        "cardLabel": "Example listing",
+        "rating": null
+      }
+    },
+    "alts": {
+      "heading": {
+        "options": [
+          { "line1": "Finished looks like this.", "line2": "Four jobs, one bistro we made up." },
+          { "line1": "Finished looks like this.", "line2": "All four jobs for one restaurant." },
+          { "line1": "What you’d get back.", "line2": "Website, ads, posts and Google." },
+          { "line1": "Finished looks like this.", "line2": "Shown on a bistro we made up." }
+        ],
+        "pick": 0,
+        "why": "The white line won its pair, so it stays. The grey line now owns both facts the section rests on: the four jobs belong to one place, and that place is invented."
+      }
+    }
+  },
+
+  "picker": {
+    "heading": {
+      "line1": "What’s slipping?",
+      "line2": "That’s where we begin."
+    },
+    "intro": "Pick the one that sounds like your week. You’ll see our plan, and the form below fills itself in.",
+    "empty": "Nothing picked yet. The steps build here, from the first fix up.",
+    "stepLabels": {
+      "first": "First",
+      "then": "Next",
+      "everyWeek": "From then on"
+    },
+    "options": [
+      {
+        "id": "website",
+        "label": "The website’s embarrassing",
+        "steps": {
+          "first": "We open your site on a phone, the way a hungry stranger would, and note everything that gets in the way.",
+          "then": "We fix it or rebuild it around what people come for: menu, directions and booking, up top.",
+          "everyWeek": "When a dish changes, we change the site and your Google listing with it."
+        },
+        "cta": "Start with the website",
+        "prefill": "The website"
+      },
+      {
+        "id": "seo",
+        "label": "Nobody finds us on Google",
+        "steps": {
+          "first": "We fix your Google listing: menu link, phone number, your photos and the category you’re filed under.",
+          "then": "We make the site quick to load and write it around what locals type, like “brunch near me”.",
+          "everyWeek": "We answer every new review, good or bad, and keep the listing in step with the site."
+        },
+        "cta": "Start with Google",
+        "prefill": "Showing up on Google"
+      },
+      {
+        "id": "social",
+        "label": "We haven’t posted in weeks",
+        "steps": {
+          "first": "We use your photos, even a quick phone shot of the special, and design the post when there isn’t one.",
+          "then": "We write captions with the dish names off your menu board, so posts sound like your place, not a chain.",
+          "everyWeek": "We post every week, each post tied to what’s on, like the soup coming back for winter."
+        },
+        "cta": "Start with social",
+        "prefill": "Social media"
+      },
+      {
+        "id": "ads",
+        "label": "Our ads look homemade",
+        "steps": {
+          "first": "We pick the one thing each ad should sell, like a set lunch or a night you want busier.",
+          "then": "We make the ads and run them on Facebook, Instagram and Google, using your own ad money.",
+          "everyWeek": "We swap the ads when what’s on changes, so nobody sees an ad for last month’s special."
+        },
+        "cta": "Start with the ads",
+        "prefill": "The ads"
+      },
+      {
+        "id": "all",
+        "label": "Honestly, all of it",
+        "steps": {
+          "first": "We look at your website, Google listing, posts and ads together, and start where it’s worst.",
+          "then": "We fix that, then bring the other three into line so they all say the same thing.",
+          "everyWeek": "You give us access once. After that, the posts, ads, listing changes and review replies are ours."
+        },
+        "cta": "Hand us all four",
+        "prefill": "All of it"
+      }
+    ]
+  },
+
+  "contact": {
+    "heading": {
+      "line1": "Two names and a number.",
+      "line2": "Yours and the one on the door."
+    },
+    "lede": "Within one business day you get a plan back: what needs fixing first, and why. Not a pitch deck with your logo on the cover.",
+    "fields": {
+      "name": { "label": "Your name" },
+      "restaurant": { "label": "Restaurant or cafe" },
+      "contact": { "label": "Email or phone", "hint": "Whichever you check between services" },
+      "detailsToggle": "Add a few details (optional)",
+      "website": { "label": "Your website, if you have one" },
+      "need": {
+        "label": "What needs doing first?",
+        "placeholder": "Pick one",
+        "options": [
+          "The website",
+          "Showing up on Google",
+          "Social media",
+          "The ads",
+          "All of it"
+        ]
+      },
+      "challenge": {
+        "label": "What’s the biggest headache?",
+        "placeholder": "Google says we close at 9. We’re open till 11."
+      }
+    },
+    "submit": "Send it over",
+    "sending": "Sending…",
+    "success": "Got it. We’ll read it properly and reply within one business day.",
+    "errors": {
+      "nameMissing": "Add your name so we know who we’re replying to.",
+      "restaurantMissing": "Add the name of your restaurant or cafe.",
+      "contactMissing": "Add an email or phone number so we can reply.",
+      "contactInvalid": "That email or number looks incomplete. Please check it.",
+      "sendFailed": "That didn’t go through. Try again, or email karanhelps@domin8temedia.com and we’ll take it from there."
+    },
+    "reassurance": "Three fields are enough. Everything else is optional.",
+    "emailAlt": "Prefer email? karanhelps@domin8temedia.com",
+    "alts": {
+      "heading": {
+        "options": [
+          { "line1": "Two names and a number.", "line2": "Yours and the one on the door." },
+          { "line1": "Your name,", "line2": "and the name on the door." },
+          { "line1": "Just your name", "line2": "and the name on the door." },
+          { "line1": "Send it after close.", "line2": "We’ll reply with a plan." }
+        ],
+        "pick": 0,
+        "why": "It names all three required fields in six words, so the reader can see the whole ask before the form starts, and the grey line keeps the door. No “Start with”, so the picker buttons no longer land on their own echo."
+      }
+    }
+  },
+
+  "sticky": {
+    "label": "Get your plan"
+  },
+
+  "footer": {
+    "line": "Domin8te Media. For restaurants, cafes, coffee shops and bakeries.",
+    "honestyNote": "The examples and graphics on this page are illustrative and made in-house."
+  }
+}

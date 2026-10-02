@@ -1,0 +1,58 @@
+{
+    "v":  3,
+    "layout":  "files",
+    "createdOnFiles":  {
+                           "v":  1,
+                           "at":  "2026-09-24T12:39:39Z"
+                       },
+    "title":  "Domin8te Portal",
+    "namespace":  "Domin8tePortal",
+    "libraries":  [
+
+                  ],
+    "sections":  {
+
+                 },
+    "groups":  [
+                   "Logos"
+               ],
+    "assetGroups":  {
+                        "Logos":  {
+                                      "name":  "Logos",
+                                      "tile":  "l",
+                                      "order":  [
+                                                    "mark-720.webp",
+                                                    "mark-8.webp"
+                                                ],
+                                      "files":  {
+                                                    "mark-720.webp":  {
+                                                                          "name":  "mark-720.webp",
+                                                                          "blob":  "8e45e8894a7a50b69d9365320021a1e9",
+                                                                          "size":  29030,
+                                                                          "type":  "image/webp"
+                                                                      },
+                                                    "mark-8.webp":  {
+                                                                        "name":  "mark-8.webp",
+                                                                        "blob":  "44e4c05bd29f1333e6ac84878962146f",
+                                                                        "size":  8998,
+                                                                        "type":  "image/webp"
+                                                                    }
+                                                }
+                                  }
+                    },
+    "blobs":  {
+
+              },
+    "docs":  {
+                 "readme":  "project/README.md",
+                 "sections":  [
+
+                              ]
+             },
+    "lastChange":  {
+                       "by":  "Karan",
+                       "at":  "2026-09-26T20:56:16Z",
+                       "via":  "Claude Code",
+                       "note":  "Five variations of the final direction, Clear Glass Flow, added (17A Daybreak, 17B Horizon, 17C Sidelight, 17D Halo, 17E Tide): 16E Clear structure, 16J Flow as ambient light, restrained clear glass"
+                   }
+}

@@ -1,0 +1,70 @@
+/* The photo-set switcher. Injected only by the local preview server
+   (serve.js); the deploy folder never carries it. Picks which set of card
+   photographs the page shows, from ?photos= or a cookie: the current set
+   ("a") is what the HTML references; another set swaps every card photo's
+   file for the same name with the set's prefix. Nothing else changes. */
+(function () {
+  if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;
+  var SETS = [
+    ['a', 'Current',  'The moody night bistro set that is on the page now'],
+    ['b', 'Daylight', 'Bright lunch service: big windows, white linen, pale wood, fresh'],
+    ['c', 'Film',     'Black and white 35mm documentary, grain, hard contrast'],
+    ['d', 'Overhead', 'Top-down editorial food photography on slate and linen'],
+    ['e', 'Street',   'From the pavement at night: rain, neon, the city around the door'],
+    ['f', 'Service',  'The same night bistro in full swing: a full room, staff and diners as blurred motion, steam']
+  ];
+  var KEY = 'd8-photos-scroll';
+  var q = /[?&]photos=([a-f])/.exec(location.search), c = /(?:^|; )d8photos=([a-f])/.exec(document.cookie);
+  var set = (q && q[1]) || (c && c[1]) || 'a';
+  document.documentElement.setAttribute('data-photos', set);
+  try {
+    var y = sessionStorage.getItem(KEY);
+    if (y !== null) { sessionStorage.removeItem(KEY); window.addEventListener('load', function () { setTimeout(function () { window.scrollTo(0, +y) }, 60) }) }
+  } catch (e) {}
+  var hide = document.createElement('style');
+  hide.textContent = set === 'a' ? '' : 'img.mk-photo{visibility:hidden}';
+  document.head.appendChild(hide);
+  function swap() {
+    if (set !== 'a') document.querySelectorAll('img.mk-photo').forEach(function (im) {
+      im.src = im.getAttribute('src').replace(/mock-([a-z-]+)\.webp/, 'mock-' + set + '-$1.webp');
+    });
+    hide.remove();
+  }
+  var css =
+    '.d8pv{position:fixed;left:16px;bottom:16px;z-index:2147483000;display:flex;align-items:center;gap:4px;' +
+    'padding:4px;border-radius:999px;background:rgba(14,14,14,.86);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);' +
+    'border:1px solid rgba(255,255,255,.14);box-shadow:0 8px 28px rgba(0,0,0,.45);font:600 12px/1 system-ui,-apple-system,Segoe UI,sans-serif;' +
+    'letter-spacing:.02em;color:#EDE8E1;cursor:auto}' +
+    '.d8pv__t{padding:0 8px 0 10px;color:rgba(237,232,225,.55);text-transform:uppercase;letter-spacing:.12em;font-size:10px;white-space:nowrap}' +
+    '.d8pv button{appearance:none;border:0;margin:0;padding:9px 13px;border-radius:999px;background:transparent;color:inherit;' +
+    'font:inherit;cursor:pointer;white-space:nowrap;transition:background-color .2s,color .2s}' +
+    '.d8pv button:hover{background:rgba(255,255,255,.08)}' +
+    '.d8pv button[aria-pressed="true"]{background:#FF5B1F;color:#0A0A0A}' +
+    '.d8pv button[disabled]{opacity:.4;cursor:not-allowed}' +
+    '.d8pv button:focus-visible{outline:2px solid #FF5B1F;outline-offset:2px}' +
+    '@media (max-width:600px){.d8pv{left:8px;right:8px;bottom:76px;justify-content:center;flex-wrap:wrap;border-radius:18px}.d8pv__t{width:100%;text-align:center;padding:6px 0 2px}}';
+  function build() {
+    swap();
+    if (/[?&]bare=1/.test(location.search)) return;
+    var style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
+    var bar = document.createElement('div'); bar.className = 'd8pv'; bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Card photographs');
+    var t = document.createElement('span'); t.className = 'd8pv__t'; t.textContent = 'Photos'; bar.appendChild(t);
+    fetch('/__preview/photosets.json', { cache: 'no-store' }).then(function (r) { return r.json() }).catch(function () { return {} }).then(function (ready) {
+      SETS.forEach(function (d) {
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = d[1]; b.title = d[2];
+        b.disabled = d[0] !== 'a' && !ready[d[0]];
+        if (b.disabled) b.title += ' (not generated yet)';
+        b.setAttribute('aria-pressed', set === d[0] ? 'true' : 'false');
+        b.addEventListener('click', function () { choose(d[0]) });
+        bar.appendChild(b);
+      });
+      document.body.appendChild(bar);
+    });
+  }
+  function choose(id) {
+    document.cookie = 'd8photos=' + id + '; path=/; max-age=31536000; SameSite=Lax';
+    try { sessionStorage.setItem(KEY, String(window.scrollY || 0)) } catch (e) {}
+    location.href = location.pathname;
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
+})();

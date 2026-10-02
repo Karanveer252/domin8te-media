@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-15T00:00:00Z",
+  "title": "Design System: Domin8te Media",
+  "extensions": {
+    "colorMeta": {
+      "ground": { "role": "neutral", "displayName": "Press Black", "canonical": "#0A0A0A", "tonalRamp": ["#050505", "#0A0A0A", "#131312", "#26251F", "#4A4741", "#7A766E", "#AEAAA2", "#EDEAE4"] },
+      "film-ground": { "role": "neutral", "displayName": "Film Black", "canonical": "#030508", "tonalRamp": ["#010203", "#030508", "#080C12", "#101822", "#22303F", "#3E5163", "#6C7F92", "#B9C6D3"] },
+      "raise": { "role": "neutral", "displayName": "Panel Ground", "canonical": "#0E0E0D", "tonalRamp": ["#070706", "#0E0E0D", "#131312", "#1E1E1C", "#33322E", "#5C5A54", "#93908A", "#D6D3CD"] },
+      "raise-2": { "role": "neutral", "displayName": "Media Well", "canonical": "#131312", "tonalRamp": ["#090908", "#131312", "#1B1B19", "#2A2A26", "#42413C", "#6A6862", "#9E9B95", "#DBD8D2"] },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "rgba(237,234,228,.12)", "tonalRamp": ["rgba(237,234,228,.04)", "rgba(237,234,228,.08)", "rgba(237,234,228,.12)", "rgba(237,234,228,.18)", "rgba(237,234,228,.24)", "rgba(237,234,228,.34)", "rgba(237,234,228,.5)", "rgba(237,234,228,.75)"] },
+      "hairline-strong": { "role": "neutral", "displayName": "Hairline Strong", "canonical": "rgba(237,234,228,.24)", "tonalRamp": ["rgba(237,234,228,.08)", "rgba(237,234,228,.12)", "rgba(237,234,228,.18)", "rgba(237,234,228,.24)", "rgba(237,234,228,.32)", "rgba(237,234,228,.46)", "rgba(237,234,228,.64)", "rgba(237,234,228,.86)"] },
+      "ink": { "role": "neutral", "displayName": "Paper White", "canonical": "#EDEAE4", "tonalRamp": ["#231F19", "#3B362E", "#544E44", "#6F685D", "#8F8C86", "#B4B0A9", "#D3CFC9", "#EDEAE4"] },
+      "ink-2": { "role": "neutral", "displayName": "Second Voice Grey", "canonical": "#8F8C86", "tonalRamp": ["#1D1C19", "#33322E", "#4A4844", "#63615C", "#7B7973", "#8F8C86", "#B3B0AA", "#D8D5CF"] },
+      "ink-3": { "role": "neutral", "displayName": "Quiet Grey", "canonical": "#86837D", "tonalRamp": ["#1B1A17", "#302F2B", "#454340", "#5E5B56", "#726F6A", "#86837D", "#ABA8A2", "#D2CFC9"] },
+      "muted-line": { "role": "neutral", "displayName": "Muted Line", "canonical": "#5E5B56", "tonalRamp": ["#141310", "#26251F", "#38362F", "#4B4842", "#5E5B56", "#7E7B75", "#A6A39D", "#CFCCC6"] },
+      "accent-orange": { "role": "primary", "displayName": "Signal Orange", "canonical": "#FF5B1F", "tonalRamp": ["#3A1200", "#5C1D00", "#802A00", "#A63A06", "#CC4711", "#FF5B1F", "#FF7A45", "#FFC4A8"] },
+      "accent-orange-hover": { "role": "primary", "displayName": "Hover Orange", "canonical": "#FF7A45", "tonalRamp": ["#41180A", "#652512", "#8A331A", "#B04324", "#D6552F", "#FF7A45", "#FF9C74", "#FFD2BE"] },
+      "focus": { "role": "neutral", "displayName": "Focus Ring White", "canonical": "#EDEAE4", "tonalRamp": ["#231F19", "#3B362E", "#544E44", "#6F685D", "#8F8C86", "#B4B0A9", "#D3CFC9", "#EDEAE4"] },
+      "error": { "role": "tertiary", "displayName": "Field Error Rose", "canonical": "#FF9090", "tonalRamp": ["#3D1414", "#5E2020", "#812D2D", "#A63C3C", "#CC5252", "#FF7070", "#FF9090", "#FFCFCF"] },
+      "success": { "role": "tertiary", "displayName": "Sent Green", "canonical": "#9BD8A8", "tonalRamp": ["#0F2915", "#173F21", "#22572F", "#2F723F", "#43955A", "#69B87E", "#9BD8A8", "#D3F0DA"] }
+    },
+    "typographyMeta": {
+      "display-hero": { "displayName": "Display, Hero", "purpose": "The first screen's H1 only, broken across two authored lines, one orange accent word." },
+      "display-film-hero": { "displayName": "Display, Hero (film)", "purpose": "The same H1 when the pinned film layout is active; sized against the viewport." },
+      "display-beat": { "displayName": "Display, Beat", "purpose": "Per-beat headlines in the film; each beat scales this base (.64 to 1.12)." },
+      "display-section": { "displayName": "Display, Section", "purpose": "Section headings below the film; 72% of base on picker and contact at >=1101px." },
+      "accent-word": { "displayName": "Accent Word", "purpose": "One word per headline, orange, 800 italic. Never two." },
+      "wordmark": { "displayName": "Wordmark", "purpose": "The resolve's name, set over the spectrum rule." },
+      "footmark": { "displayName": "Footer Name", "purpose": "The name set as large as the page allows, mark inline as the 8." },
+      "body": { "displayName": "Body", "purpose": "Small grey blocks beside the big words; 36ch sub, 44ch lede." },
+      "field": { "displayName": "Field", "purpose": "Input text, larger than body so an underline reads as a place to write." },
+      "label": { "displayName": "Micro Label", "purpose": "Field labels, step timing markers, details summary." },
+      "action": { "displayName": "Action", "purpose": "Buttons, header CTA, phone contact bar." }
+    },
+    "gradients": [
+      { "name": "spectrum", "value": "linear-gradient(90deg,#E5322B 0%,#F2912F 13%,#F3CB3C 26%,#5CB246 40%,#0FA3C2 55%,#2E5FA8 70%,#7A3E97 85%,#D51C73 100%)", "purpose": "The brand spectrum, horizontal. Only the closing rule under the wordmark and the film's bolt stroke." },
+      { "name": "spectrum-climb", "value": "linear-gradient(0deg,#E5322B 0%,#F3CB3C 26%,#5CB246 42%,#0FA3C2 60%,#7A3E97 82%,#D51C73 100%)", "purpose": "The vertical climb. The story layout's per-beat rising tick." },
+      { "name": "dot-grid", "value": "radial-gradient(circle,rgba(237,234,228,.095) 1px,rgba(237,234,228,0) 1.6px) 0 0 / 28px 28px", "purpose": "The ground of the whole world; rides with the panned film world so camera travel reads. With a mouse it becomes a field (canvas in site.js): the cursor pushes dots aside, they spring home, moved dots join neighbours with hairlines, and the pointer is a crosshair over ground and words while controls keep their own cursors. Touch and reduced motion keep the static dots." },
+      { "name": "film-scrim", "value": "linear-gradient(90deg,rgba(5,6,8,.8) 0%,rgba(5,6,8,.58) 34%,rgba(5,6,8,.14) 58%,rgba(5,6,8,0) 70%)", "purpose": "Holds thin 200-weight strokes legible over the chip film's brightest frames." },
+      { "name": "header-fade", "value": "linear-gradient(180deg,#0A0A0A 0%,#0A0A0A calc(100% - 28px),rgba(10,10,10,0) 100%)", "purpose": "The scrolled header's ground. No glass, no blur." }
+    ],
+    "shadows": [
+      { "name": "sticky-bar", "value": "0 14px 34px -12px rgba(0,0,0,.85)", "purpose": "The only page-level shadow: the phone contact bar floating over content." },
+      { "name": "field-underline-focus", "value": "0 1px 0 0 #EDEAE4", "purpose": "Doubles the field's underline on focus instead of drawing a ring." },
+      { "name": "option-selected", "value": "inset 0 -1px 0 #FF5B1F", "purpose": "Doubles the picked option's bottom rule in orange." }
+    ],
+    "motion": [
+      { "name": "ease", "value": "cubic-bezier(.22,.68,.14,1)", "purpose": "State transitions: colour, border, background, hover." },
+      { "name": "ease-out", "value": "cubic-bezier(.16,1,.3,1)", "purpose": "Entrances and anything that grows: rising lines, panel lit bar, arrow slide." },
+      { "name": "line-rise", "value": "1.25s ease-out", "purpose": "The hero's lines rising out of their own baseline mask." },
+      { "name": "panel-lit", "value": "transform .8s ease-out", "purpose": "The orange bar scaling out when a job is delivered." },
+      { "name": "plan-rise", "value": "transform 1.6s ease-out", "purpose": "The picker plan's orange bar growing down the left edge." },
+      { "name": "arrow-nudge", "value": "transform .3s ease-out", "purpose": "The masked arrow sliding 3-4px on hover." }
+    ],
+    "breakpoints": [
+      { "name": "phone", "value": "760px" },
+      { "name": "tablet", "value": "900px" },
+      { "name": "wide", "value": "1100px" },
+      { "name": "story-gate", "value": "(max-width:720px), (orientation:portrait) and (max-width:1024px), (orientation:portrait) and (pointer:coarse), (orientation:landscape) and (pointer:coarse) and (max-height:560px), (prefers-reduced-motion:reduce)" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The page's one solid action: orange ground, square, uppercase, masked arrow that slides on hover.",
+      "html": "<a class=\"ds-btn-primary\" href=\"#contact\">Get your plan</a>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:14px;min-height:52px;padding:0 24px;background:#FF5B1F;color:#0A0A0A;border:0;border-radius:0;font:600 13px/1 \"Be Vietnam Pro\",system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background-color .25s cubic-bezier(.22,.68,.14,1),transform .2s cubic-bezier(.22,.68,.14,1)}.ds-btn-primary::after{content:\"\";flex:none;width:14px;height:14px;background:currentColor;-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 8h12M9 3.5 13.5 8 9 12.5' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='square'/%3E%3C/svg%3E\") center/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 8h12M9 3.5 13.5 8 9 12.5' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='square'/%3E%3C/svg%3E\") center/contain no-repeat;transition:transform .3s cubic-bezier(.16,1,.3,1)}.ds-btn-primary:hover{background:#FF7A45}.ds-btn-primary:hover::after{transform:translateX(4px)}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:2px solid #EDEAE4;outline-offset:4px}"
+    },
+    {
+      "name": "Ghost Action",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "The secondary action: a text link on a hairline, never a bordered button.",
+      "html": "<a class=\"ds-btn-ghost\" href=\"#try\">What’s slipping? See how we’d fix it</a>",
+      "css": ".ds-btn-ghost{display:inline-flex;align-items:center;gap:14px;min-height:44px;padding:0 2px;border:0;border-radius:0;color:#EDEAE4;font:600 13px/1 \"Be Vietnam Pro\",system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;background:linear-gradient(rgba(237,234,228,.32),rgba(237,234,228,.32)) left calc(50% + 13px)/100% 1px no-repeat;transition:background .25s cubic-bezier(.22,.68,.14,1)}.ds-btn-ghost::after{content:\"\";flex:none;width:14px;height:14px;background:currentColor;-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 8h12M9 3.5 13.5 8 9 12.5' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='square'/%3E%3C/svg%3E\") center/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 8h12M9 3.5 13.5 8 9 12.5' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='square'/%3E%3C/svg%3E\") center/contain no-repeat;transition:transform .3s cubic-bezier(.16,1,.3,1)}.ds-btn-ghost:hover{background:linear-gradient(#EDEAE4,#EDEAE4) left calc(50% + 13px)/100% 1px no-repeat}.ds-btn-ghost:hover::after{transform:translateX(4px)}.ds-btn-ghost:focus-visible{outline:2px solid #EDEAE4;outline-offset:4px}"
+    },
+    {
+      "name": "Underline Field",
+      "kind": "input",
+      "refersTo": "field-underline",
+      "description": "The form's only field shape: uppercase micro-label over a transparent input on a single hairline.",
+      "html": "<p class=\"ds-field\"><label for=\"ds-f1\">Restaurant</label><input id=\"ds-f1\" type=\"text\" placeholder=\"The name on the door\"></p>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:4px;margin:0;max-width:420px}.ds-field label{font:600 12px/1.3 \"Be Vietnam Pro\",system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#8F8C86;transition:color .2s cubic-bezier(.22,.68,.14,1)}.ds-field:focus-within label{color:#EDEAE4}.ds-field input{width:100%;min-height:56px;padding:8px 0 12px;background:transparent;border:0;border-bottom:1px solid rgba(237,234,228,.24);border-radius:0;font:400 clamp(19px,1.5vw,24px)/1.35 \"Be Vietnam Pro\",system-ui,sans-serif;color:#EDEAE4;caret-color:#FF5B1F;transition:border-color .2s cubic-bezier(.22,.68,.14,1),box-shadow .2s cubic-bezier(.22,.68,.14,1)}.ds-field input::placeholder{color:#86837D;opacity:1}.ds-field input:hover{border-color:rgba(237,234,228,.5)}.ds-field input:focus{outline:none;border-color:#EDEAE4;box-shadow:0 1px 0 0 #EDEAE4}.ds-field input[aria-invalid=\"true\"]{border-color:#FF9090;box-shadow:0 1px 0 0 #FF9090}"
+    },
+    {
+      "name": "Picker Option Row",
+      "kind": "chip",
+      "refersTo": "option-row",
+      "description": "The problem picker's rows: display type between hairlines, orange rule and arrow when picked.",
+      "html": "<fieldset class=\"ds-opts\"><label class=\"ds-opt\"><input type=\"radio\" name=\"ds-p\" checked><span class=\"ds-opt__txt\">Nobody posts</span></label><label class=\"ds-opt\"><input type=\"radio\" name=\"ds-p\"><span class=\"ds-opt__txt\">The menu is out of date</span></label></fieldset>",
+      "css": ".ds-opts{margin:0;padding:0;border:0;border-top:1px solid rgba(237,234,228,.12);display:flex;flex-direction:column}.ds-opt{position:relative;display:block;cursor:pointer}.ds-opt input{position:absolute;opacity:0;width:1px;height:1px}.ds-opt__txt{display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:clamp(64px,8.6vh,92px);padding:14px 2px;border-bottom:1px solid rgba(237,234,228,.12);background:none;font:200 clamp(21px,2.15vw,36px)/1.08 \"Be Vietnam Pro\",system-ui,sans-serif;text-transform:uppercase;color:#8F8C86;transition:color .3s cubic-bezier(.22,.68,.14,1)}.ds-opt__txt::after{content:\"\";flex:none;width:clamp(18px,1.6vw,24px);height:clamp(18px,1.6vw,24px);background:currentColor;-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 8h12M9 3.5 13.5 8 9 12.5' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='square'/%3E%3C/svg%3E\") center/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 8h12M9 3.5 13.5 8 9 12.5' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='square'/%3E%3C/svg%3E\") center/contain no-repeat;opacity:0;transform:translateX(-10px);transition:opacity .3s cubic-bezier(.22,.68,.14,1),transform .45s cubic-bezier(.16,1,.3,1)}.ds-opt:hover .ds-opt__txt{color:#EDEAE4}.ds-opt:hover .ds-opt__txt::after{opacity:.7;transform:none}.ds-opt input:checked + .ds-opt__txt{color:#EDEAE4;border-bottom-color:#FF5B1F;box-shadow:inset 0 -1px 0 #FF5B1F}.ds-opt input:checked + .ds-opt__txt::after{opacity:1;transform:none;background:#FF5B1F}.ds-opt input:focus-visible + .ds-opt__txt{outline:2px solid #EDEAE4;outline-offset:3px}"
+    },
+    {
+      "name": "Work Panel",
+      "kind": "card",
+      "refersTo": "panel-media",
+      "description": "The four-jobs panel below the film: a bordered media well with the title and copy on the bare ground beneath it.",
+      "html": "<article class=\"ds-pan\"><div class=\"ds-pan__media\"><div class=\"ds-pan__mock\">Bistro</div></div><div class=\"ds-pan__body\"><h3 class=\"ds-pan__ttl\">Website</h3><p class=\"ds-pan__h\">Menu, hours and a booking link that answer before anyone calls.</p><p class=\"ds-pan__line\">In-house example, not a client site.</p></div></article>",
+      "css": ".ds-pan{position:relative;margin:0;max-width:560px}.ds-pan__media{background:#131312;border:1px solid rgba(237,234,228,.12);border-radius:2px;overflow:hidden;padding:clamp(24px,4.4vw,72px);display:grid;place-items:center}.ds-pan__mock{width:100%;aspect-ratio:16/10;border-radius:3px;background:#141416;color:#F2E7D5;display:flex;align-items:flex-end;padding:18px;font:600 20px/1 \"Be Vietnam Pro\",system-ui,sans-serif;letter-spacing:-.01em}.ds-pan__body{padding:24px 0 0}.ds-pan__ttl{margin:0 0 16px;font:200 clamp(26px,2.5vw,42px)/1 \"Be Vietnam Pro\",system-ui,sans-serif;letter-spacing:0;text-transform:uppercase;color:#EDEAE4}.ds-pan__h{margin:0 0 6px;font:400 18px/1.4 \"Be Vietnam Pro\",system-ui,sans-serif;color:#EDEAE4}.ds-pan__line{margin:0;font:400 16px/1.5 \"Be Vietnam Pro\",system-ui,sans-serif;color:#8F8C86;max-width:48ch}"
+    },
+    {
+      "name": "Film Panel, Lit",
+      "kind": "card",
+      "refersTo": "panel-media",
+      "description": "The same panel as a prop in the film: desaturated at 34% until delivered, then a 56px orange bar draws across its top-left.",
+      "html": "<article class=\"ds-panlit\"><div class=\"ds-panlit__frame\"><div class=\"ds-panlit__media\"></div><div class=\"ds-panlit__body\"><h3 class=\"ds-panlit__ttl\">Social</h3><p class=\"ds-panlit__line\">Posted every week, aimed at people nearby.</p></div></div></article>",
+      "css": ".ds-panlit__frame{position:relative;display:flex;flex-direction:column;width:min(100%,360px);background:#0E0E0D;border:1px solid rgba(237,234,228,.12);border-radius:2px;overflow:hidden;transition:opacity .6s cubic-bezier(.22,.68,.14,1),filter .6s cubic-bezier(.22,.68,.14,1)}.ds-panlit__frame::before{content:\"\";position:absolute;left:0;top:0;width:56px;height:2px;z-index:2;background:#FF5B1F;transform:scaleX(0);transform-origin:left center;transition:transform .8s cubic-bezier(.16,1,.3,1)}.ds-panlit:hover .ds-panlit__frame::before{transform:scaleX(1)}.ds-panlit__media{flex:1;min-height:140px;background:#131312}.ds-panlit__body{padding:18px 20px 20px;border-top:1px solid rgba(237,234,228,.12)}.ds-panlit__ttl{margin:0 0 10px;font:200 30px/1 \"Be Vietnam Pro\",system-ui,sans-serif;text-transform:uppercase;color:#EDEAE4}.ds-panlit__line{margin:0;font:400 15px/1.45 \"Be Vietnam Pro\",system-ui,sans-serif;color:#8F8C86}"
+    },
+    {
+      "name": "Header Navigation",
+      "kind": "nav",
+      "refersTo": "button-ghost",
+      "description": "Fixed 56px bar, transparent at rest, solid black fading out 28px below once scrolled. No glass.",
+      "html": "<header class=\"ds-hdr is-scrolled\"><div class=\"ds-hdr__in\"><a class=\"ds-brand\" href=\"#top\"><span class=\"ds-brand__mark\"></span><span class=\"ds-brand__word\">Domin8te <span class=\"ds-brand__sub\">Media</span></span></a><nav class=\"ds-nav\"><a class=\"ds-nav__link\" href=\"#work\">Work</a><a class=\"ds-nav__link\" href=\"#try\">What we’d fix</a><a class=\"ds-nav__cta\" href=\"#contact\">Get your plan</a></nav></div></header>",
+      "css": ".ds-hdr{position:relative;height:56px;border-bottom:1px solid transparent}.ds-hdr::before{content:\"\";position:absolute;inset:0 0 -28px 0;z-index:-1;background:linear-gradient(180deg,#0A0A0A 0%,#0A0A0A calc(100% - 28px),rgba(10,10,10,0) 100%);opacity:0;transition:opacity .35s cubic-bezier(.22,.68,.14,1)}.ds-hdr.is-scrolled::before{opacity:1}.ds-hdr__in{height:100%;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:0 clamp(20px,5vw,72px)}.ds-brand{display:inline-flex;align-items:center;gap:12px;text-decoration:none;color:#EDEAE4}.ds-brand__mark{width:28px;height:17px;flex:none;background:linear-gradient(90deg,#E5322B 0%,#F3CB3C 26%,#0FA3C2 55%,#D51C73 100%);-webkit-mask:radial-gradient(circle at 25% 50%,#000 44%,transparent 46%),radial-gradient(circle at 75% 50%,#000 44%,transparent 46%);mask:radial-gradient(circle at 25% 50%,#000 44%,transparent 46%),radial-gradient(circle at 75% 50%,#000 44%,transparent 46%)}.ds-brand__word{font:600 13px/1 \"Be Vietnam Pro\",system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase}.ds-brand__sub{color:#86837D;font-weight:400}.ds-nav{display:flex;align-items:center;gap:clamp(6px,1.4vw,26px)}.ds-nav__link{display:inline-flex;align-items:center;min-height:44px;padding:0 4px;font:400 14px/1 \"Be Vietnam Pro\",system-ui,sans-serif;color:#8F8C86;text-decoration:none;transition:color .2s cubic-bezier(.22,.68,.14,1)}.ds-nav__link:hover{color:#EDEAE4}.ds-nav__cta{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 2px;color:#EDEAE4;font:600 12px/1 \"Be Vietnam Pro\",system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;background:linear-gradient(rgba(237,234,228,.32),rgba(237,234,228,.32)) left calc(50% + 12px)/100% 1px no-repeat}.ds-nav__cta:hover{background:linear-gradient(#EDEAE4,#EDEAE4) left calc(50% + 12px)/100% 1px no-repeat}.ds-nav__link:focus-visible,.ds-nav__cta:focus-visible{outline:2px solid #EDEAE4;outline-offset:4px}"
+    },
+    {
+      "name": "Beat Block",
+      "kind": "custom",
+      "refersTo": "display-beat",
+      "description": "The world's signature composition: oversized thin uppercase broken across two lines, one orange accent word, a small grey block indented beneath it on a hairline that runs off the left edge.",
+      "html": "<div class=\"ds-beat\"><h2 class=\"ds-beat__hl\"><span class=\"ds-ln\">We’ll post the <em class=\"ds-acc\">specials.</em></span> <span class=\"ds-ln ds-ln--2\">You keep cooking them.</span></h2><p class=\"ds-beat__sub\">For independent restaurants and cafes, we run the website, ads and Google listing too.</p></div>",
+      "css": ".ds-beat{position:relative;overflow:hidden;padding:24px 0;background:radial-gradient(circle,rgba(237,234,228,.095) 1px,rgba(237,234,228,0) 1.6px) 0 0/28px 28px,#0A0A0A}.ds-beat__hl{margin:0;font:200 clamp(38px,10.8vw,64px)/.94 \"Be Vietnam Pro\",system-ui,sans-serif;letter-spacing:0;text-transform:uppercase;color:#EDEAE4;font-synthesis:none;word-spacing:-.05em}.ds-ln{display:block}.ds-ln--2{color:#86837D}.ds-acc{font-weight:800;font-style:italic;color:#FF5B1F;letter-spacing:-.01em}.ds-beat__sub{position:relative;margin:24px 0 0 clamp(44px,16%,150px);max-width:36ch;font:400 17px/1.55 \"Be Vietnam Pro\",system-ui,sans-serif;color:#8F8C86}.ds-beat__sub::before{content:\"\";position:absolute;top:.78em;right:calc(100% + 18px);width:100vw;height:1px;background:rgba(237,234,228,.24)}"
+    },
+    {
+      "name": "Phone Contact Bar",
+      "kind": "custom",
+      "refersTo": "sticky-cta-bar",
+      "description": "The one floating element: an orange square bar fixed in thumb reach on phones. The header CTA hides while it is up.",
+      "html": "<a class=\"ds-ctabar\" href=\"#contact\">Get your plan</a>",
+      "css": ".ds-ctabar{display:flex;align-items:center;justify-content:center;gap:12px;min-height:52px;padding:0 16px;border-radius:0;background:#FF5B1F;color:#0A0A0A;font:600 14px/1 \"Be Vietnam Pro\",system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;box-shadow:0 14px 34px -12px rgba(0,0,0,.85);transition:background-color .25s cubic-bezier(.22,.68,.14,1)}.ds-ctabar::after{content:\"\";width:14px;height:14px;background:currentColor;-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 8h12M9 3.5 13.5 8 9 12.5' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='square'/%3E%3C/svg%3E\") center/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 8h12M9 3.5 13.5 8 9 12.5' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='square'/%3E%3C/svg%3E\") center/contain no-repeat}.ds-ctabar:hover{background:#FF7A45}.ds-ctabar:focus-visible{outline:2px solid #0A0A0A;outline-offset:-6px}"
+    },
+    {
+      "name": "Rising Line",
+      "kind": "custom",
+      "refersTo": "display-beat",
+      "description": "The signature gesture: the brand spectrum climbing. A 2px vertical bar that grows from its base before each story beat; the same gesture runs orange inside the picker's plan.",
+      "html": "<div class=\"ds-rise\"><i class=\"ds-rise__tick\"></i><p class=\"ds-rise__note\">One beat of the film, stacked.</p></div>",
+      "css": ".ds-rise{padding:8px 0}.ds-rise__tick{display:block;width:2px;height:64px;margin:0 0 26px;background:linear-gradient(0deg,#E5322B 0%,#F3CB3C 26%,#5CB246 42%,#0FA3C2 60%,#7A3E97 82%,#D51C73 100%);transform:scaleY(0);transform-origin:50% 100%;animation:ds-climb 1s cubic-bezier(.16,1,.3,1) forwards}@keyframes ds-climb{to{transform:scaleY(1)}}.ds-rise__note{margin:0;font:400 17px/1.55 \"Be Vietnam Pro\",system-ui,sans-serif;color:#8F8C86}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Dot-Grid Broadsheet",
+    "overview": "The page is a black broadsheet printed on graph paper. A 28px dot grid sits under everything, type is the only image, and the words are set so large and so thin that the layout is made of the gaps between them. Small grey paragraphs are dropped into those gaps, each one led in by a hairline that runs off the left edge of the screen, the way a caption is tied to a plate in a printed spread. Nothing is rounded, nothing is glassy, nothing glows.\n\nDepth comes from one moving thing: a single line that climbs. The chip film hands it to the page, it grinds through the owner's real problems, lights each finished job, and climbs out of frame. That line is where the brand's full spectrum is allowed to appear. Everywhere else the page is two greys, one near-white and one orange.\n\nThe build refuses the neon AI-agency template it grew next to: no glow chrome, no pill badges, no chapter kickers above headlines, no card shadows. Weight is carried by size and empty space, not by surfaces.",
+    "keyCharacteristics": [
+      "Dot-grid near-black ground (#0A0A0A) with a 28px dot pitch.",
+      "One type family, four cuts: Be Vietnam Pro 200 / 400 / 600 / 800-italic, self-hosted.",
+      "Oversized thin uppercase display, broken manually across lines.",
+      "Square corners everywhere except two 2px panel tiles.",
+      "One orange (#FF5B1F) for action, picker state and delivered-work edges.",
+      "The brand spectrum only on the rising line, the mark and the closing rule."
+    ],
+    "rules": [
+      { "name": "The Spectrum Rations Rule", "body": "The full brand spectrum (the red-to-magenta gradient and its vertical climb variant) appears in exactly three places: the rising line of the film and story beats, the brand mark, and the closing rule under the wordmark. It is never a background, never a text fill, never a border on a component. Orange carries every other coloured job.", "section": "colors" },
+      { "name": "The One Orange Word Rule", "body": "At most one word per headline is orange. In the shipped hero it is `specials.`; the second line drops back to the thin grey voice. A headline with two accents is a broken headline.", "section": "colors" },
+      { "name": "The Two Voices Rule", "body": "Type is near-white or it is grey. There is no third text colour, and body copy is never pure white.", "section": "colors" },
+      { "name": "The Broken Line Rule", "body": "Display headlines are broken across lines by hand in the markup (`<span class=\"ln\">`), never by width. Line 1 is the near-white statement; line 2 is the grey answer. Auto-wrapping a display headline is a defect.", "section": "typography" },
+      { "name": "The Thin-and-Huge Rule", "body": "Weight 200 is only ever used above ~26px. Below that the family drops to 400 for text or 600 for uppercase micro-labels; there is no thin small text anywhere in the build.", "section": "typography" },
+      { "name": "The No Kicker Rule", "body": "Nothing sits above a headline. No eyebrow, no chapter label, no category tag. The build ships zero of them; the announcement pill inherited from the shared foundation is unused and stays unused.", "section": "typography" },
+      { "name": "The Hairline Off-Edge Rule", "body": "Every caption block and every announcement line is tied to a 1px rule that starts 16-18px to its left and runs 100vw off the left edge of the screen. In the film that rule draws out with the beat's progress. It is the world's signature connector and it always exits the frame; a rule that stops inside the layout is wrong.", "section": "layout" },
+      { "name": "The Gaps Are The Grid Rule", "body": "Composition is made by capping the column and indenting the caption, not by drawing boxes. If a beat needs separation, narrow its column before adding a surface.", "section": "layout" },
+      { "name": "The Flat Page Rule", "body": "No shadow on any page surface. If something must separate from its neighbour, use a hairline, a surface step, or space. The only permitted shadows are the fixed phone bar and depicted third-party UI inside a mock.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do set display type in Be Vietnam Pro 200, uppercase, at line-height:.94, and break the lines by hand.",
+      "Do put the small grey block beside or under the big words at an indent, with its hairline running off the left edge of the screen.",
+      "Do keep the brand spectrum to the rising line, the mark and the closing rule.",
+      "Do use orange for exactly one thing per surface: the action, or the picked state, or the delivered edge.",
+      "Do separate with a 1px hairline at 12% or 24% warm-white before reaching for a surface.",
+      "Do keep corners square; 2px is reserved for panel media, 3px for mocks.",
+      "Do draw arrows as masked SVG and move them 3-4px on hover.",
+      "Do cap a new film beat's column against the display size, the way the six shipped beats do.",
+      "Do ship the display face self-hosted and preloaded, with font-synthesis:none."
+    ],
+    "donts": [
+      "Don't put a kicker, eyebrow, chapter label or pill badge above a headline.",
+      "Don't add a second accent colour, or a second orange word in one headline.",
+      "Don't use the spectrum gradient as a background, a text fill or a component border.",
+      "Don't add elevation shadows, glass blur or glow to page surfaces; the phone contact bar's drop shadow is the only page-level exception.",
+      "Don't set weight 200 below ~26px, and don't set body copy in pure white.",
+      "Don't wrap fields in boxes; the underline is the field.",
+      "Don't let a caption hairline terminate inside the layout.",
+      "Don't use glyph or icon-font arrows, or a system display face as a substitute for the self-hosted cuts.",
+      "Don't offer the same action twice on a phone; the header CTA hides while the contact bar is up."
+    ]
+  }
+}

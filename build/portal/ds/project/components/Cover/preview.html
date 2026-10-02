@@ -1,0 +1,59 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Domin8te Portal</title>
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:var(--ground); color:var(--ink); font-family:var(--font-sans); overflow:hidden; }
+  .cover { position:relative; height:288px; overflow:hidden; }
+  .art { position:absolute; top:0; left:480px; width:480px; height:288px; overflow:hidden; }
+  .art svg { display:block; width:480px; height:288px; }
+  .slab { fill:var(--accent); rx:var(--radius-lg); }
+  .deep { fill:var(--ink); rx:var(--radius-lg); }
+  .tint { fill:var(--accent-tint); rx:var(--radius-lg); }
+  .blue { fill:var(--status-progress); rx:var(--radius-lg); }
+  .row { fill:var(--surface); rx:var(--radius-sm); }
+  .act { fill:var(--accent); rx:var(--radius-sm); }
+  .dot { fill:var(--accent-ink); }
+  .words { position:absolute; left:var(--space-8); bottom:var(--space-6); max-width:440px; }
+  .name { margin:0; font-size:88px; line-height:.92; font-weight:600; letter-spacing:-.02em; color:var(--ink); }
+  .tag { margin:var(--space-3) 0 0 4px; font-size:14px; line-height:20px; color:var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      accent 144x224 bled off the top (the one orange, largest because the brand is known by it) · ink 288x120 (the deep surface every direction shares) · accent-tint 136x80 (the relief tint) · status-progress 136x80 once, small (it only ever means "in progress"); about 45% of the 960x288 cover
+  arrangement one tall accent slab with satellites to its right, bottoms on one line space-6 above the edge, space-4 gutters; nothing crosses x=480
+  pattern     rows with one action, from "every queue item carries exactly one button": three surface rows cut out of the ink block, each ending in a small accent pill; and a space-4 dot grid in accent-ink over the tint, the graph paper the website's world and the Broadsheet direction sit on
+  scales      block sides in space-2 multiples; gutters space-4; dot pitch space-4; corners radius-lg on blocks, radius-sm on rows and pills
+-->
+<rect class="slab" x="16" y="-16" width="144" height="224" rx="16"/>
+<rect class="deep" x="176" y="48" width="288" height="120" rx="16"/>
+<rect class="row" x="200" y="72" width="176" height="8" rx="4"/>
+<rect class="act" x="408" y="68" width="32" height="16" rx="6"/>
+<rect class="row" x="200" y="104" width="144" height="8" rx="4"/>
+<rect class="act" x="408" y="100" width="32" height="16" rx="6"/>
+<rect class="row" x="200" y="136" width="200" height="8" rx="4"/>
+<rect class="act" x="408" y="132" width="32" height="16" rx="6"/>
+<rect class="tint" x="176" y="184" width="136" height="80" rx="16"/>
+<rect class="blue" x="328" y="184" width="136" height="80" rx="16"/>
+<g class="dot">
+<circle cx="192" cy="200" r="1.5"/><circle cx="208" cy="200" r="1.5"/><circle cx="224" cy="200" r="1.5"/><circle cx="240" cy="200" r="1.5"/><circle cx="256" cy="200" r="1.5"/><circle cx="272" cy="200" r="1.5"/><circle cx="288" cy="200" r="1.5"/>
+<circle cx="192" cy="216" r="1.5"/><circle cx="208" cy="216" r="1.5"/><circle cx="224" cy="216" r="1.5"/><circle cx="240" cy="216" r="1.5"/><circle cx="256" cy="216" r="1.5"/><circle cx="272" cy="216" r="1.5"/><circle cx="288" cy="216" r="1.5"/>
+<circle cx="192" cy="232" r="1.5"/><circle cx="208" cy="232" r="1.5"/><circle cx="224" cy="232" r="1.5"/><circle cx="240" cy="232" r="1.5"/><circle cx="256" cy="232" r="1.5"/><circle cx="272" cy="232" r="1.5"/><circle cx="288" cy="232" r="1.5"/>
+<circle cx="192" cy="248" r="1.5"/><circle cx="208" cy="248" r="1.5"/><circle cx="224" cy="248" r="1.5"/><circle cx="240" cy="248" r="1.5"/><circle cx="256" cy="248" r="1.5"/><circle cx="272" cy="248" r="1.5"/><circle cx="288" cy="248" r="1.5"/>
+</g>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">Domin8te<br>Portal</h1>
+<p class="tag">Calm, readable, one action at a time.</p>
+</div>
+</div>
+</body>
+</html>

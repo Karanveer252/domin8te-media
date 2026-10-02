@@ -1,0 +1,11 @@
+/*
+ * 18H Scenes, the final design of the client portal, self-contained. The build reads this file first
+ * and then every other stylesheet here in name order, each a layer this design was built from, with
+ * its selectors already written for 18H:
+ *   1-16j-flow.css            16J Flow: the heavy clear glass and the liquid rail
+ *   2-18d-flow.css            18D Flow: the fixed panel with labels, the current of colour (now unused)
+ *   3-18f-skylight.css        18F Skylight: the skies (Scenes), the sky inks, one drop for the panel
+ *   4-18f-skylight-results.css  18F's Results sky, the northern lights (made by an archived tool)
+ *   5-18h-scenes.css          18H: the dot grid (Static), the dot sliders, Scenes / Static in Settings
+ * The scripts follow the same order (1-, 2-, 3-, then variant.js), each run in its own script block.
+ */

@@ -1,0 +1,123 @@
+/*
+ * 18H Scenes. 18G Dot Grid with a choice in Settings, right above Light and Dark: Static, the
+ * default, is 18G exactly (the website's dot grid on every page, the dots that part round the pointer,
+ * every page reading as 18F's Work does); Scenes is 18F Skylight exactly (the seven skies, light words
+ * over the deep skies with frosted cards, the Home sky switch in the glass dock). The two are never
+ * mixed: every rule here that belongs to the dot grid is written for html:not([data-scene="scenes"]),
+ * so with Scenes none of them applies and 18F's own rules (this design's base) draw the page.
+ * The choice is kept like the theme and set before the first paint (inject.html); ?scene=scenes or
+ * ?scene=static sets it for one visit. The dots start at 50% visibility and 20% animation.
+ */
+
+/* ---- tokens --------------------------------------------------------------------------------- */
+
+/* The ground, and what the contrast tests measure text against: the beige itself, and the beige
+   under a dot at its darkest (a dot the pointer has reached, averaged over a patch the size of a
+   letter: 8% of the dot's ink). After dark the same, the other way round. The veil is zero. */
+html[data-variant="18h"] {
+  --p-bg: #F4F1EC;
+  --p-env-light: #F4F1EC;
+  --p-env-dark: #E1DFDA;
+  --p-env-veil: rgba(244, 241, 236, 0);
+  /* The dots: the site's grid, in near-black. variant.js reads these, so the canvas paints the
+     same dot the CSS draws, and sets --g-vis from the Dot visibility slider (1 is the website). */
+  /* 23px, not the site's 28: Karan asked on 2026-09-29 for 1.5 times as many dots (28 / sqrt 1.5). */
+  --g-dot: 23px;
+  --g-ink: 10, 10, 10;
+  --g-a: 0.11;
+  --g-dots: radial-gradient(circle, rgba(var(--g-ink), calc(var(--g-a) * var(--g-vis, 1))) 1px, rgba(var(--g-ink), 0) 1.6px);
+}
+html[data-variant="18h"][data-theme="dark"] {
+  --p-bg: #0A0A0A;
+  --p-env-light: #1C1C1B;
+  --p-env-dark: #0A0A0A;
+  --p-env-veil: rgba(10, 10, 10, 0);
+  --g-ink: 237, 234, 228;
+  --g-a: 0.095;
+}
+/* Scenes: 18F's grounds, as 18F sets them. */
+html[data-variant="18h"][data-scene="scenes"] {
+  --p-bg: #E9ECF2;
+  --p-env-light: #FDFEFF;
+  --p-env-dark: #B2C1C6;
+  --p-env-veil: rgba(246, 242, 236, 0);
+}
+html[data-variant="18h"][data-scene="scenes"][data-theme="dark"] {
+  --p-bg: #0E0F18;
+  --p-env-light: #764560;
+  --p-env-dark: #0C1121;
+  --p-env-veil: rgba(14, 13, 20, 0);
+}
+
+/* ---- the ground ------------------------------------------------------------------------------ */
+
+/* The sky's pieces (18F's world, inherited) are put away and the world is clear: it holds only the
+   field's canvas. The ground is the page body's, dots and all, as on the site, so it covers the whole
+   window and the dots scroll with the page. 18F's per-page grounds (its deep skies' stand-ins for
+   accessibility checks) are outweighed by these rules, whose :is() gives them that weight on every
+   page. */
+html[data-variant="18h"]:not([data-scene="scenes"]) .lg-world { background-color: transparent; }
+html[data-variant="18h"]:not([data-scene="scenes"]) .lg-world > i { display: none; }
+html[data-variant="18h"]:not([data-scene="scenes"]):not([data-theme="dark"]):is(:not([data-page]), [data-page]) body,
+html[data-variant="18h"]:not([data-scene="scenes"])[data-theme="dark"]:is(:not([data-page]), [data-page]) body {
+  background: var(--g-dots) 0 0 / var(--g-dot) var(--g-dot), var(--p-bg);
+}
+/* With a mouse the canvas takes over from the CSS dots once it has painted (variant.js). */
+html[data-variant="18h"] .lg-world > .dots { display: none; }
+html[data-variant="18h"].dots-live .lg-world > .dots { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
+html[data-variant="18h"].dots-live:not([data-scene="scenes"]):is(:not([data-page]), [data-page]) body { background: var(--p-bg); }
+
+/* ---- the words: every page reads as 18F's Work ----------------------------------------------- */
+
+/* Over its five deep skies 18F turns the page's words light, frosts the cards thickly, gives the
+   words a dark shadow and puts a white base under the small tinted pills. On the dots the ground is
+   light on every page, so each of those is set back to what 18F's Work page has: the dark inks, 18D's
+   clear glass, the family's light halo and the plain tints. After dark 18F changes nothing per page. */
+html[data-variant="18h"]:not([data-scene="scenes"]):not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) {
+  --k-sky-ink: initial; --k-sky-ink-2: initial; --k-sky-ink-3: initial;
+  --k-sky-accent: #7A2805; --k-sky-focus: initial; --k-sky-line: initial; --k-sky-line-2: initial;
+  --p-glass: rgba(255, 255, 255, 0.42);
+  --p-glass-strong: rgba(255, 255, 255, 0.52);
+  --p-glass-soft: rgba(255, 255, 255, 0.34);
+}
+html[data-variant="18h"]:not([data-scene="scenes"]):not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) :is(.page-head h1, .page-head .lede, .fresh-line, .sec-head h2, .sec-title, .sec-meta, .band-title, .range-text, .feed-month h2, .bill-help) { text-shadow: 0 0 18px var(--p-env-light), 0 0 3px var(--p-env-light); }
+html[data-variant="18h"]:not([data-scene="scenes"]) .page :is(.card, .ai-summary, .banner, .caught-up) :is(.sec-head h2, .sec-title, .sec-meta, .band-title, .range-text) { text-shadow: none; }
+html[data-variant="18h"]:not([data-scene="scenes"]):not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) .page .status-chip.is-connection { background: var(--p-conn-bg); }
+html[data-variant="18h"]:not([data-scene="scenes"]):not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) .page .status-chip.is-critical { background: var(--p-crit-bg); }
+html[data-variant="18h"]:not([data-scene="scenes"]):not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) .page .notice { background: var(--p-info-bg); }
+html[data-variant="18h"]:not([data-scene="scenes"]):not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) .page .notice.is-off { background: var(--p-conn-bg); }
+html[data-variant="18h"]:not([data-scene="scenes"]):not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) .page .count { background: var(--p-neutral-bg); }
+html[data-variant="18h"]:not([data-scene="scenes"]):not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) .page .verified .i { color: var(--p-success); }
+
+/* ---- the dot sliders: two rows in the glass dock, a preview tool (variant.js) ------------------- */
+
+/* Dot visibility and Dot animation, under the Liquid glass slider and above the Prism rims switch,
+   each with a notch at the website's strength in the middle. With Scene chosen they give way to 18F's
+   Home sky switch, which has nothing to choose on the dots. */
+html[data-variant="18h"] .g-dock-row { flex-basis: 100%; display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 2px; }
+html[data-variant="18h"] .g-dock-row > label { flex: none; width: 104px; font-size: 13.5px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+html[data-variant="18h"] .g-dock-row .lg-range:disabled { cursor: default; opacity: 0.45; }
+html[data-variant="18h"] .g-dock-val { flex: none; width: 38px; text-align: right; font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+html[data-variant="18h"] .g-dock-note[hidden] { display: none; }
+html[data-variant="18h"][data-scene="scenes"] :is(.g-dock-row, .g-dock-note) { display: none; }
+html[data-variant="18h"]:not([data-scene="scenes"]) .lg-dock-choice { display: none; }
+
+/* ---- Scenes or Static, above Light and Dark in Settings (variant.js) ------------------------------- */
+
+/* The theme picker's own cards, with a small swatch of each ground; a little more space sets the
+   choice apart from Light and Dark below it. */
+html[data-variant="18h"] .theme-pick.scene-pick + .theme-pick { margin-top: 20px; }
+html[data-variant="18h"] .theme-swatch.is-scenes { background: linear-gradient(180deg, #1B2C4F 0%, #43618F 55%, #E7B48A 100%); }
+html[data-variant="18h"] .theme-swatch.is-static { background: radial-gradient(circle, rgba(10, 10, 10, 0.34) 1px, rgba(10, 10, 10, 0) 1.6px) 3px 3px / 7px 7px, #F4F1EC; }
+
+/* ---- page switches that read as instant (2026-09-29, Karan: "make it more better") ---------------
+   The new page lands in place (no 4px rise), and the capsule behind the current page crosses to it
+   faster: its leading edge arrives in 150ms (was 230ms) and the tail follows by 300ms (was 500ms),
+   so the same stretch of liquid, sooner. Reduced motion keeps its plain fade (the rule in
+   3-18f-skylight.css). */
+html[data-variant="18h"] .page { animation: none; }
+@media (min-width: 761px) and (prefers-reduced-motion: no-preference) {
+  html[data-variant="18h"] .portal[data-ind] .k-goo > .goo-cur { transition: --lg-top 200ms cubic-bezier(0.3, 0.7, 0.2, 1), --lg-bot 200ms cubic-bezier(0.3, 0.7, 0.2, 1), width var(--m-slow) var(--ease), opacity var(--m-fast) var(--ease); }
+  html[data-variant="18h"] .portal[data-ind] .k-goo[data-dir="down"] > .goo-cur { transition: --lg-bot 150ms cubic-bezier(0.3, 0.8, 0.2, 1), --lg-top 300ms cubic-bezier(0.55, 0, 0.2, 1), width var(--m-slow) var(--ease), opacity var(--m-fast) var(--ease); }
+  html[data-variant="18h"] .portal[data-ind] .k-goo[data-dir="up"] > .goo-cur { transition: --lg-top 150ms cubic-bezier(0.3, 0.8, 0.2, 1), --lg-bot 300ms cubic-bezier(0.55, 0, 0.2, 1), width var(--m-slow) var(--ease), opacity var(--m-fast) var(--ease); }
+}

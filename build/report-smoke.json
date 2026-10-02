@@ -1,0 +1,4 @@
+{
+ "task": "smoke",
+ "fatal": "Error: TypeError: Failed to execute 'getComputedStyle' on 'Window': parameter 1 is not of type 'Element'.\n    at <anonymous>:3:14\n    at <anonymous>:31:4"
+}

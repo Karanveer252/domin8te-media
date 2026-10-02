@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@110..125,600..700&family=Geist+Mono:wght@500&display=swap">
+<style>
+  *{box-sizing:border-box;margin:0}
+  body{width:1200px;height:630px;overflow:hidden;background:#070A16;
+       font-family:"Archivo",system-ui,sans-serif;display:grid;place-items:center;position:relative}
+  .glow{position:absolute;inset:0;
+    background:
+      radial-gradient(ellipse 44% 42% at 50% 44%,rgba(255,244,228,.1) 0%,rgba(255,244,228,0) 70%),
+      radial-gradient(ellipse 70% 60% at 14% 94%,rgba(46,95,168,.14) 0%,rgba(46,95,168,0) 72%),
+      radial-gradient(ellipse 60% 55% at 90% 6%,rgba(122,62,151,.13) 0%,rgba(122,62,151,0) 70%)}
+  .in{position:relative;display:flex;flex-direction:column;align-items:center;gap:26px;text-align:center}
+  svg{width:250px;height:150px}
+  .word{font-weight:700;font-variation-settings:"wdth" 116;font-size:74px;letter-spacing:.02em;color:#F1F3FF;line-height:1}
+  .word span{background:linear-gradient(100deg,#E5322B,#F2912F 13%,#F3CB3C 26%,#5CB246 40%,#0FA3C2 55%,#2E5FA8 70%,#7A3E97 85%,#D51C73);
+             -webkit-background-clip:text;color:transparent}
+  .sub{font-style:normal;font-weight:600;font-variation-settings:"wdth" 116;font-size:30px;letter-spacing:.4em;color:#7C84A8;margin-left:.4em}
+  .rule{width:520px;height:3px;border-radius:3px;
+        background:linear-gradient(100deg,#E5322B,#F2912F 13%,#F3CB3C 26%,#5CB246 40%,#0FA3C2 55%,#2E5FA8 70%,#7A3E97 85%,#D51C73)}
+  .line{font-family:"Geist Mono",monospace;font-weight:500;font-size:19px;letter-spacing:.22em;
+        text-transform:uppercase;color:#A7AECC}
+</style></head>
+<body>
+<div class="glow"></div>
+<div class="in">
+  <svg viewBox="0 0 200 120"><defs><linearGradient id="g" x1="4%" y1="0%" x2="96%" y2="100%">
+    <stop offset="0%" stop-color="#E5322B"/><stop offset="13%" stop-color="#F2912F"/>
+    <stop offset="26%" stop-color="#F3CB3C"/><stop offset="40%" stop-color="#5CB246"/>
+    <stop offset="55%" stop-color="#0FA3C2"/><stop offset="70%" stop-color="#2E5FA8"/>
+    <stop offset="85%" stop-color="#7A3E97"/><stop offset="100%" stop-color="#D51C73"/></linearGradient></defs>
+    <path d="M100 60C100 32 78 16 52 16C26 16 8 36 8 60C8 84 26 104 52 104C78 104 100 88 100 60C100 32 122 16 148 16C174 16 192 36 192 60C192 84 174 104 148 104C122 104 100 88 100 60Z"
+      fill="none" stroke="#05060F" stroke-opacity=".55" stroke-width="25" stroke-linecap="round" stroke-linejoin="round" transform="translate(4 6)"/>
+    <path d="M100 60C100 32 78 16 52 16C26 16 8 36 8 60C8 84 26 104 52 104C78 104 100 88 100 60C100 32 122 16 148 16C174 16 192 36 192 60C192 84 174 104 148 104C122 104 100 88 100 60Z"
+      fill="none" stroke="url(#g)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <p class="word">DOMIN<span>8</span>TE <i class="sub">MEDIA</i></p>
+  <i class="rule"></i>
+  <p class="line">One core. Your whole online presence.</p>
+</div>
+</body></html>

@@ -1,0 +1,398 @@
+Skip to content
+Products
+Resources
+Enterprise
+Pricing
+Contact
+Log In
+Sign Up
+Talk to our Sales team
+Get a custom demo. Discover the value of Vercel for your enterprise and explore our custom plans and pricing.
+
+4B tokens processed daily
+
+Millions of concurrent sandbox executions
+
+20× lower retry rate for AI requests
+
+80% faster from design to live
+
+~60 days to two patent-pending products
+
+Full name
+Company email
+Country
+Select your country
+United States
+Germany
+United Kingdom
+France
+Canada
+Japan
+India
+Australia
+Netherlands
+Brazil
+Åland Islands
+Albania
+Algeria
+American Samoa
+Andorra
+Angola
+Anguilla
+Antarctica
+Antigua and Barbuda
+Argentina
+Armenia
+Aruba
+Austria
+Azerbaijan
+Bahamas
+Bahrain
+Bangladesh
+Barbados
+Belarus
+Belgium
+Belize
+Benin
+Bermuda
+Bhutan
+Bolivia
+Bonaire, Sint Eustatius and Saba
+Bosnia and Herzegovina
+Botswana
+Bouvet Island
+British Indian Ocean Territory
+Brunei Darussalam
+Bulgaria
+Burkina Faso
+Burundi
+Cambodia
+Cameroon
+Cape Verde
+Cayman Islands
+Central African Republic
+Chad
+Chile
+Christmas Island
+Cocos (Keeling) Islands
+Colombia
+Comoros
+Cook Islands
+Costa Rica
+Cote D'Ivoire
+Croatia
+Curaçao
+Cyprus
+Czech Republic
+Democratic Republic of the Congo
+Denmark
+Djibouti
+Dominica
+Dominican Republic
+Ecuador
+Egypt
+El Salvador
+Equatorial Guinea
+Eritrea
+Estonia
+Eswatini
+Ethiopia
+Falkland Islands (Malvinas)
+Faroe Islands
+Fiji
+Finland
+French Guiana
+French Polynesia
+French Southern Territories
+Gabon
+Georgia
+Ghana
+Gibraltar
+Greece
+Greenland
+Grenada
+Guadeloupe
+Guam
+Guatemala
+Guernsey
+Guinea
+Guinea-Bissau
+Guyana
+Haiti
+Heard Island and McDonald Islands
+Holy See (Vatican City State)
+Honduras
+Hong Kong
+Hungary
+Iceland
+Indonesia
+Iraq
+Ireland
+Isle of Man
+Israel
+Italy
+Jamaica
+Jersey
+Jordan
+Kazakhstan
+Kenya
+Kiribati
+Kosovo
+Kuwait
+Kyrgyzstan
+Lao People's Democratic Republic
+Latvia
+Lebanon
+Lesotho
+Liberia
+Libya
+Liechtenstein
+Lithuania
+Luxembourg
+Macao
+Madagascar
+Malawi
+Malaysia
+Maldives
+Mali
+Malta
+Marshall Islands
+Martinique
+Mauritania
+Mauritius
+Mayotte
+Mexico
+Micronesia, Federated States of
+Moldova, Republic of
+Monaco
+Mongolia
+Montenegro
+Montserrat
+Morocco
+Mozambique
+Myanmar
+Namibia
+Nauru
+Nepal
+New Caledonia
+New Zealand
+Nicaragua
+Niger
+Nigeria
+Niue
+Norfolk Island
+Northern Mariana Islands
+Norway
+Oman
+Pakistan
+Palau
+Panama
+Papua New Guinea
+Paraguay
+Peru
+Philippines
+Pitcairn
+Poland
+Portugal
+Puerto Rico
+Qatar
+Republic of the Congo
+Republic of The Gambia
+Reunion
+Romania
+Rwanda
+Saint Barthélemy
+Saint Helena
+Saint Kitts and Nevis
+Saint Lucia
+Saint Martin (French part)
+Saint Pierre and Miquelon
+Saint Vincent and the Grenadines
+Samoa
+San Marino
+Sao Tome and Principe
+Saudi Arabia
+Senegal
+Serbia
+Seychelles
+Sierra Leone
+Singapore
+Sint Maarten (Dutch part)
+Slovakia
+Slovenia
+Solomon Islands
+Somalia
+South Africa
+South Georgia and the South Sandwich Islands
+South Korea
+South Sudan
+Spain
+Sri Lanka
+State of Palestine
+Sudan
+Suriname
+Svalbard and Jan Mayen
+Sweden
+Switzerland
+Taiwan
+Tajikistan
+Thailand
+The Republic of North Macedonia
+Timor-Leste
+Togo
+Tokelau
+Tonga
+Trinidad and Tobago
+Tunisia
+Türkiye
+Turkmenistan
+Turks and Caicos Islands
+Tuvalu
+Uganda
+Ukraine
+United Arab Emirates
+United Republic of Tanzania
+United States Minor Outlying Islands
+Uruguay
+Uzbekistan
+Vanuatu
+Venezuela
+Vietnam
+Virgin Islands, British
+Virgin Islands, U.S.
+Wallis and Futuna
+Western Sahara
+Yemen
+Zambia
+Zimbabwe
+Select your province
+Select your province
+Alberta
+British Columbia
+Manitoba
+New Brunswick
+Newfoundland and Labrador
+Northwest Territories
+Nova Scotia
+Nunavut
+Ontario
+Prince Edward Island
+Quebec
+Saskatchewan
+Yukon Territory
+Company website
+How can we help you?
+Privacy Policy
+
+Yes, I agree to receive marketing communications from Vercel as described in your Privacy Policy. I can withdraw my consent at any time by clicking the unsubscribe link in the emails.
+
+Talk to Vercel
+Agent Stack
+AI SDK
+AI Gateway
+Sandbox
+Workflows
+Connect
+New
+Passport
+New
+eve
+New
+Core Platform
+CI/CD
+Content Delivery
+Fluid Compute
+Observability
+Security
+Platform Security
+WAF
+Bot Management
+BotID
+Tools
+Vercel Drop
+New
+Vercel Agent
+Vercel Plugin
+New
+Agent Skills
+Domains
+v0
+Frameworks
+eve
+New
+Next.js
+Nuxt
+SvelteKit
+Nitro
+Turborepo
+Tanstack Start
+FastAPI
+All frameworks
+SDKs
+Vercel SDK
+Workflow SDK
+New
+Flags SDK
+Chat SDK
+New
+Queues SDK
+New
+Streamdown
+Build
+AI Apps
+Web Apps
+Marketing Sites
+Platforms
+Commerce
+Platform Engineers
+Design Engineers
+Learn
+Docs
+Blog
+Changelog
+Knowledge Base
+Academy
+Articles
+Community
+Is Agentic
+Explore
+Customers
+Marketplace
+Templates
+Partner Finder
+Vercel + AWS
+Company
+About
+Careers
+Press
+Events
+Startups
+Shipped on Vercel
+Open Source Program
+Enterprise
+Pricing
+Help
+Legal & Trust
+Privacy Policy
+Terms of Service
+Cookie Policy
+DPA
+Acceptable Use Policy
+Legal (all documents)
+Trust Center
+Status
+Cookie Preferences
+Social
+GitHub
+X
+LinkedIn
+YouTube
+Instagram
+
+ALL SYSTEMS NORMAL.
+
+Select a display theme:
+system
+light
+dark

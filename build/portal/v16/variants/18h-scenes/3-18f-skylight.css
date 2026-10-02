@@ -1,0 +1,561 @@
+/*
+ * 18F Skylight. Built from 18D Flow: the same clear glass, the same fixed panel of labelled
+ * navigation and the same liquid behaviour, under a sky instead of a current of colour.
+ * The sky: four hours from 18A Window (Work late morning, Updates dusk, Billing evening with the
+ * lights coming on, Settings night with the moon and stars) and three new places: Home is blue hour
+ * above the clouds, a sea of slate cloud drifting under a fading crescent while dawn warms the
+ * horizon; Results is the northern lights, curtains of green and violet swaying over a dark ridge;
+ * Help is dawn on a lake, mist drifting over still water. Sign-in and not found share Home. Dark:
+ * the same places after dark.
+ * The page sits straight on the sky, as 18D's does on its current: cards and controls are glass,
+ * and the page's own words (its title, introduction, headings and notes) sit on the sky itself. On
+ * the two light skies (Work, Help) they are dark; over the five deep ones they turn light and the
+ * cards are frosted thickly, so the content stands out and text keeps 4.5:1 on every page.
+ * The panel: one drop of liquid for every button in it (18D's covered the five main pages).
+ * The account team is drawn with the horizontal mark, not the vertical "8".
+ * Prism rims: a preview switch in the glass dock (liquid.js) splits the colours at every rim and
+ * turns each ring of light into a spectrum, as on 18C.
+ */
+
+/* ---- tokens --------------------------------------------------------------------------------- */
+
+/* The grounds: the sky itself, measured where text can sit by tools/skycheck.js (every page, both
+   themes, desktop and phone, five moments each). The light pair is Work's and Help's, the two light
+   skies where the words are dark; the five deep skies are checked by skycheck against their own
+   light words (see "text straight on the sky"). After dark: the darkest and brightest spots of all
+   seven. The veil is zero: nothing lies between the sky and the page. */
+html[data-variant="18h"] {
+  --p-bg: #E9ECF2;
+  --p-env-light: #FDFEFF;
+  --p-env-dark: #B2C1C6;
+  --p-env-veil: rgba(246, 242, 236, 0);
+}
+html[data-variant="18h"][data-theme="dark"] {
+  --p-bg: #0E0F18;
+  --p-env-light: #764560;
+  --p-env-dark: #0C1121;
+  --p-env-veil: rgba(14, 13, 20, 0);
+}
+
+/* ---- the sky --------------------------------------------------------------------------------- */
+
+/* 18D's current is switched off: its pools hang off every piece of the world as ::before and
+   ::after, so the pseudo-elements go and each piece is shown plainly. */
+html[data-variant="18h"] .lg-world > i {
+  opacity: 1; visibility: visible; border-radius: 0; animation: none; will-change: auto;
+  transition: opacity 1.4s var(--ease), left 1.4s var(--ease), top 1.4s var(--ease), right 1.4s var(--ease), bottom 1.4s var(--ease), width 1.4s var(--ease), height 1.4s var(--ease), background-color 1.4s var(--ease), filter 1.4s var(--ease);
+}
+html[data-variant="18h"] .lg-world > i::before,
+html[data-variant="18h"] .lg-world > i::after { content: none; }
+
+/* The hour and the weather: every page sets the sky, the land, the sun or moon and the clouds.
+   Home is the default (sign-in and not found share it). Solid colours transition (flow.css);
+   gradients would snap. The panel covers the top of the left-hand column, so everything that
+   should be seen sharply sits low in that column, held under the panel's foot on short screens;
+   the high sun or moon glows through the sheet at the top right. */
+html[data-variant="18h"] .lg-world {
+  /* Home: blue hour above the clouds. Deep blue over a sea of slate cloud; dawn warms the horizon in
+     the open column; a fading crescent and the last stars. */
+  --sky-up: #2C3A72; --sky-low: #4B5B98; --low-top: 30%;
+  --ground: #26315A; --ground-a: 0; --hz: #7C74B0; --hz-a: 0.2;
+  --hz-b: min(9.5%, calc(100% - 620px));
+  --gnd-b: -12%; --gnd-h: calc(var(--hz-b) + 12%);
+  --sea-b: min(34%, calc(100% - 630px)); --sea-a: 1;
+  --sea-1: #3A4880; --sea-2: #45548E; --sea-3: #50609A;
+  --lo-a: 0; --lo-ga: 1; --lo-x: 4%; --lo-b: calc(var(--sea-b) + 1vh); --lo-s: 12vmin; --lo-blur: 1vmin; --lo-c: #FFD7A8; --lo-glow: #F2A77A; --lo-glow-a: 0.75;
+  --hi-a: 1; --hi-x: 11%; --hi-y: max(60%, 640px); --hi-s: 4.2vmin; --hi-blur: 0.15vmin; --hi-c: #F1EEFA; --hi-glow: #7686C4; --hi-glow-a: 0.3;
+  --aur-a: 0;
+  --lake-a: 0; --lake-b: min(30%, calc(100% - 620px)); --lake-top: #CFD9E3; --lake-bot: #B3C2D0; --lo-gs: 2.2;
+  --mist-a: 0; --mist-c: 255, 255, 255;
+  --cloud: #3E4C84; --cloud-a: 0.75;
+  --c1a: 1; --c1y: 2%; --c2a: 1; --c2y: 30%; --c3a: 0; --c3b: 24%; --c4a: 1; --c4y: 1%; --c5a: 0; --c5b: 7%;
+  --c-h: 3vmin;
+  --lights: 0; --stars: 0.75;
+  --way-a: 0; --ridge-a: 0; --ridge-b: min(40%, calc(100% - 560px));
+  --r1: #34437A; --r2: #28356A; --r3: #1C2752; --r1-a: 0; --r2-a: 0; --r3-a: 0; --rm-a: 0;
+}
+html[data-variant="18h"][data-page="work"] .lg-world {
+  /* Late morning (18A). */
+  --sky-up: #A6C9EA; --sky-low: #D8E8F6; --low-top: 36%;
+  --ground: #AFBFC4; --ground-a: 1; --hz: #FFFFFF; --hz-a: 0.4;
+  --sea-a: 0;
+  --lo-a: 0; --lo-ga: 0;
+  --hi-a: 1; --hi-x: 82%; --hi-y: 8%; --hi-s: 10vmin; --hi-blur: 0.8vmin; --hi-c: #FFF6D6; --hi-glow: #FFFFFF; --hi-glow-a: 0.7;
+  --stars: 0;
+  --cloud: #FFFFFF; --cloud-a: 0.96; --c-h: 7vmin;
+  --c1a: 1; --c1y: 1%; --c2a: 1; --c2y: 44%; --c3a: 1; --c3b: 24%; --c4a: 0; --c4y: 1%; --c5a: 1; --c5b: 8%;
+}
+html[data-variant="18h"][data-page="updates"] .lg-world {
+  /* Dusk (18A): violet into rose, a large sun setting. */
+  --sky-up: #5E4E94; --sky-low: #8E4E70; --low-top: 36%;
+  --ground: #4A3E66; --ground-a: 1; --hz: #8A4A66; --hz-a: 0.35;
+  --sea-a: 0;
+  --lo-a: 1; --lo-ga: 1; --lo-x: 5%; --lo-b: 12%; --lo-s: 16vmin; --lo-blur: 1.8vmin; --lo-c: #FF9C74; --lo-glow: #FF8FA0; --lo-glow-a: 0.55; --lo-gs: 1.6;
+  --hi-a: 0;
+  --cloud: #6E5288; --cloud-a: 0.86; --c-h: 7vmin;
+  --c1a: 1; --c1y: 1.5%; --c2a: 1; --c2y: 14%; --c3a: 1; --c3b: 30%; --c4a: 1; --c4y: 0.5%; --c5a: 1; --c5b: 8.5%;
+}
+html[data-variant="18h"][data-page="billing"] .lg-world {
+  /* Evening (18A): deep indigo, a small moon, the lights coming on. */
+  --sky-up: #3E4080; --sky-low: #5C5A98; --low-top: 36%;
+  --ground: #3A3F72; --ground-a: 1; --hz: #6A66A8; --hz-a: 0.3;
+  --sea-a: 0;
+  --lo-a: 0; --lo-ga: 0;
+  --hi-a: 1; --hi-x: 9%; --hi-y: max(64%, 650px); --hi-s: 5vmin; --hi-blur: 0.3vmin; --hi-c: #DAD7EE; --hi-glow: #8E86C8; --hi-glow-a: 0.5;
+  --cloud: #57579E; --cloud-a: 0.9; --c-h: 7vmin;
+  --c1a: 1; --c1y: 1%; --c2a: 1; --c2y: 38%; --c3a: 1; --c3b: 22%; --c4a: 0; --c4y: 2%; --c5a: 1; --c5b: 6.5%;
+  --lights: 1;
+}
+html[data-variant="18h"][data-page="settings"] .lg-world {
+  /* Night (18A): lavender-blue, a low moon, stars. */
+  --sky-up: #4E5699; --sky-low: #545899; --low-top: 36%;
+  --ground: #3E4378; --ground-a: 1; --hz: #6468AE; --hz-a: 0.3;
+  --sea-a: 0;
+  --lo-a: 1; --lo-ga: 1; --lo-x: 8%; --lo-b: 33%; --lo-s: 7vmin; --lo-blur: 0.3vmin; --lo-c: #F1EEFF; --lo-glow: #B8B5E8; --lo-glow-a: 0.6; --lo-gs: 3;
+  --hi-a: 0;
+  --cloud: #5458A0; --cloud-a: 0.82; --c-h: 7vmin;
+  --c1a: 0; --c1y: 2%; --c2a: 1; --c2y: 12%; --c3a: 1; --c3b: 15%; --c4a: 1; --c4y: 1.5%; --c5a: 1; --c5b: 7%;
+  --stars: 1;
+}
+html[data-variant="18h"][data-page="help"] .lg-world {
+  /* Dawn on a lake: the sun still in the mist, a far shore, mist drifting over still water. */
+  --sky-up: #C5CCE7; --sky-low: #F5DAD6; --low-top: 34%;
+  --hz-b: var(--lake-b);
+  --ground: #B4BCCC; --ground-a: 0.85; --hz: #FFF1EC; --hz-a: 0.6;
+  --gnd-b: calc(var(--lake-b) - 1.5vh); --gnd-h: 5vh;
+  --sea-a: 0;
+  --lo-a: 0; --lo-ga: 1; --lo-x: 12%; --lo-b: calc(var(--lake-b) + 6vh); --lo-s: 16vmin; --lo-glow: #FFE6C4; --lo-glow-a: 1; --lo-gs: 4.2;
+  --hi-a: 0; --stars: 0;
+  --lake-a: 1;
+  --mist-a: 1;
+  --cloud: #F6E8EA; --cloud-a: 0.6; --c-h: 5vmin;
+  --c1a: 1; --c1y: 2%; --c2a: 0; --c2y: 20%; --c3a: 0; --c3b: 40%; --c4a: 1; --c4y: 1%; --c5a: 0; --c5b: 8%;
+}
+
+/* After dark: the same places at night, dimmer. */
+html[data-variant="18h"][data-theme="dark"] .lg-world {
+  /* Home: the sea of cloud before the dawn, under the crescent. */
+  --sky-up: #111831; --sky-low: #252F58; --hz: #4E4A7C;
+  --sea-1: #262F57; --sea-2: #2F3964; --sea-3: #394472;
+  --lo-glow: #A8664A; --lo-glow-a: 0.45;
+  --hi-c: #D8D6EA; --hi-glow: #3E4A80; --hi-glow-a: 0.4;
+  --cloud: #2A345E; --cloud-a: 0.6;
+  --lake-top: #1E2638; --lake-bot: #121826; --mist-c: 64, 74, 110;
+  --stars: 0.8;
+}
+html[data-variant="18h"][data-theme="dark"][data-page="work"] .lg-world {
+  --sky-up: #131E38; --sky-low: #2B4064; --ground: #182430; --hz: #4A6488;
+  --hi-x: 13%; --hi-y: max(62%, 640px); --hi-s: 6vmin; --hi-c: #8C8AA6; --hi-glow: #4A5A80; --hi-glow-a: 0.5;
+  --cloud: #3A4A66; --cloud-a: 0.76;
+  --stars: 0.55;
+}
+html[data-variant="18h"][data-theme="dark"][data-page="updates"] .lg-world {
+  --sky-up: #251A38; --sky-low: #6C3A58; --ground: #231B2E; --hz: #8A5A70;
+  --lo-c: #B0624E; --lo-s: 16vmin; --lo-blur: 1.8vmin; --lo-glow: #88486A; --lo-glow-a: 0.45;
+  --cloud: #583C62; --cloud-a: 0.7;
+  --stars: 0.4;
+}
+html[data-variant="18h"][data-theme="dark"][data-page="billing"] .lg-world {
+  --sky-up: #0F1128; --sky-low: #22254E; --ground: #0C0D1C; --hz: #3A3C72;
+  --hi-c: #8A8AA8; --hi-glow: #3A3C6A; --hi-glow-a: 0.55;
+  --cloud: #262A52; --cloud-a: 0.8;
+  --stars: 0.7;
+}
+html[data-variant="18h"][data-theme="dark"][data-page="settings"] .lg-world {
+  --sky-up: #1A1B36; --sky-low: #3E4072; --ground: #16172E; --hz: #5A5C94;
+  --lo-c: #8C8AA6; --lo-s: 7vmin; --lo-blur: 0.3vmin; --lo-glow: #5A5C90; --lo-glow-a: 0.55;
+  --cloud: #2E3060; --cloud-a: 0.6;
+  --stars: 1;
+}
+html[data-variant="18h"][data-theme="dark"][data-page="help"] .lg-world {
+  --sky-up: #151A2C; --sky-low: #2E3450; --ground: #0F121C; --hz: #3E4462;
+  --lo-glow: #5A628A; --lo-glow-a: 0.35; --lo-gs: 2.4;
+  --cloud: #2A3048; --cloud-a: 0.5;
+  --stars: 0.4;
+}
+
+/* The pieces. Their places and sizes are properties flow.css transitions, so a page change moves the
+   sun, lifts the land or lowers the sea over a second and a half; colours crossfade. */
+html[data-variant="18h"] .lg-world :is(.k-sun, .k-glow, .k-c, .k-l, .k-s) { border-radius: 50%; }
+html[data-variant="18h"] .lg-world { background-color: var(--sky-up); }
+html[data-variant="18h"] .lg-world > .k-up { left: calc(-10% - 90px); right: calc(-10% - 90px); top: -24%; bottom: -24%; background-color: var(--sky-up); filter: blur(40px); }
+html[data-variant="18h"] .lg-world > .k-low { left: calc(-10% - 110px); right: calc(-10% - 110px); top: var(--low-top); bottom: -24%; background-color: var(--sky-low); filter: blur(56px); animation: k-tide 30s steps(360) infinite alternate; }
+html[data-variant="18h"] .lg-world > .k-ground { left: -6%; right: -6%; top: auto; bottom: var(--gnd-b); height: var(--gnd-h); background-color: var(--ground); opacity: var(--ground-a); filter: blur(3px); }
+html[data-variant="18h"] .lg-world > .k-hz { left: -6%; right: -6%; top: auto; bottom: calc(var(--hz-b) - 6%); height: 13%; background-color: var(--hz); opacity: var(--hz-a); filter: blur(26px); }
+
+/* The low sun or moon sits in the open column under the panel; the high one glows through the sheet. */
+html[data-variant="18h"] .lg-world > i.k-sun,
+html[data-variant="18h"] .lg-world > i.k-glow {
+  transition: opacity 1.4s var(--ease), left 4s ease-in-out, top 4s ease-in-out, bottom 4s ease-in-out, width 1.4s var(--ease), height 1.4s var(--ease), background-color 1.4s var(--ease), filter 1.4s var(--ease);
+}
+html[data-variant="18h"] .lg-world > .k-glow { animation: k-breathe 34s steps(400) infinite alternate; }
+html[data-variant="18h"] .lg-world > .k-sun { animation: k-sun 44s steps(528) infinite alternate; }
+html[data-variant="18h"] .lg-world > .k-glow-lo {
+  left: var(--lo-x); top: auto; bottom: min(var(--lo-b), calc(100% - 640px)); width: calc(var(--lo-s) * var(--lo-gs)); height: calc(var(--lo-s) * var(--lo-gs));
+  translate: -50% 50%; background-color: var(--lo-glow); opacity: calc(var(--lo-glow-a) * var(--lo-ga) * var(--lo-k, 1)); filter: blur(calc(var(--lo-s) * 0.9 * var(--lo-gs) / 4.2));
+}
+html[data-variant="18h"] .lg-world > .k-sun-lo {
+  left: var(--lo-x); top: auto; bottom: min(var(--lo-b), calc(100% - 640px)); width: var(--lo-s); height: var(--lo-s);
+  translate: -50% 50%; background-color: var(--lo-c); opacity: calc(var(--lo-a) * var(--lo-k, 1)); filter: blur(var(--lo-blur));
+}
+html[data-variant="18h"] .lg-world > .k-glow-hi {
+  left: var(--hi-x); top: var(--hi-y); width: calc(var(--hi-s) * 4.2); height: calc(var(--hi-s) * 4.2);
+  translate: -50% -50%; background-color: var(--hi-glow); opacity: calc(var(--hi-glow-a) * var(--hi-a) * var(--hi-k, 1)); filter: blur(calc(var(--hi-s) * 0.9));
+  animation-delay: -17s;
+}
+/* Home's high moon is a fading crescent. */
+html[data-variant="18h"]:is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"]) .lg-world > .k-sun-hi {
+  -webkit-mask: radial-gradient(circle at 70% 36%, rgba(0, 0, 0, 0) 0 47%, #000 51%);
+  mask: radial-gradient(circle at 70% 36%, rgba(0, 0, 0, 0) 0 47%, #000 51%);
+}
+html[data-variant="18h"] .lg-world > .k-sun-hi {
+  left: var(--hi-x); top: var(--hi-y); width: var(--hi-s); height: var(--hi-s);
+  translate: -50% -50%; background-color: var(--hi-c); opacity: calc(var(--hi-a) * var(--hi-k, 1)); filter: blur(var(--hi-blur));
+  animation-delay: -30s;
+}
+
+/* Clouds: soft lozenges crossing at their own pace. c3 and c5 ride the open column; c1 and c4 the
+   strip above the sheet; c2 crosses behind the sheet as weather in the glass. */
+html[data-variant="18h"] .lg-world > .k-c { height: var(--c-h); background-color: var(--cloud); filter: blur(16px); animation: k-drift 38s steps(456) infinite alternate; }
+html[data-variant="18h"] .lg-world > .k-c1 { left: 18%; top: var(--c1y); width: 24vw; opacity: calc(var(--cloud-a) * var(--c1a)); animation: k-drift-s 32s steps(384) infinite alternate; animation-delay: -9s; }
+html[data-variant="18h"] .lg-world > .k-c2 { left: 40%; top: var(--c2y); width: 38vw; opacity: calc(var(--cloud-a) * var(--c2a)); animation-duration: 42s; animation-delay: -30s; animation-direction: alternate-reverse; }
+html[data-variant="18h"] .lg-world > .k-c3 { left: -8%; top: auto; bottom: var(--c3b); width: 30vw; opacity: calc(var(--cloud-a) * var(--c3a)); animation-duration: 44s; animation-delay: -20s; }
+html[data-variant="18h"] .lg-world > .k-c4 { left: 66%; top: var(--c4y); width: 24vw; opacity: calc(var(--cloud-a) * var(--c4a)); animation: k-drift-s 30s steps(360) infinite alternate-reverse; animation-delay: -4s; }
+html[data-variant="18h"] .lg-world > .k-c5 { left: 2%; top: auto; bottom: var(--c5b); width: 24vw; opacity: calc(var(--cloud-a) * var(--c5a)); animation: k-drift-s 34s steps(408) infinite alternate; animation-delay: -38s; }
+
+/* A sea of cloud (Home): three banks of billowing tops, the nearest the whitest, drifting sideways
+   at three speeds. Each is one tile wider than the view and slides one tile, so the loop never shows. */
+html[data-variant="18h"] .lg-world > .k-sea {
+  --tile: 240px; --lift: 0px; --sea-c: var(--sea-2);
+  left: calc(var(--tile) * -1); right: calc(var(--tile) * -1); top: auto; bottom: -12%;
+  height: calc(var(--sea-b) + 12% - var(--lift));
+  background:
+    radial-gradient(ellipse 50% 62% at 50% 100%, var(--sea-c) 0 64%, transparent 67%) 0 0 / var(--tile) calc(var(--tile) * 0.38) repeat-x,
+    linear-gradient(var(--sea-c), var(--sea-c)) 0 calc(var(--tile) * 0.3) / 100% 100% no-repeat;
+  filter: blur(7px); opacity: var(--sea-a);
+  animation: k-sea 70s steps(840) infinite linear;
+  transition: opacity 1.4s var(--ease), height 1.4s var(--ease), bottom 1.4s var(--ease), filter 1.4s var(--ease);
+}
+html[data-variant="18h"] .lg-world > .k-sea1 { --tile: 170px; --lift: 0px; --sea-c: var(--sea-1); animation-duration: 60s; filter: blur(8px); }
+html[data-variant="18h"] .lg-world > .k-sea2 { --tile: 250px; --lift: 5vh; --sea-c: var(--sea-2); animation-duration: 40s; animation-delay: -20s; }
+html[data-variant="18h"] .lg-world > .k-sea3 { --tile: 340px; --lift: 12vh; --sea-c: var(--sea-3); animation-duration: 26s; animation-delay: -8s; filter: blur(6px); }
+
+/* The lake (Help): still water under the far shore, fine ripples sliding, the hidden sun's light on
+   the water, and banks of mist drifting over it. */
+html[data-variant="18h"] .lg-world > .k-lake { left: -6%; right: -6%; top: auto; bottom: -2%; height: calc(var(--lake-b) + 2%); background-image: linear-gradient(var(--lake-top), var(--lake-bot)); opacity: var(--lake-a); }
+html[data-variant="18h"] .lg-world > .k-ripple {
+  left: -8%; right: -8%; top: auto; bottom: -2%; height: calc(var(--lake-b) + 2%); opacity: calc(var(--lake-a) * 0.75);
+  background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0) 0 9px, rgba(255, 255, 255, 0.5) 9px 10.5px, rgba(255, 255, 255, 0) 10.5px 19px);
+  -webkit-mask: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), #000 70%), repeating-linear-gradient(90deg, #000 0 110px, rgba(0, 0, 0, 0) 150px 190px, #000 230px 260px);
+  -webkit-mask-composite: source-in; mask: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), #000 70%), repeating-linear-gradient(90deg, #000 0 110px, rgba(0, 0, 0, 0) 150px 190px, #000 230px 260px);
+  mask-composite: intersect; filter: blur(0.6px);
+  animation: k-ripple 12s steps(144) infinite alternate;
+}
+html[data-variant="18h"] .lg-world > .k-reflect {
+  left: var(--lo-x); top: auto; bottom: -2%; width: 9vw; height: calc(var(--lake-b) + 2%); translate: -50% 0;
+  background-image: linear-gradient(rgba(255, 244, 222, 0.95), rgba(255, 244, 222, 0));
+  opacity: var(--lake-a); filter: blur(12px);
+  animation: k-shimmer 7s steps(84) infinite alternate;
+}
+html[data-variant="18h"][data-theme="dark"] .lg-world > .k-reflect { background-image: linear-gradient(rgba(120, 130, 175, 0.3), rgba(120, 130, 175, 0)); }
+html[data-variant="18h"] .lg-world > .k-mist { border-radius: 50%; background-image: radial-gradient(closest-side, rgba(var(--mist-c), 0.95), rgba(var(--mist-c), 0)); opacity: var(--mist-a); filter: blur(10px); }
+html[data-variant="18h"] .lg-world > .k-mist1 { left: -24%; top: auto; bottom: calc(var(--lake-b) - 5vh); width: 96vw; height: 17vh; animation: k-mist 44s steps(528) infinite alternate; }
+html[data-variant="18h"] .lg-world > .k-mist2 { left: 34%; top: auto; bottom: calc(var(--lake-b) + 1vh); width: 84vw; height: 12vh; animation: k-mist 56s steps(672) infinite alternate-reverse; animation-delay: -30s; }
+html[data-variant="18h"] .lg-world > .k-mist3 { left: -12%; top: auto; bottom: calc(var(--lake-b) - 16vh); width: 120vw; height: 11vh; animation: k-mist 38s steps(456) infinite alternate; animation-delay: -14s; }
+
+/* The lights coming on (Billing), low in the open column and along the foot. */
+html[data-variant="18h"] .lg-world > .k-l { width: 9px; height: 9px; background-color: #FFC978; opacity: calc(var(--lights) * var(--lights-k, 1)); filter: blur(1px); box-shadow: 0 0 16px 6px rgba(255, 190, 110, 0.55); animation: k-flicker 6s steps(60) infinite alternate; }
+html[data-variant="18h"] .lg-world > .k-l1 { left: 3%; top: auto; bottom: 5.5%; }
+html[data-variant="18h"] .lg-world > .k-l2 { left: 7.5%; top: auto; bottom: 2.5%; width: 7px; height: 7px; animation-delay: -2s; }
+html[data-variant="18h"] .lg-world > .k-l3 { left: 12%; top: auto; bottom: 4.5%; animation-delay: -4s; }
+html[data-variant="18h"] .lg-world > .k-l4 { left: 16%; top: auto; bottom: 1.5%; width: 6px; height: 6px; animation-delay: -1s; }
+html[data-variant="18h"] .lg-world > .k-l5 { left: 5%; top: auto; bottom: 8.5%; width: 6px; height: 6px; animation-delay: -3s; }
+html[data-variant="18h"] .lg-world > .k-l6 { left: 14%; top: auto; bottom: 7%; width: 7px; height: 7px; animation-delay: -5s; }
+
+/* Stars, where the sky is open: the column under the panel, the strip above the sheet, the right edge. */
+html[data-variant="18h"] .lg-world > .k-s { width: 3px; height: 3px; background-color: #FFFFFF; opacity: calc(var(--stars) * var(--stars-k, 1)); box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.5); animation: k-twinkle 5s steps(50) infinite alternate; }
+html[data-variant="18h"] .lg-world > .k-s1 { left: 4%; top: auto; bottom: calc(var(--hz-b) + 40px); }
+html[data-variant="18h"] .lg-world > .k-s2 { left: 11%; top: auto; bottom: calc(var(--hz-b) + 130px); width: 2px; height: 2px; animation-delay: -1s; }
+html[data-variant="18h"] .lg-world > .k-s3 { left: 15.5%; top: auto; bottom: calc(var(--hz-b) + 210px); animation-delay: -3s; }
+html[data-variant="18h"] .lg-world > .k-s4 { left: 6%; top: auto; bottom: calc(var(--hz-b) + 280px); width: 4px; height: 4px; animation-delay: -2s; }
+html[data-variant="18h"] .lg-world > .k-s5 { left: 3%; top: 6px; width: 2px; height: 2px; animation-delay: -4s; }
+html[data-variant="18h"] .lg-world > .k-s6 { left: 16%; top: 4px; animation-delay: -1.5s; }
+html[data-variant="18h"] .lg-world > .k-s7 { left: 98.6%; top: 32%; width: 2px; height: 2px; animation-delay: -2.5s; }
+html[data-variant="18h"] .lg-world > .k-s8 { left: 98.8%; top: 71%; animation-delay: -3.5s; }
+
+@keyframes k-drift { from { transform: translateX(-17vw); } to { transform: translateX(17vw); } }
+@keyframes k-drift-s { from { transform: translateX(-9vw); } to { transform: translateX(9vw); } }
+@keyframes k-sun { from { transform: translate(-3.5vw, 1.5vh) scale(0.96); } to { transform: translate(3.5vw, -2vh) scale(1.06); } }
+@keyframes k-tide { from { transform: translateY(-7vh); } to { transform: translateY(7vh); } }
+@keyframes k-breathe { from { transform: scale(0.92); } to { transform: scale(1.12); } }
+@keyframes k-flicker { from { transform: scale(0.85); } to { transform: scale(1.15); } }
+@keyframes k-twinkle { from { transform: scale(0.7); } to { transform: scale(1.3); } }
+@keyframes k-sea { from { transform: translateX(0); } to { transform: translateX(calc(var(--tile) * -1)); } }
+@keyframes k-ripple { from { transform: translateX(-3vw) scaleY(0.96); } to { transform: translateX(3vw) scaleY(1.04); } }
+@keyframes k-shimmer { from { transform: scaleX(0.75); opacity: calc(var(--lake-a) * 0.7); } to { transform: scaleX(1.25); opacity: var(--lake-a); } }
+@keyframes k-mist { from { transform: translateX(-10vw); } to { transform: translateX(22vw); } }
+@keyframes k-way { from { transform: rotate(-26deg) translateX(-2vw); } to { transform: rotate(-21deg) translateX(2vw); } }
+@keyframes k-field { from { transform: translate(-1vw, 0.6vh); } to { transform: translate(1vw, -0.6vh); } }
+@keyframes k-ridge { from { transform: translateX(-1.5vw); } to { transform: translateX(1.5vw); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-variant="18h"] .lg-world > i { animation: none !important; }
+}
+
+/* ---- Home: two more skies (the Home sky switch in the glass dock) -------------------------------- */
+
+/* B, the Milky Way: a moonless night, the galaxy arching from the open column up across the sky with
+   dark dust along its core, a field of faint stars, a dark ridge. C, mountains at first light: three
+   ridges in blues that pale with distance, mist lying between them, dawn warming the sky low in the open
+   column. Both keep Home's light words and frosted cards. variant.js sets html[data-home-sky] from the
+   switch (remembered per version; ?home=a, b or c sets it for one visit). */
+html[data-variant="18h"][data-home-sky="b"]:is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"]) .lg-world {
+  --sky-up: #202C58; --sky-low: #2C3A6E; --low-top: 46%;
+  --ground-a: 0; --hz: #3A4880; --hz-a: 0.25;
+  --sea-a: 0;
+  --lo-a: 0; --lo-ga: 1; --lo-x: 6%; --lo-b: min(31%, calc(100% - 640px)); --lo-s: 12vmin; --lo-glow: #E6DCCB; --lo-glow-a: 0.45; --lo-gs: 2.2;
+  --hi-a: 0;
+  --way-a: 1; --ridge-a: 1; --ridge-b: min(26%, calc(100% - 620px));
+  --r3: #262F52; --r1-a: 0; --r2-a: 0; --r3-a: 1; --rm-a: 0;
+  --cloud: #26325E; --cloud-a: 0.5; --c-h: 3vmin;
+  --c1a: 0; --c2a: 1; --c2y: 62%; --c3a: 0; --c4a: 0; --c5a: 0;
+  --stars: 1;
+}
+html[data-variant="18h"][data-home-sky="c"]:is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"]) .lg-world {
+  --sky-up: #25326A; --sky-low: #38488A; --low-top: 32%;
+  --ground-a: 0; --hz: #5E62A8; --hz-a: 0.2;
+  --sea-a: 0;
+  --lo-a: 0; --lo-ga: 1; --lo-x: 5%; --lo-b: calc(var(--ridge-b) + 6vh); --lo-s: 12vmin; --lo-glow: #E89C78; --lo-glow-a: 0.6; --lo-gs: 2.2;
+  --hi-a: 0;
+  --way-a: 0; --ridge-a: 1;
+  --r1: #34437A; --r2: #28356A; --r3: #1C2752; --r1-a: 1; --r2-a: 1; --r3-a: 1; --rm-a: 1;
+  --cloud: #3E4C84; --cloud-a: 0.6; --c-h: 3vmin;
+  --c1a: 1; --c2a: 1; --c2y: 24%; --c3a: 0; --c4a: 1; --c5a: 0;
+  --stars: 0.5;
+}
+html[data-variant="18h"][data-theme="dark"][data-home-sky="b"]:is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"]) .lg-world {
+  --sky-up: #0A1026; --sky-low: #121B3A; --hz: #222C58; --r3: #070B1E; --cloud: #141C3A; --way-a: 0.8; --stars: 1;
+  --lo-glow: #8C8474; --lo-glow-a: 0.4;
+}
+html[data-variant="18h"][data-theme="dark"][data-home-sky="c"]:is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"]) .lg-world {
+  --sky-up: #111831; --sky-low: #1C264C; --hz: #343A6E; --r1: #212B56; --r2: #192146; --r3: #111936;
+  --lo-glow: #A8664A; --lo-glow-a: 0.45; --cloud: #2A345E; --stars: 0.9;
+}
+
+/* The Milky Way: a broad glow, a brighter core dusted with stars, and dark lanes along it, all turning
+   together a few degrees as the night goes on. It enters the open column low on the left and leaves the
+   top right. */
+html[data-variant="18h"] .lg-world > :is(.k-way, .k-way-core) {
+  -webkit-mask: linear-gradient(90deg, #000 0 29%, rgba(0, 0, 0, 0.5) 36%);
+  mask: linear-gradient(90deg, #000 0 29%, rgba(0, 0, 0, 0.5) 36%);
+}
+html[data-variant="18h"] .lg-world > :is(.k-way, .k-way-core, .k-way-dust) {
+  left: -25%; width: 150vw; transform-origin: 50% 50%;
+  opacity: calc(var(--way-a) * var(--way-k, 1));
+  animation: k-way 70s steps(840) infinite alternate;
+}
+html[data-variant="18h"] .lg-world > .k-way {
+  top: 14%; height: 52vh; filter: blur(18px);
+  background:
+    radial-gradient(ellipse 12% 40% at 22% 55%, rgba(210, 204, 250, 0.3), rgba(210, 204, 250, 0) 70%),
+    radial-gradient(ellipse 13% 34% at 46% 47%, rgba(180, 186, 250, 0.26), rgba(180, 186, 250, 0) 70%),
+    radial-gradient(ellipse 15% 30% at 62% 52%, rgba(170, 180, 250, 0.22), rgba(170, 180, 250, 0) 70%),
+    radial-gradient(ellipse 12% 26% at 78% 46%, rgba(160, 172, 245, 0.18), rgba(160, 172, 245, 0) 70%),
+    radial-gradient(ellipse 50% 44% at 50% 50%, rgba(140, 150, 230, 0.16), rgba(130, 140, 225, 0.06) 55%, rgba(120, 130, 210, 0) 80%);
+}
+html[data-variant="18h"] .lg-world > .k-way-core {
+  top: calc(14% + 18vh); height: 16vh; filter: blur(0.5px);
+  background:
+    radial-gradient(1.3px 1.3px at 12% 40%, rgba(255, 255, 255, 0.9) 60%, rgba(255, 255, 255, 0) 80%) 0 0 / 26px 20px,
+    radial-gradient(1px 1px at 60% 70%, rgba(255, 255, 255, 0.8) 60%, rgba(255, 255, 255, 0) 80%) 0 0 / 37px 23px,
+    radial-gradient(1px 1px at 35% 15%, rgba(236, 232, 255, 0.7) 60%, rgba(236, 232, 255, 0) 80%) 0 0 / 19px 29px,
+    radial-gradient(ellipse 50% 50% at 50% 50%, rgba(226, 214, 255, 0.36), rgba(200, 190, 255, 0.15) 52%, rgba(190, 180, 250, 0) 76%);
+  -webkit-mask: radial-gradient(ellipse 50% 50% at 50% 50%, #000 26%, rgba(0, 0, 0, 0) 72%), linear-gradient(90deg, #000 0 29%, rgba(0, 0, 0, 0.5) 36%);
+  -webkit-mask-composite: source-in;
+  mask: radial-gradient(ellipse 50% 50% at 50% 50%, #000 26%, rgba(0, 0, 0, 0) 72%), linear-gradient(90deg, #000 0 29%, rgba(0, 0, 0, 0.5) 36%);
+  mask-composite: intersect;
+}
+html[data-variant="18h"] .lg-world > .k-way-dust {
+  top: calc(14% + 20vh); height: 12vh; filter: blur(7px);
+  background:
+    radial-gradient(ellipse 9% 30% at 27% 58%, rgba(10, 14, 34, 0.6), rgba(10, 14, 34, 0) 72%),
+    radial-gradient(ellipse 12% 22% at 36% 44%, rgba(10, 14, 34, 0.5), rgba(10, 14, 34, 0) 72%),
+    radial-gradient(ellipse 8% 26% at 50% 56%, rgba(10, 14, 34, 0.5), rgba(10, 14, 34, 0) 72%),
+    radial-gradient(ellipse 11% 20% at 64% 42%, rgba(10, 14, 34, 0.45), rgba(10, 14, 34, 0) 72%),
+    radial-gradient(ellipse 9% 24% at 80% 55%, rgba(10, 14, 34, 0.4), rgba(10, 14, 34, 0) 72%);
+}
+/* A field of faint stars over the whole sky, drifting very slowly. */
+html[data-variant="18h"] .lg-world > .k-field {
+  left: -6%; right: -6%; top: -6%; bottom: -6%;
+  opacity: calc(var(--way-a) * 0.8 * var(--way-k, 1));
+  background:
+    radial-gradient(1px 1px at 20% 30%, #FFFFFF 60%, rgba(255, 255, 255, 0) 80%) 0 0 / 170px 130px,
+    radial-gradient(1px 1px at 70% 60%, rgba(255, 255, 255, 0.8) 60%, rgba(255, 255, 255, 0) 80%) 0 0 / 230px 190px,
+    radial-gradient(1.4px 1.4px at 40% 80%, rgba(230, 232, 255, 0.9) 60%, rgba(230, 232, 255, 0) 80%) 0 0 / 310px 260px;
+  animation: k-field 40s steps(480) infinite alternate;
+}
+/* Mountains: three ridges hung from the foot, paler and softer with distance, sliding a little at three
+   speeds; mist lies between them. */
+html[data-variant="18h"] .lg-world > .k-ridge { left: -8%; right: -8%; top: auto; bottom: -2%; animation: k-ridge 60s steps(720) infinite alternate; }
+html[data-variant="18h"] .lg-world > .k-r1 {
+  height: calc(var(--ridge-b) + 2%); background-color: var(--r1); opacity: calc(var(--ridge-a) * var(--r1-a)); filter: blur(2.4px);
+  clip-path: polygon(0% 38%, 5% 22%, 9% 34%, 15% 8%, 21% 30%, 27% 18%, 33% 40%, 40% 14%, 47% 36%, 53% 20%, 60% 42%, 66% 12%, 72% 34%, 79% 22%, 86% 44%, 92% 16%, 100% 30%, 100% 100%, 0% 100%);
+}
+html[data-variant="18h"] .lg-world > .k-r2 {
+  height: calc(var(--ridge-b) * 0.74); background-color: var(--r2); opacity: calc(var(--ridge-a) * var(--r2-a)); filter: blur(1.4px);
+  clip-path: polygon(0% 30%, 7% 46%, 13% 18%, 20% 40%, 26% 26%, 34% 52%, 41% 22%, 49% 44%, 56% 30%, 63% 56%, 70% 24%, 77% 42%, 84% 20%, 91% 46%, 100% 28%, 100% 100%, 0% 100%);
+  animation-duration: 46s; animation-direction: alternate-reverse;
+}
+html[data-variant="18h"] .lg-world > .k-r3 {
+  height: calc(var(--ridge-b) * 0.46); background-color: var(--r3); opacity: calc(var(--ridge-a) * var(--r3-a)); filter: blur(0.8px);
+  clip-path: polygon(0% 46%, 9% 26%, 17% 52%, 26% 34%, 35% 60%, 44% 30%, 52% 48%, 61% 22%, 69% 50%, 78% 36%, 87% 58%, 94% 32%, 100% 44%, 100% 100%, 0% 100%);
+  animation-duration: 34s;
+}
+html[data-variant="18h"] .lg-world > .k-rm {
+  border-radius: 50%; opacity: var(--rm-a); filter: blur(10px);
+  background-image: radial-gradient(closest-side, rgba(150, 166, 218, 0.34), rgba(150, 166, 218, 0));
+  animation: k-mist 44s steps(528) infinite alternate;
+}
+html[data-variant="18h"] .lg-world > .k-rm1 { left: -20%; top: auto; bottom: calc(var(--ridge-b) * 0.6); width: 90vw; height: 10vh; }
+html[data-variant="18h"] .lg-world > .k-rm2 { left: 28%; top: auto; bottom: calc(var(--ridge-b) * 0.32); width: 100vw; height: 9vh; animation-duration: 56s; animation-direction: alternate-reverse; }
+html[data-variant="18h"][data-theme="dark"] .lg-world > .k-rm { background-image: radial-gradient(closest-side, rgba(90, 104, 150, 0.3), rgba(90, 104, 150, 0)); }
+
+/* The page body stands in for the sky in accessibility checks (see below). */
+html[data-variant="18h"]:not([data-theme="dark"])[data-home-sky="b"]:is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"]) body { background-color: #2C3A6E; }
+html[data-variant="18h"]:not([data-theme="dark"])[data-home-sky="c"]:is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"]) body { background-color: #38488A; }
+
+/* The Home sky switch, a row in the glass dock beside Prism rims (a preview tool, never in the sidebar). */
+html[data-variant="18h"] .lg-dock-choice { flex-basis: 100%; display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 2px; font-size: 13.5px; font-weight: 600; }
+html[data-variant="18h"] .lg-dock-choice .opts { display: inline-flex; margin-left: auto; padding: 2px; border-radius: 999px; background: var(--p-well); box-shadow: inset 0 0 0 1px var(--p-line); }
+html[data-variant="18h"] .lg-dock-choice > span:first-child { white-space: nowrap; }
+html[data-variant="18h"] .lg-dock-choice button { min-height: 28px; padding: 0 8px; border: 0; border-radius: 999px; background: none; color: var(--p-ink-2); font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
+html[data-variant="18h"] .lg-dock-choice button[aria-checked="true"] { background: var(--p-active); color: var(--p-ink); box-shadow: var(--lg-edge-light), 0 2px 6px -2px rgba(20, 24, 40, 0.3); }
+html[data-variant="18h"] .lg-dock-choice button:focus-visible { outline: 2px solid var(--p-focus); outline-offset: 2px; }
+html[data-variant="18h"] .lg-dock:not([data-open]) .lg-dock-choice { display: none; }
+
+/* ---- text straight on the sky ------------------------------------------------------------------ */
+
+/* The page's own words (its title, introduction, headings, notes and links) sit on the sky; everything
+   else sits on glass. The inks glass uses are kept first (computed on the root, so they follow the
+   theme), then the page takes the sky's inks and every surface on it takes the glass inks back. */
+html[data-variant="18h"] {
+  --k-ink: var(--p-ink); --k-ink-2: var(--p-ink-2); --k-ink-3: var(--p-ink-3);
+  --k-accent-ink: var(--p-accent-ink); --k-focus: var(--p-focus); --k-line: var(--p-line); --k-line-2: var(--p-line-2);
+}
+html[data-variant="18h"]:not([data-theme="dark"]) { --k-sky-accent: #7A2805; }
+html[data-variant="18h"] .page {
+  --p-ink: var(--k-sky-ink, var(--k-ink)); --p-ink-2: var(--k-sky-ink-2, var(--k-ink-2)); --p-ink-3: var(--k-sky-ink-3, var(--k-ink-3));
+  --p-accent-ink: var(--k-sky-accent, var(--k-accent-ink)); --p-focus: var(--k-sky-focus, var(--k-focus)); --p-line: var(--k-sky-line, var(--k-line));
+  --p-line-2: var(--k-sky-line-2, var(--k-line-2));
+  color: var(--p-ink);
+}
+html[data-variant="18h"] .page :is(.card, .metric-card, .act-card, .act-more, .acct-grid, .caught-up, .empty, .error-state, .skel-card, .banner, .ai-summary, .notice, .status-chip, .src-chip, .btn, .jump-link, .segmented, .badge, .count, .team-mark, .chart-tip, .table-wrap) {
+  --p-ink: var(--k-ink); --p-ink-2: var(--k-ink-2); --p-ink-3: var(--k-ink-3);
+  --p-accent-ink: var(--k-accent-ink); --p-focus: var(--k-focus); --p-line: var(--k-line); --p-line-2: var(--k-line-2);
+}
+html[data-variant="18h"] .page :is(.card, .metric-card, .act-card, .act-more, .acct-grid, .caught-up, .empty, .error-state, .skel-card, .banner, .ai-summary, .notice) { color: var(--p-ink); }
+/* Over the five deep skies (light theme; after dark every page already has light text) the page's
+   words turn light and the cards are frosted thickly: the content stands out, and dark text on the
+   cards reads even with the glass slider at 100%. Home's sky also covers sign-in and not found. */
+html[data-variant="18h"]:not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) {
+  --k-sky-ink: #FAF8F5; --k-sky-ink-2: #F1EEF8; --k-sky-ink-3: #E9E5F4;
+  --k-sky-accent: #FFE4D4; --k-sky-focus: #FAF8F5; --k-sky-line: rgba(255, 255, 255, 0.3); --k-sky-line-2: rgba(255, 255, 255, 0.5);
+  --p-glass: rgba(255, 255, 255, 0.78);
+  --p-glass-strong: rgba(250, 250, 252, 0.84);
+  --p-glass-soft: rgba(255, 255, 255, 0.76);
+}
+/* The page body is never seen (the sky covers it), but accessibility checkers read it as the ground of
+   the words on the sky, because the sky takes no pointer events and so is invisible to them. On each
+   deep sky it takes the lightest broad colour of that sky, so the check is against a real, strict ground. */
+html[data-variant="18h"]:not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"]) body { background-color: #4B5B98; }
+html[data-variant="18h"]:not([data-theme="dark"])[data-page="updates"] body { background-color: #8E4E70; }
+html[data-variant="18h"]:not([data-theme="dark"])[data-page="billing"] body { background-color: #5C5A98; }
+html[data-variant="18h"]:not([data-theme="dark"])[data-page="settings"] body { background-color: #545899; }
+
+/* Over the deep skies the words on the sky carry a soft dark shadow instead of the family's light
+   halo; the small tinted pills that sit straight on the page (a connection or payment chip, a count)
+   get a white base under their tint, as do the notices; the "last verified" shield turns light. */
+html[data-variant="18h"]:not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) :is(.page-head h1, .page-head .lede, .fresh-line, .sec-head h2, .sec-title, .sec-meta, .band-title, .range-text, .feed-month h2, .bill-help) { text-shadow: 0 1px 14px rgba(8, 10, 30, 0.5); }
+html[data-variant="18h"]:not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) .page .status-chip.is-connection { background: linear-gradient(var(--p-conn-bg), var(--p-conn-bg)) rgba(250, 250, 252, 0.88); }
+html[data-variant="18h"]:not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) .page .status-chip.is-critical { background: linear-gradient(var(--p-crit-bg), var(--p-crit-bg)) rgba(250, 250, 252, 0.88); }
+html[data-variant="18h"]:not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) .page .notice { background: linear-gradient(var(--p-info-bg), var(--p-info-bg)) rgba(250, 250, 252, 0.9); }
+html[data-variant="18h"]:not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) .page .notice.is-off { background: linear-gradient(var(--p-conn-bg), var(--p-conn-bg)) rgba(250, 250, 252, 0.9); }
+html[data-variant="18h"]:not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) .page .count { background: linear-gradient(var(--p-neutral-bg), var(--p-neutral-bg)) rgba(250, 250, 252, 0.88); }
+html[data-variant="18h"]:not([data-theme="dark"]):is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"]) .page .verified .i { color: #A6E8C2; }
+
+/* Phones: the whole screen is text, so the bright low sun or moon of the dark skies moves up behind
+   the top bar. */
+@media (max-width: 760px) {
+  html[data-variant="18h"]:is([data-theme="dark"], :is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"])) .lg-world { --lo-k: 0; --hi-k: 0; --lights-k: 0; --stars-k: 0; --aur-k: 0.5; --way-k: 0.5; }
+  html[data-variant="18h"] .lg-world > .k-s { box-shadow: none; }
+  html[data-variant="18h"][data-theme="dark"][data-page="help"] .lg-world { --lake-a: 0.6; }
+}
+
+/* Words inside a card or the summary sit on glass, not on the sky: no shadow there. */
+html[data-variant="18h"] .page :is(.card, .ai-summary, .banner, .caught-up) :is(.sec-head h2, .sec-title, .sec-meta, .band-title, .range-text) { text-shadow: none; }
+/* The assistant's summary on Results is frosted like a card, so the sky behind it never shows through its words. */
+html[data-variant="18h"] .page .ai-summary { background: var(--p-glass); -webkit-backdrop-filter: blur(16px) saturate(140%); backdrop-filter: blur(16px) saturate(140%); }
+
+/* ---- one drop of liquid for the whole panel ---------------------------------------------------- */
+
+/* 16J's layer drew the capsule and the pointer drop over the five main pages only; Settings, Help,
+   Sign out and Collapse had an ordinary capsule and no drop. variant.js draws one layer across the
+   panel: the capsule reaches any current page, and the drop follows the pointer (or keyboard
+   focus) over every button, pulling away from the capsule on a neck of liquid and snapping free. */
+@media (min-width: 761px) {
+  html[data-variant="18h"] .side .nav-list::before { display: none; }
+  html[data-variant="18h"] .side .nav-link,
+  html[data-variant="18h"] .side .nav-link:hover,
+  html[data-variant="18h"] .side .nav-link[aria-current="page"] { background: none; }
+  html[data-variant="18h"] .side .nav-link[aria-current="page"] .i { color: var(--p-accent-ink); }
+  html[data-variant="18h"] .side > .k-goo { position: absolute; top: 0; left: 0; width: 100%; height: var(--goo-h, 100%); z-index: -1; pointer-events: none; filter: url(#lg-goo-l); }
+  html[data-variant="18h"][data-theme="dark"] .side > .k-goo { filter: url(#lg-goo-d); }
+  html[data-variant="18h"] .k-goo > i { position: absolute; top: 0; left: 0; display: block; border-radius: 999px; background: #FFFFFF; }
+  /* The console's look: the current page and the pointer each get a glass pill, moved by springs in
+     the script (no liquid filter, no stretching). */
+  html[data-variant="18h"] .side > .k-goo { filter: none !important; }
+  html[data-variant="18h"] .k-goo > .goo-cur {
+    width: 44px; height: 44px; opacity: 0; transition: none !important; will-change: transform, width, height;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.9), 0 4px 14px rgba(20, 20, 40, 0.1);
+  }
+  html[data-variant="18h"][data-theme="dark"] .k-goo > .goo-cur { background: rgba(255, 255, 255, 0.11); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 4px 14px rgba(0, 0, 0, 0.3); }
+  /* The drop (collapsed) and the tab (expanded) are moved by a spring in variant.js, frame by frame,
+     which sets their size, transform and opacity; nothing here animates them. */
+  html[data-variant="18h"] .k-goo > .goo-hov { width: 44px; height: 44px; opacity: 0; will-change: transform; }
+  html[data-variant="18h"] .side > .k-tab {
+    position: absolute; top: 0; left: 0; z-index: -1; pointer-events: none; opacity: 0; will-change: transform;
+    width: 200px; height: 44px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.85), 0 4px 14px rgba(20, 20, 40, 0.08);
+  }
+  html[data-variant="18h"][data-theme="dark"] .side > .k-tab {
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 14px rgba(0, 0, 0, 0.3);
+  }
+}
+@media (max-width: 760px) {
+  html[data-variant="18h"] .side > .k-tab { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-variant="18h"] .k-goo > .goo-hov { display: none; }
+}
+@media (forced-colors: active) {
+  html[data-variant="18h"] .side > .k-goo, html[data-variant="18h"] .side > .k-tab { display: none; }
+}
+
+/* ---- the account team, drawn with the horizontal mark ------------------------------------------ */
+
+html[data-variant="18h"] .team-mark { width: 38px; height: 26px; border-radius: 999px; background: var(--p-active) url("assets/mark.webp") center / 26px auto no-repeat; }
+
+/* ---- prism rims (the preview switch in the glass dock) ------------------------------------------- */
+
+/* With the switch on, liquid.js splits the colours at every rim (each lens has a prism strength)
+   and the ring of light round every pane becomes a spectrum, as on 18C. */
+html[data-variant="18h"].lg-prism {
+  --lg-ring: conic-gradient(from 20deg, rgba(255, 90, 90, calc(0.55 * var(--lg-k))), rgba(255, 200, 70, calc(0.5 * var(--lg-k))), rgba(80, 220, 150, calc(0.45 * var(--lg-k))), rgba(80, 160, 255, calc(0.55 * var(--lg-k))), rgba(190, 110, 255, calc(0.5 * var(--lg-k))), rgba(255, 90, 90, calc(0.55 * var(--lg-k))));
+  --lg-ring-w: calc(1px + 0.6px * var(--lg-k));
+}
+html[data-variant="18h"].lg-prism[data-theme="dark"] {
+  --lg-ring: conic-gradient(from 20deg, rgba(255, 110, 110, calc(0.42 * var(--lg-k))), rgba(255, 210, 90, calc(0.36 * var(--lg-k))), rgba(90, 230, 160, calc(0.32 * var(--lg-k))), rgba(100, 170, 255, calc(0.42 * var(--lg-k))), rgba(200, 130, 255, calc(0.36 * var(--lg-k))), rgba(255, 110, 110, calc(0.42 * var(--lg-k))));
+}

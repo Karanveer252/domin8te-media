@@ -1,0 +1,247 @@
+{
+ "task": "rm",
+ "cold": {
+  "mode": "js story ready",
+  "y": 0,
+  "cam": "none",
+  "pw": "",
+  "tip": "none",
+  "offb": "9000px",
+  "cut": "",
+  "ten": "",
+  "grip": "",
+  "brk": "",
+  "strain": "1",
+  "tipr": "4px",
+  "lit": "1111",
+  "bands": [
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   }
+  ],
+  "words": [],
+  "scrollW": 1440,
+  "innerW": 1440,
+  "docH": 10.3
+ },
+ "coldExtra": {
+  "loader": "none",
+  "vthread": "0px",
+  "hold": "1",
+  "wiresOn": 4,
+  "note": "All four, running off one core.",
+  "rule": "none",
+  "motes": "none"
+ },
+ "beforeFlip": {
+  "mode": "js film ready",
+  "y": 7785,
+  "cam": "matrix(1, 0, 0, 1, -2654.5, -2782.",
+  "pw": "0.76",
+  "tip": "none",
+  "offb": "6279px",
+  "cut": "0",
+  "ten": "0.2",
+  "grip": "0",
+  "brk": "0",
+  "strain": "1",
+  "tipr": "12.52px",
+  "lit": "0000",
+  "bands": [
+   {
+    "on": false,
+    "op": 0,
+    "k": 1
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 1
+   },
+   {
+    "on": true,
+    "op": 1,
+    "k": 1
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   }
+  ],
+  "words": [
+   "1/matrix(1, 0, 0, 1, 0, 0)",
+   "1/matrix(1, 0, 0, 1, 0, 0)",
+   "1/matrix(1, 0, 0, 1, 0, 0)",
+   "1/matrix(1, 0, 0, 1, 0, 0)"
+  ],
+  "scrollW": 1440,
+  "innerW": 1440,
+  "docH": 22.6
+ },
+ "afterFlipIn": {
+  "mode": "js ready story",
+  "y": 7785,
+  "cam": "none",
+  "pw": "",
+  "tip": "none",
+  "offb": "6261px",
+  "cut": "",
+  "ten": "",
+  "grip": "",
+  "brk": "",
+  "strain": "1",
+  "tipr": "4px",
+  "lit": "1111",
+  "bands": [
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 1,
+    "k": 0
+   }
+  ],
+  "words": [],
+  "scrollW": 1440,
+  "innerW": 1440,
+  "docH": 10.3
+ },
+ "afterFlipOut": {
+  "mode": "js ready film",
+  "y": 7785,
+  "cam": "matrix(1, 0, 0, 1, -2688.8, -2764.",
+  "pw": "0.848",
+  "tip": "none",
+  "offb": "6223px",
+  "cut": "0",
+  "ten": "0.544",
+  "grip": "0",
+  "brk": "0",
+  "strain": "1",
+  "tipr": "18.64px",
+  "lit": "0000",
+  "bands": [
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": true,
+    "op": 1,
+    "k": 1
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   }
+  ],
+  "words": [
+   "1/matrix(1, 0, 0, 1, 0, 0)",
+   "1/matrix(1, 0, 0, 1, 0, 0)",
+   "1/matrix(1, 0, 0, 1, 0, 0)",
+   "1/matrix(1, 0, 0, 1, 0, 0)"
+  ],
+  "scrollW": 1440,
+  "innerW": 1440,
+  "docH": 22.6
+ },
+ "errors": []
+}

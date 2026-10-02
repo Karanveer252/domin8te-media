@@ -1,0 +1,166 @@
+/*
+ * Liquid Glass primitives shared by 16A to 16J. Each variant decides where to use them.
+ *
+ * The glass level. The "Liquid glass" slider (liquid.js) sets --lg-level from 0 (no glass) to 1
+ * (too much), and --lg-default to the design's own level. The build's glass pass
+ * (tools/glass.js) makes every glass fill, backdrop blur and saturation follow the multipliers
+ * below; the rims and highlights here follow them directly. At the default level a design looks
+ * exactly as designed.
+ *
+ * - --lg-edge-light: the rim of a thick pane: a bright top-left edge, a softer bottom-right edge
+ *   and a faint inner glow.
+ * - --lg-depth: the thickness of a slab: a lit top face, a shaded lower inside edge.
+ * - --lg-ring: a hairline of light around the rim, brightest at ten and four o'clock, where a
+ *   curved edge catches the light (used on ::after when the variant asks for rings).
+ * - --lg-spec: a highlight that follows the pointer (liquid.js sets --mx and --my).
+ * - .has-lens (Chromium): url(#lg-edge), url(#lg-edge-strong), url(#lg-zoom) and each element's
+ *   own url(#lgf-N) (as --lg-lens) bend what is behind the glass.
+ * Motion: glass controls swell a little when pressed, like a drop of liquid, and settle back.
+ */
+
+@property --lg-top { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --lg-bot { syntax: '<length>'; inherits: false; initial-value: 0px; }
+
+html[data-variant] {
+  --lg-level: 0.5;
+  --lg-default: 0.5;
+  --lg-t1: min(var(--lg-level) / var(--lg-default), 1);
+  --lg-t2: max((var(--lg-level) - var(--lg-default)) / (1 - var(--lg-default)), 0);
+  --lg-k: calc(var(--lg-t1) + 1.6 * var(--lg-t2));
+  --lg-kb: calc(var(--lg-t1) + 0.5 * var(--lg-t2));
+
+  --lg-rim: rgba(255, 255, 255, calc(0.92 * var(--lg-k)));
+  --lg-rim-2: rgba(255, 255, 255, calc(0.42 * var(--lg-k)));
+  --lg-glow: rgba(255, 255, 255, calc(0.2 * var(--lg-k)));
+  --lg-drop: 0 14px 34px -14px rgba(24, 28, 48, 0.3);
+  --lg-edge-light: inset 1.5px 1.5px 0 -0.5px var(--lg-rim), inset -1px -1px 0 -0.5px var(--lg-rim-2), inset 0 0 22px var(--lg-glow);
+  --lg-depth: inset 0 1px 0 rgba(255, 255, 255, calc(0.9 * var(--lg-k))), inset 0 -1px 0 rgba(255, 255, 255, calc(0.3 * var(--lg-k))), inset 0 -16px 26px -20px rgba(60, 40, 20, calc(0.2 * var(--lg-k))), inset 0 14px 24px -18px rgba(255, 255, 255, calc(0.55 * var(--lg-k)));
+  --lg-ring-w: calc(1px + 0.5px * var(--lg-k));
+  --lg-ring: conic-gradient(from 45deg, rgba(255, 255, 255, calc(0.16 * var(--lg-k))) 0deg, rgba(255, 255, 255, calc(0.7 * var(--lg-k))) 90deg, rgba(255, 255, 255, calc(0.16 * var(--lg-k))) 180deg, rgba(255, 255, 255, calc(1 * var(--lg-k))) 270deg, rgba(255, 255, 255, calc(0.16 * var(--lg-k))) 360deg);
+  --lg-spec: radial-gradient(240px circle at var(--mx, 22%) var(--my, -40%), rgba(255, 255, 255, calc(0.42 * var(--lg-k))), rgba(255, 255, 255, 0) 62%);
+  --lg-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --lg-dock-y: 16px;
+}
+html[data-variant][data-theme="dark"] {
+  --lg-rim: rgba(255, 255, 255, calc(0.34 * var(--lg-k)));
+  --lg-rim-2: rgba(255, 255, 255, calc(0.1 * var(--lg-k)));
+  --lg-glow: rgba(255, 255, 255, calc(0.05 * var(--lg-k)));
+  --lg-drop: 0 16px 40px -14px rgba(0, 0, 0, 0.72);
+  --lg-depth: inset 0 1px 0 rgba(255, 255, 255, calc(0.22 * var(--lg-k))), inset 0 -1px 0 rgba(255, 255, 255, calc(0.06 * var(--lg-k))), inset 0 -16px 26px -20px rgba(0, 0, 0, calc(0.5 * var(--lg-k))), inset 0 14px 24px -18px rgba(255, 255, 255, calc(0.12 * var(--lg-k)));
+  --lg-ring: conic-gradient(from 45deg, rgba(255, 255, 255, calc(0.05 * var(--lg-k))) 0deg, rgba(255, 255, 255, calc(0.24 * var(--lg-k))) 90deg, rgba(255, 255, 255, calc(0.05 * var(--lg-k))) 180deg, rgba(255, 255, 255, calc(0.4 * var(--lg-k))) 270deg, rgba(255, 255, 255, calc(0.05 * var(--lg-k))) 360deg);
+  --lg-spec: radial-gradient(240px circle at var(--mx, 22%) var(--my, -40%), rgba(255, 255, 255, calc(0.14 * var(--lg-k))), rgba(255, 255, 255, 0) 62%);
+}
+
+/* No glass at all: at 0% nothing bends or blurs (the fills are already opaque). */
+html[data-variant][data-lg-off] *, html[data-variant][data-lg-off] *::before, html[data-variant][data-lg-off] *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+
+/* Pressing a glass control swells it slightly, then it settles: the liquid response. */
+html[data-variant] .btn:active:not(:disabled),
+html[data-variant] .nav-link:active,
+html[data-variant] .tab:active,
+html[data-variant] .preview-chip:active { transform: scale(1.04); transition: transform var(--m-fast) var(--lg-spring); }
+
+/* ---- rings of light (variants that ask for them) ------------------------------------------- */
+
+html.lg-rings :is(.card, .metric-card, .caught-up, .skel-card, .empty, .error-state, .banner, .signin-card, .preview-chip.is-bar, .segmented, .acct-grid) { position: relative; }
+html.lg-rings :is(.side, .card, .metric-card, .act-card, .caught-up, .skel-card, .empty, .error-state, .banner, .signin-card, .tabbar, .topbar, .account-menu, .dlg, .preview-chip, .lg-dock, .btn-glass, .btn-outline, .segmented, .acct-grid, .lg-toolbar)::after {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  border-radius: inherit; padding: var(--lg-ring-w);
+  background: var(--lg-ring);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+html.lg-rings :is(.card, .caught-up) :is(.empty, .error-state)::after { content: none; }
+
+/* ---- the liquid capsule (variants that ask for it) ------------------------------------------
+   The capsule behind the current page stretches toward the new page, leading edge first, and
+   the trailing edge follows, like a drop of liquid. liquid.js marks the direction. */
+
+html.lg-goo .side .nav-list::before {
+  --lg-top: var(--ind-y, 0px);
+  --lg-bot: var(--ind-y, 0px);
+  transform: translateY(min(var(--lg-top), var(--lg-bot)));
+  height: calc(var(--ind-h, 44px) + max(var(--lg-top) - var(--lg-bot), var(--lg-bot) - var(--lg-top)));
+}
+html.lg-goo .portal[data-ind] .side .nav-list::before { transition: --lg-top 320ms cubic-bezier(0.3, 0.7, 0.2, 1), --lg-bot 320ms cubic-bezier(0.3, 0.7, 0.2, 1), opacity var(--m-fast) var(--ease); }
+html.lg-goo .portal[data-ind] .side .nav-list[data-dir="down"]::before { transition: --lg-bot 230ms cubic-bezier(0.3, 0.8, 0.2, 1), --lg-top 480ms cubic-bezier(0.55, 0, 0.2, 1), opacity var(--m-fast) var(--ease); }
+html.lg-goo .portal[data-ind] .side .nav-list[data-dir="up"]::before { transition: --lg-top 230ms cubic-bezier(0.3, 0.8, 0.2, 1), --lg-bot 480ms cubic-bezier(0.55, 0, 0.2, 1), opacity var(--m-fast) var(--ease); }
+
+/* ---- the "Liquid glass" slider ---------------------------------------------------------------- */
+
+.lg-dock {
+  position: fixed; right: var(--lg-dock-x, 16px); bottom: var(--lg-dock-y); z-index: 56;
+  width: 318px; padding: 6px 8px 4px 16px; border-radius: 24px;
+  border: 1px solid var(--p-glass-edge);
+  background-color: var(--p-glass-strong); background-image: var(--lg-spec);
+  box-shadow: var(--lg-edge-light), var(--lg-drop);
+  -webkit-backdrop-filter: var(--p-glass-blur); backdrop-filter: var(--p-glass-blur);
+  color: var(--p-ink); font-size: 14px; line-height: 1.3;
+}
+.lg-dock-head { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+.lg-dock-head > .i { width: 18px; height: 18px; color: var(--p-ink-2); }
+.lg-dock-title { font-size: 14.5px; font-weight: 650; white-space: nowrap; }
+.lg-dock-val { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lg-dock-min { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--p-ink-2); cursor: pointer; }
+.lg-dock-min:hover { background: var(--p-hover); color: var(--p-ink); }
+.lg-dock-min .i { width: 18px; height: 18px; transition: rotate var(--m) var(--ease); }
+.lg-dock-min[aria-expanded="false"] .i { rotate: 180deg; }
+.lg-dock-body { display: flex; align-items: center; gap: 8px; padding: 0 8px 0 0; }
+.lg-dock-end { flex: none; font-size: 12.5px; font-weight: 600; color: var(--p-ink-2); white-space: nowrap; }
+.lg-dock-track { position: relative; flex: 1; min-width: 0; }
+.lg-range { --lg-pct: 50%; display: block; width: 100%; height: 36px; margin: 0; background: transparent; cursor: pointer; -webkit-appearance: none; appearance: none; }
+.lg-range::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--p-ink) 0 var(--lg-pct), var(--p-line-2) var(--lg-pct) 100%); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.14); }
+.lg-range::-moz-range-track { height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--p-ink) 0 var(--lg-pct), var(--p-line-2) var(--lg-pct) 100%); }
+.lg-range::-webkit-slider-thumb {
+  width: 28px; height: 28px; margin-top: -10px; border: 0; border-radius: 50%; -webkit-appearance: none; appearance: none;
+  background: radial-gradient(circle at 34% 28%, #FFFFFF 0 22%, rgba(255, 255, 255, 0.78) 46%, rgba(236, 240, 248, 0.6) 100%);
+  box-shadow: inset 1.5px 1.5px 0 -0.5px #FFFFFF, inset -1px -1px 0 -0.5px rgba(255, 255, 255, 0.5), 0 0 0 1px rgba(20, 22, 30, 0.22), 0 6px 14px -4px rgba(20, 24, 40, 0.42);
+}
+.lg-range::-moz-range-thumb { width: 28px; height: 28px; border: 0; border-radius: 50%; background: radial-gradient(circle at 34% 28%, #FFFFFF 0 22%, rgba(255, 255, 255, 0.78) 46%, rgba(236, 240, 248, 0.6) 100%); box-shadow: 0 0 0 1px rgba(20, 22, 30, 0.22), 0 6px 14px -4px rgba(20, 24, 40, 0.42); }
+.lg-range:focus-visible { outline: 2px solid var(--p-focus); outline-offset: 2px; border-radius: 8px; }
+/* A notch on the track at the design's own level. */
+.lg-dock-mark { position: absolute; top: 6px; left: calc(14px + (100% - 28px) * var(--at) / 100); width: 2px; height: 6px; margin-left: -1px; border-radius: 1px; background: var(--p-ink-2); pointer-events: none; }
+.lg-dock-reset { margin-left: auto; min-height: 30px; padding: 2px 8px; border: 0; border-radius: 999px; background: none; color: var(--p-ink); font-size: 13px; font-weight: 650; white-space: nowrap; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--p-line-2); cursor: pointer; }
+.lg-dock-reset:hover { background: var(--p-hover); text-decoration-color: currentColor; }
+.lg-dock-reset:disabled { color: var(--p-ink-2); font-weight: 600; text-decoration: none; cursor: default; background: none; }
+.lg-dock-calm { flex-basis: 100%; margin: 0 0 6px; font-size: 13px; color: var(--p-ink-2); }
+.lg-dock-body:has(.lg-dock-calm) { flex-wrap: wrap; }
+/* The prism switch (D8VARIANT.prismToggle): a row of its own under the slider. */
+.lg-dock-body:has(.lg-dock-switch) { flex-wrap: wrap; row-gap: 4px; padding-bottom: 6px; }
+.lg-dock-switch { position: relative; flex-basis: 100%; display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 2px; font-size: 13.5px; font-weight: 600; color: var(--p-ink); cursor: pointer; }
+.lg-dock-switch input { position: absolute; left: 2px; width: 34px; height: 20px; margin: 0; opacity: 0; cursor: pointer; }
+.lg-switch { position: relative; flex: none; width: 34px; height: 20px; border-radius: 999px; background: var(--p-line-2); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.14); transition: background-color var(--m-fast) var(--ease); }
+.lg-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 0 0 1px rgba(20, 22, 30, 0.16), 0 2px 5px -1px rgba(20, 24, 40, 0.4); transition: transform var(--m-fast) var(--ease); }
+.lg-dock-switch input:checked + .lg-switch { background: conic-gradient(from 20deg, #E5484D, #E8A21A, #2F9E6B, #3A7FE0, #8A5CF0, #E5484D); }
+.lg-dock-switch input:checked + .lg-switch::after { transform: translateX(14px); }
+.lg-dock-switch input:focus-visible + .lg-switch { outline: 2px solid var(--p-focus); outline-offset: 2px; }
+.lg-switch-note { margin-left: auto; font-size: 12.5px; font-weight: 600; color: var(--p-ink-2); }
+.lg-dock:not([data-open]) { width: auto; padding-right: 4px; border-radius: 999px; }
+.lg-dock:not([data-open]) .lg-dock-body, .lg-dock:not([data-open]) .lg-dock-reset { display: none; }
+.lg-dock:not([data-open]) .lg-dock-min { margin-left: 2px; }
+html[data-variant] .toasts { bottom: calc(var(--lg-dock-y) + 104px); }
+.portal.is-auth ~ .lg-dock { bottom: 16px; }
+
+/* Toolbars and ornaments injected by some variants start hidden on phones. */
+@media (max-width: 760px) {
+  html[data-variant] .lg-toolbar, html[data-variant] .lg-ornament { display: none !important; }
+  .lg-dock { right: 12px; bottom: calc(92px + env(safe-area-inset-bottom)); width: min(296px, calc(100vw - 24px)); }
+  html[data-variant] .toasts { bottom: calc(150px + env(safe-area-inset-bottom)); }
+  html[data-variant] .main { padding-bottom: calc(164px + env(safe-area-inset-bottom)); }
+}
+@media (pointer: coarse) {
+  .lg-dock-min { width: 44px; height: 44px; }
+  .lg-dock-reset { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-variant] .btn:active:not(:disabled), html[data-variant] .nav-link:active, html[data-variant] .tab:active { transform: none; }
+}
+/* Less transparency asked for: the glass is off whatever the slider says. */
+@media (prefers-reduced-transparency: reduce) {
+  html[data-variant] { --lg-level: 0 !important; }
+  html[data-variant] .lg-toolbar, html[data-variant] .lg-ornament { background: var(--p-surface) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+}
+@media (forced-colors: active) {
+  .lg-dock { border: 1px solid CanvasText; }
+  html.lg-rings :is(.side, .card, .metric-card, .act-card, .caught-up, .tabbar, .topbar, .dlg, .preview-chip, .lg-dock, .btn-glass, .segmented)::after { display: none; }
+}

@@ -1,0 +1,134 @@
+<!doctype html><meta charset="utf-8"><title>hand test</title><style>
+body{margin:0;background:#000;color:#888;font:12px/1.4 system-ui,sans-serif;--bg:#000}
+.row{display:flex;gap:0;align-items:flex-start}
+.cell{width:600px;padding:8px 8px 0;box-sizing:border-box;position:relative}
+.cell small{position:absolute;left:14px;top:6px;color:#666;letter-spacing:.06em;text-transform:uppercase;font-size:10px}
+.hand{width:100%;aspect-ratio:600/420;overflow:visible;display:block;position:relative;z-index:2}
+.hand__edge{stroke:rgba(255,255,255,.34)}
+.hand__fill{fill:var(--bg)}
+.hand__fingers{transform-origin:var(--ox) var(--oy);transform:rotate(calc(var(--grip,0) * 3.2deg)) scale(calc(1 - .015 * var(--grip,0)))}
+.hand__ring{opacity:0;transform-origin:350px 206px}
+.hand__ring--catch{transform:scale(calc(1 + 9 * var(--cshk,0)));stroke-width:calc(5px / (1 + 7 * var(--cshk,0)));opacity:calc(var(--cbrk,0) * .45)}
+.hand__ring--catch.two{transform:scale(calc(1 + 14 * var(--cshk,0)));stroke-width:calc(3px / (1 + 10 * var(--cshk,0)));opacity:calc(var(--cbrk,0) * .26)}
+.hand__ring--launch{transform:scale(calc(1 + 11 * var(--lshk,0)));stroke-width:calc(4.5px / (1 + 8 * var(--lshk,0)));opacity:calc(var(--lbrk,0) * .45)}
+.hand__ring--launch.two{transform:scale(calc(1 + 17 * var(--lshk,0)));stroke-width:calc(2.8px / (1 + 11 * var(--lshk,0)));opacity:calc(var(--lbrk,0) * .26)}
+.hand__light{opacity:var(--hl,0)}
+.hand__rim{opacity:var(--hl,0)}
+.guide{position:absolute;inset:8px 8px 0;width:calc(100% - 16px);pointer-events:none;z-index:1}
+</style><svg width="0" height="0" aria-hidden="true" style="position:absolute">
+  <defs>
+    <linearGradient id="infg" x1="4%" y1="0%" x2="96%" y2="100%">
+      <stop offset="0%" stop-color="#E5322B"/><stop offset="13%" stop-color="#F2912F"/>
+      <stop offset="26%" stop-color="#F3CB3C"/><stop offset="40%" stop-color="#5CB246"/>
+      <stop offset="55%" stop-color="#0FA3C2"/><stop offset="70%" stop-color="#2E5FA8"/>
+      <stop offset="85%" stop-color="#7A3E97"/><stop offset="100%" stop-color="#D51C73"/>
+    </linearGradient>
+  </defs>
+</svg><div class="row"><div class="cell"><small>H unlit</small><svg class="hand" style="--hl:0;--grip:0;--ox:359px;--oy:247px" viewBox="0 0 600 420" aria-hidden="true" focusable="false">
+        <defs>
+          <radialGradient id="palmg" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FFEBCF" stop-opacity=".42"/>
+            <stop offset="100%" stop-color="#FFEBCF" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <!-- line art: one continuous contour drawn as three open strokes that meet
+             end-to-end where the fingers hinge. hand__fill = ground-coloured
+             occluders so the line goes into the hand, as before. -->
+        <g class="hand__body" fill="none" stroke-linejoin="round">
+          <path class="hand__fill" d="M606 324L606 314L606 306L606 298L597 290L556 282L516 274L475 266L460 260L448 251L439 241L430 229L421 218L410 207L395 199L395 200L333 301L339 304L346 306L352 308L357 310L360 311L360 312L358 314L346 320L337 325L329 328L322 332L313 334L304 337L292 340L287 343L284 347L283 352L284 357L287 361L291 364L297 364L310 360L323 357L336 354L349 350L361 346L373 341L386 335L399 334L411 334L420 333L428 333L437 334L447 335L458 338L498 348L539 359L579 370L606 380L606 391L606 401L606 412Z"/>
+          <g class="hand__edge" stroke-width="2.2">
+            <path d="M600.0 291.8 L474.5 266.9 C433.9 257.5 433.3 215.7 394.7 200.1"/>
+            <path d="M332.6 300.9 C346.2 306.3 371.1 308.7 358.0 315.3 C329.3 330.0 323.4 333.9 292.0 341.2 C278.8 344.3 283.7 365.5 296.9 362.5 C328.3 355.2 356.5 348.8 385.2 334.2 C421.8 332.3 428.4 329.8 458.4 336.8 L600.0 374.1"/>
+          </g>
+          <g class="hand__rim" stroke="url(#infg)" stroke-width="2.4" stroke-linecap="round"><path d="M358.0 315.3 C329.3 330.0 323.4 333.9 292.0 341.2"/></g>
+        </g>
+        <g class="hand__fingers" fill="none" stroke-linejoin="round">
+          <use class="hand__fill" href="#hand-f"/>
+          <g class="hand__edge" stroke-width="2.2">
+            <path id="hand-f" d="M394.7 200.1 C372.9 184.8 351.8 176.8 328.3 164.3 C318.2 158.9 309.5 175.2 319.6 180.6 C343.1 193.1 361.8 208.8 383.6 224.1 C385.2 225.1 383.7 227.5 382.1 226.5 C352.8 209.5 315.0 193.1 283.8 179.9 C271.4 174.6 262.8 194.7 275.3 200.0 C306.5 213.2 334.3 230.2 363.6 247.1 C365.4 248.0 364.0 250.5 362.3 249.6 C330.1 233.9 292.6 220.0 258.7 208.3 C245.2 203.7 237.8 225.4 251.2 230.1 C285.1 241.7 318.6 258.8 350.8 274.5 C352.6 275.3 351.5 277.8 349.7 277.1 C319.4 264.8 286.6 256.0 255.1 247.5 C242.0 244.0 236.4 265.1 249.4 268.6 C281.0 277.0 302.4 288.6 332.6 300.9"/>
+          </g>
+          <g class="hand__rim" stroke="url(#infg)" stroke-width="2.4" stroke-linecap="round">
+            <path d="M319.6 180.6 C343.1 193.1 361.8 208.8 383.6 224.1 M275.3 200.0 C306.5 213.2 334.3 230.2 363.6 247.1 M251.2 230.1 C285.1 241.7 318.6 258.8 350.8 274.5 M249.4 268.6 C281.0 277.0 302.4 288.6 332.6 300.9"/>
+          </g>
+        </g>
+        <ellipse class="hand__light" cx="372" cy="214" rx="150" ry="100" fill="url(#palmg)"/>
+        <g class="hand__fx" fill="none">
+          <circle class="hand__ring hand__ring--catch" cx="350" cy="206" r="40" stroke="#FFF2DC" stroke-width="5"/>
+          <circle class="hand__ring hand__ring--catch two" cx="350" cy="206" r="40" stroke="#FFC98A" stroke-width="3"/>
+          <circle class="hand__ring hand__ring--launch" cx="350" cy="206" r="34" stroke="#FFF2DC" stroke-width="4.5"/>
+          <circle class="hand__ring hand__ring--launch two" cx="350" cy="206" r="34" stroke="#C58BF0" stroke-width="2.8"/>
+        </g>
+      </svg></div><div class="cell"><small>H lit + grip + shock</small><svg class="hand" style="--hl:1;--grip:1;--cshk:.4;--cbrk:.7;--ox:359px;--oy:247px" viewBox="0 0 600 420" aria-hidden="true" focusable="false">
+        <defs>
+          <radialGradient id="palmg" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FFEBCF" stop-opacity=".42"/>
+            <stop offset="100%" stop-color="#FFEBCF" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <!-- line art: one continuous contour drawn as three open strokes that meet
+             end-to-end where the fingers hinge. hand__fill = ground-coloured
+             occluders so the line goes into the hand, as before. -->
+        <g class="hand__body" fill="none" stroke-linejoin="round">
+          <path class="hand__fill" d="M606 324L606 314L606 306L606 298L597 290L556 282L516 274L475 266L460 260L448 251L439 241L430 229L421 218L410 207L395 199L395 200L333 301L339 304L346 306L352 308L357 310L360 311L360 312L358 314L346 320L337 325L329 328L322 332L313 334L304 337L292 340L287 343L284 347L283 352L284 357L287 361L291 364L297 364L310 360L323 357L336 354L349 350L361 346L373 341L386 335L399 334L411 334L420 333L428 333L437 334L447 335L458 338L498 348L539 359L579 370L606 380L606 391L606 401L606 412Z"/>
+          <g class="hand__edge" stroke-width="2.2">
+            <path d="M600.0 291.8 L474.5 266.9 C433.9 257.5 433.3 215.7 394.7 200.1"/>
+            <path d="M332.6 300.9 C346.2 306.3 371.1 308.7 358.0 315.3 C329.3 330.0 323.4 333.9 292.0 341.2 C278.8 344.3 283.7 365.5 296.9 362.5 C328.3 355.2 356.5 348.8 385.2 334.2 C421.8 332.3 428.4 329.8 458.4 336.8 L600.0 374.1"/>
+          </g>
+          <g class="hand__rim" stroke="url(#infg)" stroke-width="2.4" stroke-linecap="round"><path d="M358.0 315.3 C329.3 330.0 323.4 333.9 292.0 341.2"/></g>
+        </g>
+        <g class="hand__fingers" fill="none" stroke-linejoin="round">
+          <use class="hand__fill" href="#hand-f"/>
+          <g class="hand__edge" stroke-width="2.2">
+            <path id="hand-f" d="M394.7 200.1 C372.9 184.8 351.8 176.8 328.3 164.3 C318.2 158.9 309.5 175.2 319.6 180.6 C343.1 193.1 361.8 208.8 383.6 224.1 C385.2 225.1 383.7 227.5 382.1 226.5 C352.8 209.5 315.0 193.1 283.8 179.9 C271.4 174.6 262.8 194.7 275.3 200.0 C306.5 213.2 334.3 230.2 363.6 247.1 C365.4 248.0 364.0 250.5 362.3 249.6 C330.1 233.9 292.6 220.0 258.7 208.3 C245.2 203.7 237.8 225.4 251.2 230.1 C285.1 241.7 318.6 258.8 350.8 274.5 C352.6 275.3 351.5 277.8 349.7 277.1 C319.4 264.8 286.6 256.0 255.1 247.5 C242.0 244.0 236.4 265.1 249.4 268.6 C281.0 277.0 302.4 288.6 332.6 300.9"/>
+          </g>
+          <g class="hand__rim" stroke="url(#infg)" stroke-width="2.4" stroke-linecap="round">
+            <path d="M319.6 180.6 C343.1 193.1 361.8 208.8 383.6 224.1 M275.3 200.0 C306.5 213.2 334.3 230.2 363.6 247.1 M251.2 230.1 C285.1 241.7 318.6 258.8 350.8 274.5 M249.4 268.6 C281.0 277.0 302.4 288.6 332.6 300.9"/>
+          </g>
+        </g>
+        <ellipse class="hand__light" cx="372" cy="214" rx="150" ry="100" fill="url(#palmg)"/>
+        <g class="hand__fx" fill="none">
+          <circle class="hand__ring hand__ring--catch" cx="350" cy="206" r="40" stroke="#FFF2DC" stroke-width="5"/>
+          <circle class="hand__ring hand__ring--catch two" cx="350" cy="206" r="40" stroke="#FFC98A" stroke-width="3"/>
+          <circle class="hand__ring hand__ring--launch" cx="350" cy="206" r="34" stroke="#FFF2DC" stroke-width="4.5"/>
+          <circle class="hand__ring hand__ring--launch two" cx="350" cy="206" r="34" stroke="#C58BF0" stroke-width="2.8"/>
+        </g>
+      </svg></div><div class="cell"><small>H lit + held line</small><svg class="guide" viewBox="0 0 600 420">
+  <path d="M-271 831 C-271 831 18 388 232 257 C286 225 318 212 350 206" fill="none" stroke="url(#infg)" stroke-width="16" stroke-linecap="round" opacity=".18"/>
+  <path d="M-271 831 C-271 831 18 388 232 257 C286 225 318 212 350 206" fill="none" stroke="url(#infg)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M350 206 C618 56 853 -126 1068 -247" fill="none" stroke="#C58BF0" stroke-width="3" stroke-linecap="round" opacity=".35" stroke-dasharray="6 8"/>
+  <circle cx="350" cy="206" r="3.5" fill="#fff"/>
+</svg><svg class="hand" style="--hl:1;--grip:1;--ox:359px;--oy:247px" viewBox="0 0 600 420" aria-hidden="true" focusable="false">
+        <defs>
+          <radialGradient id="palmg" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FFEBCF" stop-opacity=".42"/>
+            <stop offset="100%" stop-color="#FFEBCF" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <!-- line art: one continuous contour drawn as three open strokes that meet
+             end-to-end where the fingers hinge. hand__fill = ground-coloured
+             occluders so the line goes into the hand, as before. -->
+        <g class="hand__body" fill="none" stroke-linejoin="round">
+          <path class="hand__fill" d="M606 324L606 314L606 306L606 298L597 290L556 282L516 274L475 266L460 260L448 251L439 241L430 229L421 218L410 207L395 199L395 200L333 301L339 304L346 306L352 308L357 310L360 311L360 312L358 314L346 320L337 325L329 328L322 332L313 334L304 337L292 340L287 343L284 347L283 352L284 357L287 361L291 364L297 364L310 360L323 357L336 354L349 350L361 346L373 341L386 335L399 334L411 334L420 333L428 333L437 334L447 335L458 338L498 348L539 359L579 370L606 380L606 391L606 401L606 412Z"/>
+          <g class="hand__edge" stroke-width="2.2">
+            <path d="M600.0 291.8 L474.5 266.9 C433.9 257.5 433.3 215.7 394.7 200.1"/>
+            <path d="M332.6 300.9 C346.2 306.3 371.1 308.7 358.0 315.3 C329.3 330.0 323.4 333.9 292.0 341.2 C278.8 344.3 283.7 365.5 296.9 362.5 C328.3 355.2 356.5 348.8 385.2 334.2 C421.8 332.3 428.4 329.8 458.4 336.8 L600.0 374.1"/>
+          </g>
+          <g class="hand__rim" stroke="url(#infg)" stroke-width="2.4" stroke-linecap="round"><path d="M358.0 315.3 C329.3 330.0 323.4 333.9 292.0 341.2"/></g>
+        </g>
+        <g class="hand__fingers" fill="none" stroke-linejoin="round">
+          <use class="hand__fill" href="#hand-f"/>
+          <g class="hand__edge" stroke-width="2.2">
+            <path id="hand-f" d="M394.7 200.1 C372.9 184.8 351.8 176.8 328.3 164.3 C318.2 158.9 309.5 175.2 319.6 180.6 C343.1 193.1 361.8 208.8 383.6 224.1 C385.2 225.1 383.7 227.5 382.1 226.5 C352.8 209.5 315.0 193.1 283.8 179.9 C271.4 174.6 262.8 194.7 275.3 200.0 C306.5 213.2 334.3 230.2 363.6 247.1 C365.4 248.0 364.0 250.5 362.3 249.6 C330.1 233.9 292.6 220.0 258.7 208.3 C245.2 203.7 237.8 225.4 251.2 230.1 C285.1 241.7 318.6 258.8 350.8 274.5 C352.6 275.3 351.5 277.8 349.7 277.1 C319.4 264.8 286.6 256.0 255.1 247.5 C242.0 244.0 236.4 265.1 249.4 268.6 C281.0 277.0 302.4 288.6 332.6 300.9"/>
+          </g>
+          <g class="hand__rim" stroke="url(#infg)" stroke-width="2.4" stroke-linecap="round">
+            <path d="M319.6 180.6 C343.1 193.1 361.8 208.8 383.6 224.1 M275.3 200.0 C306.5 213.2 334.3 230.2 363.6 247.1 M251.2 230.1 C285.1 241.7 318.6 258.8 350.8 274.5 M249.4 268.6 C281.0 277.0 302.4 288.6 332.6 300.9"/>
+          </g>
+        </g>
+        <ellipse class="hand__light" cx="372" cy="214" rx="150" ry="100" fill="url(#palmg)"/>
+        <g class="hand__fx" fill="none">
+          <circle class="hand__ring hand__ring--catch" cx="350" cy="206" r="40" stroke="#FFF2DC" stroke-width="5"/>
+          <circle class="hand__ring hand__ring--catch two" cx="350" cy="206" r="40" stroke="#FFC98A" stroke-width="3"/>
+          <circle class="hand__ring hand__ring--launch" cx="350" cy="206" r="34" stroke="#FFF2DC" stroke-width="4.5"/>
+          <circle class="hand__ring hand__ring--launch two" cx="350" cy="206" r="34" stroke="#C58BF0" stroke-width="2.8"/>
+        </g>
+      </svg></div></div>

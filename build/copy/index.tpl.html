@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en" data-v="editorial" data-cards="railflow" data-workidx="drop" data-charge="ring">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{meta.title}}</title>
+<meta name="description" content="{{meta.description}}">
+<meta name="theme-color" content="#000000">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://domin8temedia.com/">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='4%25' y1='0%25' x2='96%25' y2='100%25'%3E%3Cstop offset='0' stop-color='%23E5322B'/%3E%3Cstop offset='.26' stop-color='%23F3CB3C'/%3E%3Cstop offset='.55' stop-color='%230FA3C2'/%3E%3Cstop offset='1' stop-color='%23D51C73'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M100 60C100 32 78 16 52 16C26 16 8 36 8 60C8 84 26 104 52 104C78 104 100 88 100 60C100 32 122 16 148 16C174 16 192 36 192 60C192 84 174 104 148 104C122 104 100 88 100 60Z' fill='none' stroke='url(%23g)' stroke-width='25' stroke-linecap='round'/%3E%3C/svg%3E">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Domin8te Media">
+<meta property="og:title" content="{{og.title}}">
+<meta property="og:description" content="{{og.description}}">
+<meta property="og:url" content="https://domin8temedia.com/">
+<meta property="og:image" content="https://domin8temedia.com/assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preload" href="assets/fonts/bvp-200.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/site.css?v=0000000000">
+<link rel="stylesheet" href="assets/v-editorial.css?v=0000000000">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://domin8temedia.com/#organization",
+      "name": "Domin8te Media",
+      "url": "https://domin8temedia.com/",
+      "email": "karanhelps@domin8temedia.com",
+      "description": "A small studio for restaurants and cafes. Website builds, ad creatives, social media and local search, made and kept current every week.",
+      "knowsAbout": [
+        "Restaurant marketing",
+        "Restaurant website design",
+        "Local SEO for restaurants",
+        "Restaurant social media marketing",
+        "Restaurant ad creative production"
+      ],
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Restaurant services",
+        "itemListElement": [
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Website", "description": "A restaurant website that answers every question fast and makes booking or walking in obvious." } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Ad creatives", "description": "Ad creative made for a phone screen and a quick decision." } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Social media", "description": "Social posts for restaurants and cafes, made and posted every week." } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "SEO", "description": "Accurate listings, a fast site and reviews handled, so nearby diners find you." } }
+        ]
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://domin8temedia.com/#website",
+      "url": "https://domin8temedia.com/",
+      "name": "Domin8te Media",
+      "publisher": { "@id": "https://domin8temedia.com/#organization" },
+      "inLanguage": "en"
+    }
+  ]
+}
+</script>
+
+<script>
+/* The page's mode gates, defined once and read by both this head script and
+   site.js, so the CSS class and the JS decision never drift apart. */
+window.__GATES = [
+  '(max-width: 720px)',
+  '(orientation: portrait) and (max-width: 1024px)',
+  '(orientation: portrait) and (pointer: coarse)',
+  '(orientation: landscape) and (pointer: coarse) and (max-height: 560px)',
+  '(prefers-reduced-motion: reduce)'
+];
+(function () {
+  var r = document.documentElement;
+  r.classList.add('js');
+  /* the phone film (site.js, THE PHONE FILM AND ITS LINE): the story layout
+     plus a scroll-driven cloche behind the hero and a line down the left
+     edge. Decided here, before first paint, so the pinned hero's height
+     exists from the start and nothing jumps when the script arrives. The
+     primary input has to be a finger (a desktop window merely narrowed
+     keeps the plain story), motion must not be reduced, and the layout
+     needs sticky and clip, which the browsers without WebCodecs also lack. */
+  window.__PHONE = '(hover: none) and (pointer: coarse) and (max-width: 1024px) and (prefers-reduced-motion: no-preference)';
+  try {
+    var story = window.__GATES.some(function (q) { return matchMedia(q).matches });
+    r.classList.add(story ? 'story' : 'film');
+    var c = navigator.connection, thin = !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || '')));
+    if (story && !thin && matchMedia(window.__PHONE).matches &&
+        window.CSS && CSS.supports && CSS.supports('position', 'sticky') && CSS.supports('overflow-x', 'clip')) {
+      r.classList.add('pfilm');
+    }
+  } catch (e) { r.classList.add('story') }
+
+  /* the film only makes sense if the script arrives to drive it */
+  function check() {
+    if (r.classList.contains('ready')) return;
+    r.classList.remove('js', 'film', 'pfilm');
+    r.classList.add('story');
+  }
+  window.addEventListener('load', check);
+  setTimeout(check, 4000);
+
+})();
+</script>
+</head>
+
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute;pointer-events:none">
+  <defs>
+    <!-- the brand ribbon sweep, in the mark's own box -->
+    <linearGradient id="infg" x1="4%" y1="0%" x2="96%" y2="100%">
+      <stop offset="0%" stop-color="#E5322B"/>
+      <stop offset="13%" stop-color="#F2912F"/>
+      <stop offset="26%" stop-color="#F3CB3C"/>
+      <stop offset="40%" stop-color="#5CB246"/>
+      <stop offset="55%" stop-color="#0FA3C2"/>
+      <stop offset="70%" stop-color="#2E5FA8"/>
+      <stop offset="85%" stop-color="#7A3E97"/>
+      <stop offset="100%" stop-color="#D51C73"/>
+    </linearGradient>
+    <!-- the bolt's body, in world units, running against the journey so the
+         stretch over the chip film's snake reads magenta, violet, then blue -->
+    <linearGradient id="specg" gradientUnits="userSpaceOnUse" spreadMethod="repeat"
+                    x1="1860.2" y1="4795.2" x2="332.8" y2="5607.4">
+      <stop offset="0%" stop-color="#E5322B"/>
+      <stop offset="13%" stop-color="#F2912F"/>
+      <stop offset="26%" stop-color="#F3CB3C"/>
+      <stop offset="40%" stop-color="#5CB246"/>
+      <stop offset="55%" stop-color="#0FA3C2"/>
+      <stop offset="70%" stop-color="#2E5FA8"/>
+      <stop offset="85%" stop-color="#7A3E97"/>
+      <stop offset="100%" stop-color="#D51C73"/>
+    </linearGradient>
+    <linearGradient id="specglit" gradientUnits="userSpaceOnUse" spreadMethod="repeat"
+                    x1="1860.2" y1="4795.2" x2="332.8" y2="5607.4">
+      <stop offset="0%" stop-color="#FF6A5E"/>
+      <stop offset="13%" stop-color="#FFAD52"/>
+      <stop offset="26%" stop-color="#FFDE55"/>
+      <stop offset="40%" stop-color="#86E070"/>
+      <stop offset="55%" stop-color="#3ED6ED"/>
+      <stop offset="70%" stop-color="#7AA6FF"/>
+      <stop offset="85%" stop-color="#C58BF0"/>
+      <stop offset="100%" stop-color="#FF6FB4"/>
+    </linearGradient>
+    <!-- the vertical climb used by the problem picker and the phone beats -->
+    <linearGradient id="climbg" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#E5322B"/>
+      <stop offset="26%" stop-color="#F3CB3C"/>
+      <stop offset="55%" stop-color="#0FA3C2"/>
+      <stop offset="100%" stop-color="#D51C73"/>
+    </linearGradient>
+
+    <symbol id="mark" viewBox="-10 -4 220 128">
+      <path class="mark__twist" d="M100 60C100 32 78 16 52 16C26 16 8 36 8 60C8 84 26 104 52 104C78 104 100 88 100 60C100 32 122 16 148 16C174 16 192 36 192 60C192 84 174 104 148 104C122 104 100 88 100 60Z"
+            fill="none" stroke="#000" stroke-opacity=".55" stroke-width="25"
+            stroke-linecap="round" stroke-linejoin="round" transform="translate(4 6)"/>
+      <path class="mark__ribbon" d="M100 60C100 32 78 16 52 16C26 16 8 36 8 60C8 84 26 104 52 104C78 104 100 88 100 60C100 32 122 16 148 16C174 16 192 36 192 60C192 84 174 104 148 104C122 104 100 88 100 60Z"
+            fill="none" stroke="url(#infg)" stroke-width="25"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ============ HEADER ============ -->
+<header class="hdr" id="hdr">
+  <div class="hdr__in">
+    <a class="brand" href="#top" aria-label="Domin8te Media, back to top">
+      <img class="brand__mark" src="assets/mark-120.webp" width="120" height="66" alt="">
+      <span class="brand__word">Domin<span class="eight">8</span>te <span class="brand__sub">Media</span></span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a class="nav__link nav__link--dash" href="/dashboard/"><svg class="nav__ico" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="6" height="6" rx="1.6"/><rect x="11.5" y="2.5" width="6" height="6" rx="1.6"/><rect x="2.5" y="11.5" width="6" height="6" rx="1.6"/><rect x="11.5" y="11.5" width="6" height="6" rx="1.6"/></svg><span class="nav__txt">{{header.navDashboard}}</span></a>
+      <a class="btn btn--primary btn--sm nav__cta" href="#contact">{{header.navContact}}</a>
+    </nav>
+  </div>
+  <i class="hdr__progress" aria-hidden="true"><i class="hdr__fill"></i></i>
+</header>
+
+<main id="main" tabindex="-1">
+
+<!-- ============================================================
+     THE FILM. One continuous scroll: the chip film hands its line to
+     the page, which climbs through the owner's problems, lights each
+     finished job, is caught, and resolves into the mark. Bands and
+     props are interleaved in story order, so a screen reader and a
+     phone both read it as one story.
+     ============================================================ -->
+<section class="film" id="top" aria-label="How Domin8te Media works">
+ <i class="film__anchor" id="how" aria-hidden="true"></i>
+ <div class="stage">
+  <div class="hero" id="hero" aria-hidden="true">
+    <div class="hero__frame" id="heroFrame">
+      <!-- .hero__box is a plain block on the desktop (unpositioned, so the
+           video and the canvas keep resolving against .hero__frame as they
+           always have). On the phone it is the picture: sized to the phone
+           encode's aspect, placed and scaled by site.js. The two stills are
+           the phone's blurred backdrop (over the film until the words have
+           left) and the held mark (in case the film has not arrived). -->
+      <div class="hero__box" id="heroBox">
+        <video class="hero__video" id="heroVideo" muted playsinline preload="none"
+               tabindex="-1" disablepictureinpicture></video>
+        <canvas class="hero__film" id="heroFilm" aria-hidden="true"></canvas>
+        <picture class="hero__blur"><source media="(hover: hover), (pointer: fine), (prefers-reduced-motion: reduce)" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><img id="heroBlur" src="assets/hero-blur-m.jpg?v=0000000000" width="360" height="416" alt="" decoding="async"></picture>
+        <picture class="hero__mark"><source media="(hover: hover), (pointer: fine), (prefers-reduced-motion: reduce)" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><img id="heroMark" src="assets/hero-mark-m.jpg?v=0000000000" width="720" height="832" alt="" loading="lazy" decoding="async"></picture>
+      </div>
+      <!-- the line's birth: from the mark's left lobe to the left edge, drawn
+           in the frame's own space so it stays with the pinned mark and then
+           scrolls away with it (site.js sets the path and the colours) -->
+      <svg class="snkc" id="snkc" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="snkGc" gradientUnits="userSpaceOnUse" spreadMethod="repeat" x1="0" y1="0" x2="0" y2="1000">
+            <stop offset="0" stop-color="#E5322B"/><stop offset=".13" stop-color="#F2912F"/><stop offset=".26" stop-color="#F3CB3C"/><stop offset=".4" stop-color="#5CB246"/><stop offset=".55" stop-color="#0FA3C2"/><stop offset=".7" stop-color="#2E5FA8"/><stop offset=".85" stop-color="#7A3E97"/><stop offset="1" stop-color="#D51C73"/>
+          </linearGradient>
+          <linearGradient id="snkGlitc" gradientUnits="userSpaceOnUse" spreadMethod="repeat" x1="0" y1="0" x2="0" y2="1000">
+            <stop offset="0" stop-color="#FF6A5E"/><stop offset=".13" stop-color="#FFAD52"/><stop offset=".26" stop-color="#FFDE55"/><stop offset=".4" stop-color="#86E070"/><stop offset=".55" stop-color="#3ED6ED"/><stop offset=".7" stop-color="#7AA6FF"/><stop offset=".85" stop-color="#C58BF0"/><stop offset="1" stop-color="#FF6FB4"/>
+          </linearGradient>
+          <path id="snkCurl" fill="none" d="M0 0"/>
+        </defs>
+        <g class="snk__g" id="snkCurlG">
+          <use class="snk__case" href="#snkCurl"/>
+          <use class="snk__glow" href="#snkCurl" stroke="url(#snkGlitc)"/>
+          <use class="snk__body" href="#snkCurl" stroke="url(#snkGc)"/>
+          <use class="snk__core" href="#snkCurl"/>
+        </g>
+      </svg>
+    </div>
+    <canvas class="hero__pulses" id="heroPulses"></canvas>
+    <svg class="hero__ring" id="heroRing" viewBox="0 0 48 48" focusable="false">
+      <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="2"/>
+      <circle class="hero__ringarc" cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,.7)"
+              stroke-width="2" stroke-linecap="round" stroke-dasharray="126" transform="rotate(-90 24 24)"/>
+    </svg>
+  </div>
+
+  <!-- the sky: the two cloud beats, one Blender film scrubbed by the scroll
+       (sky.js). Fixed to the stage under the world, so the line rises over the
+       clouds. The words are in the film; the story props above carry them as
+       text. If the film cannot play at all, the words alone show here. -->
+  <div class="sky" id="sky" aria-hidden="true">
+    <div class="sky__frame">
+      <video class="sky__video" id="skyVideo" muted playsinline preload="none"
+             tabindex="-1" disablepictureinpicture></video>
+      <canvas class="sky__film" id="skyFilm"></canvas>
+      <div class="sky__fb sky__fb--a"><p class="hl hl--sky"><span class="ln">{{film.f3.big}}</span></p></div>
+      <div class="sky__fb sky__fb--b"><p class="hl hl--sky"><span class="ln">{{film.f7.big1}}</span> <span class="ln ln--2">{{film.f7.big2}}</span></p></div>
+    </div>
+  </div>
+
+  <div class="world" id="world">
+
+    <svg class="scenery" viewBox="0 0 11000 5600" aria-hidden="true" focusable="false" preserveAspectRatio="xMinYMin meet">
+      <defs>
+        <path id="boltPath" fill="none" stroke-linecap="round" stroke-linejoin="round"
+              d="M1906.0 4770.8 C1911.1 4762.8 1925.4 4738.1 1936.6 4722.8 C1947.7 4707.4 1961.3 4693.8 1972.8 4678.7 C1984.2 4663.6 1995.6 4648.2 2005.3 4632.0 C2015.0 4615.7 2022.8 4598.2 2031.0 4581.1 C2039.3 4564.0 2045.5 4545.7 2054.7 4529.2 C2063.9 4512.7 2073.1 4495.2 2086.2 4482.1 C2099.2 4468.9 2116.3 4458.5 2133.2 4450.3 C2150.0 4442.0 2168.9 4437.4 2187.2 4432.4 C2205.5 4427.5 2224.6 4425.1 2243.0 4420.5 C2261.4 4416.0 2288.7 4407.8 2297.9 4405.2 C2557.9 4332.6 2960 4180 3400 4059 L4150 3440 C4380 3270 4640 3120 4900 3020 C5050 2962 5140 2890 5200 2861 C5507 2861 5693 2812 6000 2812 C6307 2812 6493 2223 6800 2223 C7107 2223 7293 2174 7600 2174 C7870 2174 8140 1760 8340 1638 C8390 1608 8420 1596 8450 1590 C8700 1450 8920 1280 9120 1167 C9300 1060 9440 940 9560 922"/>
+      </defs>
+
+      <g class="bolt" id="boltg">
+        <use class="thread thread--case" href="#boltPath"/>
+        <use class="thread thread--glow" href="#boltPath"/>
+        <use class="thread thread--body" href="#boltPath"/>
+        <use class="thread thread--hot" href="#boltPath"/>
+        <use class="thread thread--core" href="#boltPath"/>
+      </g>
+
+      <g class="resolve" transform="translate(9290 760) scale(2.7)">
+        <path id="loop" class="resolve__loop" fill="none" stroke="url(#infg)"
+              stroke-linecap="round" stroke-linejoin="round"
+              d="M100 60C100 32 78 16 52 16C26 16 8 36 8 60C8 84 26 104 52 104C78 104 100 88 100 60C100 32 122 16 148 16C174 16 192 36 192 60C192 84 174 104 148 104C122 104 100 88 100 60Z"/>
+      </g>
+
+      <circle class="tip" id="tip" cx="0" cy="0" r="9" fill="#FFF8EC"/>
+    </svg>
+
+    <i class="bloom" id="bloom" aria-hidden="true"></i>
+
+    <!-- A band's data-a/data-b are in vh of scroll, counted from the start of
+         the segment of the pin named in data-seg: `pre` is the pin's start,
+         `mid` the end of the first cloud beat, `res` the end of the second.
+         site.js turns them into fractions of whatever the pin's length is, so
+         the cloud beats can change length without these being touched. -->
+
+
+    <!-- ---------- the first screen ---------- -->
+    <div class="band band--hero" data-seg="pre" data-a="0" data-b="74" style="--o:1">
+      <div class="band__in">
+        <h1 class="hl hl--hero"><span class="ln">{{hero.h1.line1}}</span> <span class="ln ln--2">{{hero.h1.line2}}</span></h1>
+        <p class="sub">{{hero.sub}}</p>
+        <p class="cta">
+          <a class="btn btn--primary" href="#contact">{{hero.primaryCta}}</a>
+          <a class="btn btn--ghost" href="#try">{{hero.badgeText}}</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="act act--still" style="--o:2">
+      <picture><source media="(orientation: landscape) and (min-width: 1025px) and (pointer: fine)" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><source media="(max-width: 760px)" srcset="assets/cl-closed.webp" type="image/webp"><source media="(hover: none) and (pointer: coarse) and (max-width: 1024px) and (prefers-reduced-motion: no-preference)" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><img class="still" src="assets/hero-still.jpg" width="1600" height="900" alt="" fetchpriority="high" decoding="async"></picture>
+    </div>
+
+    <!-- ---------- one studio ---------- -->
+    <div class="band band--l band--drop band--studio" data-seg="pre" data-a="106" data-b="285" style="--o:3">
+      <div class="band__in">
+        <h2 class="hl"><span class="ln ln--strong">{{film.f1.line1}}</span> <span class="ln ln--2">{{film.f1.line2}}</span></h2>
+        {{?film.f1.sub|<p class="sub">%s</p>}}
+      </div>
+    </div>
+
+    <!-- ---------- the climb begins ---------- -->
+    <div class="band band--l band--drop band--climb" data-seg="pre" data-a="289" data-b="416" style="--o:4">
+      <div class="band__in">
+        {{@f2}}
+      </div>
+    </div>
+
+    <!-- ---------- the sky, first beat ----------
+         The clouds form and the words rise out of them. In the film this is
+         sky.js's layer (below, fixed to the stage); this prop is the phone and
+         reduced-motion version, the clouds-only still with the words over it,
+         and it keeps the words in reading order for a screen reader in either
+         mode. -->
+    <div class="act act--sky" style="--o:5">
+      <figure class="skystill">
+        <img class="skystill__img" src="assets/sky-a-still.jpg?v=0000000000" width="1600" height="900" alt="" loading="lazy" decoding="async">
+        <figcaption class="skystill__words"><h2 class="hl hl--sky"><span class="ln">{{film.f3.big}}</span></h2></figcaption>
+      </figure>
+    </div>
+
+    <!-- ---------- each job, finished ---------- -->
+    <div class="band band--l band--jobs" data-seg="mid" data-a="-10" data-b="306" style="--o:7">
+      <div class="band__in">
+        <h2 class="hl"><span class="ln">{{film.f4.line1}}</span> <span class="ln ln--2">{{film.f4.line2}}</span></h2>
+        {{?film.f4.sub|<p class="sub">%s</p>}}
+      </div>
+    </div>
+
+    <!-- the panel component, first use: the four jobs, lit as the line reaches
+         them. the stations sit 800 apart. the wrapper is nothing in the world
+         treatments (display:contents) and the stage-fixed frame in the others;
+         html[data-cards] picks the treatment -->
+    <div class="jobs" id="jobs">
+    <article class="pan act" data-lit="5200" style="--x:5200;--y:2861;--o:8;--i:0">
+      <div class="pan__frame">
+        <i class="pan__clip" aria-hidden="true"></i>
+        <div class="pan__head" aria-hidden="true"><span class="pan__num">01</span><span class="pan__kicker">{{film.f4.panels.website.title}}</span></div>
+        <div class="pan__media">
+          <div class="mk mk--site" aria-hidden="true">
+            <div class="mk-site__bar"><span class="mk-site__name">{{work.demo.restaurantName}}</span><i class="mk-site__burger"></i></div>
+            <div class="mk-site__hero"><img class="mk-photo" src="assets/mock-site-hero.webp" width="1200" height="800" alt="" loading="lazy" decoding="async"><span class="mk-site__h">{{work.demo.website.heroLine}}</span><span class="mk-site__btn">{{work.demo.website.button}}</span></div>
+            <div class="mk-site__hours">{{work.demo.search.hoursLine}}</div>
+          </div>
+        </div>
+        <div class="pan__body">
+          <h3 class="pan__ttl">{{film.f4.panels.website.title}}</h3>
+          <p class="pan__line">{{film.f4.panels.website.line}}</p>
+        </div>
+        <span class="pan__stamp" aria-hidden="true">{{film.f4.stamp}}</span>
+      </div>
+    </article>
+    <article class="pan act" data-lit="6000" style="--x:6000;--y:2812;--o:9;--i:1">
+      <div class="pan__frame">
+        <i class="pan__clip" aria-hidden="true"></i>
+        <div class="pan__head" aria-hidden="true"><span class="pan__num">02</span><span class="pan__kicker">{{film.f4.panels.adCreatives.title}}</span></div>
+        <div class="pan__media">
+          <div class="mk mk--ad" aria-hidden="true">
+            <img class="mk-photo" src="assets/mock-ad.webp" width="800" height="1000" alt="" loading="lazy" decoding="async">
+            <span class="mk-ad__tag">{{work.demo.ad.tag}}</span>
+            <span class="mk-ad__h">{{work.demo.ad.headline}}</span>
+            <span class="mk-ad__f">{{work.demo.ad.smallLine}}</span>
+          </div>
+        </div>
+        <div class="pan__body">
+          <h3 class="pan__ttl">{{film.f4.panels.adCreatives.title}}</h3>
+          <p class="pan__line">{{film.f4.panels.adCreatives.line}}</p>
+        </div>
+        <span class="pan__stamp" aria-hidden="true">{{film.f4.stamp}}</span>
+      </div>
+    </article>
+    <article class="pan act" data-lit="6800" style="--x:6800;--y:2223;--o:10;--i:2">
+      <div class="pan__frame">
+        <i class="pan__clip" aria-hidden="true"></i>
+        <div class="pan__head" aria-hidden="true"><span class="pan__num">03</span><span class="pan__kicker">{{film.f4.panels.socialMedia.title}}</span></div>
+        <div class="pan__media">
+          <div class="mk mk--social" aria-hidden="true">
+            {{@socgrid}}
+          </div>
+        </div>
+        <div class="pan__body">
+          <h3 class="pan__ttl">{{film.f4.panels.socialMedia.title}}</h3>
+          <p class="pan__line">{{film.f4.panels.socialMedia.line}}</p>
+        </div>
+        <span class="pan__stamp" aria-hidden="true">{{film.f4.stamp}}</span>
+      </div>
+    </article>
+    <article class="pan act" data-lit="7600" style="--x:7600;--y:2174;--o:11;--i:3">
+      <div class="pan__frame">
+        <i class="pan__clip" aria-hidden="true"></i>
+        <div class="pan__head" aria-hidden="true"><span class="pan__num">04</span><span class="pan__kicker">{{film.f4.panels.seo.title}}</span></div>
+        <div class="pan__media">
+          <div class="mk mk--seo" aria-hidden="true">
+            <div class="mk-seo__q">{{work.demo.search.query}}</div>
+            <div class="mk-seo__row is-you"><img class="mk-seo__pic" src="assets/mock-soc-front.webp" width="160" height="160" alt="" loading="lazy" decoding="async"><b>{{work.demo.search.listingName}}</b><span>{{work.demo.search.openShort}}</span></div>
+            <div class="mk-seo__row"><b>Another place</b><span>Closes soon</span></div>
+          </div>
+        </div>
+        <div class="pan__body">
+          <h3 class="pan__ttl">{{film.f4.panels.seo.title}}</h3>
+          <p class="pan__line">{{film.f4.panels.seo.line}}</p>
+        </div>
+        <span class="pan__stamp" aria-hidden="true">{{film.f4.stamp}}</span>
+      </div>
+    </article>
+    </div>
+
+    <!-- ---------- handed back ---------- -->
+    <div class="band band--l band--drop band--handed" data-seg="mid" data-a="310" data-b="446" style="--o:12">
+      <div class="band__in">
+        <h2 class="hl"><span class="ln">{{film.f5.line1}}</span> <span class="ln ln--2">{{film.f5.line2}}</span></h2>
+        {{?film.f5.sub|<p class="sub">%s</p>}}
+      </div>
+    </div>
+
+    <!-- ---------- the pair: the same room, before and after ----------
+         two props, not one, so the rising line can pass between them: the
+         back plate sits under the scenery layer, the front plate over it. -->
+    <div class="act act--ba act--ba--before" id="baBefore" style="--x:8610;--y:1610;--o:13">
+      <figure class="ba">
+        <span class="ba__shot">
+          <img class="ba__img" src="assets/ba-before.webp" width="1600" height="900" srcset="assets/ba-before-m.webp 960w, assets/ba-before.webp 1600w" sizes="(max-width: 760px) 82vw, 1600px"
+               alt="{{film.f5.beforeAlt}}" loading="lazy" decoding="async">
+          <i class="ba__dim" aria-hidden="true"></i>
+        </span>
+        <figcaption class="ba__tab">{{film.f5.beforeLabel}}</figcaption>
+      </figure>
+    </div>
+    <div class="act act--ba act--ba--after" id="baAfter" style="--x:8850;--y:1437;--o:13">
+      <figure class="ba">
+        <span class="ba__shot">
+          <img class="ba__img" src="assets/ba-after.webp" width="1600" height="900" srcset="assets/ba-after-m.webp 960w, assets/ba-after.webp 1600w" sizes="(max-width: 760px) 82vw, 1600px"
+               alt="{{film.f5.afterAlt}}" loading="lazy" decoding="async">
+          <i class="ba__dim" aria-hidden="true"></i>
+        </span>
+        <figcaption class="ba__tab">{{film.f5.afterLabel}}</figcaption>
+      </figure>
+    </div>
+
+    <!-- ---------- the sky, second beat: after the pair, the same clouds, the other words ---------- -->
+    <div class="act act--sky" style="--o:14">
+      <figure class="skystill">
+        <img class="skystill__img" src="assets/sky-b-still.jpg?v=0000000000" width="1600" height="900" alt="" loading="lazy" decoding="async">
+        <figcaption class="skystill__words"><h2 class="hl hl--sky"><span class="ln">{{film.f7.big1}}</span> <span class="ln ln--2">{{film.f7.big2}}</span></h2></figcaption>
+      </figure>
+    </div>
+
+    <!-- ---------- the resolve ---------- -->
+    <div class="band band--c band--resolve" data-seg="res" data-a="-3" data-b="200" style="--o:15">
+      <div class="band__in">
+        <h2 class="hl hl--solo"><span class="ln">{{film.f6.line}}</span></h2>
+      </div>
+    </div>
+
+    <div class="act act--mark" style="--x:9560;--y:922;--o:16">
+      <img class="storymark" src="assets/mark-720.webp" width="720" height="397" alt="" loading="lazy" decoding="async">
+    </div>
+    <div class="act act--word" style="--x:9560;--y:1184;--o:17">
+      <p class="wordmark">Domin<span class="eight">8</span>te <span class="wordmark__sub">Media</span></p>
+      <i class="rule" aria-hidden="true"></i>
+    </div>
+
+    <i class="strain" aria-hidden="true"></i>
+  </div>
+
+  <!-- the charge: in the slingshot feel the scroll fills this icon through the
+       first part of a cloud beat, and when it is full it is let fly as the
+       words burst out. site.js drives it (the fill as the custom property c,
+       and the is-on / is-full / is-launched classes); the drawings and their
+       motion are generated. One drawing shows, picked by <html data-charge>. -->
+  <!-- the phone's line (site.js, THE PHONE FILM AND ITS LINE): the thread
+       that leaves the mark, runs down the left edge like a snake as the page
+       is read, and draws the mark's loop at the end. Page space: the svg is
+       the film section's full size and site.js writes the path, the loop and
+       the gradient phase from measured positions. Hidden everywhere else. -->
+  <svg class="snk" id="snk" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="snkG" gradientUnits="userSpaceOnUse" spreadMethod="repeat" x1="0" y1="0" x2="0" y2="1000">
+        <stop offset="0" stop-color="#E5322B"/><stop offset=".13" stop-color="#F2912F"/><stop offset=".26" stop-color="#F3CB3C"/><stop offset=".4" stop-color="#5CB246"/><stop offset=".55" stop-color="#0FA3C2"/><stop offset=".7" stop-color="#2E5FA8"/><stop offset=".85" stop-color="#7A3E97"/><stop offset="1" stop-color="#D51C73"/>
+      </linearGradient>
+      <linearGradient id="snkGlit" gradientUnits="userSpaceOnUse" spreadMethod="repeat" x1="0" y1="0" x2="0" y2="1000">
+        <stop offset="0" stop-color="#FF6A5E"/><stop offset=".13" stop-color="#FFAD52"/><stop offset=".26" stop-color="#FFDE55"/><stop offset=".4" stop-color="#86E070"/><stop offset=".55" stop-color="#3ED6ED"/><stop offset=".7" stop-color="#7AA6FF"/><stop offset=".85" stop-color="#C58BF0"/><stop offset="1" stop-color="#FF6FB4"/>
+      </linearGradient>
+      <path id="snkPath" fill="none" d="M0 0"/>
+      <path id="snkLoop" fill="none" d="M0 0"/>
+    </defs>
+    <g class="snk__g snk__rail" id="snkRail">
+      <use class="snk__case" href="#snkPath"/>
+      <use class="snk__glow" href="#snkPath" stroke="url(#snkGlit)"/>
+      <use class="snk__body" href="#snkPath" stroke="url(#snkG)"/>
+      <use class="snk__core" href="#snkPath"/>
+    </g>
+    <g class="snk__g snk__loop" id="snkLoopG">
+      <use class="snk__lglow" href="#snkLoop" stroke="url(#infg)"/>
+      <use class="snk__lbody" href="#snkLoop" stroke="url(#snkG)"/>
+      <use class="snk__lring" href="#snkLoop" stroke="url(#infg)"/>
+    </g>
+  </svg>
+  <i class="snk__tip" id="snkTip" aria-hidden="true"></i>
+
+  <div class="charge" aria-hidden="true">
+    <span class="charge__icon">
+      <!-- CHARGE:START generated by charge/charge.py, do not hand edit -->
+      <svg class="chg chg--ring" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><defs><linearGradient id="chgRingG" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#E5322B"/><stop offset=".13" stop-color="#F2912F"/><stop offset=".26" stop-color="#F3CB3C"/><stop offset=".4" stop-color="#5CB246"/><stop offset=".55" stop-color="#0FA3C2"/><stop offset=".7" stop-color="#2E5FA8"/><stop offset=".85" stop-color="#7A3E97"/><stop offset="1" stop-color="#D51C73"/></linearGradient><linearGradient id="chgRingT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF1DC" stop-opacity=".95"/><stop offset=".35" stop-color="#FF8A3D" stop-opacity=".6"/><stop offset="1" stop-color="#FF5B1F" stop-opacity="0"/></linearGradient></defs><g class="chg__ring"><circle class="chg__track" cx="32" cy="32" r="25"/><circle class="chg__fill" cx="32" cy="32" r="25" pathLength="1" stroke="url(#chgRingG)" transform="rotate(-90 32 32)"/></g><g class="chg__proj"><rect class="chg__trail" x="30.5" y="36" width="3" height="40" rx="1.5" fill="url(#chgRingT)"/><path class="chg__arrow" d="M32 45V21M22.5 30.5L32 21l9.5 9.5"/></g></svg>
+      <!-- CHARGE:END -->
+    </span>
+    <span class="charge__label">{{film.charge.label}}</span>
+  </div>
+ </div>
+</section>
+
+<!-- ============ THE WORK: the same panel component, now showing the work ============ -->
+<section class="work" id="work" aria-labelledby="work-h">
+  <div class="wrap">
+    <header class="sec-head rv">
+      <h2 id="work-h" class="hl hl--sec"><span class="ln">{{work.heading.line1}}</span> <span class="ln ln--2">{{work.heading.line2}}</span></h2>
+      <!-- WORKIDX:START generated by work/idx.py, do not hand edit -->
+      <svg class="wmk wmk--drop" viewBox="0 0 520 200" aria-hidden="true" focusable="false" preserveAspectRatio="xMaxYMax meet"><defs><linearGradient id="wmkDropG" gradientUnits="userSpaceOnUse" x1="302" y1="0" x2="426" y2="0"><stop offset="0%" stop-color="#E5322B"/><stop offset="14%" stop-color="#F2912F"/><stop offset="29%" stop-color="#F3CB3C"/><stop offset="43%" stop-color="#5CB246"/><stop offset="57%" stop-color="#0FA3C2"/><stop offset="71%" stop-color="#2E5FA8"/><stop offset="86%" stop-color="#7A3E97"/><stop offset="100%" stop-color="#D51C73"/></linearGradient><filter id="wmkDropF" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="11"/></filter></defs><path d="M 0 160 L 272 160" stroke="#F2EDE3" stroke-opacity=".25" stroke-width="1.2"/><path d="M 302 94 L 364 128 L 426 94" fill="none" stroke="#F2EDE3" stroke-opacity=".08" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M 302 120 L 364 154 L 426 120" fill="none" stroke="#F2EDE3" stroke-opacity=".08" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M 302 146 L 364 180 L 426 146" fill="none" stroke="#F2EDE3" stroke-opacity=".08" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><g class="wmk__d1"><path d="M 302 94 L 364 128 L 426 94" fill="none" stroke="url(#wmkDropG)" stroke-width="11" opacity=".32" stroke-linecap="round" stroke-linejoin="round" filter="url(#wmkDropF)"/><path d="M 302 94 L 364 128 L 426 94" fill="none" stroke="url(#wmkDropG)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></g><g class="wmk__d2"><path d="M 302 120 L 364 154 L 426 120" fill="none" stroke="url(#wmkDropG)" stroke-width="11" opacity=".32" stroke-linecap="round" stroke-linejoin="round" filter="url(#wmkDropF)"/><path d="M 302 120 L 364 154 L 426 120" fill="none" stroke="url(#wmkDropG)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></g><g class="wmk__d3"><path d="M 302 146 L 364 180 L 426 146" fill="none" stroke="url(#wmkDropG)" stroke-width="11" opacity=".32" stroke-linecap="round" stroke-linejoin="round" filter="url(#wmkDropF)"/><path d="M 302 146 L 364 180 L 426 146" fill="none" stroke="url(#wmkDropG)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></g><g class="wmk__dfall" style="--step:26px"><path d="M 302 94 L 364 128 L 426 94" fill="none" stroke="url(#wmkDropG)" stroke-width="11" opacity=".32" stroke-linecap="round" stroke-linejoin="round" filter="url(#wmkDropF)"/><path d="M 302 94 L 364 128 L 426 94" fill="none" stroke="url(#wmkDropG)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></g></svg>
+      <!-- WORKIDX:END -->
+    </header>
+
+    <div class="grid">
+      <!-- TO DROP IN A REAL SCREENSHOT: replace the .pan__media block's mock with
+           <img src="assets/work-website.jpg" alt="..." width="1200" height="800">
+           and add pan--photo to the article. The frame and entrance stay the same. -->
+      <article class="pan pan--site is-lit rv">
+        <div class="pan__frame">
+          <div class="pan__media">
+            <div class="mk mk--site mk--full" aria-hidden="true">
+              <div class="mk-site__bar"><span class="mk-site__name">{{work.demo.restaurantName}}</span><i class="mk-site__burger"></i></div>
+              <div class="mk-site__hero"><img class="mk-photo" src="assets/mock-site-hero.webp" width="1200" height="800" alt="" loading="lazy" decoding="async"><span class="mk-site__h">{{work.demo.website.heroLine}}</span><span class="mk-site__btn">{{work.demo.website.button}}</span></div>
+              {{@menu}}
+              <div class="mk-site__hours">{{work.demo.search.hoursLine}}</div>
+            </div>
+          </div>
+          <div class="pan__body">
+            <h3 class="pan__ttl">{{work.items.website.title}}</h3>
+            <p class="pan__h">{{work.items.website.claim}}</p>
+            <p class="pan__line">{{work.items.website.detail}}</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="pan pan--ad is-lit rv">
+        <div class="pan__frame">
+          <div class="pan__media">
+            <div class="mk-pair" aria-hidden="true">
+              <div class="mk mk--ad mk--story">
+                <img class="mk-photo" src="assets/mock-ad.webp" width="800" height="1000" alt="" loading="lazy" decoding="async">
+                <span class="mk-ad__tag">{{work.demo.ad.tag}}</span>
+                <span class="mk-ad__h">{{work.demo.ad.headline}}</span>
+                <span class="mk-ad__f">{{work.demo.ad.smallLine}}</span>
+              </div>
+              <div class="mk mk--ad mk--square mk--alt">
+                <img class="mk-photo" src="assets/mock-soc-tart.webp" width="800" height="800" alt="" loading="lazy" decoding="async">
+                <span class="mk-ad__h">{{work.demo.ad2.headline}}</span>
+                <span class="mk-ad__f">{{work.demo.ad2.smallLine}}</span>
+              </div>
+            </div>
+          </div>
+          <div class="pan__body">
+            <h3 class="pan__ttl">{{work.items.adCreatives.title}}</h3>
+            <p class="pan__h">{{work.items.adCreatives.claim}}</p>
+            <p class="pan__line">{{work.items.adCreatives.detail}}</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="pan pan--social is-lit rv">
+        <div class="pan__frame">
+          <div class="pan__media">
+            <div class="mk mk--social mk--full" aria-hidden="true">
+              <div class="mk-soc__head"><i class="mk-soc__av"></i><span>{{work.demo.social.handle}}</span></div>
+              {{@socgrid}}
+            </div>
+          </div>
+          <div class="pan__body">
+            <h3 class="pan__ttl">{{work.items.socialMedia.title}}</h3>
+            <p class="pan__h">{{work.items.socialMedia.claim}}</p>
+            <p class="pan__line">{{work.items.socialMedia.detail}}</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="pan pan--seo is-lit rv">
+        <div class="pan__frame">
+          <div class="pan__media">
+            <div class="mk mk--seo mk--full" aria-hidden="true">
+              <div class="mk-seo__q">{{work.demo.search.query}}</div>
+              <div class="mk-seo__row is-you"><img class="mk-seo__pic" src="assets/mock-soc-front.webp" width="160" height="160" alt="" loading="lazy" decoding="async"><b>{{work.demo.search.listingName}}</b><span>{{work.demo.search.hoursLine}}</span></div>
+              <div class="mk-seo__row"><b>Another place</b><span>Closes soon</span></div>
+              <div class="mk-seo__row"><b>Somewhere else</b><span>Closed</span></div>
+              <p class="mk-seo__rev">“{{work.demo.search.reviewSnippet}}” <em>{{work.demo.search.reviewLabel}}</em></p>
+            </div>
+          </div>
+          <div class="pan__body">
+            <h3 class="pan__ttl">{{work.items.seo.title}}</h3>
+            <p class="pan__h">{{work.items.seo.claim}}</p>
+            <p class="pan__line">{{work.items.seo.detail}}</p>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE PROBLEM PICKER ============ -->
+<section class="pick" id="try" aria-labelledby="pick-h">
+  <div class="wrap">
+    <header class="sec-head rv">
+      <h2 id="pick-h" class="hl hl--sec"><span class="ln">{{picker.heading.line1}}</span> <span class="ln ln--2">{{picker.heading.line2}}</span></h2>
+      <p class="lede">{{picker.intro}}</p>
+    </header>
+
+    <div class="pick__body">
+      <fieldset class="pick__opts rv">
+        <legend class="visually-hidden">Your biggest problem right now</legend>
+{{@opts}}
+      </fieldset>
+
+      <div class="pick__plan rv" id="plan" aria-live="polite">
+        <i class="pick__rise" aria-hidden="true"></i>
+        <p class="plan plan--empty">{{picker.empty}}</p>
+{{@plans}}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE CLOSE ============ -->
+<section class="contact" id="contact" aria-labelledby="contact-h">
+  <div class="wrap contact__in">
+    <header class="sec-head rv">
+      <h2 id="contact-h" class="hl hl--sec"><span class="ln">{{contact.heading.line1}}</span> <span class="ln ln--2">{{contact.heading.line2}}</span></h2>
+      <p class="lede">{{contact.lede}}</p>
+    </header>
+
+    <p class="sent-note" id="sent" tabindex="-1">{{contact.success}}</p>
+    <p class="sent-note sent-note--bad" id="notsent" tabindex="-1">{{contact.errors.sendFailed}}</p>
+
+    <form class="form rv" id="leadform" action="send.php" method="post" novalidate data-msg-name="{{contact.errors.nameMissing}}" data-msg-business="{{contact.errors.restaurantMissing}}" data-msg-contact-missing="{{contact.errors.contactMissing}}" data-msg-contact-bad="{{contact.errors.contactInvalid}}" data-msg-sending="{{contact.sending}}" data-msg-success="{{contact.success}}" data-msg-fail="{{contact.errors.sendFailed}}">
+      <div class="form__row">
+        <p class="field"><label for="f-name">{{contact.fields.name.label}}</label><input id="f-name" name="name" type="text" autocomplete="name" required maxlength="120" aria-describedby="e-name"><span class="field__err" id="e-name"></span></p>
+        <p class="field"><label for="f-biz">{{contact.fields.restaurant.label}}</label><input id="f-biz" name="business" type="text" autocomplete="organization" required maxlength="160" aria-describedby="e-biz"><span class="field__err" id="e-biz"></span></p>
+      </div>
+      <p class="field"><label for="f-contact">{{contact.fields.contact.label}}</label><input id="f-contact" name="contact" type="text" autocomplete="email" inputmode="email" required maxlength="190" aria-describedby="e-contact"><span class="field__err" id="e-contact"></span></p>
+
+      <details class="more">
+        <summary class="more__sum">{{@toggle}}</summary>
+        <div class="more__in">
+          <p class="field"><label for="f-web">{{contact.fields.website.label}}</label><input id="f-web" name="website" type="text" inputmode="url" autocomplete="url" placeholder="yourplace.com" maxlength="300"></p>
+          <p class="field"><label for="f-need">{{contact.fields.need.label}}</label>
+            {{@select}}
+          </p>
+          <p class="field"><label for="f-msg">{{contact.fields.challenge.label}}</label><textarea id="f-msg" name="challenge" rows="4" maxlength="4000" placeholder="{{contact.fields.challenge.placeholder}}"></textarea></p>
+        </div>
+      </details>
+
+      <p class="hp" aria-hidden="true"><label for="f-hp">Company URL</label><input id="f-hp" name="company_url" type="text" tabindex="-1" autocomplete="off"></p>
+
+      <div class="form__foot">
+        <button class="btn btn--primary btn--lg" type="submit" id="submitbtn">{{contact.submit}}</button>
+        <p class="form__note">{{contact.reassurance}}</p>
+      </div>
+      <p class="formstatus" id="formstatus" role="status"></p>
+    </form>
+
+    <p class="contact__mail rv">{{@emailalt}}</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p class="foot__brand"><span>Domin<span class="eight">8</span>te Media</span></p>
+    <p class="foot__line">&copy; <span id="yr">2026</span> {{footer.line}}</p>
+    <p class="foot__note">{{footer.honestyNote}}</p>
+  </div>
+</footer>
+
+<a class="ctabar" id="ctabar" href="#contact">{{sticky.label}}</a>
+
+<script src="assets/site.js?v=0000000000" defer></script>
+<script>/* the sky film is the desktop's alone; a phone never fetches it */
+if (document.documentElement.classList.contains('film')) { var s = document.createElement('script'); s.src = 'assets/sky.js?v=0000000000'; document.body.appendChild(s) }</script>
+<script src="assets/phone.js?v=0" defer></script>
+</body>
+</html>

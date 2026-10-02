@@ -1,0 +1,76 @@
+
+/* ============================================================
+   THE PHONE (2026-09-23). Fitting the content to a phone, and
+   the look of the phone film's hero and resolve. The three
+   legibility fixes (the ghost link, the climb's second line,
+   the cloud stills) apply to every phone, reduced motion too,
+   because they are defects, not motion; the rest is the film
+   layout and hangs off .pfilm. Nothing here can reach
+   html.film.
+   ============================================================ */
+
+@media (max-width:760px){
+  /* the ghost link measured 354px, wider than the column: it clipped its
+     arrow at 390 and its last words at 360. Let it wrap; its hairline was a
+     background at a fixed offset, which cannot follow a second line */
+  html[data-v="editorial"].story .band--hero .btn--ghost{
+    white-space:normal;text-align:left;justify-content:flex-start;
+    line-height:1.5;padding:6px 0;max-width:100%;background:none;
+    text-decoration:underline;text-decoration-thickness:1px;
+    text-decoration-color:var(--ghost-line);text-underline-offset:.3em;
+  }
+  html[data-v="editorial"].story .band--hero .btn--ghost:hover{background:none;text-decoration-color:var(--ink)}
+  /* "toward something bigger." carries a no-break space, so the second line
+     could not wrap and ran off the column; one size smaller, the deck's own
+     dimmer-second-line treatment */
+  html[data-v="editorial"].story .band--climb .ln--2{font-size:.78em}
+  /* the cloud stills were 16:9 strips with the words centred over the small
+     upper cloud. A 4:5 figure showing the frame's lower three quarters puts
+     the words in the black band above the big cloud, under a soft scrim */
+  html[data-v="editorial"].story .skystill{aspect-ratio:4/5;overflow:hidden}
+  html[data-v="editorial"].story .skystill__img{
+    position:absolute;left:50%;bottom:0;width:auto;height:135%;max-width:none;
+    aspect-ratio:auto;transform:translateX(-50%);
+  }
+  html[data-v="editorial"].story .act--sky:first-of-type .skystill__img{left:44%}
+  html[data-v="editorial"].story .skystill__words{align-items:center;padding:0 6% 58%}
+  html[data-v="editorial"].story .skystill__words::before{
+    content:"";position:absolute;left:0;right:0;top:0;height:62%;pointer-events:none;
+    background:radial-gradient(ellipse 72% 60% at 50% 45%,rgba(10,10,10,.72) 0%,rgba(10,10,10,0) 70%);
+  }
+  html[data-v="editorial"].story .skystill__words .hl--sky{position:relative}
+}
+@media (max-width:352px){
+  html[data-v="editorial"].story{--hl-size:clamp(32px,10.8vw,64px)}
+}
+
+/* the hero over the film: a shadow for the moments a word sits over the
+   picture's bright top */
+html[data-v="editorial"].story.pfilm .band--hero .hl--hero{text-shadow:0 2px 14px rgba(0,0,0,.55)}
+
+/* the pair: one room, two plates, edge to edge, labels inside the corners */
+html[data-v="editorial"].story.pfilm .act--ba{margin-inline:calc(var(--gut) * -1);width:calc(100% + var(--gut) * 2);padding:0}
+html[data-v="editorial"].story.pfilm .act--ba--before{padding-top:clamp(12px,3vh,30px)}
+html[data-v="editorial"].story.pfilm .act--ba--after{padding:2px 0 clamp(12px,3vh,30px)}
+html[data-v="editorial"].story.pfilm .act--ba .ba{width:100%}
+html[data-v="editorial"].story.pfilm .ba__shot{aspect-ratio:3/2}
+html[data-v="editorial"].story.pfilm .ba__img,html[data-v="editorial"].story.pfilm .ba__shot::after{border-radius:0}
+html[data-v="editorial"].story.pfilm .ba__shot::after{border-left:0;border-right:0}
+html[data-v="editorial"].story.pfilm .ba__tab{top:12px;left:12px;transform:none;background:rgba(10,10,10,.82)}
+html[data-v="editorial"].story.pfilm .act--ba--after .ba__tab{left:auto;right:12px}
+
+/* the four jobs run as one column beside the line */
+html[data-v="editorial"].story.pfilm .pan.act{padding:clamp(10px,2.4vh,22px) 0}
+
+/* the resolve: a centred lockup that fits one screen above the contact bar,
+   the mark large enough for the line to draw its loop */
+html[data-v="editorial"].story.pfilm .band--resolve .band__in{text-align:center}
+html[data-v="editorial"].story.pfilm .band--resolve{padding-bottom:28px}
+html[data-v="editorial"].story.pfilm .storymark{width:min(62vw,280px)}
+
+/* a tapped button on a phone keeps its hover colour until the next tap;
+   story-only resets, the desktop selectors untouched */
+@media (hover:none){
+  html[data-v="editorial"].story .btn--primary:hover{background:var(--acc)}
+  html[data-v="editorial"].story .ctabar:hover{background:var(--btn-bg)}
+}

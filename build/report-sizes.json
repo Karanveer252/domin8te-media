@@ -1,0 +1,159 @@
+{
+ "task": "sizes",
+ "d1280": {
+  "mode": "js film ready",
+  "y": 0,
+  "cam": "matrix(1, 0, 0, 1, -240, 0)",
+  "pw": "0",
+  "tip": "none",
+  "offb": "8086px",
+  "cut": "0",
+  "lit": "0000",
+  "bands": [
+   {
+    "on": true,
+    "op": 1,
+    "k": 1
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   }
+  ],
+  "words": [],
+  "scrollW": 1280,
+  "innerW": 1280,
+  "docH": 17.6
+ },
+ "d1280Err": [],
+ "d1920": {
+  "mode": "js film ready",
+  "y": 0,
+  "cam": "matrix(1, 0, 0, 1, -228, 0)",
+  "pw": "0",
+  "tip": "none",
+  "offb": "8086px",
+  "cut": "0",
+  "lit": "0000",
+  "bands": [
+   {
+    "on": true,
+    "op": 1,
+    "k": 1
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   }
+  ],
+  "words": [],
+  "scrollW": 1920,
+  "innerW": 1920,
+  "docH": 16.7
+ },
+ "d1920Err": [],
+ "d1440": {
+  "mode": "js film ready",
+  "y": 0,
+  "cam": "matrix(1, 0, 0, 1, -270, 0)",
+  "pw": "0",
+  "tip": "none",
+  "offb": "8086px",
+  "cut": "0",
+  "lit": "0000",
+  "bands": [
+   {
+    "on": true,
+    "op": 1,
+    "k": 1
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   },
+   {
+    "on": false,
+    "op": 0,
+    "k": 0
+   }
+  ],
+  "words": [],
+  "scrollW": 1440,
+  "innerW": 1440,
+  "docH": 17.3
+ },
+ "d1440Err": []
+}

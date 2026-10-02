@@ -1,0 +1,39 @@
+{
+ "task": "act",
+ "holdEarly": {
+  "hp": 0.36,
+  "wires": 1,
+  "note": "",
+  "label": "Hold to power up"
+ },
+ "holdAfterDecay": {
+  "hp": 0,
+  "wires": 0,
+  "note": "",
+  "label": "Hold to power up"
+ },
+ "holdDone": {
+  "hp": 1,
+  "wires": 4,
+  "note": "All four, running off one core.",
+  "label": "Powered up"
+ },
+ "form": {
+  "empty": "Please add your name.",
+  "badMail": "That email looks off. Mind checking it?",
+  "sent": "Got it. We will reply within one business day.",
+  "cls": "formstatus ok"
+ },
+ "stagger": [
+  "0s, 0s|done",
+  "0s|done",
+  "0.18s|pending",
+  "0.27s|pending"
+ ],
+ "focus": {
+  "count": 12,
+  "first": "skip",
+  "video": false
+ },
+ "errors": []
+}

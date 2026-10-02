@@ -1,0 +1,180 @@
+/* The cloud-feel switcher. Injected only by the local preview server
+   (serve.js); the deploy folder never carries it. Three choices, each from a
+   query parameter or a cookie, set on <html> before site.js reads them:
+     data-feel       how the two cloud beats behave (?feel=)
+     data-friction   how much of that feel's scroll the beats take (?friction=)
+     data-charge     which charge icon the slingshot feel shows (?charge=)
+   ?bare=1 hides the bar, for headless captures.
+
+   Flipping reloads the page, because a feel changes the length of the pin
+   and everything timed against it. The same MOMENT of the film sits at a
+   different scroll offset in every feel, so the switcher does not restore a
+   pixel offset: it asks site.js which segment of the pin the reader is in and
+   how far through it (window.__feel.where), and after the reload asks the new
+   feel where that moment lives (window.__feel.at). Flip in the middle of the
+   first cloud and you land in the middle of the first cloud.
+
+   The charge icon only exists in the slingshot feel, so picking an icon also
+   picks that feel. */
+(function () {
+  if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;
+  var FEELS = [
+    ['middle', 'Middle',    'The midpoint of the last two builds in every number: beat lengths, how long the finished words are held, shake size (41px), how far the frame closes in.'],
+    ['heavy',  'Heavy',     'Friction as weight, not length: the scene trails your wheel and leans into the lag, then settles when you stop. No judder.'],
+    ['storm',  'Storm',     'The sky darkens as the words form, then lightning: three strikes a beat light the cloud from inside, thunder a moment behind each.'],
+    ['breath', 'Breath',    'The opposite of a shake. The camera pushes slowly in on the clouds, the frame closes softly, and the held words breathe.'],
+    ['sling',  'Slingshot', 'Your scroll charges it, then it goes off on its own: at the threshold the words burst out by themselves with one hard hit. Shortest pin.']
+  ];
+  var ICONS = [
+    ['ring',    'Ring',    'A ring closes round an arrow as you scroll. Full: the ring bursts outward and the arrow is let fly.'],
+    ['sling',   'Sling',   'The thing itself: a fork, a band drawn back further with every turn of the wheel, a pellet that fills. Full: the band snaps and the pellet goes.'],
+    ['mark',    'Mark',    'The studio’s own infinity mark, drawn along its loop in the brand spectrum. Full: the whole mark squashes and is let fly.'],
+    ['capsule', 'Capsule', 'A vessel filling with light from the bottom. Full: it goes up like a rocket, trailing fire.'],
+    ['coil',    'Coil',    'A spring pressed down ring by ring, each ring lighting as it goes. Full: it uncoils and throws the ball off its top.']
+  ];
+  /* how much of the scroll the two cloud beats take, against what the chosen
+     feel has now (Karan, 2026-09-19: "10% / 30% / 50% / 80% / 100% friction,
+     based on what it currently is"). 100 is the feel untouched. */
+  var FRICTIONS = [
+    ['10',  '10%',  'A tenth of the scroll: the clouds are over almost as soon as they begin.'],
+    ['30',  '30%',  'Under a third: a quick beat, the words arrive and you are through.'],
+    ['50',  '50%',  'Half the scroll of the current build.'],
+    ['80',  '80%',  'A little lighter than it is now.'],
+    ['100', '100%', 'As it is now.']
+  ];
+  var KEY = 'd8-feel-moment';
+  function param(name) { var m = new RegExp('[?&]' + name + '=([a-z0-9]+)').exec(location.search); return m && m[1] }
+  function cookie(name) { var m = new RegExp('(?:^|; )' + name + '=([a-z0-9]+)').exec(document.cookie); return m && m[1] }
+  function valid(list, id, dflt) { return list.some(function (s) { return s[0] === id }) ? id : dflt }
+
+  var feel = valid(FEELS, param('feel') || cookie('d8feel'), 'sling');
+  var icon = valid(ICONS, param('charge') || cookie('d8charge'), 'ring');
+  var fric = valid(FRICTIONS, param('friction') || cookie('d8friction'), '100');
+  document.documentElement.setAttribute('data-feel', feel);
+  document.documentElement.setAttribute('data-charge', icon);
+  document.documentElement.setAttribute('data-friction', fric);
+
+  function filmBox() {
+    var f = document.getElementById('top');
+    if (!f) return null;
+    var top = f.getBoundingClientRect().top + window.scrollY;
+    return { top: top, range: f.offsetHeight - window.innerHeight };
+  }
+  function goTo(seg, f) {
+    var b = filmBox();
+    if (!b || !window.__feel) return;
+    window.scrollTo({ top: b.top + b.range * window.__feel.at(seg, f), behavior: 'instant' });
+  }
+
+  /* land on the moment the reader left */
+  try {
+    var saved = sessionStorage.getItem(KEY);
+    if (saved !== null) {
+      sessionStorage.removeItem(KEY);
+      var m = JSON.parse(saved);
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          var b = filmBox();
+          if (m.below !== undefined && b) window.scrollTo({ top: b.top + b.range + m.below, behavior: 'instant' });
+          else goTo(m.seg, m.f);
+        }, 80);
+      });
+    }
+  } catch (e) {}
+
+  function keep(name, id) { document.cookie = name + '=' + id + '; path=/; max-age=31536000; SameSite=Lax' }
+  function reload() {
+    try {
+      var b = filmBox(), m = null;
+      if (b && window.scrollY > b.top + b.range + 2) m = { below: window.scrollY - (b.top + b.range) };
+      else if (window.__feel) m = window.__feel.where();
+      if (m) sessionStorage.setItem(KEY, JSON.stringify(m));
+    } catch (e) {}
+    location.href = location.pathname;
+  }
+
+  var css =
+    '.d8fl{position:fixed;left:16px;bottom:16px;z-index:2147483000;max-width:calc(100vw - 32px);padding:4px;border-radius:20px;' +
+    'background:rgba(14,14,14,.9);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14);' +
+    'box-shadow:0 8px 28px rgba(0,0,0,.45);font:600 12px/1 system-ui,-apple-system,Segoe UI,sans-serif;letter-spacing:.02em;color:#EDE8E1}' +
+    '.d8fl__row{display:flex;align-items:center;gap:4px;flex-wrap:wrap}' +
+    '.d8fl__row + .d8fl__row{margin-top:2px;padding-top:2px;border-top:1px solid rgba(255,255,255,.08)}' +
+    '.d8fl__t{width:74px;padding:0 0 0 10px;color:rgba(237,232,225,.55);text-transform:uppercase;letter-spacing:.12em;font-size:10px;white-space:nowrap}' +
+    '.d8fl button{appearance:none;border:0;margin:0;padding:8px 12px;border-radius:999px;background:transparent;color:inherit;' +
+    'font:inherit;cursor:pointer;white-space:nowrap;transition:background-color .2s,color .2s}' +
+    '.d8fl button:hover{background:rgba(255,255,255,.08)}' +
+    '.d8fl button[aria-pressed="true"]{background:#FF5B1F;color:#0A0A0A}' +
+    '.d8fl button:focus-visible{outline:2px solid #FF5B1F;outline-offset:2px}' +
+    '.d8fl__sep{width:1px;height:18px;background:rgba(255,255,255,.16);margin:0 4px}' +
+    '.d8fl .d8fl__j{color:rgba(237,232,225,.8);font-weight:500}' +
+    '.d8fl__row--dim button:not([aria-pressed="true"]){color:rgba(237,232,225,.5)}' +
+    '.d8fl__n{padding:6px 12px 8px;font:400 12px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;letter-spacing:0;' +
+    'color:rgba(237,232,225,.78);max-width:600px}' +
+    '.d8fl__n b{font-weight:600;color:#EDE8E1}' +
+    /* the charge icon sits bottom centre and is the thing being compared, so
+       on a narrower window the bar wraps rather than reach across to it */
+    '@media (max-width:1500px){.d8fl{max-width:430px}.d8fl__t{width:100%;padding:6px 0 2px 10px}}';
+
+  function row(title, list, current, onPick, dim) {
+    var r = document.createElement('div'); r.className = 'd8fl__row' + (dim ? ' d8fl__row--dim' : '');
+    var t = document.createElement('span'); t.className = 'd8fl__t'; t.textContent = title; r.appendChild(t);
+    list.forEach(function (d) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = d[1]; b.title = d[2];
+      b.setAttribute('aria-pressed', current === d[0] ? 'true' : 'false');
+      b.addEventListener('click', function () { onPick(d[0]) });
+      r.appendChild(b);
+    });
+    return r;
+  }
+  function text(list, id) { for (var i = 0; i < list.length; i++) if (list[i][0] === id) return list[i]; return list[0] }
+
+  function build() {
+    if (/[?&]bare=1/.test(location.search)) return;
+    var style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
+    var bar = document.createElement('div'); bar.className = 'd8fl';
+    bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Cloud section options');
+
+    var r1 = row('Clouds', FEELS, feel, function (id) { keep('d8feel', id); reload() });
+    var sep = document.createElement('i'); sep.className = 'd8fl__sep'; r1.appendChild(sep);
+    /* the clouds are a long way down: jump to just before each beat */
+    [['Cloud 1', 'pre', .93], ['Cloud 2', 'mid', .97]].forEach(function (j) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'd8fl__j';
+      b.textContent = '↓ ' + j[0]; b.title = 'Jump to just before this cloud beat';
+      b.addEventListener('click', function () { goTo(j[1], j[2]) });
+      r1.appendChild(b);
+    });
+    bar.appendChild(r1);
+
+    bar.appendChild(row('Friction', FRICTIONS, fric, function (id) { keep('d8friction', id); reload() }));
+
+    /* an icon belongs to the slingshot, so choosing one chooses that too */
+    bar.appendChild(row('Icon', ICONS, icon, function (id) { keep('d8charge', id); keep('d8feel', 'sling'); reload() }, feel !== 'sling'));
+
+    var note = document.createElement('div'); note.className = 'd8fl__n';
+    var f = text(FEELS, feel), ic = text(ICONS, icon);
+    note.innerHTML = '';
+    var b1 = document.createElement('b'); b1.textContent = f[1] + '. ';
+    note.appendChild(b1); note.appendChild(document.createTextNode(f[2]));
+    /* what the friction comes to, in screens of scrolling: site.js has run by
+       now (it is deferred, and this runs on DOMContentLoaded) */
+    note.appendChild(document.createElement('br'));
+    var bf = document.createElement('b'); bf.textContent = 'Friction ' + fric + '%. ';
+    note.appendChild(bf);
+    var beats = window.__feel && window.__feel.beats && window.__feel.beats();
+    var scr = function (vh) { var n = vh / 100; return (n < 1 ? n.toFixed(1) : String(Math.round(n * 10) / 10)) + (n === 1 ? ' screen' : ' screens') };
+    note.appendChild(document.createTextNode(beats
+      ? 'First cloud ' + scr(beats.L1) + ' of scrolling (' + scr(beats.full1) + ' at 100%), second ' + scr(beats.L2) + ' (' + scr(beats.full2) + ').'
+      : text(FRICTIONS, fric)[2]));
+    if (feel === 'sling') {
+      note.appendChild(document.createElement('br'));
+      var b2 = document.createElement('b'); b2.textContent = ic[1] + ' icon. ';
+      note.appendChild(b2); note.appendChild(document.createTextNode(ic[2]));
+    } else {
+      note.appendChild(document.createElement('br'));
+      note.appendChild(document.createTextNode('The scroll icon belongs to Slingshot: pick an icon and it switches over.'));
+    }
+    bar.appendChild(note);
+    document.body.appendChild(bar);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
+})();

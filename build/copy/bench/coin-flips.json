@@ -1,0 +1,21 @@
+{
+  "note": "Coin flips for the blind pairs in critique-v1.md, drawn with node crypto.randomBytes (low bit of 15 bytes) before any pair was written. 1 = ours is Line 1, 0 = ours is Line 2.",
+  "drawn": "2026-09-15",
+  "flips": [
+    { "pair": 1,  "function": "hero headline",        "bit": 0, "ours": "Line 2" },
+    { "pair": 2,  "function": "hero sub",             "bit": 0, "ours": "Line 2" },
+    { "pair": 3,  "function": "primary CTA",          "bit": 1, "ours": "Line 1" },
+    { "pair": 4,  "function": "section: f1",          "bit": 1, "ours": "Line 1" },
+    { "pair": 5,  "function": "section: f3",          "bit": 1, "ours": "Line 1" },
+    { "pair": 6,  "function": "section: f5",          "bit": 1, "ours": "Line 1" },
+    { "pair": 7,  "function": "section: work",        "bit": 0, "ours": "Line 2" },
+    { "pair": 8,  "function": "section: picker",      "bit": 0, "ours": "Line 2" },
+    { "pair": 9,  "function": "section: contact",     "bit": 1, "ours": "Line 1" },
+    { "pair": 10, "function": "one-liner: website",   "bit": 1, "ours": "Line 1" },
+    { "pair": 11, "function": "one-liner: ads",       "bit": 1, "ours": "Line 1" },
+    { "pair": 12, "function": "one-liner: social",    "bit": 1, "ours": "Line 1" },
+    { "pair": 13, "function": "one-liner: SEO",       "bit": 0, "ours": "Line 2" },
+    { "pair": 14, "function": "form microcopy",       "bit": 1, "ours": "Line 1" },
+    { "pair": 15, "function": "closing line",         "bit": 0, "ours": "Line 2" }
+  ]
+}

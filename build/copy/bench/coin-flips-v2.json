@@ -1,0 +1,109 @@
+{
+  "note": "Coin flips for the blind pairs in critique-v2.md, drawn with node crypto.randomBytes (low bit of 17 bytes) before any pair was written or judged. 1 = ours is Line 1, 0 = ours is Line 2.",
+  "drawn": "2026-09-15",
+  "round": 2,
+  "flips": [
+    {
+      "pair": 1,
+      "function": "hero headline",
+      "bit": 0,
+      "ours": "Line 2"
+    },
+    {
+      "pair": 2,
+      "function": "hero sub",
+      "bit": 1,
+      "ours": "Line 1"
+    },
+    {
+      "pair": 3,
+      "function": "primary CTA",
+      "bit": 0,
+      "ours": "Line 2"
+    },
+    {
+      "pair": 4,
+      "function": "badge link",
+      "bit": 0,
+      "ours": "Line 2"
+    },
+    {
+      "pair": 5,
+      "function": "section: f1",
+      "bit": 1,
+      "ours": "Line 1"
+    },
+    {
+      "pair": 6,
+      "function": "section: f2",
+      "bit": 0,
+      "ours": "Line 2"
+    },
+    {
+      "pair": 7,
+      "function": "section: f4",
+      "bit": 0,
+      "ours": "Line 2"
+    },
+    {
+      "pair": 8,
+      "function": "section: f5",
+      "bit": 1,
+      "ours": "Line 1"
+    },
+    {
+      "pair": 9,
+      "function": "section: picker heading",
+      "bit": 1,
+      "ours": "Line 1"
+    },
+    {
+      "pair": 10,
+      "function": "section: contact heading",
+      "bit": 0,
+      "ours": "Line 2"
+    },
+    {
+      "pair": 11,
+      "function": "one-liner: ads panel",
+      "bit": 0,
+      "ours": "Line 2"
+    },
+    {
+      "pair": 12,
+      "function": "one-liner: social panel",
+      "bit": 0,
+      "ours": "Line 2"
+    },
+    {
+      "pair": 13,
+      "function": "one-liner: SEO claim",
+      "bit": 0,
+      "ours": "Line 2"
+    },
+    {
+      "pair": 14,
+      "function": "picker step: Google first",
+      "bit": 0,
+      "ours": "Line 2"
+    },
+    {
+      "pair": 15,
+      "function": "picker step: social first",
+      "bit": 0,
+      "ours": "Line 2"
+    },
+    {
+      "pair": 16,
+      "function": "form microcopy: contact lede",
+      "bit": 0,
+      "ours": "Line 2"
+    },
+    {
+      "pair": 17,
+      "function": "closing line: f6",
+      "bit": 0,
+      "ours": "Line 2"
+    }
+  ]
+}

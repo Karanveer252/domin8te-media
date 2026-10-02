@@ -1,0 +1,47 @@
+/*
+ * Living flow: shared by 18A to 18E (variant.json "flow": true). Two things Karan asked for on
+ * every one of them:
+ * 1. The sidebar is fixed on the left with everything together (Home, Work, Results, Updates,
+ *    Billing, then Settings, Help and Sign out directly under them), so Settings and Sign out
+ *    are always in reach without scrolling the page. It is a compact floating panel, as tall as
+ *    its contents; a base variant that centres its rail (16B, 16J) is brought back to the top
+ *    unless the variant decides otherwise.
+ * 2. The world behind the glass moves, and changes with the page: app.js writes the page's name
+ *    to html[data-page] (home, work, results, updates, billing, settings, help, sign-in,
+ *    notFound), and each variant composes its .lg-world per page. Elements crossfade and drift
+ *    between pages rather than snapping. Motion stops for anyone who asks for less of it.
+ */
+
+html.lg-flow { --lg-dock-y: 16px; }
+
+/* ---- the sidebar: fixed, compact, everything together --------------------------------------- */
+
+@media (min-width: 761px) {
+  html.lg-flow .side {
+    position: fixed; top: 16px; left: 16px; bottom: auto; z-index: 22;
+    height: auto; max-height: calc(100vh - 32px); margin: 0;
+    transform: none; translate: none;
+  }
+  html.lg-flow .side-foot { margin-top: 6px; padding-top: 8px; }
+  /* Collapse stays at the very end, quiet. */
+  html.lg-flow .side-toggle { margin-top: 4px; }
+  html.lg-flow .portal { min-height: 100vh; }
+}
+
+/* ---- the world: moving, and different on every page --------------------------------------------- */
+
+html.lg-flow body::before { display: none; }
+html.lg-flow .lg-world { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background-color: var(--p-bg); transition: background-color 1.2s var(--ease); }
+html.lg-flow .lg-world > i {
+  position: absolute; display: block; will-change: transform;
+  transition: opacity 1.4s var(--ease), left 1.4s var(--ease), top 1.4s var(--ease), right 1.4s var(--ease), bottom 1.4s var(--ease), width 1.4s var(--ease), height 1.4s var(--ease), background-color 1.4s var(--ease), filter 1.4s var(--ease);
+}
+/* Anything a page does not use fades out rather than vanishing. */
+html.lg-flow .lg-world > i.is-off { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  html.lg-flow .lg-world, html.lg-flow .lg-world * { animation: none !important; transition: none !important; }
+}
+@media (forced-colors: active) {
+  html.lg-flow .lg-world { display: none; }
+}

@@ -1,0 +1,83 @@
+{
+ "task": "weight",
+ "perf": {
+  "loadMs": 644,
+  "domMs": 593,
+  "ttfbMs": 42,
+  "ownKb": 83.7,
+  "allKb": 83.7,
+  "res": [
+   {
+    "n": "css2",
+    "t": "link",
+    "kb": 9.4
+   },
+   {
+    "n": "site.css",
+    "t": "link",
+    "kb": 40.8
+   },
+   {
+    "n": "site.js",
+    "t": "script",
+    "kb": 33.5
+   }
+  ]
+ },
+ "fps": {
+  "n": 68,
+  "median": 33.4,
+  "p95": 50.1,
+  "worst": 116.6
+ },
+ "longtasks": {
+  "sweepMs": 4650,
+  "framesInSweep": 120,
+  "msPerStep": 38.7,
+  "longTasks": 0,
+  "worstTask": 0
+ },
+ "budget": {
+  "ScriptDuration": 0.032,
+  "RecalcStyleDuration": 0.152,
+  "LayoutDuration": 0.008,
+  "TaskDuration": 0.507,
+  "LayoutCount": 80,
+  "RecalcStyleCount": 284
+ },
+ "isolate": [
+  [
+   "baseline",
+   33.8
+  ],
+  [
+   "no backdrop-filter",
+   29.9
+  ],
+  [
+   "no glow stroke",
+   32.5
+  ],
+  [
+   "no grain",
+   16.8
+  ],
+  [
+   "no motes",
+   35.3
+  ],
+  [
+   "no scenery",
+   29.2
+  ],
+  [
+   "no bloom",
+   35.4
+  ],
+  [
+   "no ambient",
+   27.1
+  ]
+ ],
+ "errors": []
+}

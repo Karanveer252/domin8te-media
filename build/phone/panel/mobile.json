@@ -1,0 +1,221 @@
+{
+ "pitfalls": [
+  {
+   "issue": "Sticky/fixed frame holding the WebGL canvas resizes while the URL bar collapses. iOS grows the layout viewport as the bar hides, so a position:fixed;inset:0 frame changes height mid-scroll, and every step fires resize; the existing handler (site.js:1610 -> sizeFilmCanvas, :887) then sets heroFilm.width, which clears the WebGL backbuffer and shows a black frame until the next paint, repeatedly during the bar animation. Compositing is also worse for fixed than sticky on iOS (a fixed layer over a scrolling document is re-composited each scroll step).",
+   "appliesTo": "both (worst on iOS Safari; Android Chrome and Samsung Internet dynamic toolbars do the same, milder)",
+   "mitigation": "Pin with position:sticky;top:0;height:100vh inside a tall story-only hero band (html.story.pfilm .band--hero{height:240vh}), never position:fixed. 100vh is the largest viewport on both platforms, so the frame's box is constant. Size the canvas backing store from that box once per orientation; in the phone path the resize handler ignores events where innerWidth is unchanged and innerHeight moved by less than 25%. Never touch canvas.width from the scroll handler."
+  },
+  {
+   "issue": "Rubber-banding at the top of the page. Pulling down at scrollY 0 exposes the root background above the sticky frame, scrollY goes negative, then a burst of scroll events fires on snap-back; a naive progress map runs backwards, flips filmDir and makes the decoder pre-fetch the wrong GOP.",
+   "appliesTo": "iOS Safari (Android Chrome overscroll glow is harmless, but pull-to-refresh can fire)",
+   "mitigation": "Clamp progress to [0,1] before anything else and ignore direction changes while y < 0. Set the html/body --bg to the film's ground colour (the black plate) so the exposed strip matches the frame. Do not reach for overscroll-behavior:none on the root (iOS 16+ only, and it kills pull-to-refresh in Chrome)."
+  },
+  {
+   "issue": "100vh vs 100svh/100dvh. On both mobile browsers 100vh equals the largest viewport (bar hidden), so a hero text box sized to 100vh is 60-110 px taller than what is visible on first paint: the CTA row / ghost link, and the bottom of any text meant to be 'fully visible', sits under the bottom toolbar. 100dvh fixes that but changes size during the bar animation and re-lays out the text every scroll frame.",
+   "appliesTo": "both",
+   "mitigation": "The sticky film frame keeps height:100vh (must be constant). The overlaid text box uses min-height:100vh; min-height:100svh (second line ignored by browsers older than Safari 15.4 / Chrome 108 / Samsung Internet 21), anchors its content to the top under --hdr-h, and reserves padding-bottom:calc(var(--bar-h) + env(safe-area-inset-bottom)). Never dvh. The scroll map uses layout units (band offsetTop/offsetHeight and the frame's constant height), not window.innerHeight (site.js measure() :490 uses innerHeight; do not reuse it for the phone map)."
+  },
+  {
+   "issue": "filter:blur() on the live canvas every frame. A full-screen canvas at DPR 3 (390x844 -> 1170x2532) blurred by CSS is a multi-pass Gaussian over 3 M px each time the canvas changes; Chrome does it on the GPU (2-6 ms on a mid-range Mali/Adreno), iOS Safari frequently re-rasterises the layer and halves the frame rate; the blur also bleeds transparent edges into a dark vignette unless the layer is oversized.",
+   "appliesTo": "both (worst on iOS Safari)",
+   "mitigation": "No CSS filter on the hero at any time. Before the film is ready: a static pre-blurred poster (hero-still-blur.jpg, about 160 px wide, written by encode.sh; the browser's upscale is the blur, rasterised once, free on scroll). Once the film runs: blur inside the existing WebGL painter (makePainter :813): after texImage2D(frame) call gl.generateMipmap (WebGL2 handles NPOT; on WebGL1 use a 1/8-res FBO pass instead) and sample with an LOD bias in the fragment shader (about level 3.5, 1/12 res), mixed with the level-0 sample by a --blur uniform driven by scroll. The blur-to-sharp reveal is then one draw with no second layer. The legibility scrim over the text is a plain gradient ::after, not backdrop-filter."
+  },
+  {
+   "issue": "backdrop-filter cost over the live canvas. .hdr.is-scrolled (site.css:207-210) applies saturate(1.6) blur(18px) and sits over the frame on the phone; every canvas update forces the compositor to read back and blur the 64 px strip under the header, and on iOS a backdrop-filter over a WebGL canvas inside a sticky ancestor can make the whole canvas layer re-composite every frame and flicker.",
+   "appliesTo": "both (iOS Safari worst)",
+   "mitigation": "Story-only rule while the phone film is armed: html.story.pfilm .hdr.is-scrolled{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(0,0,0,.86)}. Desktop (html.film) untouched. Never add backdrop-filter to the hero scrim, the line layer or the contact bar."
+  },
+  {
+   "issue": "Scroll events during momentum scrolling. iOS fires scroll during a fling and during the bar animation (up to 60/s) plus bursts on snap-back; Android Chrome may run rAF at 90/120 Hz on high-refresh panels while iOS caps at 60 and Low Power Mode drops to 30. A handler that decodes or paints synchronously janks, and any touch listener with preventDefault blocks scrolling.",
+   "appliesTo": "both",
+   "mitigation": "The scroll handler only records scrollY and schedules one rAF (the desktop onScroll + kick lerp pattern); all listeners {passive:true}; no touchstart/touchmove listeners at all; the lerp step is dt-normalised so 30/60/120 Hz feel the same; one paint per rAF (paintSoon :1157 already coalesces). Decode pumping happens in the rAF, never in the scroll callback."
+  },
+  {
+   "issue": "scroll-behavior:smooth and anchor links. html{scroll-behavior:smooth} (site.css:72) makes header links and the 'How it works' jump (site.js:1576) glide across the pinned hero, pumping the decoder through every GOP in about half a second (backlog, then a late catch-up jump); on iOS a smooth scrollTo is cancelled by any touch, and iOS < 15.4 ignores the property (instant jump, fine). Anchors land under the fixed header unless scroll-padding-top matches the phone header.",
+   "appliesTo": "both (iOS Safari 15.4+ honours smooth)",
+   "mitigation": "During a programmatic jump set a jumping flag: paint only the nearest already-decoded frame and stop pumping ahead until the scroll settles (scrollend on Chrome 114+, else a 120 ms quiet timer). Keep scroll-padding-top (site.css:71) equal to the phone --hdr-h + 16px. The phone 'how' jump targets the first band after the pinned hero with behavior: reduced() ? 'auto' : 'smooth' as today. Never add scroll-snap to the film section."
+  },
+  {
+   "issue": "WebCodecs VideoDecoder availability and the prefer-software hint. VideoDecoder exists in iOS Safari 16.4+, Android Chrome 94+, Samsung Internet 22+ (Chromium 111), Firefox Android 133+; iOS 15-16.3 and Samsung Internet 17-21 have none. Chromium treats hardwareAcceleration:'prefer-software' (site.js ~1010) as software-only, and Android Chrome has no software H.264 path on most builds (H.264 comes from MediaCodec), so configure() throws or isConfigSupported is false and today's code falls straight to the <video> element, the worst path on a phone.",
+   "appliesTo": "both; Samsung Internet older than 22 has no WebCodecs",
+   "mitigation": "On the phone path call VideoDecoder.isConfigSupported for prefer-software, then no-preference, and configure with the first supported one; keep prefer-software desktop-only. Without VideoDecoder or WebGL do not run the video-element scrub on the phone: keep the static blurred still, still draw the snake line and the mark crossfade (the line does not need the film)."
+  },
+  {
+   "issue": "Hardware decoder buffer pools and VideoFrame memory. A hardware decoder's output frames are backed by a small fixed pool (MediaCodec typically 8-16 buffers, VideoToolbox IOSurfaces); holding 32 frames open (keepGops = max(4, 32/8) x 8-frame GOPs, site.js ~1018) starves the pool and the decoder silently stops delivering: the flush() promise never resolves and the film freezes. Per-frame footprint is 3.1 MB at 1080p (100 MB for 32), 1.4 MB at 720p, 0.8 MB at 540x960; iOS jetsam kills Safari tabs near 1-1.5 GB, low-RAM Android earlier.",
+   "appliesTo": "both",
+   "mitigation": "A phone encode at 720 px or less on the long edge (next item). On the phone cache GL textures, not VideoFrames: in the sink do texImage2D(frame) then frame.close() immediately, keep at most 16 textures (2 GOPs) around the scroll position, keepGops = 2. The sink already closes out-of-range and duplicate frames (:1113); keep that."
+  },
+  {
+   "issue": "Cover-fitting a 16:9 1080p film into a 9:16 phone at DPR 3. Covering 390x844 scales the 1920x1080 frame to about 4500 device px wide; the Catmull-Rom 16-tap shader then runs over 3 M px per frame, decode stays 1080p, and five sixths of the picture is off screen. A mid-range phone lands at 15-20 ms per frame.",
+   "appliesTo": "both",
+   "mitigation": "A phone-specific encode from the PNG frames (cloche3d/out): centre-crop to portrait (9:16 or 3:4; check on the contact sheet that the cloche and the mark stay inside the crop through 0-8.0 s), scale to about 608x1080 or 540x960, frames 0-240 only (0-8.0 s, the held mark; the unravel dropped per constraint 4), same x264 recipe (keyint 8, no B-frames, bt709, faststart) but High profile level 3.1 for the widest hardware support, crf 24-26, target 0.8-1.2 MB. Bicubic off on the phone (bc = 0; the picture is blurred or upscaled anyway); canvas DPR cap 1.5 while blurred, 2 at the sharp reveal."
+  },
+  {
+   "issue": "VideoFrame.close discipline across the page lifecycle. Any frame left open leaks a hardware buffer or 3 MB; risky moments: output after FD is nulled (handled), frames after a failed flush(), frames of a GOP that trimGops already dropped, and lifecycle: iOS suspends the GPU process for a backgrounded tab and the decoder errors on resume, a bfcache restore (pageshow persisted) revives the page with a closed decoder, and today any decoder error calls filmFallback() -> permanent <video> path. The slow-decoder heuristic (:1147, average over 90 ms per GOP across groups 3-5) is tuned for desktop software decode; a phone hardware flush round trip is 30-120 ms, so the phone would bounce to <video> after six GOPs.",
+   "appliesTo": "both (iOS Safari for GPU-process suspension and bfcache)",
+   "mitigation": "Keep every existing close path. On the phone add pagehide: close all frames/textures and dec.close(); on pageshow (persisted) and on visibilitychange visible re-run initFilmDecoder(bytes) from the bytes still held rather than falling to the video element; treat a decoder error on the phone as 're-init once, then static'. Relax the slow bail-out on the phone (about 250 ms per GOP) or scale it to GOP size."
+  },
+  {
+   "issue": "Fetching a multi-MB file on mobile data. hero-scrub.mp4 is 3.9 MB (3.2 Mbps); initHeroOnce starts the fetch at arm time and reads everything into memory before any decode; on 4G that competes with the fonts and the still for the first seconds and delays LCP. iOS has no Network Information API (no saveData/effectiveType); Android Chrome and Samsung Internet expose navigator.connection.saveData and send Save-Data: on; prefers-reduced-data is behind a flag in Chrome and absent in Safari.",
+   "appliesTo": "both (Save-Data signals only on Android Chrome / Samsung Internet)",
+   "mitigation": "Phone encode of 1.2 MB or less. Start the fetch after the load event with fetch(url,{priority:'low'}) (Chrome 101+, ignored elsewhere). Skip the film when navigator.connection && (connection.saveData || /(^|-)2g$/.test(connection.effectiveType)) or matchMedia('(prefers-reduced-data: reduce)').matches: static still plus line. hero-still.jpg (48 KB, fetchpriority=high, index.html:260) stays the LCP element and the poster. Keep the 20 s watchdog but on abort fall to the static path, not failHero's video-failed state. If the reader has scrolled past the hero band before the bytes land, do not start the decoder at all; just show the mark."
+  },
+  {
+   "issue": "<video> currentTime seeking as the fallback. Seeking a paused inline video on iOS takes 100-300 ms per seek (5-10 seeks/s, a visibly stepped scrub); currentTime set before loadedmetadata is ignored; nothing is shown until the first seeked; a <video> under a CSS filter or mask loses its hardware overlay; blob: URLs of a whole file work (no MSE needed; MSE is absent on iPhone before 17.1); Samsung Internet overlays a 'video assistant' play button on visible <video> elements.",
+   "appliesTo": "iOS Safari (seek latency); Samsung Internet (overlay)",
+   "mitigation": "#heroVideo already has muted playsinline preload=none disablepictureinpicture (index.html:187); add disableremoteplayback and controlslist=\"nodownload nofullscreen noremoteplayback\". Do not use the element for scrubbing on the phone at all (static path instead); keep it for desktop. If it is ever used on a phone: seek only when the wanted frame differs by 2 or more and coalesce through the existing seekBusy/pendingTime (:1214)."
+  },
+  {
+   "issue": "devicePixelRatio 3 and canvas size. 390x844 at DPR 3 is a 1170x2532 backing store: 12 MB per buffer, double-buffered, plus the texture; iOS caps canvas memory per page and a too-large WebGL canvas silently fails or loses its context; fractional Android DPRs (2.625, 2.75, 3.5) round to a 1 px seam at the frame edges. sizeFilmCanvas caps at 2 (:887) and sizeHeroCanvas at 1.5 (:1337); the pulses canvas is irrelevant on the phone. Also .hero is display:none in story (site.css:255), so getBoundingClientRect is 0 and sizeFilmCanvas returns early until the phone rule shows it.",
+   "appliesTo": "both",
+   "mitigation": "Phone DPR cap 1.5 while blurred, 2 max for the sharp reveal (source is 720 px or less anyway); Math.round sizes and let the frame background match the plate colour so a 1 px seam is invisible; never create or start heroPulses on the phone (startPulses is guarded by filmOn, which the phone path keeps false); show the frame via html.story.pfilm .hero{display:block} before initFilmDecoder runs; size the backing store once per orientation."
+  },
+  {
+   "issue": "Coarse pointer and :hover styles. On touch, :hover sticks after a tap: .btn--primary:hover (v-editorial.css:170), .ctabar:hover (:556), .opt:hover (:448), .badge:hover (:198) keep their hover colour after the tap, and iOS needs a second tap when a hover rule changes visibility or layout of a descendant. The film frame and the line layer must never receive touches.",
+   "appliesTo": "both (iOS Safari worst)",
+   "mitigation": "Story-only neutralisers under @media (hover:none){html.story .ctabar:hover{background:var(--acc)} ...} rather than wrapping the existing desktop rules (desktop must not change). pointer-events:none on the frame's canvas and the line SVG; -webkit-tap-highlight-color:transparent is already on interactive elements (site.css:157); leave touch-action at its default (pan-y) everywhere, never none."
+  },
+  {
+   "issue": "The fixed bottom contact bar overlaps the film. .ctabar (site.css:879-888) is position:fixed; bottom:14px + env(safe-area-inset-bottom); min-height:52px; z-index:80 and switches on at scrollY > innerHeight*.85 (site.js:1558), i.e. while the pinned hero is still on screen, so it covers the bottom 66-100 px of the frame: the plate/mark during the lid lift and the snake's exit from the frame; the innerHeight*.85 threshold shifts with the URL bar so the bar toggles at different depths on iOS and Android.",
+   "appliesTo": "both",
+   "mitigation": "Define --bar-h:calc(52px + 14px + env(safe-area-inset-bottom)) and keep the frame's focal content (mark, captions) inside padding-bottom:var(--bar-h). Run the snake at x = 8px, left of the bar's left:var(--gut) (20 px) edge, with the line layer's z-index below 80 so it passes under the bar. On the phone-film path switch the bar on when the pinned hero band's bottom has passed (bandTop + bandHeight - frameHeight), not innerHeight*.85; leave the atContact/atPlan logic as is."
+  },
+  {
+   "issue": "Safe-area insets. viewport-fit=cover is set (index.html:5), so the fixed header and the full-bleed frame run under the notch / Dynamic Island and the home indicator; in landscape the insets move to left/right (44 px) and the hero text and the snake's left edge sit under the camera housing. env() is 0 on Android Chrome except edge-to-edge (Android 15+) builds.",
+   "appliesTo": "iOS Safari (Android Chrome edge-to-edge on Android 15+ starts reporting insets)",
+   "mitigation": "Header and hero text padding-inline: max(var(--gut), env(safe-area-inset-left)) max(var(--gut), env(safe-area-inset-right)); snake x = max(8px, inset-left + 4px), read in JS from a probe element whose padding-left is env(safe-area-inset-left); the bar already uses the bottom inset; the frame is allowed under the insets (it is the background)."
+  },
+  {
+   "issue": "Orientation change. Rotating flips the story/film gates (a phone in landscape stays story only through the max-height:560px term), the sticky frame's 100vh becomes the short axis, the snake path (band offsets, x) goes stale, iOS fires resize before layout settles and orientationchange is deprecated. On a short Android phone the soft keyboard makes the viewport 360x340 and (orientation: landscape) becomes true, so any orientation-gated feature tears down while the reader types in the contact form.",
+   "appliesTo": "both (keyboard flip is Android Chrome / Samsung Internet)",
+   "mitigation": "Listen on matchMedia('(orientation: portrait)') change plus the debounced resize (site.js:1610); re-measure after two rAFs; re-lay the path and re-size the canvas backing store only when innerWidth changed; keep the texture cache. Gate the phone film without an orientation term (see gate) and defer any gate change while document.activeElement is an input, textarea or select."
+  },
+  {
+   "issue": "prefers-reduced-motion (hard constraint 2). iOS 'Reduce Motion' and Android 'Remove animations' both surface as reduce; the global reduced block (site.css:948) collapses transitions to .001 s and forces reveals visible, so a phone film relying on CSS transitions for the crossfade would jump; a live toggle mid-visit must tear down cleanly. iOS Low Power Mode does not flip the query but drops rAF to 30 fps.",
+   "appliesTo": "both",
+   "mitigation": "The phone gate includes (prefers-reduced-motion: no-preference); every phone rule lives under html.story.pfilm, which reduced motion never gets, so today's static story is byte-identical. On the rmq change (site.js:1538 onReducedChange) add the phone teardown: close decoder/textures, remove pfilm, restore the still. Crossfades are driven by JS-set opacity, not transitions; the lerp is dt-normalised for 30 fps."
+  },
+  {
+   "issue": "Sticky pin inside the flex .stage. A sticky child of the flex column (site.css:243) works, but any ancestor with overflow other than visible/clip makes it stick to that ancestor instead of the viewport. html,body{overflow-x:hidden;overflow-x:clip} (site.css:70) is safe (clip on Safari 16+/Chrome 90+, hidden on the root still works on iOS 15); adding overflow:hidden to .film, .stage or main to contain the line would silently kill the pin.",
+   "appliesTo": "both",
+   "mitigation": "Never put overflow on .film, .stage, main or body; contain the line with clip-path:inset(0) on the line layer or by keeping its coordinates inside the page width. The pinned wrapper is a story-only block, leaving html.film .film__pin (site.css:298) untouched."
+  },
+  {
+   "issue": "WebGL context loss and VideoFrame texture upload. iOS drops WebGL contexts when the tab is backgrounded or memory is tight; webglcontextrestored (site.js:857) rebuilds the painter but a texture cache is gone; texImage2D(VideoFrame) throws on some iOS 16.4-17.x builds, and today's blit catch (:872) goes to filmFallback() -> <video>.",
+   "appliesTo": "iOS Safari (Android on memory pressure)",
+   "mitigation": "On the phone a failed texImage2D(frame) first retries through createImageBitmap(frame) (supported in Safari) at the small encode size before giving up; on restore drop the texture cache and re-decode the current GOP; on loss without restore within 2 s go static (still + line), never to the video element."
+  },
+  {
+   "issue": "Layout drift under the snake path. The phone hero band grows to about 2.4 viewports for the lid-lift scroll room; late fonts, the still's aspect box and the reveal transitions shift the offsetTop of every band below, so the path (built from band offsets) and the merge point at .act--mark drift. mark-720.webp is loading=lazy (index.html:424), so the mark may not be decoded when the line arrives; html.js.story .act{transform:translateY(18px)} until .in (site.css:268) moves the mark visually but not its offsetTop.",
+   "appliesTo": "both",
+   "mitigation": "Measure with offsetTop/offsetHeight (layout, ignores transforms); re-lay the path from a debounced ResizeObserver on .stage (Safari 13.1+, Chrome 64+) and once on document.fonts.ready; set img.loading='eager' on .storymark when the phone film arms; compute the merge point from the mark's box, not from a constant."
+  },
+  {
+   "issue": "Page-tall SVG line rasterisation. A 5-8 k px stroked path with a gradient stroke and a dash offset animated every frame: Chrome re-rasterises only changed tiles, but a filter (constraint 3), mix-blend-mode, or a per-frame transform on the <svg> forces a full re-raster; iOS Safari blanks tiles of very large SVG layers on older devices and has misbehaved with stroke-dasharray values above 65535.",
+   "appliesTo": "both (iOS Safari for large-layer tiling)",
+   "mitigation": "The SVG is position:absolute inside .film at full section height, pointer-events:none, overflow:visible, no per-frame transforms; animate only stroke-dashoffset (style property) and only when it changes by 1 px or more; stroke-dasharray = L L with L from getTotalLength(); the glow is a second wider path at opacity .25, not a filter; the rainbow is a linearGradient with gradientUnits=userSpaceOnUse along y; split into per-band segments on iOS if the total height passes about 6000 px."
+  },
+  {
+   "issue": "Arming after script runs shifts layout. If the pinned band's extra height and the frame appear only when site.js runs, Chrome's scroll anchoring and scroll restoration (reload mid-page) jump the reader, LCP is measured on the wrong layout, and there is a flash of today's stacked story before the film layout lands.",
+   "appliesTo": "both (Android Chrome scroll anchoring most visible)",
+   "mitigation": "Decide the phone-film class in the head gate script (index.tpl.html:70-94, next to story/film) so the pinned band height and the frame exist before first paint; site.js only arms the decoder and the line. Keep the CSS for the phone layout independent of the 'ready' class."
+  },
+  {
+   "issue": "Samsung Internet specifics. Forced dark mode can re-tint the orange bar; a floating video-assistant button appears on visible <video> elements; versions 21 and older lack WebCodecs and :has (v-editorial.css:246 already relies on :has to hide the nav CTA); DeX reports pointer:fine (desktop, correct); the bottom toolbar adds about 56 px in addition to the safe area; Save-Data is often on.",
+   "appliesTo": "Samsung Internet",
+   "mitigation": "Add <meta name=\"color-scheme\" content=\"dark\"> beside color-scheme:dark (site.css:71); gate the film on VideoDecoder (SI 22+) with the static path below; accept the :has rule failing silently (it only hides a duplicate CTA); honour navigator.connection.saveData; test the bar and the frame's bottom padding with the SI toolbar showing."
+  },
+  {
+   "issue": "Background tab and memory pressure. visibilitychange (site.js:1621) already drops frames when hidden and kicks on return; on the phone a hidden tab may also lose the decoder and the WebGL context, and iOS purges decoded images (the still, the mark webp) so the return frame is blank for a beat.",
+   "appliesTo": "both (iOS Safari worst)",
+   "mitigation": "On hidden: stop the pump, close textures, keep the bytes. On visible: repaint the nearest frame if the decoder is alive, else re-init from bytes, else static; keep the blurred poster under the canvas at all times so a purged canvas shows the poster, not black."
+  },
+  {
+   "issue": "Testing gap: the headless probe must report a coarse pointer or the gate never fires, and desktop DevTools emulation lies about compositing, decoder pools and jetsam.",
+   "appliesTo": "both",
+   "mitigation": "With cdp.js use c.size(390,844,true,3) and verify c.eval(\"matchMedia('(hover:none) and (pointer:coarse)').matches\") before trusting screenshots; then confirm on one real iPhone (Safari) and one mid-range Android (Chrome, Samsung Internet), watching frame time, memory and the fallback path taken (log which of decoder / static was chosen to the console)."
+  }
+ ],
+ "gate": {
+  "expression": "(hover: none) and (pointer: coarse) and (max-width: 1024px) and (prefers-reduced-motion: no-preference)",
+  "rationale": "Evaluated as one matchMedia in the head gate script, and ANDed in JS with: the story class already computed from window.__GATES (index.html:70-76), no Save-Data / 2g signal, and for the film part only, 'VideoDecoder' in window plus a WebGL context (without those the phone keeps the static still and still draws the snake line). Why these terms: (hover: none) and (pointer: coarse) describe the primary input, so a desktop window merely resized narrow (hover:hover, pointer:fine) never qualifies, a touch laptop with a mouse or Samsung DeX stays desktop, and Chrome/CDP touch emulation (used by the existing probe) does qualify, which is what testing needs. A narrow desktop window should not get the phone film: it has no momentum scroll, no URL bar, a mouse wheel scrubs differently, and Karan compares the desktop by resizing; it keeps today's static story exactly. (max-width: 1024px) keeps portrait tablets (which the story gates already catch) on the phone build and excludes nothing that story mode admits. No orientation term on purpose: coarse landscape is already limited to phones by the story gate's (max-height: 560px), and an orientation term would flip on Android when the soft keyboard turns a 360x640 viewport into 360x340 while the reader types in the contact form. (prefers-reduced-motion: no-preference) enforces hard constraint 2 and reacts live through the rmq change listener. All phone rules hang off html.story.pfilm so no html.film selector changes and the desktop stays pixel-identical."
+ },
+ "avoid": [
+  {
+   "feature": "CSS animation-timeline: scroll() / view() (scroll-driven animations) for the line or the crossfade",
+   "alternative": "JS scroll -> rAF -> stroke-dashoffset and a WebGL uniform; iOS before 26 has none, and the progress value must be shared with the decoder anyway"
+  },
+  {
+   "feature": "100dvh anywhere, and 100svh alone",
+   "alternative": "height:100vh for the pinned frame (largest viewport, constant); min-height:100vh followed by min-height:100svh for the text box so older browsers keep the first line"
+  },
+  {
+   "feature": "New :has() selectors for phone state (existing v-editorial.css:246 stays)",
+   "alternative": "A class on <html> toggled by site.js (html.story.pfilm, .is-lifted), plain descendant selectors"
+  },
+  {
+   "feature": "filter: blur() or mask-image on the live canvas / video, and backdrop-filter over it",
+   "alternative": "Mip-level blur inside the existing WebGL fragment shader (or a 1/8-res FBO pass) crossfaded by a uniform; a static tiny pre-blurred poster before the film; gradient ::after scrims; header backdrop-filter off while pfilm"
+  },
+  {
+   "feature": "SVG filters (feGaussianBlur, drop-shadow) for the line's glow",
+   "alternative": "A second, wider stroke of the same path at low opacity, or a pre-rendered glow sprite"
+  },
+  {
+   "feature": "position: fixed for the film frame",
+   "alternative": "position: sticky; top: 0; height: 100vh inside the tall hero band; no overflow on .film/.stage/main"
+  },
+  {
+   "feature": "<video> element scrubbing on the phone (currentTime seeks)",
+   "alternative": "WebCodecs into WebGL textures; when unavailable, the static blurred still plus the line and mark crossfade"
+  },
+  {
+   "feature": "hardwareAcceleration: 'prefer-software' on the phone",
+   "alternative": "isConfigSupported for prefer-software then no-preference, take the first supported; upload-and-close so hardware pools never starve"
+  },
+  {
+   "feature": "Caching VideoFrames (keepGops = 4, 32 frames) on the phone",
+   "alternative": "Cache GL textures of the small encode, at most about 16, close each VideoFrame right after texImage2D"
+  },
+  {
+   "feature": "requestIdleCallback for deferring the fetch",
+   "alternative": "setTimeout after the load event (Safari lacks rIC); fetch with priority:'low' where supported"
+  },
+  {
+   "feature": "navigator.connection as a required signal",
+   "alternative": "Treat absence (iOS) as unknown and proceed; only honour saveData / 2g when present; also check (prefers-reduced-data: reduce)"
+  },
+  {
+   "feature": "overscroll-behavior: none on the root to stop rubber-banding",
+   "alternative": "Clamp progress at 0, match the root background to the plate, ignore direction flips while y < 0"
+  },
+  {
+   "feature": "scroll-snap on the film section, and smooth-scroll driven decoder pumping",
+   "alternative": "Free scroll; a jumping flag that paints nearest-decoded frames until scrollend / 120 ms quiet"
+  },
+  {
+   "feature": "window.innerHeight and the orientationchange event in the scroll map",
+   "alternative": "Band offsetTop/offsetHeight and the frame's constant height; matchMedia('(orientation: portrait)') change plus the debounced resize, ignoring height-only changes"
+  },
+  {
+   "feature": "content-visibility: auto on the stacked bands",
+   "alternative": "Nothing (IntersectionObserver reveals already exist); it delays offsetTop measurement and is iOS 18+ only"
+  },
+  {
+   "feature": "Uncapped devicePixelRatio, bicubic 16-tap resampling and the heroPulses canvas on the phone",
+   "alternative": "DPR cap 1.5 blurred / 2 sharp, bc = 0, pulses never started on the phone"
+  },
+  {
+   "feature": "Wrapping the existing desktop :hover rules in @media (hover:hover)",
+   "alternative": "Story-only overrides under @media (hover:none){html.story ...} that reset the hover colours, leaving desktop selectors untouched"
+  },
+  {
+   "feature": "loading=\"lazy\" on the storymark while the phone film is armed",
+   "alternative": "img.loading = 'eager' set by site.js when pfilm arms, so the merge target is decoded before the line arrives"
+  },
+  {
+   "feature": "mix-blend-mode or isolation over the canvas for the crossfade",
+   "alternative": "Plain opacity set by JS on stacked layers (blend modes over WebGL force readback on iOS)"
+  }
+ ]
+}

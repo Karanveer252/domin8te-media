@@ -1,0 +1,59 @@
+{
+  "id": "18h",
+  "out": "v18h",
+  "name": "Scenes",
+  "title": "18H Scenes",
+  "storage": "d8.18h",
+  "flow": true,
+  "heavy": true,
+  "goo": true,
+  "rings": true,
+  "glass": 75,
+  "spec": ".side, .metric-card, .act-card, .card, .btn, .preview-chip, .lg-dock, .tabbar, .topbar, .segmented, .status-chip",
+  "dock": "min",
+  "side": "full",
+  "lockSide": false,
+  "cardHeight": 1000,
+  "prismToggle": true,
+  "subtitle": "18G Dot Grid with a choice in Settings, right above Light and Dark: Static, the default, keeps the dot grid, and Scenes brings back 18F Skylight's skies. The choice and the theme are remembered for the next visit, and the dots start at 50% visibility and 20% animation",
+  "lens": [
+    {
+      "sel": ".side",
+      "bevel": 30,
+      "refract": 30,
+      "zoom": 0.04,
+      "frost": 8,
+      "clear": 0.55,
+      "prism": 0.18,
+      "rim": 4
+    },
+    {
+      "sel": ".metric-card, .act-card, .card, .caught-up, .skel-card, .banner, .signin-card, .acct-grid",
+      "bevel": 38,
+      "refract": 40,
+      "zoom": 0.035,
+      "frost": 8,
+      "clear": 0.55,
+      "power": 1.4,
+      "prism": 0.3,
+      "rim": 4
+    },
+    {
+      "sel": ".topbar, .tabbar, .preview-chip, .lg-dock, .account-menu, .dlg",
+      "bevel": 24,
+      "refract": 24,
+      "zoom": 0.04,
+      "frost": 8,
+      "prism": 0.3
+    },
+    {
+      "sel": ".btn-glass, .btn-outline, .status-chip, .jump-link, .segmented",
+      "bevel": 14,
+      "refract": 12,
+      "zoom": 0.05,
+      "frost": 2,
+      "prism": 0.25,
+      "rim": 4
+    }
+  ]
+}

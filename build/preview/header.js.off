@@ -1,0 +1,87 @@
+/* The header switcher. Injected only by the local preview server (serve.js);
+   the deploy folder never carries it. Round 1 (2026-09-29): five header designs
+   for the Dashboard link; Karan chose 2, the Client pill (section links gone,
+   Dashboard as an outlined pill beside Get your plan). Round 2: that pill and
+   five variations of it. Keys 0 to 6 flip, ?hdr= sets it, the choice is
+   remembered on this machine. ?bare=1 hides the bar. */
+(function () {
+  if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;
+  var OPTS = [
+    ['now',  'Now',                 'What is built: How it works, Examples, Dashboard, Get your plan.'],
+    ['pill', 'Pill (your pick)',    'Design 2 as you chose it: an outlined pill with the dashboard icon, beside Get your plan.'],
+    ['pa',   'A Client dashboard',  'The same pill, but it says who it is for: "Client dashboard". Nobody new mistakes it for part of the pitch.'],
+    ['pb',   'B Frosted',           'No outline: a soft frosted pill of light glass, so it reads as a button and sits quietly on the video.'],
+    ['pc',   'C Spectrum rim',      'The outline is the brand spectrum from the logo, the one place it appears in the header. White inside; the rim brightens on hover.'],
+    ['pd',   'D Paired',            'Both become pills: Dashboard outlined, Get your plan filled in the orange. A matched pair, the orange still leads.'],
+    ['pe',   'E Quiet until hover', 'At rest just the icon and the word, like a link; pointing at it draws the pill around it. The calmest bar.']
+  ];
+  var KEY = 'd8.preview.hdr2';
+  var html = document.documentElement;
+  var q = new URLSearchParams(location.search);
+  var known = function (v) { return OPTS.some(function (o) { return o[0] === v; }); };
+  var saved = null; try { saved = localStorage.getItem(KEY); } catch (e) {}
+  var cur = known(q.get('hdr')) ? q.get('hdr') : known(saved) ? saved : 'pill';
+  html.setAttribute('data-hdr', cur);
+
+  var E = 'html[data-v="editorial"]';
+  // Same weight as each variant's own rules, which come later and so win.
+  var P = E + '[data-hdr^="p"]';
+  var D = ' .nav__link--dash';
+  var css = [
+    /* the pill family: section links gone, Dashboard a pill with its icon */
+    P + ' .nav__link:not(.nav__link--dash){display:none}',
+    P + D + '{position:relative;width:auto;gap:8px;min-height:40px;padding:0 15px 0 13px;border:1px solid var(--line-2);border-radius:999px;font-size:13px;color:var(--ink);transition:border-color .2s,background-color .2s,color .2s}',
+    P + D + ':hover{border-color:var(--ink);background:rgba(237,234,228,.06)}',
+    P + D + ' .nav__ico{display:block;width:16px;height:16px}',
+    P + D + ' .nav__txt{position:static;width:auto;height:auto;overflow:visible;clip:auto}',
+    /* A: the label says who it is for */
+    '.nav__txt-long{display:none}',
+    E + '[data-hdr="pa"]' + D + ' .nav__txt-short{display:none}',
+    E + '[data-hdr="pa"]' + D + ' .nav__txt-long{display:inline}',
+    /* B: frosted */
+    E + '[data-hdr="pb"]' + D + '{border-color:transparent;background:rgba(237,234,228,.1);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}',
+    E + '[data-hdr="pb"]' + D + ':hover{border-color:transparent;background:rgba(237,234,228,.18)}',
+    /* C: the brand spectrum as the rim */
+    E + '[data-hdr="pc"]' + D + '{border:0;background:none;isolation:isolate}',
+    E + '[data-hdr="pc"]' + D + '::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.25px;background:linear-gradient(90deg,#FF3B3B,#FF9A1F,#FFD23F,#3DDC84,#2FB5FF,#7B5CFF,#FF4FD8);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);opacity:.75;transition:opacity .2s;z-index:-1}',
+    E + '[data-hdr="pc"]' + D + ':hover{background:rgba(237,234,228,.05)}',
+    E + '[data-hdr="pc"]' + D + ':hover::before{opacity:1}',
+    /* D: paired, Get your plan filled */
+    E + '[data-hdr="pd"] .nav__cta{min-height:40px;padding:0 18px;border-radius:999px;background:var(--acc);color:#111;letter-spacing:.1em}',
+    E + '[data-hdr="pd"] .nav__cta:hover{background:var(--acc-hover);color:#111}',
+    /* E: quiet until hover */
+    E + '[data-hdr="pe"]' + D + '{border-color:transparent;color:var(--ink-2)}',
+    E + '[data-hdr="pe"]' + D + ':hover,' + E + '[data-hdr="pe"]' + D + ':focus-visible{border-color:var(--line-2);background:rgba(237,234,228,.06);color:var(--ink)}',
+    /* phones: the pill keeps its icon, the word stays for screen readers */
+    '@media (max-width:400px){' + P + D + '{padding:0 12px}' + P + D + ' .nav__txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}' + E + '[data-hdr="pd"] .nav__cta{padding:0 12px;letter-spacing:.06em}}',
+    /* the switcher */
+    '.d8hx{position:fixed;left:16px;bottom:16px;z-index:2147483000;max-width:min(620px,calc(100vw - 32px));padding:6px;border-radius:16px;background:rgba(20,20,20,.92);border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 30px rgba(0,0,0,.5);font:500 12px/1.35 system-ui,sans-serif;color:#eee;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}',
+    '.d8hx .r{display:flex;flex-wrap:wrap;gap:4px}',
+    '.d8hx button{min-height:32px;padding:0 10px;border:0;border-radius:10px;background:rgba(255,255,255,.07);color:#ddd;font:inherit;cursor:pointer}',
+    '.d8hx button[aria-pressed="true"]{background:#FF5B1F;color:#111}',
+    '.d8hx p{margin:6px 6px 2px;color:#bbb;font-weight:400}'
+  ].join('\n');
+
+  function build() {
+    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+    var txt = document.querySelector('.nav__link--dash .nav__txt');
+    if (txt) txt.innerHTML = '<span class="nav__txt-short">Dashboard</span><span class="nav__txt-long">Client dashboard</span>';
+    if (q.get('bare') === '1') return;
+    var bar = document.createElement('div'); bar.className = 'd8hx';
+    bar.innerHTML = '<div class="r">' + OPTS.map(function (o) { return '<button type="button" data-k="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div><p></p>';
+    document.body.appendChild(bar);
+    var set = function (k) {
+      cur = k; html.setAttribute('data-hdr', k);
+      try { localStorage.setItem(KEY, k); } catch (e) {}
+      bar.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-k') === k)); });
+      bar.querySelector('p').textContent = OPTS.filter(function (o) { return o[0] === k; })[0][2];
+    };
+    bar.addEventListener('click', function (e) { var b = e.target.closest('button[data-k]'); if (b) set(b.getAttribute('data-k')); });
+    document.addEventListener('keydown', function (e) {
+      if (e.target.closest && e.target.closest('input,textarea,select')) return;
+      var n = '0123456'.indexOf(e.key); if (n >= 0 && !e.ctrlKey && !e.metaKey && !e.altKey) set(OPTS[n][0]);
+    });
+    set(cur);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
+})();

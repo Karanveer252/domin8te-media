@@ -1,0 +1,61 @@
+/* The work index switcher. Injected only by the local preview server
+   (serve.js); the deploy folder never carries it. Picks which treatment of
+   the work header's numbered index shows, from ?workidx= or a cookie.
+   ?bare=1 hides the bar, for headless captures. */
+(function () {
+  if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;
+  var SETS = [
+    ['drop',     'Drop',     'Yours: the arrow falls slot to slot, each one left empty behind it, then the stack fills again'],
+    ['fall',     'Fall',     'Endless rain: arrows keep falling through the three slots'],
+    ['collapse', 'Collapse', 'All three step down together, the top slot opens, the lowest leaves'],
+    ['build',    'Build',    'The reverse: arrows arrive from above and stack up, bottom first'],
+    ['shuffle',  'Shuffle',  'A rotation: the lowest leaves and returns at the top while the others step down']
+  ];
+  var KEY = 'd8-workidx-scroll';
+  var q = /[?&]workidx=([a-z]+)/.exec(location.search), c = /(?:^|; )d8workidx=([a-z]+)/.exec(document.cookie);
+  var ids = SETS.map(function (s) { return s[0] });
+  var pick = (q && q[1]) || (c && c[1]) || 'drop';
+  if (ids.indexOf(pick) < 0) pick = 'drop';
+  document.documentElement.setAttribute('data-workidx', pick);
+
+  try {
+    var y = sessionStorage.getItem(KEY);
+    if (y !== null) { sessionStorage.removeItem(KEY); window.addEventListener('load', function () { setTimeout(function () { window.scrollTo(0, +y) }, 60) }) }
+  } catch (e) {}
+
+  var css =
+    '.d8wi{position:fixed;left:16px;bottom:16px;z-index:2147483000;display:flex;align-items:center;gap:4px;' +
+    'padding:4px;border-radius:999px;background:rgba(14,14,14,.86);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);' +
+    'border:1px solid rgba(255,255,255,.14);box-shadow:0 8px 28px rgba(0,0,0,.45);font:600 12px/1 system-ui,-apple-system,Segoe UI,sans-serif;' +
+    'letter-spacing:.02em;color:#EDE8E1}' +
+    '.d8wi__t{padding:0 8px 0 10px;color:rgba(237,232,225,.55);text-transform:uppercase;letter-spacing:.12em;font-size:10px;white-space:nowrap}' +
+    '.d8wi button{appearance:none;border:0;margin:0;padding:9px 13px;border-radius:999px;background:transparent;color:inherit;' +
+    'font:inherit;cursor:pointer;white-space:nowrap;transition:background-color .2s,color .2s}' +
+    '.d8wi button:hover{background:rgba(255,255,255,.08)}' +
+    '.d8wi button[aria-pressed="true"]{background:#FF5B1F;color:#0A0A0A}' +
+    '.d8wi button:focus-visible{outline:2px solid #FF5B1F;outline-offset:2px}' +
+    '@media (max-width:600px){.d8wi{left:8px;right:8px;bottom:76px;justify-content:center;flex-wrap:wrap;border-radius:18px}' +
+    '.d8wi__t{width:100%;text-align:center;padding:6px 0 2px}}';
+
+  function choose(id) {
+    document.cookie = 'd8workidx=' + id + '; path=/; max-age=31536000; SameSite=Lax';
+    try { sessionStorage.setItem(KEY, String(window.scrollY || 0)) } catch (e) {}
+    location.href = location.pathname;
+  }
+
+  function build() {
+    if (/[?&]bare=1/.test(location.search)) return;
+    var style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
+    var bar = document.createElement('div'); bar.className = 'd8wi';
+    bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Work header decoration');
+    var t = document.createElement('span'); t.className = 'd8wi__t'; t.textContent = 'Corner'; bar.appendChild(t);
+    SETS.forEach(function (d) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = d[1]; b.title = d[2];
+      b.setAttribute('aria-pressed', pick === d[0] ? 'true' : 'false');
+      b.addEventListener('click', function () { choose(d[0]) });
+      bar.appendChild(b);
+    });
+    document.body.appendChild(bar);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
+})();

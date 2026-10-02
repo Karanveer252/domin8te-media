@@ -1,0 +1,118 @@
+/*
+ * Heavy Liquid Glass, shared by 16F to 16J (variant.json "heavy": true). Every glass surface is a
+ * thick pane: its own refraction lens (liquid.js draws one for each size: the rim bends what is
+ * behind it, the middle is frosted for reading), a lit top face and a shaded lower edge
+ * (--lg-depth), a ring of light on the rim, a highlight that follows the pointer and a soft drop
+ * shadow. Each variant brings the world behind the glass, the tint, the lens strength and its
+ * own take on the left-hand navigation. All of it follows the "Liquid glass" slider.
+ */
+
+/* ---- the panes -------------------------------------------------------------------------------- */
+
+html.lg-heavy :is(.card, .metric-card, .act-card, .caught-up, .skel-card, .banner, .signin-card, .error-state, .empty) {
+  border-color: var(--p-glass-edge);
+  background-color: var(--p-glass);
+  background-image: var(--lg-spec);
+  box-shadow: var(--lg-depth), var(--lg-edge-light), var(--lg-drop);
+}
+html.lg-heavy :is(.card, .caught-up) :is(.empty, .error-state) { border: 0; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+html.lg-heavy .act-card.sev-critical { background-image: var(--lg-spec), linear-gradient(100deg, var(--p-crit-bg), transparent 55%); border-color: var(--p-crit-line); }
+html.lg-heavy .banner { background-image: var(--lg-spec), linear-gradient(100deg, var(--p-crit-bg), transparent 70%); border-color: var(--p-crit-line); }
+html.lg-heavy .acct-grid { background-color: var(--p-glass-soft); box-shadow: var(--lg-depth), var(--lg-edge-light), var(--lg-drop); }
+html.lg-heavy :is(.side, .topbar, .tabbar, .dlg, .account-menu, .preview-chip, .lg-dock, .rail-tip) {
+  border-color: var(--p-glass-edge);
+  background-color: var(--p-glass-strong);
+  background-image: var(--lg-spec);
+  box-shadow: var(--lg-depth), var(--lg-edge-light), var(--lg-drop);
+}
+@media (hover: hover) {
+  html.lg-heavy .is-link:hover,
+  html.lg-heavy .act-card:hover { box-shadow: var(--lg-depth), var(--lg-edge-light), var(--p-shadow-lift); }
+}
+
+/* Real refraction (Chromium): each pane bends what is behind it through its own lens. */
+html.has-lens.lg-heavy :is(.side, .card, .metric-card, .act-card, .caught-up, .skel-card, .banner, .signin-card, .acct-grid, .topbar, .tabbar, .dlg, .account-menu, .preview-chip, .lg-dock, .btn-glass, .btn-outline, .status-chip, .jump-link, .segmented) {
+  -webkit-backdrop-filter: var(--lg-lens, blur(14px)) saturate(175%);
+  backdrop-filter: var(--lg-lens, blur(14px)) saturate(175%);
+}
+html.has-lens.lg-heavy :is(.card, .caught-up) :is(.empty, .error-state) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* ---- the current page: a thick capsule that magnifies what is under it ------------------------ */
+
+html.lg-heavy .nav-list::before {
+  border-radius: 999px;
+  background: var(--p-active);
+  box-shadow: var(--lg-depth), var(--lg-edge-light), 0 8px 18px -10px rgba(24, 28, 48, 0.4);
+}
+html.has-lens.lg-heavy .nav-list::before { backdrop-filter: url(#lg-zoom) url(#lg-edge-strong) saturate(170%); }
+html.lg-heavy .nav-link { border-radius: 999px; }
+html.lg-heavy .identity { border-radius: 999px; box-shadow: var(--lg-edge-light); }
+html.lg-heavy .identity-avatar { border-radius: 50%; background-image: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 50%); box-shadow: var(--lg-edge-light), inset 0 0 0 1px var(--p-line), 0 6px 14px -8px rgba(24, 28, 48, 0.4); }
+
+/* ---- controls: capsules of glass ------------------------------------------------------------- */
+
+html.lg-heavy :is(.btn, .btn-sm, .btn-text, .status-chip, .jump-link, .src-chip, .sev-chip) { border-radius: 999px; }
+html.lg-heavy :is(.btn-glass, .btn-outline, .jump-link) {
+  background-color: var(--p-glass-strong); background-image: var(--lg-spec);
+  border-color: var(--p-glass-edge);
+  box-shadow: var(--lg-depth), var(--lg-edge-light), 0 6px 16px -8px rgba(24, 28, 48, 0.3);
+}
+html.lg-heavy .btn-primary {
+  background-image: var(--lg-spec), linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 55%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), inset 0 -10px 16px -12px rgba(120, 30, 0, 0.4), 0 10px 22px -10px rgba(255, 91, 31, 0.65);
+}
+html.lg-heavy .btn-tint { background-image: var(--lg-spec); box-shadow: var(--lg-depth), var(--lg-edge-light), 0 8px 18px -10px rgba(99, 88, 230, 0.45); }
+html.lg-heavy .btn-solid { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26), 0 8px 18px -10px rgba(0, 0, 0, 0.5); }
+html.lg-heavy .status-chip { box-shadow: var(--lg-edge-light), inset 0 0 0 1px var(--p-conn-line); }
+html.lg-heavy .act-icon { border-radius: 50%; background-image: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 48%); box-shadow: var(--lg-edge-light), inset 0 0 0 1px var(--sev-line, var(--p-line)), 0 6px 14px -8px rgba(24, 28, 48, 0.4); }
+html.lg-heavy .segmented { border-radius: 999px; background-color: var(--p-glass-soft); box-shadow: var(--lg-depth), var(--lg-edge-light); }
+html.lg-heavy .seg span { border-radius: 999px; }
+html.lg-heavy .seg input:checked + span { background: var(--p-active); box-shadow: var(--lg-depth), var(--lg-edge-light), 0 6px 14px -6px rgba(24, 28, 48, 0.35), inset 0 0 0 1.5px var(--p-ink); }
+html.has-lens.lg-heavy .seg input:checked + span { backdrop-filter: url(#lg-zoom) saturate(160%); }
+html.lg-heavy .preview-chip.is-float { border-style: solid; border-radius: 999px; }
+html.lg-heavy .dlg { border-radius: 30px; }
+html.lg-heavy .account-menu { border-radius: 22px; }
+
+/* In the dark, the lit faces dim and the panes keep their depth. */
+html.lg-heavy[data-theme="dark"] .identity-avatar,
+html.lg-heavy[data-theme="dark"] .act-icon { background-image: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 48%); }
+
+/* ---- phones: the tab bar is one thick capsule with a lens that slides to the page ------------- */
+
+@media (max-width: 760px) {
+  html.lg-heavy .topbar { border-width: 0 0 1px; border-radius: 0 0 26px 26px; }
+  html.lg-heavy .tabbar { border-radius: 999px; }
+  html.lg-heavy .tabbar::before {
+    content: ""; position: absolute; top: 6px; bottom: 6px; left: 0; z-index: 0;
+    width: var(--tab-w, 0); transform: translateX(var(--tab-x, 0)); opacity: var(--tab-o, 0);
+    border-radius: 999px; background: var(--p-active);
+    box-shadow: var(--lg-depth), var(--lg-edge-light), 0 4px 12px -6px rgba(20, 24, 40, 0.35);
+  }
+  html.lg-heavy .portal[data-ind] .tabbar::before { transition: transform var(--m-slow) var(--lg-spring), width var(--m) var(--ease), opacity var(--m-fast) var(--ease); }
+  html.has-lens.lg-heavy .tabbar::before { backdrop-filter: url(#lg-zoom) saturate(160%); }
+  html.lg-heavy .tab { z-index: 1; border-radius: 999px; }
+  html.lg-heavy .tab[aria-current="page"] { background: none; box-shadow: none; }
+}
+
+/* ---- the world behind the glass -------------------------------------------------------------- */
+
+/* Each variant paints .lg-world (injected at the start of the page body); the veil keeps page text readable. */
+html.lg-heavy body::before { display: none; }
+.lg-world { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background-color: var(--p-bg); }
+.lg-world > i { position: absolute; display: block; }
+.lg-world::after { content: ""; position: absolute; inset: 0; background: var(--p-env-veil); }
+
+/* Text that sits straight on the world: a soft halo in the light; the brightest ink at night. */
+html.lg-heavy :is(.page-head h1, .page-head .lede, .fresh-line, .sec-head h2, .sec-title, .sec-meta, .band-title, .range-text, .feed-month h2, .bill-help) { text-shadow: 0 0 18px var(--p-env-light), 0 0 3px var(--p-env-light); }
+html.lg-heavy[data-theme="dark"] :is(.page-head h1, .page-head .lede, .fresh-line, .sec-head h2, .sec-title, .sec-meta, .band-title, .range-text, .feed-month h2, .bill-help) { text-shadow: 0 1px 14px rgba(0, 0, 0, 0.6); }
+html.lg-heavy[data-theme="dark"] :is(.page-head .lede, .fresh-line, .sec-meta, .band-title, .range-text, .feed-month h2, .bill-help) { color: var(--p-ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-world, .lg-world * { animation: none !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  html.lg-heavy :is(.side, .card, .metric-card, .act-card, .caught-up, .skel-card, .banner, .signin-card, .topbar, .tabbar, .dlg, .account-menu, .preview-chip, .lg-dock, .btn-glass, .btn-outline, .jump-link) { background-color: var(--p-surface); }
+}
+@media (forced-colors: active) {
+  .lg-world { display: none; }
+}

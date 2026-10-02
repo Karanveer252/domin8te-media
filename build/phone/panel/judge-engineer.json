@@ -1,0 +1,91 @@
+{
+ "scores": [
+  {
+   "design": "Rack focus, left thread",
+   "fidelity": 9,
+   "mobileRobustness": 6,
+   "coherence": 8,
+   "buildRisk": 4,
+   "total": 27,
+   "why": "Most literal on 'the cloche goes behind the hero, blurred': a full-bleed cover box at rest with a .92 scrim, a watchable lid lift (12 px/frame), a thread born at the left lobe, a keypoint rail and the desktop's own resolve gesture. Engineering costs pile up: a second WebGL2 shader program (textureLod + generateMipmap on a VideoFrame-uploaded NPOT texture) that only exists to avoid a 20 KB still crossfade; a 300lvh pin with 105vh of pure film (three flicks before the reader is beside text); keepGops 4 = 32 open VideoFrames, which on an Android hardware H.264 decoder (MediaCodec pools of 8-16 output buffers) will stall flush() and freeze the film with no error to catch; the sketch it inherits reads heroFrame.getBoundingClientRect() per frame and calls dropFrames() every frame while .off (toggle() returns undefined), contradicting its own 'no layout reads' claim; three stills for the no-decoder path, two fog strips, a cover-to-lock transform, pulse-at-beats and five ?pfilm toggles. Two SVGs with a seam whose curl is time-lerped and can be incomplete at the un-stick on a flick. The 936 crop for the lid is a good catch (frame 126 at the 864 crop has the lid within ~5% of the right edge). Buildable, but not in one clean pass, and every extra system is one more place a desktop-parity slip can hide."
+  },
+  {
+   "design": "Thumb-first thread: a 240vh hero, a thread that peels off the mark, and a merge that always completes",
+   "fidelity": 8,
+   "mobileRobustness": 7,
+   "coherence": 9,
+   "buildRisk": 6,
+   "total": 30,
+   "why": "Fits the brief and the phone: cloche behind the hero (a 4:5 box scaled 1.25 spanning the full width and 68% of the height, the h1 on plain ground so 'fully visible' is a layout fact, not a scrim promise), a blurred 20 KB still crossfaded by scroll (no runtime blur, no shader, no mask: the feather is a gradient ::after), a two-flick pin (240lvh, frame stuck for 140vh), the lid lift and settle, a thread peeling off the LEFT lobe (verified: the film's left lobe is cyan at frames 183-239), a keypoint rail at x=10 +/- 4 with crests at headlines, the #loop figure-eight redrawn in the storymark's rect, the ring thickening under #infg and the rule drawing from the left. Its box maths check out on 390x844 (s=.5065, box 365x456 at (12.5,96), mark 281 px with centre (195,338)); frame 183 is a safe closed hold (the strip shows the mark settled and same size as 228). Weaknesses are all fixable by contained grafts: keepGops 3 (24 open frames) does not fix the Android hardware-pool stall; the curl/page-line seam relies on the curl's time lerp finishing before the un-stick; .band--hero{min-height:240lvh} forgets .stage's ~102 px padding-top so the release and the studio band drift 12vh apart (D1 and D3 use calc(pin - stage-pt)); reparenting the live canvas into a JS-made wrapper is safe for the GL context but needless when the template can carry the wrapper; the isConfigSupported chain is async while initFilmDecoder is called synchronously at loadHeroBlob. Desktop parity story is the cleanest of the three: every shared-function edit is 'phoneOn ? new : today's statement' and the decoder pipeline is untouched. The timed 1.1 s merge is a defensible reading of 'same as the text does' on a phone where the text reveals are IntersectionObserver-timed."
+  },
+  {
+   "design": "One Path, Two Stills",
+   "fidelity": 8,
+   "mobileRobustness": 8,
+   "coherence": 7,
+   "buildRisk": 6,
+   "total": 29,
+   "why": "The engineer's design: one page-space path (curl + rail + entry) drawn by one monotone law, so there is no frame/page seam and no curl lerp to finish in time; a fixed-period rail that measures nothing but the storymark; no DOM reparenting; the only design that actually solves the Android hardware-decoder pool stall (upload to a GL texture and close the VideoFrame at once, keepGops 2, flush watchdog); CSS.supports guards for sticky/clip; prefer-software via isConfigSupported. It is also the most literal reading of 'instead of going up to the right side': the film's own parting end (frames 233-234, visible in the crop strip) is where the line is born and it pours out leftward as the mark scrolls away. Costs: mask-image on four layers including the live WebGL canvas (the pitfalls reader flagged this on iOS; the fallback is gradient strips); no 2D/ImageBitmap recovery on iOS 16.4-18.x where texImage2D(VideoFrame) is unconfirmed, so those phones drop to stills; the wake tip is page-positioned per rAF over a compositor-stuck frame (a one-frame lag wobble on a flick); the h1 sits over the box's bokeh top with only a flat .84 scrim, the weakest 'text fully visible' guarantee; the 864 crop clips the lid at 2.7 s ('acceptable' by its own admission); a fixed-period wave that ignores beats can crest beside a card edge by chance. The texture sink touches six shared decoder functions (decodeGop sink, nearestFrame, paintFrame/blit, closeFrames/dropFrames), which is where a desktop-parity slip is most likely, and a mask fallback will probably be needed on a real iPhone."
+  }
+ ],
+ "winner": "Thumb-first thread: a 240vh hero, a thread that peels off the mark, and a merge that always completes",
+ "grafts": [
+  {
+   "from": "One Path, Two Stills",
+   "idea": "Close every decoded VideoFrame immediately in the phone sink: frames[idx] = createImageBitmap(frame) (or a pooled GL texture), frame.close(), keepGops 2, and a 2.5 s flush() watchdog that hands off to the still tier.",
+   "why": "On a mid-range Android in Chrome the H.264 decoder is likely MediaCodec (Chrome's software H.264 path on Android is build-flag dependent), whose output pool is 8-16 buffers; holding 24-32 frames open stalls flush() with no error, and the film freezes. ImageBitmap is accepted by texImage2D on every target including iOS 16.4 (VideoFrame as TexImageSource is unconfirmed there), works with the 2D drawImage fallback, has the same .close() so closeFrames/dropFrames need no change, and leaves blit() and paintFrame() byte-identical for the desktop."
+  },
+  {
+   "from": "One Path, Two Stills",
+   "idea": "Make the curl a pure function of scroll (no time lerp) and gate the page line's target on the curl being complete, or fold the curl into the page path as the first segment.",
+   "why": "A flick from u 1.2 to 1.5 in 150 ms leaves the time-lerped curl 40-50% drawn when the frame un-sticks while the page line starts from R0: an 80 px gap for a few frames at the exact moment the brief cares about most. One monotone law with no seam is what D3 gets right."
+  },
+  {
+   "from": "One Path, Two Stills",
+   "idea": "Add CSS.supports('position','sticky') && CSS.supports('overflow-x','clip') to the head gate.",
+   "why": "html,body carry overflow-x:hidden as the fallback for clip (site.css:70); a browser that takes the hidden value makes body a scroll container and silently kills the sticky pin. Those are also the browsers without WebCodecs, so nothing of value is lost."
+  },
+  {
+   "from": "One Path, Two Stills",
+   "idea": "Offer the scrubbed merge as a toggle beside the timed one (?merge=scrub|fire) for Karan's on-phone comparison, and a fixed-period rail as the fallback when keypoint measurement yields a zero-length path.",
+   "why": "Karan compares options by flipping them in the page; the scrubbed merge is a pure function of scrollY (matches the desktop and reload-mid-page) and costs nothing to keep behind a flag until he picks. The fixed-period rail is immune to late fonts and lazy images and is the safety net if getTotalLength() is 0 after a rebuild."
+  },
+  {
+   "from": "Rack focus, left thread",
+   "idea": "Check frames 81-126 at the crop's right edge before encoding and take the 936x1080 crop (crop=936:1080:864:0, scaled 720x832) if the lifted lid clips.",
+   "why": "In the 864 crop strip the lid at frame 126 sits within ~5% of the right edge; D1 measured the lid reaching x 1800 at 2.7 s. D2's layoutFilm() takes (fw,fh,mx,my,markW) as constants, so the crop change is a constants edit, not a design change."
+  },
+  {
+   "from": "Rack focus, left thread",
+   "idea": "Anchor the rail's arrival colour from the real mark, and add the coarse-pointer <source> on .act--still's <picture> so hero-still.jpg (48 KB) is never fetched on the phone.",
+   "why": "Measured with PIL: mark-720.webp at the centreline's left extreme (.09w,.5h) is #C44509 (orange-red, spectrum stop ~.08), not the yellow (.26) all three designs assume; #infg's parameter there is ~.30. The rail should arrive at #infg's colour (the ring is what is visible while it thickens) and the ring-to-webp jump, which the desktop already has, should be checked in a shot at rb=.5. The <source> skip is the site's own pattern (template line 260) and saves the phone's largest wasted request."
+  },
+  {
+   "from": "Rack focus, left thread",
+   "idea": "The ?pfilm=dbg corner readout of __pfilm.state() (tier, wc/twoD, groups, slowMs, store, u, t, frame, sticky position).",
+   "why": "iOS cannot be driven from this Windows machine; the one mandatory real-iPhone run needs to say which branch it took without a cable and an inspector."
+  },
+  {
+   "from": "Rack focus, left thread",
+   "idea": "The beat pulse: tip scale 1 to 1.3 and body 2.2 to 3 px within 8vh of each headline top, via one --pw custom property on the line group.",
+   "why": "Cheap (one quantised setVar), and it is the phone's version of the desktop's --ten noticing the beats; optional, behind the same law."
+  }
+ ],
+ "objections": [
+  "Android hardware-decoder pool stall: keepGops 3 still holds 24 VideoFrames; the phone sink must release each frame immediately (ImageBitmap or GL texture, then frame.close()), keep at most 2 GOPs, and a flush() that does not resolve within 2.5 s must hand off to the still tier. Without this a mid-range Android in Chrome can freeze the film silently, and nothing in filmFallback() fires.",
+  "The VideoDecoder.isConfigSupported chain (prefer-software, then no-preference) is a Promise, but initFilmDecoder(bytes) is called synchronously at site.js loadHeroBlob (line ~1276: `if (initFilmDecoder(bytes)) filmFrame(...) else useVideoElement(bytes)`). Branch BEFORE that statement (`if (phoneOn) { phoneDecoderStart(bytes); return }`) so the desktop line stays byte-identical and useVideoElement is unreachable on the phone.",
+  "D2's `.band--hero{min-height:240lvh}` ignores .stage's padding-top (calc(var(--hdr-h) + clamp(28px,6vh,64px)), ~102 px at 390): the studio band then starts 102 px after the frame releases and every page-space constant that assumes the band ends at 240lvh (frameRestTop, R0, the contact-bar gate) is 12vh off. Use min-height:calc(var(--pin) - var(--stage-pt)) as D1 and D3 do, and measure heroTop rather than assuming 0.",
+  "Do not reparent #heroVideo/#heroFilm at runtime. Put the .hero__box wrapper in index.tpl.html as a static, unpositioned div: html.film's .hero__video/.hero__film rules are position:absolute;inset:0 (site.css 325-335), which resolve against .hero__frame exactly as today, so the desktop is pixel-identical and enableFilm/disableFilm never meet a moved canvas.",
+  "The curl-to-page-line seam: the page line's target must stay 0 until the curl is fully drawn (or the curl must be scroll-locked, not time-lerped), otherwise a fast flick shows the page line starting from R0 while the curl's end is still 40% short.",
+  "No element may be page-positioned per rAF over the compositor-stuck frame (the wake tip in D2/D3, the on-curl tip in D1/D2): scroll-to-rAF lag is at least one frame and reads as the halo wobbling off the mark on a flick. While the frame is stuck, keep the tip inside .hero__frame (frame space); move it to page space only after the un-stick.",
+  "No layout reads and no per-frame teardown on the scroll path: the spec's jsOutline (which all three lean on) calls heroFrame.getBoundingClientRect() per frame in the tip branch and, because toggle() returns undefined, runs dropFrames() on every frame while .off. Cache the frame's left and heroTop in phoneMeasure() and drop frames once, on the off flip.",
+  "Verify the encode's hold and crop against the source frames before cutting: the strip (cloche3d/out f0126/f0183/f0228/f0232/f0234) shows a camera push-in between 126 and 183 (the mark grows), frame 183 settled and closed, and the lid within ~5% of the 864 crop's right edge at 126. Hold on 183 (not 232, where a notch is already visible at the bottom-right), and widen to the 936 crop if frames 81-126 clip.",
+  "The rail's arrival colour and the merge crossfade: mark-720.webp is orange-red (#C44509) at the left extreme, #infg is ~yellow-green there, and the designs assume yellow. Anchor the gradient phase to #infg's colour at E and confirm the ring-to-image crossfade in a probe shot at rb=.5; if the jump reads worse than the desktop's, shorten the lb window.",
+  "Constraint 2: the story-wide legibility fixes (ghost link wrap, .band--climb .ln--2 at .78em, the 4:5 sky figure, the hover resets) change the reduced-motion phone. Scope them under .pfilm for the build, or get Karan's explicit yes first; the 390x844 reduced-motion run must diff empty against gauntlet/shots/mobile-before/sheet-a/b.png.",
+  "Desktop parity must be proven, not asserted: 1440x900 and 1920x1080 fine-pointer runs asserting no pfilm class, __pfilm.on()===false, heroSrc===the desktop URL, an empty ImageChops bbox against pre-change stills at three __feel.at() moments, friction-check.js and verify-live.js green, and a diff of the generated index.html showing only the __PHONE head lines, the wrapper/<picture> markup and the tokens.",
+  "Probes must emulate touch (cdp.js c.size(w,h,true,dpr) sets both device metrics and touch emulation) and assert matchMedia('(hover:none) and (pointer:coarse)').matches before any screenshot is trusted; also assert getComputedStyle(heroFrame).position==='sticky' and its rect.top===0 through the pin, and document.documentElement.scrollWidth===innerWidth.",
+  "One real iPhone (Safari 16.4-26: sticky inside the absolute hero, ImageBitmap upload, VideoToolbox GOP timing against the 250 ms phone threshold, lvh) and one mid-range Android (Chrome and Samsung Internet: which decoder config was taken, toolbar behaviour) must be checked with the ?pfilm=dbg readout before this ships; the Windows probe cannot stand in for either.",
+  "Register hero-scrub-m.mp4, hero-still-m.jpg and hero-mark-m.jpg in stamp.js (the line-23 list for site.js tokens and the html assets list for the <picture>) before running build_index.py and stamp.js, or stamp.js exits 1 with 'no ?v= token'; add the mp4 to verify-live.js's hash list and the JPEGs to its visual-compare list (Hostinger re-encodes JPEGs).",
+  "The blur still must be held at opacity 1 until the first paintFrame (heroReady), and the mark still must cover u > .58 whenever the decoder is not ready, so a reader who flicks before the 0.75 MB film lands never sees a black or empty box; and a reader already past 240lvh must not start the decoder at all."
+ ]
+}

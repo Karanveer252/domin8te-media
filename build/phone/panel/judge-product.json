@@ -1,0 +1,91 @@
+{
+ "scores": [
+  {
+   "design": "Rack focus, left thread",
+   "fidelity": 8,
+   "mobileRobustness": 6,
+   "coherence": 9,
+   "buildRisk": 4,
+   "total": 27,
+   "why": "Delivers all five bullets and is the only design where the lid lift is slow enough to watch (65vh, ~12 px per frame, camera locked with the whole cloche on screen), and its 936-wide crop is the only one that keeps the lifting lid inside the box (verified on frames 81-126). The thread peels off the LEFT lobe, crests toward every headline and pulses at the beats, so it speaks the desktop's vocabulary (--ten, the loop crossfade, the rule drawing) most fluently. But a restaurant owner pays for it: a 300lvh pin with ~105vh of steam-and-nothing before the lid moves is a second flick spent looking at a closed cloche, and the first screen's promise (the rainbow rim at 88-97lvh) is under the iPhone toolbars. The mip-level blur needs a phone-only shader program inside makePainter, which is the one place a slip reaches the desktop; the fallback ladder (WebGL1 still-fade, 2D-context blit, three-still path) is complete but deep, and two SVG spaces plus measured keypoints plus five toggles make this the most code of the three. Its fog strips in solid #0A0A0A also blank the editorial dot grid."
+  },
+  {
+   "design": "Thumb-first thread: a 240vh hero, a thread that peels off the mark, and a merge that always completes",
+   "fidelity": 8,
+   "mobileRobustness": 9,
+   "coherence": 8,
+   "buildRisk": 6,
+   "total": 31,
+   "why": "Built around how a phone is actually read: two flicks land the whole cloche story and the thread is beside the page by the third. All five bullets are met with the fewest moving parts: the blur is a 20 KB pre-blurred still cross-faded over the sharp film (no runtime filter, no shader change), the thread leaves the mark at the LEFT lobe with a rest beat at the rail, the merge is a triggered 1.1 s sequence so nobody is left with a half-thick ring, and it reads 'same as the text does' literally, since the phone's text acts reveal by IntersectionObserver, not by scrub. Robustness is the best of the three: tiers A/B/C, a lazily loaded mark still that covers a reader who flicks past before the film arrives, never the <video> element, keepGops 3, isConfigSupported chain, the class decided in the head gate. Its measured defects are build details, not design ones: the 864 crop clips the lid's rim through the lift, the frame-183 cut freezes the mark mid-dolly while the constants describe frame 232, the lid lift at 4.9 px per frame may blink past on a flick, there is no CTA at all for ~80vh of the pin, and its solid feather gradients blank the dot grid. Two SVG spaces, a keypoint rail, DOM wrap/unwrap and a merge state machine keep the build risk moderate."
+  },
+  {
+   "design": "One Path, Two Stills",
+   "fidelity": 7,
+   "mobileRobustness": 8,
+   "coherence": 7,
+   "buildRisk": 6,
+   "total": 28,
+   "why": "The most disciplined engineering: one page-space path whose first segment is the curl, so the seam is exact by construction; a fixed-period rail that no late font or lazy image can move; upload-and-close GL textures with keepGops 2 (the memory story the pitfalls reader asked for); CSS.supports gates that keep sticky-killing browsers on the static story. It also makes a genuinely faithful reading of 'instead of going up to the right': the same free end that unravels in the film (verified opening at ~(.80,.56) of the crop at frame 234) is redirected left under the plate. Where it loses the product lens: the box is 'fit' by default (390x487 at y 110 under a flat .84 scrim), so the first screen reads as a dim picture behind the text rather than the blurred backdrop Karan asked for (cover is only a toggle); the curl is born only as the mark scrolls away, so the moment the logo gives birth to the line is never held; the 4 px sine wave ignores every beat; the left-set resolve headline over a centred mark is left as 'Karan's call'; mask-image on four layers over a live canvas contradicts the mobile-pitfalls guidance and its fallback loses the dots; iOS 16.4-16.x drops straight to stills with no 2D-context ladder; and the 864 crop clips the lid (it calls that acceptable; the frames say otherwise). The texture-sink rewrite of decodeGop is the deepest cut into shared decoder code of the three, which offsets its simpler geometry."
+  }
+ ],
+ "winner": "Thumb-first thread: a 240vh hero, a thread that peels off the mark, and a merge that always completes",
+ "grafts": [
+  {
+   "from": "Rack focus, left thread",
+   "idea": "Use the 936-wide crop (crop=936:1080:864:0, scaled 720x832) instead of 864, with the mark constants re-measured in that crop (mark x .10-.81, centre (.455,.537), markW .71) and the blurred still cut at 432x498.",
+   "why": "Verified on the source PNGs: through frames 81-126 the lifting lid spans x ~872-1800, so the 864 crop cuts ~70 px of its right rim during the entire reveal, which is the moment bullet 4 is about; the 936 crop composes it with the dome edge to edge."
+  },
+  {
+   "from": "Rack focus, left thread",
+   "idea": "Encode frames 0-232 (hold on frame 232 at 7.733 s) rather than 0-183, and extend the film clock so the settle runs to 7.733 s while the tip wakes and the curl draws.",
+   "why": "Verified: the mark is still dollying in until about frame 200 (its left edge sits at .139 of the crop at frame 183 versus .090 at rest), so a 183 cut freezes a smaller, off-centre mark and puts E_mark ~20 px off the ribbon against the design's own frame-232 constants; frames 184-232 also give the mark its slow shimmer during the wake and birth instead of a frozen picture, for about 0.2 MB."
+  },
+  {
+   "from": "Rack focus, left thread",
+   "idea": "Stretch the lid lift to at least ~55vh of scroll (about 6-7 px per frame) by shrinking the steam phase, keeping the 240lvh pin.",
+   "why": "At 4.9 px per frame a single flick carries the whole lid off in ~0.6 s of lerp; Karan asked to see the crown lift when he scrolls, and the desktop plays it at 10 px per frame. Half the desktop's rate is the floor at which the reveal is watched rather than glimpsed."
+  },
+  {
+   "from": "Rack focus, left thread",
+   "idea": "The tip pulse and body thickening (scale 1 to 1.3, body 2.2 to 3 px via one custom property) as the head passes within ~8vh of each headline's top.",
+   "why": "It is the phone twin of the desktop's --ten (the line noticing each beat), costs one quantised custom property, and turns the 4 px wander from 'a slightly wavy hairline' into a line that visibly leans into every headline."
+  },
+  {
+   "from": "Rack focus, left thread",
+   "idea": "Keep the header's GET YOUR PLAN link on screen during the pin: hide .nav__cta only while the hero's own orange button is on screen (u < ~.52), not until past-hero at 140vh.",
+   "why": "The winner hides the nav link until past-hero and delays the contact bar to the un-stick, which leaves ~80vh of the reveal with no call to action anywhere; a restaurant owner who decides mid-reveal has nothing to tap."
+  },
+  {
+   "from": "One Path, Two Stills",
+   "idea": "Add CSS.supports('position','sticky') && CSS.supports('overflow-x','clip') to the head gate's pfilm condition.",
+   "why": "A browser that falls back to html/body overflow-x:hidden makes body a scroll container and silently kills the sticky pin; those browsers are also the ones without WebCodecs, so today's static story is the right place for them and the gate costs nothing."
+  },
+  {
+   "from": "One Path, Two Stills",
+   "idea": "A 2.5 s flush watchdog and a 3 s context-loss timer as explicit tier-B triggers, and the upload-and-close texture sink (keepGops 2, 16 pooled GL textures) written up as the named phase-2 change with its trigger condition.",
+   "why": "The hardware-pool starvation failure mode is a flush() that never resolves, which the winner's trigger list (decoder error, slow GOP) does not catch while it holds 24 VideoFrames open; the texture sink is the fix and the winner already defers it, so it should be a documented next step with numbers from a real Android, not a footnote."
+  },
+  {
+   "from": "One Path, Two Stills",
+   "idea": "The fixed-period rail as the fallback rail when fewer than three keypoints measure or ResizeObserver is absent, exposed with a ?rail=beats|wave|straight toggle.",
+   "why": "The keypoint rail depends on measuring every band after fonts, lazy images and reveals settle; a rail that cannot go stale is the safe default when measurement fails, and the toggle matches Karan's habit of comparing options in the page."
+  },
+  {
+   "from": "One Path, Two Stills",
+   "idea": "Its observation that solid #0A0A0A feathers blank the page's dot grid: keep the hero ground transparent and repeat the --dots pattern on the feather layer with background-position offset by (-bl, -bt) so the grid stays continuous across the box edges (rather than its mask-image on the live canvas).",
+   "why": "Verified: the phone body background is the 28 px dot grid, so the winner's feather bands would show as four dot-free strips around the film; drawing the dots back onto the overlay keeps the ground continuous without a compositor mask over WebGL."
+  }
+ ],
+ "objections": [
+  "Crop width: the 864-wide phone crop clips ~70 px of the lifting lid's right rim through frames 81-126 (measured on cloche3d/out; the lid spans x ~872-1800 at 3.0-4.2 s). Encode crop=936:1080:864:0 at 720x832 and re-derive mx/my/markW, the still, and layoutFilm's numbers before any probe is run.",
+  "End frame: do not cut the encode at frame 183. The mark is still dollying in until ~frame 200 (left edge .184 at 174, .139 at 183, .090 from 200), so the design's mark constants (markW .77, mx .50, taken from the held pose) are wrong at 183 and the birth point lands off the ribbon. Encode through 232, hold on 232, and measure E_mark on that frame.",
+  "Merge colour: the claim that the rail arrives yellow and #infg shows yellow at the mark's left extreme is false for the real image. Measured on mark-720.webp: #C44509 (red-orange, hue 19) at (.09w,.5h) with magenta at (.05w,.5h); #infg's 4%,0 to 96%,100% diagonal computes to parameter ~.30 (yellow-green) there. Anchor the rail's arrival to stop ~.07 and build the drawn ring's gradient from the webp's own hues along the loop (sample once at build time) or the ring-to-image crossfade will hue-jump; add a probe shot at rb = .5 to prove the join.",
+  "The snake must be seen to wriggle: a ±4 px wander over 60-140vh on a 390 px screen at dpr 3 is close to a straight hairline. Prototype it on the local preview behind a ?rail= toggle and confirm with Karan; if it does not read, allow ±6 px in the gutter (body stays inside x 4-16) and wider excursions (up to ±12 px) across the full-bleed stills and the before/after plates where there is no text column, plus the beat pulse.",
+  "Constraint 2 versus the three story-wide legibility fixes (ghost-link wrap, climb .ln--2 at .78em, the 4/5 sky figure): the plan promises both a zero-diff reduced-motion run and story-wide fixes. Decide before building: scope them under html.story.pfilm, or get Karan's explicit yes and drop the zero-diff assertion for those three rules.",
+  "No call to action for ~80vh of the pin: .nav__cta is hidden until past-hero and the contact bar waits for the un-stick at 140vh. Hide the nav link only while the hero's own button is on screen, and keep the bar's trigger at the un-stick.",
+  "The feather gradients (and any fog strip) in solid #0A0A0A blank the editorial dot grid (body background is var(--dots) at 28 px on the phone): four dot-free bands around the film box. Repeat the --dots pattern on the feather layer with a matching phase offset, or feather only the still layers, before the first contact sheet.",
+  "Merge state machine edges: the .is-drawn rule transition has no reverse transition defined; the timed merge clock must be cancelled on any gate flip and on disablePhoneFilm; and lb must be held at 0 until the storymark image has actually decoded (img.complete) so a slow connection never fades the ring into an empty box.",
+  "Real-device gate: nothing here can be driven from this Windows machine for iOS. The build is not complete until Karan opens ?bare=1&pfilm=dbg on his iPhone (sticky through the pin, WebCodecs upload path or 2D fallback, VideoToolbox GOP timing, memory) and on one mid-range Android (Chrome and Samsung Internet: decoder config chosen, toolbar collapse), and the headless matrix must assert heroFrame.getBoundingClientRect().top === 0 through the pin, scrollWidth === innerWidth, and an empty ImageChops bbox for the desktop at three __feel.at() moments, including a tablet rotate (768x1024 touch to 1024x768 no-touch) to prove the unwrap and asset swap.",
+  "The DOM wrap of #heroVideo/#heroFilm/.hero__blur into .hero__box must run before initHero so the canvas box carries the encode's aspect when sizeFilmCanvas runs at first paint, and the unwrap must restore the exact original order; write both as the first and last statements of enable/disablePhoneFilm and cover them in the desktop parity diff."
+ ]
+}

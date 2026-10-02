@@ -1,0 +1,144 @@
+
+/* ============================================================
+   THE PHONE FILM AND ITS LINE  (html.story.pfilm)
+
+   Karan, 2026-09-23: "the desktop site is perfect ... all the
+   changes will be on the mobile site". On a phone the story
+   layout gains a scroll-driven cloche film BEHIND the hero,
+   blurred under the words and sharpening as they leave; the
+   lid lifts and shows the mark; a line is born at the mark's
+   left lobe, comes to the LEFT edge and runs down the page
+   like a snake as it is read; at the branding section it
+   draws the mark's loop and becomes the mark.
+
+   Everything here hangs off html.story.pfilm, which the head
+   script adds only for a coarse-pointer device without
+   reduced motion. html.film never carries it: the desktop
+   executes no rule below. Reduced motion keeps the plain
+   story exactly. site.js drives it (THE PHONE FILM AND ITS
+   LINE) through custom properties and a few classes:
+     .hero            --hb blur still, --hm mark still,
+                      --hs scrim, .off when far past
+     .hero__box       --bl --bt --bw --bh (its rest place),
+                      --hz scale, --hy lift while the words
+                      are on it
+     .snk / .snkc     --L --off dash on each thread group,
+                      --pw the beat pulse, --lw --la --lb the
+                      merge, --dim the rail after the merge
+     .act--mark       --rb the real mark's opacity
+     .act--word       --rw the rule's draw
+   ============================================================ */
+
+/* hidden everywhere the phone film is not running */
+.snk,.snkc,.snk__tip,.hero__blur,.hero__mark{display:none}
+
+/* ---- the pin: the hero band is 2.4 screens tall, the frame stuck for 1.4 ---- */
+html.story.pfilm{--pin:240vh;--pin:240lvh;--stage-pt:calc(var(--hdr-h) + clamp(28px,6vh,64px))}
+html.story.pfilm .hero{
+  display:block;position:absolute;left:0;top:0;z-index:0;
+  width:100%;height:var(--pin);
+  overflow:visible;background:transparent;pointer-events:none;
+}
+html.story.pfilm .hero.off{visibility:hidden}
+html.story.pfilm .band--hero{min-height:calc(var(--pin) - var(--stage-pt));padding-bottom:0}
+html.story.pfilm .band,html.story.pfilm .act{position:relative;z-index:2}
+html.story.pfilm .band--hero .band__in{position:relative;z-index:2}
+/* the cloche still is the film now; the still stays for the plain story */
+html.story.pfilm .act--still{display:none}
+
+/* the frame: one screen, stuck to the top while the band scrolls under it.
+   lvh so the iOS toolbar collapsing never resizes it (and never clears the
+   canvas). Sticky dies under any ancestor with overflow other than visible or
+   clip: main, .film and .stage must stay as they are. */
+html.story.pfilm .hero__frame{
+  position:sticky;top:0;left:0;
+  width:100%;height:100vh;height:100lvh;
+  transform:none;overflow:hidden;background:transparent;
+}
+/* the picture: the phone encode's own aspect, placed by site.js so the held
+   mark sits at a fixed point of the screen, scaled up and dropped a little
+   while the words are over it. transform only, on the compositor. */
+html.story.pfilm .hero__box{
+  position:absolute;left:var(--bl,0px);top:var(--bt,0px);width:var(--bw,100%);height:var(--bh,100%);
+  transform:translate3d(0,var(--hy,0px),0) scale(var(--hz,1));
+  transform-origin:var(--ox,50%) var(--oy,50%);
+  will-change:transform;
+  /* its edges dissolve into the page's ground, so the dot grid runs on
+     through; a mask on the box is one compositor op over a small layer */
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 12%,#000 88%,transparent 100%),linear-gradient(90deg,transparent 0,#000 8%,#000 92%,transparent 100%);
+  -webkit-mask-composite:source-in;
+  mask-image:linear-gradient(180deg,transparent 0,#000 12%,#000 88%,transparent 100%),linear-gradient(90deg,transparent 0,#000 8%,#000 92%,transparent 100%);
+  mask-composite:intersect;
+}
+html.story.pfilm .hero__film,
+html.story.pfilm .hero__blur img,
+html.story.pfilm .hero__mark img{
+  position:absolute;inset:0;width:100%;height:100%;display:block;max-width:none;
+}
+html.story.pfilm .hero__film{display:none;opacity:1;transition:none}
+html.story.pfilm .hero.wc .hero__film{display:block}
+/* the phone never scrubs the video element; the pulses and the load ring
+   belong to the desktop film */
+html.story.pfilm .hero__video,html.story.pfilm .hero__pulses,html.story.pfilm .hero__ring{display:none}
+/* the blurred still lies over the film and fades out as the words leave; the
+   held mark's still lies over both and covers a reader who is past the reveal
+   before the film has arrived */
+html.story.pfilm .hero__blur{display:block;position:absolute;inset:0;opacity:var(--hb,1)}
+html.story.pfilm .hero__mark{display:block;position:absolute;inset:0;opacity:var(--hm,0)}
+/* the scrim, on the frame so it does not scale with the box: near-solid
+   behind the words, a vignette once they have gone */
+html.story.pfilm .hero__frame::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(10,10,10,.92) 0,rgba(10,10,10,.90) 58%,rgba(10,10,10,.55) 72%,rgba(10,10,10,.30) 100%);
+  opacity:var(--hs,1);
+}
+/* the header's backdrop blur would re-composite the canvas under it on every
+   frame; a flat ground does the same job while the film is stuck */
+html.story.pfilm .hdr.is-scrolled{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(10,10,10,.9)}
+
+/* ---- the line ---- */
+html.story.pfilm .snkc{
+  display:block;position:absolute;inset:0;width:100%;height:100%;
+  overflow:visible;pointer-events:none;
+}
+html.story.pfilm .snk{
+  display:block;position:absolute;left:0;top:0;z-index:3;
+  overflow:visible;pointer-events:none;
+  /* never promoted: at dpr 3 a page-tall layer would be a 20-megapixel
+     texture; unpromoted, only the tiles under a changed dash re-raster */
+}
+html.story.pfilm .snk__g{stroke-dasharray:var(--L,1);stroke-dashoffset:var(--off,1);opacity:var(--dim,1)}
+html.story.pfilm .snk__g use{fill:none;stroke-linecap:round;stroke-linejoin:round}
+/* the stack: a black case lifts the thread off the clouds and the plates, a
+   wide faint glow, the body, a hairline core; the body thickens and the glow
+   brightens as the head passes a headline (--pw, the beat pulse) */
+html.story.pfilm .snk__case{stroke:#000;stroke-width:5px;opacity:.55}
+html.story.pfilm .snk__glow{stroke-width:calc(10px + 4px * var(--pw,0));opacity:calc(.16 + .1 * var(--pw,0))}
+html.story.pfilm .snk__body{stroke-width:calc(2.2px + .8px * var(--pw,0))}
+html.story.pfilm .snk__core{stroke:#FFF6E8;stroke-width:.8px;opacity:.5}
+/* the loop at the resolve: drawn in the rail's colours, then it thickens into
+   the ribbon and takes the mark's own sweep (#infg) while the real mark fades
+   in beneath it, the desktop's own gesture */
+html.story.pfilm .snk__lglow{stroke-width:calc(var(--lw,2.4px) * 2.6);opacity:calc(.14 * (1 - var(--lb,0)))}
+html.story.pfilm .snk__lbody{stroke-width:var(--lw,2.4px);opacity:calc(1 - var(--la,0))}
+html.story.pfilm .snk__lring{stroke-width:var(--lw,2.4px);opacity:calc(var(--la,0) * (1 - var(--lb,0)))}
+/* the head: a small hot core in a soft halo, positioned by transform */
+html.story.pfilm .snk__tip{
+  display:block;position:absolute;left:0;top:0;z-index:4;
+  width:72px;height:72px;margin:-36px 0 0 -36px;border-radius:50%;
+  pointer-events:none;opacity:0;
+  background:radial-gradient(circle,#FFF8EC 0,#FFF8EC 1.6px,rgba(255,240,214,.6) 3.6px,rgba(255,240,214,.24) 9px,rgba(255,208,150,.07) 20px,rgba(255,208,150,0) 36px);
+  will-change:transform,opacity;
+}
+/* the story's rising ticks: the line is the climb now */
+html.story.pfilm .band:not(.band--hero) .band__in::before{display:none}
+html.story.pfilm .band{padding:clamp(40px,7vh,64px) 0}
+
+/* ---- the resolve: the lockup the line arrives at ---- */
+html.story.pfilm .act--mark{padding:8px 0 0;transform:none;opacity:1}
+html.story.pfilm .storymark{opacity:var(--rb,0);transition:none}
+html.story.pfilm .act--word{padding:14px 0 48px}
+html.story.pfilm .act--word .rule{transform:scaleX(var(--rw,0))}
+@media (prefers-reduced-motion:reduce){
+  html.story.pfilm .act--word .rule{transform:none}
+}
