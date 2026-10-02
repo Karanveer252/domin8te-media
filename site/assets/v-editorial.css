@@ -899,125 +899,114 @@ html[data-v="editorial"] .nav__cta:hover{background:var(--acc-hover);color:var(-
   html[data-v="editorial"].story .btn--primary:hover{background:var(--acc)}
 }
 
-/* ---- the phone's film and its line (assets/phone.js), only under html.snake ---- */
-.snk,.snk__tip,.pscene__img{display:none}
+/* ---- the phone's film and its line (assets/phone.js), only under html.snake,
+   which the head script sets before the first paint ---- */
+.snk,.snk__tip,.pscene__img,.pscene__flare,.pscene__glow{display:none}
+.pscene__box{position:relative;width:100%}
 
-/* the line gets a lane of its own: the column steps in from the left edge,
+/* lanes on both sides of the column: the line runs down one or the other,
    and everything that bled edge to edge still does */
-html.snake{--snk-lane:34px;--hl-size:clamp(34px,10vw,60px)}
-html.snake .stage{padding-left:var(--snk-lane)}
-html.snake .pscene-run,
+html.snake{--snk-lane:34px;--hl-size:clamp(33px,9.8vw,60px);--hero-size:clamp(34px,10.2vw,64px);--sec-size:clamp(33px,9.5vw,60px)}
+html.snake .stage{padding-inline:var(--snk-lane)}
+html.snake[data-v="editorial"].story .act--still,
 html.snake[data-v="editorial"].story .act--sky{
-  margin-left:calc(var(--snk-lane) * -1);margin-right:calc(var(--gut) * -1);
-  width:calc(100% + var(--snk-lane) + var(--gut));
-}
-/* the closing lockup centres on the screen, not on the stepped-in column */
-html.snake .act--mark,html.snake .act--word{
-  margin-left:calc((var(--snk-lane) - var(--gut)) * -1);width:calc(100% + var(--snk-lane) - var(--gut));
+  margin-inline:calc(var(--snk-lane) * -1);width:calc(100% + var(--snk-lane) * 2);
 }
 /* the line marks each beat now, so the story's ticks go; the room between
-   beats is where the line swings across, so it is generous and even */
+   sections is where the line crosses, so it is generous and even */
 html.snake[data-v="editorial"] .band:not(.band--hero) .band__in::before{display:none}
 html.snake .band:not(.band--hero){padding:clamp(150px,22vh,200px) 0 clamp(18px,3vh,28px)}
+/* the first words rise straight under the held mark */
+html.snake .band--studio{padding-top:clamp(18px,3vh,30px)}
 html.snake .band--jobs{padding-bottom:28px}
 html.snake .band--resolve{padding-bottom:8px}
 html.snake .act--sky{padding:clamp(40px,7vh,64px) 0}
 html.snake .act--ba--before{padding-top:clamp(120px,18vh,160px)}
-/* the cloud stills melt into the ground at top and bottom, and the line
-   passes behind them, into the cloud and out */
+/* the cloud stills melt into the ground at top and bottom; the line passes
+   behind them, and the black of the sky lets it show: only the lit cloud
+   veils it */
 html.snake .act--sky{position:relative;z-index:5}
 html.snake .skystill__img{
+  mix-blend-mode:screen;
   -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 22%,#000 78%,transparent 100%);
   mask-image:linear-gradient(180deg,transparent 0,#000 22%,#000 78%,transparent 100%);
 }
 
-/* ---- the opening: the cloche on the pass, then the lid, then the mark ---- */
-/* the runway the scene is held in while the lid lifts (phone.js sets its
-   length and where the scene sticks) */
-html.snake .pscene-run{
-  position:relative;z-index:1;
-  height:calc(var(--ps-h,100vw) + var(--ps-run,0px));
+/* ---- the opening: the cloche on the pass, then the lid, then the mark ----
+   The still's block is a runway: the scene inside it sticks near the top of
+   the screen for 42vh of scroll while the lid lifts, then goes on with the
+   page. All of it is CSS, so it is in place from the first paint. */
+html.snake[data-v="editorial"].story .act--still{
+  --ps-h:calc(100vw * 1.22);--ps-run:42vh;
+  position:relative;z-index:1;display:block;padding:0;
+  height:calc(var(--ps-h) + var(--ps-run));
   margin-top:clamp(-150px,-28vw,-90px);
 }
-html.snake[data-v="editorial"].story .act--still.pscene{
-  position:-webkit-sticky;position:sticky;top:var(--ps-top,20vh);z-index:1;
-  display:block;padding:0;margin:0;width:100%;
-  aspect-ratio:1/1;height:auto;overflow:hidden;
-  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 30%,#000 80%,transparent 100%);
-  mask-image:linear-gradient(180deg,transparent 0,#000 30%,#000 80%,transparent 100%);
-  pointer-events:none;
+html.snake .pscene__box{
+  position:-webkit-sticky;position:sticky;top:max(56px,calc(30vh - 61vw));z-index:1;
+  width:100%;aspect-ratio:100/122;overflow:hidden;pointer-events:none;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 80%,transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 80%,transparent 100%);
 }
-html.snake .pscene picture{display:block;position:absolute;inset:0}
-html.snake .pscene .still,
+html.snake .pscene__box picture{display:block;position:absolute;inset:0}
+html.snake[data-v="editorial"].story .pscene__box .still,
 html.snake .pscene__img{
   display:block;position:absolute;inset:0;width:100%;height:100%;max-width:none;
-  aspect-ratio:auto;object-fit:cover;border:0;border-radius:0;
+  aspect-ratio:auto;object-fit:cover;object-position:50% 50%;border:0;border-radius:0;
   -webkit-mask-image:none;mask-image:none;
-  transform-origin:50% 60%;will-change:opacity,transform;
+  transform-origin:50% 56%;will-change:opacity,transform;
 }
-/* the closed still pushes in as the lid lifts; each later still dissolves
-   in over it; the whole room goes dark as the drawn tube takes the mark */
-html.snake .pscene .still{
-  transform:scale(calc(1 + .1 * var(--ps-push,0)));
-  opacity:calc((1 - var(--ps-open,0)) * (1 - var(--ps-dark,0)));
-}
-html.snake .pscene__img--lift{
-  transform:scale(calc(1.02 + .03 * var(--ps-push,0)));
-  opacity:calc(var(--ps-lift,0) * (1 - var(--ps-open,0)) * (1 - var(--ps-dark,0)));
-}
-html.snake .pscene__img--open{
-  transform:scale(calc(1.06 - .06 * var(--ps-open,0)));
-  opacity:calc(var(--ps-open,0) * (1 - var(--ps-dark,0)));
-}
+/* the stills' fades and push-in, and the closing mark's rise, are set by
+   phone.js as plain values (no calc() on vars, which older iOS mishandles) */
+html.snake .pscene__img{opacity:0}
 html.snake .band--hero{position:relative;z-index:2}
 
 /* ---- the tube of light ---- */
 html.snake .snk{
   display:block;position:absolute;left:0;top:0;z-index:4;
   overflow:visible;pointer-events:none;
-  --tw:var(--snk-tw,7);
 }
-/* the tube: a dark case lifts it off the pictures, three glows fall off
-   around it (widened by a fixed amount, so a thick tube keeps a tight halo),
-   then the coloured body, its inner light and a hot core. The body, inner
-   light and core are opaque and round-ended, so where two pieces meet their
-   ends overlap without a seam; the see-through layers end square so they
-   never double into a bead */
-html.snake .snk use{fill:none;stroke-linejoin:round;stroke-linecap:round}
-html.snake .snk__case,html.snake .snk__glowA,html.snake .snk__glowB,html.snake .snk__glowC{stroke-linecap:butt}
-html.snake .snk__g--halo use{stroke-linecap:round}
-/* the front strand lies over the crossing; square ends, so it shows no end of its own */
+/* a dark case, four glows falling off, then the body and three lighter
+   bands narrowing to a hot core. The see-through layers end square, so where
+   pieces meet their light never doubles into a bead; the opaque ones end
+   round, so pieces join without a seam (the base rule is :where(), so the
+   square ends below always win) */
+html.snake :where(.snk use){fill:none;stroke-linejoin:round;stroke-linecap:round}
+html.snake .snk__case,html.snake .snk__g1,html.snake .snk__g2,html.snake .snk__g3,html.snake .snk__g4{stroke-linecap:butt}
+html.snake .snk__case{stroke:#040404;opacity:.12}
+html.snake .snk__g4{opacity:.025}
+html.snake .snk__g3{opacity:.05}
+html.snake .snk__g2{opacity:.11}
+html.snake .snk__g1{opacity:.22}
+html.snake .snk__core{stroke:#FFFCF5}
+/* the front strand lies whole across the back one; square ends, so it shows
+   no end of its own */
 html.snake .snk__g--front use{stroke-linecap:butt}
-html.snake .snk__case{stroke:#040404;stroke-width:calc(var(--tw) * 1px + 4px);opacity:.3}
-html.snake .snk__glowC{stroke-width:calc(var(--tw) * 1px + 36px);opacity:.035}
-html.snake .snk__glowB{stroke-width:calc(var(--tw) * 1px + 19px);opacity:.07}
-html.snake .snk__glowA{stroke-width:calc(var(--tw) * 1px + 8px);opacity:.15}
-html.snake .snk__body{stroke-width:calc(var(--tw) * 1px)}
-html.snake .snk__hi{stroke-width:calc(var(--tw) * .5px)}
-html.snake .snk__hi--white{stroke:#FFFFFF;opacity:.38}
-html.snake .snk__core{stroke:#FFFCF5;stroke-width:calc(var(--tw) * .13px + .5px)}
-/* the opening tube is lit as the room goes dark round the render's mark;
-   while it lies on the mark the render's own soft glow is its halo, so the
-   drawn halo comes up only as the picture goes */
-html.snake .snk__g--open{opacity:var(--snk-tube,0)}
-html.snake .snk__g--halo{opacity:calc(var(--snk-tube,0) * (.35 + .65 * var(--snk-lit,0)))}
-html.snake .snk__g--end{--tw:12}
-html.snake .snk__g--end .snk__case{opacity:.2}
+html.snake .snk__g--end .snk__case{opacity:.08}
 
 /* the head's light, placed by phone.js: a white-hot point in a warm bloom */
 html.snake .snk__tip{
   display:block;position:absolute;left:0;top:0;z-index:4;pointer-events:none;
   width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;
   background:radial-gradient(circle,rgba(255,252,246,1) 0,rgba(255,246,232,.9) 3%,rgba(255,226,196,.38) 9%,rgba(255,196,150,.14) 26%,rgba(255,170,120,.05) 46%,rgba(255,170,120,0) 66%);
-  opacity:var(--snk-tip,0);will-change:transform,opacity;
+  opacity:0;will-change:transform,opacity;
 }
 
-/* the closing mark comes up over the loop the line draws, with a little give */
+/* the closing mark comes up over the figure the line draws */
 html.snake .act--mark{position:relative;z-index:5}
-html.snake .storymark{
-  opacity:var(--snk-mark,.06);
-  transform:scale(calc(.96 + .04 * var(--snk-pop,0)));
+
+/* the contact bar sits on the column's edges, like everything else */
+html.snake .ctabar{left:var(--snk-lane);right:var(--snk-lane)}
+
+/* the hero's words show from the first paint and rise in with CSS alone:
+   on one bar of signal they must not wait for a script */
+@keyframes heroRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+html.snake.js.story .band--hero .ln,html.snake.js.story .band--hero .sub,html.snake.js.story .band--hero .cta{
+  opacity:1;transform:none;transition:none;animation:heroRise .9s var(--ease-out) both;
 }
+html.snake.js.story .band--hero .ln:nth-child(2){animation-delay:.08s}
+html.snake.js.story .band--hero .sub{animation-delay:.18s}
+html.snake.js.story .band--hero .cta{animation-delay:.28s}
 
 /* ============================================================
    THE PHONE LAYOUT, after the harsh critic's pass (2026-10-02)
@@ -1081,7 +1070,7 @@ html.snake .storymark{
 /* ---- the composition that goes with the line ---- */
 /* one left edge for the whole page: the header and the sections below the
    film step in to the line's lane too */
-html.snake .hdr__in,html.snake .wrap{width:auto;max-width:none;margin-left:var(--snk-lane);margin-right:var(--gut)}
+html.snake .hdr__in,html.snake .wrap{width:auto;max-width:none;margin-inline:var(--snk-lane)}
 
 /* the type scale, ported from the film: each beat has a big line and a
    small one, so the page is not one size of thin capitals all the way down */
@@ -1132,3 +1121,23 @@ html.snake .act--ba--before .ba{width:82%;margin-right:auto}
 html.snake .act--ba--after{margin-top:-44px;position:relative;z-index:2;padding-bottom:clamp(40px,6vh,56px)}
 html.snake .act--ba--after .ba{width:82%;margin-left:auto}
 html.snake .act--ba--before .ba__img{filter:brightness(.62)}
+/* the front plate's label sits on its own lower corner, not on the plate behind */
+html.snake .act--ba--after .ba__tab{top:auto;bottom:0;right:0;transform:none}
+/* the picker's empty state sits on the column, not floating in a box */
+html.snake[data-v="editorial"] .pick__plan{padding-left:0;min-height:0}
+html.snake .plan--empty{align-self:flex-start}
+
+/* ---- the opening's light ---- */
+html.snake .pscene__flare,html.snake .pscene__glow{
+  display:block;position:absolute;left:48.7%;top:55.3%;pointer-events:none;
+  transform:translate(-50%,-50%);border-radius:50%;opacity:0;will-change:opacity;
+}
+html.snake .pscene__flare{
+  width:84%;height:58%;z-index:3;mix-blend-mode:screen;
+  background:radial-gradient(closest-side,rgba(255,246,228,.9) 0,rgba(255,222,180,.42) 14%,rgba(255,190,140,.12) 40%,rgba(255,170,120,0) 100%);
+}
+html.snake .pscene__glow{
+  width:110%;height:78%;z-index:2;
+  background:radial-gradient(closest-side,rgba(190,170,255,.34) 0,rgba(255,140,170,.2) 38%,rgba(120,210,230,.1) 62%,rgba(10,10,10,0) 100%);
+}
+html.snake .band--hero{will-change:opacity}

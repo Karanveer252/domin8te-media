@@ -4,14 +4,14 @@
     {
       "name": "portal-directions",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["C:\Work\domin8te-build\portal\serve.js"],
+      "runtimeArgs": ["C:/Work/domin8te-build/portal/serve.js"],
       "port": 4173,
       "autoPort": true
     },
     {
       "name": "site",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["C:\Work\domin8te-build\serve.js"],
+      "runtimeArgs": ["C:/Work/domin8te-build/serve.js"],
       "port": 8080,
       "autoPort": true
     }

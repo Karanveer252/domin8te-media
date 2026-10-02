@@ -20,8 +20,10 @@
 <meta name="twitter:card" content="summary_large_image">
 
 <link rel="preload" href="assets/fonts/bvp-200.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/cl-lift.webp" as="image" type="image/webp" media="(max-width: 760px) and (prefers-reduced-motion: no-preference)" fetchpriority="low">
+<link rel="preload" href="assets/cl-open.webp" as="image" type="image/webp" media="(max-width: 760px) and (prefers-reduced-motion: no-preference)" fetchpriority="low">
 <link rel="stylesheet" href="assets/site.css?v=f878c4225c">
-<link rel="stylesheet" href="assets/v-editorial.css?v=2fbed6d51c">
+<link rel="stylesheet" href="assets/v-editorial.css?v=f32ecee5bb">
 
 <script type="application/ld+json">
 {
@@ -80,7 +82,12 @@ window.__GATES = [
   try {
     var story = window.__GATES.some(function (q) { return matchMedia(q).matches });
     r.classList.add(story ? 'story' : 'film');
+    /* the phone's film (assets/phone.js) lays the page out round its line;
+       set here so that layout is in place from the first paint. If the
+       script never arrives, the plain story comes back at load */
+    if (story && matchMedia('(max-width: 760px) and (prefers-reduced-motion: no-preference)').matches) r.classList.add('snake');
   } catch (e) { r.classList.add('story') }
+  window.addEventListener('load', function () { if (!r.classList.contains('snake-on')) r.classList.remove('snake') });
 
   /* the film only makes sense if the script arrives to drive it */
   function check() {
@@ -256,7 +263,9 @@ window.__GATES = [
     </div>
 
     <div class="act act--still" style="--o:2">
-      <picture><source media="(orientation: landscape) and (min-width: 1025px) and (pointer: fine)" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><source media="(max-width: 760px)" srcset="assets/cl-closed.webp" type="image/webp"><img class="still" src="assets/hero-still.jpg" width="1600" height="900" alt="" fetchpriority="high" decoding="async"></picture>
+      <div class="pscene__box">
+        <picture><source media="(orientation: landscape) and (min-width: 1025px) and (pointer: fine)" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="><source media="(max-width: 760px)" srcset="assets/cl-closed.webp" type="image/webp"><img class="still" src="assets/hero-still.jpg" width="1600" height="900" alt="" fetchpriority="high" decoding="async"></picture>
+      </div>
     </div>
 
     <!-- ---------- one studio ---------- -->
@@ -282,7 +291,7 @@ window.__GATES = [
          mode. -->
     <div class="act act--sky" style="--o:5">
       <figure class="skystill">
-        <img class="skystill__img" src="assets/sky-a-still.jpg?v=e0695f56e3" width="1600" height="900" alt="" loading="lazy" decoding="async">
+        <img class="skystill__img" src="assets/sky-a-still.jpg?v=e0695f56e3" width="1600" height="900" srcset="assets/sky-a-m.webp 1200w, assets/sky-a-still.jpg 1600w" sizes="(max-width: 760px) 100vw, 1600px" alt="" loading="lazy" decoding="async">
         <figcaption class="skystill__words"><h2 class="hl hl--sky"><span class="ln">Feel the <em class="acc">growth</em>.</span></h2></figcaption>
       </figure>
     </div>
@@ -407,7 +416,7 @@ window.__GATES = [
     <!-- ---------- the sky, second beat: after the pair, the same clouds, the other words ---------- -->
     <div class="act act--sky" style="--o:14">
       <figure class="skystill">
-        <img class="skystill__img" src="assets/sky-b-still.jpg?v=a741bd86eb" width="1600" height="900" alt="" loading="lazy" decoding="async">
+        <img class="skystill__img" src="assets/sky-b-still.jpg?v=a741bd86eb" width="1600" height="900" srcset="assets/sky-b-m.webp 1200w, assets/sky-b-still.jpg 1600w" sizes="(max-width: 760px) 100vw, 1600px" alt="" loading="lazy" decoding="async">
         <figcaption class="skystill__words"><h2 class="hl hl--sky"><span class="ln">Taking your time?</span> <span class="ln ln--2">They’re <em class="acc">taking</em> your <em class="acc">customers</em>.</span></h2></figcaption>
       </figure>
     </div>
@@ -693,9 +702,9 @@ window.__GATES = [
 
 <a class="ctabar" id="ctabar" href="#contact">Get your plan</a>
 
+<script src="assets/phone.js?v=2b4d556076" defer></script>
 <script src="assets/site.js?v=8bc4a2d982" defer></script>
 <script>/* the sky film is the desktop's alone; a phone never fetches it */
 if (document.documentElement.classList.contains('film')) { var s = document.createElement('script'); s.src = 'assets/sky.js?v=adf3056ac0'; document.body.appendChild(s) }</script>
-<script src="assets/phone.js?v=78ee65cae3" defer></script>
 </body>
 </html>

@@ -940,7 +940,8 @@
         main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a><div class="empty"><p><strong>That client was not found.</strong></p><p>It may have been removed, or the link is old.</p><a class="btn" href="#/clients">See all clients</a></div>`;
         return;
       }
-      if (location.hash !== `#/client/${id}/${tab}${part ? '/' + part : ''}` && !location.hash.startsWith(`#/client/${id}/`)) return;
+      // Still on this client? (The sidebar links to #/client/<id> with no tab; the table to #/client/<id>/<tab>.)
+      if (location.hash !== `#/client/${id}` && !location.hash.startsWith(`#/client/${id}/`)) return;
       renderSide();
     }
     const t = TABS.find((x) => x[0] === tab) ? tab : 'overview';

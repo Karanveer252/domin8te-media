@@ -394,7 +394,11 @@ dialog::backdrop { background: rgba(29, 26, 22, 0.35); -webkit-backdrop-filter: 
 .confirm .actions { justify-content: flex-end; }
 
 /* ---- sign-in ------------------------------------------------------------------------------------------- */
-.signin { display: grid; place-items: center; min-height: 80vh; padding: 16px; }
+.signin { display: grid; place-items: center; min-height: calc(100vh - 32px); min-height: calc(100dvh - 32px); padding: 16px 0; }
+/* Signed out, nothing else is on the page: the sidebar's column goes and the card sits in the middle of the screen. */
+.shell:has(> .side[hidden]) { grid-template-columns: minmax(0, 1fr); padding: 0 !important; }
+.shell:has(> .side[hidden]) > div { grid-column: 1 / -1; }
+main:has(> .signin) { max-width: none; padding: 16px; }
 .signin-card { width: min(420px, 100%); padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); }
 .signin-card h1 { font-size: 22px; margin: 14px 0 6px; }
 .signin-card .lede { color: var(--ink-2); margin-bottom: 18px; }
@@ -3051,7 +3055,8 @@ html[data-scene="scenes"] .col { background: var(--glass); }
         main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a><div class="empty"><p><strong>That client was not found.</strong></p><p>It may have been removed, or the link is old.</p><a class="btn" href="#/clients">See all clients</a></div>`;
         return;
       }
-      if (location.hash !== `#/client/${id}/${tab}${part ? '/' + part : ''}` && !location.hash.startsWith(`#/client/${id}/`)) return;
+      // Still on this client? (The sidebar links to #/client/<id> with no tab; the table to #/client/<id>/<tab>.)
+      if (location.hash !== `#/client/${id}` && !location.hash.startsWith(`#/client/${id}/`)) return;
       renderSide();
     }
     const t = TABS.find((x) => x[0] === tab) ? tab : 'overview';
