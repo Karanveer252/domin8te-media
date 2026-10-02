@@ -1005,6 +1005,15 @@
       </section>
       </div>
       <div class="ov-edit"${part === 'edit' ? '' : ' hidden'}>
+      <section class="panel" aria-labelledby="login-h">
+        <div class="panel-head"><h2 id="login-h">Portal login</h2><p>${current.clerk_org_id ? 'They can sign in. Use this to let another person at the restaurant sign in too.' : '<strong>Nobody can sign in yet.</strong> Saving an email in the details below does not let anyone in; this button does.'}</p></div>
+        <form id="login-form" class="grid-3" novalidate>
+          <div class="field"><label for="l-first">First name</label><input id="l-first" name="first" type="text" value="${esc(d.user.firstName)}" maxlength="100"></div>
+          <div class="field span-2"><label for="l-email">Email</label><input id="l-email" name="email" type="email" value="${esc(d.user.email)}" maxlength="200"></div>
+          <div class="span-all"><p class="hint meta">They sign in at ${esc(PORTAL_URL)} with this email and a 6-digit code Clerk emails them each time. There is no password, and nothing is emailed until they ask for a code.</p></div>
+          <div class="actions span-all" style="margin-top:0"><button class="btn" type="submit">${current.clerk_org_id ? 'Add this login' : 'Give them a login'}</button><span id="login-out" class="meta"></span></div>
+        </form>
+      </section>
       <form class="panel" id="profile-form" novalidate>
         <div class="panel-head"><h2>Plan and approvals</h2><p>For the team only. The client never sees these.</p></div>
         ${profilePickers(profileOf(current.id))}
@@ -1021,7 +1030,7 @@
               ? `<select id="o-status" name="status" disabled><option value="archived" selected>Archived (hidden from them)</option></select><p class="hint">Only a super admin can bring a client back.</p>`
               : `<select id="o-status" name="status">${[['active', 'Active'], ['paused', 'Paused']].map(([v, l]) => `<option value="${v}"${current.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select><p class="hint">Only a super admin can archive a client.</p>`}</div>
           <div class="field"><label for="o-first">Main contact's first name</label><input id="o-first" name="first" type="text" value="${esc(d.user.firstName)}" maxlength="100"></div>
-          <div class="field"><label for="o-email">Main contact's email</label><input id="o-email" name="email" type="email" value="${esc(d.user.email)}" maxlength="200"></div>
+          <div class="field"><label for="o-email">Main contact's email</label><input id="o-email" name="email" type="email" value="${esc(d.user.email)}" maxlength="200"><p class="hint">For contact only. To let them sign in, use Portal login above.</p></div>
           <div class="field"><label for="o-role">Their role</label><input id="o-role" name="role" type="text" value="${esc(d.user.role)}" maxlength="60" placeholder="Owner"></div>
         </div>
         <h3 class="panel-sub">Package <span class="meta">What they pay for. The services ticked here get their own Work page.</span></h3>
@@ -1048,15 +1057,6 @@
         </div>
         <div class="actions"><button class="btn" type="submit">Save details</button></div>
       </form>
-      <section class="panel" aria-labelledby="login-h">
-        <div class="panel-head"><h2 id="login-h">Portal login</h2><p>${current.clerk_org_id ? 'Linked to their Clerk organisation. Use this to add another person or change the email.' : 'Nobody can sign in yet.'}</p></div>
-        <form id="login-form" class="grid-3" novalidate>
-          <div class="field"><label for="l-first">First name</label><input id="l-first" name="first" type="text" value="${esc(d.user.firstName)}" maxlength="100"></div>
-          <div class="field span-2"><label for="l-email">Email</label><input id="l-email" name="email" type="email" value="${esc(d.user.email)}" maxlength="200"></div>
-          <div class="span-all"><p class="hint meta">They sign in at ${esc(PORTAL_URL)} with this email and a 6-digit code Clerk emails them each time. There is no password, and nothing is emailed until they ask for a code.</p></div>
-          <div class="actions span-all" style="margin-top:0"><button class="btn" type="submit">${current.clerk_org_id ? 'Add this login' : 'Give them a login'}</button><span id="login-out" class="meta"></span></div>
-        </form>
-      </section>
       </div>`;
     if (part === 'edit') {
       const pf = /** @type {HTMLFormElement} */ ($('#profile-form', box));
@@ -1097,7 +1097,7 @@
         doc.meeting = md ? { at: `${md}T${val(f, 'mtime') || '10:00'}`, title: val(f, 'mtitle') || 'Meeting', length: val(f, 'mlen'), status: 'confirmed' } : null;
         await save({ name, status: val(f, 'status') || current.status, doc });
         clean(f);
-        toast('Details saved. The client sees them next time their portal loads.');
+        toast(current.clerk_org_id ? 'Details saved. The client sees them next time their portal loads.' : 'Details saved. Nobody can sign in yet: use Portal login at the top to let them in.');
         route();
       } catch (x) {
         done();

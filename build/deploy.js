@@ -18,10 +18,10 @@ const fs = require('fs');
 const path = require('path');
 
 const ENV = 'C:/Work/skills/generate-skill/.env';
-const ZIP = 'C:/Work/domin8te-v33.zip';
+const ZIP = 'C:/Work/domin8te-v34.zip';
 const USERNAME = 'u206384584';
 const DOMAIN = 'domin8temedia.com';
-const ARCHIVE_NAME = 'domin8te-v33.zip';
+const ARCHIVE_NAME = 'domin8te-v34.zip';
 const API = 'https://developers.hostinger.com';
 const STATE = path.join(__dirname, 'deploy-state.json');
 
