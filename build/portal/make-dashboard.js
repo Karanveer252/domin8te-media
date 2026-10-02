@@ -47,7 +47,7 @@ if (LIVE) {
   for (const k of Object.keys(cfg)) if (/secret|sk_/i.test(k + String(cfg[k]))) throw new Error(`live-config.json must hold public values only (found ${k}).`);
   // Before every other script, so the data layer starts in live mode.
   once('live config', '<meta charset="utf-8">', `<meta charset="utf-8">
-<script>window.D8CONFIG = ${JSON.stringify({ ...cfg, demoUrl: arg('--demo-url') || undefined })};</script>`);
+<script>window.D8CONFIG = ${JSON.stringify({ ...cfg, app: 'portal', demoUrl: arg('--demo-url') || undefined })};</script>`);
 }
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, html);

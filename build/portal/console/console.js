@@ -504,6 +504,10 @@
       C.addListener((/** @type {any} */ e) => {
         if (!me) return;
         const user = e && e.user;
+        // With more than one person signed in on this browser, the console keeps going as long as
+        // its own person is still signed in, whoever is active in another tab.
+        const sessions = (e && e.client && (e.client.signedInSessions || e.client.activeSessions)) || [];
+        if (me && sessions.some((/** @type {any} */ s) => s && s.user && s.user.id === me.userId)) return;
         if (!e || !e.session || !user || user.id !== me.userId) {
           const why = user && user.id !== me.userId
             ? 'Someone else signed in on this browser, in another tab. Sign in again to carry on as yourself.'
@@ -576,7 +580,7 @@
       <p class="lede">For the Domin8te team. We'll email you a 6-digit code.</p>
       ${why ? `<p class="notice">${esc(why)}</p>` : ''}
       <form id="email-form" novalidate>
-        <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" required><p class="field-error" id="email-err" hidden></p></div>
+        <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" required value="${esc(/** @type {any} */ (window).__d8LastEmail || '')}"><p class="field-error" id="email-err" hidden></p></div>
         <button class="btn btn-block" type="submit">Email me a code</button>
       </form>
       <div id="code-step" hidden></div>

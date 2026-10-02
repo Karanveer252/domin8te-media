@@ -62,6 +62,45 @@
     return clerkReady;
   }
 
+  /* ---- Whose sign-in this page uses ------------------------------------------------------------
+   * One browser can hold more than one signed-in person (Clerk's multi-session mode): Karan as
+   * himself for the console and a restaurant's login for the portal, side by side. Each page picks
+   * its own: the console the person on the Domin8te team, the portal a person who belongs to a
+   * restaurant. Tokens are asked of that session directly (session.getToken), so neither page ever
+   * switches the browser's active session and signs the other page out. With one person per
+   * browser (single-session mode) this is simply the active session, as before. */
+  const APP = cfg.app === 'console' ? 'console' : 'portal';
+  const TEAM = String(cfg.teamOrgId || '').split(',').map((x) => x.trim()).filter(Boolean);
+  /** @param {any} s */
+  const orgsOf = (s) => ((s && s.user && s.user.organizationMemberships) || []).map((/** @type {any} */ m) => m.organization && m.organization.id).filter(Boolean);
+  /** The organisation this page asks tokens for, for one session. @param {any} s */
+  function orgFor(s) {
+    const orgs = orgsOf(s);
+    if (APP === 'console') return orgs.find((id) => TEAM.includes(id)) || '';
+    const own = s && s.lastActiveOrganizationId;
+    if (own && !TEAM.includes(own) && orgs.includes(own)) return own;
+    return orgs.find((id) => !TEAM.includes(id)) || '';
+  }
+  /** The signed-in session this page uses, or null. @param {any} C */
+  function mySession(C) {
+    const all = ((C.client && (C.client.signedInSessions || C.client.activeSessions)) || []).filter((/** @type {any} */ s) => s && s.user);
+    if (!all.length) return C.session && C.user ? C.session : null;
+    const fits = all.filter((/** @type {any} */ s) => orgFor(s));
+    // The active session first when it fits, then any that fits, then the active one regardless (so a
+    // person with no access still gets this page's "no access" answer instead of a sign-in loop).
+    const active = C.session && fits.find((/** @type {any} */ s) => s.id === C.session.id);
+    return active || fits[0] || (C.session && C.user ? C.session : all[0]);
+  }
+  /** A token for this page's session and organisation. @param {any} C */
+  async function tokenFor(C) {
+    const s = mySession(C);
+    if (!s) return null;
+    const org = orgFor(s);
+    try { return await s.getToken(org ? { organizationId: org } : undefined); }
+    catch (e) { if (org && C.session && s.id === C.session.id) return s.getToken(); throw e; }
+  }
+  try { root.__d8LastEmail = root.localStorage.getItem('d8.lastEmail') || ''; } catch (e) { root.__d8LastEmail = ''; }
+
   /**
    * A person usually belongs to one restaurant. If no restaurant is active in the session yet (the
    * first sign-in, or a new invitation), the first one they belong to becomes active, so the token
@@ -79,6 +118,7 @@
     const e = (err && err.errors && err.errors[0]) || {};
     const code = e.code || '';
     if (code === 'form_identifier_not_found') return fail('not-invited', "We couldn't find an invitation for that email. Check the address, or ask your account team to invite you.", field);
+    if (code === 'session_exists' || code === 'identifier_already_signed_in') return fail('other-account', 'Another account is already signed in on this browser. Sign it out first, or use a private window.', field);
     if (code === 'form_code_incorrect') return fail('bad-code', "That code isn't right. Check the email and try again.", 'code');
     if (code === 'verification_expired') return fail('code-expired', 'That code has expired. Ask for a new one.', 'code');
     if (code === 'too_many_requests' || code === 'verification_failed') return fail('slow-down', 'Too many tries. Wait a minute, then ask for a new code.', field);
@@ -96,14 +136,17 @@
     /** The signed-in person and their restaurant, or null when signed out. */
     async getSession() {
       const C = await clerk();
-      if (!C.user) return null;
-      await pickOrganisation(C);
-      const email = C.user.primaryEmailAddress ? C.user.primaryEmailAddress.emailAddress : '';
+      const s = mySession(C);
+      if (!s) return null;
+      if (C.session && s.id === C.session.id && !(C.client && C.client.signedInSessions && C.client.signedInSessions.length > 1)) await pickOrganisation(C);
+      const user = s.user || C.user;
+      if (!user) return null;
+      const email = user.primaryEmailAddress ? user.primaryEmailAddress.emailAddress : '';
       return {
-        userId: C.user.id,
-        // The restaurant is the active Clerk organisation; the database checks it again on every read.
-        tenantId: C.organization ? C.organization.id : '',
-        firstName: C.user.firstName || '',
+        userId: user.id,
+        // The restaurant is the session's Clerk organisation; the database checks it again on every read.
+        tenantId: orgFor(s) || (C.session && s.id === C.session.id && C.organization ? C.organization.id : ''),
+        firstName: user.firstName || '',
         email,
         role: ''
       };
@@ -113,6 +156,7 @@
       const e = String(email || '').trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw fail('bad-email', 'Enter the email address your invitation was sent to, like name@restaurant.com.', 'email');
       const C = await clerk();
+      try { root.localStorage.setItem('d8.lastEmail', e); root.__d8LastEmail = e; } catch (x) { /* remembering the email is a nicety */ }
       try {
         const si = await C.client.signIn.create({ identifier: e });
         const factor = (si.supportedFirstFactors || []).find((/** @type {any} */ f) => f.strategy === 'email_code');
@@ -141,7 +185,10 @@
     },
     async signOut() {
       const C = await clerk();
-      await C.signOut();
+      // Only this page's person signs out; another person signed in on this browser stays signed in.
+      const s = mySession(C);
+      if (s && C.client && C.client.signedInSessions && C.client.signedInSessions.length > 1) await C.signOut({ sessionId: s.id });
+      else await C.signOut();
     },
     demoSignIn() {
       return Promise.reject(fail('no-demo', 'There is no demo account here.'));
@@ -166,10 +213,10 @@
               const C = await clerk();
               // When a request has to go without a sign-in, note why, so the cause can be found.
               const note = (/** @type {any} */ why) => { /** @type {any} */ (root).__d8AuthTrouble = { at: new Date().toISOString(), ...why }; };
-              if (!C.session) { note({ why: 'no-session', user: !!C.user }); return null; }
+              if (!mySession(C)) { note({ why: 'no-session', user: !!C.user }); return null; }
               try {
-                const t = await C.session.getToken();
-                if (!t) note({ why: 'empty-token', status: C.session.status });
+                const t = await tokenFor(C);
+                if (!t) note({ why: 'empty-token', status: C.session && C.session.status });
                 return t;
               } catch (e) {
                 note({ why: 'refresh-failed', error: String((e && (/** @type {any} */ (e).message || e)) || 'unknown') });

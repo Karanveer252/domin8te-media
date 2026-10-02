@@ -901,7 +901,7 @@ html[data-v="editorial"] .nav__cta:hover{background:var(--acc-hover);color:var(-
 
 /* ---- the phone's film and its line (assets/phone.js), only under html.snake,
    which the head script sets before the first paint ---- */
-.snk,.snk__tip,.pscene__img,.pscene__flare,.pscene__glow{display:none}
+.snk,.snk__tip,.pscene__img,.pscene__flare,.pscene__glow,.pscene__mark,.pscene__tube{display:none}
 .pscene__box{position:relative;width:100%}
 
 /* lanes on both sides of the column: the line runs down one or the other,
@@ -917,7 +917,7 @@ html.snake[data-v="editorial"].story .act--sky{
 html.snake[data-v="editorial"] .band:not(.band--hero) .band__in::before{display:none}
 html.snake .band:not(.band--hero){padding:clamp(150px,22vh,200px) 0 clamp(18px,3vh,28px)}
 /* the first words rise straight under the held mark */
-html.snake .band--studio{padding-top:clamp(18px,3vh,30px)}
+html.snake .band--studio{padding-top:clamp(18px,3vh,30px);margin-top:-28vh;position:relative;z-index:3}
 html.snake .band--jobs{padding-bottom:28px}
 html.snake .band--resolve{padding-bottom:8px}
 html.snake .act--sky{padding:clamp(40px,7vh,64px) 0}
@@ -925,37 +925,46 @@ html.snake .act--ba--before{padding-top:clamp(120px,18vh,160px)}
 /* the cloud stills melt into the ground at top and bottom; the line passes
    behind them, and the black of the sky lets it show: only the lit cloud
    veils it */
-html.snake .act--sky{position:relative;z-index:5}
+html.snake .act--sky{position:relative;z-index:auto}
+html.snake .skystill__words{z-index:6}
 html.snake .skystill__img{
-  mix-blend-mode:screen;
+  position:relative;z-index:5;mix-blend-mode:screen;
   -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 22%,#000 78%,transparent 100%);
   mask-image:linear-gradient(180deg,transparent 0,#000 22%,#000 78%,transparent 100%);
 }
 
 /* ---- the opening: the cloche on the pass, then the lid, then the mark ----
    The still's block is a runway: the scene inside it sticks near the top of
-   the screen for 42vh of scroll while the lid lifts, then goes on with the
-   page. All of it is CSS, so it is in place from the first paint. */
+   the screen for 80vh of scroll while the lid lifts and the mark uncoils,
+   then goes on with the page. All of it is CSS, so it is in place from the
+   first paint, and it shows at once (no reveal waiting on a script). */
 html.snake[data-v="editorial"].story .act--still{
-  --ps-h:calc(100vw * 1.22);--ps-run:42vh;
+  --ps-h:calc(100vw * 1.35);--ps-run:80vh;
   position:relative;z-index:1;display:block;padding:0;
   height:calc(var(--ps-h) + var(--ps-run));
   margin-top:clamp(-150px,-28vw,-90px);
+  opacity:1;transform:none;transition:none;
 }
 html.snake .pscene__box{
-  position:-webkit-sticky;position:sticky;top:max(56px,calc(30vh - 61vw));z-index:1;
-  width:100%;aspect-ratio:100/122;overflow:hidden;pointer-events:none;
-  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 80%,transparent 100%);
-  mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 80%,transparent 100%);
+  position:-webkit-sticky;position:sticky;top:max(56px,calc(50vh - 67.5vw));z-index:1;
+  width:100%;aspect-ratio:100/135;pointer-events:none;
 }
 html.snake .pscene__box picture{display:block;position:absolute;inset:0}
+/* the pictures fade into the ground at top and bottom; the drawn tube does
+   not, and may leave the box */
 html.snake[data-v="editorial"].story .pscene__box .still,
 html.snake .pscene__img{
   display:block;position:absolute;inset:0;width:100%;height:100%;max-width:none;
   aspect-ratio:auto;object-fit:cover;object-position:50% 50%;border:0;border-radius:0;
-  -webkit-mask-image:none;mask-image:none;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 24%,#000 80%,transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0,#000 24%,#000 80%,transparent 100%);
   transform-origin:50% 56%;will-change:opacity,transform;
 }
+html.snake .pscene__mark,html.snake .pscene__tube{
+  display:block;position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none;
+}
+html.snake .pscene__mark{z-index:2;opacity:0}
+html.snake .pscene__tube{z-index:4}
 /* the stills' fades and push-in, and the closing mark's rise, are set by
    phone.js as plain values (no calc() on vars, which older iOS mishandles) */
 html.snake .pscene__img{opacity:0}
@@ -966,23 +975,13 @@ html.snake .snk{
   display:block;position:absolute;left:0;top:0;z-index:4;
   overflow:visible;pointer-events:none;
 }
-/* a dark case, four glows falling off, then the body and three lighter
-   bands narrowing to a hot core. The see-through layers end square, so where
-   pieces meet their light never doubles into a bead; the opaque ones end
-   round, so pieces join without a seam (the base rule is :where(), so the
-   square ends below always win) */
-html.snake :where(.snk use){fill:none;stroke-linejoin:round;stroke-linecap:round}
-html.snake .snk__case,html.snake .snk__g1,html.snake .snk__g2,html.snake .snk__g3,html.snake .snk__g4{stroke-linecap:butt}
-html.snake .snk__case{stroke:#040404;opacity:.12}
-html.snake .snk__g4{opacity:.025}
-html.snake .snk__g3{opacity:.05}
-html.snake .snk__g2{opacity:.11}
-html.snake .snk__g1{opacity:.22}
+/* the line's layers, one group each across the whole line: a wide soft glow
+   and a tight one (each group fades as one, so overlapping ends never
+   double), the body, a lighter band and a hot core */
+html.snake .snk__layer{fill:none;stroke-linejoin:round;stroke-linecap:round}
+html.snake .snk__gw{opacity:.08;stroke-linecap:butt}
+html.snake .snk__gt{opacity:.2;stroke-linecap:butt}
 html.snake .snk__core{stroke:#FFFCF5}
-/* the front strand lies whole across the back one; square ends, so it shows
-   no end of its own */
-html.snake .snk__g--front use{stroke-linecap:butt}
-html.snake .snk__g--end .snk__case{opacity:.08}
 
 /* the head's light, placed by phone.js: a white-hot point in a warm bloom */
 html.snake .snk__tip{
@@ -1141,3 +1140,8 @@ html.snake .pscene__glow{
   background:radial-gradient(closest-side,rgba(190,170,255,.34) 0,rgba(255,140,170,.2) 38%,rgba(120,210,230,.1) 62%,rgba(10,10,10,0) 100%);
 }
 html.snake .band--hero{will-change:opacity}
+
+/* the hero's second link fits the column at 352-380 too */
+@media (min-width:353px) and (max-width:380px){
+  html[data-v="editorial"].story .band--hero .btn--ghost{font-size:min(12px,3vw);letter-spacing:min(.14em,.25vw)}
+}

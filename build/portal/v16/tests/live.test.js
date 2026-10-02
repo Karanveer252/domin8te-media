@@ -251,3 +251,62 @@ test('an approval made in the agency console shows on Home and can be answered',
   assert.deepEqual(plain(await c.getAttention()), []);
   assert.equal(tables.decisions[0].comment, 'Pancakes are 8.50');
 });
+
+/*
+ * Two people signed in on one browser (Clerk multi-session): Karan on the Domin8te team and a
+ * restaurant's login. The console uses Karan's session and the team; the portal uses the restaurant's
+ * session and its organisation; tokens are asked of each session directly, and neither page switches
+ * the browser's active session (which would sign the other page out).
+ */
+function twoPeople(app, activeId) {
+  const calls = [];
+  const person = (id, first, email, orgs) => ({ id, firstName: first, primaryEmailAddress: { emailAddress: email }, organizationMemberships: orgs.map((o) => ({ organization: { id: o } })) });
+  const session = (id, user, lastOrg) => ({ id, user, lastActiveOrganizationId: lastOrg, async getToken(o) { calls.push(['token', id, o && o.organizationId]); return `${id}:${o && o.organizationId}`; } });
+  const karan = session('sess_karan', person('user_karan', 'Karan', 'karan@example.com', ['org_team']), 'org_team');
+  const dani = session('sess_dani', person('user_dani', 'Dani', 'dani@example.com', ['org_bayleaf']), 'org_bayleaf');
+  const active = activeId === 'sess_dani' ? dani : karan;
+  const C = {
+    user: active.user, session: active, organization: { id: active.lastActiveOrganizationId }, calls,
+    async load() {}, async setActive(a) { calls.push(['setActive', a]); }, async signOut(a) { calls.push(['signOut', a]); },
+    client: { signedInSessions: [karan, dani], signIn: {} }
+  };
+  const S = fakeSupabase(withBayleaf(), {});
+  const made = S.createClient;
+  let dbOpts = null;
+  S.createClient = (u, k, o) => { dbOpts = o; return made(u, k, o); };
+  const ctx = {
+    console, URLSearchParams, setTimeout: (fn) => { Promise.resolve().then(fn); return 0; }, clearTimeout: () => {},
+    localStorage: null, sessionStorage: null,
+    D8CONFIG: { mode: 'live', app, teamOrgId: 'org_team', supabaseUrl: 'https://example.supabase.co', supabaseKey: 'sb_publishable_x', clerkPublishableKey: 'pk_test_x' },
+    document: { visibilityState: 'visible', createElement: () => ({ setAttribute() {} }), head: { appendChild(s) { if (/clerk/.test(s.src)) ctx.Clerk = C; if (/supabase/.test(s.src)) ctx.supabase = S; Promise.resolve().then(() => s.onload()); } } }
+  };
+  ctx.globalThis = ctx;
+  vm.createContext(ctx);
+  for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(SRC, f), 'utf8'), ctx, { filename: f });
+  return { D8: ctx.D8, C, calls, token: async () => { await ctx.D8.live.db(); return dbOpts.accessToken(); } };
+}
+
+test('two people on one browser: the console keeps Karan and the portal keeps the restaurant', async () => {
+  for (const active of ['sess_karan', 'sess_dani']) {
+    const portal = twoPeople('portal', active);
+    const ps = await portal.D8.auth.getSession();
+    assert.equal(ps.userId, 'user_dani', `portal, ${active} active`);
+    assert.equal(ps.tenantId, 'org_bayleaf');
+    const pc = portal.D8.data.connect(ps);
+    await pc.ready;
+    assert.equal(await portal.token(), 'sess_dani:org_bayleaf');
+    assert.ok(portal.calls.some((c) => c[0] === 'token' && c[1] === 'sess_dani' && c[2] === 'org_bayleaf'), 'the portal asks the restaurant session for a restaurant token');
+    assert.ok(!portal.calls.some((c) => c[0] === 'token' && c[1] === 'sess_karan'), 'the portal never uses Karan\'s session');
+    assert.ok(!portal.calls.some((c) => c[0] === 'setActive'), 'the portal never switches the active session');
+
+    const cons = twoPeople('console', active);
+    const cs = await cons.D8.auth.getSession();
+    assert.equal(cs.userId, 'user_karan', `console, ${active} active`);
+    assert.equal(cs.tenantId, 'org_team');
+    assert.equal(await cons.token(), 'sess_karan:org_team', 'the console asks Karan’s session for a team token');
+    assert.ok(!cons.calls.some((c) => c[0] === 'setActive'), 'the console never switches the active session');
+  }
+  const out = twoPeople('portal', 'sess_karan');
+  await out.D8.auth.signOut();
+  assert.deepEqual(plain(out.calls.find((c) => c[0] === 'signOut')), ['signOut', { sessionId: 'sess_dani' }], 'signing out of the portal signs out only the restaurant');
+});

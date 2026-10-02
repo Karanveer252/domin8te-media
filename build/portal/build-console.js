@@ -30,7 +30,7 @@ const safe = (s) => s.replace(/<\/script/gi, '<\\/script');
 let html = fs.readFileSync(path.join(DIR, 'console.html'), 'utf8');
 const mark = 'data:image/webp;base64,' + fs.readFileSync(path.join(__dirname, 'v16', 'src', 'assets', 'mark.webp')).toString('base64');
 html = html.split('src="MARK"').join(`src="${mark}"`);
-let head = `<script>window.D8CONFIG = ${JSON.stringify(cfg)};</script>`;
+let head = `<script>window.D8CONFIG = ${JSON.stringify({ ...cfg, app: 'console' })};</script>`;
 if (preview) {
   const seed = fs.readFileSync(path.join(__dirname, 'v16', 'tests', 'fixture-bayleaf.json'), 'utf8');
   head += `

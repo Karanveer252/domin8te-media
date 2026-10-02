@@ -685,7 +685,7 @@
         <h1 id="page-title" tabindex="-1">Sign in to your portal</h1>
         <p class="lede">${isLive() ? "We'll email you a 6-digit sign-in code." : "We'll email you a secure sign-in link."} There is no password to remember.</p>
         <form id="signin-form" novalidate>
-          <div class="field"><label for="signin-email">Email address</label><input id="signin-email" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false" aria-describedby="err-email"><p class="field-error" id="err-email" hidden></p></div>
+          <div class="field"><label for="signin-email">Email address</label><input id="signin-email" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false" aria-describedby="err-email" value="${esc(/** @type {any} */ (window).__d8LastEmail || '')}"><p class="field-error" id="err-email" hidden></p></div>
           <button class="btn btn-solid btn-block" type="submit">${sendLabel()}</button>
         </form>
         <div id="signin-sent" hidden></div>

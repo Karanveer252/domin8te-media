@@ -4,23 +4,26 @@
    runs. This gives the phone its own version, built from three small stills
    and code, so it costs a few kilobytes and plays on one bar of signal.
 
-   The opening: the cloche on the pass, held on screen while the reader
-   scrolls; the lid lifts in steam, the neon mark stands alone, and the first
-   words rise under it. The room then goes dark and a drawn tube of light
-   takes the mark's place, laid on the render's own figure (fitted to it,
-   coloured from it), so the swap does not show. The tube uncoils from its
-   left lobe and becomes the line: it runs down one side of the page beside a
-   section, crosses to the other side in the open ground before the next, and
-   so on down the film, passing behind the clouds. At the closing lockup it
-   swings in and draws the mark's own figure, the real mark comes up over it,
-   and the line behind goes quiet.
+   The opening is held on screen while the reader scrolls (the still's block
+   is a runway and the scene inside it is sticky): the cloche on the pass, the
+   lid lifting in steam, the neon mark alone. The room goes dark round the
+   mark, and the mark itself uncoils: the render is shown through a mask laid
+   on its own figure (fitted to it), and the mask gives the figure up from its
+   tail while a drawn tube, as thick as the render's where it leaves the left
+   lobe and thinning to the line, pulls out of it and down to the edge. From
+   there the line runs down one side of the page beside a section, crosses to
+   the other side in the open ground before the next, and so on, passing
+   behind the clouds. At the closing lockup it swings in and draws the mark's
+   own figure, the real mark comes up in its place, and the line behind goes
+   quiet.
 
    Everything is a function of the scroll position, followed through an eased
    chase (the desktop line's own law), so a flick never makes anything jump,
-   and scrolling back rewinds it. The layout it needs (html.snake) is set by
-   the head script before first paint, so nothing moves when this arrives.
-   Nothing here runs on the desktop film, under reduced motion, or wider than
-   760px. */
+   and scrolling back rewinds it. Nothing restyles the page per frame: each
+   change is written to the one element it moves, and only when it changes.
+   The layout it needs (html.snake) is set by the head script before the first
+   paint. Nothing here runs on the desktop film, under reduced motion, or
+   wider than 760px. */
 (function () {
   'use strict';
   var r = document.documentElement;
@@ -31,14 +34,10 @@
 
   /* the render's mark, fitted in the 780px still (cl-open.webp): a Fourier
      figure eight [cx, cy, a1, b1, a3, b3, c2, d2, c1, d1, rot], walked from
-     T0 (the left lobe's outer edge, heading down), and the render's own
-     colours at 25 even steps round it */
+     T0 (the left lobe's outer edge, heading down); the render's colour where
+     the line leaves it */
   var FIT = [380.335, 431.346, 207.145, 1.378, -0.12, 0.965, 103.548, 0.036, -0.487, -2.241, 0.003];
-  var T0 = 3.16358;
-  var COLS = ['#A4E4DF', '#99D8E6', '#89CBE3', '#7ABFE0', '#6AAFDE', '#558EDC', '#827DD6', '#9960D1', '#C154CB',
-    '#D852BA', '#E253AA', '#EA599C', '#F1608F', '#F65C6C', '#FB5940', '#F8774E', '#F4925C', '#F1A86E', '#F0BF80',
-    '#EFD693', '#E5E191', '#CAE48A', '#AAE694', '#ACE7C4', '#A4E4DF'];
-  var SEGS = 24, FRONT = 6;   /* the render's front strand where the tube crosses: segments 5 to 7 */
+  var T0 = 3.16358, OPEN_C = '#A4E4DF', TUBE = 58;   /* the render's tube, in still px */
 
   /* the closing mark (mark-720.webp, 720x397) fitted the same way, and its
      colours round the figure from the same starting point */
@@ -54,9 +53,16 @@
   var RUN = ['#3FD3E8', '#5B8CFF', '#9B6BFF', '#E05BD0', '#FF5A7A', '#FF8A3D', '#FFD34D', '#7BE36A'];
   var PERIOD = 1250;
 
-  var film, scene, box, still, lift, open, flare, glow, hero, mark, svg, defs, tip, pieces = [], overlays = [], geo = null, on = false;
-  var raf = 0, lastT = 0, cur = null, lastW = 0, vel = 0, lastY = 0, lastYt = 0, gid = 0, laidKey = '';
-  var openWrap = null, runWrap = null, tiers = {};
+  /* the line's layers: a wide soft glow and a tight one (see-through, square
+     ends, so they never double where pieces meet), the body, one lighter band
+     and a hot core (opaque, round ends, so pieces join without a seam) */
+  var LAYERS = ['gw', 'gt', 'body', 'band', 'core'];
+  var WIDTH = { gw: [1, 16], gt: [1, 6], body: [1, 0], band: [.5, 0], core: [.16, .4] };
+
+  var film, scene, box, still, lift, open, flare, glow, hero, heroCta, mark, svg, osvg, rsvg, rimg, mA, mB, mC, tip;
+  var pieces = [], geo = null, on = false, gid = 0, laidKey = '';
+  var raf = 0, lastT = 0, cur = null, lastW = 0, vel = 0, lastY = 0, lastYt = 0;
+  var runWrap, endWrap;
 
   function el(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); return e }
   function f(n) { return Math.round(n * 10) / 10 }
@@ -99,99 +105,69 @@
     }
     return d;
   }
+  /* a cubic split at t (de Casteljau) */
+  function splitCub(c, t) {
+    function L(a, b) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t] }
+    var p01 = L(c[0], c[1]), p12 = L(c[1], c[2]), p23 = L(c[2], c[3]), a = L(p01, p12), b = L(p12, p23), m = L(a, b);
+    return [[c[0], p01, a, m], [m, b, p23, c[3]]];
+  }
+
+  function hexRgb(h) { var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255] }
+  function rgbHex(c) { return '#' + c.map(function (v) { v = Math.round(clamp(v, 0, 255)).toString(16); return v.length < 2 ? '0' + v : v }).join('') }
+  function mix(a, b, t) { var x = hexRgb(a), y = hexRgb(b); return rgbHex([0, 1, 2].map(function (i) { return x[i] + (y[i] - x[i]) * t })) }
+  function tint(h, t) { return mix(h, '#FFFFFF', t) }
+  /* the run's colour at a page height: the gradient repeats from y0 */
+  function runColour(y, y0) {
+    var ph = ((((y - y0) / PERIOD) % 1) + 1) % 1 * RUN.length, i = Math.floor(ph);
+    return mix(RUN[i % RUN.length], RUN[(i + 1) % RUN.length], ph - i);
+  }
 
   function stops(g, list) {
     for (var i = 0; i < list.length; i++) g.appendChild(el('stop', { offset: f(i / (list.length - 1) * 100) + '%', 'stop-color': list[i] }));
     return g;
   }
   /* a gradient along a chord: the colour follows the piece from end to end */
-  function chord(a, b, ca, cb) {
+  function chord(defs, a, b, ca, cb) {
     var id = 'snkc' + (gid++);
     defs.appendChild(stops(el('linearGradient', { id: id, gradientUnits: 'userSpaceOnUse', x1: f(a[0]), y1: f(a[1]), x2: f(b[0]), y2: f(b[1]) }), [ca, cb]));
     return 'url(#' + id + ')';
   }
-  /* a colour carried toward white: the tube's inner light, opaque, so the
-     pieces' round ends overlap without a seam or a bead */
-  function tint(hex, t) {
-    var n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255];
-    return '#' + c.map(function (v) { var x = Math.round(v + (255 - v) * t).toString(16); return x.length < 2 ? '0' + x : x }).join('');
-  }
 
-  /* ---- the tube's layers ----
-     A dark case lifts it off the pictures; four glows fall off around it,
-     widened by a fixed amount so a thick tube keeps a tight halo; then the
-     body and three lighter bands narrowing in to a hot core, so it shades
-     like lit glass. The glows and case are see-through and end square; the
-     body and its bands are opaque and end round, so pieces join without a
-     seam. Layers are drawn layer by layer across the whole line, so where one
-     piece meets the next, the next one's body never covers this one's light. */
-  var ALL = ['case', 'g4', 'g3', 'g2', 'g1', 'body', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'core'];
-  var WIDTH = { case: [1, 3], g4: [1, 34], g3: [1, 20], g2: [1, 10], g1: [1, 4], body: [1, 0], core: [.1, .35] };
-  /* the lighter bands inside the body, as [width, tint]: the thick opening
-     tube takes six fine steps so it shades smoothly, the line three */
-  var OPEN_B = [[.84, .2], [.68, .38], [.54, .54], [.4, .68], [.28, .8], [.17, .9]];
-  var LINE_B = [[.72, .18], [.48, .42], [.26, .74]];
-  /* tiers: 'o' the opening (one group that fades as a whole), 'r' the run
-     (one group that goes quiet at the close), 'e' the entry and the closing
-     loop; a number after it is a tier on top (the front strand) */
-  function tier(n) {
-    if (!tiers[n]) {
-      var host = svg, kind = n.charAt(0);
-      if (kind === 'o') { if (!openWrap) { openWrap = el('g', { class: 'snk__wrap' }); svg.appendChild(openWrap) } host = openWrap }
-      if (kind === 'r') { if (!runWrap) { runWrap = el('g', { class: 'snk__wrap' }); svg.appendChild(runWrap) } host = runWrap }
-      tiers[n] = {};
-      ALL.forEach(function (c) { var g = el('g', { class: 'snk__layer' }); host.appendChild(g); tiers[n][c] = g });
-    }
-    return tiers[n];
+  /* layer groups, drawn layer by layer across the whole line, so where one
+     piece meets the next, the next one's body never covers this one's light */
+  function layerSet(host) {
+    var set = {};
+    LAYERS.forEach(function (c) { var g = el('g', { class: 'snk__layer snk__' + c }); host.appendChild(g); set[c] = g });
+    return set;
   }
-  function setW(p, w) {
-    if (p.w === w) return;
-    p.w = w;
-    for (var i = 0; i < p.gs.length; i++) {
-      var l = p.ls[i], m = l.charAt(0) === 'b' && l !== 'body' ? [p.bw[+l.slice(1) - 1], 0] : WIDTH[l];
-      p.gs[i].setAttribute('stroke-width', f(w * m[0] + m[1]));
-    }
-  }
-  /* one piece of the line: a path in the defs and one group per layer using
-     it. A chain piece takes its place along the line; an overlay (the opening
-     loop's halo) lies over a stretch of it at a fixed distance. o.bands gives
-     the lighter bands' strokes and o.bw their widths */
-  function piece(d, stroke, cls, o) {
+  /* one piece of the line: one path per layer (plain paths, no <use>, so a
+     dash change restyles five small elements and nothing else) */
+  function piece(set, d, body, band, w, o) {
     o = o || {};
-    var p = el('path', { id: 'snkp' + (gid++), fill: 'none', d: d });
-    defs.appendChild(p);
-    var T = tier(o.tier || 'r'), gs = [], nb = o.bands ? o.bands.length : 0;
-    var ls = (o.layers || ALL).filter(function (c) { return !(c.charAt(0) === 'b' && c !== 'body' && +c.slice(1) > nb) });
-    ls.forEach(function (c) {
-      var g = el('g', { class: 'snk__g ' + cls, stroke: stroke });
-      var u = el('use', { class: 'snk__' + c });
-      if (c.charAt(0) === 'b' && c !== 'body') u.setAttribute('stroke', o.bands[+c.slice(1) - 1]);
-      u.setAttribute('href', '#' + p.id);
-      g.appendChild(u);
-      g.style.visibility = 'hidden';
-      T[c].appendChild(g);
-      gs.push(g);
+    var els = [];
+    LAYERS.forEach(function (c) {
+      var m = WIDTH[c], a = { d: d, fill: 'none', 'stroke-width': f(w * m[0] + m[1]) };
+      if (c === 'body' || c === 'gw' || c === 'gt') a.stroke = body;
+      if (c === 'band') a.stroke = band;
+      var p = el('path', a);
+      p.style.visibility = 'hidden';
+      set[c].appendChild(p);
+      els.push(p);
     });
-    var r0 = { path: p, gs: gs, ls: ls, bw: (o.bw || []), len: p.getTotalLength(), at: o.at || 0, key: 'x', open: !!o.open, w: -1 };
-    setW(r0, o.w || 7);
-    (o.overlay ? overlays : pieces).push(r0);
+    var r0 = { els: els, len: els[2].getTotalLength(), at: 0, key: 'x', local: !!o.local };
+    pieces.push(r0);
     return r0;
   }
-  /* a piece's bands coloured along a chord, at the given set's tints */
-  function chordBands(a, b, ca, cb, set) {
-    return set.map(function (s) { return chord(a, b, tint(ca, s[1]), tint(cb, s[1])) });
-  }
-  function bw(set) { return set.map(function (s) { return s[0] }) }
 
   function build() {
+    /* the page's svg: the run, the entry and the closing figure */
     svg = el('svg', { class: 'snk', 'aria-hidden': 'true', focusable: 'false' });
-    defs = el('defs', {});
-    svg.appendChild(defs);
+    film.appendChild(svg);
     tip = document.createElement('i'); tip.className = 'snk__tip'; tip.setAttribute('aria-hidden', 'true');
-    film.appendChild(svg); film.appendChild(tip);
+    film.appendChild(tip);
 
-    /* the two later stills of the opening (preloaded by the head for phones,
-       so they are usually here before they are needed) */
+    /* the scene: the two later stills, the light, the masked render, and the
+       drawn tube that pulls out of it, all held in the sticky box */
     lift = new Image(); open = new Image();
     [lift, open].forEach(function (im, i) {
       im.className = 'pscene__img pscene__img--' + (i ? 'open' : 'lift');
@@ -200,12 +176,26 @@
       box.appendChild(im);
       im.src = i ? 'assets/cl-open.webp' : 'assets/cl-lift.webp';
     });
-    /* light in the scene: a warm glint where the lid comes off, and the
-       mark's coloured glow that the room keeps a moment after it goes dark */
     flare = document.createElement('i'); flare.className = 'pscene__flare';
     glow = document.createElement('i'); glow.className = 'pscene__glow';
     [glow, flare].forEach(function (e) { e.setAttribute('aria-hidden', 'true'); box.appendChild(e) });
+    rsvg = el('svg', { class: 'pscene__mark', 'aria-hidden': 'true', focusable: 'false' });
+    var rdefs = el('defs', {}), mask = el('mask', { id: 'snkMask', maskUnits: 'userSpaceOnUse' });
+    /* the mask: the render's figure as three strokes, wide and faint to
+       narrow and full, so the edge of what is left of it, glow and all, is
+       feathered */
+    mC = el('path', { fill: 'none', stroke: '#fff', 'stroke-opacity': '.16', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+    mA = el('path', { fill: 'none', stroke: '#fff', 'stroke-opacity': '.38', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+    mB = el('path', { fill: 'none', stroke: '#fff', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+    mask.appendChild(mC); mask.appendChild(mA); mask.appendChild(mB); rdefs.appendChild(mask); rsvg.appendChild(rdefs);
+    rimg = el('image', { href: 'assets/cl-open.webp', mask: 'url(#snkMask)', preserveAspectRatio: 'none' });
+    rsvg.appendChild(rimg);
+    box.appendChild(rsvg);
+    osvg = el('svg', { class: 'pscene__tube', 'aria-hidden': 'true', focusable: 'false' });
+    box.appendChild(osvg);
+
     hero = film.querySelector('.band--hero');
+    heroCta = hero && hero.querySelector('.cta');
     layout();
   }
 
@@ -229,11 +219,14 @@
     });
     var prevBottom = 0;
     out.forEach(function (s) {
-      /* a section's ink: the first and last thing in it that is not padding */
+      /* a section's ink: the first and last thing in it that is not padding
+         (a plate's label sits above the plate, so it counts) */
       var first = s.els[0], last = s.els[s.els.length - 1];
       var fi = first.querySelector('.band__in, .skystill, .pan__frame, .ba') || first;
       var la = last.querySelector('.band__in, .skystill, .pan__frame, .ba') || last;
       s.top = pos(fi).y; s.bottom = pos(la).y + la.offsetHeight;
+      var tab = first.querySelector('.ba__tab');
+      if (tab) s.top = Math.min(s.top, pos(tab).y - tab.offsetHeight) - 16;
       s.prevBottom = prevBottom; prevBottom = s.bottom;
     });
     return out;
@@ -241,63 +234,65 @@
 
   function layout() {
     var W = film.clientWidth, H = film.offsetHeight, vh = r.clientHeight;
-    /* nothing to do if nothing that the line is laid on has moved */
     var key = W + 'x' + H + 'x' + vh;
     if (key === laidKey && geo) return;
     laidKey = key;
-    svg.setAttribute('width', W); svg.setAttribute('height', H);
-    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
-    pieces.concat(overlays).forEach(function (p) { p.gs.forEach(function (g) { g.remove() }) });
-    pieces = []; overlays = [];
-    while (defs.firstChild) defs.removeChild(defs.firstChild);
-    gid = 0;
+    gid = 0; pieces = [];
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    while (osvg.firstChild) osvg.removeChild(osvg.firstChild);
+    svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    var defs = el('defs', {}), odefs = el('defs', {});
+    svg.appendChild(defs); osvg.appendChild(odefs);
+    runWrap = el('g', { class: 'snk__wrap' }); endWrap = el('g', { class: 'snk__wrap' });
+    svg.appendChild(runWrap); svg.appendChild(endWrap);
+    var layersP = layerSet(runWrap), layersE = layerSet(endWrap), layersO = layerSet(osvg);
 
     var lane = parseFloat(getComputedStyle(r).getPropertyValue('--snk-lane')) || 34;
-    var G = Math.round(lane * .42), GR = W - G;
+    var G = Math.round(lane * .5), GR = W - G;
     var secs = sections();
 
     /* ---- the runway, read from the layout (the CSS sets it, so it is in
-       place from the first paint): the scene sticks near the top of the
-       screen for the runway's length, then goes on with the page ---- */
+       place from the first paint) ---- */
     var sw = box.offsetWidth, sh = box.offsetHeight, rp = pos(scene);
     var runway = Math.max(0, scene.offsetHeight - sh), top = parseFloat(getComputedStyle(box).top) || 56;
-    /* the loop is laid where the scene comes to rest, at the runway's foot;
-       the square stills are covered into the taller scene, centred */
-    var k = Math.max(sw, sh) / 780, sp = { x: rp.x + (sw - 780 * k) / 2, y: rp.y + runway + (sh - 780 * k) / 2 };
     var S1 = rp.y - top, S2 = S1 + runway;
-    var P = [];
-    for (var i = 0; i < SEGS * 4; i++) {
-      var q = four(FIT, T0 + 2 * Math.PI * i / (SEGS * 4));
-      P.push([sp.x + q[0] * k, sp.y + q[1] * k]);
-    }
-    var loopS = spline(P, true);
-    /* its halo: one unbroken path, so its soft light has no joins */
-    defs.appendChild(stops(el('linearGradient', { id: 'snkHalo', x1: '0%', y1: '0%', x2: '100%', y2: '0%' }),
-      ['#8FD8E6', '#E2E08E', '#9C86E2', '#E46CAE', '#F7845F']));
-    piece(cubD(loopS), 'url(#snkHalo)', 'snk__g--halo', { overlay: true, at: 0, open: true, tier: 'o', layers: ['g4', 'g3', 'g2', 'g1'] });
-    /* the loop in segments, each coloured from the render along its chord;
-       the front strand (5 to 7) is one piece in a tier above, so it lies
-       whole across the back strand */
-    for (i = 0; i < SEGS; i++) {
-      var n = i === FRONT - 1 ? 3 : 1;
-      var seg = loopS.slice(i * 4, (i + n) * 4), a0 = seg[0][0], b0 = seg[seg.length - 1][3];
-      piece(cubD(seg), chord(a0, b0, COLS[i], COLS[i + n]), 'snk__g--seg' + (n === 3 ? ' snk__g--front' : ''), {
-        layers: ['body', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'core'],
-        open: true, tier: n === 3 ? 'o1' : 'o', bands: chordBands(a0, b0, COLS[i], COLS[i + n], OPEN_B), bw: bw(OPEN_B)
-      });
-      i += n - 1;
-    }
-    var nOpen = pieces.length;
-    var twOpen = 58 * k * 1.02;   /* the render's tube, edge to edge, so none of it shows round the drawn one */
+    var boxY = rp.y + runway;   /* the box's top on the page once it lets go */
+    osvg.setAttribute('viewBox', '0 0 ' + sw + ' ' + sh); osvg.setAttribute('width', sw); osvg.setAttribute('height', sh);
+    rsvg.setAttribute('viewBox', '0 0 ' + sw + ' ' + sh); rsvg.setAttribute('width', sw); rsvg.setAttribute('height', sh);
 
-    /* ---- out of the left lobe and down into the lane ---- */
+    /* the square stills are covered into the box, centred; the render's
+       figure in box coordinates */
+    var k = Math.max(sw, sh) / 780, ox = (sw - 780 * k) / 2, oy = (sh - 780 * k) / 2;
+    rimg.setAttribute('x', f(ox)); rimg.setAttribute('y', f(oy));
+    rimg.setAttribute('width', f(780 * k)); rimg.setAttribute('height', f(780 * k));
+    var P = [];
+    for (var i = 0; i < 96; i++) {
+      var q = four(FIT, T0 + 2 * Math.PI * i / 96);
+      P.push([ox + q[0] * k, oy + q[1] * k]);
+    }
+    var loopD = cubD(spline(P, true)), tw = TUBE * k;
+    mC.setAttribute('d', loopD); mA.setAttribute('d', loopD); mB.setAttribute('d', loopD);
+    mC.setAttribute('stroke-width', f(tw * 2.7)); mA.setAttribute('stroke-width', f(tw * 1.8)); mB.setAttribute('stroke-width', f(tw * 1.15));
+    var L1 = mB.getTotalLength();
+
+    /* ---- the tube pulling out of the left lobe and down to the lane, in the
+       box's coordinates: ten pieces, each a little thinner, from the render's
+       girth to the line's ---- */
     var L0 = P[0], tan = [P[1][0] - P[P.length - 1][0], P[1][1] - P[P.length - 1][1]];
     var tl = Math.hypot(tan[0], tan[1]) || 1;
-    var y0 = Math.max(L0[1] + 200, rp.y + runway + sh * .92);
-    var dy = y0 - L0[1];
-    var exitS = [[L0, [L0[0] + tan[0] / tl * dy * .45, L0[1] + tan[1] / tl * dy * .45], [G, y0 - dy * .5], [G, y0]]];
-    piece(cubD(exitS), chord(L0, [G, y0], COLS[0], RUN[0]), 'snk__g--exit',
-      { open: true, tier: 'o', bands: chordBands(L0, [G, y0], COLS[0], RUN[0], OPEN_B), bw: bw(OPEN_B) });
+    var y0l = Math.max(L0[1] + 180, sh * .97), dy = y0l - L0[1];
+    var exit = [L0, [L0[0] + tan[0] / tl * dy * .45, L0[1] + tan[1] / tl * dy * .45], [G, y0l - dy * .5], [G, y0l]];
+    var N = 10, rest = exit, nOpen;
+    for (i = 0; i < N; i++) {
+      var sp = i < N - 1 ? splitCub(rest, 1 / (N - i)) : [rest];
+      var c = sp[0], t0 = i / N, t1 = (i + 1) / N;
+      var ca = mix(OPEN_C, RUN[0], t0), cb = mix(OPEN_C, RUN[0], t1);
+      piece(layersO, cubD([c]), chord(odefs, c[0], c[3], ca, cb), chord(odefs, c[0], c[3], tint(ca, .45), tint(cb, .45)),
+        lerp(tw * .92, 7, Math.pow((i + .5) / N, .7)), { local: true });
+      rest = sp[1];
+    }
+    nOpen = pieces.length;
+    var y0 = boxY + y0l;   /* where the line meets the lane, on the page */
 
     /* ---- the closing mark ---- */
     var mp = pos(mark), mw = mark.offsetWidth, k2 = mw / 720;
@@ -320,14 +315,14 @@
       if (span < 40) { if (span > 0) { K.push([laneX, y]); laneY = y } return }
       var nn = Math.max(1, Math.round(span / 200)), h = span / nn, dir = laneX === G ? 1 : -1;
       for (var j = 1; j <= nn; j++) {
-        K.push([j === nn ? laneX : laneX + dir * side * 6, laneY + h * j]);
+        K.push([j === nn ? laneX : laneX + dir * side * 3, laneY + h * j]);
         side = -side;
       }
       laneY = y;
     }
     secs.forEach(function (s) {
       var x = s.side === 'r' ? GR : G;
-      if (s.top > y1 - 40) return;
+      if (s.top > y1 - 40 || s.bottom < y0) return;
       if (x !== laneX) {
         /* the crossing: out of the last section's lane, over the open ground
            and into this one's, starting under the last line and landing just
@@ -353,63 +348,58 @@
         x1: 0, y1: f(y0), x2: 0, y2: f(y0 + PERIOD) }), RUN.concat([RUN[0]]).map(function (c) { return t ? tint(c, t) : c })));
       return 'url(#' + id + ')';
     }
-    var runBody = runGrad('snkRun', 0), runBands = LINE_B.map(function (s, n) { return runGrad('snkRun' + (n + 1), s[1]) });
-    /* in chunks of four spans, so only the chunk the head is in repaints */
+    var runBody = runGrad('snkRun', 0), runBand = runGrad('snkRunB', .45);
+    /* in chunks of eight spans, so only the chunk the head is in repaints */
     var firstRun = pieces.length;
-    for (i = 0; i < runS.length; i += 4) piece(cubD(runS.slice(i, i + 4)), runBody, 'snk__g--run', { tier: 'r', bands: runBands, bw: bw(LINE_B) });
+    for (i = 0; i < runS.length; i += 8) piece(layersP, cubD(runS.slice(i, i + 8)), runBody, runBand, 7);
     var lastRun = pieces.length - 1;
 
-    /* ---- in to the closing mark, and its figure ---- */
+    /* ---- in to the closing mark (part of the run, so it goes quiet with
+       it), and the mark's own figure ---- */
     var ex = K[K.length - 1][0], y1e = K[K.length - 1][1], ey1 = (Ey - y1e) * .5;
-    var runC = RUN[Math.floor((((y1e - y0) / PERIOD) % 1 + 1) % 1 * RUN.length) % RUN.length];
-    var mc0 = tint(MCOLS[0], .08);
-    piece('M' + f(ex) + ' ' + f(y1e) + 'C' + f(ex) + ' ' + f(y1e + ey1) + ' ' + f(Ex) + ' ' + f(Ey - ey1) + ' ' + f(Ex) + ' ' + f(Ey),
-      chord([ex, y1e], [Ex, Ey], runC, mc0), 'snk__g--entry', { tier: 'e', bands: chordBands([ex, y1e], [Ex, Ey], runC, mc0, LINE_B), bw: bw(LINE_B) });
-    var MS = spline(M, true), nEnd0 = pieces.length;
+    var runC = runColour(y1e, y0), mc0 = tint(MCOLS[0], .1);
+    var entry = [[ex, y1e], [ex, y1e + ey1], [Ex, Ey - ey1], [Ex, Ey]];
+    piece(layersP, cubD([entry]), chord(defs, entry[0], entry[3], runC, mc0), chord(defs, entry[0], entry[3], tint(runC, .45), tint(mc0, .45)), 7);
+    var MS = spline(M, true);
     for (i = 0; i < MSEGS; i++) {
-      var ms = MS.slice(i * 4, i * 4 + 4), c0 = tint(MCOLS[i * 2], .08), c1 = tint(MCOLS[i * 2 + 2], .08);
-      piece(cubD(ms), chord(ms[0][0], ms[3][3], c0, c1), 'snk__g--end',
-        { tier: 'e', w: 12, bands: chordBands(ms[0][0], ms[3][3], c0, c1, LINE_B), bw: bw(LINE_B) });
+      var ms = MS.slice(i * 4, i * 4 + 4), c0 = tint(MCOLS[i * 2], .1), c1 = tint(MCOLS[i * 2 + 2], .1);
+      piece(layersE, cubD(ms), chord(defs, ms[0][0], ms[3][3], c0, c1), chord(defs, ms[0][0], ms[3][3], tint(c0, .45), tint(c1, .45)), 12);
     }
 
     var at = 0;
     pieces.forEach(function (p) { p.at = at; at += p.len });
-    var L1 = pieces[nOpen - 1].at + pieces[nOpen - 1].len, L2 = pieces[nOpen].len;
+    var E = pieces[nOpen - 1].at + pieces[nOpen - 1].len;
     var base = pieces[firstRun].at, L3 = pieces[lastRun].at + pieces[lastRun].len - base;
     var L45 = at - (base + L3);
 
-    /* the head's place on the run for a reading position: mostly the distance
-       along the line, a little the page's height, so the head travels at an
-       even pace and the crossings take their share of the scroll */
-    var samples = [], BETA = .85;
+    /* the head's place on the run for a reading position: the distance
+       along the line blended with the page's height, so the head travels at
+       an even pace and the crossings take their share of the scroll */
+    var samples = [], BETA = .6;
     for (i = firstRun; i <= lastRun; i++) {
       var pr = pieces[i];
-      for (var t = 0; t <= 24; t++) {
-        var l = pr.len * t / 24, pt = pr.path.getPointAtLength(l), lr = pr.at - base + l;
+      for (var t = 0; t <= 32; t++) {
+        var l = pr.len * t / 32, pt = pr.els[2].getPointAtLength(l), lr = pr.at - base + l;
         samples.push([(1 - BETA) * pt.y + BETA * (y0 + lr * (y1 - y0) / L3), lr]);
       }
     }
     for (i = 1; i < samples.length; i++) if (samples[i][0] < samples[i - 1][0]) samples[i][0] = samples[i - 1][0];
 
-    /* the opening is timed by the runway: the lid lifts as the scene settles,
-       the mark stands alone while it is held and the first words rise under
-       it; the room goes dark and the tube is lit as it lets go; the uncoil
-       follows */
-    var Ts = S2 + .1 * vh + .6 * vh, Ta = Ts + Math.max(240, .34 * vh);
+    var Ta = S2 + .6 * vh;
     geo = {
-      vh: vh, smp: samples, L1: L1, L2: L2, base: base, L3: L3, L45: L45,
-      S1: S1, S2: S2, run: runway, Ts: Ts, Ta: Ta, y0: y0, off: Ta - y0,
+      vh: vh, smp: samples, L1: L1, E: E, base: base, L3: L3, L45: L45,
+      S1: S1, S2: S2, R: runway, boxY: boxY, Ta: Ta, y0: y0, off: Ta - y0,
       Tb: Math.max(y0 + 1, Math.min(y1, mp.y - .2 * vh)), Tc: mp.y + .5 * mark.offsetHeight + .18 * vh,
-      twOpen: twOpen, swings: swings
+      swings: swings
     };
     geo.hb = runAt(effT(geo.Tb));
     cur = null;
     kick();
   }
 
-  /* after the uncoil the reading position and the head are brought back
-     together over the next 700px, so nothing jumps */
-  function effT(T) { var g = geo; return T - g.off * clamp(1 - (T - g.Ta) / 700, 0, 1) }
+  /* after the opening the reading position and the head are brought back
+     together over the next 250px, so nothing jumps */
+  function effT(T) { var g = geo; return T - g.off * clamp(1 - (T - g.Ta) / 250, 0, 1) }
 
   function runAt(m) {
     var a = geo.smp, lo = 0, hi = a.length - 1;
@@ -420,25 +410,23 @@
     return a[lo][1] + t * (a[hi][1] - a[lo][1]);
   }
 
-  /* where the scroll says everything should be */
+  /* where the scroll says everything should be. The opening plays while the
+     scene is held: the lid lifts, the mark stands alone, the room goes dark,
+     and the mark uncoils by the time the scene lets go */
   function target() {
-    var g = geo, S = (window.scrollY || window.pageYOffset) - film.offsetTop;
-    var T = S + g.vh * .6, R = g.run;
+    var g = geo, S = (window.scrollY || window.pageYOffset) - film.offsetTop, R = g.R;
     var o = {
-      hero: smooth((S - (g.S1 - .3 * g.vh)) / (.34 * g.vh)),
-      lift: smooth((S - (g.S1 - .14 * g.vh)) / (.14 * g.vh + .25 * R)),
-      open: smooth((S - (g.S1 + .22 * R)) / (.2 * R)),
-      hand: smooth((S - (g.S2 - .1 * R)) / (.1 * R + .1 * g.vh)),
-      head: g.L1, tail: 0, u: 0, done: 0
+      hero: smooth((S - (g.S1 - .32 * g.vh)) / (.32 * g.vh)),
+      lift: smooth((S - g.S1) / (.2 * R)),
+      open: smooth((S - (g.S1 + .18 * R)) / (.14 * R)),
+      hand: smooth((S - (g.S1 + .4 * R)) / (.1 * R)),
+      u: smooth((S - (g.S1 + .52 * R)) / (.48 * R)),
+      head: 0, done: 0
     };
-    if (T <= g.Ts) return o;
-    if (T < g.Ta) {
-      o.u = smooth((T - g.Ts) / (g.Ta - g.Ts));
-      o.head = g.L1 + o.u * g.L2; o.tail = o.u * g.L1;
-      return o;
-    }
-    o.u = 1; o.tail = g.L1;
-    if (T < g.Tb) { o.head = g.base + runAt(effT(T)); return o }
+    if (S < g.S2) { o.head = o.u * g.E; return o }
+    var T = S + g.vh * .6;
+    o.u = 1;
+    if (T < g.Tb) { o.head = g.E + runAt(effT(T)); return o }
     o.done = clamp((T - g.Tb) / (g.Tc - g.Tb), 0, 1);
     o.head = g.base + g.hb + o.done * (g.L3 - g.hb + g.L45);
     return o;
@@ -460,74 +448,89 @@
     vel *= Math.pow(.9, dt / 16.667);
     paint(cur);
     var moving = vel > .02;
-    for (var kk in cur) if (Math.abs(t[kk] - cur[kk]) > (kk === 'head' || kk === 'tail' ? .3 : .002)) { moving = true; break }
+    for (var kk in cur) if (Math.abs(t[kk] - cur[kk]) > (kk === 'head' ? .3 : .002)) { moving = true; break }
     if (moving) raf = requestAnimationFrame(tick);
     else lastT = 0;
   }
 
+  /* the box's top on the page: held while the scene is pinned, then with it */
+  function boxTop() {
+    var S = (window.scrollY || window.pageYOffset) - film.offsetTop;
+    return geo.boxY - geo.R + clamp(S - geo.S1, 0, geo.R);
+  }
+
   function paint(c) {
-    var all = pieces.concat(overlays), i;
-    for (i = 0; i < all.length; i++) {
-      var p = all[i];
-      var a = clamp(c.tail - p.at, 0, p.len), b = clamp(c.head - p.at, 0, p.len);
+    var i;
+    /* the snake's tail: once the mark is gone it keeps on through the thick
+       start of the tube, so what is left behind is the line */
+    var tail = clamp((c.u - .72) / .28, 0, 1) * geo.E * .6;
+    for (i = 0; i < pieces.length; i++) {
+      var p = pieces[i], a = clamp(tail - p.at, 0, p.len), b = clamp(c.head - p.at, 0, p.len);
       var key = b - a < .5 ? 'x' : f(a) + ',' + f(b);
       if (p.key === key) continue;
       p.key = key;
       /* one dash slid along by the offset; an empty piece is hidden, since a
-         zero-length dash still paints its round caps as a dot */
-      for (var j = 0; j < p.gs.length; j++) {
-        var gst = p.gs[j].style;
-        if (key === 'x') { gst.visibility = 'hidden'; continue }
-        gst.visibility = '';
-        gst.strokeDasharray = f(b - a) + ' ' + f(p.len + 2);
-        gst.strokeDashoffset = f(-a);
+         zero-length dash still paints its round caps */
+      for (var j = 0; j < p.els.length; j++) {
+        var s = p.els[j].style;
+        if (key === 'x') { s.visibility = 'hidden'; continue }
+        s.visibility = '';
+        s.strokeDasharray = f(b - a) + ' ' + f(p.len + 2);
+        s.strokeDashoffset = f(-a);
       }
     }
-    /* every other change is written straight to the one element it moves,
-       and only when it changes: nothing restyles the film */
+    /* the head's light */
     var pt = pointAt(c.head);
-    var swell = 1 + Math.min(1, vel * .9) * .55;
-    if (pt) put(tip, 'transform', 'translate3d(' + f(pt.x) + 'px,' + f(pt.y) + 'px,0) scale(' + (Math.round(swell * 100) / 100) + ')');
-    put(tip, 'opacity', '' + q3(smooth(c.u / .2) * (1 - smooth((c.done - .8) / .2))));
+    if (pt) {
+      var swell = 1 + Math.min(1, vel * .9) * .55;
+      put(tip, 'transform', 'translate3d(' + f(pt.x) + 'px,' + f(pt.y) + 'px,0) scale(' + (Math.round(swell * 100) / 100) + ')');
+    }
+    put(tip, 'opacity', '' + q3(smooth(c.u / .25) * (1 - smooth((c.done - .8) / .2))));
 
     /* the opening: the closed still pushes in as the lid lifts over it, the
-       lid gives way to the mark, the room goes dark around it, and the drawn
-       tube is lit in its place */
+       lid gives way to the mark, the push relaxes, the room goes dark round
+       the mark, and the mark gives itself up to the line from its tail */
     var lv = lift.classList.contains('is-ready') ? c.lift : 0, ov = open.classList.contains('is-ready') ? c.open : 0;
-    var push = c.lift * .5 + c.open * .5;
-    var lit = smooth(c.u / .3);
-    var dark = c.hand * .62 + .38 * lit;
-    put(flare, 'opacity', '' + q3(Math.sin(Math.PI * clamp(c.lift * .45 + ov * .55, 0, 1)) * .5));
-    put(glow, 'opacity', '' + q3(c.hand * (1 - smooth(c.u / .45))));
-    if (hero) put(hero, 'opacity', '' + q3(1 - c.hero));
-    /* one push-in shared by the three stills, so their dissolves stay
-       registered */
-    var sc = 'scale(' + q3(1 + .06 * push - .02 * ov) + ')';
+    var dark = c.hand;
+    var sc = 'scale(' + q3(1 + (.06 * (c.lift * .5 + c.open * .5) - .02 * ov) * (1 - c.hand)) + ')';
     put(still, 'opacity', '' + q3((1 - ov) * (1 - dark)));
     put(still, 'transform', sc);
     put(lift, 'opacity', '' + q3(lv * (1 - ov) * (1 - dark)));
     put(lift, 'transform', sc);
     put(open, 'opacity', '' + q3(ov * (1 - dark)));
     put(open, 'transform', sc);
-    put(openWrap, 'opacity', '' + q3(c.hand));
-    /* while the render is still behind it, its own soft glow is the tube's
-       halo; the drawn halo comes up only as the picture goes */
-    var haloOp = '' + q3(smooth(c.u / .35));
-    for (i = 0; i < overlays.length; i++) for (var g2 = 0; g2 < overlays[i].gs.length; g2++) put(overlays[i].gs[g2], 'opacity', haloOp);
-    /* the opening tube thins from the render's girth to the line's as it uncoils */
-    var tw = f(lerp(geo.twOpen, 7, smooth(c.u)));
-    for (i = 0; i < all.length; i++) if (all[i].open) setW(all[i], tw);
-    /* the close: the real mark comes up over the drawn figure, and the line
-       behind goes quiet, the way the desktop's does */
-    var pop = smooth((c.done - .6) / .4);
-    put(mark, 'opacity', '' + q3(.06 + .94 * pop));
+    put(rsvg, 'opacity', '' + q3(ov * c.hand));
+    /* the tail goes round the whole figure first (the first 72% of the
+       uncoil), then on into the tube, so the snake is never in two pieces */
+    var eaten = q3(clamp(c.u / .72, 0, 1) * geo.L1);
+    if (mB.__eaten !== eaten) {
+      mB.__eaten = eaten;
+      var da = f(Math.max(0, geo.L1 - eaten)) + ' ' + f(geo.L1 + 4), off = '' + f(-eaten);
+      [mA, mB, mC].forEach(function (m) {
+        m.style.strokeDasharray = da; m.style.strokeDashoffset = off;
+        m.style.visibility = eaten >= geo.L1 - .5 ? 'hidden' : '';
+      });
+    }
+    put(flare, 'opacity', '' + q3(Math.sin(Math.PI * clamp(c.lift * .45 + ov * .55, 0, 1)) * .45));
+    put(glow, 'opacity', '' + q3(c.hand * (1 - smooth(c.u / .6))));
+    if (hero) put(hero, 'opacity', '' + q3(1 - c.hero));
+    if (heroCta) put(heroCta, 'opacity', '' + q3(1 - smooth(c.hero * 4)));
+
+    /* the close: the real mark comes up in place of the drawn figure, and
+       the line behind goes quiet, the way the desktop's does */
+    var pop = smooth((c.done - .85) / .15);
+    put(mark, 'opacity', '' + q3(pop));
     put(mark, 'transform', 'scale(' + q3(.96 + .04 * pop) + ')');
+    put(endWrap, 'opacity', '' + q3(1 - pop));
     put(runWrap, 'opacity', '' + q3(1 - .75 * smooth((c.done - .7) / .3)));
   }
 
   function pointAt(l) {
     for (var i = pieces.length - 1; i >= 0; i--) {
-      if (l >= pieces[i].at) return pieces[i].path.getPointAtLength(Math.min(l - pieces[i].at, pieces[i].len));
+      if (l >= pieces[i].at) {
+        var p = pieces[i], q = p.els[2].getPointAtLength(Math.min(l - p.at, p.len));
+        return p.local ? { x: q.x, y: q.y + boxTop() } : q;
+      }
     }
     return null;
   }
@@ -545,6 +548,18 @@
     relayoutRaf = requestAnimationFrame(function () { relayoutRaf = 0; if (on) layout() });
   }
 
+  /* the film's words and pictures come in as they near the screen. site.js
+     does this too, but it is the last file to arrive on a weak signal and
+     the page must not stand empty until then */
+  function reveal() {
+    var list = [].slice.call(film.querySelectorAll('.band, .act'));
+    if (!window.IntersectionObserver) { list.forEach(function (e) { e.classList.add('in') }); return }
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) } });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    list.forEach(function (e) { io.observe(e) });
+  }
+
   function start() {
     if (on) return;
     film = document.getElementById('top');
@@ -555,6 +570,7 @@
     if (!film || !box || !still || !mark || !r.classList.contains('story')) { r.classList.remove('snake'); return }
     on = true;
     r.classList.add('snake', 'snake-on');
+    reveal();
     if (!svg) build(); else { film.appendChild(svg); film.appendChild(tip); laidKey = ''; layout() }
     window.addEventListener('scroll', onScroll, { passive: true });
   }
@@ -563,7 +579,7 @@
     r.classList.remove('snake', 'snake-on');
     window.removeEventListener('scroll', onScroll);
     [svg, tip].forEach(function (e) { if (e && e.parentNode) e.parentNode.removeChild(e) });
-    [still, lift, open, flare, glow, hero, mark].forEach(function (e) { if (e) { e.style.opacity = ''; e.style.transform = ''; e.__snk = null } });
+    [still, lift, open, flare, glow, hero, heroCta, mark, rsvg].forEach(function (e) { if (e) { e.style.opacity = ''; e.style.transform = ''; e.__snk = null } });
   }
 
   var mq = matchMedia(Q);
