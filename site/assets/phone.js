@@ -312,6 +312,13 @@
     var secs = sections();
     secs.forEach(function (s) { skies.forEach(function (k) { if (s.els[0] === k.act) k.side = s.side }) });
     skies.forEach(function (k) { k.act.classList.toggle('lane-l', k.side === 'l'); k.act.classList.toggle('lane-r', k.side !== 'l') });
+    /* each beat's line (its shape and bloom) is drawn ahead, while the page
+       is idle, so the first frame it is needed in does not pay for it */
+    skies.forEach(function (k) {
+      if (!k.cx) return;
+      var go = function () { var w = k.fig.clientWidth, h = k.fig.clientHeight; if (on && geo && k.built !== w + 'x' + h + k.side) { skyLineBuild(k, w, h); k.lineKey = '' } };
+      if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 2000 }); else setTimeout(go, 300);
+    });
 
     /* ---- the runway, read from the layout (the CSS sets it, so it is in
        place from the first paint) ---- */
