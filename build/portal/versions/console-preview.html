@@ -4758,6 +4758,7 @@ html[data-scene="scenes"] .col { background: var(--glass); }
     readInk();
     sprite = makeSprite();
     tile = makeTile();
+    full = true;
   }
   // The physics is tuned for 60 frames a second. A slower frame used to take one big step, which
   // overshoots: the dots bounced further each frame, never settled, and smeared into a net. Now a
@@ -4808,26 +4809,45 @@ html[data-scene="scenes"] .col { background: var(--glass); }
     c.lineTo((ni - 1) * DOT + DOT / 2 + ox[n], (nj - 1) * DOT + DOT / 2 + oy[n]);
     c.stroke();
   }
+  /** The box redrawn last frame, and whether the next frame must redraw everything. @type {number[]|null} */
+  let lastBox = null;
+  let full = true;
   function paint() {
     const c = /** @type {CanvasRenderingContext2D} */ (ctx);
-    c.clearRect(0, 0, w, h);
     const p = DOT / 2;
-    c.save();
-    c.translate(0, 0);
-    c.fillStyle = /** @type {CanvasPattern} */ (tile);
-    c.fillRect(0, 0, w, h);
-    c.restore();
-    let k = 0, hits = 0;
+    let k = 0, hits = 0, x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
     for (let j = 0; j < rows; j++) {
       const y = (j - 1) * DOT + p;
       for (let i = 0; i < cols; i++, k++) {
         const x = (i - 1) * DOT + p;
         const dx = mx - x, dy = my - y;
-        if (dx * dx + dy * dy < REACH2 || ox[k] !== 0 || oy[k] !== 0) { hot[k] = 1; hits++; c.clearRect(x - 3, y - 3, 6, 6); }
-        else hot[k] = 0;
+        if (dx * dx + dy * dy < REACH2 || ox[k] !== 0 || oy[k] !== 0) {
+          hot[k] = 1; hits++;
+          if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        } else hot[k] = 0;
       }
     }
+    // Only the box around the dots in play is redrawn (with last frame's), never the whole screen, so
+    // the glass panels over it do not have to redo their blur everywhere each frame.
+    const pad = DOT * 2;
+    const box = hits ? [x0 - pad, y0 - pad, x1 + pad, y1 + pad] : null;
+    const prev = lastBox;
+    lastBox = box;
+    const r = full ? [0, 0, w, h] : box && prev ? [Math.min(box[0], prev[0]), Math.min(box[1], prev[1]), Math.max(box[2], prev[2]), Math.max(box[3], prev[3])] : box || prev;
+    full = false;
+    if (!r) return;
+    const rx = Math.max(0, Math.floor(r[0])), ry = Math.max(0, Math.floor(r[1]));
+    const rw = Math.min(w, Math.ceil(r[2])) - rx, rh = Math.min(h, Math.ceil(r[3])) - ry;
+    if (rw <= 0 || rh <= 0) return;
+    c.clearRect(rx, ry, rw, rh);
+    c.fillStyle = /** @type {CanvasPattern} */ (tile);
+    c.fillRect(rx, ry, rw, rh);
     if (!hits) return;
+    k = 0;
+    for (let j = 0; j < rows; j++) {
+      const y = (j - 1) * DOT + p;
+      for (let i = 0; i < cols; i++, k++) if (hot[k]) { const x = (i - 1) * DOT + p; c.clearRect(x - 3, y - 3, 6, 6); }
+    }
     c.lineWidth = 0.7;
     k = 0;
     for (let j = 0; j < rows; j++) {

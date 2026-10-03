@@ -121,3 +121,11 @@ html[data-variant="18h"] .page { animation: none; }
   html[data-variant="18h"] .portal[data-ind] .k-goo[data-dir="down"] > .goo-cur { transition: --lg-bot 150ms cubic-bezier(0.3, 0.8, 0.2, 1), --lg-top 300ms cubic-bezier(0.55, 0, 0.2, 1), width var(--m-slow) var(--ease), opacity var(--m-fast) var(--ease); }
   html[data-variant="18h"] .portal[data-ind] .k-goo[data-dir="up"] > .goo-cur { transition: --lg-top 150ms cubic-bezier(0.3, 0.8, 0.2, 1), --lg-bot 300ms cubic-bezier(0.55, 0, 0.2, 1), width var(--m-slow) var(--ease), opacity var(--m-fast) var(--ease); }
 }
+
+/* While the moving dots run (Static), the cards drop the frosted blur: redoing it on every frame made
+   the dots trail the mouse. The canvas leaves no dots under the cards (variant.js), so a card over
+   empty paper looks as it did. Floating layers (dialogs, menus, tooltips, bars) keep their blur. */
+html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, .topbar, .tabbar, .preview-chip, .lg-dock, dialog *, .account-menu *, .rail-tip *, .topbar *, .tabbar *, .preview-chip *, .lg-dock *) {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}

@@ -163,6 +163,75 @@
     return c;
   }
 
+
+  /* ---- Glass over the dots, made cheap ------------------------------------------------------------
+     The cards are frosted glass (backdrop-filter). Over the moving dots the browser had to redo every
+     card's blur on every frame, so the dots trailed the mouse. Over the plain dot background a blurred
+     card looks the same as a see-through card over empty paper, so while the dots run (Static only;
+     Scenes keeps its real glass over the skies) the cards drop the blur (CSS, html.dots-live) and the
+     canvas leaves no dots under them. Floating layers (dialogs, menus, tooltips, bars) keep the blur:
+     they sit over content, not just the background. */
+  const FLOATING = 'dialog, .account-menu, .rail-tip, .topbar, .tabbar, .preview-chip, .lg-dock';
+  /** @type {{el: Element, r: number}[]} */ let glass = [];
+  /** @type {{x: number, y: number, w: number, h: number, r: number}[]} */ let glassRects = [];
+  /** @type {string[]|null} */ let glassSelectors = null;
+  function findGlassSelectors() {
+    /** @type {string[]} */ const out = [];
+    for (const sheet of Array.from(document.styleSheets)) {
+      /** @type {CSSRuleList|null} */ let rules = null;
+      try { rules = sheet.cssRules; } catch (e) { continue; }
+      /** @param {CSSRuleList} list */
+      const walk = (list) => {
+        for (const rule of Array.from(list)) {
+          const st = /** @type {any} */ (rule).style;
+          const bf = st && (st.backdropFilter || st.webkitBackdropFilter);
+          if (bf && bf !== 'none' && /** @type {any} */ (rule).selectorText) out.push(/** @type {any} */ (rule).selectorText);
+          if (/** @type {any} */ (rule).cssRules) walk(/** @type {any} */ (rule).cssRules);
+        }
+      };
+      walk(rules);
+    }
+    return out;
+  }
+  function collectGlass() {
+    if (!glassSelectors) glassSelectors = findGlassSelectors();
+    const seen = new Set();
+    glass = [];
+    for (const sel of glassSelectors) {
+      /** @type {NodeListOf<Element>|null} */ let found = null;
+      try { found = document.querySelectorAll(sel.replace(/::?(before|after|backdrop)\b/g, '')); } catch (e) { continue; }
+      for (const el of Array.from(found)) {
+        if (seen.has(el) || el.closest(FLOATING) || el.matches('canvas')) continue;
+        seen.add(el);
+        glass.push({ el, r: parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0 });
+      }
+    }
+  }
+  function measureGlass() {
+    glassRects = [];
+    for (const g of glass) {
+      const b = g.el.getBoundingClientRect();
+      if (b.width < 2 || b.height < 2) continue;
+      glassRects.push({ x: b.left, y: b.top, w: b.width, h: b.height, r: Math.min(g.r, b.width / 2, b.height / 2) });
+    }
+  }
+  /** Removes the dots under the cards, inside one box of the canvas. @param {CanvasRenderingContext2D} ctx @param {number} rx @param {number} ry @param {number} rw @param {number} rh */
+  function punch(ctx, rx, ry, rw, rh) {
+    if (!glassRects.length) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rx, ry, rw, rh);
+    ctx.clip();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    for (const g of glassRects) {
+      if (g.x > rx + rw || g.x + g.w < rx || g.y > ry + rh || g.y + g.h < ry) continue;
+      if (/** @type {any} */ (ctx).roundRect) /** @type {any} */ (ctx).roundRect(g.x, g.y, g.w, g.h, g.r); else ctx.rect(g.x, g.y, g.w, g.h);
+    }
+    ctx.fill();
+    ctx.restore();
+  }
+
   class Field {
     /** @param {HTMLCanvasElement} canvas */
     constructor(canvas) {
@@ -176,6 +245,8 @@
       this.ox = new Float32Array(0); this.oy = new Float32Array(0);
       this.vx = new Float32Array(0); this.vy = new Float32Array(0);
       this.hot = new Uint8Array(0);
+      /** @type {number[]|null} */ this.box = null;
+      this.full = true;
     }
 
     size() {
@@ -197,6 +268,7 @@
     /* The tile is drawn at device resolution and scaled back to one cell; where a pattern cannot be
        scaled it is drawn at 1x and stays a touch soft. */
     tint() {
+      this.full = true;
       const dpr = dprNow();
       const sharp = !!(window.DOMMatrix && window.CanvasPattern && CanvasPattern.prototype.setTransform);
       const t = makeTile(sharp ? dpr : 1);
@@ -256,30 +328,51 @@
     paint() {
       const ctx = this.ctx, w = this.w, h = this.h;
       if (!w || !h) return;
-      ctx.clearRect(0, 0, w, h);
-      if (!KV) return; // no dots at all
+      if (!KV) { ctx.clearRect(0, 0, w, h); return; } // no dots at all
       const ox = this.ox, oy = this.oy, hot = this.hot;
       const cols = this.cols, rows = this.rows, px = this.px, py = this.py;
       const mx = this.mx, my = this.my;
       let k = 0, i, j, x, y, dx, dy, d2, hits = 0;
-      // The quiet grid: one pattern fill, its origin on the phase.
-      const fx = px - DOT / 2, fy = py - DOT / 2;
-      ctx.translate(fx, fy);
-      ctx.fillStyle = this.tile;
-      ctx.fillRect(-fx, -fy, w, h);
-      ctx.translate(-fx, -fy);
-      // The dots the cursor reaches or has moved: lift their home dot out of the pattern first, so a
-      // moved dot never leaves a twin behind.
+      // Which dots the cursor reaches or has moved, and the box around them.
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
       for (j = 0; j < rows; j++) {
         y = (j - 1) * DOT + py;
         for (i = 0; i < cols; i++, k++) {
           x = (i - 1) * DOT + px;
           dx = mx - x; dy = my - y; d2 = dx * dx + dy * dy;
-          if (d2 < REACH2 || ox[k] !== 0 || oy[k] !== 0) { hot[k] = 1; hits++; ctx.clearRect(x - 3, y - 3, 6, 6); }
-          else hot[k] = 0;
+          if (d2 < REACH2 || ox[k] !== 0 || oy[k] !== 0) {
+            hot[k] = 1; hits++;
+            if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+          } else hot[k] = 0;
         }
       }
-      if (!hits) return;
+      // Only that box is redrawn (with last frame's, to wipe what was there), never the whole screen:
+      // the glass cards blur what is behind them, and a full-screen redraw made the browser redo every
+      // card's blur each frame, which is what made the dots trail the mouse.
+      const pad = DOT * 2;
+      const box = hits ? [x0 - pad, y0 - pad, x1 + pad, y1 + pad] : null;
+      const prev = this.box;
+      this.box = box;
+      let r = this.full ? [0, 0, w, h] : box && prev ? [Math.min(box[0], prev[0]), Math.min(box[1], prev[1]), Math.max(box[2], prev[2]), Math.max(box[3], prev[3])] : box || prev;
+      this.full = false;
+      if (!r) return;
+      const rx = Math.max(0, Math.floor(r[0])), ry = Math.max(0, Math.floor(r[1]));
+      const rw = Math.min(w, Math.ceil(r[2])) - rx, rh = Math.min(h, Math.ceil(r[3])) - ry;
+      if (rw <= 0 || rh <= 0) return;
+      ctx.clearRect(rx, ry, rw, rh);
+      // The quiet grid: one pattern fill, its origin on the phase.
+      const fx = px - DOT / 2, fy = py - DOT / 2;
+      ctx.translate(fx, fy);
+      ctx.fillStyle = this.tile;
+      ctx.fillRect(rx - fx, ry - fy, rw, rh);
+      ctx.translate(-fx, -fy);
+      if (!hits) { punch(ctx, rx, ry, rw, rh); return; }
+      // Lift the home dot of every dot in play out of the pattern, so a moved dot never leaves a twin.
+      k = 0;
+      for (j = 0; j < rows; j++) {
+        y = (j - 1) * DOT + py;
+        for (i = 0; i < cols; i++, k++) if (hot[k]) { x = (i - 1) * DOT + px; ctx.clearRect(x - 3, y - 3, 6, 6); }
+      }
       // The lines: a displaced dot joins its neighbours, the more it has moved the more they show.
       // Drawn once per pair, and under the dots.
       ctx.lineWidth = 0.7;
@@ -312,6 +405,7 @@
         }
       }
       ctx.globalAlpha = 1;
+      punch(ctx, rx, ry, rw, rh);
     }
   }
 
@@ -358,6 +452,7 @@
     field.py = ph(DOT / 2);
     if (mouseIn) { field.mx = mcx; field.my = mcy; } else { field.mx = field.my = -1e4; }
     const busy = field.step(dt, speed);
+    measureGlass();
     field.paint();
     if (busy) raf = requestAnimationFrame(tick);
     else last = 0;
@@ -388,16 +483,27 @@
     // Paint before the CSS dots go, in the same frame, so nothing flashes.
     root.classList.add('dots-live');
     field.size();
+    collectGlass();
     tick(performance.now());
+    window.addEventListener('scroll', redraw, { passive: true });
     window.addEventListener('resize', resize);
     document.addEventListener('mousemove', move, { passive: true });
     root.addEventListener('mouseleave', leave);
   }
+  /** The cards moved (scroll) or changed (a new page, a card opened): redraw the whole field. */
+  function redraw() { if (field) { field.full = true; kick(); } }
+  let recollect = 0;
+  const watchPage = new MutationObserver(() => {
+    if (!on || recollect) return;
+    recollect = requestAnimationFrame(() => { recollect = 0; collectGlass(); redraw(); });
+  });
+  watchPage.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['open', 'hidden', 'aria-expanded'] });
   function stop() {
     if (!on) return;
     on = false;
     if (raf !== null) { cancelAnimationFrame(raf); raf = null; }
     root.classList.remove('dots-live');
+    window.removeEventListener('scroll', redraw);
     window.removeEventListener('resize', resize);
     document.removeEventListener('mousemove', move);
     root.removeEventListener('mouseleave', leave);
