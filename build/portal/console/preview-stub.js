@@ -43,6 +43,7 @@
   withBilling(corner, { status: 'paused', startedAt: day(-120), nextBilling: null, amount: '$199 a month' });
   if (seed && seed.billing && seed.billing.subscription) { seed.billing.subscription.startedAt = seed.billing.subscription.startedAt || '2026-03-22'; seed.billing.subscription.amount = seed.billing.subscription.amount || '$799 a month'; }
   const db = {
+    login_requests: [{ id: 'la_preview_1', tenant_id: 'tnt_preview_bayleaf', first_name: 'Priya', email: 'priya@bayleafkitchen.com', role: 'Manager', by_name: 'Dani', status: 'pending', at: stamp(-1, 3) }],
     staff: [{ clerk_user_id: 'user_preview_karan', name: 'Karan' }],
     tenants: [
       { id: 'tnt_preview_bayleaf', name: 'Bayleaf Kitchen (preview)', status: 'active', clerk_org_id: 'org_preview_bayleaf', updated_at: stamp(0, 2), doc: seed },
@@ -115,6 +116,8 @@
     { userId: 'user_preview_karan', name: 'Karan', email: 'karan@domin8temedia.com', role: 'super_admin', since: stamp(-30, 0) },
     { userId: 'user_preview_sam', name: 'Sam', email: 'sam@domin8temedia.com', role: 'member', since: stamp(-7, 0) }
   ];
+  /** Who can sign in for each preview client. */
+  const logins = { tnt_preview_bayleaf: [{ userId: 'user_preview_dani', name: 'Dani', email: 'dani@bayleafkitchen.com', since: stamp(-60, 0) }] };
   let mul = 44;
   let n = 100;
 
@@ -196,6 +199,14 @@
     if (String(url).includes('/functions/v1/client-login')) {
       const body = JSON.parse(String((init && init.body) || '{}'));
       const t = db.tenants.find((x) => x.id === body.tenantId);
+      const people = (logins[body.tenantId] = logins[body.tenantId] || []);
+      if (body.action === 'list' || body.action === 'remove') {
+        if (body.action === 'remove') logins[body.tenantId] = people.filter((p) => p.userId !== body.userId);
+        await new Promise((r) => setTimeout(r, 250));
+        return new Response(JSON.stringify({ ok: true, people: logins[body.tenantId] }), { status: 200 });
+      }
+      if (!people.some((p) => p.email === body.email)) people.push({ userId: 'user_preview_' + (++n), name: body.firstName || '', email: body.email, since: now() });
+      for (const a of db.login_requests || []) if (a.tenant_id === body.tenantId && a.status === 'pending' && a.email === body.email) a.status = 'granted';
       if (t && !t.clerk_org_id) t.clerk_org_id = 'org_preview_' + t.id;
       await new Promise((r) => setTimeout(r, 400));
       return new Response(JSON.stringify({ ok: true, email: body.email, created: true }), { status: 200 });

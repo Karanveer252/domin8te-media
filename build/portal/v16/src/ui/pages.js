@@ -560,7 +560,76 @@
         <p>You sign in with a secure link sent to ${esc(s.email)}. There is no password to remember.</p>
         <p class="meta">Managed by Clerk, our sign-in provider.</p>
         <button class="btn btn-glass" type="button" data-action="external" data-kind="clerk-account">Manage sign-in and security${icon('external')}</button>
+      </section>
+      <section class="card set-card" aria-labelledby="h-people">
+        <h2 id="h-people">People who can sign in</h2>
+        <p>Need a login for your manager or someone else at the restaurant? Ask here and your account team sets it up. They sign in with their own email address; nobody shares a password.</p>
+        <form id="login-ask" class="ask-form" novalidate>
+          <div class="ask-grid">
+            <div class="field"><label for="la-first">Their first name</label><input id="la-first" name="first" type="text" maxlength="100" autocomplete="off" aria-describedby="la-err-first"><p class="field-error" id="la-err-first" hidden></p></div>
+            <div class="field"><label for="la-email">Their email address</label><input id="la-email" name="email" type="email" maxlength="200" autocomplete="off" inputmode="email" spellcheck="false" aria-describedby="la-err-email"><p class="field-error" id="la-err-email" hidden></p></div>
+            <div class="field"><label for="la-role">Their role <span class="optional">(optional)</span></label><input id="la-role" name="role" type="text" maxlength="60" placeholder="Manager"></div>
+          </div>
+          <p class="form-error" role="alert" hidden></p>
+          <div class="form-foot"><button class="btn btn-solid" type="submit">${icon('message')}Ask for a login</button><p class="meta" id="la-status" aria-live="polite">${D8.live ? 'Your account team usually sets it up within one working day.' : 'This is a demo: nothing is sent.'}</p></div>
+        </form>
+        <div id="la-list"></div>
       </section>`;
+  }
+
+  /* Asking for a login for someone else. Only a request: the account team creates logins in the
+     agency console. Live portal only; the demo shows the form but sends nothing. */
+  const ASK_STATUS = { pending: ['Asked', 'Your account team will set it up'], granted: ['Login ready', 'They can sign in now'], declined: ['Not set up', 'Your account team will be in touch'] };
+  /** @param {HTMLElement} el */
+  async function loadAsks(el) {
+    const box = /** @type {HTMLElement|null} */ (el.querySelector('#la-list'));
+    if (!box || !D8.live) return;
+    try {
+      const sb = await D8.live.db();
+      const r = await sb.from('login_requests').select('first_name, email, role, status, at').order('at', { ascending: false }).limit(20);
+      if (r.error) throw r.error;
+      const rows = r.data || [];
+      box.innerHTML = rows.length ? `<h3 class="sub-h">Logins you've asked for</h3><ul class="ask-list">${rows.map((/** @type {any} */ x) => {
+        const st = /** @type {any} */ (ASK_STATUS)[x.status] || ASK_STATUS.pending;
+        return `<li><div><p class="ask-name">${esc(x.first_name)}${x.role ? `, ${esc(x.role)}` : ''}</p><p class="meta">${esc(x.email)} · ${esc(st[1])}</p></div><span class="badge ${x.status === 'granted' ? 'tone-success' : x.status === 'declined' ? 'tone-neutral' : 'tone-info'}">${esc(st[0])}</span></li>`;
+      }).join('')}</ul>` : '';
+    } catch (e) { box.innerHTML = ''; }
+  }
+  /** @param {HTMLElement} el @param {any} ctx */
+  function wireLoginAsk(el, ctx) {
+    const form = /** @type {HTMLFormElement|null} */ (el.querySelector('#login-ask'));
+    if (!form) return;
+    loadAsks(el);
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const field = (/** @type {string} */ n) => /** @type {HTMLInputElement} */ (form.elements.namedItem(n));
+      const first = field('first').value.trim();
+      const email = field('email').value.trim().toLowerCase();
+      const role = field('role').value.trim();
+      const status = /** @type {HTMLElement} */ (form.querySelector('#la-status'));
+      const err = /** @type {HTMLElement} */ (form.querySelector('.form-error'));
+      /** @param {string} id @param {string} text */
+      const bad = (id, text) => { const p = /** @type {HTMLElement} */ (form.querySelector('#la-err-' + id)); p.innerHTML = icon('alert') + esc(text); p.hidden = false; field(id).setAttribute('aria-invalid', 'true'); field(id).focus(); };
+      for (const id of ['first', 'email']) { /** @type {HTMLElement} */ (form.querySelector('#la-err-' + id)).hidden = true; field(id).removeAttribute('aria-invalid'); }
+      err.hidden = true;
+      if (!first) return bad('first', 'Add their first name.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return bad('email', 'Enter their email address, like name@restaurant.com.');
+      if (!D8.live) { status.textContent = 'This is a demo: nothing was sent. In your portal, your account team would get this request.'; return; }
+      const btn = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
+      btn.disabled = true;
+      try {
+        const sb = await D8.live.db();
+        const who = (ctx.account && ctx.account.user && ctx.account.user.firstName) || '';
+        const r = await sb.from('login_requests').insert({ first_name: first, email, role: role || null, by_name: who }).select('id').single();
+        if (r.error) throw r.error;
+        form.reset();
+        status.textContent = `Sent. Your account team will set up a login for ${first} and let you know.`;
+        loadAsks(el);
+      } catch (x) {
+        err.innerHTML = icon('alert') + esc("We couldn't send that just now. Try again in a moment, or message your account team.");
+        err.hidden = false;
+      } finally { btn.disabled = false; }
+    });
   }
 
   function wireSettings(el, s, ctx) {
@@ -606,7 +675,7 @@
       const load = () => section(el, '#settings-body', () => ctx.client.getSettings(), (s) => settingsBody(s, ctx),
         () => ({ title: "We couldn't load your settings just now.", text: 'Nothing has changed. Try again in a moment.', retry: 'settings' }))
         .then((s) => {
-          if (s) wireSettings(el, s, ctx);
+          if (s) { wireSettings(el, s, ctx); wireLoginAsk(el, ctx); }
           if (r.sub === 'sources') {
             const t = /** @type {HTMLElement|null} */ (el.querySelector('#sources'));
             if (t) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); }
@@ -625,7 +694,7 @@
     ['Where do the numbers come from?', 'Straight from your connected accounts, such as Google Business Profile and your booking system. Each figure shows its source and when it was last updated. If an account disconnects, we say so instead of guessing.'],
     ['What does "Waiting for you" mean?', 'We cannot move that piece of work forward until you answer something. The button next to it tells you exactly what we need.'],
     ['How do I change my payment details or plan?', 'Payment details are managed on Stripe, from your Billing page. To change your plan, message your account team.'],
-    ['Who can see my account?', 'You, anyone you invite, and the Domin8te team working on your account. Your figures are never shown to other clients.']
+    ['Who can see my account?', 'You, the people at your restaurant your account team has given a login (ask for one under Settings), and the Domin8te team working on your account. Your figures are never shown to other clients.']
   ];
 
   const help = {

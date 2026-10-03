@@ -1026,3 +1026,11 @@ td { font-variant-numeric: tabular-nums; }
 /* The live portal's sign-in points prospects to the demo. */
 .signin-demo { margin-top: 14px; text-align: center; color: var(--p-ink-3); font-size: 14px; }
 .signin-demo a { color: var(--p-accent-ink); font-weight: 600; }
+
+/* ------------------------------------------------------------------ asking for another login (Settings) */
+.ask-form { display: grid; gap: 12px; margin-top: 16px; }
+.ask-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; }
+@media (max-width: 860px) { .ask-grid { grid-template-columns: 1fr; } }
+.ask-list { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.ask-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--p-line); border-radius: 12px; }
+.ask-name { font-weight: 600; }

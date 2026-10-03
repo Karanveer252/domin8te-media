@@ -191,13 +191,14 @@
   /** Loads every client, request, message and decision in one go. */
   async function loadAll() {
     const client = await db();
-    const [t, r, m, d, k, pf] = await Promise.all([
+    const [t, r, m, d, k, pf, la] = await Promise.all([
       client.from('tenants').select('id, name, status, clerk_org_id, updated_at, doc').order('name'),
       client.from('requests').select('id, tenant_id, service, body, status, by_name, at').order('at'),
       client.from('messages').select('id, tenant_id, about, body, from_staff, by_name, at').order('at'),
       client.from('decisions').select('tenant_id, approval_id, decision, comment, by_name, at').order('at'),
       client.from('tasks').select('*').order('position'),
-      client.from('client_profile').select('*')
+      client.from('client_profile').select('*'),
+      client.from('login_requests').select('*').eq('status', 'pending').order('at')
     ]);
     all = {
       tenants: (check(t) || []).map((/** @type {any} */ x) => ({ ...x, doc: D8.data.normalize(x.doc, () => Date.now()) })),
@@ -206,6 +207,8 @@
       decisions: check(d) || [],
       tasks: check(k) || [],
       profiles: Object.fromEntries((check(pf) || []).map((/** @type {any} */ x) => [x.tenant_id, x])),
+      // A table added later: if it is not there yet, the console carries on without it.
+      loginAsks: la && !la.error ? la.data || [] : [],
       at: Date.now()
     };
     if (current) {
@@ -275,7 +278,8 @@
     const bill = billingOf(t);
     if (bill.status === 'past_due') needs.push({ kind: 'billing', label: 'Payment past due', text: `${bill.plan || 'Plan'}${bill.grace ? `: services pause after ${when(bill.grace)}` : ''}`, dueDate: bill.grace || undefined, href: '#/billing', rank: 1 });
     else if (bill.renews && bill.status !== 'canceled') { const rd = due(bill.renews); if (rd.days >= 0 && rd.days <= 7) soon.push({ kind: 'renewal', label: 'Renews', text: `${bill.plan || 'Plan'}${bill.amount ? `, ${bill.amount}` : ''}`, dueDate: bill.renews, href: '#/billing' }); }
-    if (!t.clerk_org_id && t.status === 'active') needs.push({ kind: 'login', label: 'No login yet', text: 'They cannot open their portal until you give them a login', href: go('overview'), rank: 2 });
+    if (!t.clerk_org_id && t.status === 'active') needs.push({ kind: 'login', label: 'No login yet', text: 'They cannot open their portal until you give them a login', href: go('edit'), rank: 2 });
+    for (const a of asksFor(id)) needs.push({ kind: 'login-ask', label: 'Login request', text: `${a.first_name}${a.role ? ', ' + a.role : ''} (${a.email})`, at: a.at, href: go('edit'), rank: 1 });
     if (doc.meeting && doc.meeting.at) {
       const d = due(doc.meeting.at);
       if (d.late) needs.push({ kind: 'meeting', label: 'Meeting passed', text: `${doc.meeting.title || 'Meeting'} was ${when(doc.meeting.at)}. Set the next one or clear it.`, dueDate: doc.meeting.at.slice(0, 10), href: go('overview'), rank: 2 });
@@ -1011,10 +1015,13 @@
       </div>
       <div class="ov-edit"${part === 'edit' ? '' : ' hidden'}>
       <section class="panel" aria-labelledby="login-h">
-        <div class="panel-head"><h2 id="login-h">Portal login</h2><p>${current.clerk_org_id ? 'They can sign in. Use this to let another person at the restaurant sign in too.' : '<strong>Nobody can sign in yet.</strong> Saving an email in the details below does not let anyone in; this button does.'}</p></div>
+        <div class="panel-head"><h2 id="login-h">Portal login</h2><p>${current.clerk_org_id ? 'Everyone below can sign in to their portal. Add another person, or take a login away.' : '<strong>Nobody can sign in yet.</strong> Saving an email in the details below does not let anyone in; this button does.'}</p></div>
+        ${current.clerk_org_id ? '<div id="login-people" class="login-people"><p class="meta">Checking who can sign in.</p></div>' : ''}
+        ${asksFor(current.id).length ? `<div class="login-asks"><h3 class="panel-sub">They asked for a login</h3><ul class="item-list">${asksFor(current.id).map((/** @type {any} */ a) => `<li class="login-ask" data-ask="${esc(a.id)}"><div><p><strong>${esc(a.first_name)}</strong>${a.role ? `, ${esc(a.role)}` : ''} <span class="meta">${esc(a.email)}</span></p><p class="meta">Asked by ${esc(a.by_name || 'the client')}, ${esc(ago(a.at))}</p></div><div class="btns"><button class="btn btn-sm" type="button" data-ask-grant="${esc(a.id)}">Give them a login</button><button class="btn btn-quiet btn-sm" type="button" data-ask-decline="${esc(a.id)}">Decline</button></div></li>`).join('')}</ul></div>` : ''}
         <form id="login-form" class="grid-3" novalidate>
-          <div class="field"><label for="l-first">First name</label><input id="l-first" name="first" type="text" value="${esc(d.user.firstName)}" maxlength="100"></div>
-          <div class="field span-2"><label for="l-email">Email</label><input id="l-email" name="email" type="email" value="${esc(d.user.email)}" maxlength="200"></div>
+          ${current.clerk_org_id ? '<h3 class="panel-sub span-all">Add another login</h3>' : ''}
+          <div class="field"><label for="l-first">First name</label><input id="l-first" name="first" type="text" value="${current.clerk_org_id ? '' : esc(d.user.firstName)}" maxlength="100"></div>
+          <div class="field span-2"><label for="l-email">Email</label><input id="l-email" name="email" type="email" value="${current.clerk_org_id ? '' : esc(d.user.email)}" maxlength="200"></div>
           <div class="span-all"><p class="hint meta">They sign in at ${esc(PORTAL_URL)} with this email and a 6-digit code Clerk emails them each time. There is no password, and nothing is emailed until they ask for a code.</p></div>
           <div class="actions span-all" style="margin-top:0"><button class="btn" type="submit">${current.clerk_org_id ? 'Add this login' : 'Give them a login'}</button><span id="login-out" class="meta"></span></div>
         </form>
@@ -1118,15 +1125,7 @@
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { out.textContent = 'Enter the email they will sign in with.'; $('#l-email', box).focus(); return; }
       const done = busy($('button[type=submit]', lf), 'Setting up');
       try {
-        const C = await D8.live.clerk();
-        const token = C.session ? await C.session.getToken() : null;
-        const res = await fetch(`${D8.live.config.supabaseUrl}/functions/v1/client-login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, apikey: D8.live.config.supabaseKey },
-          body: JSON.stringify({ tenantId: current.id, email, firstName: val(lf, 'first') })
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(body.message || `The login service answered ${res.status}.`);
+        await callFn('client-login', { tenantId: current.id, email, firstName: val(lf, 'first') });
         done();
         current = null;
         await loadAll();
@@ -1137,6 +1136,63 @@
         out.textContent = message(x);
       }
     });
+    const id = current.id;
+    // Who can sign in now, each with a way to take the login away.
+    const people = $('#login-people', box);
+    /** @param {any[]} list */
+    const drawPeople = (list) => {
+      if (!people) return;
+      people.innerHTML = list.length
+        ? `<ul class="item-list">${list.map((p) => `<li><div><p><strong>${esc(p.name || p.email)}</strong>${p.name ? ` <span class="meta">${esc(p.email)}</span>` : ''}</p>${p.since ? `<p class="meta">Can sign in since ${esc(when(p.since))}</p>` : ''}</div><button class="btn btn-quiet btn-sm card-del" type="button" data-login-remove="${esc(p.userId)}" data-login-name="${esc(p.name || p.email)}">Remove</button></li>`).join('')}</ul>`
+        : '<p class="meta">Nobody can sign in at the moment. Add a login below.</p>';
+    };
+    if (people) {
+      callFn('client-login', { action: 'list', tenantId: id })
+        .then((r) => { if (current && current.id === id) drawPeople(r.people || []); })
+        .catch((x) => { if (people) people.innerHTML = `<p class="meta">Could not check who can sign in: ${esc(message(x))}</p>`; });
+    }
+    box.addEventListener('click', async (e) => {
+      const target = /** @type {HTMLElement} */ (e.target);
+      const rm = /** @type {HTMLButtonElement|null} */ (target.closest('[data-login-remove]'));
+      if (rm) {
+        const name = rm.getAttribute('data-login-name') || 'this person';
+        if (!await ask(`Remove ${name}'s login?`, `${name} can no longer open ${current ? current.name : 'the'} portal, from within about a minute. You can give them a login again at any time.`, 'Remove login')) return;
+        const done = busy(rm, 'Removing');
+        try {
+          const r = await callFn('client-login', { action: 'remove', tenantId: id, userId: rm.getAttribute('data-login-remove') });
+          drawPeople(r.people || []);
+          toast(`${name} can no longer sign in.`);
+        } catch (x) { done(); toast(message(x), true); }
+        return;
+      }
+      const grant = target.closest('[data-ask-grant]');
+      if (grant) {
+        const a = asksFor(id).find((/** @type {any} */ x) => x.id === grant.getAttribute('data-ask-grant'));
+        if (!a) return;
+        /** @type {HTMLInputElement} */ ($('#l-first', box)).value = a.first_name;
+        /** @type {HTMLInputElement} */ ($('#l-email', box)).value = a.email;
+        lf.requestSubmit();
+        return;
+      }
+      const decline = target.closest('[data-ask-decline]');
+      if (decline) {
+        const askId = decline.getAttribute('data-ask-decline') || '';
+        const a = asksFor(id).find((/** @type {any} */ x) => x.id === askId);
+        if (!a || !await ask(`Decline the login for ${a.first_name}?`, 'The client sees that it was not set up. Message them to say why.', 'Decline')) return;
+        try {
+          const client = await db();
+          check(await client.from('login_requests').update({ status: 'declined', decided_at: new Date().toISOString() }).eq('id', askId).select('id').single());
+          all.loginAsks = (all.loginAsks || []).filter((/** @type {any} */ x) => x.id !== askId);
+          toast('Declined.');
+          route();
+        } catch (x) { toast(message(x), true); }
+      }
+    });
+  }
+
+  /** A client's login requests still waiting for an answer. @param {string} tenantId */
+  function asksFor(tenantId) {
+    return ((all && all.loginAsks) || []).filter((/** @type {any} */ a) => a.tenant_id === tenantId && a.status === 'pending');
   }
 
 
@@ -1150,8 +1206,7 @@
 
   /** Calls the sync service on the server with the staff token. @param {any} payload */
   async function multica(payload) {
-    const C = await D8.live.clerk();
-    const token = C.session ? await C.session.getToken() : null;
+    const token = await D8.live.token();
     const res = await fetch(`${D8.live.config.supabaseUrl}/functions/v1/multica-sync`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, apikey: D8.live.config.supabaseKey },
@@ -1568,8 +1623,7 @@
 
   /** Calls one of the console's server functions with the signed-in person's token. @param {string} name @param {any} payload */
   async function callFn(name, payload) {
-    const C = await D8.live.clerk();
-    const token = C.session ? await C.session.getToken() : null;
+    const token = await D8.live.token();
     const res = await fetch(`${D8.live.config.supabaseUrl}/functions/v1/${name}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, apikey: D8.live.config.supabaseKey },

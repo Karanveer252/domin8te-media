@@ -1,6 +1,8 @@
 // client-login: gives a restaurant's person a way into the portal. Called from the agency console.
 //
-//   POST { tenantId, email, firstName }
+//   POST { tenantId, email, firstName }           gives a person a login (below)
+//   POST { action: "list", tenantId }            who can sign in for the restaurant
+//   POST { action: "remove", tenantId, userId }  takes one login away (they lose access within a minute)
 //   1. The caller must be Domin8te staff: a member of the Domin8te team organisation in Clerk. The
 //      database checks their session token (public.console_me), so only a real team token gets past.
 //      The restaurant's organisation is created without the caller as a member, so staff sessions
@@ -65,6 +67,31 @@ Deno.serve(async (req) => {
   let body: any;
   try { body = await req.json(); } catch { return reply(origin, 400, { error: "bad-request", message: "Send tenantId, email and firstName." }); }
   const tenantId = String(body?.tenantId || "");
+  const action = String(body?.action || "add");
+
+  // Who can sign in for this restaurant, and taking a login away. Staff only, like adding.
+  if (action === "list" || action === "remove") {
+    const t0 = await db.from("tenants").select("id, clerk_org_id").eq("id", tenantId).maybeSingle();
+    if (t0.error || !t0.data) return reply(origin, 404, { error: "no-tenant", message: "That client was not found." });
+    const org = t0.data.clerk_org_id;
+    if (!org) return reply(origin, 200, { ok: true, people: [] });
+    if (action === "remove") {
+      const userId = String(body?.userId || "");
+      if (!userId) return reply(origin, 400, { error: "bad-request", message: "Say who." });
+      const d = await clerk(`/organizations/${org}/memberships/${userId}`, { method: "DELETE" });
+      if (!d.ok && d.status !== 404) return reply(origin, 502, { error: "clerk-remove", message: "Clerk would not remove that login.", detail: d.data?.errors?.[0]?.message || d.status });
+    }
+    const r = await clerk(`/organizations/${org}/memberships?limit=100`);
+    if (!r.ok) return reply(origin, 502, { error: "clerk-list", message: "Clerk would not list the logins." });
+    const people = (r.data?.data || []).map((m: any) => ({
+      userId: m.public_user_data?.user_id || "",
+      name: [m.public_user_data?.first_name, m.public_user_data?.last_name].filter(Boolean).join(" "),
+      email: m.public_user_data?.identifier || "",
+      since: m.created_at ? new Date(m.created_at).toISOString() : null,
+    }));
+    return reply(origin, 200, { ok: true, people });
+  }
+
   const email = String(body?.email || "").trim().toLowerCase();
   const firstName = String(body?.firstName || "").trim().slice(0, 100);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply(origin, 400, { error: "bad-email", message: "Enter a valid email address." });
@@ -101,6 +128,10 @@ Deno.serve(async (req) => {
   const m = await clerk(`/organizations/${orgId}/memberships`, { method: "POST", body: JSON.stringify({ user_id: userId, role: "org:member" }) });
   const already = !m.ok && JSON.stringify(m.data || "").includes("already");
   if (!m.ok && !already) return reply(origin, 502, { error: "clerk-membership", message: "Clerk would not add the person to the restaurant.", detail: m.data?.errors?.[0]?.message || m.status });
+
+  // 5. A client's request for this login, if there was one, is answered.
+  await db.from("login_requests").update({ status: "granted", decided_at: new Date().toISOString() })
+    .eq("tenant_id", tenantId).eq("status", "pending").eq("email", email);
 
   return reply(origin, 200, { ok: true, orgId, userId, created, email });
 });

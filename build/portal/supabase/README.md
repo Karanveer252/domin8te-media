@@ -40,6 +40,7 @@ Applied through the Supabase MCP and kept in the project's migration history (`s
 11. `client_profile_tier_and_approvals`: a staff-only table for each client's plan tier (bronze, silver, gold) and approval level (red, yellow, green).
 12. `prefs_only_for_added_people`: only the team, or a client with a live record, may keep preferences (`user_prefs`).
 13. `request_waiting_on_client`: a request can be `waiting`; a card in Waiting on client (`in_review`) shows the client "Waiting on you", in both directions of the card / request link.
+14. `login_requests`: a client asks for a login for someone at the restaurant (Settings > People who can sign in). Only a request: the team grants it from the console (Edit > Portal login), which creates the login through `client-login` and marks the ask granted; or declines it. The `client-login` function also lists who can sign in (`action: "list"`) and removes a login (`action: "remove"`).
 
 ## Edge function `team`
 

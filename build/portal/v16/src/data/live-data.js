@@ -315,5 +315,5 @@
   D8.auth = auth;
   D8.data.liveSource = liveSource;
   // The agency console signs in the same way and talks to the same database.
-  D8.live = { clerk, db, dbFail, config: cfg };
+  D8.live = { clerk, db, dbFail, config: cfg, token: async () => tokenFor(await clerk()) };
 })(typeof window !== 'undefined' ? window : globalThis);
