@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="onboarding.css">
 <style>
   body{padding:0}
-  .m-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:16px;height:56px;padding:0 var(--gut);background:rgba(10,10,10,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--hair)}
+  .m-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:16px;height:56px;padding:0 var(--gut);background:var(--glass);backdrop-filter:blur(8px);border-bottom:1px solid var(--hair)}
   .m-wrap{padding:clamp(40px,8vh,88px) var(--gut) 96px;max-width:1500px}
   .m-h{margin:0;font:200 clamp(40px,6vw,96px)/.94 var(--f);text-transform:uppercase;max-width:14ch}
   .m-h em{font-style:italic;font-weight:800}
@@ -31,12 +31,12 @@
   .chap h2{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 10px;font:200 30px/1 var(--f);text-transform:uppercase}
   .chap h2 small{font:600 11px/1 var(--f);letter-spacing:.12em;color:var(--ink-3)}
   .st{display:grid;grid-template-columns:34px 1fr;gap:4px 8px;padding:12px 0;border-bottom:1px solid var(--hair);text-decoration:none}
-  .st:hover .sq{color:var(--or)}
+  .st:hover .sq{color:var(--or-ink)}
   .st .no{font:600 11px/1.9 var(--f);letter-spacing:.08em;color:var(--ink-3)}
   .st .sq{font-size:16px;line-height:1.35;color:var(--ink);transition:color .15s}
   .st .meta{grid-column:2;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
   .tag{font:600 10px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;padding:5px 7px;border:1px solid var(--hair-2);color:var(--ink-3)}
-  .tag.core{border-color:var(--or);color:var(--or)}
+  .tag.core{border-color:var(--or);color:var(--or-ink)}
   .tag.br{border-style:dashed;color:var(--ink-2)}
   .legend{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin-bottom:22px;font-size:14px;color:var(--ink-3)}
   .legend span{display:inline-flex;gap:8px;align-items:center}
@@ -57,7 +57,7 @@
   <div class="paths">
     <div class="path"><p class="label">Path 1</p><h3>Guide me, I’ll do it now</h3><p>Every chapter, start to finish. Account invites done by the owner with step-by-step help.</p></div>
     <div class="path"><p class="label">Path 2</p><h3>Start now, finish on a call</h3><p>The same steps, but each account screen nudges them to tap “Do it on the call”. Good for owners who freeze at logins.</p></div>
-    <div class="path"><p class="label">Path 3</p><h3>Do it all on a call</h3><p>Only the steps marked <span class="tag core">Call path</span>: name, contact, best time, then book the call. We fill in the rest with them.</p></div>
+    <div class="path"><p class="label">Path 3</p><h3>Do it all on a call</h3><p>Only the steps marked <span class="tag core">Call path</span>: name, contact, how they heard about you, then book the call. We fill in the rest with them.</p></div>
   </div>
 
   <p class="sec-h">What makes it easy</p>
@@ -65,21 +65,19 @@
     <li><b>One question per screen</b><span>Tap an answer and it moves on by itself. Number keys work on a laptop.</span></li>
     <li><b>Already filled in</b><span>Name, email and restaurant come from the enquiry form. Nobody types anything twice.</span></li>
     <li><b>Autosave and resume</b><span>Close the tab, come back, land on the same step. “Finish later” offers an email link.</span></li>
-    <li><b>Skip anything</b><span>Skipped and “not sure” answers go on a “To sort on the call” list. Nothing blocks them.</span></li>
-    <li><b>Only what applies</b><span>Branches hide steps that don’t fit: no website, no domain questions; no Google ads, no Google Ads invite.</span></li>
+    <li><b>Skip most things</b><span>Only name, email and the name of the place are required. Skipped and “not sure” answers are listed on the finish screen to sort on the call.</span></li>
     <li><b>No passwords, ever</b><span>Each account is connected with the platform’s own manager invite. Our email has a copy button.</span></li>
     <li><b>Why we ask</b><span>Every question that could feel nosy explains itself in one line.</span></li>
     <li><b>Help on every screen</b><span>Do this part on the call, email the studio, or book a setup call. Plus five common questions.</span></li>
-    <li><b>Owner-sized shortcuts</b><span>Copy Monday’s hours to the week, snap a photo of the menu, see a sample post in each voice.</span></li>
-    <li><b>Time left, not step count</b><span>The side rail shows chapters and minutes left, so 50-odd steps never feels like 50.</span></li>
-    <li><b>Review before sending</b><span>Every answer on one page with an Edit link that jumps back and returns to the review.</span></li>
+    <li><b>Owner-sized shortcuts</b><span>Snap a photo of the menu instead of typing it, and see a sample post in each voice.</span></li>
+    <li><b>Time left, not step count</b><span>The side rail shows chapters and minutes left, so it never feels like filling in a form.</span></li>
+    <li><b>Only what matters</b><span>Twenty screens, built around getting account access. Everything else is asked on the call.</span></li>
     <li><b>Clear next steps</b><span>A timeline of what happens next, a calendar file for the call, and a copy of their answers.</span></li>
   </ul>
 
   <p class="sec-h">Every step</p>
   <div class="legend">
     <span><span class="tag core">Call path</span> also shown when they choose “Do it all on a call”</span>
-    <span><span class="tag br">Branch</span> only shown when an earlier answer calls for it</span>
   </div>
   <div class="flow" id="flow"></div>
 </main>
@@ -105,7 +103,6 @@
   document.getElementById('stats').innerHTML =
     '<div class="stat"><b>' + n + '</b><span>steps in total</span></div>' +
     '<div class="stat"><b>' + O.chapters.length + '</b><span>chapters</span></div>' +
-    '<div class="stat"><b>' + branches + '</b><span>steps that only show when needed</span></div>' +
     '<div class="stat"><b>~' + Math.round(secs / 60) + ' min</b><span>for the full guided path</span></div>' +
     '<div class="stat"><b>' + core + '</b><span>steps on the “call” path</span></div>';
 })();
