@@ -11,7 +11,7 @@ const path = require('path');
 
 const ROOT = 'C:/Work/domin8te-media';
 const html = path.join(ROOT, 'index.html');
-const assets = ['assets/site.css', 'assets/v-editorial.css', 'assets/site.js', 'assets/sky.js', 'assets/phone.js', 'assets/sky-a-still.jpg', 'assets/sky-b-still.jpg'];
+const assets = ['assets/site.css', 'assets/v-editorial.css', 'assets/site.js', 'assets/sky.js', 'assets/pfilm.js', 'assets/phone.js', 'assets/sky-a-still.jpg', 'assets/sky-b-still.jpg'];
 
 /* the film and its poster are fetched by site.js, so their tokens live
    there; stamp those first, then the script's own token in the html.
@@ -42,6 +42,19 @@ const skyBefore = skySrc;
   console.log('sky-scrub.mp4 -> ' + tag + ' (in sky.js)');
 }
 if (skySrc !== skyBefore) fs.writeFileSync(sky, skySrc, 'utf8');
+
+/* the phone's cloche film is fetched by phone.js, so its token lives there */
+const ph = path.join(ROOT, 'assets/phone.js');
+if (fs.existsSync(ph) && fs.existsSync(path.join(ROOT, 'assets/cl-film.mp4'))) {
+  let phSrc = fs.readFileSync(ph, 'utf8');
+  const tag = crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'assets/cl-film.mp4'))).digest('hex').slice(0, 10);
+  const re = /(cl-film\.mp4)\?v=[A-Za-z0-9]+/g;
+  if ((phSrc.match(re) || []).length) {
+    const next = phSrc.replace(re, '$1?v=' + tag);
+    if (next !== phSrc) fs.writeFileSync(ph, next, 'utf8');
+    console.log('cl-film.mp4 -> ' + tag + ' (in phone.js)');
+  }
+}
 
 let src = fs.readFileSync(html, 'utf8');
 const before = src;
