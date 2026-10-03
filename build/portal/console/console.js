@@ -656,6 +656,7 @@
     document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'settings'].includes(parts[0]) ? parts[0] : 'queue';
     main.onclick = null;
     main.onchange = null;
+    unwireBoard(main); // the All work board's listeners go with the page
     if (parts[0] === 'clients') clientsPage();
     else if (parts[0] === 'new') newClient();
     else if (parts[0] === 'client' && parts[1]) clientPage(parts[1], parts[2] || lastTab(parts[1]), parts[3] || '');
@@ -1401,20 +1402,32 @@
       }).join('')}</div>`;
     $('#ab-client').addEventListener('change', (/** @type {any} */ e) => { allBoardState.client = e.target.value; allBoardPage(); });
     const find = (/** @type {string} */ id) => (all.tasks || []).find((/** @type {any} */ x) => x.id === id);
-    wireBoard(main, find, () => allBoardPage());
+    const signal = wireBoard(main, find, () => allBoardPage());
     main.addEventListener('click', (e) => {
       const edit = /** @type {HTMLElement} */ (e.target).closest('[data-edit]');
       if (!edit) return;
       const t = find(edit.getAttribute('data-edit') || '');
       if (t) location.hash = `#/client/${t.tenant_id}/board`;
-    });
+    }, { signal });
   }
 
+  /** Each board's listeners, so a redraw replaces them instead of adding another set. @type {WeakMap<HTMLElement, AbortController>} */
+  const boardWires = new WeakMap();
+  /** Removes a board's listeners (a redraw, or leaving the page). @param {HTMLElement} box */
+  function unwireBoard(box) {
+    const old = boardWires.get(box);
+    if (old) { old.abort(); boardWires.delete(box); }
+  }
   /**
    * Dragging between columns and the Move list, for any board. Moves are saved through moveTask.
+   * Returns the signal that removes them, for any other listener the page adds.
    * @param {HTMLElement} box @param {(id: string) => any} find @param {() => void} after
    */
   function wireBoard(box, find, after) {
+    unwireBoard(box);
+    const ac = new AbortController();
+    boardWires.set(box, ac);
+    const on = { signal: ac.signal };
     let dragging = '';
     box.addEventListener('dragstart', (e) => {
       const li = /** @type {HTMLElement} */ (e.target).closest('.card');
@@ -1422,8 +1435,8 @@
       dragging = li.getAttribute('data-task') || '';
       li.classList.add('dragging');
       if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragging); }
-    });
-    box.addEventListener('dragend', () => { dragging = ''; for (const el of $$('.dragging, .over', box)) el.classList.remove('dragging', 'over'); });
+    }, on);
+    box.addEventListener('dragend', () => { dragging = ''; for (const el of $$('.dragging, .over', box)) el.classList.remove('dragging', 'over'); }, on);
     box.addEventListener('dragover', (e) => {
       const col = /** @type {HTMLElement} */ (e.target).closest('.col');
       if (!col || !dragging) return;
@@ -1431,11 +1444,11 @@
       if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
       for (const el of $$('.col.over', box)) if (el !== col) el.classList.remove('over');
       col.classList.add('over');
-    });
+    }, on);
     box.addEventListener('dragleave', (e) => {
       const col = /** @type {HTMLElement} */ (e.target).closest('.col');
       if (col && !col.contains(/** @type {Node} */ (e.relatedTarget))) col.classList.remove('over');
-    });
+    }, on);
     box.addEventListener('drop', async (e) => {
       const col = /** @type {HTMLElement} */ (e.target).closest('.col');
       if (!col || !dragging) return;
@@ -1446,7 +1459,7 @@
       const status = col.getAttribute('data-col') || 'todo';
       if (!t || t.status === status) return;
       try { await moveTask(t, status); after(); } catch (x) { toast(message(x), true); }
-    });
+    }, on);
     box.addEventListener('change', async (e) => {
       const sel = /** @type {HTMLSelectElement} */ (e.target);
       const id = sel.getAttribute('data-move');
@@ -1454,7 +1467,8 @@
       const t = find(id);
       if (!t) return;
       try { await moveTask(t, sel.value); after(); } catch (x) { sel.value = t.status; toast(message(x), true); }
-    });
+    }, on);
+    return ac.signal;
   }
 
   /* ---- Multica: a quiet check while a board is open ----------------------------------------------------- */

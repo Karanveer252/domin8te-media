@@ -14,6 +14,13 @@
       "runtimeArgs": ["C:/Work/domin8te-build/serve.js"],
       "port": 8080,
       "autoPort": true
+    },
+    {
+      "name": "dash-variants",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Work/domin8te-build/dashboard-variants/serve.js"],
+      "port": 8090,
+      "autoPort": true
     }
   ]
 }
