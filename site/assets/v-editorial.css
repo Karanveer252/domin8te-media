@@ -1097,27 +1097,30 @@ html.snake .band--resolve .hl{max-width:15ch;margin-inline:auto}
 html.snake .act--word{width:max-content;max-width:100%;align-self:center;margin-left:auto;margin-right:auto}
 
 /* ---- the cloud beats on a phone (sky3d/canyon.py, 2026-10-03) ----
-   Four layers of cumulus rendered on a clear sky, each at its own depth,
-   placed here in the render's own frame (1080 wide, the vanishing point at
-   row 1008), so the scene is in place from the first paint. phone.js flies
-   the camera through them by setting --t (how far it has come), --rise and
-   --dx on the beat; each layer works out its own scale about the vanishing
-   point, d / (d - t), the way a thing at that depth grows as you near it,
-   and fades as it passes the camera. The first beat flies in and the clouds
-   part on the words; the second is the same sky later, the camera falling
-   back as the light goes. Without the line (reduced motion) each beat is its
-   last frame, held. */
+   Layers of cumulus rendered on a clear sky, each at its own depth (11, 20,
+   34 and 120 deep), placed here in the render's own frame (1080 wide, the
+   vanishing point at row 1008), so the scene is in place from the first
+   paint. phone.js flies a camera through them: each layer scales about the
+   vanishing point by d / (d - t) as the camera comes t nearer, drops as it
+   climbs, and fades as it passes; the line is drawn into the scene on a
+   canvas between the far clouds and the near. The first beat flies in under
+   a golden light; the second is the same sky turned about, later: the camera
+   falls back and the sun leaves the clouds (each far layer has an
+   after-sunset twin that comes up over it). Without the line (reduced
+   motion) each beat is its last frame, held. */
 .sky3{display:none}
 @media (max-width:760px){
   html.story .act--sky{display:block;position:relative;padding:0;margin-inline:calc(var(--gut) * -1);width:calc(100% + var(--gut) * 2)}
   html.story .skystill > picture{display:none}
   html.story .skystill{
     --u:calc(100vw / 1080);--vp:42vh;
-    --t:9;--rise:1.5;--dx:0;--dim:0;--glow:1;--w1:1;--w2:1;
+    --t:12;--rise:1.5;--dx:0;--night:0;
     position:relative;height:100vh;overflow:hidden;background:var(--bg);
   }
-  html.story .act--sky-b .skystill{--t:4;--rise:.6;--dx:-2;--dim:.7;--glow:.1}
+  html.story .act--sky-b .skystill{--t:6;--rise:.4;--dx:-1.5;--night:1}
   html.story .sky3{display:block;position:absolute;inset:0;pointer-events:none}
+  /* the second beat is the same sky seen the other way */
+  html.story .act--sky-b .sky3{transform:scaleX(-1)}
   html.story .sky3__l{
     position:absolute;z-index:var(--z);
     left:calc(var(--x) * var(--u));top:calc(var(--vp) + (var(--y) - 1008) * var(--u));
@@ -1125,28 +1128,38 @@ html.snake .act--word{width:max-content;max-width:100%;align-self:center;margin-
     --s:calc(var(--d) / (var(--d) - var(--t)));
     transform-origin:calc((540 - var(--x)) * var(--u)) calc((1008 - var(--y)) * var(--u));
     transform:translate3d(calc(var(--dx) * 1080 * var(--u) / (var(--d) - var(--t))),calc(var(--rise) * 1080 * var(--u) / (var(--d) - var(--t))),0) scale(var(--s));
-    opacity:clamp(0, 3 - var(--s), 1);
     will-change:transform,opacity;
   }
-  /* the light low on the horizon, behind the far clouds: a pale haze, not a
-     colour (an orange glow on black reads as brown) */
+  html.story .sky3__near{opacity:clamp(0, (2.2 - var(--s)) / .6, 1)}
+  html.story .sky3__dk{opacity:var(--night)}
+  html.story .act--sky-b .sky3__l:not(.sky3__dk){opacity:calc(1 - var(--night))}
+  /* held still, the layers that would have passed the camera are gone */
+  html.story:not(.snake) .sky3__near{display:none}
+  html.story .sky3__line{display:block;position:absolute;left:0;top:0;width:100%;height:100%;z-index:1}
+  html:not(.snake) .sky3__line{display:none}
+  /* the sky the low sun lights: a thin bright band where it went down, an
+     amber warmth above the far clouds, and the deep blue of the evening over
+     that, going to black overhead (the second beat loses it as night comes) */
   html.story .sky3__glow{
-    display:block;position:absolute;left:-40%;right:-40%;top:calc(var(--vp) - 34vw);height:62vw;z-index:0;
-    background:radial-gradient(50% 50% at 50% 50%,rgba(255,238,220,.15),rgba(255,230,205,.055) 45%,rgba(255,230,205,0) 72%);
-    opacity:var(--glow);will-change:opacity;
+    display:block;position:absolute;inset:0;z-index:0;
+    background:
+      radial-gradient(70% 3.2% at 50% calc(var(--vp) + 1vh),rgba(255,222,186,.42),rgba(255,200,150,0) 100%),
+      radial-gradient(95% 15% at 50% calc(var(--vp) + 1vh),rgba(255,156,96,.22),rgba(255,140,90,.06) 60%,rgba(255,140,90,0) 100%),
+      linear-gradient(180deg,rgba(10,10,10,0) 6vh,rgba(22,24,46,.6) 24vh,rgba(58,40,44,.55) calc(var(--vp) - 6vh),rgba(70,44,34,.5) var(--vp),rgba(10,10,10,0) calc(var(--vp) + 16vh));
+    opacity:1;will-change:opacity,transform;
   }
-  /* the light going: the clouds darken toward the sky, the words stay lit */
-  html.story .sky3__dim{display:block;position:absolute;inset:0;z-index:6;background:#06080D;opacity:var(--dim)}
+  html.story .act--sky-b .sky3__glow{opacity:0}
   /* the clouds melt into the sky at the top and the bottom of the frame */
   html.story .skystill::before,html.story .skystill::after{
     content:"";position:absolute;left:0;right:0;z-index:7;pointer-events:none;
   }
   html.story .skystill::before{top:0;height:12vh;background:linear-gradient(180deg,var(--bg),rgba(10,10,10,0))}
-  html.story .skystill::after{bottom:0;height:16vh;background:linear-gradient(0deg,var(--bg),rgba(10,10,10,0))}
+  html.story .skystill::after{bottom:0;height:10vh;background:linear-gradient(0deg,var(--bg),rgba(10,10,10,0))}
   /* the words, in the page's own voice: the thin capitals and the one bold
-     italic in the accent, set in the clear above the far clouds */
+     italic in the accent, set in the clear above the far clouds; each line
+     comes up out of its own mask (phone.js wraps them) */
   html.story .skystill__words{
-    position:absolute;left:0;right:0;top:auto;bottom:calc(100vh - var(--vp) + 12vw);z-index:3;
+    position:absolute;left:0;right:0;top:auto;bottom:calc(100vh - var(--vp) + 12vw);z-index:4;
     display:block;padding:0 7vw;text-align:center;
   }
   html.story .act--sky-b .skystill__words{z-index:8}
@@ -1154,25 +1167,25 @@ html.snake .act--word{width:max-content;max-width:100%;align-self:center;margin-
     margin:0;font:200 12.4vw/.96 var(--f-display);letter-spacing:-.012em;word-spacing:-.04em;
     text-transform:uppercase;color:var(--ink);text-shadow:none;
   }
-  html[data-v="editorial"].story .act--sky .hl--sky .ln{
-    display:block;opacity:var(--w1);transform:translate3d(0,calc((1 - var(--w1)) * 6vw),0);
-  }
+  html[data-v="editorial"].story .act--sky .hl--sky .ln{display:block}
   html[data-v="editorial"].story .act--sky .hl--sky .acc{font-weight:800;font-style:italic;color:var(--acc);letter-spacing:-.02em}
-  html[data-v="editorial"].story .act--sky-a .hl--sky .acc{
-    display:block;font-size:1.44em;line-height:1;margin-top:.02em;
-    opacity:var(--w2);transform:translate3d(0,calc((1 - var(--w2)) * 6vw),0);
-  }
+  html[data-v="editorial"].story .act--sky-a .hl--sky .acc{display:block;font-size:1.3em;line-height:1;margin-top:.04em}
   html[data-v="editorial"].story .act--sky-b .hl--sky{font-size:11.2vw}
-  html[data-v="editorial"].story .act--sky-b .hl--sky .ln--2{
-    font-size:.54em;line-height:1.14;margin-top:.6em;color:var(--ink);
-    opacity:var(--w2);transform:translate3d(0,calc((1 - var(--w2)) * 6vw),0);
-  }
+  html[data-v="editorial"].story .act--sky-b .hl--sky .ln--2{font-size:.54em;line-height:1.14;margin-top:.6em;color:var(--ink)}
+  html.story .sky3__m{display:block;overflow:hidden;padding:0 .14em .12em;margin:0 -.14em -.12em}
+  /* each line rises out of its mask on its own clock once the reader is
+     there (phone.js sets .is-up), so no stop ever holds a half-risen line */
+  html.story .sky3__r{display:block;transform:translate3d(0,112%,0);transition:transform .9s cubic-bezier(.16,.84,.24,1);will-change:transform}
+  html.story .sky3__m.is-up > .sky3__r{transform:none}
+  html.story .act--sky-a .acc.sky3__m > .sky3__r{transition-delay:.09s}
 }
 /* with the line, each beat is a runway: the frame holds the screen while the
-   camera flies, and the line passes behind it, fading out above it and back
-   in below */
-html.snake .act--sky{height:calc(100vh + var(--sky-run,110vh));opacity:1!important;transform:none!important;transition:none!important}
+   camera flies, and the page's line passes behind it, fading out above it
+   and back in below; until phone.js has placed it, the first beat waits on
+   its first frame */
+html.snake .act--sky{height:calc(100vh + var(--sky-run,120vh));opacity:1!important;transform:none!important;transition:none!important}
 html.snake .act--sky .skystill{position:-webkit-sticky;position:sticky;top:0;z-index:6}
+html.snake .act--sky-a .skystill{--t:0;--rise:0}
 html.snake .act--sky::before,html.snake .act--sky::after{
   content:"";position:absolute;left:0;right:0;height:14vh;z-index:6;pointer-events:none;
 }

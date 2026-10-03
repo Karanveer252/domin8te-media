@@ -12,7 +12,8 @@ const path = require('path');
 const ROOT = 'C:/Work/domin8te-media';
 const html = path.join(ROOT, 'index.html');
 const assets = ['assets/site.css', 'assets/v-editorial.css', 'assets/site.js', 'assets/sky.js', 'assets/pfilm.js', 'assets/phone.js', 'assets/sky-a-still.jpg', 'assets/sky-b-still.jpg',
-  'assets/cy-l1.webp', 'assets/cy-l2.webp', 'assets/cy-l3.webp', 'assets/cy-l4.webp', 'assets/cy-l1.avif', 'assets/cy-l2.avif', 'assets/cy-l3.avif', 'assets/cy-l4.avif'];
+  'assets/cy-l1.webp', 'assets/cy-l2.webp', 'assets/cy-l3.webp', 'assets/cy-l4.webp', 'assets/cy-l1.avif', 'assets/cy-l2.avif', 'assets/cy-l3.avif', 'assets/cy-l4.avif',
+  'assets/cy-l3d.webp', 'assets/cy-l4d.webp', 'assets/cy-l3d.avif', 'assets/cy-l4d.avif'];
 
 /* the film and its poster are fetched by site.js, so their tokens live
    there; stamp those first, then the script's own token in the html.

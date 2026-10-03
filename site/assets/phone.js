@@ -77,18 +77,31 @@
   var runWrap, endWrap, exitWrap;
 
   /* the cloud beats (sky3d/canyon.py): the camera's way through each, as
-     [from, to] over [p0, p1] of the beat's runway, eased. t is how far it has
-     flown in (render units; the layers sit 11 to 150 deep), rise how far it
-     has climbed, dx how far the wind has carried the clouds, dim how far the
-     light has gone, glow the haze on the horizon, w1 and w2 the two lines of
-     words coming up. The first beat
-     flies in and the clouds part on the words; the second is the same sky,
-     later: the camera falls back, the clouds drift and the light goes. */
+     [from, to, p0, p1] over the beat's runway (p 0 when the frame pins, 1 when
+     it lets go), eased. t is how far the camera has flown in (the layers sit
+     11 to 120 deep), rise how far it has climbed, dx how far the wind has
+     carried the clouds, night how far the sun has left them, glow the light
+     on the horizon, w1 and w2 the two lines of words, head how far the line
+     has run. The first beat flies in under a golden light, the near clouds
+     parting past the camera; the second is the same sky turned about, later:
+     the camera falls back and the sun goes. ex is what keeps moving while the
+     frame lets go: more flight in the first, more falling back in the second. */
   var SKY = {
-    a: { t: [0, 9, 0, 1], rise: [0, 1.5, 0, 1], dx: [0, 0, 0, 1], dim: [0, 0, 0, 1], glow: [.3, 1, 0, 1], w1: [0, 1, .3, .62], w2: [0, 1, .42, .76] },
-    b: { t: [9, 4, .05, 1], rise: [1.5, .6, .05, 1], dx: [0, -2, 0, 1], dim: [0, .7, .15, .9], glow: [1, .1, .1, .9], w1: [0, 1, -.12, .1], w2: [0, 1, .42, .72] }
+    a: { t: [0, 12, 0, 1], rise: [0, 1.5, 0, 1], dx: [0, 0, 0, 1], night: [0, 0, 0, 1], glow: [.3, 1, 0, .8],
+         head: [0, 1, 0, .36], tail: [0, 0, 0, 1], words: [.12, .19], ex: { t: 2.5, rise: .9 } },
+    b: { t: [12, 6, 0, 1], rise: [1.5, .4, 0, 1], dx: [0, -1.5, 0, 1], night: [0, 1, .15, .8], glow: [1, 0, .05, .7],
+         head: [0, 1, 0, .34], tail: [0, 1, .42, .82], words: [.02, .42], ex: { t: -1.5, rise: -.3 } }
   };
-  var SKY_KEYS = ['t', 'rise', 'dx', 'dim', 'glow', 'w1', 'w2'];
+  var SKY_KEYS = ['t', 'rise', 'dx', 'night', 'glow', 'head', 'tail'];
+  /* the line inside each beat: it comes in from the top in the lane where
+     the page's line went behind the frame, in the page line's own colours
+     and girth, runs down beside the clouds and away along the horizon,
+     narrowing, and sinks into the haze behind the far clouds; points on the
+     render's frame (1080 wide, the vanishing point at row 1008), drawn
+     behind every cloud. In the second beat (its sky turned about, so the
+     lane is the right one) it is run out, then its tail follows it into the
+     distance and it is gone. */
+  var SKY_LINE = [[69, -60], [69, 420], [72, 830], [160, 965], [400, 1004], [560, 1012]];
   var skies = [];
 
   function el(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); return e }
@@ -280,8 +293,12 @@
        top reaches the top of the screen until its runway is spent; the camera
        starts a little before, while the frame is still coming up */
     skies.forEach(function (k) {
-      var y = pos(k.act).y;
-      k.S0 = y - .35 * vh; k.R = Math.max(1, k.act.offsetHeight - vh + .35 * vh);
+      k.S0 = pos(k.act).y; k.R = Math.max(1, k.act.offsetHeight - vh);
+      if (k.cx) {
+        var dpr = Math.min(2, window.devicePixelRatio || 1), cw = k.fig.clientWidth, ch = k.fig.clientHeight;
+        k.cv.width = Math.round(cw * dpr); k.cv.height = Math.round(ch * dpr);
+        k.cx.setTransform(dpr, 0, 0, dpr, 0, 0); k.lineKey = ''; k.cols = null;
+      }
     });
 
     var lane = parseFloat(getComputedStyle(r).getPropertyValue('--snk-lane')) || 34;
@@ -471,7 +488,7 @@
       lit: smooth((fr - LIT0) / (LIT1 - LIT0)),
       head: 0, done: 0
     };
-    for (var i = 0; i < skies.length; i++) o['sky' + i] = clamp((S - skies[i].S0) / skies[i].R, 0, 1);
+    for (var i = 0; i < skies.length; i++) o['sky' + i] = clamp(S - skies[i].S0, -2 * g.vh, skies[i].R + 2 * g.vh);
     if (S < g.S2) { o.head = g.Ls * o.lit; return o }
     if (S < g.S2 + g.Dg) { o.head = g.Ls + (g.E - g.Ls) * (S - g.S2) / g.Dg; return o }
     var T = S + g.vh * .6;
@@ -535,25 +552,10 @@
     /* the cloud beats: only a beat near the screen is written to, and each
        layer gets its own transform and opacity (a custom property on the
        frame would restyle everything in it, every frame) */
-    var Sy = (window.scrollY || window.pageYOffset) - film.offsetTop;
     for (i = 0; i < skies.length; i++) {
-      var k = skies[i];
-      if (Sy < k.S0 - geo.vh || Sy > k.S0 + k.R + 1.4 * geo.vh) continue;
-      var pk = c['sky' + i], cam = SKY[k.beat], v = {};
-      for (var n = 0; n < SKY_KEYS.length; n++) {
-        var sp = cam[SKY_KEYS[n]];
-        v[SKY_KEYS[n]] = sp[0] + (sp[1] - sp[0]) * smooth((pk - sp[2]) / (sp[3] - sp[2]));
-      }
-      var Wd = k.fig.clientWidth;
-      for (n = 0; n < k.layers.length; n++) {
-        var ly = k.layers[n], dd = ly.d - v.t, sc = ly.d / dd;
-        put(ly.el, 'transform', 'translate3d(' + f(v.dx * Wd / dd) + 'px,' + f(v.rise * Wd / dd) + 'px,0) scale(' + q3(sc) + ')');
-        put(ly.el, 'opacity', '' + q3(clamp(3 - sc, 0, 1)));
-      }
-      if (k.glow) put(k.glow, 'opacity', '' + q3(v.glow));
-      if (k.dim) put(k.dim, 'opacity', '' + q3(v.dim));
-      if (k.ln1) { put(k.ln1, 'opacity', '' + q3(v.w1)); put(k.ln1, 'transform', 'translate3d(0,' + f((1 - v.w1) * .06 * Wd) + 'px,0)') }
-      if (k.ln2) { put(k.ln2, 'opacity', '' + q3(v.w2)); put(k.ln2, 'transform', 'translate3d(0,' + f((1 - v.w2) * .06 * Wd) + 'px,0)') }
+      var k = skies[i], at = c['sky' + i];
+      if (at < -1.2 * geo.vh || at > k.R + 1.2 * geo.vh) continue;
+      paintSky(k, at);
     }
 
     /* the opening: the film's frame for the scroll; before it has arrived,
@@ -585,6 +587,108 @@
     put(mark, 'transform', 'scale(' + q3(.96 + .04 * pop) + ')');
     put(endWrap, 'opacity', '' + q3(1 - smooth((c.done - .76) / .12)));
     put(runWrap, 'opacity', '' + q3(1 - .75 * smooth((c.done - .7) / .3)));
+  }
+
+  /* one beat at `at` px from its pin: the camera's numbers for the moment,
+     then every layer, the light, the words and the line */
+  function paintSky(k, at) {
+    var cam = SKY[k.beat], vh = geo.vh, pk = clamp(at / k.R, 0, 1), v = {}, n;
+    for (n = 0; n < SKY_KEYS.length; n++) {
+      var sp = cam[SKY_KEYS[n]];
+      v[SKY_KEYS[n]] = sp[0] + (sp[1] - sp[0]) * smooth((pk - sp[2]) / (sp[3] - sp[2]));
+    }
+    /* coming up the page the clouds fade in; letting go, the camera keeps on
+       while the scene dissolves into the dark, so the next words are not kept
+       waiting behind a picture scrolling away */
+    var e = smooth(1 + at / (.85 * vh)), q = smooth((at - k.R) / vh), gone = 1 - smooth((at - k.R) / (.6 * vh));
+    v.t += cam.ex.t * q; v.rise += cam.ex.rise * q;
+    var Wd = k.fig.clientWidth, show = e * gone;
+    for (n = 0; n < k.layers.length; n++) {
+      var ly = k.layers[n], dd = ly.d - v.t;
+      if (dd < .6) { put(ly.el, 'opacity', '0'); continue }
+      /* a near layer goes as it passes the camera; at night the lit layer
+         gives way to its dark twin entirely, so no warm edge is left round it */
+      var sc = ly.d / dd, op = (ly.near ? clamp((2.2 - sc) / .6, 0, 1) : 1) * show * (ly.dark ? v.night : 1 - v.night * v.night);
+      put(ly.el, 'opacity', '' + q3(op));
+      if (op > 0) put(ly.el, 'transform', 'translate3d(' + f(v.dx * Wd / dd) + 'px,' + f(v.rise * Wd / dd) + 'px,0) scale(' + q3(sc) + ')');
+    }
+    if (k.glow) {
+      put(k.glow, 'opacity', '' + q3(v.glow * e * e * gone));
+      /* as night comes the evening's light sinks below the horizon */
+      if (k.beat === 'b') put(k.glow, 'transform', 'translate3d(0,' + f((1 - v.glow) * .06 * vh) + 'px,0)');
+    }
+    /* the words rise on their own clock once the reader reaches them, so a
+       stop half way never holds a half-risen line */
+    var u1 = pk >= cam.words[0] - (k.up1 ? .04 : 0), u2 = pk >= cam.words[1] - (k.up2 ? .04 : 0);
+    if (u1 !== k.up1 && k.r1) { k.up1 = u1; k.r1.parentNode.classList.toggle('is-up', u1) }
+    if (u2 !== k.up2 && k.r2) { k.up2 = u2; k.r2.parentNode.classList.toggle('is-up', u2) }
+    if (k.words) put(k.words, 'opacity', '' + q3(gone));
+    if (k.cx) skyLine(k, v, show);
+  }
+
+  /* the line in a beat, in the page line's colours and girth: one blurred
+     pass in its tint for the bloom, then the body, a lighter band and a hot
+     core, the whole of it fading into the haze over its last stretch */
+  function skyLine(k, v, e) {
+    var Wd = k.fig.clientWidth, Hd = k.fig.clientHeight, u = Wd / 1080, vpy = .42 * Hd;
+    var key = q3(v.head) + ',' + q3(v.tail) + ',' + q3(e) + ',' + Wd + 'x' + Hd;
+    if (key === k.lineKey) return;
+    k.lineKey = key;
+    var cx = k.cx;
+    cx.clearRect(0, 0, Wd, Hd);
+    if (v.head <= .002 || e <= .01 || v.tail >= .985) return;
+    if (!k.cols) {
+      var y = k.S0 + .12 * geo.vh;
+      k.cols = [runColour(y, geo.y0), runColour(y + 260, geo.y0), runColour(y + 520, geo.y0)];
+    }
+    var P = SKY_LINE.map(function (s) { return [s[0] * u, vpy + (s[1] - 1008) * u] });
+    var pts = [], N = 14, segs = P.length - 1, total = segs * N, hd = v.head * total, tl0 = v.tail * hd;
+    for (var j = Math.floor(tl0); j <= Math.ceil(hd); j++) {
+      var uu = clamp(j, tl0, hd) / N, si = Math.min(segs - 1, Math.floor(uu)), tt = uu - si;
+      var p0 = P[Math.max(0, si - 1)], p1 = P[si], p2 = P[si + 1], p3 = P[Math.min(P.length - 1, si + 2)];
+      var w = [0, 1].map(function (a) {
+        var t2 = tt * tt, t3 = t2 * tt;
+        return .5 * (2 * p1[a] + (-p0[a] + p2[a]) * tt + (2 * p0[a] - 5 * p1[a] + 4 * p2[a] - p3[a]) * t2 + (-p0[a] + 3 * p1[a] - 3 * p2[a] + p3[a]) * t3);
+      });
+      /* the page line's girth (7px) where it comes in, narrowing as it goes away */
+      var at = uu / segs;
+      pts.push({ x: w[0], y: w[1], r: lerp(3.5, .8, Math.pow(at, .8)), a: 1 - smooth((at - .72) / .28) });
+    }
+    if (pts.length < 2) return;
+    var a0 = pts[0], a1 = pts[pts.length - 1];
+    var grad = cx.createLinearGradient(P[0][0], P[0][1], P[P.length - 1][0], P[P.length - 1][1]);
+    k.cols.forEach(function (col, ci) { grad.addColorStop(ci / (k.cols.length - 1), col) });
+    cx.lineCap = 'round'; cx.lineJoin = 'round';
+    /* each pass is drawn as a few long strokes, each with the girth and
+       light of its stretch, so the line can narrow and fade along its length
+       without the translucent passes beading where strokes overlap */
+    function pass(scale, extra, style, alpha, blur, glowCol) {
+      cx.strokeStyle = style;
+      cx.shadowBlur = blur; cx.shadowColor = glowCol || 'rgba(0,0,0,0)';
+      var step = 10;
+      for (var m0 = 0; m0 < pts.length - 1; m0 += step) {
+        var m1 = Math.min(pts.length - 1, m0 + step), rr = 0, aa = 0;
+        for (var m = m0; m <= m1; m++) { rr += pts[m].r; aa += pts[m].a }
+        rr /= (m1 - m0 + 1); aa /= (m1 - m0 + 1);
+        cx.globalAlpha = alpha * e * aa;
+        cx.lineWidth = rr * 2 * scale + extra;
+        cx.beginPath(); cx.moveTo(pts[m0].x, pts[m0].y);
+        for (m = m0 + 1; m <= m1; m++) cx.lineTo(pts[m].x, pts[m].y);
+        cx.stroke();
+      }
+    }
+    var dpr = cx.getTransform ? cx.getTransform().a : 1, mid = k.cols[1];
+    pass(1, 6, grad, .35, 22 * dpr, mid);
+    pass(1, 0, grad, 1, 7 * dpr, mid);
+    cx.shadowBlur = 0; cx.shadowColor = 'rgba(0,0,0,0)';
+    pass(.5, 0, 'rgba(255,240,228,.55)', 1, 0);
+    pass(.16, .6, '#FFFCF5', .95, 0);
+    /* where it meets the haze, a breath of warmth rather than a point */
+    var hg = cx.createRadialGradient(a1.x, a1.y, 0, a1.x, a1.y, 60);
+    hg.addColorStop(0, 'rgba(255,214,180,.22)'); hg.addColorStop(1, 'rgba(255,190,150,0)');
+    cx.globalAlpha = e * (1 - smooth((v.tail - .6) / .3)); cx.fillStyle = hg;
+    cx.beginPath(); cx.arc(a1.x, a1.y, 60, 0, 6.2832); cx.fill();
+    cx.globalAlpha = 1;
   }
 
   function pointAt(l) {
@@ -636,12 +740,36 @@
     navCta = document.querySelector('.nav__cta');
     if (!film || !box || !still || !mark || !r.classList.contains('story')) { r.classList.remove('snake'); return }
     skies = [].slice.call(film.querySelectorAll('.act--sky')).map(function (a) {
-      var b = a.classList.contains('act--sky-b') ? 'b' : 'a';
+      var b = a.classList.contains('act--sky-b') ? 'b' : 'a', h2 = a.querySelector('.hl--sky'), r1 = null, r2 = null;
+      /* each line of words comes up out of its own mask */
+      function mask(e) {
+        if (!e) return null;
+        var rr = e.querySelector('.sky3__r');
+        if (rr && rr.parentNode === e) return rr;
+        rr = document.createElement('span'); rr.className = 'sky3__r';
+        while (e.firstChild) rr.appendChild(e.firstChild);
+        e.appendChild(rr); e.classList.add('sky3__m');
+        return rr;
+      }
+      if (h2 && b === 'a') {
+        var ln = h2.querySelector('.ln'), em = ln && ln.querySelector('.acc');
+        if (ln && em && !ln.querySelector('.sky3__m')) {
+          var lead = document.createElement('span');
+          while (ln.firstChild && ln.firstChild !== em) lead.appendChild(ln.firstChild);
+          ln.insertBefore(lead, em);
+          r1 = mask(lead); r2 = mask(em);
+        } else if (ln) { var ms = ln.querySelectorAll('.sky3__r'); r1 = ms[0] || null; r2 = ms[1] || null }
+      } else if (h2) {
+        r1 = mask(h2.querySelector('.ln:not(.ln--2)')); r2 = mask(h2.querySelector('.ln--2'));
+      }
+      var cv = a.querySelector('.sky3__line');
       return {
         act: a, fig: a.querySelector('.skystill'), beat: b, S0: 0, R: 1,
-        layers: [].slice.call(a.querySelectorAll('.sky3__l')).map(function (e) { return { el: e, d: parseFloat(e.style.getPropertyValue('--d')) || 50 } }),
-        glow: a.querySelector('.sky3__glow'), dim: a.querySelector('.sky3__dim'),
-        ln1: a.querySelector('.hl--sky .ln'), ln2: a.querySelector(b === 'a' ? '.hl--sky .acc' : '.hl--sky .ln--2')
+        layers: [].slice.call(a.querySelectorAll('.sky3__l')).map(function (e) {
+          return { el: e, d: parseFloat(e.style.getPropertyValue('--d')) || 50, dark: e.classList.contains('sky3__dk'), near: e.classList.contains('sky3__near') };
+        }),
+        glow: a.querySelector('.sky3__glow'), words: a.querySelector('.skystill__words'), r1: r1, r2: r2, up1: false, up2: false,
+        cv: cv, cx: cv && cv.getContext ? cv.getContext('2d') : null, lineKey: '', cols: null
       };
     }).filter(function (k) { return k.fig && k.layers.length });
     /* a layer is decoded as soon as it arrives, off the main thread, so the
@@ -667,9 +795,11 @@
     [ctabar, navCta].forEach(function (e) { if (e) e.classList.remove('snk-hold') }); hold = false;
     [still, alt, hero, heroCta, mark].forEach(function (e) { if (e) { e.style.opacity = ''; e.style.transform = ''; e.__snk = null } });
     skies.forEach(function (k) {
-      k.layers.map(function (l) { return l.el }).concat([k.glow, k.dim, k.ln1, k.ln2]).forEach(function (e) {
+      k.layers.map(function (l) { return l.el }).concat([k.glow, k.r1, k.r2, k.words]).forEach(function (e) {
         if (e) { e.style.transform = ''; e.style.opacity = ''; e.__snk = null }
       });
+      [k.r1, k.r2].forEach(function (e) { if (e) e.parentNode.classList.remove('is-up') }); k.up1 = k.up2 = false;
+      if (k.cx) { k.cx.clearRect(0, 0, k.cv.width, k.cv.height); k.lineKey = '' }
     });
   }
 
