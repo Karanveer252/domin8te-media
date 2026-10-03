@@ -393,7 +393,7 @@
     $('#helpBody').innerHTML = '<h2>Need a hand?</h2>' +
       (s.why ? '<p class="whyx"><b>Why we ask this:</b> ' + fill(s.why) + '</p>' : '<p class="whyx">Ask us anything. Or skip this part and we’ll do it together.</p>') +
       '<div class="acts">' +
-      (PASSIVE.includes(s.type) ? '' : '<button type="button" data-act="helpcall"><span>Do this part on the call<span>We skip it for now and do it with you.</span></span>' + I.arrow + '</button>') +
+      (PASSIVE.includes(s.type) || s.skip === false ? '' : '<button type="button" data-act="helpcall"><span>Do this part on the call<span>We skip it for now and do it with you.</span></span>' + I.arrow + '</button>') +
       '<a href="mailto:' + STUDIO_EMAIL + '?subject=' + encodeURIComponent('Setup help: ' + plain(s.q)) + '"><span>Email the studio<span>' + STUDIO_EMAIL + '. We reply within one business day.</span></span>' + I.arrow + '</a>' +
       '<button type="button" data-act="bookcall"><span>Book a setup call now<span>30 minutes, around service, not during it.</span></span>' + I.arrow + '</button></div>' +
       '<div class="qa"><p class="label" style="margin-bottom:6px">Common questions</p>' +
@@ -414,17 +414,16 @@
   }
   function validate(s) {
     if (!s.req) return true;
-    for (const k of s.req) {
+    const bad = s.req.filter(k => {
       const val = String(S.d[k] || '').trim();
-      const bad = !val || (k === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val));
-      if (bad) {
-        const inp = $('[data-k="' + k + '"]'); const err = $('#err');
-        if (inp) { inp.closest('.field').classList.add('bad'); inp.focus(); }
-        if (err) err.textContent = k === 'email' ? 'We need a working email. It’s how you sign in to your portal.' : 'We need this one to set things up.';
-        return false;
-      }
-    }
-    return true;
+      return !val || (k === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val));
+    });
+    if (!bad.length) return true;
+    bad.forEach(k => { const inp = $('[data-k="' + k + '"]'); if (inp) inp.closest('.field').classList.add('bad'); });
+    const first = $('[data-k="' + bad[0] + '"]'); if (first) first.focus();
+    const err = $('#err');
+    if (err) err.textContent = s.reqMsg || (bad[0] === 'email' ? 'We need a working email. It’s how you sign in to your portal.' : 'We need this one to set things up.');
+    return false;
   }
   function next() {
     clearTimeout(autoT);
@@ -479,7 +478,7 @@
     const t = e.target;
     if (t.dataset.k) {
       S.d[t.dataset.k] = t.value; saveSoon();
-      const f = t.closest('.field'); if (f && f.classList.contains('bad')) { f.classList.remove('bad'); const err = $('#err'); if (err) err.textContent = ''; }
+      const f = t.closest('.field'); if (f && f.classList.contains('bad') && t.value.trim()) { f.classList.remove('bad'); const err = $('#err'); if (err && !$('.field.bad', stage)) err.textContent = ''; }
     } else if (t.dataset.hk) {
       const [d, k] = t.dataset.hk.split('.'); ensureHours()[d][k] = t.value; saveSoon();
     }

@@ -1203,7 +1203,7 @@ html.snake .act--sky.lane-l .skystill__words{padding-left:10vw;padding-right:4vw
 html.snake .act--sky.lane-r .skystill__words{padding-left:4vw;padding-right:10vw}
 html.snake .act--sky .skystill::before,html.snake .act--sky .skystill::after{display:none}
 /* the bottom fade belongs to the scene, so it dissolves with it */
-html.snake .sky3::after{content:"";position:absolute;left:0;right:0;bottom:0;height:10vh;z-index:7;background:linear-gradient(0deg,var(--bg),rgba(10,10,10,0))}
+html.snake .sky3::after{content:"";position:absolute;left:0;right:0;bottom:0;height:18vh;z-index:7;background:linear-gradient(0deg,var(--bg) 0,rgba(10,10,10,.92) 18%,rgba(10,10,10,.7) 42%,rgba(10,10,10,.38) 68%,rgba(10,10,10,.12) 88%,rgba(10,10,10,0) 100%)}
 
 /* the pair: one room twice, overlapping on a diagonal, the empty room
    dimmed behind and the full one in front */

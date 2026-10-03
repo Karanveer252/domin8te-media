@@ -98,7 +98,7 @@
       n++; secs += s.when ? 0 : (s.t || 10); if (s.when) branches++; if (s.core) core++;
       return '<a class="st" href="index.html#s=' + s.id + '"><span class="no">' + String(n).padStart(2, '0') + '</span><span class="sq">' + q(s.q) + '</span><span class="meta">' +
         '<span class="tag">' + TYPE[s.type] + '</span>' + (s.core ? '<span class="tag core">Call path</span>' : '') +
-        (s.when ? '<span class="tag br">' + esc(s.whenText || 'Branch') + '</span>' : '') + (s.skip === false ? '' : '') + '</span></a>';
+        (s.when ? '<span class="tag br">' + esc(s.whenText || 'Branch') + '</span>' : '') + (s.req ? '<span class="tag">Required</span>' : '') + '</span></a>';
     }).join('') + '</section>';
   }).join('');
   document.getElementById('flow').innerHTML = html;

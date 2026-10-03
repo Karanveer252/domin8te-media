@@ -82,14 +82,14 @@ window.ONB = (function () {
         { k: 'mobile', l: 'Mobile number', type: 'tel', ac: 'tel', im: 'tel', opt: true, hint: 'Only for quick questions. We never share it.' }
       ] },
 
-    { id: 'channel', ch: 'you', type: 'choice', key: 'channel', core: true, t: 5, sum: 'Best way to reach you',
-      q: 'How do you like to *hear from us*?',
-      why: 'Kitchens are loud and phones are greasy. Tell us what you actually check.',
+    { id: 'channel', ch: 'you', type: 'choice', key: 'heard', core: true, t: 5, sum: 'How you heard about us',
+      q: 'How did you *hear about us*?',
+      why: 'So we know what’s working. One tap, promise.',
       opts: [
-        { v: 'text', l: 'Text message' },
-        { v: 'whatsapp', l: 'WhatsApp' },
+        { v: 'social', l: 'Social media' },
+        { v: 'word', l: 'Word of mouth' },
         { v: 'email', l: 'Email' },
-        { v: 'call', l: 'Phone call' }
+        { v: '2am', l: 'Googled “help” at 2am after close' }
       ] },
 
     { id: 'when', ch: 'you', type: 'multi', key: 'reach', core: true, t: 8, sum: 'Good times to reach you',
@@ -148,7 +148,8 @@ window.ONB = (function () {
       opts: ['Brunch', 'Coffee and pastries', 'Pizza', 'Burgers', 'Italian', 'Mexican', 'Indian', 'Thai',
         'Japanese', 'Chinese', 'Mediterranean', 'Middle Eastern', 'Seafood', 'BBQ', 'Vegan', 'Small plates'].map(l => ({ v: l.toLowerCase(), l })) },
 
-    { id: 'address', ch: 'place', type: 'fields', t: 25, sum: 'Address',
+    { id: 'address', ch: 'place', type: 'fields', t: 25, sum: 'Address', skip: false, req: ['street', 'city', 'postcode'],
+      reqMsg: 'We need your full address. It’s what puts you on the map when someone nearby gets hungry.',
       q: 'Where do people *find you*?',
       why: 'Your address has to match everywhere online, down to the comma. Google trusts listings that agree with each other.',
       fields: [
