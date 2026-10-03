@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Dashboard Site Variations | Domin8te Media</title>
+<link rel="icon" href="assets/mark-120.webp">
+<style>
+@font-face{font-family:"BVP";font-weight:200;font-display:swap;src:url(assets/fonts/bvp-200.woff2) format("woff2")}
+@font-face{font-family:"BVP";font-weight:400;font-display:swap;src:url(assets/fonts/bvp-400.woff2) format("woff2")}
+@font-face{font-family:"BVP";font-weight:600;font-display:swap;src:url(assets/fonts/bvp-600.woff2) format("woff2")}
+:root{--bg:#0A0A0A;--ink:#EDEAE4;--mut:#8F8C86;--line:rgba(237,234,228,.12);--acc:#FF5B1F}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "BVP",system-ui,sans-serif;
+  background-image:radial-gradient(circle,rgba(237,234,228,.08) 1px,transparent 1.6px);background-size:28px 28px}
+main{max-width:1180px;margin:0 auto;padding:56px 16px 80px}
+.top{display:flex;align-items:center;gap:14px}
+.top img{width:64px;height:auto}
+h1{font-weight:200;text-transform:uppercase;font-size:clamp(34px,6vw,64px);line-height:.95;margin:28px 0 10px}
+h1 em{font-style:normal;color:var(--acc)}
+p.lede{color:var(--mut);max-width:62ch;margin:0 0 40px}
+ol{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+a.row{display:grid;grid-template-columns:240px 1fr auto;gap:22px;align-items:center;padding:14px;border:1px solid var(--line);
+  color:inherit;text-decoration:none;transition:border-color .25s,transform .25s}
+a.row:hover,a.row:focus-visible{border-color:var(--acc);transform:translateX(4px)}
+a.row:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+a.row img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+.row h2{margin:0 0 4px;font-weight:600;font-size:20px}
+.row p{margin:0;color:var(--mut);font-size:15px}
+.go{color:var(--acc);font-weight:600;white-space:nowrap}
+.note{margin-top:40px;color:var(--mut);font-size:14px}
+@media (max-width:720px){a.row{grid-template-columns:1fr}.go{display:none}}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><img src="assets/mark-120.webp" width="120" height="66" alt=""><strong>Domin8te Media</strong></div>
+  <h1>Five ways to put the <em>dashboard</em> first</h1>
+  <p class="lede">Layout drafts for the next version of domin8temedia.com. Each one tells the same story (what we run for restaurants, and the client dashboard that makes it different) and ends on the full film and the lead form.</p>
+  <ol>
+    <li><a class="row" href="v1-night-service.html"><img src="img/mid/02-approve-posts-s.webp" width="800" height="450" alt=""><div><h2>1. Night Service</h2><p>The live dark editorial site, evolved. The cloche film opens; a sticky dashboard tour sits at its heart.</p></div><span class="go">Open</span></a></li>
+    <li><a class="row" href="v2-daylight.html"><img src="img/stills/00_title-card-s.webp" width="800" height="450" alt=""><div><h2>2. Daylight</h2><p>A light product launch in the dashboard's own colours. Tilt-to-flat hero, bento, one switch to dark.</p></div><span class="go">Open</span></a></li>
+    <li><a class="row" href="v3-control-room.html"><img src="img/mid/01-overview-s.webp" width="800" height="450" alt=""><div><h2>3. Control Room</h2><p>The product is the hero. Hotspots, a pinned twelve-screen tour, alerts, a hover index of every clip.</p></div><span class="go">Open</span></a></li>
+    <li><a class="row" href="v4-a-week.html"><img src="assets/ba-after-m.webp" width="960" height="540" alt=""><div><h2>4. A Week at Bayleaf</h2><p>An editorial story: one restaurant's week in the dashboard, Monday to Sunday.</p></div><span class="go">Open</span></a></li>
+    <li><a class="row" href="v5-explore.html"><img src="img/mid/27-background-style-s.webp" width="800" height="450" alt=""><div><h2>5. Explore It</h2><p>Hands-on: the hero is a clickable dashboard explorer, and the page borrows the dashboard's appearance settings.</p></div><span class="go">Open</span></a></li>
+  </ol>
+  <p class="note">Local drafts only, not live. The dashboard footage is the demo account with sample figures. Brief and media notes: BRIEF.md in this folder.</p>
+</main>
+</body>
+</html>

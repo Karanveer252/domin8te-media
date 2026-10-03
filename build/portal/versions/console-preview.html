@@ -566,6 +566,7 @@ table.grid tbody tr[data-href] { cursor: pointer; }
 .card-sync { margin-top: 6px; font-size: 13px; }
 .card-sync:empty { display: none; }
 .card-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.card-tools .card-del { color: var(--bad); }
 .card-tools select { flex: 1 1 110px; min-height: 30px; padding: 3px 26px 3px 8px; font-size: 13px; background-position: right 7px center; }
 .card-edit { display: grid; gap: 10px; }
 .card-edit .actions { margin-top: 2px; }
@@ -3643,7 +3644,7 @@ html[data-scene="scenes"] .col { background: var(--glass); }
       ${client ? `<p class="card-client">${esc(client)}</p>` : ''}<p class="card-title">${esc(t.title)}</p>
       <p class="card-meta">${t.kind === 'request' ? '<span class="chip you plain">Client request</span>' : ''}${t.status === 'cancelled' ? '<span class="chip plain">Cancelled</span>' : ''}${t.service ? `<span>${esc(svcLabel(t.service))}</span>` : ''}${t.priority && t.priority !== 'none' ? `<span class="chip ${t.priority === 'urgent' ? 'bad' : t.priority === 'high' ? 'warn' : 'plain'}">${esc(PRIORITIES.find(([k]) => k === t.priority)[1])}</span>` : ''}${d ? `<span class="${d.late && open ? 'late' : ''}">${esc(open && d.late ? d.text : 'due ' + when(t.due))}</span>` : ''}${t.assignee ? `<span>${esc(t.assignee)}</span>` : ''}</p>
       <p class="card-sync meta">${syncLine(t)}</p>
-      <p class="card-tools"><label class="sr-only" for="st-${esc(t.id)}">Move to</label><select id="st-${esc(t.id)}" data-move="${esc(t.id)}" aria-label="Move this card">${Object.entries(TASK_STATUS_LABEL).map(([k, l]) => `<option value="${k}"${t.status === k ? ' selected' : ''}>${l}</option>`).join('')}</select><button class="btn btn-quiet btn-sm" type="button" data-edit="${esc(t.id)}">Edit</button></p>
+      <p class="card-tools"><label class="sr-only" for="st-${esc(t.id)}">Move to</label><select id="st-${esc(t.id)}" data-move="${esc(t.id)}" aria-label="Move this card">${Object.entries(TASK_STATUS_LABEL).map(([k, l]) => `<option value="${k}"${t.status === k ? ' selected' : ''}>${l}</option>`).join('')}</select><button class="btn btn-quiet btn-sm" type="button" data-edit="${esc(t.id)}">Edit</button><button class="btn btn-quiet btn-sm card-del" type="button" data-delete="${esc(t.id)}" aria-label="Delete ${esc(t.title)}">Delete</button></p>
     </li>`;
   }
 
@@ -3748,7 +3749,7 @@ html[data-scene="scenes"] .col { background: var(--glass); }
         <div class="field"><label for="e-priority-${esc(t.id)}">Priority</label><select id="e-priority-${esc(t.id)}" name="priority">${PRIORITIES.map(([k, l]) => `<option value="${k}"${t.priority === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
         <div class="field"><label for="e-assignee-${esc(t.id)}">Who is on it</label><input id="e-assignee-${esc(t.id)}" name="assignee" type="text" value="${esc(t.assignee || '')}" maxlength="60"></div>
       </div>
-      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-danger btn-sm" type="button" data-remove-card style="margin-left:auto">Remove</button></div>
+      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-danger btn-sm" type="button" data-remove-card style="margin-left:auto">Delete</button></div>
       ${t.multica_issue_id ? `<div class="card-note"><div class="field"><label for="e-note-${esc(t.id)}">Note on ${esc(t.multica_identifier || 'the issue')} in Multica</label><textarea id="e-note-${esc(t.id)}" name="note" maxlength="4000" placeholder="Hermes and the team see this in the issue's thread."></textarea></div><button class="btn btn-quiet btn-sm" type="button" data-note>Add the note</button></div>` : ''}
     </form>`;
     const f = /** @type {HTMLFormElement} */ ($('form', li));
@@ -3786,16 +3787,7 @@ html[data-scene="scenes"] .col { background: var(--glass); }
         return;
       }
       if (target.closest('[data-remove-card]')) {
-        if (!await ask(`Remove "${t.title}"?`, t.kind === 'request' ? 'The request itself stays in the inbox; only the card goes.' :'The card goes from the board. Its Multica issue, if any, is left as it is.')) return;
-        try {
-          const client = await db();
-          check(await client.from('tasks').delete().eq('id', t.id).select('id'));
-          current.tasks = current.tasks.filter((/** @type {any} */ x) => x.id !== t.id);
-          all.tasks = all.tasks.filter((/** @type {any} */ x) => x.id !== t.id);
-          clean(f);
-          toast('Removed.');
-          route();
-        } catch (x) { toast(message(x), true); }
+        if (await deleteCard(t)) { clean(f); route(); }
       }
     });
   }
@@ -3831,6 +3823,20 @@ html[data-scene="scenes"] .col { background: var(--glass); }
     }, { signal });
   }
 
+  /** Deletes a card after asking. Returns whether it was deleted. @param {any} t */
+  async function deleteCard(t) {
+    if (!t) return false;
+    if (!await ask(`Delete "${t.title}"?`, t.kind === 'request' ? 'Only the card goes. The request stays in the inbox, and the client keeps seeing its last status.' : 'The card goes from the board for good. Its Multica issue, if any, is left as it is.', 'Delete')) return false;
+    try {
+      const client = await db();
+      check(await client.from('tasks').delete().eq('id', t.id).select('id'));
+      if (current && current.tasks) current.tasks = current.tasks.filter((/** @type {any} */ x) => x.id !== t.id);
+      if (all && all.tasks) all.tasks = all.tasks.filter((/** @type {any} */ x) => x.id !== t.id);
+      toast('Card deleted.');
+      return true;
+    } catch (x) { toast(message(x), true); return false; }
+  }
+
   /** Each board's listeners, so a redraw replaces them instead of adding another set. @type {WeakMap<HTMLElement, AbortController>} */
   const boardWires = new WeakMap();
   /** Removes a board's listeners (a redraw, or leaving the page). @param {HTMLElement} box */
@@ -3848,6 +3854,12 @@ html[data-scene="scenes"] .col { background: var(--glass); }
     const ac = new AbortController();
     boardWires.set(box, ac);
     const on = { signal: ac.signal };
+    box.addEventListener('click', async (e) => {
+      const del = /** @type {HTMLElement} */ (e.target).closest('[data-delete]');
+      if (!del) return;
+      e.stopPropagation();
+      if (await deleteCard(find(del.getAttribute('data-delete') || ''))) after();
+    }, on);
     let dragging = '';
     box.addEventListener('dragstart', (e) => {
       const li = /** @type {HTMLElement} */ (e.target).closest('.card');

@@ -289,6 +289,7 @@ table.grid tbody tr[data-href] { cursor: pointer; }
 .card-sync { margin-top: 6px; font-size: 13px; }
 .card-sync:empty { display: none; }
 .card-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.card-tools .card-del { color: var(--bad); }
 .card-tools select { flex: 1 1 110px; min-height: 30px; padding: 3px 26px 3px 8px; font-size: 13px; background-position: right 7px center; }
 .card-edit { display: grid; gap: 10px; }
 .card-edit .actions { margin-top: 2px; }

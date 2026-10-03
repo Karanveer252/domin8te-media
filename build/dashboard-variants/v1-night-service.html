@@ -1,0 +1,1686 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Restaurant marketing with one dashboard | Domin8te Media</title>
+<meta name="description" content="Domin8te Media runs the website, social posts, ads and Google listing for independent restaurants and cafes. Every client gets a private dashboard that shows what we did and what it brought in.">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="icon" href="assets/mark-120.webp" type="image/webp">
+<link rel="preload" href="assets/fonts/bvp-200.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/hero-poster.jpg" as="image" media="(prefers-reduced-motion: no-preference)">
+<script>
+/* mode flags, set before first paint: js, and motion when the visitor has not asked for less of it.
+   If the main script never arrives, motion is dropped again so nothing stays hidden. */
+(function () {
+  var h = document.documentElement;
+  h.classList.add('js');
+  try { if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) h.classList.add('motion'); } catch (e) {}
+  setTimeout(function () { if (!h.classList.contains('ready')) h.classList.remove('motion'); }, 3500);
+})();
+</script>
+<style>
+/* =====================================================================
+   NIGHT SERVICE. The live Editorial language, sharpened, with the
+   client dashboard as the centre of the page.
+   One family (Be Vietnam Pro 200 / 400 / 600 / 800 italic), one accent,
+   sharp corners (0 to 3px), dot grid on near black.
+   ===================================================================== */
+
+@font-face{font-family:"Be Vietnam Pro";font-style:normal;font-weight:200;font-display:swap;src:url("assets/fonts/bvp-200.woff2") format("woff2")}
+@font-face{font-family:"Be Vietnam Pro";font-style:normal;font-weight:400;font-display:swap;src:url("assets/fonts/bvp-400.woff2") format("woff2")}
+@font-face{font-family:"Be Vietnam Pro";font-style:normal;font-weight:600;font-display:swap;src:url("assets/fonts/bvp-600.woff2") format("woff2")}
+@font-face{font-family:"Be Vietnam Pro";font-style:italic;font-weight:800;font-display:swap;src:url("assets/fonts/bvp-800i.woff2") format("woff2")}
+
+:root{
+  color-scheme:dark;
+  --bg:#0A0A0A;
+  --raise:#111110;
+  --raise-2:#161615;
+  --ink:#EDEAE4;
+  --ink-2:#8F8C86;
+  --line:rgba(237,234,228,.12);
+  --line-2:rgba(237,234,228,.24);
+  --acc:#FF5B1F;
+  --acc-h:#FF7A45;
+  --bad:#FF9090;
+  --good:#9BD8A8;
+  --cream:#EFE5D9;
+
+  --font:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+  --out:cubic-bezier(.16,1,.3,1);
+
+  --gut:clamp(16px,4vw,64px);
+  --maxw:1440px;
+  --widew:1760px;
+  --hdr:64px;
+  --sec:clamp(104px,16vh,196px);
+  --indent:clamp(40px,10vw,168px);
+
+  --dots:radial-gradient(circle,rgba(237,234,228,.095) 1px,rgba(237,234,228,0) 1.6px);
+  --arr:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 8h12M9 3.5 13.5 8 9 12.5' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='square'/%3E%3C/svg%3E");
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 6 8 10.5 12.5 6' fill='none' stroke='%23EDEAE4' stroke-width='1.4' stroke-linecap='square'/%3E%3C/svg%3E");
+}
+
+/* ---------- base ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:clip;scrollbar-color:rgba(237,234,228,.24) transparent}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+body{
+  margin:0;overflow-x:clip;
+  background:var(--dots) 0 0/28px 28px,var(--bg);
+  color:var(--ink-2);
+  font:400 17px/1.6 var(--font);
+  font-kerning:normal;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  caret-color:var(--acc);
+}
+img,video{display:block;max-width:100%}
+img{height:auto}
+a{color:var(--ink);text-decoration-color:rgba(237,234,228,.34);text-underline-offset:.26em}
+a:hover{text-decoration-color:currentColor}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+::selection{background:var(--acc);color:#0A0A0A}
+h1,h2,h3,p{margin:0}
+button{font:inherit}
+.sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip{
+  position:fixed;left:16px;top:12px;z-index:60;padding:14px 18px;
+  background:var(--acc);color:#0A0A0A;text-decoration:none;
+  font:600 13px/1 var(--font);letter-spacing:.1em;
+  translate:0 -200%;
+}
+.skip:focus{translate:0 0}
+.wrap{width:min(var(--maxw),100% - 2 * var(--gut));margin-inline:auto}
+section[id]{scroll-margin-top:calc(var(--hdr) + 8px)}
+
+/* the one uppercase voice: display type, buttons, the wordmark */
+.disp,.btn,.pill,.brand__word,.step__h,.ticket__ttl,.ba__tab{text-transform:uppercase}
+
+/* ---------- type ---------- */
+.disp{
+  font-weight:200;line-height:.94;letter-spacing:-.006em;word-spacing:-.05em;
+  color:var(--ink);font-size:clamp(38px,min(6vw,9.8vh),112px);
+  font-synthesis:none;
+}
+.disp .ln{display:block}
+.disp .ln>span{display:block}
+.disp .ln--2{color:var(--ink-2)}
+.disp .ln--strong{font-weight:600}
+.acc{font-weight:800;font-style:italic;color:var(--acc);letter-spacing:-.012em}
+
+/* a small block led in by a hairline that runs off the left edge */
+.lede{margin:clamp(22px,3.6vh,40px) 0 0 var(--indent);max-width:40ch;color:var(--ink);font-size:clamp(17px,1.3vw,20px);line-height:1.55}
+.rule{position:relative}
+.rule::before{content:"";position:absolute;top:.8em;right:calc(100% + 18px);width:100vw;height:1px;background:var(--line-2);pointer-events:none}
+
+.note{margin-top:14px;font-size:13px;line-height:1.4;color:var(--ink-2);letter-spacing:.01em}
+
+/* lines rise out of a mask at their own baseline, one after another */
+.motion [data-rise] .ln{clip-path:inset(-.4em -.8em 0 -.8em);padding-bottom:.12em;margin-bottom:-.12em}
+.motion [data-rise] .ln>span{translate:0 115%;transition:translate 1.15s var(--out)}
+.motion [data-rise] .ln:nth-child(2)>span{transition-delay:.12s}
+.motion [data-rise] .ln:nth-child(3)>span{transition-delay:.24s}
+.motion [data-rise].is-in .ln>span{translate:0 0}
+
+/* ---------- controls ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:14px;
+  min-height:52px;padding:0 24px;border:0;border-radius:0;background:none;
+  font:600 13px/1 var(--font);letter-spacing:.12em;
+  text-decoration:none;white-space:nowrap;cursor:pointer;
+  transition:background-color .2s var(--ease),color .2s var(--ease),border-color .2s var(--ease);
+}
+.btn:active{translate:0 1px}
+.btn--fill{background:var(--acc);color:#0A0A0A}
+.btn--fill:hover{background:var(--acc-h)}
+.btn--fill::after{
+  content:"";flex:none;width:14px;height:14px;background:currentColor;
+  -webkit-mask:var(--arr) center/contain no-repeat;mask:var(--arr) center/contain no-repeat;
+  transition:translate .3s var(--out);
+}
+.btn--fill:hover::after{translate:4px 0}
+.btn--line{border:1px solid var(--line-2);color:var(--ink)}
+.btn--line:hover{border-color:var(--ink)}
+.btn--text{
+  min-height:44px;padding:0 2px;color:var(--ink);
+  background:linear-gradient(var(--line-2),var(--line-2)) left calc(50% + 13px)/100% 1px no-repeat;
+}
+.btn--text:hover{background-image:linear-gradient(var(--ink),var(--ink))}
+.btn--lg{min-height:60px;padding:0 30px;font-size:14px}
+.btn[disabled]{opacity:.55;cursor:default}
+.btn[disabled]::after{display:none}
+
+/* =====================================================================
+   HEADER
+   ===================================================================== */
+.hdr{position:fixed;inset:0 0 auto 0;z-index:50;height:var(--hdr);transition:opacity .5s var(--ease)}
+.hdr::before,.hdr::after{content:"";position:absolute;inset:0;pointer-events:none}
+.hdr::before{background:linear-gradient(180deg,rgba(6,6,6,.8),rgba(6,6,6,0))}
+.hdr::after{background:var(--bg);border-bottom:1px solid var(--line);opacity:0;transition:opacity .35s var(--ease)}
+.hdr.is-solid::after{opacity:1}
+.hdr__in{position:relative;z-index:1;height:100%;width:min(var(--widew),100% - 2 * var(--gut));margin-inline:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:inline-flex;align-items:center;gap:12px;min-height:44px;color:var(--ink);text-decoration:none}
+.brand__mark{width:32px;height:auto;flex:none}
+.brand__word{font:600 13px/1 var(--font);letter-spacing:.16em;white-space:nowrap}
+.brand__sub{color:var(--ink-2);font-weight:400}
+.nav{display:flex;align-items:center;gap:10px}
+.pill{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  min-height:44px;padding:0 18px;border-radius:2px;
+  font:600 12px/1 var(--font);letter-spacing:.12em;
+  text-decoration:none;white-space:nowrap;
+  transition:background-color .2s var(--ease),border-color .2s var(--ease);
+}
+.pill__ico{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;flex:none}
+.pill--line{border:1px solid var(--line-2);color:var(--ink)}
+.pill--line:hover{border-color:var(--ink)}
+.pill--fill{background:var(--acc);color:#0A0A0A}
+.pill--fill:hover{background:var(--acc-h)}
+/* the scroll line along the bottom of the bar edge */
+.hdr__prog{position:absolute;left:0;right:0;bottom:0;z-index:2;height:2px;overflow:hidden;pointer-events:none}
+.hdr__prog i{display:block;height:100%;background:var(--acc);translate:-100% 0}
+@supports (animation-timeline:scroll()){
+  .hdr__prog i{animation:prog linear both;animation-timeline:scroll(root block)}
+}
+@keyframes prog{from{translate:-100% 0}to{translate:0 0}}
+@media (max-width:640px){
+  .pill--line{width:44px;padding:0}
+  .pill--line .pill__txt{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+}
+@media (max-width:420px){
+  .brand{gap:8px}
+  .brand__mark{width:28px}
+  .brand__word{font-size:11px;letter-spacing:.12em;line-height:1.25}
+  .brand__sub{display:block}
+  .pill--fill{padding:0 13px;font-size:11px;letter-spacing:.08em}
+}
+
+/* the cinema: the page around the film goes to black */
+.dimmer{position:fixed;inset:0;z-index:40;background:#000;opacity:0;pointer-events:none;transition:opacity .9s var(--ease)}
+.is-cinema .dimmer{opacity:1}
+.is-cinema .hdr:not(:hover):not(:focus-within){opacity:.16}
+
+/* =====================================================================
+   HERO: the cloche film, words over its dark left side
+   ===================================================================== */
+.hero{position:relative;isolation:isolate;min-height:100vh;min-height:100svh;display:flex;align-items:flex-end;overflow:clip;background:#060606}
+.hero__media{position:absolute;inset:0;z-index:-1}
+.hero__vid{width:100%;height:100%;object-fit:cover;object-position:68% 50%}
+.hero__still{display:none}
+.hero__media::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(6,6,6,.88) 0%,rgba(6,6,6,.62) 30%,rgba(6,6,6,.1) 56%,rgba(6,6,6,0) 68%),
+    linear-gradient(0deg,#0A0A0A 0%,rgba(10,10,10,.5) 18%,rgba(10,10,10,0) 42%);
+}
+.hero__in{width:min(var(--widew),100% - 2 * var(--gut));margin-inline:auto;padding:calc(var(--hdr) + 40px) 0 clamp(44px,10vh,112px)}
+.hero__h{font-size:clamp(40px,min(5.6vw,9.8vh),112px);max-width:9.4em}
+.hero__h .ln--2{font-size:.6em;margin-top:.42em;letter-spacing:0;color:var(--ink-2)}
+.hero__body{margin-left:clamp(0px,7vw,180px)}
+.hero__sub{margin-top:clamp(22px,3.6vh,36px);max-width:34ch;color:var(--ink);font-size:clamp(17px,1.25vw,19px);line-height:1.55}
+.hero__cta{display:flex;flex-wrap:wrap;align-items:center;gap:14px 30px;margin-top:clamp(22px,3.4vh,34px)}
+
+@keyframes rise{from{translate:0 115%}to{translate:0 0}}
+@keyframes up{from{opacity:0;translate:0 16px}to{opacity:1;translate:0 0}}
+.motion .hero__h .ln{clip-path:inset(-.4em -.8em 0 -.8em);padding-bottom:.12em;margin-bottom:-.12em}
+.motion .hero__h .ln>span{animation:rise 1.25s var(--out) .1s both}
+.motion .hero__h .ln:nth-child(2)>span{animation-delay:.22s}
+.motion .hero__h .ln:nth-child(3)>span{animation-delay:.4s}
+.motion .hero__body{animation:up 1s var(--out) .7s both}
+
+@media (max-width:759px){
+  .hero__vid{object-position:72% 40%}
+  .hero__media::after{
+    background:linear-gradient(0deg,#0A0A0A 0%,rgba(10,10,10,.86) 34%,rgba(10,10,10,.35) 60%,rgba(10,10,10,0) 78%);
+  }
+  .hero__h{font-size:clamp(34px,10.2vw,56px)}
+}
+/* landscape phones: keep the words and both buttons on the first screen */
+@media (max-height:520px) and (min-width:560px){
+  .hero__in{padding:calc(var(--hdr) + 12px) 0 24px}
+  .hero__h{font-size:30px}
+  .hero__sub{margin-top:12px;font-size:16px}
+  .hero__cta{margin-top:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  .hero__vid{display:none}
+  .hero__still{
+    display:block;position:absolute;right:max(0px,5vw);top:50%;translate:0 -50%;
+    width:auto;height:min(82%,60vw);aspect-ratio:1;object-fit:contain;
+    -webkit-mask-image:radial-gradient(closest-side,#000 62%,transparent 100%);
+    mask-image:radial-gradient(closest-side,#000 62%,transparent 100%);
+  }
+  @media (max-width:759px){.hero__still{top:34%;right:50%;translate:50% -50%;height:min(54%,92vw)}}
+}
+
+/* =====================================================================
+   SKY BANDS: two statements over the cloud stills
+   ===================================================================== */
+.band{position:relative;isolation:isolate;display:flex;min-height:clamp(560px,92vh,1000px);overflow:clip}
+.band__bg{
+  position:absolute;inset:0;z-index:-1;overflow:clip;pointer-events:none;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 16%,#000 80%,transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0,#000 16%,#000 80%,transparent 100%);
+}
+.band__img{position:absolute;left:0;top:-10%;width:100%;height:120%;max-width:none;object-fit:cover;object-position:50% 60%}
+.band__in{position:relative;padding-block:clamp(96px,16vh,180px) clamp(80px,12vh,140px)}
+.band__h{font-size:clamp(40px,min(6.6vw,11vh),132px);max-width:9.6em}
+.band--meet .ln--strong{font-size:1.22em}
+.band--meet .lede{max-width:30ch}
+
+.band--taking{min-height:clamp(480px,76vh,860px);align-items:center}
+.band--taking .band__img{object-position:50% 72%}
+.band--taking .band__in{display:flex;justify-content:flex-end;padding-block:clamp(64px,10vh,120px)}
+.band--taking .band__h{font-size:clamp(38px,min(6vw,10vh),120px);max-width:10.5em}
+.band--taking .ln--acc{color:var(--acc)}
+@media (max-width:759px){
+  .band__img{object-position:50% 74%}
+  .band--taking{align-items:flex-start}
+  .band--taking .band__in{justify-content:flex-start}
+}
+
+/* scroll-linked drift on the clouds: CSS where the browser can, a small
+   on-screen-only frame loop where it cannot (sets --p), still otherwise */
+@media (prefers-reduced-motion:no-preference){
+  .band__img{translate:0 calc((var(--p,.5) - .5) * 12%)}
+  .band--taking .band__img{translate:none;scale:calc(1.12 - var(--p,.5) * .12)}
+  @supports (animation-timeline:view()){
+    .band__img{animation:drift linear both;animation-timeline:view();animation-range:cover 0% cover 100%}
+    .band--taking .band__img{animation-name:settle}
+  }
+}
+@keyframes drift{from{translate:0 -6%}to{translate:0 6%}}
+@keyframes settle{from{scale:1.13}to{scale:1}}
+
+/* =====================================================================
+   THE DASHBOARD: the heart of the page
+   ===================================================================== */
+.dash{padding-top:var(--sec)}
+.dash__h{font-size:clamp(44px,min(7.4vw,12vh),150px)}
+.story{position:relative;margin-top:clamp(64px,11vh,128px)}
+.steps{list-style:none;margin:0;padding:0}
+.step__h{font:200 clamp(28px,2.6vw,44px)/1 var(--font);letter-spacing:-.004em;color:var(--ink);margin-bottom:16px;max-width:13em}
+.step__p{max-width:34ch;color:var(--ink-2)}
+.dash__more{display:flex;flex-wrap:wrap;align-items:center;gap:16px 30px;margin-top:clamp(48px,8vh,88px)}
+
+/* the browser frame: a dark window, warm light pooling under it */
+.frame{
+  position:relative;isolation:isolate;
+  background:#121211;border:1px solid var(--line-2);border-radius:3px;
+  box-shadow:0 46px 120px -50px rgba(255,91,31,.5),0 2px 0 rgba(0,0,0,.6);
+}
+.frame::before{
+  content:"";position:absolute;left:4%;right:4%;top:58%;bottom:-18%;z-index:-1;pointer-events:none;
+  background:radial-gradient(50% 50% at 50% 50%,rgba(255,91,31,.42),rgba(255,91,31,0));
+  filter:blur(30px);
+}
+.frame::after{
+  content:"";position:absolute;left:12%;right:12%;top:-1px;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,rgba(255,170,120,0),rgba(255,170,120,.75),rgba(255,170,120,0));
+}
+.frame__bar{display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;background:#171716;border-bottom:1px solid var(--line)}
+.frame__bar i{flex:none;width:8px;height:8px;border:1px solid rgba(237,234,228,.3)}
+.frame__url{flex:0 1 320px;margin:0 auto;padding:5px 10px;translate:-14px 0;background:#0E0E0D;border:1px solid var(--line);font:400 12px/1 var(--font);color:var(--ink-2);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frame__screen{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--cream)}
+.frame__vids video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .7s var(--ease)}
+.frame__vids video.is-on{opacity:1}
+
+/* the small frame each step carries on phones */
+.mframe{margin-top:22px;background:#121211;border:1px solid var(--line-2);border-radius:3px;box-shadow:0 26px 64px -32px rgba(255,91,31,.48)}
+.mframe__bar{display:flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-bottom:1px solid var(--line)}
+.mframe__bar i{width:6px;height:6px;border:1px solid rgba(237,234,228,.3)}
+.mframe__screen{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--cream)}
+.mframe__screen video{width:100%;height:100%;object-fit:cover}
+
+@media (min-width:960px){
+  .story{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);column-gap:clamp(40px,5vw,96px)}
+  .story__col{position:relative;padding-left:52px}
+  /* the rail fills down to the step you are on */
+  .rail-v{position:absolute;left:10px;top:0;bottom:0;width:1px;background:var(--line-2);overflow:hidden}
+  .rail-v i{position:absolute;inset:0;background:var(--acc);translate:0 calc(-100% + var(--prog,.0833) * 100%)}
+  .motion .rail-v i{transition:translate .9s var(--out)}
+  .step{position:relative;min-height:78vh;display:flex;align-items:center}
+  .step__mark{position:absolute;left:-47px;top:50%;width:11px;height:11px;margin-top:-5.5px;background:var(--bg);border:1px solid var(--line-2);transition:background-color .4s var(--ease),border-color .4s var(--ease)}
+  .step.is-active .step__mark,.step.is-past .step__mark{background:var(--acc);border-color:var(--acc)}
+  .step__h{color:var(--ink-2);transition:color .5s var(--ease)}
+  .step.is-active .step__h{color:var(--ink)}
+  .step__media{display:none}
+  .story__stage{container-type:inline-size;min-width:0}
+  .story__sticky{position:sticky;top:14vh;top:max(calc(var(--hdr) + 28px),calc(50vh - (100cqw * 9 / 16 + 34px) / 2 - 18px))}
+  .story__mnote{display:none}
+}
+@media (max-width:959px){
+  .story__stage,.rail-v,.step__mark{display:none}
+  .step{padding-bottom:56px}
+  .step:last-child{padding-bottom:0}
+}
+
+/* =====================================================================
+   AND THE REST OF IT: eight tiles, two of them wide
+   ===================================================================== */
+.rest{padding-top:var(--sec)}
+.rest__hint{display:none;margin-top:18px;font-size:15px;color:var(--ink-2)}
+@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){.rest__hint{display:block}}
+.tiles{
+  --g:14px;list-style:none;margin:clamp(40px,7vh,72px) 0 0;padding:0;
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:30px var(--g);
+  container-type:inline-size;
+}
+.tile{min-width:0}
+.tile figure{margin:0}
+.tile--wide{grid-column:span 2}
+.tile__media{
+  position:relative;overflow:hidden;background:#161615;
+  height:calc(((100cqw - 4 * var(--g)) / 5 * 2 + var(--g)) * 9 / 16);
+  border:1px solid var(--line);border-radius:2px;transition:border-color .3s var(--ease);
+}
+.tile__media video{width:100%;height:100%;object-fit:cover;transition:scale .9s var(--out)}
+.tile figcaption{margin-top:14px;max-width:30ch;font-size:15px;line-height:1.4;color:var(--ink-2);transition:color .3s var(--ease)}
+@media (hover:hover) and (pointer:fine){
+  .tile:hover .tile__media{border-color:rgba(255,91,31,.6)}
+  .tile:hover figcaption{color:var(--ink)}
+}
+@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+  .tile:hover .tile__media video{scale:1.035}
+}
+.tiles + .note{margin-top:28px}
+@media (max-width:1023px){
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tile__media{height:auto;aspect-ratio:4/3}
+  .tile--wide .tile__media{aspect-ratio:16/9}
+}
+@media (max-width:599px){
+  .tiles{
+    display:flex;gap:12px;overflow-x:auto;overscroll-behavior-x:contain;
+    scroll-snap-type:x mandatory;scroll-padding-inline:var(--gut);
+    margin-inline:calc(-1 * var(--gut));padding:0 var(--gut) 8px;scrollbar-width:none;
+  }
+  .tiles::-webkit-scrollbar{display:none}
+  .tile{flex:0 0 80%;scroll-snap-align:start}
+  .tile__media,.tile--wide .tile__media{aspect-ratio:16/10}
+}
+
+/* play buttons, only when motion is reduced and nothing plays by itself */
+.vplay{
+  position:absolute;left:12px;bottom:12px;z-index:3;width:48px;height:48px;padding:0;
+  display:grid;place-items:center;cursor:pointer;color:var(--ink);
+  background:rgba(10,10,10,.82);border:1px solid var(--line-2);border-radius:2px;
+}
+.vplay::before{content:"";width:14px;height:16px;background:currentColor;clip-path:polygon(0 0,100% 50%,0 100%)}
+.is-playing>.vplay::before{width:12px;height:14px;background:none;border-left:4px solid currentColor;border-right:4px solid currentColor;clip-path:none}
+.vplay:hover{border-color:var(--ink)}
+
+/* =====================================================================
+   THE FOUR JOBS: tickets on the rail at the pass
+   ===================================================================== */
+.jobs{padding-top:var(--sec)}
+.rail{margin-top:clamp(48px,8vh,96px)}
+.rail__bar{
+  position:relative;z-index:2;height:12px;margin-inline:calc(50% - 50vw);
+  background:linear-gradient(180deg,#3A3935 0,#1E1D1B 46%,#0F0F0E 100%);
+  border-top:1px solid rgba(237,234,228,.34);
+  box-shadow:0 12px 26px -10px rgba(0,0,0,.9);
+}
+.rail__bar::after{content:"";position:absolute;left:0;right:0;top:5px;height:1px;background:rgba(0,0,0,.7)}
+.tickets{list-style:none;margin:-3px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(14px,1.6vw,24px)}
+.ticket{
+  position:relative;display:flex;flex-direction:column;min-width:0;padding-bottom:30px;
+  background:#131312;border:1px solid var(--line);border-top:0;
+  -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/14px 100%;
+  mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/14px 100%;
+}
+.ticket__photo{aspect-ratio:4/3;overflow:hidden;background:#1A1A19;border-bottom:1px solid var(--line)}
+.ticket__photo img{width:100%;height:100%;object-fit:cover}
+.ticket__photo--ad img{object-position:50% 38%}
+.ticket__body{display:flex;flex-direction:column;flex:1;gap:12px;padding:22px 20px 0}
+.ticket__ttl{font:200 clamp(26px,2.2vw,36px)/1 var(--font);color:var(--ink)}
+.ticket__line{color:var(--ink);font-size:17px;line-height:1.45}
+.ticket__dash{display:flex;gap:10px;margin-top:auto;padding-top:16px;border-top:1px dashed var(--line-2);font-size:15px;line-height:1.5;color:var(--ink-2)}
+.ticket__dash svg{flex:none;width:16px;height:16px;margin-top:3px;fill:none;stroke:var(--acc);stroke-width:1.5}
+.motion .rail .rail__bar{clip-path:inset(-20px 100% -40px 0);transition:clip-path 1.2s var(--out)}
+.motion .rail.is-in .rail__bar{clip-path:inset(-20px 0 -40px 0)}
+.motion .rail .ticket{opacity:0;translate:72px 0;transition:opacity .8s var(--ease) calc(var(--i) * 120ms + 160ms),translate 1.1s var(--out) calc(var(--i) * 120ms + 160ms)}
+.motion .rail.is-in .ticket{opacity:1;translate:0 0}
+@media (max-width:899px){
+  .tickets{
+    display:flex;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;
+    scroll-padding-inline:var(--gut);margin-inline:calc(-1 * var(--gut));padding:0 var(--gut) 12px;scrollbar-width:none;
+  }
+  .tickets::-webkit-scrollbar{display:none}
+  .ticket{flex:0 0 min(80%,340px);scroll-snap-align:start}
+}
+
+/* =====================================================================
+   YOU RUN THE PLACE: the before and after pair
+   ===================================================================== */
+.handed{padding-top:var(--sec)}
+.ba-wrap{width:min(100%,1180px);margin:clamp(48px,8vh,96px) 0 0 auto}
+.ba-tabs{display:flex;justify-content:space-between}
+.ba__tab{
+  min-height:44px;padding:0 20px;cursor:pointer;
+  background:none;border:1px solid var(--line);border-bottom:0;border-radius:2px 2px 0 0;
+  color:var(--ink-2);font:600 12px/1 var(--font);letter-spacing:.12em;
+  transition:color .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease);
+}
+.ba__tab:hover{color:var(--ink)}
+.ba__tab.is-on{color:var(--ink);border-color:var(--line-2);box-shadow:inset 0 2px 0 var(--acc)}
+.ba{
+  --pos:50;position:relative;aspect-ratio:16/9;overflow:hidden;background:#111;
+  border:1px solid var(--line-2);cursor:ew-resize;touch-action:pan-y;
+  -webkit-user-select:none;user-select:none;
+}
+.ba__img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none}
+.ba__before{position:absolute;inset:0;clip-path:inset(0 calc(100% - var(--pos) * 1%) 0 0)}
+.ba__range{position:absolute;left:0;bottom:0;width:100%;height:1px;margin:0;opacity:0;pointer-events:none}
+.ba__handle{position:absolute;top:0;bottom:0;left:calc(var(--pos) * 1%);width:0;pointer-events:none}
+.ba__handle::before{content:"";position:absolute;top:0;bottom:0;left:-1px;width:2px;background:var(--ink);box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.ba__knob{
+  position:absolute;top:50%;left:0;width:48px;height:48px;translate:-50% -50%;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  background:rgba(10,10,10,.74);border:1px solid var(--ink);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+}
+.ba__knob::before,.ba__knob::after{content:"";width:7px;height:11px;background:var(--ink)}
+.ba__knob::before{clip-path:polygon(100% 0,0 50%,100% 100%)}
+.ba__knob::after{clip-path:polygon(0 0,100% 50%,0 100%)}
+.ba__range:focus-visible ~ .ba__handle .ba__knob{outline:2px solid var(--acc);outline-offset:3px}
+
+/* =====================================================================
+   THE PROBLEM PICKER
+   ===================================================================== */
+.pick{padding-top:var(--sec)}
+.pick__opts{border:0;min-width:0;margin:clamp(40px,7vh,72px) 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.opt{
+  display:flex;align-items:center;gap:16px;min-height:76px;padding:16px 20px;cursor:pointer;
+  background:rgba(237,234,228,.015);border:1px solid var(--line);
+  color:var(--ink);font-size:17px;line-height:1.3;
+  transition:border-color .2s var(--ease),background-color .2s var(--ease);
+}
+.opt:hover{border-color:var(--line-2)}
+.opt input{
+  -webkit-appearance:none;appearance:none;flex:none;width:20px;height:20px;margin:0;padding:0;cursor:pointer;
+  border:1px solid rgba(237,234,228,.4);border-radius:0;background:none;
+  transition:padding .2s var(--out),background-color .2s var(--ease),border-color .2s var(--ease);
+}
+.opt input:checked{border-color:var(--acc);padding:4px;background:var(--acc) content-box}
+.opt input:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.opt:has(input:checked){border-color:var(--acc);background:rgba(255,91,31,.06)}
+.pick__plan{margin-top:clamp(36px,6vh,64px);padding-top:clamp(28px,4vh,44px);min-height:220px;border-top:1px solid var(--line-2)}
+.plan--empty{color:var(--ink-2)}
+.plan[data-plan]{display:none}
+.plan.is-shown{display:block}
+html:not(.js) .plan[data-plan]{display:block;margin-bottom:56px}
+.plan__steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(24px,3vw,56px)}
+.pstep{position:relative;padding-top:24px}
+.pstep::before{content:"";position:absolute;left:0;top:0;width:10px;height:10px;background:var(--acc)}
+.pstep::after{content:"";position:absolute;left:18px;right:0;top:4.5px;height:1px;background:var(--line-2)}
+.pstep:last-child::after{display:none}
+.pstep__when{display:block;margin-bottom:10px;font:600 14px/1.2 var(--font);letter-spacing:.04em;color:var(--acc)}
+.pstep__what{max-width:34ch;color:var(--ink);font-size:17px;line-height:1.5}
+.plan__cta{margin-top:clamp(28px,4vh,44px)}
+@keyframes pin{from{opacity:0;translate:0 14px}to{opacity:1;translate:0 0}}
+.motion .plan.is-in .pstep{animation:pin .7s var(--out) both}
+.motion .plan.is-in .pstep:nth-child(2){animation-delay:.1s}
+.motion .plan.is-in .pstep:nth-child(3){animation-delay:.2s}
+.motion .plan.is-in .plan__cta{animation:pin .7s var(--out) .3s both}
+@media (max-width:959px){.pick__opts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:759px){
+  .pick__opts{grid-template-columns:1fr}
+  .opt{min-height:60px}
+  .plan__steps{grid-template-columns:1fr}
+  .pstep::after{display:none}
+}
+
+/* =====================================================================
+   THE FILM: cinema
+   ===================================================================== */
+.cine{position:relative;z-index:45;padding-block:var(--sec)}
+.cine__h{font-size:clamp(36px,min(5vw,8.6vh),96px);max-width:12em}
+.cine__player{position:relative;margin-top:clamp(36px,6vh,64px);aspect-ratio:16/9;background:#000;border:1px solid var(--line)}
+.cine__vid{position:absolute;inset:0;width:100%;height:100%;background:#000}
+.cine__play{
+  position:absolute;inset:0;z-index:2;width:100%;padding:0;border:0;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:linear-gradient(0deg,rgba(0,0,0,.5),rgba(0,0,0,.08) 60%);color:var(--ink);
+  transition:opacity .4s var(--ease);
+}
+.cine__btn{display:grid;place-items:center;width:clamp(72px,8.6vw,120px);aspect-ratio:1;background:var(--acc);transition:background-color .2s var(--ease),scale .4s var(--out)}
+.cine__btn i{width:32%;aspect-ratio:1;background:#0A0A0A;clip-path:polygon(16% 4%,16% 96%,94% 50%);translate:6% 0}
+.cine__play:hover .cine__btn{background:var(--acc-h)}
+@media (prefers-reduced-motion:no-preference){.cine__play:hover .cine__btn{scale:1.05}}
+.cine__lbl{font:600 13px/1 var(--font);letter-spacing:.12em;padding:10px 14px;background:rgba(10,10,10,.72)}
+.cine.is-playing .cine__play{opacity:0;pointer-events:none}
+.chapters{list-style:none;margin:18px 0 0;padding:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:8px}
+.ch{display:block;width:100%;min-height:76px;padding:10px 6px 8px 0;background:none;border:0;cursor:pointer;text-align:left;color:var(--ink-2);font:400 13px/1.35 var(--font);transition:color .2s var(--ease)}
+.ch__bar{display:block;height:2px;margin-bottom:12px;background:var(--line-2);overflow:hidden}
+.ch__bar i{display:block;height:100%;background:var(--acc);translate:calc(-100% + var(--fill,0) * 100%) 0;transition:translate .26s linear}
+.ch__t{display:block;margin-bottom:4px;font-weight:600;font-variant-numeric:tabular-nums}
+.ch__n{display:block}
+.ch:hover,.ch[aria-current]{color:var(--ink)}
+.ch[aria-current] .ch__t{color:var(--acc)}
+@media (max-width:1099px){
+  .chapters{
+    display:flex;gap:14px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;
+    margin-inline:calc(-1 * var(--gut));padding:0 var(--gut) 6px;scroll-padding-inline:var(--gut);scrollbar-width:none;
+  }
+  .chapters::-webkit-scrollbar{display:none}
+  .chapters li{flex:0 0 156px;scroll-snap-align:start}
+}
+
+/* =====================================================================
+   CONTACT
+   ===================================================================== */
+.contact{padding-block:var(--sec)}
+.contact__grid{
+  display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);
+  grid-template-areas:"lede form" "how form";
+  column-gap:clamp(40px,6vw,120px);row-gap:40px;margin-top:clamp(40px,7vh,80px);align-items:start;
+}
+.contact__lede{grid-area:lede;max-width:36ch;color:var(--ink);font-size:clamp(17px,1.3vw,20px);line-height:1.55}
+.contact__how{grid-area:how}
+.contact__form{grid-area:form;min-width:0}
+.how{list-style:none;margin:0;padding:0}
+.how li{padding:16px 0;border-top:1px solid var(--line);font-size:16px;line-height:1.5;color:var(--ink-2)}
+.how li:last-child{border-bottom:1px solid var(--line)}
+.how b{display:block;margin-bottom:2px;color:var(--ink);font-weight:600;font-size:17px}
+.contact__mail{margin-top:28px;font-size:16px}
+@media (max-width:959px){
+  .contact__grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"lede" "form" "how"}
+}
+
+.sent-note{display:none;margin:0 0 22px;padding:16px 18px;border:1px solid var(--line-2);color:var(--ink)}
+.sent-note:target{display:block}
+.sent-note--bad{border-color:var(--bad)}
+.form{display:grid;gap:22px}
+.form__row{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.field{display:grid;gap:8px;margin:0}
+.field label{color:var(--ink);font-size:15px;font-weight:600;line-height:1.3}
+.field input,.field select,.field textarea{
+  width:100%;min-height:54px;padding:14px 16px;margin:0;
+  background:#0F0F0E;border:1px solid var(--line-2);border-radius:0;
+  color:var(--ink);font:400 17px/1.4 var(--font);
+  transition:border-color .2s var(--ease);
+}
+.field select{-webkit-appearance:none;appearance:none;padding-right:44px;background:#0F0F0E var(--chev) right 16px center/16px 16px no-repeat;cursor:pointer}
+.field textarea{min-height:124px;resize:vertical}
+.field input:hover,.field select:hover,.field textarea:hover{border-color:rgba(237,234,228,.42)}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--acc);outline-offset:0;border-color:var(--acc)}
+.field [aria-invalid="true"]{border-color:var(--bad)}
+.field ::placeholder{color:var(--ink-2);opacity:1}
+.field__err{color:var(--bad);font-size:14px;line-height:1.4}
+.field__err:empty{display:none}
+.more{border:1px solid var(--line)}
+.more__sum{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:56px;padding:0 18px;cursor:pointer;color:var(--ink);font-size:15px;font-weight:600}
+.more__sum::-webkit-details-marker{display:none}
+.more__sum::after{content:"+";font-weight:200;font-size:28px;line-height:1;color:var(--ink-2);transition:rotate .3s var(--out)}
+.more[open] .more__sum::after{rotate:45deg}
+.more__opt{color:var(--ink-2);font-weight:400}
+.more__in{display:grid;gap:22px;padding:6px 18px 22px}
+.hp{position:absolute!important;left:-9999px;width:1px;height:1px;overflow:hidden}
+.form__foot{display:flex;flex-wrap:wrap;align-items:center;gap:16px 26px}
+.form__note{font-size:14px;color:var(--ink-2)}
+.formstatus{min-height:1.5em;color:var(--ink);font-size:16px}
+.formstatus.is-ok{color:var(--good)}
+.formstatus.is-bad{color:var(--bad)}
+@media (max-width:599px){.form__row{grid-template-columns:1fr}}
+
+/* =====================================================================
+   FOOTER
+   ===================================================================== */
+.foot{border-top:1px solid var(--line);padding:clamp(48px,8vh,88px) 0 44px}
+.foot__in{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px 56px;align-items:start}
+.foot__text{display:grid;gap:10px;max-width:72ch}
+.foot__line,.foot__note{font-size:14px;line-height:1.55;color:var(--ink-2)}
+@media (max-width:759px){.foot__in{grid-template-columns:1fr}}
+
+/* =====================================================================
+   REDUCED MOTION: nothing moves on its own
+   ===================================================================== */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-delay:0s!important}
+  .hdr__prog i{animation:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-grid" viewBox="0 0 20 20"><rect x="2.5" y="2.5" width="6" height="6" rx="1"/><rect x="11.5" y="2.5" width="6" height="6" rx="1"/><rect x="2.5" y="11.5" width="6" height="6" rx="1"/><rect x="11.5" y="11.5" width="6" height="6" rx="1"/></symbol>
+  </defs>
+</svg>
+
+<!-- ============ HEADER ============ -->
+<header class="hdr" id="hdr">
+  <div class="hdr__in">
+    <a class="brand" href="#top" aria-label="Domin8te Media, back to top">
+      <img class="brand__mark" src="assets/mark-120.webp" width="120" height="66" alt="">
+      <span class="brand__word">Domin<span class="eight">8</span>te <span class="brand__sub">Media</span></span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a class="pill pill--line" href="/dashboard/" aria-label="Dashboard"><svg class="pill__ico" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-grid"/></svg><span class="pill__txt">Dashboard</span></a>
+      <a class="pill pill--fill" href="#contact">Get your plan</a>
+    </nav>
+  </div>
+  <span class="hdr__prog" aria-hidden="true"><i></i></span>
+</header>
+
+<div class="dimmer" aria-hidden="true"></div>
+
+<main id="main" tabindex="-1">
+
+<!-- ============ HERO: the cloche film ============ -->
+<section class="hero" id="top" aria-labelledby="hero-h">
+  <div class="hero__media" aria-hidden="true">
+    <video class="hero__vid" id="heroVid" muted playsinline preload="none" disablepictureinpicture tabindex="-1"
+           poster="assets/hero-poster.jpg" data-src="assets/hero-scrub.mp4"></video>
+    <script>
+    /* the cloche plays once, straight away, unless the visitor asked for less motion or less data */
+    (function () {
+      var v = document.getElementById('heroVid');
+      if (!v) return;
+      var rm = false, sd = false;
+      try { rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+      try { sd = !!(navigator.connection && navigator.connection.saveData); } catch (e) {}
+      if (rm || sd) return;
+      v.muted = true;
+      v.src = v.getAttribute('data-src');
+      var p = v.play();
+      if (p && p.catch) p.catch(function () {});
+    })();
+    </script>
+    <img class="hero__still" src="assets/cl-mark.webp" width="780" height="780" alt="" loading="lazy" decoding="async">
+  </div>
+  <div class="hero__in">
+    <h1 class="disp hero__h" id="hero-h">
+      <span class="ln"><span>We’ll post the</span></span>
+      <span class="ln"><span><em class="acc">specials.</em></span></span>
+      <span class="ln ln--2"><span>You keep cooking them.</span></span>
+    </h1>
+    <div class="hero__body">
+      <p class="hero__sub">Website, social, ads and Google, run for you. And one dashboard where you see all of it.</p>
+      <p class="hero__cta">
+        <a class="btn btn--fill" href="#contact">Get your plan</a>
+        <a class="btn btn--text" href="/dashboard/demo/">Try the demo</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STATEMENT: the first sky ============ -->
+<section class="band band--meet" aria-labelledby="meet-h" data-px>
+  <div class="band__bg" aria-hidden="true">
+    <img class="band__img" src="assets/sky-a-still.jpg" width="1600" height="900" alt="" loading="lazy" decoding="async">
+  </div>
+  <div class="wrap band__in">
+    <h2 class="disp band__h" id="meet-h" data-rise>
+      <span class="ln ln--strong"><span>Meet.</span></span>
+      <span class="ln ln--2"><span>Your personal growth partner.</span></span>
+    </h2>
+    <p class="lede rule">At Domin8te Media, good enough is not an option.</p>
+  </div>
+</section>
+
+<!-- ============ THE DASHBOARD ============ -->
+<section class="dash" id="dashboard" aria-labelledby="dash-h">
+  <div class="wrap">
+    <h2 class="disp dash__h" id="dash-h" data-rise>
+      <span class="ln"><span>Your marketing.</span></span>
+      <span class="ln"><span>One <em class="acc">dashboard.</em></span></span>
+    </h2>
+    <p class="lede rule">Every client gets a private dashboard. It shows what we’re doing, what needs you, and what it brought in.</p>
+
+    <div class="story" id="story">
+      <div class="story__col">
+        <i class="rail-v" aria-hidden="true"><i></i></i>
+        <ol class="steps" id="steps">
+          <li class="step is-active">
+            <i class="step__mark" aria-hidden="true"></i>
+            <div class="step__txt">
+              <h3 class="step__h">Your marketing. One dashboard.</h3>
+              <p class="step__p">Open it and you see the last 30 days at a glance, and only the things that need you.</p>
+              <div class="step__media mframe">
+                <span class="mframe__bar" aria-hidden="true"><i></i><i></i><i></i></span>
+                <div class="mframe__screen vbox">
+                  <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                         data-poster="img/poster/01-overview-s.webp" data-mid="img/mid/01-overview-s.webp"
+                         data-src="video/01-overview.mp4" data-src-sm="video/sm/01-overview.mp4"
+                         aria-label="Dashboard demo: the home page with the last 30 days"></video>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="step">
+            <i class="step__mark" aria-hidden="true"></i>
+            <div class="step__txt">
+              <h3 class="step__h">Approve a week of posts. In one tap.</h3>
+              <p class="step__p">Next week’s posts arrive written and designed. Approve the week, or leave a note to change something.</p>
+              <div class="step__media mframe">
+                <span class="mframe__bar" aria-hidden="true"><i></i><i></i><i></i></span>
+                <div class="mframe__screen vbox">
+                  <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                         data-poster="img/poster/02-approve-posts-s.webp" data-mid="img/mid/02-approve-posts-s.webp"
+                         data-src="video/02-approve-posts.mp4" data-src-sm="video/sm/02-approve-posts.mp4"
+                         aria-label="Dashboard demo: approving next week’s posts"></video>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="step">
+            <i class="step__mark" aria-hidden="true"></i>
+            <div class="step__txt">
+              <h3 class="step__h">New hours? Updated everywhere.</h3>
+              <p class="step__p">Confirm new hours once. We change them on Google, Apple Maps and your website.</p>
+              <div class="step__media mframe">
+                <span class="mframe__bar" aria-hidden="true"><i></i><i></i><i></i></span>
+                <div class="mframe__screen vbox">
+                  <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                         data-poster="img/poster/04-opening-hours-s.webp" data-mid="img/mid/04-opening-hours-s.webp"
+                         data-src="video/04-opening-hours.mp4" data-src-sm="video/sm/04-opening-hours.mp4"
+                         aria-label="Dashboard demo: confirming new opening hours"></video>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="step">
+            <i class="step__mark" aria-hidden="true"></i>
+            <div class="step__txt">
+              <h3 class="step__h">Know what your marketing earns.</h3>
+              <p class="step__p">Bookings, calls and direction requests come straight from your accounts, each showing where it came from.</p>
+              <div class="step__media mframe">
+                <span class="mframe__bar" aria-hidden="true"><i></i><i></i><i></i></span>
+                <div class="mframe__screen vbox">
+                  <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                         data-poster="img/poster/05-results-s.webp" data-mid="img/mid/05-results-s.webp"
+                         data-src="video/05-results.mp4" data-src-sm="video/sm/05-results.mp4"
+                         aria-label="Dashboard demo: the results page"></video>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="step">
+            <i class="step__mark" aria-hidden="true"></i>
+            <div class="step__txt">
+              <h3 class="step__h">Always know what we’re working on.</h3>
+              <p class="step__p">Every project and every step: what we’re doing now, what’s next, and anything waiting for you.</p>
+              <div class="step__media mframe">
+                <span class="mframe__bar" aria-hidden="true"><i></i><i></i><i></i></span>
+                <div class="mframe__screen vbox">
+                  <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                         data-poster="img/poster/06-work-tracking-s.webp" data-mid="img/mid/06-work-tracking-s.webp"
+                         data-src="video/06-work-tracking.mp4" data-src-sm="video/sm/06-work-tracking.mp4"
+                         aria-label="Dashboard demo: following a project step by step"></video>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="step">
+            <i class="step__mark" aria-hidden="true"></i>
+            <div class="step__txt">
+              <h3 class="step__h">Real people. One message away.</h3>
+              <p class="step__p">Message the people doing the work, like a text. Every message stays on record.</p>
+              <div class="step__media mframe">
+                <span class="mframe__bar" aria-hidden="true"><i></i><i></i><i></i></span>
+                <div class="mframe__screen vbox">
+                  <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                         data-poster="img/poster/08-message-team-s.webp" data-mid="img/mid/08-message-team-s.webp"
+                         data-src="video/08-message-team.mp4" data-src-sm="video/sm/08-message-team.mp4"
+                         aria-label="Dashboard demo: messaging the team"></video>
+                </div>
+              </div>
+            </div>
+          </li>
+        </ol>
+        <p class="note story__mnote">Demo account with sample figures.</p>
+      </div>
+
+      <div class="story__stage">
+        <div class="story__sticky">
+          <div class="frame" id="frame">
+            <div class="frame__bar" aria-hidden="true"><i></i><i></i><i></i><span class="frame__url">domin8temedia.com/dashboard</span></div>
+            <div class="frame__screen vbox" id="stackScreen">
+              <div class="frame__vids" id="stack" aria-hidden="true">
+                <video class="is-on" muted loop playsinline preload="none" disablepictureinpicture
+                       data-poster="img/poster/01-overview.webp" data-mid="img/mid/01-overview.webp"
+                       data-src="video/01-overview.mp4" data-src-sm="video/sm/01-overview.mp4"
+                       aria-label="Dashboard demo: the home page with the last 30 days"></video>
+                <video muted loop playsinline preload="none" disablepictureinpicture
+                       data-poster="img/poster/02-approve-posts.webp" data-mid="img/mid/02-approve-posts.webp"
+                       data-src="video/02-approve-posts.mp4" data-src-sm="video/sm/02-approve-posts.mp4"
+                       aria-label="Dashboard demo: approving next week’s posts"></video>
+                <video muted loop playsinline preload="none" disablepictureinpicture
+                       data-poster="img/poster/04-opening-hours.webp" data-mid="img/mid/04-opening-hours.webp"
+                       data-src="video/04-opening-hours.mp4" data-src-sm="video/sm/04-opening-hours.mp4"
+                       aria-label="Dashboard demo: confirming new opening hours"></video>
+                <video muted loop playsinline preload="none" disablepictureinpicture
+                       data-poster="img/poster/05-results.webp" data-mid="img/mid/05-results.webp"
+                       data-src="video/05-results.mp4" data-src-sm="video/sm/05-results.mp4"
+                       aria-label="Dashboard demo: the results page"></video>
+                <video muted loop playsinline preload="none" disablepictureinpicture
+                       data-poster="img/poster/06-work-tracking.webp" data-mid="img/mid/06-work-tracking.webp"
+                       data-src="video/06-work-tracking.mp4" data-src-sm="video/sm/06-work-tracking.mp4"
+                       aria-label="Dashboard demo: following a project step by step"></video>
+                <video muted loop playsinline preload="none" disablepictureinpicture
+                       data-poster="img/poster/08-message-team.webp" data-mid="img/mid/08-message-team.webp"
+                       data-src="video/08-message-team.mp4" data-src-sm="video/sm/08-message-team.mp4"
+                       aria-label="Dashboard demo: messaging the team"></video>
+              </div>
+            </div>
+          </div>
+          <p class="note">Demo account with sample figures.</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="dash__more">
+      <a class="btn btn--line" href="/dashboard/demo/">Try the demo</a>
+      <a class="btn btn--text" href="#film">Watch the full film</a>
+    </p>
+  </div>
+</section>
+
+<!-- ============ AND THE REST OF IT ============ -->
+<section class="rest" aria-labelledby="rest-h">
+  <div class="wrap">
+    <h2 class="disp" id="rest-h" data-rise><span class="ln"><span>And the rest of it.</span></span></h2>
+    <p class="rest__hint">Hover over one to play it.</p>
+    <ul class="tiles" id="tiles">
+      <li class="tile tile--wide">
+        <figure>
+          <div class="tile__media vbox">
+            <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                   data-poster="img/mid/12-dark-mode.webp"
+                   data-src="video/12-dark-mode.mp4" data-src-sm="video/sm/12-dark-mode.mp4"
+                   aria-label="Dashboard demo: switching to dark mode"></video>
+          </div>
+          <figcaption>Late night service? Go dark.</figcaption>
+        </figure>
+      </li>
+      <li class="tile">
+        <figure>
+          <div class="tile__media vbox">
+            <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                   data-poster="img/mid/10-billing-s.webp"
+                   data-src="video/10-billing.mp4" data-src-sm="video/sm/10-billing.mp4"
+                   aria-label="Dashboard demo: the billing page"></video>
+          </div>
+          <figcaption>Simple billing. No surprises.</figcaption>
+        </figure>
+      </li>
+      <li class="tile">
+        <figure>
+          <div class="tile__media vbox">
+            <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                   data-poster="img/mid/21-reconnect-instagram-s.webp"
+                   data-src="video/21-reconnect-instagram.mp4" data-src-sm="video/sm/21-reconnect-instagram.mp4"
+                   aria-label="Dashboard demo: reconnecting Instagram"></video>
+          </div>
+          <figcaption>Instagram disconnected? Fix it in a tap.</figcaption>
+        </figure>
+      </li>
+      <li class="tile">
+        <figure>
+          <div class="tile__media vbox">
+            <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                   data-poster="img/mid/32-google-figures-down-s.webp"
+                   data-src="video/32-google-figures-down.mp4" data-src-sm="video/sm/32-google-figures-down.mp4"
+                   aria-label="Dashboard demo: a notice that the Google figures are down"></video>
+          </div>
+          <figcaption>Something broke? We tell you.</figcaption>
+        </figure>
+      </li>
+      <li class="tile">
+        <figure>
+          <div class="tile__media vbox">
+            <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                   data-poster="img/mid/24-files-and-milestones-s.webp"
+                   data-src="video/24-files-and-milestones.mp4" data-src-sm="video/sm/24-files-and-milestones.mp4"
+                   aria-label="Dashboard demo: project files and milestones"></video>
+          </div>
+          <figcaption>Your files. Your milestones.</figcaption>
+        </figure>
+      </li>
+      <li class="tile">
+        <figure>
+          <div class="tile__media vbox">
+            <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                   data-poster="img/mid/29-sign-in-s.webp"
+                   data-src="video/29-sign-in.mp4" data-src-sm="video/sm/29-sign-in.mp4"
+                   aria-label="Dashboard demo: signing in with an emailed link"></video>
+          </div>
+          <figcaption>No password. Ever.</figcaption>
+        </figure>
+      </li>
+      <li class="tile">
+        <figure>
+          <div class="tile__media vbox">
+            <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                   data-poster="img/mid/30-message-history-s.webp"
+                   data-src="video/30-message-history.mp4" data-src-sm="video/sm/30-message-history.mp4"
+                   aria-label="Dashboard demo: the message history"></video>
+          </div>
+          <figcaption>A record of every message.</figcaption>
+        </figure>
+      </li>
+      <li class="tile tile--wide">
+        <figure>
+          <div class="tile__media vbox">
+            <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+                   data-poster="img/mid/31-all-caught-up.webp"
+                   data-src="video/31-all-caught-up.mp4" data-src-sm="video/sm/31-all-caught-up.mp4"
+                   aria-label="Dashboard demo: the all caught up screen"></video>
+          </div>
+          <figcaption>Nothing to do? Enjoy it.</figcaption>
+        </figure>
+      </li>
+    </ul>
+    <p class="note">Demo account with sample figures.</p>
+  </div>
+</section>
+
+<!-- ============ THE FOUR JOBS: tickets on the rail ============ -->
+<section class="jobs" aria-labelledby="jobs-h">
+  <div class="wrap">
+    <h2 class="disp" id="jobs-h" data-rise><span class="ln"><span>Four jobs off your plate.</span></span></h2>
+    <p class="lede rule">Handed back finished, every week. Each one shows up in your dashboard.</p>
+
+    <div class="rail" data-reveal>
+      <i class="rail__bar" aria-hidden="true"></i>
+      <ul class="tickets">
+        <li class="ticket" style="--i:0">
+          <div class="ticket__photo"><img src="assets/mock-site-hero.webp" width="1400" height="933" alt="A bright dining room with oak chairs and white tablecloths, laid for service." loading="lazy" decoding="async"></div>
+          <div class="ticket__body">
+            <h3 class="ticket__ttl">Website</h3>
+            <p class="ticket__line">A menu that opens on any phone.</p>
+            <p class="ticket__dash"><svg width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-grid"/></svg><span>Ask for a website change in your dashboard and follow it until it’s live.</span></p>
+          </div>
+        </li>
+        <li class="ticket" style="--i:1">
+          <div class="ticket__photo"><img src="assets/mock-soc-squash.webp" width="700" height="700" alt="Roasted squash on a plate, on a wooden table by the window." loading="lazy" decoding="async"></div>
+          <div class="ticket__body">
+            <h3 class="ticket__ttl">Social media</h3>
+            <p class="ticket__line">We fill the gap in your feed.</p>
+            <p class="ticket__dash"><svg width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-grid"/></svg><span>Next week’s posts wait in your dashboard until you approve them.</span></p>
+          </div>
+        </li>
+        <li class="ticket" style="--i:2">
+          <div class="ticket__photo ticket__photo--ad"><img src="assets/mock-ad.webp" width="800" height="1000" alt="A pot of mussels with bread on a white tablecloth." loading="lazy" decoding="async"></div>
+          <div class="ticket__body">
+            <h3 class="ticket__ttl">Ads</h3>
+            <p class="ticket__line">We make the Friday ad and run it.</p>
+            <p class="ticket__dash"><svg width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-grid"/></svg><span>Any change to an ad comes to your dashboard first, and we never touch the budget without asking.</span></p>
+          </div>
+        </li>
+        <li class="ticket" style="--i:3">
+          <div class="ticket__photo"><img src="assets/mock-soc-front.webp" width="700" height="700" alt="A cafe shopfront with a bay tree by the door, next to its bright dining room." loading="lazy" decoding="async"></div>
+          <div class="ticket__body">
+            <h3 class="ticket__ttl">Local search</h3>
+            <p class="ticket__line">On the map, with the right hours.</p>
+            <p class="ticket__dash"><svg width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-grid"/></svg><span>Calls from Google and direction requests show up in your dashboard, with when they were last updated.</span></p>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ YOU RUN THE PLACE: before and after ============ -->
+<section class="handed" aria-labelledby="handed-h">
+  <div class="wrap">
+    <h2 class="disp" id="handed-h" data-rise>
+      <span class="ln"><span>You run the place.</span></span>
+      <span class="ln ln--2"><span>We run the rest.</span></span>
+    </h2>
+    <p class="lede rule">Anything that needs your okay comes to you ready to approve.</p>
+
+    <div class="ba-wrap">
+      <div class="ba-tabs">
+        <button type="button" class="ba__tab" data-to="100">Before</button>
+        <button type="button" class="ba__tab" data-to="0">After</button>
+      </div>
+      <div class="ba" id="ba" style="--pos:50">
+        <img class="ba__img" src="assets/ba-after.webp" srcset="assets/ba-after-m.webp 960w, assets/ba-after.webp 1600w" sizes="(max-width: 959px) 100vw, 82vw" width="1600" height="900" alt="The same dining room full of people eating." loading="lazy" decoding="async">
+        <div class="ba__before">
+          <img class="ba__img" src="assets/ba-before.webp" srcset="assets/ba-before-m.webp 960w, assets/ba-before.webp 1600w" sizes="(max-width: 959px) 100vw, 82vw" width="1600" height="900" alt="A restaurant dining room laid up and empty before service." loading="lazy" decoding="async">
+        </div>
+        <input class="ba__range" id="baRange" type="range" min="0" max="100" step="1" value="50" aria-label="Before and after">
+        <div class="ba__handle" aria-hidden="true"><span class="ba__knob"></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STATEMENT: the second sky ============ -->
+<section class="band band--taking" aria-labelledby="taking-h" data-px>
+  <div class="band__bg" aria-hidden="true">
+    <img class="band__img" src="assets/sky-b-still.jpg" width="1600" height="900" alt="" loading="lazy" decoding="async">
+  </div>
+  <div class="wrap band__in">
+    <h2 class="disp band__h" id="taking-h" data-rise>
+      <span class="ln"><span>Taking your time?</span></span>
+      <span class="ln ln--acc"><span>They’re taking your customers.</span></span>
+    </h2>
+  </div>
+</section>
+
+<!-- ============ THE PROBLEM PICKER ============ -->
+<section class="pick" id="try" aria-labelledby="pick-h">
+  <div class="wrap">
+    <h2 class="disp" id="pick-h" data-rise>
+      <span class="ln"><span>What’s slipping?</span></span>
+      <span class="ln ln--2"><span>That’s where we begin.</span></span>
+    </h2>
+    <p class="lede rule">Pick the one that sounds like your week. You’ll see our plan, and the form below fills itself in.</p>
+
+    <fieldset class="pick__opts">
+      <legend class="sr">Your biggest problem right now</legend>
+      <label class="opt"><input type="radio" name="problem" value="website"><span>The website’s embarrassing</span></label>
+      <label class="opt"><input type="radio" name="problem" value="seo"><span>Nobody finds us on Google</span></label>
+      <label class="opt"><input type="radio" name="problem" value="social"><span>We haven’t posted in weeks</span></label>
+      <label class="opt"><input type="radio" name="problem" value="ads"><span>Our ads look homemade</span></label>
+      <label class="opt"><input type="radio" name="problem" value="all"><span>Honestly, all of it</span></label>
+      <label class="opt"><input type="radio" name="problem" value="other"><span>Have something else on mind?</span></label>
+    </fieldset>
+
+    <div class="pick__plan" id="plan" aria-live="polite">
+      <p class="plan plan--empty">Nothing picked yet. The steps build here, from the first fix up.</p>
+
+      <div class="plan" data-plan="website" data-need="The website">
+        <h3 class="sr">The website’s embarrassing</h3>
+        <ol class="plan__steps">
+          <li class="pstep"><span class="pstep__when">First</span><p class="pstep__what">We open your site on a phone, the way a hungry stranger would, and note everything that gets in the way.</p></li>
+          <li class="pstep"><span class="pstep__when">Next</span><p class="pstep__what">We fix it or rebuild it around what people come for: menu, directions and booking, up top.</p></li>
+          <li class="pstep"><span class="pstep__when">From then on</span><p class="pstep__what">When a dish changes, we change the site and your Google listing with it.</p></li>
+        </ol>
+        <a class="btn btn--fill plan__cta" href="#contact" data-need="The website">Start with the website</a>
+      </div>
+
+      <div class="plan" data-plan="seo" data-need="Showing up on Google">
+        <h3 class="sr">Nobody finds us on Google</h3>
+        <ol class="plan__steps">
+          <li class="pstep"><span class="pstep__when">First</span><p class="pstep__what">We fix your Google listing: menu link, phone number, your photos and the category you’re filed under.</p></li>
+          <li class="pstep"><span class="pstep__when">Next</span><p class="pstep__what">We make the site quick to load and write it around what locals type, like “brunch near me”.</p></li>
+          <li class="pstep"><span class="pstep__when">From then on</span><p class="pstep__what">We answer every new review, good or bad, and keep the listing in step with the site.</p></li>
+        </ol>
+        <a class="btn btn--fill plan__cta" href="#contact" data-need="Showing up on Google">Start with Google</a>
+      </div>
+
+      <div class="plan" data-plan="social" data-need="Social media">
+        <h3 class="sr">We haven’t posted in weeks</h3>
+        <ol class="plan__steps">
+          <li class="pstep"><span class="pstep__when">First</span><p class="pstep__what">We use your photos, even a quick phone shot of the special, and design the post when there isn’t one.</p></li>
+          <li class="pstep"><span class="pstep__when">Next</span><p class="pstep__what">We write captions with the dish names off your menu board, so posts sound like your place, not a chain.</p></li>
+          <li class="pstep"><span class="pstep__when">From then on</span><p class="pstep__what">We post every week, each post tied to what’s on, like the soup coming back for winter.</p></li>
+        </ol>
+        <a class="btn btn--fill plan__cta" href="#contact" data-need="Social media">Start with social</a>
+      </div>
+
+      <div class="plan" data-plan="ads" data-need="The ads">
+        <h3 class="sr">Our ads look homemade</h3>
+        <ol class="plan__steps">
+          <li class="pstep"><span class="pstep__when">First</span><p class="pstep__what">We pick the one thing each ad should sell, like a set lunch or a night you want busier.</p></li>
+          <li class="pstep"><span class="pstep__when">Next</span><p class="pstep__what">We make the ads and run them on Facebook, Instagram and Google, using your own ad money.</p></li>
+          <li class="pstep"><span class="pstep__when">From then on</span><p class="pstep__what">We swap the ads when what’s on changes, so nobody sees an ad for last month’s special.</p></li>
+        </ol>
+        <a class="btn btn--fill plan__cta" href="#contact" data-need="The ads">Start with the ads</a>
+      </div>
+
+      <div class="plan" data-plan="all" data-need="All of it">
+        <h3 class="sr">Honestly, all of it</h3>
+        <ol class="plan__steps">
+          <li class="pstep"><span class="pstep__when">First</span><p class="pstep__what">We look at your website, Google listing, posts and ads together, and start where it’s worst.</p></li>
+          <li class="pstep"><span class="pstep__when">Next</span><p class="pstep__what">We fix that, then bring the other three into line so they all say the same thing.</p></li>
+          <li class="pstep"><span class="pstep__when">From then on</span><p class="pstep__what">You give us access once. After that, the posts, ads, listing changes and review replies are ours.</p></li>
+        </ol>
+        <a class="btn btn--fill plan__cta" href="#contact" data-need="All of it">Hand us all four</a>
+      </div>
+
+      <div class="plan" data-plan="other" data-need="Something else">
+        <h3 class="sr">Have something else on mind?</h3>
+        <ol class="plan__steps">
+          <li class="pstep"><span class="pstep__when">First</span><p class="pstep__what">You tell us what is going wrong, in your own words, on the phone or in the form below.</p></li>
+          <li class="pstep"><span class="pstep__when">Next</span><p class="pstep__what">We look at your site, Google listing, posts and ads together, and say plainly what we would do.</p></li>
+          <li class="pstep"><span class="pstep__when">From then on</span><p class="pstep__what">We take on the part you hand over and keep it running every week, the way the rest of this list works.</p></li>
+        </ol>
+        <a class="btn btn--fill plan__cta" href="#contact" data-need="Something else">Tell us what it is</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE FILM ============ -->
+<section class="cine" id="film" aria-labelledby="film-h">
+  <div class="wrap">
+    <h2 class="disp cine__h" id="film-h" data-rise><span class="ln"><span>See the whole thing in under a minute.</span></span></h2>
+    <div class="cine__player" id="player">
+      <video class="cine__vid" id="master" controls playsinline preload="metadata"
+             poster="img/stills/00_title-card.webp" src="video/master.mp4"
+             aria-label="Film: a tour of the Domin8te Media dashboard, 52 seconds, with music"></video>
+      <button class="cine__play" type="button" id="masterPlay">
+        <span class="cine__btn" aria-hidden="true"><i></i></span>
+        <span class="cine__lbl">Play with sound</span>
+      </button>
+    </div>
+    <ol class="chapters" id="chapters" aria-label="Chapters">
+      <li><button class="ch" type="button" data-t="0"><span class="ch__bar" aria-hidden="true"><i></i></span><span class="ch__t">0:00</span><span class="ch__n">Your marketing. One dashboard.</span></button></li>
+      <li><button class="ch" type="button" data-t="3"><span class="ch__bar" aria-hidden="true"><i></i></span><span class="ch__t">0:03</span><span class="ch__n">Your posts are ready</span></button></li>
+      <li><button class="ch" type="button" data-t="13"><span class="ch__bar" aria-hidden="true"><i></i></span><span class="ch__t">0:13</span><span class="ch__n">New hours, prepped for you</span></button></li>
+      <li><button class="ch" type="button" data-t="18"><span class="ch__bar" aria-hidden="true"><i></i></span><span class="ch__t">0:18</span><span class="ch__n">Results, in plain English</span></button></li>
+      <li><button class="ch" type="button" data-t="23"><span class="ch__bar" aria-hidden="true"><i></i></span><span class="ch__t">0:23</span><span class="ch__n">Every project, every step</span></button></li>
+      <li><button class="ch" type="button" data-t="28"><span class="ch__bar" aria-hidden="true"><i></i></span><span class="ch__t">0:28</span><span class="ch__n">Message the team</span></button></li>
+      <li><button class="ch" type="button" data-t="33"><span class="ch__bar" aria-hidden="true"><i></i></span><span class="ch__t">0:33</span><span class="ch__n">Your plan, in plain words</span></button></li>
+      <li><button class="ch" type="button" data-t="38"><span class="ch__bar" aria-hidden="true"><i></i></span><span class="ch__t">0:38</span><span class="ch__n">Settings and dark mode</span></button></li>
+      <li><button class="ch" type="button" data-t="43"><span class="ch__bar" aria-hidden="true"><i></i></span><span class="ch__t">0:43</span><span class="ch__n">Every update in one feed</span></button></li>
+      <li><button class="ch" type="button" data-t="48"><span class="ch__bar" aria-hidden="true"><i></i></span><span class="ch__t">0:48</span><span class="ch__n">Run your restaurant. We run the marketing.</span></button></li>
+    </ol>
+    <p class="note">Demo account with sample figures.</p>
+  </div>
+</section>
+
+<!-- ============ CONTACT ============ -->
+<section class="contact" id="contact" aria-labelledby="contact-h">
+  <div class="wrap">
+    <h2 class="disp" id="contact-h" data-rise>
+      <span class="ln"><span>Two names and a number.</span></span>
+      <span class="ln ln--2"><span>Yours and the one on the door.</span></span>
+    </h2>
+
+    <div class="contact__grid">
+      <p class="contact__lede">Within one business day you get a plan back: what needs fixing first, and why. Not a pitch deck with your logo on the cover.</p>
+
+      <div class="contact__how">
+        <h3 class="sr">How working together goes</h3>
+        <ol class="how">
+          <li><b>Tell us what’s slipping.</b>Pick it above, or put it in your own words.</li>
+          <li><b>Give us access once.</b>Your Google listing, social and ad accounts.</li>
+          <li><b>We do the work every week.</b>Anything that needs your okay lands in your dashboard, ready to approve.</li>
+          <li><b>You see what it brought in.</b>What we did, what changed and what came of it.</li>
+        </ol>
+        <p class="contact__mail">Prefer email? <a href="mailto:karanhelps@domin8temedia.com">karanhelps@domin8temedia.com</a></p>
+      </div>
+
+      <div class="contact__form">
+        <p class="sent-note" id="sent" tabindex="-1">Got it. We’ll read it properly and reply within one business day.</p>
+        <p class="sent-note sent-note--bad" id="notsent" tabindex="-1">That didn’t go through. Try again, or email karanhelps@domin8temedia.com and we’ll take it from there.</p>
+
+        <form class="form" id="leadform" action="send.php" method="post" novalidate data-msg-name="Add your name so we know who we’re replying to." data-msg-business="Add the name of your restaurant or cafe." data-msg-contact-missing="Add an email or phone number so we can reply." data-msg-contact-bad="That email or number looks incomplete. Please check it." data-msg-sending="Sending…" data-msg-success="Got it. We’ll read it properly and reply within one business day." data-msg-fail="That didn’t go through. Try again, or email karanhelps@domin8temedia.com and we’ll take it from there.">
+          <div class="form__row">
+            <p class="field"><label for="f-name">Your name</label><input id="f-name" name="name" type="text" autocomplete="name" required maxlength="120" aria-describedby="e-name"><span class="field__err" id="e-name"></span></p>
+            <p class="field"><label for="f-biz">Restaurant or cafe</label><input id="f-biz" name="business" type="text" autocomplete="organization" required maxlength="160" aria-describedby="e-biz"><span class="field__err" id="e-biz"></span></p>
+          </div>
+          <p class="field"><label for="f-contact">Email or phone</label><input id="f-contact" name="contact" type="text" autocomplete="email" inputmode="email" required maxlength="190" aria-describedby="e-contact"><span class="field__err" id="e-contact"></span></p>
+
+          <details class="more">
+            <summary class="more__sum"><span>Add a few details <span class="more__opt">(optional)</span></span></summary>
+            <div class="more__in">
+              <p class="field"><label for="f-web">Your website, if you have one</label><input id="f-web" name="website" type="text" inputmode="url" autocomplete="url" placeholder="yourplace.com" maxlength="300"></p>
+              <p class="field"><label for="f-need">What needs fixing first?</label>
+                <select id="f-need" name="need">
+                  <option value="">Pick one</option>
+                  <option>The website</option>
+                  <option>Showing up on Google</option>
+                  <option>Social media</option>
+                  <option>The ads</option>
+                  <option>All of it</option>
+                  <option>Something else</option>
+                </select>
+              </p>
+              <p class="field"><label for="f-msg">What’s the biggest headache?</label><textarea id="f-msg" name="challenge" rows="4" maxlength="4000" placeholder="Google says we close at 9. We’re open till 11."></textarea></p>
+            </div>
+          </details>
+
+          <p class="hp" aria-hidden="true"><label for="f-hp">Company URL</label><input id="f-hp" name="company_url" type="text" tabindex="-1" autocomplete="off"></p>
+
+          <div class="form__foot">
+            <button class="btn btn--fill btn--lg" type="submit" id="submitbtn">Send it over</button>
+            <p class="form__note">Three fields are enough. Everything else is optional.</p>
+          </div>
+          <p class="formstatus" id="formstatus" role="status"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="foot">
+  <div class="wrap foot__in">
+    <a class="brand" href="#top" aria-label="Domin8te Media, back to top">
+      <img class="brand__mark" src="assets/mark-120.webp" width="120" height="66" alt="" loading="lazy" decoding="async">
+      <span class="brand__word">Domin<span class="eight">8</span>te <span class="brand__sub">Media</span></span>
+    </a>
+    <div class="foot__text">
+      <p class="foot__line">&copy; <span id="yr">2026</span> Domin8te Media. For restaurants, cafes, coffee shops and bakeries.</p>
+      <p class="foot__note">The dashboard shown is our demo account with sample figures. Other examples and graphics on this page are illustrative and made in-house.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  var d = document, html = d.documentElement, W = window;
+  function mq(q) {
+    try { return W.matchMedia(q); } catch (e) { return { matches: false }; }
+  }
+  function onChange(m, fn) {
+    if (m.addEventListener) m.addEventListener('change', fn);
+    else if (m.addListener) m.addListener(fn);
+  }
+  function $(s, r) { return (r || d).querySelector(s); }
+  function $$(s, r) { return [].slice.call((r || d).querySelectorAll(s)); }
+
+  var rm = mq('(prefers-reduced-motion: reduce)').matches;
+  var canHover = mq('(hover: hover) and (pointer: fine)').matches;
+  var desk = mq('(min-width: 960px)');
+  var saveData = false;
+  try { saveData = !!(navigator.connection && navigator.connection.saveData); } catch (e) {}
+  var hasIO = 'IntersectionObserver' in W;
+  var motion = html.classList.contains('motion');
+
+  var yr = $('#yr');
+  if (yr) yr.textContent = String(new Date().getFullYear());
+
+  /* ---------- header: solid once the first screen is behind it ---------- */
+  var hdr = $('#hdr'), hero = $('#top');
+  if (hasIO && hdr && hero) {
+    new IntersectionObserver(function (es) {
+      hdr.classList.toggle('is-solid', !es[0].isIntersecting);
+    }, { rootMargin: '-72px 0px 0px 0px' }).observe(hero);
+  }
+
+  /* ---------- headings rise, the ticket rail slides in ---------- */
+  var rev = $$('[data-rise],[data-reveal]');
+  if (!hasIO || !motion) {
+    rev.forEach(function (el) { el.classList.add('is-in'); });
+  } else {
+    var rio = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('is-in'); rio.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.12 });
+    rev.forEach(function (el) { rio.observe(el); });
+  }
+
+  /* =====================================================================
+     VIDEO: one shared pattern. Sources are set only when needed (the
+     small file for small frames, small screens or save-data), never more
+     than three loops play at once, and nothing autoplays under reduced
+     motion: a play button appears instead.
+     ===================================================================== */
+  var playing = [];
+  function pick(v) {
+    var sm = v.getAttribute('data-src-sm');
+    var w = v.clientWidth || (v.parentNode && v.parentNode.clientWidth) || 0;
+    return (sm && (w < 700 || W.innerWidth < 760 || saveData)) ? sm : v.getAttribute('data-src');
+  }
+  function load(v) { if (!v.getAttribute('src')) v.setAttribute('src', pick(v)); }
+  function stop(v) {
+    if (!v) return;
+    if (!v.paused) v.pause();
+    var i = playing.indexOf(v);
+    if (i > -1) playing.splice(i, 1);
+  }
+  function go(v) {
+    load(v);
+    if (playing.indexOf(v) < 0) {
+      playing.push(v);
+      while (playing.length > 3) stop(playing[0]);
+    }
+    var p = v.play();
+    if (p && p.catch) p.catch(function () {});
+  }
+  /* tiles show their mid-clip frame as a still, so they pick up from there */
+  function seekMid(v) {
+    if (v.__mid) return;
+    v.__mid = true;
+    load(v);
+    var s = function () { try { if (isFinite(v.duration) && v.duration > 0) v.currentTime = v.duration * 0.5; } catch (e) {} };
+    if (v.readyState >= 1) s(); else v.addEventListener('loadedmetadata', s, { once: true });
+  }
+  function startLoop(v) { if (v.__tile) seekMid(v); go(v); }
+
+  /* stills: set when a group of frames comes near, the mid-clip still under reduced motion */
+  function setPosters(root) {
+    $$('video[data-poster]', root).forEach(function (v) {
+      var p = (rm && v.getAttribute('data-mid')) || v.getAttribute('data-poster');
+      if (p && v.getAttribute('poster') !== p) v.setAttribute('poster', p);
+    });
+  }
+  var groups = $$('#stack, #tiles, .step__media');
+  if (hasIO) {
+    var gio = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { setPosters(e.target); gio.unobserve(e.target); } });
+    }, { rootMargin: '900px 0px' });
+    groups.forEach(function (g) { gio.observe(g); });
+  } else groups.forEach(setPosters);
+
+  /* a frame knows when its video plays, for the icon of the play button and label */
+  function labelFor(v) { return v.getAttribute('aria-label') || 'Dashboard demo'; }
+  function syncBox(box) {
+    if (!box) return;
+    var vs = $$('video', box), on = vs.some(function (v) { return !v.paused; });
+    box.classList.toggle('is-playing', on);
+    var b = box.__btn;
+    if (b) {
+      var v = box.__target ? box.__target() : vs[0];
+      b.setAttribute('aria-label', (on ? 'Pause: ' : 'Play: ') + (v ? labelFor(v) : 'demo'));
+    }
+  }
+  $$('.vbox video').forEach(function (v) {
+    var box = v.closest('.vbox');
+    v.addEventListener('play', function () { syncBox(box); });
+    v.addEventListener('pause', function () { syncBox(box); });
+  });
+
+  /* loops that play while in view (phone steps, tiles on touch) */
+  var loops = $$('video.loop');
+  $$('#tiles video').forEach(function (v) { v.__tile = true; });
+  loops.forEach(function (v) { v.__mode = rm ? 'manual' : 'view'; });
+  if (canHover && !rm) {
+    $$('#tiles .tile').forEach(function (li) {
+      var v = $('video', li);
+      v.__mode = 'hover';
+      li.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse' || e.pointerType === 'pen' || !e.pointerType) startLoop(v); });
+      li.addEventListener('pointerleave', function () { stop(v); });
+    });
+  }
+  if (hasIO) {
+    var vio = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        var v = e.target, seen = e.isIntersecting && e.intersectionRatio >= 0.35;
+        if (seen && v.__mode === 'view') startLoop(v);
+        else if (!seen) stop(v);
+      });
+    }, { threshold: [0, 0.35, 0.6] });
+    loops.forEach(function (v) { vio.observe(v); });
+  }
+
+  /* reduced motion: a play button on every frame */
+  if (rm) {
+    $$('.tile__media, .mframe__screen').forEach(function (box) {
+      var v = $('video', box);
+      var b = d.createElement('button');
+      b.type = 'button'; b.className = 'vplay';
+      box.__btn = b;
+      b.addEventListener('click', function () { if (v.paused) startLoop(v); else stop(v); });
+      box.appendChild(b);
+      syncBox(box);
+    });
+  }
+
+  /* =====================================================================
+     THE DASHBOARD STORY: the step crossing the middle of the screen picks
+     which loop shows in the frame. Only that one plays.
+     ===================================================================== */
+  var story = $('#story'), steps = $$('#steps .step'), svids = $$('#stack video');
+  var frame = $('#frame'), screen = $('#stackScreen');
+  var act = -1, frameSeen = false;
+  function stackPlay() {
+    var v = svids[act];
+    if (!v) return;
+    if (frameSeen && desk.matches && !rm) { go(v); preloadNext(); } else stop(v);
+  }
+  /* line up the next loop so the crossfade lands on a moving picture */
+  function preloadNext() {
+    var n = svids[act + 1];
+    if (n && !n.getAttribute('src') && !saveData) { n.preload = 'metadata'; n.setAttribute('src', pick(n)); }
+  }
+  function setAct(i) {
+    if (i === act || i < 0) return;
+    var prev = svids[act];
+    steps.forEach(function (s, j) {
+      s.classList.toggle('is-active', j === i);
+      s.classList.toggle('is-past', j < i);
+    });
+    svids.forEach(function (v, j) { v.classList.toggle('is-on', j === i); });
+    if (prev) stop(prev);
+    act = i;
+    if (story) story.style.setProperty('--prog', ((i + 0.5) / steps.length).toFixed(4));
+    var v = svids[i];
+    if (v && !rm && desk.matches) { try { v.currentTime = 0; } catch (e) {} }
+    stackPlay();
+    if (screen) syncBox(screen);
+  }
+  if (steps.length && svids.length) {
+    if (screen) screen.__target = function () { return svids[act]; };
+    setAct(0);
+    if (hasIO) {
+      var sio = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) setAct(steps.indexOf(e.target)); });
+      }, { rootMargin: '-48% 0px -48% 0px' });
+      steps.forEach(function (s) { sio.observe(s); });
+      new IntersectionObserver(function (es) {
+        frameSeen = es[0].isIntersecting && es[0].intersectionRatio >= 0.35;
+        stackPlay();
+      }, { threshold: [0, 0.35, 0.7] }).observe(frame);
+    }
+    onChange(desk, stackPlay);
+    if (rm && screen) {
+      var sb = d.createElement('button');
+      sb.type = 'button'; sb.className = 'vplay';
+      screen.__btn = sb;
+      sb.addEventListener('click', function () {
+        var v = svids[act];
+        if (!v) return;
+        if (v.paused) go(v); else stop(v);
+      });
+      screen.appendChild(sb);
+      syncBox(screen);
+    }
+  }
+
+  /* =====================================================================
+     SKY DRIFT where CSS scroll timelines are missing: a frame loop that
+     runs only while a sky band is on screen and writes its progress.
+     ===================================================================== */
+  var cssView = false;
+  try { cssView = W.CSS && CSS.supports && CSS.supports('animation-timeline: view()'); } catch (e) {}
+  if (!rm && !cssView && hasIO) {
+    var live = [], raf = 0;
+    var tick = function () {
+      raf = 0;
+      var vh = W.innerHeight;
+      live.forEach(function (el) {
+        var r = el.getBoundingClientRect();
+        var p = (vh - r.top) / (vh + r.height);
+        el.style.setProperty('--p', Math.max(0, Math.min(1, p)).toFixed(4));
+      });
+      if (live.length) raf = requestAnimationFrame(tick);
+    };
+    var pxo = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        var i = live.indexOf(e.target);
+        if (e.isIntersecting && i < 0) live.push(e.target);
+        if (!e.isIntersecting && i > -1) live.splice(i, 1);
+      });
+      if (live.length && !raf) raf = requestAnimationFrame(tick);
+    });
+    $$('[data-px]').forEach(function (el) { pxo.observe(el); });
+  }
+
+  /* =====================================================================
+     BEFORE AND AFTER: drag anywhere on the picture, or use the arrow keys
+     on the slider; the tabs jump to either end.
+     ===================================================================== */
+  var ba = $('#ba');
+  if (ba) {
+    var rng = $('#baRange'), tabs = $$('.ba__tab'), touched = false, anim = 0, pos = 50, dragging = false;
+    var setPos = function (p) {
+      pos = Math.max(0, Math.min(100, p));
+      ba.style.setProperty('--pos', pos.toFixed(2));
+      rng.value = String(Math.round(pos));
+      tabs.forEach(function (t) {
+        var to = +t.getAttribute('data-to');
+        t.classList.toggle('is-on', to === 100 ? pos > 52 : pos < 48);
+      });
+    };
+    var tween = function (to, dur) {
+      cancelAnimationFrame(anim);
+      if (rm) { setPos(to); return; }
+      var from = pos, t0 = performance.now();
+      var step = function (now) {
+        var k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        setPos(from + (to - from) * e);
+        if (k < 1) anim = requestAnimationFrame(step);
+      };
+      anim = requestAnimationFrame(step);
+    };
+    var fromX = function (x) { var r = ba.getBoundingClientRect(); return (x - r.left) / r.width * 100; };
+    rng.addEventListener('input', function () { touched = true; cancelAnimationFrame(anim); setPos(+rng.value); });
+    ba.addEventListener('pointerdown', function (e) {
+      dragging = true; touched = true; cancelAnimationFrame(anim);
+      try { ba.setPointerCapture(e.pointerId); } catch (err) {}
+      if (e.pointerType === 'mouse') setPos(fromX(e.clientX));
+    });
+    ba.addEventListener('pointermove', function (e) { if (dragging) setPos(fromX(e.clientX)); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) {
+      ba.addEventListener(t, function () { dragging = false; });
+    });
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () { touched = true; tween(+t.getAttribute('data-to'), 700); });
+    });
+    /* the room fills: on first sight the divider sweeps from the empty room to the middle */
+    if (!rm && hasIO) {
+      setPos(100);
+      var bio = new IntersectionObserver(function (es) {
+        if (es[0].isIntersecting && es[0].intersectionRatio >= 0.5) {
+          bio.disconnect();
+          if (!touched) tween(50, 1700);
+        }
+      }, { threshold: [0, 0.5] });
+      bio.observe(ba);
+    } else setPos(50);
+  }
+
+  /* =====================================================================
+     THE PROBLEM PICKER
+     ===================================================================== */
+  var plans = $$('#plan .plan[data-plan]'), empty = $('#plan .plan--empty');
+  $$('input[name="problem"]').forEach(function (o) {
+    o.addEventListener('change', function () {
+      if (!o.checked) return;
+      if (empty) empty.hidden = true;
+      plans.forEach(function (p) {
+        var on = p.getAttribute('data-plan') === o.value;
+        p.classList.toggle('is-shown', on);
+        p.classList.remove('is-in');
+        if (on) { void p.offsetWidth; p.classList.add('is-in'); }
+      });
+    });
+  });
+  $$('.plan__cta').forEach(function (a) {
+    a.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      var sel = $('#f-need'), det = $('#leadform details'), c = $('#contact'), nm = $('#f-name');
+      if (sel) sel.value = a.getAttribute('data-need');
+      if (det) det.open = true;
+      if (c) c.scrollIntoView({ behavior: rm ? 'auto' : 'smooth', block: 'start' });
+      if (nm) setTimeout(function () { try { nm.focus({ preventScroll: true }); } catch (e) { nm.focus(); } }, rm ? 0 : 700);
+    });
+  });
+
+  /* =====================================================================
+     THE FILM: a play button that starts it with sound, the page going to
+     black around it, and chapters that follow along.
+     ===================================================================== */
+  var cine = $('#film'), player = $('#player'), mv = $('#master'), mplay = $('#masterPlay');
+  if (hasIO && player) {
+    new IntersectionObserver(function (es) {
+      html.classList.toggle('is-cinema', es[0].isIntersecting && es[0].intersectionRatio >= 0.6);
+    }, { threshold: [0, 0.6, 0.9] }).observe(player);
+  }
+  if (mv) {
+    var chs = $$('#chapters .ch'), times = chs.map(function (b) { return +b.getAttribute('data-t'); });
+    var startFilm = function () {
+      mv.muted = false;
+      var p = mv.play();
+      if (p && p.catch) p.catch(function () {});
+    };
+    var paint = function () {
+      var t = mv.currentTime || 0, cur = 0, end = (isFinite(mv.duration) && mv.duration) || 51.8;
+      for (var i = 0; i < times.length; i++) if (t >= times[i] - 0.05) cur = i;
+      chs.forEach(function (b, i) {
+        var a = times[i], z = i + 1 < times.length ? times[i + 1] : end;
+        var f = t <= a ? 0 : t >= z ? 1 : (t - a) / (z - a);
+        b.style.setProperty('--fill', f.toFixed(3));
+        if (i === cur) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+      });
+    };
+    if (mplay) mplay.addEventListener('click', startFilm);
+    mv.addEventListener('play', function () { if (cine) cine.classList.add('is-playing'); });
+    mv.addEventListener('ended', function () { if (cine) cine.classList.remove('is-playing'); });
+    mv.addEventListener('timeupdate', paint);
+    mv.addEventListener('seeked', paint);
+    chs.forEach(function (b, i) {
+      b.addEventListener('click', function () {
+        try { mv.currentTime = times[i]; } catch (e) {}
+        if (mv.paused) startFilm();
+        paint();
+      });
+    });
+    paint();
+  }
+
+  /* =====================================================================
+     THE FORM
+     ===================================================================== */
+  var form = $('#leadform');
+  if (form) {
+    var st = $('#formstatus'), btn = $('#submitbtn'), ds = form.dataset;
+    var F = { name: $('#f-name'), business: $('#f-biz'), contact: $('#f-contact') };
+    var err = function (input, msg) {
+      var e = d.getElementById(input.getAttribute('aria-describedby'));
+      if (e) e.textContent = msg || '';
+      if (msg) input.setAttribute('aria-invalid', 'true'); else input.removeAttribute('aria-invalid');
+    };
+    var okContact = function (v) {
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return true;
+      return /^[+\d\s().\/-]+$/.test(v) && v.replace(/\D/g, '').length >= 7;
+    };
+    var check = function () {
+      var bad = null;
+      var n = F.name.value.trim(), b = F.business.value.trim(), c = F.contact.value.trim();
+      err(F.name, n ? '' : ds.msgName); if (!n) bad = bad || F.name;
+      err(F.business, b ? '' : ds.msgBusiness); if (!b) bad = bad || F.business;
+      var cm = !c ? ds.msgContactMissing : (okContact(c) ? '' : ds.msgContactBad);
+      err(F.contact, cm); if (cm) bad = bad || F.contact;
+      return bad;
+    };
+    Object.keys(F).forEach(function (k) {
+      F[k].addEventListener('input', function () { if (F[k].getAttribute('aria-invalid')) err(F[k], ''); });
+    });
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var bad = check();
+      if (bad) { st.textContent = ''; st.className = 'formstatus'; bad.focus(); return; }
+      st.className = 'formstatus';
+      st.textContent = ds.msgSending;
+      btn.disabled = true;
+      fetch('send.php', { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j || !j.ok) throw new Error('not sent');
+          st.textContent = ds.msgSuccess;
+          st.className = 'formstatus is-ok';
+          form.reset();
+          var det = $('details', form); if (det) det.open = false;
+        })
+        .catch(function () {
+          st.textContent = ds.msgFail;
+          st.className = 'formstatus is-bad';
+        })
+        .then(function () { btn.disabled = false; });
+    });
+  }
+
+  html.classList.add('ready');
+})();
+</script>
+</body>
+</html>

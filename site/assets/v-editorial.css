@@ -922,19 +922,7 @@ html.snake .band:not(.band--hero){padding:clamp(150px,22vh,200px) 0 clamp(18px,3
 html.snake .band--studio{padding-top:clamp(18px,3vh,30px);margin-top:calc(-.15 * var(--ps-h, 150vw));position:relative;z-index:3}
 html.snake .band--jobs{padding-bottom:28px}
 html.snake .band--resolve{padding-bottom:8px}
-html.snake .act--sky{padding:clamp(40px,7vh,64px) 0}
 html.snake .act--ba--before{padding-top:clamp(120px,18vh,160px)}
-/* the cloud stills melt into the ground at top and bottom; the line passes
-   behind them, and the black of the sky lets it show: only the lit cloud
-   veils it */
-html.snake .act--sky{position:relative;z-index:auto}
-html.snake .skystill__words{z-index:6}
-html.snake .skystill__img{
-  position:relative;z-index:5;mix-blend-mode:screen;
-  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 4%,#000 84%,transparent 100%);
-  mask-image:linear-gradient(180deg,transparent 0,#000 4%,#000 84%,transparent 100%);
-}
-
 /* ---- the opening: the phone's own cloche film (pfilm.js) ----
    The still's block is a runway: the scene inside it, a 2:3 frame like the
    render, sticks at the middle of the screen for 130vh of scroll while the
@@ -1108,15 +1096,81 @@ html.snake .band--resolve .band__in{text-align:center}
 html.snake .band--resolve .hl{max-width:15ch;margin-inline:auto}
 html.snake .act--word{width:max-content;max-width:100%;align-self:center;margin-left:auto;margin-right:auto}
 
-/* the cloud beats: on a phone each is its own render (sky3d/build.py
-   --phone), the words set in 3D inside the clouds as the desktop's are, in a
-   3:4 frame whose black sky melts into the page */
-html.story .act--sky picture{display:block}
+/* ---- the cloud beats on a phone (sky3d/canyon.py, 2026-10-03) ----
+   Four layers of cumulus rendered on a clear sky, each at its own depth,
+   placed here in the render's own frame (1080 wide, the vanishing point at
+   row 1008), so the scene is in place from the first paint. phone.js flies
+   the camera through them by setting --t (how far it has come), --rise and
+   --dx on the beat; each layer works out its own scale about the vanishing
+   point, d / (d - t), the way a thing at that depth grows as you near it,
+   and fades as it passes the camera. The first beat flies in and the clouds
+   part on the words; the second is the same sky later, the camera falling
+   back as the light goes. Without the line (reduced motion) each beat is its
+   last frame, held. */
+.sky3{display:none}
 @media (max-width:760px){
-  html.story .skystill__img{aspect-ratio:3/4;object-fit:cover;object-position:50% 50%}
-  /* the picture says the words; they stay in the page for a screen reader */
-  html.story .skystill__words{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  html.story .act--sky{display:block;position:relative;padding:0;margin-inline:calc(var(--gut) * -1);width:calc(100% + var(--gut) * 2)}
+  html.story .skystill > picture{display:none}
+  html.story .skystill{
+    --u:calc(100vw / 1080);--vp:42vh;
+    --t:9;--rise:1.5;--dx:0;--dim:0;--w1:1;--w2:1;
+    position:relative;height:100vh;overflow:hidden;background:var(--bg);
+  }
+  html.story .act--sky-b .skystill{--t:4;--rise:.6;--dx:-2;--dim:.7}
+  html.story .sky3{display:block;position:absolute;inset:0;pointer-events:none}
+  html.story .sky3__l{
+    position:absolute;z-index:var(--z);
+    left:calc(var(--x) * var(--u));top:calc(var(--vp) + (var(--y) - 1008) * var(--u));
+    width:calc(var(--w) * var(--u));height:auto;max-width:none;
+    --s:calc(var(--d) / (var(--d) - var(--t)));
+    transform-origin:calc((540 - var(--x)) * var(--u)) calc((1008 - var(--y)) * var(--u));
+    transform:translate3d(calc(var(--dx) * 1080 * var(--u) / (var(--d) - var(--t))),calc(var(--rise) * 1080 * var(--u) / (var(--d) - var(--t))),0) scale(var(--s));
+    opacity:clamp(0, 3 - var(--s), 1);
+    will-change:transform,opacity;
+  }
+  /* the light going: the clouds darken toward the sky, the words stay lit */
+  html.story .sky3__dim{display:block;position:absolute;inset:0;z-index:6;background:#06080D;opacity:var(--dim)}
+  /* the clouds melt into the sky at the top and the bottom of the frame */
+  html.story .skystill::before,html.story .skystill::after{
+    content:"";position:absolute;left:0;right:0;z-index:7;pointer-events:none;
+  }
+  html.story .skystill::before{top:0;height:12vh;background:linear-gradient(180deg,var(--bg),rgba(10,10,10,0))}
+  html.story .skystill::after{bottom:0;height:16vh;background:linear-gradient(0deg,var(--bg),rgba(10,10,10,0))}
+  /* the words, in the page's own voice: the thin capitals and the one bold
+     italic in the accent, set in the clear above the far clouds */
+  html.story .skystill__words{
+    position:absolute;left:0;right:0;top:auto;bottom:calc(100vh - var(--vp) + 12vw);z-index:3;
+    display:block;padding:0 7vw;text-align:center;
+  }
+  html.story .act--sky-b .skystill__words{z-index:8}
+  html[data-v="editorial"].story .act--sky .hl--sky{
+    margin:0;font:200 12.4vw/.96 var(--f-display);letter-spacing:-.012em;word-spacing:-.04em;
+    text-transform:uppercase;color:var(--ink);text-shadow:none;
+  }
+  html[data-v="editorial"].story .act--sky .hl--sky .ln{
+    display:block;opacity:var(--w1);transform:translate3d(0,calc((1 - var(--w1)) * 6vw),0);
+  }
+  html[data-v="editorial"].story .act--sky .hl--sky .acc{font-weight:800;font-style:italic;color:var(--acc);letter-spacing:-.02em}
+  html[data-v="editorial"].story .act--sky-a .hl--sky .acc{
+    display:block;font-size:1.44em;line-height:1;margin-top:.02em;
+    opacity:var(--w2);transform:translate3d(0,calc((1 - var(--w2)) * 6vw),0);
+  }
+  html[data-v="editorial"].story .act--sky-b .hl--sky{font-size:11.2vw}
+  html[data-v="editorial"].story .act--sky-b .hl--sky .ln--2{
+    font-size:.54em;line-height:1.14;margin-top:.6em;color:var(--ink);
+    opacity:var(--w2);transform:translate3d(0,calc((1 - var(--w2)) * 6vw),0);
+  }
 }
+/* with the line, each beat is a runway: the frame holds the screen while the
+   camera flies, and the line passes behind it, fading out above it and back
+   in below */
+html.snake .act--sky{height:calc(100vh + var(--sky-run,110vh));opacity:1!important;transform:none!important;transition:none!important}
+html.snake .act--sky .skystill{position:-webkit-sticky;position:sticky;top:0;z-index:6}
+html.snake .act--sky::before,html.snake .act--sky::after{
+  content:"";position:absolute;left:0;right:0;height:14vh;z-index:6;pointer-events:none;
+}
+html.snake .act--sky::before{bottom:100%;background:linear-gradient(0deg,var(--bg),rgba(10,10,10,0))}
+html.snake .act--sky::after{top:100%;background:linear-gradient(180deg,var(--bg),rgba(10,10,10,0))}
 
 /* the pair: one room twice, overlapping on a diagonal, the empty room
    dimmed behind and the full one in front */

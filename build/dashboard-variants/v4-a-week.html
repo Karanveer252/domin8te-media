@@ -1,0 +1,1251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Restaurant marketing with one dashboard | Domin8te Media</title>
+<meta name="description" content="We run the website, the posts, the ads and the Google listing for independent restaurants and cafes. Follow one week of it in the dashboard, from the owner’s side.">
+<meta name="theme-color" content="#F2F1ED">
+<link rel="icon" href="assets/mark-120.webp" type="image/webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..100,400..800&display=swap">
+<script>document.documentElement.classList.add('js')</script>
+<style>
+/* A week at Bayleaf. One light paper theme; Saturday is the one deliberate switch to dark. */
+:root{
+  --paper:#F2F1ED; --panel:#FFFFFF; --ink:#121212; --ink-2:#55534E;
+  --line:rgba(18,18,18,.12); --field:rgba(18,18,18,.55); --well:#E4E3DE;
+  --acc:#FF5B1F; --acc-h:#FF7A45;
+  --hdr:64px; --mast:52px;
+  --pad:clamp(16px, 4.2vw, 64px); --gap:clamp(16px, 2vw, 32px); --max:1440px;
+  --ease:cubic-bezier(.16,1,.3,1); --ease-io:cubic-bezier(.72,0,.18,1);
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:var(--hdr)}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Archivo","Helvetica Neue",Arial,sans-serif;font-size:18px;line-height:1.55;font-weight:400;font-stretch:100%;-webkit-font-smoothing:antialiased;overflow-x:clip}
+img,video{display:block;max-width:100%}
+h1,h2,h3,h4,p,ol,ul,figure,blockquote,fieldset{margin:0}
+ol,ul{padding:0;list-style:none}
+a{color:inherit}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+main:focus{outline:none}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.skip{position:absolute;left:16px;top:-120px;z-index:100;background:var(--ink);color:var(--paper);padding:12px 20px;border-radius:999px;font-weight:600;text-decoration:none}
+.skip:focus{top:10px}
+
+.wrap{width:100%;max-width:var(--max);margin-inline:auto;padding-inline:var(--pad)}
+.g12{display:grid;grid-template-columns:minmax(0,1fr);column-gap:var(--gap)}
+@media (min-width:960px){.g12{grid-template-columns:repeat(12,minmax(0,1fr))}}
+
+/* type */
+.disp{font-stretch:62%;font-weight:800;line-height:.88;letter-spacing:-.004em}
+.acc{color:var(--acc)}
+.h2{font-size:clamp(44px,6.6vw,116px)}
+.h2 .ln{display:block}
+.stand{font-size:clamp(20px,1.6vw,25px);line-height:1.42;max-width:34ch}
+.body{font-size:18px;line-height:1.6;color:var(--ink-2);max-width:44ch}
+.fine{font-size:15px;line-height:1.5;color:var(--ink-2)}
+
+/* buttons: the only rounded things on the page */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:0 24px;border-radius:999px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);font:inherit;font-size:16px;font-weight:650;font-stretch:87.5%;letter-spacing:.01em;line-height:1;text-decoration:none;white-space:nowrap;cursor:pointer}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn--fill{background:var(--acc);border-color:var(--acc);color:var(--ink)}
+.btn--fill:hover{background:var(--acc-h);border-color:var(--acc-h);color:var(--ink)}
+.btn:active{translate:0 1px}
+.btn:disabled{opacity:.6;cursor:progress}
+@media (prefers-reduced-motion:no-preference){.btn{transition:translate .15s ease}}
+.ctas{display:flex;flex-wrap:wrap;gap:10px}
+
+/* header */
+.hdr{position:sticky;top:0;z-index:30;height:var(--hdr);background:var(--paper);border-bottom:1px solid var(--line)}
+.hdr__in{height:100%;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font-stretch:75%;font-weight:750;font-size:21px;letter-spacing:.005em;white-space:nowrap}
+.brand img{width:38px;height:auto}
+.hdr__nav{display:flex;align-items:center;gap:10px}
+.hdr .btn{min-height:44px;padding:0 18px;font-size:15px}
+.ico{width:15px;height:15px;flex:none}
+@media (max-width:640px){
+  .btn--dash{width:44px;padding:0}
+  .btn--dash .lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .brand{font-size:18px;gap:8px}
+  .brand img{width:30px}
+  .hdr .btn--fill{padding:0 14px}
+  .hdr__nav{gap:8px}
+}
+@media (max-width:380px){.brand{font-size:16px}.brand img{width:26px}.hdr .btn--fill{padding:0 12px}}
+@media (max-width:340px){.brand img{display:none}}
+
+/* reveals: lines rise, media wipes. All of it stays put under reduced motion or without JS. */
+@media (prefers-reduced-motion:no-preference){
+  .js .rv .ln,.js .rv .rp{opacity:0;translate:0 .5em;transition:opacity .8s var(--ease),translate 1s var(--ease);transition-delay:calc(var(--d,0) * 110ms + var(--o,0ms))}
+  .js .rv.is-in .ln,.js .rv.is-in .rp{opacity:1;translate:0 0}
+  .js .day.rv .ln{opacity:1;translate:0 104%;transition:translate 1.1s var(--ease)}
+  .js .day.rv.is-in .ln{translate:0 0}
+  .js .wipe{transition:clip-path 1.25s var(--ease-io) .08s}
+  .js .wipe-l{clip-path:inset(0 100% 0 0)}
+  .js .wipe-r{clip-path:inset(0 0 0 100%)}
+  .js .wipe-u{clip-path:inset(100% 0 0 0)}
+  .js .wipe-c{clip-path:inset(0 50% 0 50%)}
+  .js .wipe.is-in{clip-path:inset(0 0 0 0)}
+  .js .pop{opacity:0;translate:0 28px;transition:opacity .8s var(--ease) .55s,translate 1.1s var(--ease) .55s}
+  .js .pop.is-in{opacity:1;translate:0 0}
+  @supports (animation-timeline:view()){
+    .par{animation:par linear both;animation-timeline:view();animation-range:cover 0% cover 100%}
+  }
+}
+@keyframes par{from{translate:0 -5%}to{translate:0 5%}}
+
+/* video frames */
+.vid{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--well)}
+.vid video{width:100%;height:100%;object-fit:cover}
+.vid::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 1px var(--line);pointer-events:none}
+.cap{display:flex;align-items:center;gap:12px;margin-top:12px;font-size:15px;line-height:1.45;color:var(--ink-2);max-width:62ch}
+.cap strong{color:var(--ink);font-weight:650}
+.vbtn{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:999px;border:1.5px solid currentColor;background:none;color:var(--ink);font:inherit;font-size:15px;font-weight:650;cursor:pointer}
+.vbtn::before{content:"";width:9px;height:11px;background:currentColor;clip-path:polygon(0 0,100% 50%,0 100%)}
+
+/* ---------- cover ---------- */
+.cover{display:flex;min-height:calc(100svh - var(--hdr))}
+.cover__in{flex:1;display:grid;grid-template-columns:minmax(0,1fr);gap:20px;padding-block:22px 32px}
+.cover__h{font-size:clamp(40px,13vw,120px);line-height:.84}
+.cover__h .ln{display:block}
+.cover__sub p{font-size:18px;line-height:1.5;max-width:34ch}
+.cover__sub .ctas{margin-top:20px}
+.cover__fig .ph{position:relative;overflow:hidden;aspect-ratio:4/3;background:#1d1a16}
+.cover__fig img{position:absolute;left:0;top:-6%;width:100%;height:112%;object-fit:cover;object-position:63% 50%}
+.cover__fig figcaption{margin-top:10px;font-size:14px;color:var(--ink-2)}
+.cl a{display:block;padding:14px 0 12px;border-top:1px solid var(--line);text-decoration:none}
+.cl__d{display:block;font-stretch:62%;font-weight:800;font-size:15px;letter-spacing:.06em;color:var(--ink-2)}
+.cl__t{display:block;margin-top:3px;font-stretch:68%;font-weight:800;font-size:clamp(20px,1.7vw,26px);line-height:1.02}
+.cl a:hover .cl__t,.cl a:focus-visible .cl__t{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+@media (min-width:600px) and (max-width:959px){
+  .cl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+  .cover__fig .ph{aspect-ratio:16/10}
+}
+@media (min-width:960px){
+  .cover__in{grid-template-columns:minmax(0,1.55fr) minmax(0,.62fr) minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:clamp(24px,2.6vw,44px);row-gap:24px;padding-block:clamp(20px,4vh,48px) clamp(24px,5vh,56px)}
+  .cover__h{grid-column:1/3;grid-row:1;font-size:clamp(64px,min(8.4vw,16svh),128px)}
+  .cover__sub{grid-column:1;grid-row:2;align-self:end}
+  .cover__sub p{font-size:clamp(19px,1.45vw,22px)}
+  .cover__sub .ctas{margin-top:26px}
+  .cl{grid-column:2;grid-row:2;align-self:end}
+  .cover__fig{grid-column:3;grid-row:1/3;display:flex;flex-direction:column;min-height:0}
+  .cover__fig .ph{aspect-ratio:auto;flex:1;min-height:320px}
+}
+
+/* ---------- intro ---------- */
+.intro{padding-block:clamp(88px,13vw,200px) clamp(72px,10vw,160px)}
+.intro__h{font-size:clamp(48px,8vw,140px);line-height:.86}
+.intro__h .ln{display:block}
+.intro .stand{margin-top:clamp(22px,3vw,40px)}
+.note{margin-top:36px;max-width:46ch;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--ink);padding:20px 24px 22px;font-size:17px;line-height:1.5;color:var(--ink-2)}
+.note p+p{margin-top:8px}
+.note strong{color:var(--ink);font-weight:700}
+@media (min-width:960px){
+  .intro__h{grid-column:1/11}
+  .intro .stand{grid-column:1/7;grid-row:2}
+  .note{grid-column:8/13;grid-row:2;align-self:start;margin-top:clamp(22px,3vw,40px)}
+}
+
+/* ---------- the week ---------- */
+.week{position:relative}
+.mast{position:sticky;top:var(--hdr);z-index:20;background:var(--paper);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.mast__in{position:relative;display:flex;align-items:center;justify-content:center;gap:24px;height:var(--mast)}
+.mast__t{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;font-stretch:62%;font-weight:800;font-size:21px;line-height:1}
+.days-w{position:relative;flex:1;max-width:640px;height:100%}
+.days{position:relative;z-index:1;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));height:100%}
+.days a{display:flex;align-items:center;justify-content:center;height:100%;min-height:44px;text-decoration:none;font-stretch:62%;font-weight:800;font-size:18px;letter-spacing:.05em;color:var(--ink-2)}
+.days a:hover,.days a[aria-current]{color:var(--ink)}
+.days a:focus-visible{outline-offset:-4px}
+.days__hi{position:absolute;z-index:0;top:8px;bottom:8px;left:0;width:calc(100% / 7);background:var(--acc);translate:calc(var(--i,0) * 100%) 0;opacity:0}
+.days-w.is-on .days__hi{opacity:1}
+.mast__note{display:none;font-size:14px;color:var(--ink-2);white-space:nowrap}
+.mast__bar{position:absolute;left:0;right:0;bottom:-1px;height:3px;overflow:hidden;pointer-events:none}
+.mast__bar i{display:block;height:100%;background:var(--acc);translate:calc((var(--p,0) - 1) * 100%) 0}
+@media (min-width:960px){.mast__in{justify-content:space-between}.mast__t{position:static;width:auto;height:auto;overflow:visible;clip-path:none}.mast__note{display:block}}
+@media (prefers-reduced-motion:no-preference){
+  .days__hi{transition:translate .6s var(--ease),opacity .3s ease}
+  .mast__bar i{transition:translate .5s var(--ease)}
+  @supports (animation-timeline:view()){
+    .week{view-timeline:--wk block}
+    .mast__bar i{transition:none;animation:wk linear both;animation-timeline:--wk;animation-range:contain 0% contain 100%}
+  }
+}
+@keyframes wk{from{translate:-100% 0}to{translate:0 0}}
+
+.ch{position:relative;padding-block:clamp(64px,7vw,96px);scroll-margin-top:var(--mast)}
+.ch+.ch{border-top:1px solid var(--line)}
+.day{font-size:clamp(52px,16.5vw,150px);line-height:.82;color:var(--acc);margin:0 0 18px -.04em;padding-block:.02em;overflow:clip}
+.day .ln{display:block}
+.ch__h{font-stretch:68%;font-weight:800;font-size:clamp(30px,3.3vw,52px);line-height:.98;letter-spacing:-.003em}
+.ch .body{margin-top:16px}
+.med{margin-top:28px}
+@media (min-width:960px){
+  .ch{display:flex;flex-direction:column;justify-content:center;min-height:calc(100svh - var(--hdr) - var(--mast))}
+  .day{grid-column:1/-1;font-size:clamp(110px,14vw,240px);margin-bottom:clamp(14px,2vw,28px)}
+  .med{margin-top:0}
+  /* Monday: text left, media right, nudged up under the day */
+  .ch--mon .txt{grid-column:1/5;grid-row:2;padding-top:clamp(8px,1.6vw,28px)}
+  .ch--mon .med{grid-column:5/-1;grid-row:2;position:relative;z-index:1;margin-top:calc(-1 * clamp(16px,2.4vw,44px))}
+  /* Tuesday: media left with the request-changes inset, day set right */
+  .ch--tue .day{text-align:right;margin-left:0;margin-right:-.03em}
+  .ch--tue .med{grid-column:1/8;grid-row:2;position:relative;margin-bottom:clamp(80px,9vw,130px)}
+  .ch--tue .txt{grid-column:9/-1;grid-row:2}
+  .ch--tue .main .cap{max-width:52%}
+  .inset{position:absolute;right:-10%;bottom:calc(-1 * clamp(80px,9vw,130px));width:46%;z-index:2}
+  /* Wednesday: media right, text sits low */
+  .ch--wed .txt{grid-column:1/5;grid-row:2;align-self:end;padding-bottom:48px}
+  .ch--wed .med{grid-column:6/-1;grid-row:2}
+  /* Thursday: full bleed */
+  .ch--thu .txt{grid-column:1/7;grid-row:2}
+  /* Friday: media left, 4:3, text right and low */
+  .ch--fri .med{grid-column:2/8;grid-row:2}
+  .ch--fri .txt{grid-column:9/-1;grid-row:2;align-self:end;padding-bottom:48px}
+  /* Saturday: centred, dark */
+  .ch--sat .txt{grid-column:3/11}
+  .ch--sat .med{grid-column:2/12;margin-top:44px}
+  /* Sunday: quiet, room to breathe */
+  .ch--sun .txt{grid-column:1/5;grid-row:2}
+  .ch--sun .med{grid-column:7/-1;grid-row:2;margin-top:clamp(48px,6vw,110px)}
+  .ch--sun .end{grid-column:1/-1;grid-row:3}
+}
+@media (max-width:959px){
+  .inset{width:78%;margin:18px 0 0 auto}
+}
+.inset .vid{box-shadow:0 0 0 8px var(--paper)}
+.inset .cap{margin-top:16px}
+.ch--fri .vid{aspect-ratio:4/3}
+
+.bleed{margin-top:clamp(32px,4vw,56px)}
+.bleed .vid{width:min(100%,calc((100svh - var(--hdr) - var(--mast) - 32px) * 16 / 9));margin-inline:auto}
+.thu__foot{margin-top:4px}
+.pq{margin-top:36px;font-stretch:87.5%;font-weight:500;font-size:clamp(22px,2.2vw,34px);line-height:1.28;max-width:40ch}
+.pq p{text-indent:-.42em}
+.pq footer{margin-top:16px;font-stretch:100%;font-weight:400;font-size:15px;line-height:1.5;color:var(--ink-2);max-width:60ch}
+.pq footer strong{color:var(--ink);font-weight:650}
+@media (min-width:960px){
+  .pq{grid-column:6/-1;margin-top:28px}
+}
+
+.ch--sat{color:var(--paper);border-top:0}
+.ch--sat+.ch{border-top:0}
+.sat__bg{position:absolute;inset:0;z-index:0;background:var(--ink)}
+.ch--sat>.wrap{position:relative;z-index:1}
+.ch--sat .day{text-align:center;margin-left:0}
+.ch--sat .txt{text-align:center}
+.ch--sat .ch__h{margin-inline:auto;max-width:18ch}
+.ch--sat .body{margin-inline:auto;color:rgba(242,241,237,.76)}
+.ch--sat .cap{margin-inline:auto;justify-content:center;text-align:center;color:rgba(242,241,237,.74)}
+.ch--sat .vbtn,.ch--sat .cap strong{color:var(--paper)}
+.ch--sat .vid{background:#1d1d1c}
+.ch--sat .vid::after{box-shadow:inset 0 0 0 1px rgba(242,241,237,.14)}
+.ch--sat :focus-visible{outline-color:var(--paper)}
+@media (prefers-reduced-motion:no-preference){
+  .js .sat__bg{clip-path:inset(50% 0 50% 0);transition:clip-path 1.1s var(--ease-io)}
+  .js .ch--sat.is-dark .sat__bg{clip-path:inset(0 0 0 0)}
+}
+
+.ch--sun{padding-block:clamp(80px,11vw,180px)}
+.end{margin-top:clamp(56px,7vw,110px);padding-top:24px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 32px}
+.end__t{font-size:18px;color:var(--ink-2);max-width:46ch}
+
+/* ---------- updates ---------- */
+.upd{padding-block:clamp(96px,13vw,200px);border-top:1px solid var(--line)}
+.upd .stand{margin-top:24px}
+.rule{height:0;border:0;border-top:2px solid var(--ink);margin:clamp(36px,5vw,64px) 0 clamp(28px,3.5vw,44px)}
+.upd__med{margin-bottom:40px}
+.story+.story{margin-top:48px;padding-top:32px;border-top:1px solid var(--line)}
+.dl{font-size:15px;color:var(--ink-2);font-weight:500}
+.story h3{margin:8px 0 22px;font-stretch:68%;font-weight:800;font-size:clamp(28px,2.8vw,42px);line-height:1}
+.cols{columns:2 250px;column-gap:40px;column-rule:1px solid var(--line)}
+.e{break-inside:avoid;margin-bottom:20px}
+.e h4{font-stretch:62%;font-weight:800;font-size:21px;line-height:1.1;letter-spacing:.01em}
+.e p{margin-top:4px;font-size:17px;line-height:1.5}
+.paper .fine{margin-top:28px}
+@media (min-width:960px){
+  .upd__h{grid-column:1/11}
+  .upd .stand{grid-column:1/7}
+  .rule{grid-column:1/-1}
+  .upd__med{grid-column:1/6;grid-row:4;align-self:start;position:sticky;top:calc(var(--hdr) + 28px);margin-bottom:0}
+  .paper{grid-column:7/-1;grid-row:4}
+}
+
+/* ---------- what we do: contents page ---------- */
+.jobs{padding-block:clamp(96px,13vw,200px);border-top:1px solid var(--line)}
+.jobs .stand{margin-top:24px}
+.jl{margin-top:44px}
+.job{position:relative;display:grid;grid-template-columns:76px minmax(0,1fr);gap:16px 20px;padding:24px 0;border-top:1px solid var(--line)}
+.job:last-child{border-bottom:1px solid var(--line)}
+.job__th{width:76px;height:76px;object-fit:cover}
+.job__t{font-stretch:62%;font-weight:800;font-size:clamp(38px,4.6vw,76px);line-height:.9}
+.job__l{margin-top:10px;font-size:19px;font-weight:650;line-height:1.35}
+.job__s{margin-top:6px;font-size:17px;line-height:1.5;color:var(--ink-2);max-width:50ch}
+.job__x{display:inline-flex;align-items:center;min-height:44px;margin-top:4px;font-size:16px;font-weight:650;text-underline-offset:4px}
+.job__x:hover{text-decoration-thickness:2px}
+.pv{display:none}
+@media (min-width:960px){
+  .jobs__h{grid-column:1/10}
+  .jobs .stand{grid-column:1/7}
+  .jl{grid-column:1/8;grid-row:3;margin-top:56px}
+  .job{grid-template-columns:112px minmax(0,1fr);gap:16px 28px}
+  .job__th{width:112px;height:112px}
+  .job::before{content:"";position:absolute;left:calc(-1 * clamp(12px,1.4vw,22px));top:24px;bottom:24px;width:4px;background:var(--acc);opacity:0}
+  .job.is-on::before{opacity:1}
+  .pv{display:block;grid-column:9/-1;grid-row:3;position:sticky;top:calc(var(--hdr) + 32px);align-self:start;margin-top:56px}
+}
+.pv__f{position:relative;aspect-ratio:4/5;overflow:hidden;background:var(--well)}
+.pv__img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;clip-path:inset(0 0 0 100%);translate:7% 0;transition:clip-path 0s linear .85s,translate 0s linear .85s}
+.pv__img.is-on{clip-path:inset(0 0 0 0);translate:0 0;transition:clip-path .85s var(--ease-io),translate 1.1s var(--ease)}
+.pv figcaption{margin-top:12px}
+@media (prefers-reduced-motion:no-preference){.job::before{transition:opacity .25s ease}}
+@media (prefers-reduced-motion:reduce){.pv__img,.pv__img.is-on{transition:none;translate:0 0}}
+
+/* ---------- before / after spread ---------- */
+.ba{padding-block:clamp(96px,13vw,200px);border-top:1px solid var(--line)}
+.spread{margin-top:clamp(40px,6vw,80px);display:grid;gap:28px}
+.shot{position:relative;overflow:hidden;aspect-ratio:4/3;background:#1d1a16}
+.shot img{position:absolute;left:0;top:-6%;width:100%;height:112%;object-fit:cover;object-position:50% 50%}
+.tab{display:inline-block;min-width:96px;margin-top:12px;padding-top:8px;border-top:3px solid var(--ink);font-stretch:62%;font-weight:800;font-size:20px;letter-spacing:.02em;line-height:1.2}
+.ba__after .tab{border-top-color:var(--acc)}
+@media (min-width:768px){
+  .spread{grid-template-columns:1fr 1fr;gap:4px}
+  .shot{aspect-ratio:1/1}
+  .ba__after figcaption{padding-left:4px}
+}
+@media (min-width:960px){.ba__h{grid-column:1/11}}
+@media (prefers-reduced-motion:no-preference){
+  .js .ba__after .shot{clip-path:inset(0 100% 0 0);transition:clip-path 1.4s var(--ease-io)}
+  .js .ba__after.is-in .shot{clip-path:inset(0 0 0 0)}
+  @supports (animation-timeline:view()){
+    .js .ba__after .shot{transition:none;animation:wipeba linear both;animation-timeline:view();animation-range:entry 15% cover 50%}
+  }
+}
+@keyframes wipeba{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+
+/* ---------- problem picker: a reply card ---------- */
+.pick{padding-block:clamp(96px,13vw,200px);border-top:1px solid var(--line)}
+@media (min-width:960px){.pick__h{grid-column:1/11}}
+.card{margin-top:clamp(40px,5vw,64px);background:var(--panel);border:1.5px solid var(--ink)}
+.card__top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 28px;padding:18px clamp(18px,3vw,36px);border-bottom:1.5px dashed rgba(18,18,18,.45)}
+.card__name{font-stretch:62%;font-weight:800;font-size:24px;letter-spacing:.01em}
+.card__lede{font-size:16px;line-height:1.5;color:var(--ink-2);max-width:56ch}
+.card__body{display:grid}
+.opts{border:0;padding:10px clamp(18px,3vw,36px) 18px;min-width:0}
+.opt{display:flex;align-items:center;gap:16px;min-height:58px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:18px;line-height:1.35}
+.opt:last-of-type{border-bottom:0}
+.opt input{appearance:none;-webkit-appearance:none;flex:none;display:grid;place-content:center;width:24px;height:24px;margin:0;border:2px solid var(--ink);border-radius:0;background:#fff;cursor:pointer}
+.opt input::before{content:"";width:12px;height:12px;background:var(--acc);scale:0}
+.opt input:checked::before{scale:1}
+.opt input:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.opt:has(input:checked) .opt__txt{font-weight:650}
+.plans{padding:26px clamp(18px,3vw,40px) 34px;border-top:1px solid var(--line)}
+.plan+.plan{margin-top:32px}
+.js .plan+.plan{margin-top:0}
+.plan--empty{display:none;font-size:18px;color:var(--ink-2);max-width:36ch}
+.js .plan--empty{display:block}
+.js .plan--empty.is-gone{display:none}
+.js .plan[data-plan]:not(.is-shown){display:none}
+.plan__steps{display:grid;gap:18px}
+.step{display:grid;gap:4px 20px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.step__when{font-stretch:62%;font-weight:800;font-size:20px;line-height:1.2}
+.step__what{font-size:17px;line-height:1.5}
+.plan__cta{margin-top:26px}
+@media (min-width:640px){.step{grid-template-columns:128px minmax(0,1fr)}}
+@media (min-width:960px){
+  .card__body{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+  .opts{border-right:1px solid var(--line)}
+  .plans{border-top:0}
+}
+@media (prefers-reduced-motion:no-preference){
+  .plan.is-shown .step,.plan.is-shown .plan__cta{animation:stepin .55s var(--ease) both;animation-delay:calc(var(--k,0) * 80ms)}
+  .opt input::before{transition:scale .2s var(--ease)}
+}
+@keyframes stepin{from{opacity:0;translate:0 12px}to{opacity:1;translate:0 0}}
+
+/* ---------- the film ---------- */
+.film{padding-block:clamp(96px,12vw,180px) clamp(72px,9vw,140px);border-top:1px solid var(--line)}
+@media (min-width:960px){.film__h{grid-column:1/11}}
+.stage{position:relative;width:min(100%,calc((100svh - var(--hdr) - 48px) * 16 / 9));margin:clamp(36px,5vw,64px) auto 0;aspect-ratio:16/9;background:var(--ink)}
+.stage video{width:100%;height:100%;object-fit:contain;background:var(--ink)}
+.fplay{position:absolute;inset:0;display:grid;place-items:center;width:100%;height:100%;padding:0;border:0;background:rgba(18,18,18,.16);cursor:pointer}
+.fplay__c{display:grid;place-items:center;width:clamp(76px,9vw,136px);aspect-ratio:1;border-radius:999px;background:var(--acc);box-shadow:0 18px 48px rgba(18,18,18,.25)}
+.fplay__c i{width:32%;aspect-ratio:.88;background:var(--ink);clip-path:polygon(0 0,100% 50%,0 100%);translate:9% 0}
+.fplay:hover .fplay__c{background:var(--acc-h)}
+.fplay:focus-visible{outline:3px solid var(--ink);outline-offset:-10px}
+@media (prefers-reduced-motion:no-preference){.fplay__c{transition:scale .35s var(--ease)}.fplay:hover .fplay__c{scale:1.05}}
+.film__cap{margin-top:12px}
+.toc{margin-top:clamp(36px,4vw,56px)}
+.toc__h{font-stretch:62%;font-weight:800;font-size:28px;line-height:1}
+.toc__head .fine{margin-top:10px;max-width:30ch}
+.toc__l{margin-top:20px;display:grid;column-gap:44px}
+.toc__b{position:relative;display:flex;align-items:baseline;gap:10px;width:100%;min-height:48px;padding:12px 0 10px 16px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);font:inherit;font-size:17px;line-height:1.35;text-align:left;cursor:pointer}
+.toc__b .t{flex:0 1 auto}
+.toc__b .lead{flex:1 1 20px;min-width:16px;border-bottom:2px dotted rgba(18,18,18,.28);translate:0 -5px}
+.toc__b .tm{flex:none;font-size:16px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.toc__b::before{content:"";position:absolute;left:0;top:13px;bottom:12px;width:4px;background:var(--acc);opacity:0}
+.toc__b[aria-current]::before{opacity:1}
+.toc__b[aria-current] .t{font-weight:700}
+.toc__b[aria-current] .tm{color:var(--ink)}
+.toc__b:hover .t{text-decoration:underline;text-underline-offset:3px}
+@media (min-width:768px){.toc__l{grid-template-columns:1fr 1fr;grid-auto-flow:column;grid-template-rows:repeat(5,auto)}}
+@media (min-width:960px){.toc__head{grid-column:1/4}.toc__l{grid-column:5/-1;margin-top:0}}
+
+/* ---------- contact ---------- */
+.contact{padding-block:clamp(96px,12vw,180px);border-top:2px solid var(--ink)}
+.contact__h{font-size:clamp(44px,6vw,104px)}
+.contact .lede{margin-top:24px;font-size:19px;line-height:1.5;color:var(--ink-2);max-width:40ch}
+.mail{margin-top:28px;font-size:17px}
+.mail a{font-weight:650;text-underline-offset:4px;overflow-wrap:anywhere}
+.formbox{margin-top:40px;background:var(--panel);border:1px solid var(--line);padding:clamp(20px,3vw,40px)}
+@media (min-width:960px){.contact__head{grid-column:1/6}.formbox{grid-column:7/-1;margin-top:0}}
+.sent-note{display:none;margin-bottom:20px;padding:14px 18px;border-left:4px solid var(--acc);background:var(--paper);font-weight:600}
+.sent-note:target{display:block}
+.frow{display:grid;column-gap:20px}
+@media (min-width:640px){.frow{grid-template-columns:1fr 1fr}}
+.field{margin:0 0 20px}
+.field label{display:block;margin-bottom:8px;font-size:16px;font-weight:650}
+.field input,.field select,.field textarea{display:block;width:100%;min-height:50px;padding:12px 14px;border:1.5px solid var(--field);border-radius:0;background:#fff;color:var(--ink);font:inherit;font-size:17px;line-height:1.4}
+.field textarea{min-height:124px;resize:vertical}
+.field select{appearance:none;-webkit-appearance:none;padding-right:44px;background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%);background-position:calc(100% - 22px) 52%,calc(100% - 16px) 52%;background-size:6px 6px;background-repeat:no-repeat}
+.field input::placeholder,.field textarea::placeholder{color:#6E6B65;opacity:1}
+.field input:focus-visible,.field select:focus-visible,.field textarea:focus-visible{outline:3px solid var(--ink);outline-offset:2px;border-color:var(--ink)}
+.field [aria-invalid="true"]{border-color:var(--acc);border-width:2px}
+.field__err{display:block;margin-top:6px;font-size:15px;font-weight:650;color:var(--ink)}
+.field__err:not(:empty){padding-left:10px;border-left:3px solid var(--acc)}
+.more{margin:4px 0 22px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.more__sum{display:flex;align-items:center;gap:10px;min-height:52px;cursor:pointer;font-weight:650;list-style:none}
+.more__sum::-webkit-details-marker{display:none}
+.more__sum::before{content:"+";width:18px;font-size:20px;line-height:1;text-align:center}
+.more[open] .more__sum::before{content:"-"}
+.more__opt{font-weight:400;color:var(--ink-2)}
+.more__in{padding-top:8px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.form__foot{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px}
+.form__foot .btn{min-height:54px;padding:0 30px;font-size:17px}
+.form__note{font-size:15px;color:var(--ink-2)}
+.formstatus{margin-top:16px;min-height:1.5em;font-weight:650}
+
+/* ---------- footer ---------- */
+.foot{padding-block:48px 64px;border-top:1px solid var(--line)}
+.foot__in{display:grid;gap:18px}
+.foot__brand{display:flex;align-items:center;gap:12px;font-stretch:75%;font-weight:750;font-size:24px;white-space:nowrap}
+.foot__brand img{width:44px;height:auto}
+.foot__txt p{font-size:15px;line-height:1.55;color:var(--ink-2);max-width:72ch}
+.foot__txt p+p{margin-top:8px}
+@media (min-width:960px){.foot__in{grid-template-columns:auto 1fr;column-gap:72px;align-items:start}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the story</a>
+
+<header class="hdr">
+  <div class="wrap hdr__in">
+    <a class="brand" href="#main" aria-label="Domin8te Media, back to the top">
+      <img src="assets/mark-120.webp" width="120" height="66" alt="">
+      <span>Domin8te Media</span>
+    </a>
+    <nav class="hdr__nav" aria-label="Main">
+      <a class="btn btn--dash" href="/dashboard/" aria-label="Dashboard">
+        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="1" y="1" width="6" height="6" fill="currentColor"/><rect x="9" y="1" width="6" height="6" fill="currentColor"/><rect x="1" y="9" width="6" height="6" fill="currentColor"/><rect x="9" y="9" width="6" height="6" fill="currentColor"/></svg>
+        <span class="lbl">Dashboard</span>
+      </a>
+      <a class="btn btn--fill" href="#contact">Get your plan</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+
+<!-- ============ COVER ============ -->
+<section class="cover" aria-labelledby="cover-h">
+  <div class="wrap cover__in">
+    <h1 class="cover__h disp rv" id="cover-h"><span class="ln">ONE WEEK.</span> <span class="ln">ONE <span class="acc">DASHBOARD.</span></span></h1>
+
+    <div class="cover__sub rv" style="--o:280ms">
+      <p class="rp">We run the website, the posts, the ads and the Google listing. Here is what a week looks like from the owner’s side.</p>
+      <div class="ctas rp">
+        <a class="btn btn--fill" href="#contact">Get your plan</a>
+        <a class="btn" href="/dashboard/demo/">Try the demo</a>
+      </div>
+    </div>
+
+    <figure class="cover__fig">
+      <div class="ph wipe wipe-u">
+        <img class="par" src="assets/ba-after.webp" srcset="assets/ba-after-m.webp 960w, assets/ba-after.webp 1600w" sizes="(max-width: 767px) 100vw, 1600px" width="1600" height="900" alt="A busy restaurant dining room at night, every table taken." fetchpriority="high" decoding="async">
+      </div>
+      <figcaption>Cover: a full room on a Friday night.</figcaption>
+    </figure>
+
+    <ul class="cl rv" style="--o:520ms" aria-label="In this story">
+      <li class="rp"><a href="#tue"><span class="cl__d">TUESDAY</span><span class="cl__t">Approve a week of posts in one tap</span></a></li>
+      <li class="rp"><a href="#wed"><span class="cl__d">WEDNESDAY</span><span class="cl__t">New hours, updated everywhere</span></a></li>
+      <li class="rp"><a href="#sun"><span class="cl__d">SUNDAY</span><span class="cl__t">Nothing to do on Sunday</span></a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ INTRO AND THE HONESTY NOTE ============ -->
+<section class="intro" aria-labelledby="intro-h">
+  <div class="wrap g12">
+    <h2 class="intro__h disp rv" id="intro-h"><span class="ln">You run the place.</span> <span class="ln">We run the <span class="acc">rest.</span></span></h2>
+    <p class="stand rv"><span class="rp" style="display:block">Anything that needs your okay comes to you ready to approve.</span></p>
+    <div class="note rv">
+      <p class="rp"><strong>Before you read.</strong> Bayleaf Kitchen is our demo account. The restaurant, the people and the figures are made up; the dashboard is real.</p>
+      <p class="rp">Follow its owner, Dani, through one week of it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE WEEK ============ -->
+<section class="week" id="week" aria-labelledby="week-h">
+  <div class="mast">
+    <div class="wrap mast__in">
+      <h2 class="mast__t" id="week-h">A week at Bayleaf</h2>
+      <nav class="days-w" aria-label="Days of the week">
+        <i class="days__hi" aria-hidden="true"></i>
+        <ol class="days">
+          <li><a href="#mon" aria-label="Monday">MON</a></li>
+          <li><a href="#tue" aria-label="Tuesday">TUE</a></li>
+          <li><a href="#wed" aria-label="Wednesday">WED</a></li>
+          <li><a href="#thu" aria-label="Thursday">THU</a></li>
+          <li><a href="#fri" aria-label="Friday">FRI</a></li>
+          <li><a href="#sat" aria-label="Saturday">SAT</a></li>
+          <li><a href="#sun" aria-label="Sunday">SUN</a></li>
+        </ol>
+      </nav>
+      <p class="mast__note">Demo account, sample figures.</p>
+    </div>
+    <span class="mast__bar" aria-hidden="true"><i></i></span>
+  </div>
+
+  <!-- Monday -->
+  <article class="ch ch--mon" id="mon" aria-labelledby="mon-h">
+    <div class="wrap g12">
+      <p class="day disp rv" aria-hidden="true"><span class="ln">MONDAY</span></p>
+      <div class="txt rv">
+        <h3 class="ch__h rp" id="mon-h"><span class="sr">Monday. </span>Good afternoon, Dani.</h3>
+        <p class="body rp">You open the dashboard after lunch service. Three things need you: next week’s posts, a disconnected Instagram and the autumn hours. The rest is handled, with the last 30 days at the top, at a glance.</p>
+      </div>
+      <figure class="med">
+        <div class="vid wipe wipe-l">
+          <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+            poster="img/poster/01-overview.webp" data-mid="img/mid/01-overview.webp"
+            data-src="video/01-overview.mp4" data-src-sm="video/sm/01-overview.mp4"
+            aria-label="Dashboard demo: the home page, with the last 30 days and the three things that need attention"></video>
+        </div>
+        <figcaption class="cap"><button class="vbtn" type="button" hidden><span class="vb-t">Play</span><span class="sr"> clip: the home page</span></button><span><strong>Home.</strong> Your marketing, one dashboard: the last 30 days, and only what needs you. Demo account, sample figures.</span></figcaption>
+      </figure>
+    </div>
+  </article>
+
+  <!-- Tuesday -->
+  <article class="ch ch--tue" id="tue" aria-labelledby="tue-h">
+    <div class="wrap g12">
+      <p class="day disp rv" aria-hidden="true"><span class="ln">TUESDAY</span></p>
+      <div class="txt rv">
+        <h3 class="ch__h rp" id="tue-h"><span class="sr">Tuesday. </span>Approve a week of posts. In one tap.</h3>
+        <p class="body rp">Next week’s posts are waiting, written and designed: the autumn menu, the Sunday roast, weekend brunch. You read them between deliveries and approve the week in one tap. Nothing goes out until you do.</p>
+      </div>
+      <div class="med">
+        <figure class="main">
+          <div class="vid wipe wipe-r">
+            <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+              poster="img/poster/02-approve-posts.webp" data-mid="img/mid/02-approve-posts.webp"
+              data-src="video/02-approve-posts.mp4" data-src-sm="video/sm/02-approve-posts.mp4"
+              aria-label="Dashboard demo: approving next week’s posts"></video>
+          </div>
+          <figcaption class="cap"><button class="vbtn" type="button" hidden><span class="vb-t">Play</span><span class="sr"> clip: approving posts</span></button><span><strong>Approve posts.</strong> Every post previewed before it goes live.</span></figcaption>
+        </figure>
+        <figure class="inset pop">
+          <div class="vid">
+            <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+              poster="img/poster/03-request-changes-s.webp" data-mid="img/mid/03-request-changes-s.webp"
+              data-src="video/03-request-changes.mp4" data-src-sm="video/sm/03-request-changes.mp4"
+              aria-label="Dashboard demo: leaving a note to ask for a change to a post"></video>
+          </div>
+          <figcaption class="cap"><button class="vbtn" type="button" hidden><span class="vb-t">Play</span><span class="sr"> clip: asking for a change</span></button><span><strong>Want a tweak? Just ask.</strong> Leave a note and we change it before it goes out.</span></figcaption>
+        </figure>
+      </div>
+    </div>
+  </article>
+
+  <!-- Wednesday -->
+  <article class="ch ch--wed" id="wed" aria-labelledby="wed-h">
+    <div class="wrap g12">
+      <p class="day disp rv" aria-hidden="true"><span class="ln">WEDNESDAY</span></p>
+      <div class="txt rv">
+        <h3 class="ch__h rp" id="wed-h"><span class="sr">Wednesday. </span>New hours? Updated everywhere.</h3>
+        <p class="body rp">Autumn hours start on the first. You check them once, day by day, and confirm. We change them on Google, Apple Maps and your website, so nobody walks up to a locked door.</p>
+      </div>
+      <figure class="med">
+        <div class="vid wipe wipe-l">
+          <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+            poster="img/poster/04-opening-hours.webp" data-mid="img/mid/04-opening-hours.webp"
+            data-src="video/04-opening-hours.mp4" data-src-sm="video/sm/04-opening-hours.mp4"
+            aria-label="Dashboard demo: checking and confirming new opening hours"></video>
+        </div>
+        <figcaption class="cap"><button class="vbtn" type="button" hidden><span class="vb-t">Play</span><span class="sr"> clip: opening hours</span></button><span><strong>Opening hours.</strong> Confirm once, and they change on Google, Apple Maps and the website.</span></figcaption>
+      </figure>
+    </div>
+  </article>
+
+  <!-- Thursday: full bleed -->
+  <article class="ch ch--thu" id="thu" aria-labelledby="thu-h">
+    <div class="wrap g12">
+      <p class="day disp rv" aria-hidden="true"><span class="ln">THURSDAY</span></p>
+      <div class="txt rv">
+        <h3 class="ch__h rp" id="thu-h"><span class="sr">Thursday. </span>Know what your marketing earns.</h3>
+        <p class="body rp">Bookings from the website, calls from Google, direction requests, visits. Every figure comes straight from a connected account and says how fresh it is. Then a summary in plain English tells you what moved.</p>
+      </div>
+    </div>
+    <figure class="bleed">
+      <div class="vid wipe wipe-c">
+        <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+          poster="img/poster/05-results.webp" data-mid="img/mid/05-results.webp"
+          data-src="video/05-results.mp4" data-src-sm="video/sm/05-results.mp4"
+          aria-label="Dashboard demo: the results page, with a plain-English summary and figures from connected accounts"></video>
+      </div>
+      <figcaption class="wrap"><span class="cap"><button class="vbtn" type="button" hidden><span class="vb-t">Play</span><span class="sr"> clip: results</span></button><span><strong>Results.</strong> Each figure shows where it came from and when it was last updated.</span></span></figcaption>
+    </figure>
+    <div class="wrap g12 thu__foot">
+      <blockquote class="pq rv">
+        <p class="rp">“Your website brought in 212 bookings in the last 30 days, 41 more than the 30 days before, and the rise was biggest on Fridays and Saturdays. Calls from Google rose to 148.”</p>
+        <footer class="rp"><strong>Written by the Domin8te assistant</strong>, labelled as such and checked against the figures. Demo account, sample figures.</footer>
+      </blockquote>
+    </div>
+  </article>
+
+  <!-- Friday -->
+  <article class="ch ch--fri" id="fri" aria-labelledby="fri-h">
+    <div class="wrap g12">
+      <p class="day disp rv" aria-hidden="true"><span class="ln">FRIDAY</span></p>
+      <div class="txt rv">
+        <h3 class="ch__h rp" id="fri-h"><span class="sr">Friday. </span>Real people. One message away.</h3>
+        <p class="body rp">A private booking for Saturday night? You type it like a text, in the middle of prep. It goes straight to the people doing the work, and every message is kept on record.</p>
+      </div>
+      <figure class="med">
+        <div class="vid wipe wipe-r">
+          <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+            poster="img/poster/08-message-team.webp" data-mid="img/mid/08-message-team.webp"
+            data-src="video/08-message-team.mp4" data-src-sm="video/sm/08-message-team.mp4"
+            aria-label="Dashboard demo: writing a message to the people doing the work"></video>
+        </div>
+        <figcaption class="cap"><button class="vbtn" type="button" hidden><span class="vb-t">Play</span><span class="sr"> clip: messages</span></button><span><strong>Messages.</strong> Write it like a text. A record of every message stays in the dashboard.</span></figcaption>
+      </figure>
+    </div>
+  </article>
+
+  <!-- Saturday: the lights go down -->
+  <article class="ch ch--sat" id="sat" aria-labelledby="sat-h">
+    <div class="sat__bg" aria-hidden="true"></div>
+    <div class="wrap g12">
+      <p class="day disp rv" aria-hidden="true"><span class="ln">SATURDAY</span></p>
+      <div class="txt rv">
+        <h3 class="ch__h rp" id="sat-h"><span class="sr">Saturday. </span>Late night service? Go dark.</h3>
+        <p class="body rp">Checking in after close, with the lights down low? Switch the dashboard to dark mode. Same dashboard, easier on the eyes at the end of a long night.</p>
+      </div>
+      <figure class="med rv">
+        <div class="vid wipe wipe-u">
+          <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+            poster="img/poster/12-dark-mode.webp" data-mid="img/mid/12-dark-mode.webp"
+            data-src="video/12-dark-mode.mp4" data-src-sm="video/sm/12-dark-mode.mp4"
+            aria-label="Dashboard demo: switching the dashboard to dark mode"></video>
+        </div>
+        <figcaption class="cap rp"><button class="vbtn" type="button" hidden><span class="vb-t">Play</span><span class="sr"> clip: dark mode</span></button><span><strong>Settings.</strong> Light or Dark, and a Scenes sky or the Static dot grid behind it.</span></figcaption>
+      </figure>
+    </div>
+  </article>
+
+  <!-- Sunday -->
+  <article class="ch ch--sun" id="sun" aria-labelledby="sun-h">
+    <div class="wrap g12">
+      <p class="day disp rv" aria-hidden="true"><span class="ln">SUNDAY</span></p>
+      <div class="txt rv">
+        <h3 class="ch__h rp" id="sun-h"><span class="sr">Sunday. </span>Nothing to do? Enjoy it.</h3>
+        <p class="body rp">Posts approved, hours confirmed, message answered. When nothing needs you, the dashboard says so, and shows what’s planned next. Take the day.</p>
+      </div>
+      <figure class="med">
+        <div class="vid wipe wipe-u">
+          <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+            poster="img/poster/31-all-caught-up-s.webp" data-mid="img/mid/31-all-caught-up-s.webp"
+            data-src="video/31-all-caught-up.mp4" data-src-sm="video/sm/31-all-caught-up.mp4"
+            aria-label="Dashboard demo: the all caught up message when nothing needs attention"></video>
+        </div>
+        <figcaption class="cap"><button class="vbtn" type="button" hidden><span class="vb-t">Play</span><span class="sr"> clip: all caught up</span></button><span><strong>All caught up.</strong> When something does need you, it shows up here first, and we email you.</span></figcaption>
+      </figure>
+      <div class="end rv">
+        <p class="end__t rp">That was the week at Bayleaf. The film shows the same dashboard, start to finish, in under a minute.</p>
+        <div class="ctas rp">
+          <a class="btn" href="#film">Watch the full film</a>
+          <a class="btn" href="/dashboard/demo/">Try the demo</a>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ============ THE WEEKLY UPDATE ============ -->
+<section class="upd" aria-labelledby="upd-h">
+  <div class="wrap g12">
+    <h2 class="upd__h h2 disp rv" id="upd-h"><span class="ln">The weekly update,</span> <span class="ln">without the <span class="acc">meeting.</span></span></h2>
+    <p class="stand rv"><span class="rp" style="display:block">Each job gets a short write-up in the same five parts, newest first. Filter it by service and read it when you have a minute.</span></p>
+    <hr class="rule">
+    <figure class="upd__med">
+      <div class="vid wipe wipe-u">
+        <video class="loop" muted loop playsinline preload="none" disablepictureinpicture
+          poster="img/poster/07-updates-feed-s.webp" data-mid="img/mid/07-updates-feed-s.webp"
+          data-src="video/07-updates-feed.mp4" data-src-sm="video/sm/07-updates-feed.mp4"
+          aria-label="Dashboard demo: the weekly updates feed, filtered by service"></video>
+      </div>
+      <figcaption class="cap"><button class="vbtn" type="button" hidden><span class="vb-t">Play</span><span class="sr"> clip: updates</span></button><span><strong>Updates.</strong> What we did, what changed and what comes next.</span></figcaption>
+    </figure>
+
+    <div class="paper">
+      <article class="story rv" aria-labelledby="st1">
+        <p class="dl rp">Wed 23 Sep. Social media.</p>
+        <h3 class="rp" id="st1">Next week’s posts are ready for you</h3>
+        <div class="cols rp">
+          <div class="e"><h4>Completed</h4><p>Drafted next week’s 3 posts: the autumn menu, Sunday roast and weekend brunch.</p></div>
+          <div class="e"><h4>What changed</h4><p>Instagram disconnected on 21 Sep, so Instagram posts are paused. Facebook posts continue as planned.</p></div>
+          <div class="e"><h4>Result</h4><p>Posts with your own food photos drew the most comments this month.</p></div>
+          <div class="e"><h4>Why it matters</h4><p>Nothing goes out on social until you approve it.</p></div>
+          <div class="e"><h4>Next step</h4><p>Your approval by Fri 25 Sep, then we schedule the posts for Mon, Wed and Fri.</p></div>
+        </div>
+      </article>
+      <article class="story rv" aria-labelledby="st2">
+        <p class="dl rp">Tue 22 Sep. Advertising.</p>
+        <h3 class="rp" id="st2">Sunday roast campaign results</h3>
+        <div class="cols rp">
+          <div class="e"><h4>Completed</h4><p>The Sunday roast campaign ran on Meta from 12 to 21 Sep.</p></div>
+          <div class="e"><h4>What changed</h4><p>Nothing changed during the campaign; it ran as planned.</p></div>
+          <div class="e"><h4>Result</h4><p>The ads brought 186 clicks to your booking page.</p></div>
+          <div class="e"><h4>Why it matters</h4><p>It shows the kind of dish people click through for, which shapes the autumn ad.</p></div>
+          <div class="e"><h4>Next step</h4><p>Two versions of the autumn menu ad are being prepared for Fri 2 Oct.</p></div>
+        </div>
+      </article>
+      <p class="fine">Transcribed from the demo account’s Updates page. Bayleaf Kitchen, its dates and its figures are sample content.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHAT WE DO: CONTENTS ============ -->
+<section class="jobs" aria-labelledby="jobs-h">
+  <div class="wrap g12">
+    <h2 class="jobs__h h2 disp rv" id="jobs-h"><span class="ln">What we actually <span class="acc">do.</span></span></h2>
+    <p class="stand rv"><span class="rp" style="display:block">Four jobs, handed back finished, every week.</span></p>
+
+    <ol class="jl">
+      <li class="job is-on">
+        <img class="job__th" src="assets/mock-site-hero.webp" width="1400" height="933" alt="" loading="lazy" decoding="async">
+        <div>
+          <h3 class="job__t">Website</h3>
+          <p class="job__l">A menu that opens on any phone.</p>
+          <p class="job__s">Menu, hours, directions and booking up top, and when a dish changes, the site and the Google listing change with it.</p>
+          <a class="job__x" href="#mon">Turn to Monday</a>
+        </div>
+      </li>
+      <li class="job">
+        <img class="job__th" src="assets/mock-soc-squash-s.webp" width="280" height="280" alt="" loading="lazy" decoding="async">
+        <div>
+          <h3 class="job__t">Social media</h3>
+          <p class="job__l">We fill the gap in your feed.</p>
+          <p class="job__s">Posts every week, written and designed, with your own photos when you have them. Nothing goes out until you approve it.</p>
+          <a class="job__x" href="#tue">Turn to Tuesday</a>
+        </div>
+      </li>
+      <li class="job">
+        <img class="job__th" src="assets/mock-ad.webp" width="800" height="1000" alt="" loading="lazy" decoding="async">
+        <div>
+          <h3 class="job__t">Ads</h3>
+          <p class="job__l">We make the Friday ad and run it.</p>
+          <p class="job__s">Made for a phone screen and a quick decision, run on Facebook, Instagram and Google with your own budget, and never changed without asking you first.</p>
+          <a class="job__x" href="#thu">Turn to Thursday</a>
+        </div>
+      </li>
+      <li class="job">
+        <img class="job__th" src="assets/mock-soc-front-s.webp" width="280" height="280" alt="" loading="lazy" decoding="async">
+        <div>
+          <h3 class="job__t">Local search</h3>
+          <p class="job__l">On the map, with the right hours.</p>
+          <p class="job__s">Google Business Profile and Apple Maps kept right and reviews answered, so you’re found when someone nearby gets hungry.</p>
+          <a class="job__x" href="#wed">Turn to Wednesday</a>
+        </div>
+      </li>
+    </ol>
+
+    <figure class="pv" aria-hidden="true">
+      <div class="pv__f">
+        <img class="pv__img is-on" src="assets/mock-site-hero.webp" width="1400" height="933" alt="" loading="lazy" decoding="async">
+        <img class="pv__img" src="assets/mock-soc-squash.webp" width="700" height="700" alt="" loading="lazy" decoding="async">
+        <img class="pv__img" src="assets/mock-ad.webp" width="800" height="1000" alt="" loading="lazy" decoding="async">
+        <img class="pv__img" src="assets/mock-soc-front.webp" width="700" height="700" alt="" loading="lazy" decoding="async">
+      </div>
+      <figcaption class="fine">Example work for Bistro Fennel, a restaurant we made up to show what we make.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ BEFORE / AFTER ============ -->
+<section class="ba" aria-labelledby="ba-h">
+  <div class="wrap">
+    <div class="g12">
+      <h2 class="ba__h h2 disp rv" id="ba-h"><span class="ln">Taking your time?</span> <span class="ln">They’re taking your <span class="acc">customers.</span></span></h2>
+    </div>
+    <div class="spread">
+      <figure class="ba__before">
+        <div class="shot">
+          <img class="par" src="assets/ba-before.webp" srcset="assets/ba-before-m.webp 960w, assets/ba-before.webp 1600w" sizes="(max-width: 767px) 140vw, 100vw" width="1600" height="900" alt="A restaurant dining room laid up and empty before service." loading="lazy" decoding="async">
+        </div>
+        <figcaption class="tab">Before</figcaption>
+      </figure>
+      <figure class="ba__after">
+        <div class="shot">
+          <img class="par" src="assets/ba-after.webp" srcset="assets/ba-after-m.webp 960w, assets/ba-after.webp 1600w" sizes="(max-width: 767px) 140vw, 100vw" width="1600" height="900" alt="The same dining room full of people eating." loading="lazy" decoding="async">
+        </div>
+        <figcaption class="tab">After</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROBLEM PICKER: THE REPLY CARD ============ -->
+<section class="pick" id="try" aria-labelledby="pick-h">
+  <div class="wrap">
+    <div class="g12">
+      <h2 class="pick__h h2 disp rv" id="pick-h"><span class="ln">What’s <span class="acc">slipping?</span></span> <span class="ln">That’s where we begin.</span></h2>
+    </div>
+
+    <div class="card">
+      <div class="card__top">
+        <p class="card__name">Reply card</p>
+        <p class="card__lede">Pick the one that sounds like your week. You’ll see our plan, and the form below fills itself in.</p>
+      </div>
+      <div class="card__body">
+        <fieldset class="opts">
+          <legend class="sr">Your biggest problem right now</legend>
+          <label class="opt"><input type="radio" name="problem" value="website"><span class="opt__txt">The website’s embarrassing</span></label>
+          <label class="opt"><input type="radio" name="problem" value="seo"><span class="opt__txt">Nobody finds us on Google</span></label>
+          <label class="opt"><input type="radio" name="problem" value="social"><span class="opt__txt">We haven’t posted in weeks</span></label>
+          <label class="opt"><input type="radio" name="problem" value="ads"><span class="opt__txt">Our ads look homemade</span></label>
+          <label class="opt"><input type="radio" name="problem" value="all"><span class="opt__txt">Honestly, all of it</span></label>
+          <label class="opt"><input type="radio" name="problem" value="other"><span class="opt__txt">Have something else on mind?</span></label>
+        </fieldset>
+
+        <div class="plans" id="plan" aria-live="polite">
+          <p class="plan plan--empty">Nothing picked yet. The steps build here, from the first fix up.</p>
+
+          <div class="plan" data-plan="website" data-need="The website">
+            <h3 class="sr">The website’s embarrassing</h3>
+            <ol class="plan__steps">
+              <li class="step" style="--k:0"><span class="step__when">First</span><p class="step__what">We open your site on a phone, the way a hungry stranger would, and note everything that gets in the way.</p></li>
+              <li class="step" style="--k:1"><span class="step__when">Next</span><p class="step__what">We fix it or rebuild it around what people come for: menu, directions and booking, up top.</p></li>
+              <li class="step" style="--k:2"><span class="step__when">From then on</span><p class="step__what">When a dish changes, we change the site and your Google listing with it.</p></li>
+            </ol>
+            <a class="btn btn--fill plan__cta" style="--k:3" href="#contact" data-need="The website">Start with the website</a>
+          </div>
+
+          <div class="plan" data-plan="seo" data-need="Showing up on Google">
+            <h3 class="sr">Nobody finds us on Google</h3>
+            <ol class="plan__steps">
+              <li class="step" style="--k:0"><span class="step__when">First</span><p class="step__what">We fix your Google listing: menu link, phone number, your photos and the category you’re filed under.</p></li>
+              <li class="step" style="--k:1"><span class="step__when">Next</span><p class="step__what">We make the site quick to load and write it around what locals type, like “brunch near me”.</p></li>
+              <li class="step" style="--k:2"><span class="step__when">From then on</span><p class="step__what">We answer every new review, good or bad, and keep the listing in step with the site.</p></li>
+            </ol>
+            <a class="btn btn--fill plan__cta" style="--k:3" href="#contact" data-need="Showing up on Google">Start with Google</a>
+          </div>
+
+          <div class="plan" data-plan="social" data-need="Social media">
+            <h3 class="sr">We haven’t posted in weeks</h3>
+            <ol class="plan__steps">
+              <li class="step" style="--k:0"><span class="step__when">First</span><p class="step__what">We use your photos, even a quick phone shot of the special, and design the post when there isn’t one.</p></li>
+              <li class="step" style="--k:1"><span class="step__when">Next</span><p class="step__what">We write captions with the dish names off your menu board, so posts sound like your place, not a chain.</p></li>
+              <li class="step" style="--k:2"><span class="step__when">From then on</span><p class="step__what">We post every week, each post tied to what’s on, like the soup coming back for winter.</p></li>
+            </ol>
+            <a class="btn btn--fill plan__cta" style="--k:3" href="#contact" data-need="Social media">Start with social</a>
+          </div>
+
+          <div class="plan" data-plan="ads" data-need="The ads">
+            <h3 class="sr">Our ads look homemade</h3>
+            <ol class="plan__steps">
+              <li class="step" style="--k:0"><span class="step__when">First</span><p class="step__what">We pick the one thing each ad should sell, like a set lunch or a night you want busier.</p></li>
+              <li class="step" style="--k:1"><span class="step__when">Next</span><p class="step__what">We make the ads and run them on Facebook, Instagram and Google, using your own ad money.</p></li>
+              <li class="step" style="--k:2"><span class="step__when">From then on</span><p class="step__what">We swap the ads when what’s on changes, so nobody sees an ad for last month’s special.</p></li>
+            </ol>
+            <a class="btn btn--fill plan__cta" style="--k:3" href="#contact" data-need="The ads">Start with the ads</a>
+          </div>
+
+          <div class="plan" data-plan="all" data-need="All of it">
+            <h3 class="sr">Honestly, all of it</h3>
+            <ol class="plan__steps">
+              <li class="step" style="--k:0"><span class="step__when">First</span><p class="step__what">We look at your website, Google listing, posts and ads together, and start where it’s worst.</p></li>
+              <li class="step" style="--k:1"><span class="step__when">Next</span><p class="step__what">We fix that, then bring the other three into line so they all say the same thing.</p></li>
+              <li class="step" style="--k:2"><span class="step__when">From then on</span><p class="step__what">You give us access once. After that, the posts, ads, listing changes and review replies are ours.</p></li>
+            </ol>
+            <a class="btn btn--fill plan__cta" style="--k:3" href="#contact" data-need="All of it">Hand us all four</a>
+          </div>
+
+          <div class="plan" data-plan="other" data-need="Something else">
+            <h3 class="sr">Have something else on mind?</h3>
+            <ol class="plan__steps">
+              <li class="step" style="--k:0"><span class="step__when">First</span><p class="step__what">You tell us what is going wrong, in your own words, on the phone or in the form below.</p></li>
+              <li class="step" style="--k:1"><span class="step__when">Next</span><p class="step__what">We look at your site, Google listing, posts and ads together, and say plainly what we would do.</p></li>
+              <li class="step" style="--k:2"><span class="step__when">From then on</span><p class="step__what">We take on the part you hand over and keep it running every week, the way the rest of this list works.</p></li>
+            </ol>
+            <a class="btn btn--fill plan__cta" style="--k:3" href="#contact" data-need="Something else">Tell us what it is</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE FILM ============ -->
+<section class="film" id="film" aria-labelledby="film-h">
+  <div class="wrap g12">
+    <h2 class="film__h h2 disp rv" id="film-h"><span class="ln">The whole <span class="acc">week,</span></span> <span class="ln">in under a minute.</span></h2>
+  </div>
+  <div class="stage">
+    <video id="filmv" controls playsinline preload="metadata" poster="img/stills/00_title-card.webp" src="video/master.mp4" aria-label="Film: a tour of the Domin8te dashboard, 52 seconds, with music"></video>
+    <button class="fplay" id="filmplay" type="button" aria-label="Play the film with sound"><span class="fplay__c" aria-hidden="true"><i></i></span></button>
+  </div>
+  <div class="wrap">
+    <p class="cap film__cap">Plays with sound. 52 seconds.</p>
+    <div class="toc g12">
+      <div class="toc__head">
+        <h3 class="toc__h">In this film</h3>
+        <p class="fine">Pick a chapter to jump to it. Filmed on our demo account with sample figures.</p>
+      </div>
+      <ol class="toc__l">
+        <li><button class="toc__b" type="button" data-t="0"><span class="t">Your marketing. One dashboard.</span><span class="lead" aria-hidden="true"></span><span class="tm">0:00</span></button></li>
+        <li><button class="toc__b" type="button" data-t="3"><span class="t">Your posts are ready</span><span class="lead" aria-hidden="true"></span><span class="tm">0:03</span></button></li>
+        <li><button class="toc__b" type="button" data-t="13"><span class="t">New hours, prepped for you</span><span class="lead" aria-hidden="true"></span><span class="tm">0:13</span></button></li>
+        <li><button class="toc__b" type="button" data-t="18"><span class="t">Results, in plain English</span><span class="lead" aria-hidden="true"></span><span class="tm">0:18</span></button></li>
+        <li><button class="toc__b" type="button" data-t="23"><span class="t">Every project, every step</span><span class="lead" aria-hidden="true"></span><span class="tm">0:23</span></button></li>
+        <li><button class="toc__b" type="button" data-t="28"><span class="t">Message the team</span><span class="lead" aria-hidden="true"></span><span class="tm">0:28</span></button></li>
+        <li><button class="toc__b" type="button" data-t="33"><span class="t">Your plan, in plain words</span><span class="lead" aria-hidden="true"></span><span class="tm">0:33</span></button></li>
+        <li><button class="toc__b" type="button" data-t="38"><span class="t">Settings and dark mode</span><span class="lead" aria-hidden="true"></span><span class="tm">0:38</span></button></li>
+        <li><button class="toc__b" type="button" data-t="43"><span class="t">Every update in one feed</span><span class="lead" aria-hidden="true"></span><span class="tm">0:43</span></button></li>
+        <li><button class="toc__b" type="button" data-t="48"><span class="t">Run your restaurant. We run the marketing.</span><span class="lead" aria-hidden="true"></span><span class="tm">0:48</span></button></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONTACT ============ -->
+<section class="contact" id="contact" aria-labelledby="contact-h">
+  <div class="wrap g12">
+    <div class="contact__head">
+      <h2 class="contact__h disp rv" id="contact-h"><span class="ln">Two names and a number.</span> <span class="ln">Yours and the one on the <span class="acc">door.</span></span></h2>
+      <p class="lede">Within one business day you get a plan back: what needs fixing first, and why. Not a pitch deck with your logo on the cover.</p>
+      <p class="mail">Prefer email? <a href="mailto:karanhelps@domin8temedia.com">karanhelps@domin8temedia.com</a></p>
+    </div>
+
+    <div class="formbox">
+      <p class="sent-note" id="sent" tabindex="-1">Got it. We’ll read it properly and reply within one business day.</p>
+      <p class="sent-note sent-note--bad" id="notsent" tabindex="-1">That didn’t go through. Try again, or email karanhelps@domin8temedia.com and we’ll take it from there.</p>
+
+      <form class="form" id="leadform" action="send.php" method="post" novalidate data-msg-name="Add your name so we know who we’re replying to." data-msg-business="Add the name of your restaurant or cafe." data-msg-contact-missing="Add an email or phone number so we can reply." data-msg-contact-bad="That email or number looks incomplete. Please check it." data-msg-sending="Sending…" data-msg-success="Got it. We’ll read it properly and reply within one business day." data-msg-fail="That didn’t go through. Try again, or email karanhelps@domin8temedia.com and we’ll take it from there.">
+        <div class="frow">
+          <p class="field"><label for="f-name">Your name</label><input id="f-name" name="name" type="text" autocomplete="name" required maxlength="120" aria-describedby="e-name"><span class="field__err" id="e-name"></span></p>
+          <p class="field"><label for="f-biz">Restaurant or cafe</label><input id="f-biz" name="business" type="text" autocomplete="organization" required maxlength="160" aria-describedby="e-biz"><span class="field__err" id="e-biz"></span></p>
+        </div>
+        <p class="field"><label for="f-contact">Email or phone</label><input id="f-contact" name="contact" type="text" autocomplete="email" inputmode="email" required maxlength="190" aria-describedby="e-contact"><span class="field__err" id="e-contact"></span></p>
+
+        <details class="more">
+          <summary class="more__sum">Add a few details <span class="more__opt">(optional)</span></summary>
+          <div class="more__in">
+            <p class="field"><label for="f-web">Your website, if you have one</label><input id="f-web" name="website" type="text" inputmode="url" autocomplete="url" placeholder="yourplace.com" maxlength="300"></p>
+            <p class="field"><label for="f-need">What needs fixing first?</label>
+              <select id="f-need" name="need">
+                <option value="">Pick one</option>
+                <option>The website</option>
+                <option>Showing up on Google</option>
+                <option>Social media</option>
+                <option>The ads</option>
+                <option>All of it</option>
+                <option>Something else</option>
+              </select>
+            </p>
+            <p class="field"><label for="f-msg">What’s the biggest headache?</label><textarea id="f-msg" name="challenge" rows="4" maxlength="4000" placeholder="Google says we close at 9. We’re open till 11."></textarea></p>
+          </div>
+        </details>
+
+        <p class="hp" aria-hidden="true"><label for="f-hp">Company URL</label><input id="f-hp" name="company_url" type="text" tabindex="-1" autocomplete="off"></p>
+
+        <div class="form__foot">
+          <button class="btn btn--fill btn--lg" type="submit" id="submitbtn">Send it over</button>
+          <p class="form__note">Three fields are enough. Everything else is optional.</p>
+        </div>
+        <p class="formstatus" id="formstatus" role="status"></p>
+      </form>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p class="foot__brand"><img src="assets/mark-120.webp" width="120" height="66" alt=""><span>Domin8te Media</span></p>
+    <div class="foot__txt">
+      <p>&copy; <span id="yr">2026</span> Domin8te Media. For restaurants, cafes, coffee shops and bakeries.</p>
+      <p>The dashboard shown is our demo account with sample figures. Other examples and graphics on this page are illustrative and made in-house.</p>
+      <p>Bayleaf Kitchen and Dani are made up. The dashboard they live in is the one every client gets.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var d = document;
+  var RM = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var IO = 'IntersectionObserver' in window;
+  var SAVE = !!(navigator.connection && navigator.connection.saveData);
+  var TL = !!(window.CSS && CSS.supports && CSS.supports('animation-timeline: view()'));
+  var sat = d.querySelector('.ch--sat');
+  function all(s, r) { return Array.prototype.slice.call((r || d).querySelectorAll(s)); }
+  function show(el) { el.classList.add('is-in'); }
+
+  try {
+    /* text lines and media wipes, revealed once as they come into view */
+    all('.rv').forEach(function (el) {
+      all('.ln, .rp', el).forEach(function (n, i) { n.style.setProperty('--d', i); });
+    });
+    var targets = all('.rv, .wipe, .pop').filter(function (el) { return !sat || !sat.contains(el); });
+    if (RM || !IO) targets.forEach(show);
+    else {
+      /* a wipe starts fully clipped, so we watch its unclipped parent instead of the wipe itself */
+      var watch = [], owners = [];
+      targets.forEach(function (el) {
+        var w = el.classList.contains('wipe') ? el.parentNode : el, k = watch.indexOf(w);
+        if (k < 0) { watch.push(w); owners.push([el]); } else owners[k].push(el);
+      });
+      var rio = new IntersectionObserver(function (es, ob) {
+        es.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          owners[watch.indexOf(e.target)].forEach(show);
+          ob.unobserve(e.target);
+        });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+      watch.forEach(function (el) { rio.observe(el); });
+    }
+
+    /* Saturday: the lights go down first, then the words come up */
+    if (sat) {
+      var satOn = false;
+      var lightsDown = function () {
+        if (satOn) return;
+        satOn = true;
+        sat.classList.add('is-dark');
+        setTimeout(function () { all('.rv, .wipe, .pop', sat).forEach(show); }, RM ? 0 : 480);
+      };
+      if (RM || !IO) lightsDown();
+      else new IntersectionObserver(function (es, ob) {
+        if (es[0].isIntersecting) { lightsDown(); ob.disconnect(); }
+      }, { threshold: 0.2 }).observe(sat);
+    }
+
+    /* the masthead strip follows the day in the middle of the screen */
+    var mast = d.querySelector('.mast'), dw = d.querySelector('.days-w');
+    var chs = all('.ch'), links = all('.days a'), cur = -1;
+    var setDay = function (i) {
+      if (i < 0 || i === cur) return;
+      cur = i;
+      mast.style.setProperty('--i', i);
+      dw.classList.add('is-on');
+      links.forEach(function (a, k) {
+        if (k === i) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+      });
+      if (!(TL && !RM)) mast.style.setProperty('--p', ((i + 1) / 7).toFixed(4));
+    };
+    if (mast && dw && IO) {
+      var mio = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) setDay(chs.indexOf(e.target)); });
+      }, { rootMargin: '-46% 0px -53% 0px', threshold: 0 });
+      chs.forEach(function (c) { mio.observe(c); });
+    }
+
+    /* dashboard loops: load and play when 35% visible, never more than three at once */
+    var loops = all('video.loop'), live = [];
+    var pick = function (v) {
+      var w = v.getBoundingClientRect().width;
+      return (SAVE || window.innerWidth < 760 || w < 700) ? v.getAttribute('data-src-sm') : v.getAttribute('data-src');
+    };
+    var start = function (v) {
+      if (!v.getAttribute('src')) v.setAttribute('src', pick(v));
+      var k = live.indexOf(v);
+      if (k > -1) live.splice(k, 1);
+      live.push(v);
+      while (live.length > 3) live.shift().pause();
+      var p = v.play();
+      if (p && p.catch) p.catch(function () {});
+    };
+    var stop = function (v) {
+      v.pause();
+      var k = live.indexOf(v);
+      if (k > -1) live.splice(k, 1);
+    };
+    if (RM) {
+      loops.forEach(function (v) {
+        var mid = v.getAttribute('data-mid');
+        if (mid) v.setAttribute('poster', mid);
+        var fig = v.closest('figure'), b = fig && fig.querySelector('.vbtn');
+        if (!b) return;
+        var t = b.querySelector('.vb-t');
+        b.hidden = false;
+        var sync = function () { t.textContent = v.paused ? 'Play' : 'Pause'; };
+        v.addEventListener('play', sync);
+        v.addEventListener('pause', sync);
+        b.addEventListener('click', function () { if (v.paused) start(v); else stop(v); });
+      });
+    } else if (IO) {
+      var lio = new IntersectionObserver(function (es) {
+        es.forEach(function (e) {
+          var v = e.target;
+          if (e.isIntersecting && e.intersectionRatio >= 0.35) start(v);
+          else if (!e.isIntersecting || e.intersectionRatio < 0.2) stop(v);
+        });
+      }, { threshold: [0, 0.2, 0.35, 0.6] });
+      loops.forEach(function (v) { lio.observe(v); });
+    }
+
+    /* before and after: the second page wipes in (scroll-driven where supported) */
+    if (!RM && !TL && IO) {
+      var after = d.querySelector('.ba__after');
+      if (after) new IntersectionObserver(function (es, ob) {
+        if (es[0].isIntersecting) { show(after); ob.disconnect(); }
+      }, { threshold: 0.35 }).observe(after);
+    }
+
+    /* contents page: hovering or focusing a row slides its photo in */
+    var jobs = all('.job'), pv = all('.pv__img'), z = 2;
+    var setJob = function (i) {
+      jobs.forEach(function (j, k) { j.classList.toggle('is-on', k === i); });
+      var im = pv[i];
+      if (!im || im.classList.contains('is-on')) return;
+      pv.forEach(function (p) { p.classList.remove('is-on'); });
+      z += 1;
+      im.style.zIndex = z;
+      im.classList.add('is-on');
+    };
+    jobs.forEach(function (j, i) {
+      j.addEventListener('mouseenter', function () { setJob(i); });
+      j.addEventListener('focusin', function () { setJob(i); });
+    });
+
+    /* the reply card */
+    var plans = all('.plan[data-plan]'), empty = d.querySelector('.plan--empty');
+    var showPlan = function (val) {
+      if (empty) empty.classList.add('is-gone');
+      plans.forEach(function (p) { p.classList.toggle('is-shown', p.getAttribute('data-plan') === val); });
+    };
+    all('input[name="problem"]').forEach(function (r) {
+      r.addEventListener('change', function () { showPlan(r.value); });
+      if (r.checked) showPlan(r.value);
+    });
+    all('.plan__cta').forEach(function (b) {
+      b.addEventListener('click', function (ev) {
+        var need = b.getAttribute('data-need'), sel = d.getElementById('f-need'), det = d.querySelector('#leadform details');
+        if (sel && need) sel.value = need;
+        if (det) det.open = true;
+        var c = d.getElementById('contact');
+        if (!c) return;
+        ev.preventDefault();
+        c.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'start' });
+        setTimeout(function () {
+          var f = d.getElementById('f-name');
+          if (f) f.focus({ preventScroll: true });
+        }, RM ? 0 : 700);
+      });
+    });
+
+    /* the lead form */
+    var form = d.getElementById('leadform');
+    if (form) {
+      var st = d.getElementById('formstatus'), sendBtn = d.getElementById('submitbtn');
+      var msg = function (k) { return form.getAttribute('data-msg-' + k) || ''; };
+      var flag = function (inp, id, text) {
+        var e = d.getElementById(id);
+        if (e) e.textContent = text;
+        if (text) inp.setAttribute('aria-invalid', 'true'); else inp.removeAttribute('aria-invalid');
+        return !text;
+      };
+      var looksOk = function (v) {
+        var digits = v.replace(/\D/g, '').length;
+        return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) || (/^[+()\d\s.\-]+$/.test(v) && digits >= 7);
+      };
+      var fields = { name: 'e-name', business: 'e-biz', contact: 'e-contact' };
+      Object.keys(fields).forEach(function (n) {
+        var inp = form.elements.namedItem(n);
+        if (inp) inp.addEventListener('input', function () {
+          if (inp.getAttribute('aria-invalid')) flag(inp, fields[n], '');
+        });
+      });
+      form.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var f = form.elements, n = f.namedItem('name'), b = f.namedItem('business'), c = f.namedItem('contact');
+        var cv = c.value.trim();
+        var okN = flag(n, 'e-name', n.value.trim() ? '' : msg('name'));
+        var okB = flag(b, 'e-biz', b.value.trim() ? '' : msg('business'));
+        var okC = flag(c, 'e-contact', !cv ? msg('contact-missing') : (looksOk(cv) ? '' : msg('contact-bad')));
+        if (!(okN && okB && okC)) { (!okN ? n : (!okB ? b : c)).focus(); return; }
+        sendBtn.disabled = true;
+        st.textContent = msg('sending');
+        fetch('send.php', { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j && j.ok) { st.textContent = msg('success'); form.reset(); }
+            else st.textContent = msg('fail');
+          })
+          .catch(function () { st.textContent = msg('fail'); })
+          .then(function () { sendBtn.disabled = false; });
+      });
+    }
+
+    /* the film: our play button starts it with sound; the contents list seeks */
+    var film = d.getElementById('filmv'), fplay = d.getElementById('filmplay');
+    var toc = all('.toc__b'), marks = toc.map(function (b) { return +b.getAttribute('data-t'); }), chap = -1;
+    var mark = function (t) {
+      var k = 0;
+      for (var i = 0; i < marks.length; i++) if (t >= marks[i] - 0.15) k = i;
+      if (k === chap) return;
+      chap = k;
+      toc.forEach(function (b, i) {
+        if (i === k) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+      });
+    };
+    mark(0);
+    if (film) {
+      var playFilm = function () {
+        film.muted = false;
+        var p = film.play();
+        if (p && p.catch) p.catch(function () {});
+      };
+      if (fplay) fplay.addEventListener('click', playFilm);
+      film.addEventListener('play', function () { if (fplay) fplay.hidden = true; });
+      film.addEventListener('ended', function () { if (fplay) fplay.hidden = false; });
+      film.addEventListener('timeupdate', function () { mark(film.currentTime); });
+      toc.forEach(function (b) {
+        b.addEventListener('click', function () {
+          var t = +b.getAttribute('data-t');
+          try { film.currentTime = t; } catch (e) {}
+          mark(t);
+          if (film.paused) playFilm();
+        });
+      });
+    }
+
+    var yr = d.getElementById('yr');
+    if (yr) yr.textContent = String(new Date().getFullYear());
+  } catch (err) {
+    all('.rv, .wipe, .pop').forEach(show);
+    if (sat) sat.classList.add('is-dark');
+  }
+})();
+</script>
+</body>
+</html>
