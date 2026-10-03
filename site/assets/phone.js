@@ -93,19 +93,19 @@
          words: [.02, .42], ex: { t: -1.5, rise: -.3 } }
   };
   var SKY_KEYS = ['t', 'rise', 'dx', 'night', 'glow'];
-  /* the line inside each beat is the page's line run on into the scene: it
-     comes in from the top in the lane where the page's line went behind the
-     frame, in the page line's own colours and girth, its head kept where
-     the page line's head is, and it passes behind every cloud. In the first
-     beat it bends below the words and sweeps off into the vanishing point,
-     narrowing, until the haze takes it; in the second it falls on down its
-     lane, drifting in a little as it goes deep, behind the night clouds.
-     Once the frame is held it runs on to its full length (the page line's
-     own head is out of sight behind the frame then). Points on the render's frame
-     (1080 wide, the vanishing point at row 1008). */
-  var SKY_LINE = {
-    a: [[69, -12], [69, 540], [72, 790], [130, 925], [330, 993], [610, 1010]],
-    b: [[69, -12], [72, 640], [112, 1300], [190, 2050]]
+  /* the line inside each beat is the page's own line, carried on into the
+     scene: it comes down its lane from the frame's top, leaves the lane just
+     under the words, glides out over the horizon away from the reader, turns
+     far out, and comes back through the clouds (behind them, so they hide
+     it) to its lane, which it follows on down to the frame's foot, where the
+     page line goes on. The weave as [x (share of the width, measured from
+     the lane's side), y (share of the frame's height), depth 0 near .. 1 far];
+     it starts and ends in the lane, at the first and last row. */
+  var SKY_WEAVE = {
+    a: [[0, .352, 0], [.10, .388, .15], [.30, .402, .45], [.55, .411, .75], [.76, .421, .95], [.86, .436, 1], [.78, .456, .9],
+        [.55, .474, .65], [.30, .5, .35], [.08, .534, .1], [0, .558, 0]],
+    b: [[0, .37, 0], [.12, .405, .2], [.36, .418, .55], [.62, .426, .85], [.84, .44, 1], [.9, .462, .95], [.74, .486, .75],
+        [.46, .506, .45], [.2, .53, .2], [.05, .552, .05], [0, .566, 0]]
   };
   var skies = [];
 
@@ -299,11 +299,8 @@
        starts a little before, while the frame is still coming up */
     skies.forEach(function (k) {
       k.S0 = pos(k.act).y; k.R = Math.max(1, k.act.offsetHeight - vh);
-      if (k.cx) {
-        var dpr = Math.min(2, window.devicePixelRatio || 1), cw = k.fig.clientWidth, ch = k.fig.clientHeight;
-        k.cv.width = Math.round(cw * dpr); k.cv.height = Math.round(ch * dpr);
-        k.cx.setTransform(dpr, 0, 0, dpr, 0, 0); k.lineKey = ''; k.cols = null; k.built = '';
-      }
+      /* the line's canvases are sized to the line itself when it is built */
+      if (k.cx) { k.dpr = Math.min(2, window.devicePixelRatio || 1); k.lineKey = ''; k.cols = null; k.built = '' }
     });
 
     var lane = parseFloat(getComputedStyle(r).getPropertyValue('--snk-lane')) || 34;
@@ -634,6 +631,9 @@
       /* a near layer goes as it passes the camera; at night the lit layer
          gives way to its dark twin entirely, so no warm edge is left round it */
       var sc = ly.d / dd, op = (ly.near ? clamp((2.2 - sc) / .6, 0, 1) : 1) * e * (ly.dark ? v.night : 1 - v.night * v.night);
+      /* a layer that is about to show is kept just above nothing, so it is
+         drawn ahead of time and does not cost its first frame */
+      if (ly.dark || ly.near) op = Math.max(op, .012 * e);
       put(ly.el, 'opacity', '' + q3(op));
       if (op > 0) put(ly.el, 'transform', 'translate3d(' + f(v.dx * Wd / dd) + 'px,' + f(v.rise * Wd / dd) + 'px,0) scale(' + q3(sc) + ')');
     }
@@ -647,181 +647,203 @@
     var u1 = pk >= cam.words[0] - (k.up1 ? .04 : 0), u2 = pk >= cam.words[1] - (k.up2 ? .04 : 0);
     if (u1 !== k.up1 && k.r1) { k.up1 = u1; k.r1.parentNode.classList.toggle('is-up', u1) }
     if (u2 !== k.up2 && k.r2) { k.up2 = u2; k.r2.parentNode.classList.toggle('is-up', u2) }
-    if (k.cx) {
-      /* letting go, the line comes in front of the scene: the clouds still
-         over the lane must not cut it in two on its way to the page below */
-      put(k.cv, 'zIndex', at > k.R ? '8' : '');
+    if (k.cx && k.cx2) {
       /* the frame's top on the screen, and the page line's head in the
-         frame; the frame's top on the page, for the line's colours */
+         frame; the frame's top on the page, for the line's colours; and how
+         far the held scene has run the line through the clouds */
       var top = at < 0 ? -at : at > k.R ? k.R - at : 0;
-      /* at the end of the hold the sweep draws back into the lane, then the
-         lane runs on down to the page line's head, so by the time the frame
-         lets go the scene's line already is the page's */
-      skyLine(k, hpy - top, k.S0 + clamp(at, 0, k.R), smooth(pk / .32),
-        smooth((pk - .8) / .09), smooth((pk - .89) / .11), at > k.R);
+      skyLine(k, hpy - top, k.S0 + clamp(at, 0, k.R), smooth(pk / .8), at > k.R);
     }
   }
 
-  /* THE LINE IN A BEAT is the page's own line carried on into the scene,
-     behind every cloud. The frame hides the page's line while it is on the
-     screen, so the frame draws it: down the lane the page line is in, to
-     where the page line's head is, in the page line's colours at every
-     moment (they are a function of height on the page, and the frame's top
-     is somewhere on the page), with its head light. So at the frame's top
-     edge and at its bottom edge the two are one line, and there is never a
-     second one. In the first beat, once the scene is held, the line also
-     turns off below the words and sweeps away into the vanishing point,
-     thinning into the haze; letting go, that sweep draws back into the lane
-     and the lane runs on down to the head again, as the page line does.
-
-     Each part is drawn once, off screen, in white (its shape and bloom) and
-     in its light (the lighter band and the hot core); a frame only reveals
-     each part to its length, colours the white with the page's colours for
-     the moment, and lays the light over it. */
-  function skyPart(k, Wd, Hd, pts, widthAt, fades) {
-    var dpr = k.cv.width / Wd, minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9, pad = 34, m;
-    pts.forEach(function (q, i) { q.r = widthAt(q, i); minx = Math.min(minx, q.x); maxx = Math.max(maxx, q.x); miny = Math.min(miny, q.y); maxy = Math.max(maxy, q.y) });
-    var bx = Math.floor(minx - pad), by = Math.floor(miny - pad), bw = Math.ceil(maxx - minx + 2 * pad), bh = Math.ceil(maxy - miny + 2 * pad);
-    function canvas() { var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(bw * dpr)); c.height = Math.max(1, Math.round(bh * dpr)); var x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, -bx * dpr, -by * dpr); return [c, x] }
-    function ribbon(cx, scale, extra) {
-      var Lp = [], Rp = [];
-      for (var m2 = 0; m2 < pts.length; m2++) {
-        var pa = pts[Math.max(0, m2 - 1)], pb = pts[Math.min(pts.length - 1, m2 + 1)];
-        var tx = pb.x - pa.x, ty = pb.y - pa.y, tl = Math.hypot(tx, ty) || 1, nx = -ty / tl, ny = tx / tl, rr = pts[m2].r * scale + extra;
-        Lp.push([pts[m2].x + nx * rr, pts[m2].y + ny * rr]); Rp.push([pts[m2].x - nx * rr, pts[m2].y - ny * rr]);
-      }
-      cx.beginPath(); cx.moveTo(Lp[0][0], Lp[0][1]);
-      for (m2 = 1; m2 < Lp.length; m2++) cx.lineTo(Lp[m2][0], Lp[m2][1]);
-      for (m2 = Rp.length - 1; m2 >= 0; m2--) cx.lineTo(Rp[m2][0], Rp[m2][1]);
-      cx.closePath();
+  /* THE LINE IN A BEAT. The frame hides the page's line while it is on the
+     screen, so the frame draws it, as one line: down the lane the page line
+     is in, at the page line's x, in the page line's colours at every moment
+     (they are a function of height on the page) and with its head light, then
+     out through the scene and back to the lane, and on down to the frame's
+     foot. Its lane runs in front of the far clouds (a canvas over them); its
+     weave behind every cloud (a canvas under them), so the clouds it passes
+     behind hide it. The lane is drawn once off screen and revealed down to
+     the head; the weave is drawn as far as the head when it moves. */
+  function ribbonPath(cx, pts, scale, extra) {
+    var Lp = [], Rp = [], m;
+    for (m = 0; m < pts.length; m++) {
+      var pa = pts[Math.max(0, m - 1)], pb = pts[Math.min(pts.length - 1, m + 1)];
+      var tx = pb.x - pa.x, ty = pb.y - pa.y, tl = Math.hypot(tx, ty) || 1, nx = -ty / tl, ny = tx / tl, rr = pts[m].r * scale + extra;
+      Lp.push([pts[m].x + nx * rr, pts[m].y + ny * rr]); Rp.push([pts[m].x - nx * rr, pts[m].y - ny * rr]);
     }
-    var W = canvas(), L = canvas(), wc = W[1], lc = L[1];
-    wc.fillStyle = '#fff'; wc.shadowColor = '#fff';
-    wc.globalAlpha = .55; wc.shadowBlur = 20 * dpr; ribbon(wc, 1, 0); wc.fill();
-    wc.globalAlpha = .9; wc.shadowBlur = 7 * dpr; wc.fill();
-    wc.globalAlpha = 1; wc.shadowBlur = 0; wc.shadowColor = 'rgba(0,0,0,0)'; wc.fill();
-    lc.fillStyle = 'rgba(255,240,228,.5)'; ribbon(lc, .5, 0); lc.fill();
-    lc.fillStyle = 'rgba(255,252,245,.92)'; ribbon(lc, .16, .3); lc.fill();
-    [wc, lc].forEach(function (cx) { cx.globalCompositeOperation = 'destination-out'; fades(cx); cx.globalCompositeOperation = 'source-over' });
-    return { w: W[0], l: L[0], x: bx, y: by, bw: bw, bh: bh, pts: pts };
+    cx.beginPath(); cx.moveTo(Lp[0][0], Lp[0][1]);
+    for (m = 1; m < Lp.length; m++) cx.lineTo(Lp[m][0], Lp[m][1]);
+    for (m = Rp.length - 1; m >= 0; m--) cx.lineTo(Rp[m][0], Rp[m][1]);
+    cx.closePath();
+  }
+  /* the page line's look: a bloom in its tint, the body, a lighter band and
+     a hot core */
+  function ribbonDraw(cx, pts, fill, glow, dpr) {
+    cx.save();
+    cx.shadowOffsetX = 0; cx.shadowOffsetY = 0; cx.shadowColor = glow;
+    cx.fillStyle = fill;
+    cx.globalAlpha = .55; cx.shadowBlur = 20 * dpr; ribbonPath(cx, pts, 1, 0); cx.fill();
+    cx.globalAlpha = .9; cx.shadowBlur = 7 * dpr; cx.fill();
+    cx.globalAlpha = 1; cx.shadowBlur = 0; cx.shadowColor = 'rgba(0,0,0,0)'; cx.fill();
+    cx.fillStyle = 'rgba(255,240,228,.5)'; ribbonPath(cx, pts, .5, 0); cx.fill();
+    cx.fillStyle = 'rgba(255,252,245,.92)'; ribbonPath(cx, pts, .16, .3); cx.fill();
+    cx.restore();
   }
 
   function skyLineBuild(k, Wd, Hd) {
-    var u = Wd / 1080, vpy = .42 * Hd, left = k.side === 'l';
-    /* the lane, in the frame's own coordinates (the second beat's sky is
-       turned about, and its canvas with it) */
-    /* exactly where the page line runs: its lane's x in the film, moved
-       into the frame (and turned about with the second beat's sky) */
-    var lx = film.getBoundingClientRect().left + (left ? k.lanes[0] : k.lanes[1]) - k.fig.getBoundingClientRect().left, j;
-    if (k.beat === 'b') lx = Wd - lx;
-    function topFade(cx) {
-      /* soft in over the frame's top 40px, as the frame's own sky is, so the
-         page line behind and this one add up; at the bottom it runs to the
-         edge, where the page line goes on */
-      var g = cx.createLinearGradient(0, 0, 0, 40); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
-      cx.fillStyle = g; cx.fillRect(-50, -20, Wd + 100, 60);
-    }
-    var lane = [];
-    for (j = 0; j <= 24; j++) lane.push({ x: lx, y: -12 + (Hd + 24) * j / 24 });
-    k.lane = skyPart(k, Wd, Hd, lane, function () { return 3.5 }, topFade);
-    k.lane.x0 = lx;
-    k.sweep = null;
-    if (k.beat === 'a') {
-      /* the sweep: from the lane, below the words, away into the vanishing
-         point (a spline through points on the render's frame) */
-      var P = SKY_LINE.a.map(function (s) { return [(left ? s[0] : 1080 - s[0]) * u, vpy + (s[1] - 1008) * u] });
-      var S = [], N = 16, segs = P.length - 1, len = 0;
-      for (j = 0; j <= segs * N; j++) {
-        var uu = j / N, si = Math.min(segs - 1, Math.floor(uu)), tt = uu - si;
-        var p0 = P[Math.max(0, si - 1)], p1 = P[si], p2 = P[si + 1], p3 = P[Math.min(P.length - 1, si + 2)];
-        var t2 = tt * tt, t3 = t2 * tt, w = [0, 1].map(function (a) {
-          return .5 * (2 * p1[a] + (-p0[a] + p2[a]) * tt + (2 * p0[a] - 5 * p1[a] + 4 * p2[a] - p3[a]) * t2 + (-p0[a] + 3 * p1[a] - 3 * p2[a] + p3[a]) * t3);
-        });
-        if (S.length) len += Math.hypot(w[0] - S[S.length - 1].x, w[1] - S[S.length - 1].y);
-        S.push({ x: w[0], y: w[1], l: len });
+    var left = k.side === 'l', flipC = k.beat === 'b', j, m;
+    /* the lane on the screen, exactly where the page line runs */
+    var lxs = film.getBoundingClientRect().left + (left ? k.lanes[0] : k.lanes[1]) - k.fig.getBoundingClientRect().left;
+    /* into the canvas: the second beat's sky (and its canvases) is turned about */
+    function cxX(xs) { return flipC ? Wd - xs : xs }
+    var Wv = SKY_WEAVE[k.beat], span = Wd - 2 * Math.min(lxs, Wd - lxs);
+    var C = Wv.map(function (q) {
+      var xs = left ? lxs + q[0] * span : lxs - q[0] * span;
+      return { x: xs, y: q[1] * Hd, d: q[2] };
+    });
+    /* the weave: a spline through its points, leaving and joining the lane
+       heading straight down */
+    var P = [{ x: C[0].x, y: C[0].y - 60, d: 0 }].concat(C, [{ x: C[C.length - 1].x, y: C[C.length - 1].y + 60, d: 0 }]);
+    var W = [], N = 14, len = 0;
+    for (var si = 1; si < P.length - 2; si++) {
+      for (j = (si === 1 ? 0 : 1); j <= N; j++) {
+        var tt = j / N, t2 = tt * tt, t3 = t2 * tt, p0 = P[si - 1], p1 = P[si], p2 = P[si + 1], p3 = P[si + 2];
+        var cr = function (a) { return .5 * (2 * p1[a] + (-p0[a] + p2[a]) * tt + (2 * p0[a] - 5 * p1[a] + 4 * p2[a] - p3[a]) * t2 + (-p0[a] + 3 * p1[a] - 3 * p2[a] + p3[a]) * t3) };
+        var q = { x: cr('x'), y: cr('y'), d: clamp(lerp(p1.d, p2.d, tt), 0, 1) };
+        if (W.length) len += Math.hypot(q.x - W[W.length - 1].x, q.y - W[W.length - 1].y);
+        q.s = len; q.r = lerp(3.5, .9, Math.pow(q.d, .8));
+        W.push(q);
       }
-      /* where it leaves the lane: from there on it is the sweep */
-      var bi = 1;
-      while (bi < S.length - 1 && Math.abs(S[bi].x - S[0].x) < 1.5) bi++;
-      var sw = S.slice(bi - 1), l0 = sw[0].l, tot = len - l0;
-      sw.forEach(function (q) { q.s = q.l - l0 });
-      var end = sw[sw.length - 1];
-      k.sweep = skyPart(k, Wd, Hd, sw, function (q) { return lerp(3.5, .6, smooth((q.s / tot - .1) / .9)) }, function (cx) {
-        /* the haze takes its last quarter */
-        var fp = null;
-        for (var m = 0; m < sw.length; m++) if (sw[m].s >= .7 * tot) { fp = sw[m]; break }
-        if (!fp) return;
-        var hz = cx.createLinearGradient(fp.x, fp.y, end.x, end.y);
-        hz.addColorStop(0, 'rgba(0,0,0,0)'); hz.addColorStop(1, 'rgba(0,0,0,1)');
-        cx.fillStyle = hz; cx.fillRect(Math.min(fp.x, end.x) - 40, Math.min(fp.y, end.y) - 40, Math.abs(end.x - fp.x) + 80, Math.abs(end.y - fp.y) + 80);
-      });
-      k.sweep.by = sw[0].y; k.sweep.tot = tot;
     }
+    var y1 = C[0].y, y2 = C[C.length - 1].y;
+    k.wv = W.map(function (q) { return { x: cxX(q.x), y: q.y, s: q.s, r: q.r, d: q.d } });
+    k.wlen = len; k.y1 = y1; k.y2 = y2; k.lx = cxX(lxs);
+    /* the lane, cached: white for its shape and bloom, and its light; soft in
+       over the frame's top 40px, as the frame's own sky is */
+    var dpr = k.dpr || 1, pad = 34, lx = k.lx;
+    function lanePart(ya, yb) {
+      var pts = [];
+      for (j = 0; j <= 12; j++) pts.push({ x: lx, y: lerp(ya, yb, j / 12), r: 3.5 });
+      var bx = Math.floor(lx - pad), by = Math.floor(ya - pad), bw = 2 * pad, bh = Math.ceil(yb - ya + 2 * pad);
+      function cv() { var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(bw * dpr)); c.height = Math.max(1, Math.round(bh * dpr)); var x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, -bx * dpr, -by * dpr); return [c, x] }
+      var A = cv(), B = cv(), wc = A[1], lc = B[1];
+      wc.fillStyle = '#fff'; wc.shadowColor = '#fff';
+      wc.globalAlpha = .55; wc.shadowBlur = 20 * dpr; ribbonPath(wc, pts, 1, 0); wc.fill();
+      wc.globalAlpha = .9; wc.shadowBlur = 7 * dpr; wc.fill();
+      wc.globalAlpha = 1; wc.shadowBlur = 0; wc.shadowColor = 'rgba(0,0,0,0)'; wc.fill();
+      lc.fillStyle = 'rgba(255,240,228,.5)'; ribbonPath(lc, pts, .5, 0); lc.fill();
+      lc.fillStyle = 'rgba(255,252,245,.92)'; ribbonPath(lc, pts, .16, .3); lc.fill();
+      [wc, lc].forEach(function (x) {
+        x.globalCompositeOperation = 'destination-out';
+        var g = x.createLinearGradient(0, 0, 0, 40); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        x.fillStyle = g; x.fillRect(bx, Math.min(by, -20), bw, 60 - Math.min(by, -20));
+        x.globalCompositeOperation = 'source-over';
+      });
+      return { w: A[0], l: B[0], x: bx, y: by, bw: bw, bh: bh, ya: ya, yb: yb };
+    }
+    k.laneA = lanePart(-12, y1); k.laneB = lanePart(y2, Hd + 12);
+    /* the weave, cached the same way, over the whole frame */
+    function full() { var c = document.createElement('canvas'); c.width = Math.round(Wd * dpr); c.height = Math.round(Hd * dpr); var x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); return [c, x] }
+    var WA = full(), WB = full(), ww = WA[1], wl = WB[1];
+    ww.fillStyle = '#fff'; ww.shadowColor = '#fff';
+    ww.globalAlpha = .55; ww.shadowBlur = 20 * dpr; ribbonPath(ww, k.wv, 1, 0); ww.fill();
+    ww.globalAlpha = .9; ww.shadowBlur = 7 * dpr; ww.fill();
+    ww.globalAlpha = 1; ww.shadowBlur = 0; ww.shadowColor = 'rgba(0,0,0,0)'; ww.fill();
+    wl.fillStyle = 'rgba(255,240,228,.5)'; ribbonPath(wl, k.wv, .5, 0); wl.fill();
+    wl.fillStyle = 'rgba(255,252,245,.92)'; ribbonPath(wl, k.wv, .16, .3); wl.fill();
+    k.weaveW = WA[0]; k.weaveL = WB[0];
+    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1b = -1e9;
+    k.wv.forEach(function (q) { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1b = Math.max(y1b, q.y) });
+    /* wide enough for the bloom and the head's light (75px) */
+    k.wbox = [Math.max(0, Math.floor(x0 - 80)), Math.max(0, Math.floor(y0 - 80)), 0, 0];
+    k.wbox[2] = Math.min(Wd, Math.ceil(x1 + 80)) - k.wbox[0]; k.wbox[3] = Math.min(Hd, Math.ceil(y1b + 80)) - k.wbox[1];
+    k.lbox = [Math.floor(Math.max(0, lx - 80)), -40, 0, Math.ceil(Hd + 80)];
+    k.lbox[2] = Math.ceil(Math.min(Wd, lx + 80)) - k.lbox[0];
+    /* the two canvases cover only the line: a strip for the lane, a box for
+       the weave (a whole-frame canvas costs a whole frame to upload) */
+    function place(cv, cx, b) {
+      cv.width = Math.max(1, Math.round(b[2] * dpr)); cv.height = Math.max(1, Math.round(b[3] * dpr));
+      cv.style.left = b[0] + 'px'; cv.style.top = b[1] + 'px'; cv.style.width = b[2] + 'px'; cv.style.height = b[3] + 'px';
+      cx.setTransform(dpr, 0, 0, dpr, -b[0] * dpr, -b[1] * dpr);
+    }
+    place(k.cv2, k.cx2, k.lbox); place(k.cv, k.cx, k.wbox);
     k.built = Wd + 'x' + Hd + k.side;
   }
 
-  /* hy: the page line's head, in the frame (px from its top); topY: the
-     frame's top on the page; grow: how far the held scene has run the sweep
-     out; back: how far, letting go, it has drawn it back in; down: how far the
-     lane has then run on down to the head */
-  function skyLine(k, hy, topY, grow, back, down, leaving) {
+  /* hy: the page line's head in the frame (px from its top); topY: the
+     frame's top on the page; g: how far the held scene has run the line
+     through the clouds (0..1); leaving: the frame is letting go */
+  function skyLine(k, hy, topY, g, leaving) {
     var Wd = k.fig.clientWidth, Hd = k.fig.clientHeight;
     if (k.built !== Wd + 'x' + Hd + k.side) { skyLineBuild(k, Wd, Hd); k.lineKey = '' }
-    var sw = k.sweep, laneTo = hy, swLen = 0;
-    if (sw) {
-      /* the lane is drawn to the bend; past it the sweep goes as far as the
-         head, or as far as the held scene has run it, drawn back on letting
-         go; then the lane runs on down to the head again */
-      var past = Math.max(hy - sw.by, grow * sw.tot);
-      swLen = clamp(past, 0, sw.tot) * (1 - back);
-      laneTo = Math.min(hy, sw.by) + Math.max(0, hy - sw.by) * down;
-    }
-    var key = Math.round(laneTo) + ',' + Math.round(swLen) + ',' + Math.round(topY) + ',' + Wd + 'x' + Hd + k.side + (leaving ? 'L' : '');
+    /* the line's length so far: as far as the page line's head while it
+       comes in, plus the weave as the held scene runs it; a point on the
+       lower lane at height y is then (y - y2) past the weave's end */
+    var extra = k.wlen - (k.y2 - k.y1), s = hy + extra * g;
+    var aTo = Math.min(s, k.y1), wTo = clamp(s - k.y1, 0, k.wlen), bTo = s > k.y1 + k.wlen ? k.y2 + (s - k.y1 - k.wlen) : -1;
+    var key = Math.round(aTo) + ',' + Math.round(wTo * 2) + ',' + Math.round(bTo) + ',' + Math.round(topY / 4) + ',' + Wd + 'x' + Hd + k.side + (leaving ? 'L' : '');
     if (key === k.lineKey) return;
     k.lineKey = key;
-    var cx = k.cx;
-    cx.clearRect(0, 0, Wd, Hd);
-    if (laneTo <= 1 && swLen <= 0) return;
-    var parts = [];
-    if (laneTo > 1) parts.push([k.lane, Math.min(laneTo, Hd + 12)]);
-    var swHead = null;
-    if (swLen > .5) {
-      for (var m = 1; m < sw.pts.length; m++) if (sw.pts[m].s >= swLen) {
-        var a = sw.pts[m - 1], b = sw.pts[m], fr = (swLen - a.s) / (b.s - a.s || 1);
-        swHead = { x: lerp(a.x, b.x, fr), y: lerp(a.y, b.y, fr) }; break;
+    var front = k.cx2, back = k.cx, dpr = k.dpr || 1, wb = k.wbox, lb = k.lbox;
+    /* only the line's own boxes are touched, never the whole frame */
+    front.clearRect(lb[0], lb[1], lb[2], lb[3]); back.clearRect(wb[0], wb[1], wb[2], wb[3]);
+    if (s <= 1) return;
+    /* the page line's colours at these heights, right now */
+    var grad = function (cx) {
+      var gg = cx.createLinearGradient(0, 0, 0, Hd);
+      for (var j = 0; j <= 8; j++) gg.addColorStop(j / 8, runColour(topY + j / 8 * Hd, geo.y0));
+      return gg;
+    };
+    var glow = runColour(topY + .45 * Hd, geo.y0);
+    /* the lane parts, in front of the far clouds */
+    var parts = [[k.laneA, aTo]];
+    if (bTo > k.y2) parts.push([k.laneB, Math.min(bTo, Hd + 12)]);
+    parts.forEach(function (pt) {
+      var P = pt[0];
+      front.save(); front.beginPath(); front.rect(P.x, P.y, P.bw, Math.max(0, pt[1] - P.y)); front.clip();
+      front.drawImage(P.w, P.x, P.y, P.bw, P.bh); front.restore();
+    });
+    front.save(); front.globalCompositeOperation = 'source-atop'; front.fillStyle = grad(front); front.fillRect(lb[0], lb[1], lb[2], lb[3]); front.restore();
+    parts.forEach(function (pt) {
+      var P = pt[0];
+      front.save(); front.beginPath(); front.rect(P.x, P.y, P.bw, Math.max(0, pt[1] - P.y)); front.clip();
+      front.drawImage(P.l, P.x, P.y, P.bw, P.bh); front.restore();
+    });
+    /* the weave, behind every cloud, as far as the head */
+    var head = null, hr = 3.5, onBack = false;
+    if (wTo > .5) {
+      var pts = [], m;
+      for (m = 0; m < k.wv.length; m++) {
+        var q = k.wv[m];
+        if (q.s > wTo) {
+          var a = k.wv[m - 1], fr = (wTo - a.s) / (q.s - a.s || 1);
+          pts.push({ x: lerp(a.x, q.x, fr), y: lerp(a.y, q.y, fr), r: lerp(a.r, q.r, fr) }); break;
+        }
+        pts.push(q);
       }
-      parts.push([sw, swHead ? swHead.y : Hd + 12]);
+      if (pts.length > 1) {
+        /* revealed along its length: clipped to the drawn part's own outline,
+           widened for the bloom and cut square at the head */
+        back.save(); ribbonPath(back, pts, 1, 28); back.clip();
+        back.drawImage(k.weaveW, wb[0] * dpr, wb[1] * dpr, wb[2] * dpr, wb[3] * dpr, wb[0], wb[1], wb[2], wb[3]);
+        back.globalCompositeOperation = 'source-atop'; back.fillStyle = grad(back); back.fillRect(wb[0], wb[1], wb[2], wb[3]);
+        back.globalCompositeOperation = 'source-over';
+        back.drawImage(k.weaveL, wb[0] * dpr, wb[1] * dpr, wb[2] * dpr, wb[3] * dpr, wb[0], wb[1], wb[2], wb[3]);
+        back.restore();
+      }
+      if (bTo < 0) { head = pts[pts.length - 1]; hr = head.r; onBack = true }
     }
-    /* the white of each part, revealed down to its end (every part only goes
-       down the screen, so a cut at the end's height is exact) */
-    cx.save();
-    parts.forEach(function (pt) {
-      var P = pt[0];
-      cx.save(); cx.beginPath(); cx.rect(P.x, P.y, P.bw, Math.max(0, pt[1] - P.y)); cx.clip();
-      cx.drawImage(P.w, P.x, P.y, P.bw, P.bh); cx.restore();
-    });
-    /* coloured as the page line is at these heights right now */
-    var g = cx.createLinearGradient(0, 0, 0, Hd);
-    for (var j = 0; j <= 8; j++) g.addColorStop(j / 8, runColour(topY + j / 8 * Hd, geo.y0));
-    cx.globalCompositeOperation = 'source-atop';
-    cx.fillStyle = g;
-    parts.forEach(function (pt) { cx.fillRect(pt[0].x, pt[0].y, pt[0].bw, pt[0].bh) });
-    cx.globalCompositeOperation = 'source-over';
-    parts.forEach(function (pt) {
-      var P = pt[0];
-      cx.save(); cx.beginPath(); cx.rect(P.x, P.y, P.bw, Math.max(0, pt[1] - P.y)); cx.clip();
-      cx.drawImage(P.l, P.x, P.y, P.bw, P.bh); cx.restore();
-    });
-    cx.restore();
-    /* the head's light, the page line's own, wherever the head is on the
-       lane; when the sweep is out the haze has the end and there is none */
-    if (!leaving && swLen <= .5 && laneTo > 1 && laneTo < Hd) {
-      var hx = k.lane.x0, hy2 = laneTo;
-      var hg = cx.createRadialGradient(hx, hy2, 0, hx, hy2, 75);
+    if (!head) head = bTo > 0 ? { x: k.lx, y: bTo } : { x: k.lx, y: aTo };
+    /* the head's light: the page line's own, smaller as the head goes far
+       out; while the frame lets go the page's own tip carries it */
+    if (!leaving && head.y < Hd - 2) {
+      var cx = onBack ? back : front, R = 75 * (.35 + .65 * hr / 3.5);
+      var hg = cx.createRadialGradient(head.x, head.y, 0, head.x, head.y, R);
       hg.addColorStop(0, 'rgba(255,252,246,1)'); hg.addColorStop(.03, 'rgba(255,246,232,.9)'); hg.addColorStop(.09, 'rgba(255,226,196,.38)');
       hg.addColorStop(.26, 'rgba(255,196,150,.14)'); hg.addColorStop(.46, 'rgba(255,170,120,.05)'); hg.addColorStop(.66, 'rgba(255,170,120,0)');
-      cx.globalAlpha = smooth((hy2 - 10) / 40) * (1 - smooth((hy2 - (Hd - 30)) / 30));
-      cx.fillStyle = hg; cx.beginPath(); cx.arc(hx, hy2, 75, 0, 6.2832); cx.fill();
+      cx.globalAlpha = smooth((head.y - 10) / 40);
+      cx.fillStyle = hg; cx.beginPath(); cx.arc(head.x, head.y, R, 0, 6.2832); cx.fill();
       cx.globalAlpha = 1;
     }
   }
@@ -897,7 +919,8 @@
       } else if (h2) {
         r1 = mask(h2.querySelector('.ln:not(.ln--2)')); r2 = mask(h2.querySelector('.ln--2'));
       }
-      var cv = a.querySelector('.sky3__line');
+      var cv = a.querySelector('.sky3__line'), cv2 = a.querySelector('.sky3__lane');
+      if (cv && !cv2) { cv2 = document.createElement('canvas'); cv2.className = 'sky3__lane'; cv.parentNode.insertBefore(cv2, cv.nextSibling) }
       return {
         act: a, fig: a.querySelector('.skystill'), beat: b, S0: 0, R: 1,
         layers: [].slice.call(a.querySelectorAll('.sky3__l')).map(function (e) {
@@ -905,7 +928,8 @@
         }),
         sky3: a.querySelector('.sky3'), side: b === 'b' ? 'r' : 'l', leaving: false,
         glow: a.querySelector('.sky3__glow'), words: a.querySelector('.skystill__words'), r1: r1, r2: r2, up1: false, up2: false,
-        cv: cv, cx: cv && cv.getContext ? cv.getContext('2d') : null, lineKey: '', cols: null
+        cv: cv, cx: cv && cv.getContext ? cv.getContext('2d') : null, lineKey: '', cols: null,
+        cv2: cv2, cx2: cv2 && cv2.getContext ? cv2.getContext('2d') : null
       };
     }).filter(function (k) { return k.fig && k.layers.length });
     /* a layer is decoded as soon as it arrives, off the main thread, so the
@@ -938,6 +962,7 @@
       if (k.sky3) { k.sky3.style.opacity = ''; k.sky3.__snk = null }
       k.act.classList.remove('is-leaving'); k.leaving = false;
       if (k.cx) { k.cx.clearRect(0, 0, k.cv.width, k.cv.height); k.lineKey = '' }
+      if (k.cx2) k.cx2.clearRect(0, 0, k.cv2.width, k.cv2.height);
     });
   }
 

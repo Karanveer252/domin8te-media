@@ -644,6 +644,13 @@ html.film .pan.act .mk--social .mk-soc__grid i{aspect-ratio:auto;height:9.4vh}
 .mk-photo{position:absolute;inset:0;z-index:0;width:100%;height:100%;object-fit:cover;display:block}
 .mk-site__hero,.mk--ad,.mk-soc__grid i,.mk-seo__row.is-you{position:relative;overflow:hidden}
 .mk-site__hero > :not(.mk-photo),.mk--ad > :not(.mk-photo),.mk-soc__grid i > :not(.mk-photo){position:relative;z-index:1}
+/* the ad's tag is a pill that hugs its word in the card's top corner, not a
+   bar across the card over its headline; in the film's small cards it sits
+   just above the headline instead */
+.mk--ad > .mk-ad__tag{position:absolute;top:1.6em;left:1.6em;align-self:flex-start}
+html.film .pan.act .mk--ad > .mk-ad__tag{position:relative;top:auto;left:auto}
+/* cream words on daylight photos: the photos go down under the words */
+.mk-site__hero .mk-photo,.mk--ad .mk-photo{filter:brightness(.62) saturate(.92)}
 /* the words sit on a darkening toward the bottom left, where they are */
 .mk-site__hero::before,.mk--ad::before,.mk-soc__grid i.has-photo::before{
   content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
