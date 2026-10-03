@@ -4759,8 +4759,20 @@ html[data-scene="scenes"] .col { background: var(--glass); }
     sprite = makeSprite();
     tile = makeTile();
   }
+  // The physics is tuned for 60 frames a second. A slower frame used to take one big step, which
+  // overshoots: the dots bounced further each frame, never settled, and smeared into a net. Now a
+  // long frame is worked out in slices of at most 1/60 s, with the damping scaled to each slice,
+  // so the feel is the same at any frame rate and the dots always come to rest.
   /** @param {number} dt @param {number} speed */
   function step(dt, speed) {
+    const n = Math.max(1, Math.ceil(dt * 60 - 1e-6)), h = dt / n;
+    let busy = false;
+    for (let s = 0; s < n; s++) busy = slice(h, speed) || busy;
+    return busy;
+  }
+  /** @param {number} dt @param {number} speed */
+  function slice(dt, speed) {
+    const damp = Math.pow(DAMP, dt * 60);
     const push = (240 + speed * 80) * KM * PUSH_K, lim2 = LIM * LIM;
     const px = DOT / 2, py = DOT / 2;
     let busy = false, k = 0;
@@ -4772,7 +4784,7 @@ html[data-scene="scenes"] .col { background: var(--glass); }
         const dx = mx - x, dy = my - y, d2 = dx * dx + dy * dy;
         let ax = -ox[k] * SPRING, ay = -oy[k] * SPRING;
         if (d2 < REACH2 && d2 > 0) { const d = Math.sqrt(d2), f = (1 - d / REACH) * push / d; ax -= dx * f; ay -= dy * f; }
-        let nvx = (vx[k] + ax * dt) * DAMP, nvy = (vy[k] + ay * dt) * DAMP;
+        let nvx = (vx[k] + ax * dt) * damp, nvy = (vy[k] + ay * dt) * damp;
         if (nvx === 0 && nvy === 0 && ox[k] === 0 && oy[k] === 0) continue;
         let nx = ox[k] + nvx * dt * 60, ny = oy[k] + nvy * dt * 60;
         const m2 = nx * nx + ny * ny;
