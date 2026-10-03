@@ -261,7 +261,7 @@
     const n = s.milestones.length;
     const decisions = s.decisions.map((d) => `<li><p><strong>${esc(d.title)}:</strong> ${d.decision === 'approved' ? 'approved' : 'changes requested'} by ${esc(d.by)} on ${esc(F.date(d.at))} at ${esc(F.time(d.at))}</p>${d.comment ? `<p class="meta">Your note: “${esc(d.comment)}”</p>` : ''}</li>`).join('');
     // A request's own stages, as the account team sets them in the agency console.
-    const REQUEST_STATUS = { review: 'Under review', in_progress: 'In progress', done: 'Done', declined: 'Not going ahead' };
+    const REQUEST_STATUS = { review: 'Under review', in_progress: 'In progress', waiting: 'Waiting on you', done: 'Done', declined: 'Not going ahead' };
     const requests = s.requests.map((q) => `<li><p>“${esc(q.text)}”</p><p class="meta">Sent ${esc(F.when(q.at, now))} · ${esc(/** @type {any} */ (REQUEST_STATUS)[q.status] || 'Received')}</p></li>`).join('');
     return `<section class="card svc-section" id="svc-${esc(s.id)}" tabindex="-1" aria-labelledby="h-svc-${esc(s.id)}">
       <header class="svc-head">

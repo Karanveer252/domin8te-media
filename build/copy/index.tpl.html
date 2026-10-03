@@ -326,14 +326,20 @@ window.__GATES = [
     </div>
 
     <!-- ---------- the sky, first beat ----------
-         The clouds form and the words rise out of them. In the film this is
-         sky.js's layer (below, fixed to the stage); this prop is the phone and
-         reduced-motion version, the clouds-only still with the words over it,
-         and it keeps the words in reading order for a screen reader in either
-         mode. -->
-    <div class="act act--sky" style="--o:5">
+         On the desktop this is sky.js's film (below, fixed to the stage) and
+         this prop is clipped away, kept so a screen reader meets the words in
+         order. On a phone it is the beat: four layers of cumulus at their own
+         depths (sky3d/canyon.py), and phone.js flies the camera in through
+         them until the clouds part on the words. -->
+    <div class="act act--sky act--sky-a" style="--o:5">
       <figure class="skystill">
-        <img class="skystill__img" src="assets/sky-a-still.jpg?v=0000000000" width="1600" height="900" alt="" loading="lazy" decoding="async">
+        <picture><img class="skystill__img" src="assets/sky-a-still.jpg?v=0000000000" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
+        <div class="sky3" aria-hidden="true">
+        <picture><source type="image/avif" srcset="assets/cy-l4.avif?v=0"><img class="sky3__l" src="assets/cy-l4.webp?v=0" width="1080" height="141" alt="" loading="lazy" decoding="async" style="--x:0;--y:1013;--w:1080;--d:150;--z:1"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l3.avif?v=0"><img class="sky3__l" src="assets/cy-l3.webp?v=0" width="938" height="769" alt="" loading="lazy" decoding="async" style="--x:51;--y:1036;--w:938;--d:48;--z:2"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l2.avif?v=0"><img class="sky3__l" src="assets/cy-l2.webp?v=0" width="810" height="1110" alt="" loading="lazy" decoding="async" style="--x:0;--y:350;--w:1080;--d:24;--z:4"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l1.avif?v=0"><img class="sky3__l" src="assets/cy-l1.webp?v=0" width="670" height="1186" alt="" loading="lazy" decoding="async" style="--x:0;--y:487;--w:1080;--d:11;--z:5"></picture>
+        </div>
         <figcaption class="skystill__words"><h2 class="hl hl--sky"><span class="ln">{{film.f3.big}}</span></h2></figcaption>
       </figure>
     </div>
@@ -456,10 +462,19 @@ window.__GATES = [
       </figure>
     </div>
 
-    <!-- ---------- the sky, second beat: after the pair, the same clouds, the other words ---------- -->
-    <div class="act act--sky" style="--o:14">
+    <!-- ---------- the sky, second beat: after the pair, the same sky later ----------
+         On a phone the camera falls back through the same clouds as they
+         drift and the light goes (phone.js). -->
+    <div class="act act--sky act--sky-b" style="--o:14">
       <figure class="skystill">
-        <img class="skystill__img" src="assets/sky-b-still.jpg?v=0000000000" width="1600" height="900" alt="" loading="lazy" decoding="async">
+        <picture><img class="skystill__img" src="assets/sky-b-still.jpg?v=0000000000" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
+        <div class="sky3" aria-hidden="true">
+        <picture><source type="image/avif" srcset="assets/cy-l4.avif?v=0"><img class="sky3__l" src="assets/cy-l4.webp?v=0" width="1080" height="141" alt="" loading="lazy" decoding="async" style="--x:0;--y:1013;--w:1080;--d:150;--z:1"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l3.avif?v=0"><img class="sky3__l" src="assets/cy-l3.webp?v=0" width="938" height="769" alt="" loading="lazy" decoding="async" style="--x:51;--y:1036;--w:938;--d:48;--z:2"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l2.avif?v=0"><img class="sky3__l" src="assets/cy-l2.webp?v=0" width="810" height="1110" alt="" loading="lazy" decoding="async" style="--x:0;--y:350;--w:1080;--d:24;--z:4"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l1.avif?v=0"><img class="sky3__l" src="assets/cy-l1.webp?v=0" width="670" height="1186" alt="" loading="lazy" decoding="async" style="--x:0;--y:487;--w:1080;--d:11;--z:5"></picture>
+        <i class="sky3__dim"></i>
+        </div>
         <figcaption class="skystill__words"><h2 class="hl hl--sky"><span class="ln">{{film.f7.big1}}</span> <span class="ln ln--2">{{film.f7.big2}}</span></h2></figcaption>
       </figure>
     </div>

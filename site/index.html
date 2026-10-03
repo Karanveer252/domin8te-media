@@ -22,7 +22,7 @@
 <link rel="preload" href="assets/fonts/bvp-200.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/mark-8.webp" as="image" type="image/webp">
 <link rel="stylesheet" href="assets/site.css?v=f878c4225c">
-<link rel="stylesheet" href="assets/v-editorial.css?v=8242c7559b">
+<link rel="stylesheet" href="assets/v-editorial.css?v=1566be57c6">
 
 <script type="application/ld+json">
 {
@@ -283,15 +283,21 @@ window.__GATES = [
     </div>
 
     <!-- ---------- the sky, first beat ----------
-         The clouds form and the words rise out of them. In the film this is
-         sky.js's layer (below, fixed to the stage); this prop is the phone and
-         reduced-motion version, the clouds-only still with the words over it,
-         and it keeps the words in reading order for a screen reader in either
-         mode. -->
-    <div class="act act--sky" style="--o:5">
+         On the desktop this is sky.js's film (below, fixed to the stage) and
+         this prop is clipped away, kept so a screen reader meets the words in
+         order. On a phone it is the beat: four layers of cumulus at their own
+         depths (sky3d/canyon.py), and phone.js flies the camera in through
+         them until the clouds part on the words. -->
+    <div class="act act--sky act--sky-a" style="--o:5">
       <figure class="skystill">
-        <picture><source media="(max-width: 760px)" srcset="assets/sky-a-ph.webp" type="image/webp" width="900" height="1200"><img class="skystill__img" src="assets/sky-a-still.jpg?v=e0695f56e3" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
-        <figcaption class="skystill__words"><h2 class="hl hl--sky"><span class="ln">Feel the <em class="acc">growth</em>.</span></h2></figcaption>
+        <picture><img class="skystill__img" src="assets/sky-a-still.jpg?v=e0695f56e3" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
+        <div class="sky3" aria-hidden="true">
+        <picture><source type="image/avif" srcset="assets/cy-l4.avif?v=b418e89dd1"><img class="sky3__l" src="assets/cy-l4.webp?v=4e295365da" width="1080" height="141" alt="" loading="lazy" decoding="async" style="--x:0;--y:1013;--w:1080;--d:150;--z:1"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l3.avif?v=54b09d05de"><img class="sky3__l" src="assets/cy-l3.webp?v=3bb21666f1" width="938" height="769" alt="" loading="lazy" decoding="async" style="--x:51;--y:1036;--w:938;--d:48;--z:2"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l2.avif?v=9714c6a267"><img class="sky3__l" src="assets/cy-l2.webp?v=fab207de96" width="810" height="1110" alt="" loading="lazy" decoding="async" style="--x:0;--y:350;--w:1080;--d:24;--z:4"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l1.avif?v=83fef2f076"><img class="sky3__l" src="assets/cy-l1.webp?v=1212feff9a" width="670" height="1186" alt="" loading="lazy" decoding="async" style="--x:0;--y:487;--w:1080;--d:11;--z:5"></picture>
+        </div>
+        <figcaption class="skystill__words"><h2 class="hl hl--sky"><span class="ln">Feel the <em class="acc">growth.</em></span></h2></figcaption>
       </figure>
     </div>
 
@@ -412,10 +418,19 @@ window.__GATES = [
       </figure>
     </div>
 
-    <!-- ---------- the sky, second beat: after the pair, the same clouds, the other words ---------- -->
-    <div class="act act--sky" style="--o:14">
+    <!-- ---------- the sky, second beat: after the pair, the same sky later ----------
+         On a phone the camera falls back through the same clouds as they
+         drift and the light goes (phone.js). -->
+    <div class="act act--sky act--sky-b" style="--o:14">
       <figure class="skystill">
-        <picture><source media="(max-width: 760px)" srcset="assets/sky-b-ph.webp" type="image/webp" width="900" height="1200"><img class="skystill__img" src="assets/sky-b-still.jpg?v=a741bd86eb" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
+        <picture><img class="skystill__img" src="assets/sky-b-still.jpg?v=a741bd86eb" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
+        <div class="sky3" aria-hidden="true">
+        <picture><source type="image/avif" srcset="assets/cy-l4.avif?v=b418e89dd1"><img class="sky3__l" src="assets/cy-l4.webp?v=4e295365da" width="1080" height="141" alt="" loading="lazy" decoding="async" style="--x:0;--y:1013;--w:1080;--d:150;--z:1"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l3.avif?v=54b09d05de"><img class="sky3__l" src="assets/cy-l3.webp?v=3bb21666f1" width="938" height="769" alt="" loading="lazy" decoding="async" style="--x:51;--y:1036;--w:938;--d:48;--z:2"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l2.avif?v=9714c6a267"><img class="sky3__l" src="assets/cy-l2.webp?v=fab207de96" width="810" height="1110" alt="" loading="lazy" decoding="async" style="--x:0;--y:350;--w:1080;--d:24;--z:4"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l1.avif?v=83fef2f076"><img class="sky3__l" src="assets/cy-l1.webp?v=1212feff9a" width="670" height="1186" alt="" loading="lazy" decoding="async" style="--x:0;--y:487;--w:1080;--d:11;--z:5"></picture>
+        <i class="sky3__dim"></i>
+        </div>
         <figcaption class="skystill__words"><h2 class="hl hl--sky"><span class="ln">Taking your time?</span> <span class="ln ln--2">They’re <em class="acc">taking</em> your <em class="acc">customers</em>.</span></h2></figcaption>
       </figure>
     </div>
@@ -702,7 +717,7 @@ window.__GATES = [
 <a class="ctabar" id="ctabar" href="#contact">Get your plan</a>
 
 <script src="assets/pfilm.js?v=b40b1f4550" defer></script>
-<script src="assets/phone.js?v=cf16536e45" defer></script>
+<script src="assets/phone.js?v=0e4dc6f1a7" defer></script>
 <script src="assets/site.js?v=8bc4a2d982" defer></script>
 <script>/* the sky film is the desktop's alone; a phone never fetches it */
 if (document.documentElement.classList.contains('film')) { var s = document.createElement('script'); s.src = 'assets/sky.js?v=adf3056ac0'; document.body.appendChild(s) }</script>

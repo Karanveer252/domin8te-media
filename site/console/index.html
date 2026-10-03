@@ -3333,7 +3333,7 @@ html[data-scene="scenes"] .col { background: var(--glass); }
   /** The request a card mirrors, kept in step locally the way the database keeps it. @param {any} task */
   function requestFollows(task) {
     if (task.kind !== 'request' || !task.request_id) return;
-    const map = { todo: 'review', done: 'done', cancelled: 'declined' };
+    const map = { todo: 'review', in_review: 'waiting', done: 'done', cancelled: 'declined' };
     const status = map[task.status] || 'in_progress';
     for (const list of [current ? current.requests : [], all.requests]) {
       const r = (list || []).find((/** @type {any} */ x) => x.id === task.request_id);
@@ -4254,13 +4254,14 @@ html[data-scene="scenes"] .col { background: var(--glass); }
 
   /* ---- Inbox ---------------------------------------------------------------------------------------- */
 
-  const REQ_STATUS = [['review', 'New'], ['in_progress', 'In progress'], ['done', 'Done'], ['declined', 'Declined']];
+  const REQ_STATUS = [['review', 'New'], ['in_progress', 'In progress'], ['waiting', 'Waiting on client'], ['done', 'Done'], ['declined', 'Declined']];
 
   /** @param {HTMLElement} box @param {string} part */
   function inbox(box, part) {
     const titles = Object.fromEntries(Object.values(current.doc.approvals || {}).map((/** @type {any} */ a) => [a.id, a.title]));
-    const openReqs = current.requests.filter((/** @type {any} */ r) => r.status === 'review' || r.status === 'in_progress');
-    const closedReqs = current.requests.filter((/** @type {any} */ r) => !(r.status === 'review' || r.status === 'in_progress'));
+    const isOpen = (/** @type {any} */ r) => r.status === 'review' || r.status === 'in_progress' || r.status === 'waiting';
+    const openReqs = current.requests.filter(isOpen);
+    const closedReqs = current.requests.filter((/** @type {any} */ r) => !isOpen(r));
     const reqCard = (/** @type {any} */ r) => `<li class="item-card"><div class="item-top"><span class="item-title">${esc(svcLabel(r.service))}</span>
           <span class="r"><span class="req-status" role="group" aria-label="Status" data-req="${esc(r.id)}">${REQ_STATUS.map(([v, l]) => `<button type="button" data-status="${v}" aria-pressed="${r.status === v}">${l}</button>`).join('')}</span></span></div>
           <p>${esc(r.body)}</p><p class="meta">${esc(r.by_name || 'Client')}, ${esc(when(r.at))}</p></li>`;
@@ -4314,8 +4315,8 @@ html[data-scene="scenes"] .col { background: var(--glass); }
         r.status = status;
         const g = all.requests.find((/** @type {any} */ x) => x.id === id);
         if (g) g.status = status;
-        const cardStatus = { review: 'todo', done: 'done', declined: 'cancelled' }[status] || 'in_progress';
-        for (const list of [current.tasks, all.tasks]) for (const k of list || []) if (k.request_id === id && ({ todo: 'review', done: 'done', cancelled: 'declined' }[k.status] || 'in_progress') !== status) k.status = cardStatus;
+        const cardStatus = { review: 'todo', waiting: 'in_review', done: 'done', declined: 'cancelled' }[status] || 'in_progress';
+        for (const list of [current.tasks, all.tasks]) for (const k of list || []) if (k.request_id === id && ({ todo: 'review', in_review: 'waiting', done: 'done', cancelled: 'declined' }[k.status] || 'in_progress') !== status) k.status = cardStatus;
         toast(`Marked ${REQ_STATUS.find(([v]) => v === status)[1].toLowerCase()}.`);
         route();
       } catch (x) {
