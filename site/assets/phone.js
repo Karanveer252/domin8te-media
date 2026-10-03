@@ -88,9 +88,9 @@
      frame lets go: more flight in the first, more falling back in the second. */
   var SKY = {
     a: { t: [0, 12, 0, 1], rise: [0, 1.5, 0, 1], dx: [0, 0, 0, 1], night: [0, 0, 0, 1], glow: [.6, 1, 0, .8],
-         words: [.12, .19], ex: { t: 2.5, rise: .9 } },
+         words: [.12, .13], ex: { t: 4.5, rise: 1.2 } },
     b: { t: [12, 3, 0, 1], rise: [1.5, .2, 0, 1], dx: [0, -1.2, 0, 1], night: [0, 1, .15, .8], glow: [1, 0, .05, .7],
-         words: [.02, .42], ex: { t: -1.5, rise: -.3 } }
+         words: [.02, .42], ex: { t: -3, rise: -.4 } }
   };
   var SKY_KEYS = ['t', 'rise', 'dx', 'night', 'glow'];
   /* the line inside each beat is the page's own line, carried on into the
@@ -114,6 +114,8 @@
   function q3(v) { return Math.round(v * 1000) / 1000 }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v }
   function smooth(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t) }
+  /* eases in, then a steady pace to the end (no stop at the end) */
+  function easeInLin(t) { t = clamp(t, 0, 1); return (t < .25 ? 2 * t * t : t - .125) / .875 }
   function lerp(a, b, t) { return a + (b - a) * t }
   /* a style written only when its value changes */
   function put(e, k, v) { var c = e.__snk || (e.__snk = {}); if (c[k] !== v) { c[k] = v; e.style[k] = v } }
@@ -619,13 +621,15 @@
   function paintSky(k, at, hpy) {
     var cam = SKY[k.beat], vh = geo.vh, pk = clamp(at / k.R, 0, 1), v = {}, n;
     for (n = 0; n < SKY_KEYS.length; n++) {
-      var sp = cam[SKY_KEYS[n]];
-      v[SKY_KEYS[n]] = sp[0] + (sp[1] - sp[0]) * smooth((pk - sp[2]) / (sp[3] - sp[2]));
+      var sp = cam[SKY_KEYS[n]], u0 = clamp((pk - sp[2]) / (sp[3] - sp[2]), 0, 1);
+      /* the camera eases in and then keeps its pace right up to the release,
+         so the last stretch of the hold is never a parked picture */
+      v[SKY_KEYS[n]] = sp[0] + (sp[1] - sp[0]) * (SKY_KEYS[n] === 't' || SKY_KEYS[n] === 'rise' || SKY_KEYS[n] === 'dx' ? easeInLin(u0) : smooth(u0));
     }
     /* coming up the page the clouds fade in; letting go, the camera keeps on
        flying while the frame goes up the page, so nothing is ever a still
        picture scrolling away */
-    var e = smooth(1 + at / (.85 * vh)), q = smooth((at - k.R) / vh);
+    var e = smooth(1 + at / (.85 * vh)), qx = clamp((at - k.R) / vh, 0, 1), q = 1 - (1 - qx) * (1 - qx);
     v.t += cam.ex.t * q; v.rise += cam.ex.rise * q;
     var Wd = k.fig.clientWidth;
     for (n = 0; n < k.layers.length; n++) {
@@ -647,7 +651,7 @@
     }
     /* the words rise on their own clock once the reader reaches them, so a
        stop half way never holds a half-risen line */
-    var u1 = pk >= cam.words[0] - (k.up1 ? .04 : 0), u2 = pk >= cam.words[1] - (k.up2 ? .04 : 0);
+    var pr = at / k.R, u1 = pr >= cam.words[0] - (k.up1 ? .04 : 0), u2 = pr >= cam.words[1] - (k.up2 ? .04 : 0);
     if (u1 !== k.up1 && k.r1) { k.up1 = u1; k.r1.parentNode.classList.toggle('is-up', u1) }
     if (u2 !== k.up2 && k.r2) { k.up2 = u2; k.r2.parentNode.classList.toggle('is-up', u2) }
     if (k.cx && k.cx2) {
@@ -655,7 +659,7 @@
          frame; the frame's top on the page, for the line's colours; and how
          far the held scene has run the line through the clouds */
       var top = at < 0 ? -at : at > k.R ? k.R - at : 0;
-      skyLine(k, hpy - top, k.S0 + clamp(at, 0, k.R), smooth(pk / .8), at > k.R);
+      skyLine(k, hpy - top, k.S0 + clamp(at, 0, k.R), easeInLin(clamp(pk / .97, 0, 1)), at > k.R);
     }
   }
 

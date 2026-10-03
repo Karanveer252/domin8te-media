@@ -1174,6 +1174,9 @@ html.snake .act--word{width:max-content;max-width:100%;align-self:center;margin-
   html[data-v="editorial"].story .act--sky .hl--sky .acc{font-weight:800;font-style:italic;color:var(--acc);letter-spacing:-.02em}
   html[data-v="editorial"].story .act--sky-a .hl--sky .acc{display:block;font-size:1.3em;line-height:1;margin-top:.04em}
   html[data-v="editorial"].story .act--sky-b .hl--sky{font-size:11.2vw}
+  /* the narrowest phones: the accent word steps down so the lane's glow
+     keeps off its full stop */
+  @media (max-width:340px){html[data-v="editorial"].story .act--sky-a .hl--sky .acc{font-size:1.2em}}
   html[data-v="editorial"].story .act--sky-b .hl--sky .ln--2{font-size:.54em;line-height:1.14;margin-top:.6em;color:var(--ink)}
   html.story .sky3__m{display:block;overflow:hidden;padding:0 .14em .12em;margin:0 -.14em -.12em}
   /* each line rises out of its mask on its own clock once the reader is
@@ -1206,6 +1209,11 @@ html.snake .act--sky.lane-l .skystill__words{padding-left:10vw;padding-right:4vw
 html.snake .act--sky.lane-r .skystill__words{padding-left:4vw;padding-right:10vw}
 html.snake .act--sky .skystill::before,html.snake .act--sky .skystill::after{display:none}
 /* the bottom fade belongs to the scene, so it dissolves with it */
+/* the night bank never sits on bare black as it leaves: a dim blue haze
+   under it */
+html.snake .act--sky-b .sky3::before{
+  background:linear-gradient(180deg,rgba(10,10,10,0) 0,var(--bg) 40px,var(--bg) 52%,#0C111C 74%,#0E1422 88%,rgba(14,20,34,0) 100%);
+}
 html.snake .sky3::after{content:"";position:absolute;left:0;right:0;bottom:0;height:18vh;z-index:7;background:linear-gradient(0deg,var(--bg) 0,rgba(10,10,10,.92) 18%,rgba(10,10,10,.7) 42%,rgba(10,10,10,.38) 68%,rgba(10,10,10,.12) 88%,rgba(10,10,10,0) 100%)}
 
 /* the pair: one room twice, overlapping on a diagonal, the empty room
