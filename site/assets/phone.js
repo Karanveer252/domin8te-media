@@ -654,8 +654,11 @@
       /* the frame's top on the screen, and the page line's head in the
          frame; the frame's top on the page, for the line's colours */
       var top = at < 0 ? -at : at > k.R ? k.R - at : 0;
+      /* at the end of the hold the sweep draws back into the lane, then the
+         lane runs on down to the page line's head, so by the time the frame
+         lets go the scene's line already is the page's */
       skyLine(k, hpy - top, k.S0 + clamp(at, 0, k.R), smooth(pk / .32),
-        smooth((at - k.R) / (.14 * vh)), smooth((at - k.R - .1 * vh) / (.14 * vh)), at > k.R);
+        smooth((pk - .8) / .09), smooth((pk - .89) / .11), at > k.R);
     }
   }
 
