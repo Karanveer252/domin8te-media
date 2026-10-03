@@ -105,7 +105,7 @@
      (1080 wide, the vanishing point at row 1008). */
   var SKY_LINE = {
     a: [[69, -12], [69, 540], [72, 790], [130, 925], [330, 993], [610, 1010]],
-    b: [[69, -12], [69, 760], [86, 1500], [132, 2400]]
+    b: [[69, -12], [72, 640], [112, 1300], [190, 2050]]
   };
   var skies = [];
 
@@ -644,7 +644,9 @@
       /* the frame's top on the screen, and how far past it the page line's
          head has come; letting go, the frame's line gives way first */
       var top = at < 0 ? -at : at > k.R ? k.R - at : 0;
-      skyLine(k, hpy - top, smooth(pk / .32));
+      /* letting go, the first beat's sweep draws back into the lane before
+         the page line shows through, so the two never fork */
+      skyLine(k, hpy - top, smooth(pk / .32), smooth((at - k.R) / (.16 * vh)));
     }
   }
 
@@ -708,10 +710,11 @@
     var tg = cx.createLinearGradient(0, 0, 0, 40);
     tg.addColorStop(0, 'rgba(0,0,0,1)'); tg.addColorStop(1, 'rgba(0,0,0,0)');
     cx.fillStyle = tg; cx.fillRect(0, -10, Wd, 50);
-    /* the first beat's: the haze takes its last stretch */
-    if (runs) {
+    /* the haze takes the first beat's last stretch; the clouds swallow the
+       second's */
+    {
       var fp = null, end = P[P.length - 1];
-      for (m = 0; m < S.length; m++) if (S[m].l >= .75 * total) { fp = S[m]; break }
+      for (m = 0; m < S.length; m++) if (S[m].l >= (runs ? .75 : .8) * total) { fp = S[m]; break }
       if (fp) {
         var hz = cx.createLinearGradient(fp.x, fp.y, end[0], end[1]);
         hz.addColorStop(0, 'rgba(0,0,0,0)'); hz.addColorStop(1, 'rgba(0,0,0,1)');
@@ -725,10 +728,12 @@
     k.path = S; k.total = total; k.built = Wd + 'x' + Hd + k.side;
   }
 
-  function skyLine(k, reach, grow) {
+  function skyLine(k, reach, grow, back) {
     var Wd = k.fig.clientWidth, Hd = k.fig.clientHeight, alpha = 1;
     if (k.built !== Wd + 'x' + Hd + k.side) { skyLineBuild(k, Wd, Hd); k.lineKey = '' }
-    reach = Math.round(Math.max(reach, grow * k.total));
+    reach = Math.max(reach, grow * k.total);
+    if (k.beat === 'a' && back > 0) reach = Math.min(reach, lerp(k.total, k.bendL, back));
+    reach = Math.round(reach);
     var key = reach + ',' + Wd + 'x' + Hd + k.side;
     if (key === k.lineKey) return;
     k.lineKey = key;
@@ -747,7 +752,7 @@
     cx.restore();
     /* the head's light, the page line's own, while the head is in sight
        and not yet taken by the haze */
-    var hl = runs ? 1 - smooth((head - k.bendL) / (.16 * total)) : 1;
+    var hl = (runs ? 1 - smooth((head - k.bendL) / (.16 * total)) : 1) * (1 - (back || 0));
     if (hl > .01 && head < total - 2) {
       var hg = cx.createRadialGradient(hx.x, hx.y, 0, hx.x, hx.y, 75);
       hg.addColorStop(0, 'rgba(255,252,246,1)'); hg.addColorStop(.03, 'rgba(255,246,232,.9)'); hg.addColorStop(.09, 'rgba(255,226,196,.38)');
