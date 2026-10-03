@@ -7345,7 +7345,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   const fine = window.matchMedia('(hover: hover) and (pointer: fine)');
   const rmq = window.matchMedia('(prefers-reduced-motion: reduce)');
   const fcq = window.matchMedia('(forced-colors: active)');
-  const dprNow = () => Math.min(window.devicePixelRatio || 1, 2);
+  const dprNow = () => Math.min(window.devicePixelRatio || 1, lite ? 1 : 1.5);
 
   /** @param {number} v */
   const ph = (v) => ((v % DOT) + DOT) % DOT;
@@ -7392,6 +7392,44 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     return c;
   }
 
+
+  /* ---- Light on any hardware ---------------------------------------------------------------------
+     The field only runs where it can run well. Weak devices (2 cores or 2 GB or less, or data saver
+     on) keep the still CSS dots. Sharpness is capped at 1.5x. While it runs, the frame time is
+     watched: if frames run slow it drops to a lighter mode (no joining lines, 1x sharpness), and if
+     even that is slow it switches itself off for the visit, leaving the still dots. Any error does
+     the same: the page never stutters or breaks because of the dots. */
+  const NAV = /** @type {any} */ (navigator);
+  const WEAK = (NAV.hardwareConcurrency || 8) <= 2 || (NAV.deviceMemory || 8) <= 2 || !!(NAV.connection && NAV.connection.saveData);
+  let lite = false, dead = false, frameMs = 16.7, frames = 0;
+  /** Watches one frame's time; returns 'lite' or 'off' when it is time to step down. @param {number} ms */
+  function govern(ms) {
+    frameMs = frameMs * 0.9 + Math.min(ms, 100) * 0.1;
+    if (++frames < 24) return '';
+    if (!lite && frameMs > 28) { lite = true; frames = 0; frameMs = 16.7; return 'lite'; }
+    if (lite && frameMs > 40) { dead = true; return 'off'; }
+    return '';
+  }
+  /** The joining lines, grouped by strength so a frame strokes 8 paths instead of hundreds. */
+  const BUCKETS = 8;
+  /** @type {(Path2D|undefined)[]} */ let paths = [];
+  /** @param {CanvasRenderingContext2D} c */
+  function strokePaths(c) {
+    for (let b = 0; b < BUCKETS; b++) {
+      const p = paths[b];
+      if (!p) continue;
+      c.strokeStyle = 'rgba(' + INK + ',' + Math.min(1, ((b + 0.5) / BUCKETS) * 0.14 * KV * KH).toFixed(3) + ')';
+      c.stroke(p);
+    }
+    paths = [];
+  }
+  /** @param {number} x @param {number} y @param {number} x2 @param {number} y2 @param {number} s */
+  function addLine(x, y, x2, y2, s) {
+    const b = Math.min(BUCKETS - 1, (s * BUCKETS) | 0);
+    const p = paths[b] || (paths[b] = new Path2D());
+    p.moveTo(x, y);
+    p.lineTo(x2, y2);
+  }
 
   /* ---- Glass over the dots, made cheap ------------------------------------------------------------
      The cards are frosted glass (backdrop-filter). Over the moving dots the browser had to redo every
@@ -7604,18 +7642,21 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       }
       // The lines: a displaced dot joins its neighbours, the more it has moved the more they show.
       // Drawn once per pair, and under the dots.
-      ctx.lineWidth = 0.7;
-      k = 0;
-      for (j = 0; j < rows; j++) {
-        for (i = 0; i < cols; i++, k++) {
-          if (!hot[k]) continue;
-          const m = Math.abs(ox[k]) + Math.abs(oy[k]);
-          x = (i - 1) * DOT + px + ox[k]; y = (j - 1) * DOT + py + oy[k];
-          if (i + 1 < cols) line(ctx, x, y, k + 1, i + 1, j, m, ox, oy, px, py);
-          if (j + 1 < rows) line(ctx, x, y, k + cols, i, j + 1, m, ox, oy, px, py);
-          if (i > 0 && !hot[k - 1]) line(ctx, x, y, k - 1, i - 1, j, m, ox, oy, px, py);
-          if (j > 0 && !hot[k - cols]) line(ctx, x, y, k - cols, i, j - 1, m, ox, oy, px, py);
+      if (!lite) {
+        ctx.lineWidth = 0.7;
+        k = 0;
+        for (j = 0; j < rows; j++) {
+          for (i = 0; i < cols; i++, k++) {
+            if (!hot[k]) continue;
+            const m = Math.abs(ox[k]) + Math.abs(oy[k]);
+            x = (i - 1) * DOT + px + ox[k]; y = (j - 1) * DOT + py + oy[k];
+            if (i + 1 < cols) line(x, y, k + 1, i + 1, j, m, ox, oy, px, py);
+            if (j + 1 < rows) line(x, y, k + cols, i, j + 1, m, ox, oy, px, py);
+            if (i > 0 && !hot[k - 1]) line(x, y, k - 1, i - 1, j, m, ox, oy, px, py);
+            if (j > 0 && !hot[k - cols]) line(x, y, k - cols, i, j - 1, m, ox, oy, px, py);
+          }
         }
+        strokePaths(ctx);
       }
       // The dots the cursor reaches: stronger (as the highlight slider sets: up to the website's at 50,
       // on to full ink at 100) and a touch larger (as the animation allows).
@@ -7641,20 +7682,15 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   /* The pair's travel decides the line, steeply: a nudge shows nothing, a dot pushed a cell's third
      joins its neighbours. */
   /**
-   * @param {CanvasRenderingContext2D} ctx @param {number} x @param {number} y @param {number} n
+   * @param {number} x @param {number} y @param {number} n
    * @param {number} ni @param {number} nj @param {number} m @param {Float32Array} ox @param {Float32Array} oy
    * @param {number} px @param {number} py
    */
-  function line(ctx, x, y, n, ni, nj, m, ox, oy, px, py) {
+  function line(x, y, n, ni, nj, m, ox, oy, px, py) {
     let s = (m + Math.abs(ox[n]) + Math.abs(oy[n])) / 16;
     if (s < 0.12) return;
     if (s > 1) s = 1;
-    s *= s;
-    ctx.strokeStyle = 'rgba(' + INK + ',' + Math.min(1, s * 0.14 * KV * KH).toFixed(3) + ')';
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo((ni - 1) * DOT + px + ox[n], (nj - 1) * DOT + py + oy[n]);
-    ctx.stroke();
+    addLine(x, y, (ni - 1) * DOT + px + ox[n], (nj - 1) * DOT + py + oy[n], s * s);
   }
 
   const kick = () => { if (on && raf === null) raf = requestAnimationFrame(tick); };
@@ -7663,6 +7699,21 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     // One loop only: a synchronous call cancels any frame already booked.
     if (raf !== null) cancelAnimationFrame(raf);
     raf = null;
+    if (!field) return;
+    try {
+      if (last) {
+        const s = govern(t - last);
+        if (s === 'off') { stop(); return; }
+        if (s === 'lite') { sprite = makeSprite(dprNow()); field.size(); }
+      }
+      frame(t);
+    } catch (e) {
+      dead = true; // something went wrong: keep the still dots, never a broken page
+      try { stop(); } catch (x) { /* already gone */ }
+    }
+  }
+  /** One frame of the field. @param {number} t */
+  function frame(t) {
     if (!field) return;
     const dt = last ? Math.min((t - last) / 1000, 0.05) : 1 / 60;
     last = t;
@@ -7700,7 +7751,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   function leave() { mouseIn = false; kick(); }
 
   function start() {
-    if (on || !DOT || !fine.matches || rmq.matches || fcq.matches) return;
+    if (on || dead || WEAK || !DOT || !fine.matches || rmq.matches || fcq.matches) return;
     const c = document.createElement('canvas');
     c.className = 'dots dots--page';
     c.setAttribute('aria-hidden', 'true');

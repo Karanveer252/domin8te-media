@@ -4693,9 +4693,47 @@ html[data-scene="scenes"] .col { background: var(--glass); }
   const rmq = window.matchMedia('(prefers-reduced-motion: reduce)');
   const fine = window.matchMedia('(hover: hover) and (pointer: fine)');
   const fcq = window.matchMedia('(forced-colors: active)');
-  const dprNow = () => Math.min(window.devicePixelRatio || 1, 2);
+  const dprNow = () => Math.min(window.devicePixelRatio || 1, lite ? 1 : 1.5);
 
   /* ---- 1. the dot field ------------------------------------------------------------------------ */
+
+  /* ---- Light on any hardware ---------------------------------------------------------------------
+     The field only runs where it can run well. Weak devices (2 cores or 2 GB or less, or data saver
+     on) keep the still CSS dots. Sharpness is capped at 1.5x. While it runs, the frame time is
+     watched: if frames run slow it drops to a lighter mode (no joining lines, 1x sharpness), and if
+     even that is slow it switches itself off for the visit, leaving the still dots. Any error does
+     the same: the page never stutters or breaks because of the dots. */
+  const NAV = /** @type {any} */ (navigator);
+  const WEAK = (NAV.hardwareConcurrency || 8) <= 2 || (NAV.deviceMemory || 8) <= 2 || !!(NAV.connection && NAV.connection.saveData);
+  let lite = false, dead = false, frameMs = 16.7, frames = 0;
+  /** Watches one frame's time; returns 'lite' or 'off' when it is time to step down. @param {number} ms */
+  function govern(ms) {
+    frameMs = frameMs * 0.9 + Math.min(ms, 100) * 0.1;
+    if (++frames < 24) return '';
+    if (!lite && frameMs > 28) { lite = true; frames = 0; frameMs = 16.7; return 'lite'; }
+    if (lite && frameMs > 40) { dead = true; return 'off'; }
+    return '';
+  }
+  /** The joining lines, grouped by strength so a frame strokes 8 paths instead of hundreds. */
+  const BUCKETS = 8;
+  /** @type {(Path2D|undefined)[]} */ let paths = [];
+  /** @param {CanvasRenderingContext2D} c */
+  function strokePaths(c) {
+    for (let b = 0; b < BUCKETS; b++) {
+      const p = paths[b];
+      if (!p) continue;
+      c.strokeStyle = 'rgba(' + INK + ',' + Math.min(1, ((b + 0.5) / BUCKETS) * 0.14 * KV * KH).toFixed(3) + ')';
+      c.stroke(p);
+    }
+    paths = [];
+  }
+  /** @param {number} x @param {number} y @param {number} x2 @param {number} y2 @param {number} s */
+  function addLine(x, y, x2, y2, s) {
+    const b = Math.min(BUCKETS - 1, (s * BUCKETS) | 0);
+    const p = paths[b] || (paths[b] = new Path2D());
+    p.moveTo(x, y);
+    p.lineTo(x2, y2);
+  }
 
   const DOT = 23;
   const SITE = 50;
@@ -4801,13 +4839,7 @@ html[data-scene="scenes"] .col { background: var(--glass); }
     let s = (m + Math.abs(ox[n]) + Math.abs(oy[n])) / 16;
     if (s < 0.12) return;
     if (s > 1) s = 1;
-    s *= s;
-    const c = /** @type {CanvasRenderingContext2D} */ (ctx);
-    c.strokeStyle = 'rgba(' + INK + ',' + Math.min(1, s * 0.14 * KV * KH).toFixed(3) + ')';
-    c.beginPath();
-    c.moveTo(x, y);
-    c.lineTo((ni - 1) * DOT + DOT / 2 + ox[n], (nj - 1) * DOT + DOT / 2 + oy[n]);
-    c.stroke();
+    addLine(x, y, (ni - 1) * DOT + DOT / 2 + ox[n], (nj - 1) * DOT + DOT / 2 + oy[n], s * s);
   }
   /** The box redrawn last frame, and whether the next frame must redraw everything. @type {number[]|null} */
   let lastBox = null;
@@ -4848,18 +4880,21 @@ html[data-scene="scenes"] .col { background: var(--glass); }
       const y = (j - 1) * DOT + p;
       for (let i = 0; i < cols; i++, k++) if (hot[k]) { const x = (i - 1) * DOT + p; c.clearRect(x - 3, y - 3, 6, 6); }
     }
-    c.lineWidth = 0.7;
-    k = 0;
-    for (let j = 0; j < rows; j++) {
-      for (let i = 0; i < cols; i++, k++) {
-        if (!hot[k]) continue;
-        const m = Math.abs(ox[k]) + Math.abs(oy[k]);
-        const x = (i - 1) * DOT + p + ox[k], y = (j - 1) * DOT + p + oy[k];
-        if (i + 1 < cols) line(x, y, k + 1, i + 1, j, m);
-        if (j + 1 < rows) line(x, y, k + cols, i, j + 1, m);
-        if (i > 0 && !hot[k - 1]) line(x, y, k - 1, i - 1, j, m);
-        if (j > 0 && !hot[k - cols]) line(x, y, k - cols, i, j - 1, m);
+    if (!lite) {
+      c.lineWidth = 0.7;
+      k = 0;
+      for (let j = 0; j < rows; j++) {
+        for (let i = 0; i < cols; i++, k++) {
+          if (!hot[k]) continue;
+          const m = Math.abs(ox[k]) + Math.abs(oy[k]);
+          const x = (i - 1) * DOT + p + ox[k], y = (j - 1) * DOT + p + oy[k];
+          if (i + 1 < cols) line(x, y, k + 1, i + 1, j, m);
+          if (j + 1 < rows) line(x, y, k + cols, i, j + 1, m);
+          if (i > 0 && !hot[k - 1]) line(x, y, k - 1, i - 1, j, m);
+          if (j > 0 && !hot[k - cols]) line(x, y, k - cols, i, j - 1, m);
+        }
       }
+      strokePaths(c);
     }
     const site = Math.min(1, 0.42 * KV), grow = Math.min(KM, 1.8);
     const peak = KH <= 1 ? A + (site - A) * KH : site + (1 - site) * (KH - 1);
@@ -4883,6 +4918,20 @@ html[data-scene="scenes"] .col { background: var(--glass); }
     if (raf !== null) cancelAnimationFrame(raf);
     raf = null;
     if (!on) return;
+    try {
+      if (last) {
+        const s = govern(t - last);
+        if (s === 'off') { stopDots(); return; }
+        if (s === 'lite') size();
+      }
+      frame(t);
+    } catch (e) {
+      dead = true; // something went wrong: keep the still dots, never a broken page
+      try { stopDots(); } catch (x) { /* already gone */ }
+    }
+  }
+  /** One frame of the field. @param {number} t */
+  function frame(t) {
     const dt = last ? Math.min((t - last) / 1000, 0.05) : 1 / 60;
     last = t;
     let speed = 0;
@@ -4898,7 +4947,7 @@ html[data-scene="scenes"] .col { background: var(--glass); }
   const resize = () => { size(); last = 0; kick(); };
 
   function startDots() {
-    if (on) return;
+    if (on || dead || WEAK) return;
     canvas = document.createElement('canvas');
     canvas.className = 'fx-dots';
     canvas.setAttribute('aria-hidden', 'true');
