@@ -372,7 +372,7 @@
     }).join('');
     const m = minutesLeft(v, i);
     $('#timeLeft').textContent = s.type === 'done' ? 'All done' : m ? 'About ' + m + ' min left' : 'Almost done';
-    $('#topChapter').innerHTML = '<button type="button" id="chapBtn" aria-controls="rail" aria-expanded="false"><b>' + (cIdx + 1) + '/' + chapters.length + '</b> ' + esc(chapters[cIdx].name) + I.chev + '</button>';
+    $('#topChapter').innerHTML = '<button type="button" id="chapBtn" aria-controls="rail" aria-expanded="false"><b>' + (cIdx + 1) + '/' + chapters.length + '</b> <span class="t">' + esc(chapters[cIdx].name) + '</span>' + I.chev + '</button>';
   }
   function dock(v, i, s) {
     const back = $('#backBtn'), skip = $('#skipBtn'), nx = $('#nextBtn');

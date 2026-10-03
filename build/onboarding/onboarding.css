@@ -43,16 +43,17 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke
 /* ---------- header ---------- */
 .top{
   position:fixed;inset:0 0 auto 0;height:var(--head);z-index:20;
-  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:16px;
   padding:0 var(--gut);background:rgba(10,10,10,.92);backdrop-filter:blur(8px);
   border-bottom:1px solid var(--hair);
 }
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;min-height:44px}
 .brand img{width:40px;height:20px;object-fit:contain}
 .brand span{font:200 18px/1 var(--f);letter-spacing:.06em;text-transform:uppercase}
-.top-mid{justify-self:center;min-width:0}
+.top-mid{justify-self:stretch;display:flex;justify-content:center;min-width:0;overflow:hidden}
+.top-mid .t{min-width:0;overflow:hidden;text-overflow:ellipsis}
 @media (min-width:1024px){.top-mid{visibility:hidden}}
-.top-mid button{display:flex;align-items:center;gap:8px;min-height:44px;font:600 12px/1.2 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.top-mid button{display:flex;align-items:center;gap:8px;min-height:44px;max-width:100%;min-width:0;white-space:nowrap;overflow:hidden;font:600 12px/1.2 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
 .top-mid b{color:var(--ink);font-weight:600}
 .top-right{display:flex;align-items:center;gap:6px}
 .saved{font:600 11px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-right:8px;display:flex;align-items:center;gap:6px;white-space:nowrap}
@@ -240,7 +241,8 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke
 .tog{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:640px;margin-top:22px;padding:14px 0;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);text-align:left;width:100%;color:var(--ink-2)}
 
 /* connect */
-.connect{display:grid;grid-template-columns:1.25fr 1fr;gap:clamp(24px,4vw,48px);align-items:start}
+.connect{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:clamp(24px,4vw,48px);align-items:start}
+.connect>*{min-width:0}
 .how{list-style:none;margin:0;padding:0;counter-reset:h}
 .how li{counter-increment:h;display:grid;grid-template-columns:44px 1fr;gap:6px;padding:14px 0;border-bottom:1px solid var(--hair);color:var(--ink-2);font-size:16px}
 .how li:first-child{border-top:1px solid var(--hair)}
@@ -337,7 +339,7 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke
   padding:0 var(--gut) env(safe-area-inset-bottom) clamp(20px,6vw,112px);
   background:rgba(10,10,10,.94);backdrop-filter:blur(8px);border-top:1px solid var(--hair);
 }
-.dock-right{display:flex;align-items:center;gap:10px}
+.dock-right{display:flex;align-items:center;gap:10px;margin-left:auto}
 .dock [hidden]{display:none}
 .dock .ghost[disabled]{opacity:.3;pointer-events:none}
 
@@ -394,7 +396,8 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke
   .fields{grid-template-columns:1fr}
   .field.half{grid-column:1/-1}
   .swatches{grid-template-columns:repeat(4,1fr)}
-  .connect{grid-template-columns:1fr}
+  .connect{grid-template-columns:minmax(0,1fr)}
+  .top-mid button .t{overflow:hidden;text-overflow:ellipsis}
   .card{order:-1}
   .hr{grid-template-columns:50px 1fr;padding:8px 0}
   .hr .times{grid-column:1/-1;padding-bottom:6px}
