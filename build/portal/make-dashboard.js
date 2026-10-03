@@ -39,7 +39,7 @@ if (html.startsWith('<!-- @dsCard')) html = html.slice(html.indexOf('\n') + 1);
 // The app already asks search engines to leave every page out (meta robots noindex in src/index.html).
 if (!/<meta name="robots" content="noindex/.test(html)) throw new Error('the page lost its noindex');
 once('charset', '<meta charset="utf-8">', `<meta charset="utf-8">
-<style>/* domin8temedia.com/dashboard: the glass dock is a design tool, hidden in the demo */ .lg-dock { display: none !important; }</style>`);
+<style>/* domin8temedia.com/dashboard: the glass dock is a design tool, hidden in the demo */ .lg-dock { display: none !important; }</style><script>window.D8DOTS = 'fixed';</script>`);
 
 if (LIVE) {
   const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, 'live-config.json'), 'utf8'));

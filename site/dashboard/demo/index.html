@@ -2,7 +2,7 @@
 <html lang="en-GB" data-theme="light" data-variant="18h" class="lg-heavy lg-flow">
 <head>
 <meta charset="utf-8">
-<style>/* domin8temedia.com/dashboard: the glass dock is a design tool, hidden in the demo */ .lg-dock { display: none !important; }</style>
+<style>/* domin8temedia.com/dashboard: the glass dock is a design tool, hidden in the demo */ .lg-dock { display: none !important; }</style><script>window.D8DOTS = 'fixed';</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>Domin8te portal</title>
@@ -7268,6 +7268,9 @@ html[data-variant="18h"] .page { animation: none; }
   const query = new URLSearchParams(window.location.search);
   /** @param {string} param @param {string} key @param {number} start */
   function first(param, key, start) {
+    // On domin8temedia.com the sliders are hidden, so nothing saved earlier may change the dots: they
+    // match the agency console exactly (visibility 50, animation 10, highlight 100).
+    if (/** @type {any} */ (window).D8DOTS === 'fixed') return start;
     const q = query.get(param), s = store.get(key);
     if (q !== null && q.trim() !== '' && !isNaN(Number(q))) return pct(q);
     if (s !== null && s.trim() !== '' && !isNaN(Number(s))) return pct(s);

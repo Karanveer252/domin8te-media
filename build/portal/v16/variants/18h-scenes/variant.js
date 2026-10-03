@@ -48,6 +48,9 @@
   const query = new URLSearchParams(window.location.search);
   /** @param {string} param @param {string} key @param {number} start */
   function first(param, key, start) {
+    // On domin8temedia.com the sliders are hidden, so nothing saved earlier may change the dots: they
+    // match the agency console exactly (visibility 50, animation 10, highlight 100).
+    if (/** @type {any} */ (window).D8DOTS === 'fixed') return start;
     const q = query.get(param), s = store.get(key);
     if (q !== null && q.trim() !== '' && !isNaN(Number(q))) return pct(q);
     if (s !== null && s.trim() !== '' && !isNaN(Number(s))) return pct(s);
