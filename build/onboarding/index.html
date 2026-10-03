@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0A0A0A">
+<title>Set up · Domin8te</title>
+<link rel="preload" href="assets/fonts/bvp-200.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/bvp-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="onboarding.css">
+</head>
+<body>
+<a class="skip" href="#stage">Skip to the question</a>
+
+<header class="top">
+  <a class="brand" href="map.html" title="See the whole flow">
+    <img src="assets/mark-120.webp" alt="" width="40" height="20">
+    <span>Domin8te</span>
+  </a>
+  <div class="top-mid" id="topChapter" aria-hidden="true"></div>
+  <div class="top-right">
+    <span class="saved" id="saved" aria-live="polite"></span>
+    <button class="ghost" type="button" id="laterBtn">Finish later</button>
+    <button class="ghost help-btn" type="button" id="helpBtn" aria-controls="help" aria-expanded="false">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.25"/><path d="M7.6 7.7a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.4"/><circle cx="10" cy="14.6" r=".4"/></svg>
+      <span>Help</span>
+    </button>
+  </div>
+  <div class="bar" role="progressbar" aria-label="Onboarding progress" aria-valuemin="0" aria-valuemax="100" id="bar"><i id="barFill"></i></div>
+</header>
+
+<div class="shell">
+  <nav class="rail" id="rail" aria-label="Chapters">
+    <div class="rail-head">
+      <p class="label">Your setup</p>
+      <p class="left" id="timeLeft"></p>
+    </div>
+    <ol id="chapters"></ol>
+    <div class="rail-foot">
+      <p class="label">Promise</p>
+      <p>Nothing goes live without your OK. Skip anything, we’ll sort it on a call.</p>
+    </div>
+  </nav>
+
+  <main class="stage" id="stage" tabindex="-1">
+    <noscript><p class="lead">This setup needs JavaScript. Email karanhelps@domin8temedia.com and we’ll do it with you on a call.</p></noscript>
+  </main>
+</div>
+
+<footer class="dock" id="dock">
+  <button class="ghost" type="button" id="backBtn">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4 6 10l6 6"/></svg><span>Back</span>
+  </button>
+  <div class="dock-right">
+    <button class="ghost" type="button" id="skipBtn">Skip for now</button>
+    <button class="primary" type="button" id="nextBtn"><span>Continue</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 4l6 6-6 6"/></svg></button>
+  </div>
+</footer>
+
+<aside class="help" id="help" aria-label="Help" hidden>
+  <div class="help-in">
+    <div class="help-head">
+      <p class="label">Stuck? That’s what we’re here for</p>
+      <button class="x" type="button" id="helpClose" aria-label="Close help"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15"/></svg></button>
+    </div>
+    <div id="helpBody"></div>
+  </div>
+</aside>
+<div class="scrim" id="scrim" hidden></div>
+
+<dialog class="later" id="later" aria-labelledby="laterTitle">
+  <h2 id="laterTitle">Take a break.</h2>
+  <p>Your answers are saved on this device as you go. Come back to this page any time and you’ll land right where you stopped.</p>
+  <p class="small" id="laterWho"></p>
+  <div class="later-actions">
+    <button class="primary" type="button" id="laterEmail">Email me a link</button>
+    <button class="ghost" type="button" id="laterClose">Keep going</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="steps.js"></script>
+<script src="onboarding.js"></script>
+</body>
+</html>

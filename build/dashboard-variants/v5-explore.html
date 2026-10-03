@@ -361,6 +361,7 @@ html.motion .film__c{transition:scale .25s var(--ease)}
 .film__play:hover .film__c{scale:1.06}
 .film__play:focus-visible{outline-offset:-6px}
 .film__box.playing .film__play{display:none}
+@media (max-width:760px){.film__play{align-content:start;justify-content:end;padding:10px}.film__lbl{display:none}.film__c{width:52px}}
 .chap-wrap{position:relative;min-height:0}
 .chaps{position:absolute;inset:0;overflow:auto;list-style:none;margin:0;padding:6px}
 .chap{display:grid;grid-template-columns:3.1rem minmax(0,1fr);gap:8px;align-items:baseline;width:100%;min-height:44px;padding:10px 12px;border:0;border-radius:10px;background:transparent;color:var(--ink-2);font-size:.9375rem;line-height:1.35;text-align:left;cursor:pointer}

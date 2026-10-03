@@ -80,14 +80,15 @@
      [from, to] over [p0, p1] of the beat's runway, eased. t is how far it has
      flown in (render units; the layers sit 11 to 150 deep), rise how far it
      has climbed, dx how far the wind has carried the clouds, dim how far the
-     light has gone, w1 and w2 the two lines of words coming up. The first beat
+     light has gone, glow the haze on the horizon, w1 and w2 the two lines of
+     words coming up. The first beat
      flies in and the clouds part on the words; the second is the same sky,
      later: the camera falls back, the clouds drift and the light goes. */
   var SKY = {
-    a: { t: [0, 9, 0, 1], rise: [0, 1.5, 0, 1], dx: [0, 0, 0, 1], dim: [0, 0, 0, 1], w1: [0, 1, .3, .62], w2: [0, 1, .42, .76] },
-    b: { t: [9, 4, .05, 1], rise: [1.5, .6, .05, 1], dx: [0, -2, 0, 1], dim: [0, .7, .15, .9], w1: [0, 1, -.12, .1], w2: [0, 1, .42, .72] }
+    a: { t: [0, 9, 0, 1], rise: [0, 1.5, 0, 1], dx: [0, 0, 0, 1], dim: [0, 0, 0, 1], glow: [.3, 1, 0, 1], w1: [0, 1, .3, .62], w2: [0, 1, .42, .76] },
+    b: { t: [9, 4, .05, 1], rise: [1.5, .6, .05, 1], dx: [0, -2, 0, 1], dim: [0, .7, .15, .9], glow: [1, .1, .1, .9], w1: [0, 1, -.12, .1], w2: [0, 1, .42, .72] }
   };
-  var SKY_KEYS = ['t', 'rise', 'dx', 'dim', 'w1', 'w2'];
+  var SKY_KEYS = ['t', 'rise', 'dx', 'dim', 'glow', 'w1', 'w2'];
   var skies = [];
 
   function el(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); return e }
@@ -98,7 +99,6 @@
   function lerp(a, b, t) { return a + (b - a) * t }
   /* a style written only when its value changes */
   function put(e, k, v) { var c = e.__snk || (e.__snk = {}); if (c[k] !== v) { c[k] = v; e.style[k] = v } }
-  function putVar(e, k, v) { var c = e.__snk || (e.__snk = {}); if (c[k] !== v) { c[k] = v; e.style.setProperty(k, v) } }
 
   /* a position relative to .film that ignores the reveal's transforms */
   function pos(e) {
@@ -532,16 +532,28 @@
     }
     put(tip, 'opacity', '' + q3(c.lit * (1 - smooth((c.done - .8) / .2))));
 
-    /* the cloud beats: only a beat near the screen is written to */
+    /* the cloud beats: only a beat near the screen is written to, and each
+       layer gets its own transform and opacity (a custom property on the
+       frame would restyle everything in it, every frame) */
     var Sy = (window.scrollY || window.pageYOffset) - film.offsetTop;
     for (i = 0; i < skies.length; i++) {
       var k = skies[i];
       if (Sy < k.S0 - geo.vh || Sy > k.S0 + k.R + 1.4 * geo.vh) continue;
-      var pk = c['sky' + i], cam = SKY[k.beat];
+      var pk = c['sky' + i], cam = SKY[k.beat], v = {};
       for (var n = 0; n < SKY_KEYS.length; n++) {
-        var sp = cam[SKY_KEYS[n]], v = sp[0] + (sp[1] - sp[0]) * smooth((pk - sp[2]) / (sp[3] - sp[2]));
-        putVar(k.fig, '--' + SKY_KEYS[n], '' + q3(v));
+        var sp = cam[SKY_KEYS[n]];
+        v[SKY_KEYS[n]] = sp[0] + (sp[1] - sp[0]) * smooth((pk - sp[2]) / (sp[3] - sp[2]));
       }
+      var Wd = k.fig.clientWidth;
+      for (n = 0; n < k.layers.length; n++) {
+        var ly = k.layers[n], dd = ly.d - v.t, sc = ly.d / dd;
+        put(ly.el, 'transform', 'translate3d(' + f(v.dx * Wd / dd) + 'px,' + f(v.rise * Wd / dd) + 'px,0) scale(' + q3(sc) + ')');
+        put(ly.el, 'opacity', '' + q3(clamp(3 - sc, 0, 1)));
+      }
+      if (k.glow) put(k.glow, 'opacity', '' + q3(v.glow));
+      if (k.dim) put(k.dim, 'opacity', '' + q3(v.dim));
+      if (k.ln1) { put(k.ln1, 'opacity', '' + q3(v.w1)); put(k.ln1, 'transform', 'translate3d(0,' + f((1 - v.w1) * .06 * Wd) + 'px,0)') }
+      if (k.ln2) { put(k.ln2, 'opacity', '' + q3(v.w2)); put(k.ln2, 'transform', 'translate3d(0,' + f((1 - v.w2) * .06 * Wd) + 'px,0)') }
     }
 
     /* the opening: the film's frame for the scroll; before it has arrived,
@@ -624,8 +636,23 @@
     navCta = document.querySelector('.nav__cta');
     if (!film || !box || !still || !mark || !r.classList.contains('story')) { r.classList.remove('snake'); return }
     skies = [].slice.call(film.querySelectorAll('.act--sky')).map(function (a) {
-      return { act: a, fig: a.querySelector('.skystill'), beat: a.classList.contains('act--sky-b') ? 'b' : 'a', S0: 0, R: 1 };
-    }).filter(function (k) { return k.fig });
+      var b = a.classList.contains('act--sky-b') ? 'b' : 'a';
+      return {
+        act: a, fig: a.querySelector('.skystill'), beat: b, S0: 0, R: 1,
+        layers: [].slice.call(a.querySelectorAll('.sky3__l')).map(function (e) { return { el: e, d: parseFloat(e.style.getPropertyValue('--d')) || 50 } }),
+        glow: a.querySelector('.sky3__glow'), dim: a.querySelector('.sky3__dim'),
+        ln1: a.querySelector('.hl--sky .ln'), ln2: a.querySelector(b === 'a' ? '.hl--sky .acc' : '.hl--sky .ln--2')
+      };
+    }).filter(function (k) { return k.fig && k.layers.length });
+    /* a layer is decoded as soon as it arrives, off the main thread, so the
+       first frame it is seen in does not pay for it */
+    skies.forEach(function (k) {
+      k.layers.forEach(function (l) {
+        var e = l.el;
+        function dec() { if (e.decode) e.decode().catch(function () {}) }
+        if (e.complete && e.naturalWidth) dec(); else e.addEventListener('load', dec, { once: true });
+      });
+    });
     on = true;
     r.classList.add('snake', 'snake-on');
     reveal();
@@ -639,7 +666,11 @@
     [svg, tip].forEach(function (e) { if (e && e.parentNode) e.parentNode.removeChild(e) });
     [ctabar, navCta].forEach(function (e) { if (e) e.classList.remove('snk-hold') }); hold = false;
     [still, alt, hero, heroCta, mark].forEach(function (e) { if (e) { e.style.opacity = ''; e.style.transform = ''; e.__snk = null } });
-    skies.forEach(function (k) { SKY_KEYS.forEach(function (n) { k.fig.style.removeProperty('--' + n) }); k.fig.__snk = null });
+    skies.forEach(function (k) {
+      k.layers.map(function (l) { return l.el }).concat([k.glow, k.dim, k.ln1, k.ln2]).forEach(function (e) {
+        if (e) { e.style.transform = ''; e.style.opacity = ''; e.__snk = null }
+      });
+    });
   }
 
   var mq = matchMedia(Q);

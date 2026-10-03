@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Onboarding flow map · Domin8te</title>
+<link rel="stylesheet" href="onboarding.css">
+<style>
+  body{padding:0}
+  .m-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:16px;height:56px;padding:0 var(--gut);background:rgba(10,10,10,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--hair)}
+  .m-wrap{padding:clamp(40px,8vh,88px) var(--gut) 96px;max-width:1500px}
+  .m-h{margin:0;font:200 clamp(40px,6vw,96px)/.94 var(--f);text-transform:uppercase;max-width:14ch}
+  .m-h em{font-style:italic;font-weight:800}
+  .stats{display:flex;flex-wrap:wrap;gap:0;margin-top:40px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+  .stat{padding:18px 32px 18px 0;margin-right:32px;border-right:1px solid var(--hair)}
+  .stat:last-child{border-right:0}
+  .stat b{display:block;font:200 44px/1 var(--f)}
+  .stat span{font-size:14px;color:var(--ink-3)}
+  .paths{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:48px}
+  .path{border:1px solid var(--hair);background:var(--raise);padding:22px}
+  .path h3{margin:8px 0 6px;font:400 20px/1.3 var(--f)}
+  .path p{margin:0;color:var(--ink-2);font-size:15px}
+  .sec-h{margin:72px 0 18px;font:600 12px/1.3 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+  .ease{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--hair)}
+  .ease li{list-style:none;padding:18px 22px 18px 0;border-bottom:1px solid var(--hair)}
+  .ease b{display:block;font-weight:600;font-size:16px}
+  .ease span{display:block;margin-top:4px;color:var(--ink-2);font-size:15px}
+  .flow{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+  .chap{border-top:3px solid var(--hair-2);padding-top:14px}
+  .chap h2{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 10px;font:200 30px/1 var(--f);text-transform:uppercase}
+  .chap h2 small{font:600 11px/1 var(--f);letter-spacing:.12em;color:var(--ink-3)}
+  .st{display:grid;grid-template-columns:34px 1fr;gap:4px 8px;padding:12px 0;border-bottom:1px solid var(--hair);text-decoration:none}
+  .st:hover .sq{color:var(--or)}
+  .st .no{font:600 11px/1.9 var(--f);letter-spacing:.08em;color:var(--ink-3)}
+  .st .sq{font-size:16px;line-height:1.35;color:var(--ink);transition:color .15s}
+  .st .meta{grid-column:2;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .tag{font:600 10px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;padding:5px 7px;border:1px solid var(--hair-2);color:var(--ink-3)}
+  .tag.core{border-color:var(--or);color:var(--or)}
+  .tag.br{border-style:dashed;color:var(--ink-2)}
+  .legend{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin-bottom:22px;font-size:14px;color:var(--ink-3)}
+  .legend span{display:inline-flex;gap:8px;align-items:center}
+  @media (max-width:900px){.paths,.ease{grid-template-columns:1fr}.stat{padding-right:20px;margin-right:20px}}
+</style>
+</head>
+<body>
+<header class="m-top">
+  <a class="brand" href="index.html"><img src="assets/mark-120.webp" alt="" width="40" height="20"><span>Domin8te</span></a>
+  <a class="primary" href="index.html#s=welcome" style="height:40px">Try the flow</a>
+</header>
+<main class="m-wrap">
+  <h1 class="m-h">Client onboarding, <em>step by step</em>.</h1>
+  <p class="lead">What a new restaurant client goes through after they say yes. One small question per screen, every answer saved as they go, and anything they can’t answer goes on a list for the kickoff call.</p>
+  <div class="stats" id="stats"></div>
+
+  <p class="sec-h">Three ways through</p>
+  <div class="paths">
+    <div class="path"><p class="label">Path 1</p><h3>Guide me, I’ll do it now</h3><p>Every chapter, start to finish. Account invites done by the owner with step-by-step help.</p></div>
+    <div class="path"><p class="label">Path 2</p><h3>Start now, finish on a call</h3><p>The same steps, but each account screen nudges them to tap “Do it on the call”. Good for owners who freeze at logins.</p></div>
+    <div class="path"><p class="label">Path 3</p><h3>Do it all on a call</h3><p>Only the steps marked <span class="tag core">Call path</span>: name, contact, best time, then book the call. We fill in the rest with them.</p></div>
+  </div>
+
+  <p class="sec-h">What makes it easy</p>
+  <ul class="ease" style="padding:0;margin:0">
+    <li><b>One question per screen</b><span>Tap an answer and it moves on by itself. Number keys work on a laptop.</span></li>
+    <li><b>Already filled in</b><span>Name, email and restaurant come from the enquiry form. Nobody types anything twice.</span></li>
+    <li><b>Autosave and resume</b><span>Close the tab, come back, land on the same step. “Finish later” offers an email link.</span></li>
+    <li><b>Skip anything</b><span>Skipped and “not sure” answers go on a “To sort on the call” list. Nothing blocks them.</span></li>
+    <li><b>Only what applies</b><span>Branches hide steps that don’t fit: no website, no domain questions; no Google ads, no Google Ads invite.</span></li>
+    <li><b>No passwords, ever</b><span>Each account is connected with the platform’s own manager invite. Our email has a copy button.</span></li>
+    <li><b>Why we ask</b><span>Every question that could feel nosy explains itself in one line.</span></li>
+    <li><b>Help on every screen</b><span>Do this part on the call, email the studio, or book a setup call. Plus five common questions.</span></li>
+    <li><b>Owner-sized shortcuts</b><span>Copy Monday’s hours to the week, snap a photo of the menu, see a sample post in each voice.</span></li>
+    <li><b>Time left, not step count</b><span>The side rail shows chapters and minutes left, so 50-odd steps never feels like 50.</span></li>
+    <li><b>Review before sending</b><span>Every answer on one page with an Edit link that jumps back and returns to the review.</span></li>
+    <li><b>Clear next steps</b><span>A timeline of what happens next, a calendar file for the call, and a copy of their answers.</span></li>
+  </ul>
+
+  <p class="sec-h">Every step</p>
+  <div class="legend">
+    <span><span class="tag core">Call path</span> also shown when they choose “Do it all on a call”</span>
+    <span><span class="tag br">Branch</span> only shown when an earlier answer calls for it</span>
+  </div>
+  <div class="flow" id="flow"></div>
+</main>
+<script src="steps.js"></script>
+<script>
+(function () {
+  var O = window.ONB, d = O.prefill;
+  var TYPE = { welcome: 'Intro', choice: 'Pick one', multi: 'Pick any', fields: 'Type', hours: 'Hours', upload: 'Upload', connect: 'Account invite', info: 'Read', toggles: 'Switches', slots: 'Book', review: 'Review', done: 'Finish' };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function q(s) { return esc(s.replace(/\{first\}/g, d.first).replace(/\{rname\}/g, d.rname).replace(/\*/g, '')); }
+  var n = 0, secs = 0, branches = 0, core = 0;
+  var html = O.chapters.map(function (c) {
+    var items = O.steps.filter(function (s) { return s.ch === c.id; });
+    var mins = Math.max(1, Math.round(items.reduce(function (a, s) { return a + (s.when ? 0 : (s.t || 10)); }, 0) / 60));
+    return '<section class="chap"><h2>' + esc(c.name) + '<small>' + items.length + ' steps · ~' + mins + ' min</small></h2>' + items.map(function (s) {
+      n++; secs += s.when ? 0 : (s.t || 10); if (s.when) branches++; if (s.core) core++;
+      return '<a class="st" href="index.html#s=' + s.id + '"><span class="no">' + String(n).padStart(2, '0') + '</span><span class="sq">' + q(s.q) + '</span><span class="meta">' +
+        '<span class="tag">' + TYPE[s.type] + '</span>' + (s.core ? '<span class="tag core">Call path</span>' : '') +
+        (s.when ? '<span class="tag br">' + esc(s.whenText || 'Branch') + '</span>' : '') + (s.skip === false ? '' : '') + '</span></a>';
+    }).join('') + '</section>';
+  }).join('');
+  document.getElementById('flow').innerHTML = html;
+  document.getElementById('stats').innerHTML =
+    '<div class="stat"><b>' + n + '</b><span>steps in total</span></div>' +
+    '<div class="stat"><b>' + O.chapters.length + '</b><span>chapters</span></div>' +
+    '<div class="stat"><b>' + branches + '</b><span>steps that only show when needed</span></div>' +
+    '<div class="stat"><b>~' + Math.round(secs / 60) + ' min</b><span>for the full guided path</span></div>' +
+    '<div class="stat"><b>' + core + '</b><span>steps on the “call” path</span></div>';
+})();
+</script>
+</body>
+</html>

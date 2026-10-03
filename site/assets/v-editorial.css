@@ -1113,10 +1113,10 @@ html.snake .act--word{width:max-content;max-width:100%;align-self:center;margin-
   html.story .skystill > picture{display:none}
   html.story .skystill{
     --u:calc(100vw / 1080);--vp:42vh;
-    --t:9;--rise:1.5;--dx:0;--dim:0;--w1:1;--w2:1;
+    --t:9;--rise:1.5;--dx:0;--dim:0;--glow:1;--w1:1;--w2:1;
     position:relative;height:100vh;overflow:hidden;background:var(--bg);
   }
-  html.story .act--sky-b .skystill{--t:4;--rise:.6;--dx:-2;--dim:.7}
+  html.story .act--sky-b .skystill{--t:4;--rise:.6;--dx:-2;--dim:.7;--glow:.1}
   html.story .sky3{display:block;position:absolute;inset:0;pointer-events:none}
   html.story .sky3__l{
     position:absolute;z-index:var(--z);
@@ -1127,6 +1127,13 @@ html.snake .act--word{width:max-content;max-width:100%;align-self:center;margin-
     transform:translate3d(calc(var(--dx) * 1080 * var(--u) / (var(--d) - var(--t))),calc(var(--rise) * 1080 * var(--u) / (var(--d) - var(--t))),0) scale(var(--s));
     opacity:clamp(0, 3 - var(--s), 1);
     will-change:transform,opacity;
+  }
+  /* the light low on the horizon, behind the far clouds: a pale haze, not a
+     colour (an orange glow on black reads as brown) */
+  html.story .sky3__glow{
+    display:block;position:absolute;left:-40%;right:-40%;top:calc(var(--vp) - 34vw);height:62vw;z-index:0;
+    background:radial-gradient(50% 50% at 50% 50%,rgba(255,238,220,.15),rgba(255,230,205,.055) 45%,rgba(255,230,205,0) 72%);
+    opacity:var(--glow);will-change:opacity;
   }
   /* the light going: the clouds darken toward the sky, the words stay lit */
   html.story .sky3__dim{display:block;position:absolute;inset:0;z-index:6;background:#06080D;opacity:var(--dim)}

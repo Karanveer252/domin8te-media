@@ -21,6 +21,13 @@
       "runtimeArgs": ["C:/Work/domin8te-build/dashboard-variants/serve.js"],
       "port": 8090,
       "autoPort": true
+    },
+    {
+      "name": "onboarding",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Work/domin8te-build/onboarding/serve.js"],
+      "port": 4310,
+      "autoPort": true
     }
   ]
 }
