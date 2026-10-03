@@ -1159,7 +1159,7 @@ html.snake .act--word{width:max-content;max-width:100%;align-self:center;margin-
      italic in the accent, set in the clear above the far clouds; each line
      comes up out of its own mask (phone.js wraps them) */
   html.story .skystill__words{
-    position:absolute;left:0;right:0;top:auto;bottom:calc(100vh - var(--vp) + 12vw);z-index:4;
+    position:absolute;left:0;right:0;top:auto;bottom:calc(100vh - var(--vp) + 16vw);z-index:4;
     display:block;padding:0 7vw;text-align:center;
   }
   html.story .act--sky-b .skystill__words{z-index:8}
@@ -1184,13 +1184,26 @@ html.snake .act--word{width:max-content;max-width:100%;align-self:center;margin-
    and back in below; until phone.js has placed it, the first beat waits on
    its first frame */
 html.snake .act--sky{height:calc(100vh + var(--sky-run,120vh));opacity:1!important;transform:none!important;transition:none!important}
-html.snake .act--sky .skystill{position:-webkit-sticky;position:sticky;top:0;z-index:6}
-html.snake .act--sky-a .skystill{--t:0;--rise:0}
-html.snake .act--sky::before,html.snake .act--sky::after{
-  content:"";position:absolute;left:0;right:0;height:14vh;z-index:6;pointer-events:none;
+/* the page's line runs on into the frame as the frame's own line (phone.js),
+   so the frame's top does not fade it out; letting go, the whole scene
+   (its sky with it) dissolves and the page's line is there again behind it,
+   in the same lane */
+html.snake .act--sky .skystill{position:-webkit-sticky;position:sticky;top:0;z-index:6;background:transparent}
+/* the frame's sky is opaque but soft at its edges (the page's line and dots
+   go in over 40px at the top), and it belongs to the scene: letting go, it
+   dissolves with the clouds, and the page's line, lying in the same lane as
+   the scene's own, is simply there */
+html.snake .sky3::before{
+  content:"";position:absolute;inset:0;z-index:0;
+  background:linear-gradient(180deg,rgba(10,10,10,0) 0,var(--bg) 40px,var(--bg) calc(100% - 10vh),rgba(10,10,10,0) 100%);
 }
-html.snake .act--sky::before{bottom:100%;background:linear-gradient(0deg,var(--bg),rgba(10,10,10,0))}
-html.snake .act--sky::after{top:100%;background:linear-gradient(180deg,var(--bg),rgba(10,10,10,0))}
+html.snake .act--sky-a .skystill{--t:0;--rise:0}
+/* the words keep clear of the lane the line comes down */
+html.snake .act--sky.lane-l .skystill__words{padding-left:10vw;padding-right:4vw}
+html.snake .act--sky.lane-r .skystill__words{padding-left:4vw;padding-right:10vw}
+html.snake .act--sky .skystill::before,html.snake .act--sky .skystill::after{display:none}
+/* the bottom fade belongs to the scene, so it dissolves with it */
+html.snake .sky3::after{content:"";position:absolute;left:0;right:0;bottom:0;height:10vh;z-index:7;background:linear-gradient(0deg,var(--bg),rgba(10,10,10,0))}
 
 /* the pair: one room twice, overlapping on a diagonal, the empty room
    dimmed behind and the full one in front */
