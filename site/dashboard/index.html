@@ -7559,9 +7559,11 @@ html[data-variant="18h"] .page { animation: none; }
       }
       pmcx = mcx; pmcy = mcy;
     } else { pmcx = pmcy = -1e4; }
-    // The dots belong to the page: they scroll with it, as the CSS dots on the body do.
+    // The dots stay still on the screen while the page scrolls, as in the agency console. (They used to
+    // scroll with the page, which slid rows of dots under a resting pointer and smeared them into a
+    // stretched band.)
     field.px = ph(DOT / 2);
-    field.py = ph(DOT / 2 - (window.scrollY || 0));
+    field.py = ph(DOT / 2);
     if (mouseIn) { field.mx = mcx; field.my = mcy; } else { field.mx = field.my = -1e4; }
     const busy = field.step(dt, speed);
     field.paint();
@@ -7595,7 +7597,6 @@ html[data-variant="18h"] .page { animation: none; }
     root.classList.add('dots-live');
     field.size();
     tick(performance.now());
-    window.addEventListener('scroll', kick, { passive: true });
     window.addEventListener('resize', resize);
     document.addEventListener('mousemove', move, { passive: true });
     root.addEventListener('mouseleave', leave);
@@ -7605,7 +7606,6 @@ html[data-variant="18h"] .page { animation: none; }
     on = false;
     if (raf !== null) { cancelAnimationFrame(raf); raf = null; }
     root.classList.remove('dots-live');
-    window.removeEventListener('scroll', kick);
     window.removeEventListener('resize', resize);
     document.removeEventListener('mousemove', move);
     root.removeEventListener('mouseleave', leave);
