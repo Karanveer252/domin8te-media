@@ -1205,8 +1205,8 @@ html.snake .sky3::before{
 }
 html.snake .act--sky-a .skystill{--t:0;--rise:0}
 /* the words keep clear of the lane the line comes down */
-html.snake .act--sky.lane-l .skystill__words{padding-left:10vw;padding-right:4vw}
-html.snake .act--sky.lane-r .skystill__words{padding-left:4vw;padding-right:10vw}
+html.snake .act--sky.lane-l .skystill__words{padding-left:calc(10vw + 8px);padding-right:4vw}
+html.snake .act--sky.lane-r .skystill__words{padding-left:4vw;padding-right:calc(10vw + 8px)}
 html.snake .act--sky .skystill::before,html.snake .act--sky .skystill::after{display:none}
 /* the bottom fade belongs to the scene, so it dissolves with it */
 /* the night bank never sits on bare black as it leaves: a dim blue haze

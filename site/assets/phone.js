@@ -654,12 +654,13 @@
     var pr = at / k.R, u1 = pr >= cam.words[0] - (k.up1 ? .04 : 0), u2 = pr >= cam.words[1] - (k.up2 ? .04 : 0);
     if (u1 !== k.up1 && k.r1) { k.up1 = u1; k.r1.parentNode.classList.toggle('is-up', u1) }
     if (u2 !== k.up2 && k.r2) { k.up2 = u2; k.r2.parentNode.classList.toggle('is-up', u2) }
+    if (k.words) put(k.words, 'opacity', '' + q3(1 - smooth((at - k.R) / (.12 * vh))));
     if (k.cx && k.cx2) {
       /* the frame's top on the screen, and the page line's head in the
          frame; the frame's top on the page, for the line's colours; and how
          far the held scene has run the line through the clouds */
       var top = at < 0 ? -at : at > k.R ? k.R - at : 0;
-      skyLine(k, hpy - top, k.S0 + clamp(at, 0, k.R), easeInLin(clamp(pk / .97, 0, 1)), at > k.R);
+      skyLine(k, hpy - top, k.S0 + clamp(at, 0, k.R), easeInLin(pk), at > k.R);
     }
   }
 
@@ -751,6 +752,14 @@
     s2 = len;
     for (j = 1; j <= 24; j++) add(lxs, lerp(y2, Hd + 12, j / 24), 3.5);
     k.path = path; k.total = len; k.s1 = s1; k.s2 = s2; k.y1 = y1; k.y2 = y2; k.lx = cxX(lxs);
+    /* where the line coming back is truly on its lane again: the lane in front
+       of the clouds starts only there, so it is a straight band (no corner of
+       the returning curve is ever drawn in front, cut by the strip's edge) */
+    k.sj = s2; k.yj = y2;
+    for (j = path.length - 1; j >= 0; j--) {
+      if (path[j].s > s2) continue;
+      if (Math.abs(path[j].x - k.lx) > 1.5) { k.sj = path[Math.min(path.length - 1, j + 1)].s; k.yj = path[Math.min(path.length - 1, j + 1)].y; break }
+    }
     var dpr = k.dpr || 1;
     /* the canvases cover only the line: a strip for the lane, a box for the
        weave (a whole-frame canvas costs a whole frame to upload) */
@@ -841,7 +850,7 @@
     /* the lane in front of the clouds, the weave behind them; where they
        meet each fades over the other, so the line never seams there, and
        coming out from behind a cloud it fades up rather than starting square */
-    show(front, lb, [[0, k.s1 + 40], [k.s2 - 90, k.total]]);
+    show(front, lb, [[0, k.s1 + 40], [k.sj, k.total]]);
     /* the weave is drawn as far as the head each time it moves (a clip of
        its own outline would fold where it turns tight), the same way the
        whole line was drawn: white shape and bloom, recoloured, then its light */
@@ -864,7 +873,7 @@
       stops.forEach(function (st) { gg.addColorStop(clamp((st[0] - box[1]) / box[3], 0, 1), 'rgba(0,0,0,' + st[1] + ')') });
       cx.fillStyle = gg; cx.fillRect(box[0], box[1], box[2], box[3]); cx.restore();
     }
-    ramps(front, lb, [[y1 + 4, 0], [y1 + 30, 1], [y2 - 62, 1], [y2 - 4, 0]]);
+    ramps(front, lb, [[y1 + 4, 0], [y1 + 30, 1], [k.yj, 1], [k.yj + 26, 0]]);
     ramps(back, wb, [[y1 - 30, 1], [y1 - 4, 0], [y2 + 4, 0], [y2 + 30, 1]]);
     /* the head's light, the page line's own, smaller as the head goes far
        out; while the frame lets go the page's own tip carries it */
