@@ -21,8 +21,10 @@
 
 <link rel="preload" href="assets/fonts/bvp-200.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/mark-8.webp" as="image" type="image/webp">
-<link rel="stylesheet" href="assets/site.css?v=f878c4225c">
+<link rel="stylesheet" href="assets/site.css?v=68195a0b8e">
 <link rel="stylesheet" href="assets/v-editorial.css?v=2a0238bbbf">
+<link rel="stylesheet" href="assets/dash.css?v=85df72a141">
+<link rel="stylesheet" href="assets/light.css?v=db92d93852">
 
 <script type="application/ld+json">
 {
@@ -86,6 +88,15 @@ window.__GATES = [
        script never arrives, the plain story comes back at load */
     if (story && matchMedia('(max-width: 760px) and (prefers-reduced-motion: no-preference)').matches) r.classList.add('snake');
   } catch (e) { r.classList.add('story') }
+  /* the background: dark unless the visitor chose the light ground with the
+     switch in the header (assets/dash.js); read here so the choice is in
+     place from the first paint, the browser's own bar with it */
+  try {
+    if (localStorage.getItem('d8site.theme') === 'light') {
+      r.setAttribute('data-theme', 'light');
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#F4F1EC');
+    }
+  } catch (e) {}
   window.addEventListener('load', function () { if (!r.classList.contains('snake-on')) r.classList.remove('snake') });
 
   /* the film only makes sense if the script arrives to drive it */
@@ -168,6 +179,7 @@ window.__GATES = [
       <span class="brand__word">Domin<span class="eight">8</span>te <span class="brand__sub">Media</span></span>
     </a>
     <nav class="nav" aria-label="Main">
+      <button class="dx-toggle" id="themeToggle" type="button" aria-label="Switch to light background" aria-pressed="false"><svg class="dx-toggle__ico" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><g class="dx-toggle__sun"><circle cx="10" cy="10" r="3.4"/><path d="M10 1.9v2.3M10 15.8v2.3M1.9 10h2.3M15.8 10h2.3M4.27 4.27 5.9 5.9M14.1 14.1l1.63 1.63M4.27 15.73 5.9 14.1M14.1 5.9l1.63-1.63"/></g><path class="dx-toggle__moon" d="M16.9 11.6A7.1 7.1 0 1 1 8.4 3.1a5.6 5.6 0 0 0 8.5 8.5Z"/></svg></button>
       <a class="nav__link nav__link--dash" href="/dashboard/"><svg class="nav__ico" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="6" height="6" rx="1.6"/><rect x="11.5" y="2.5" width="6" height="6" rx="1.6"/><rect x="2.5" y="11.5" width="6" height="6" rx="1.6"/><rect x="11.5" y="11.5" width="6" height="6" rx="1.6"/></svg><span class="nav__txt">Dashboard</span></a>
       <a class="btn btn--primary btn--sm nav__cta" href="#contact">Get your plan</a>
     </nav>
@@ -388,8 +400,34 @@ window.__GATES = [
     </article>
     </div>
 
+    <!-- ---------- the dashboard ----------
+         The one beat between the rail and the pair where the stage is empty:
+         the line rests at the window's lower left corner while the clip
+         plays. In the story and on a phone the window stacks under the
+         words. The clip has no src here; dash.js gives it one when the
+         beat is on screen, so a phone on a weak signal never fetches it
+         unasked. Its still is a lazy picture rather than the video's poster,
+         because a poster is fetched with the page however far down it sits.
+         The band shares order 12 with the next one and comes first in the
+         document, so it reads first. -->
+    <div class="band band--l band--drop band--dash" data-seg="mid" data-a="306" data-b="404" style="--o:12">
+      <div class="band__in">
+        <h2 class="hl"><span class="ln">One place</span> <span class="ln ln--2">to see all of it.</span></h2>
+        <p class="sub">Your dashboard shows what we did, what needs your okay, and what it brought in.</p>
+        <figure class="dx-beat">
+          <div class="dx-beat__screen">
+            <picture><source media="(max-width: 760px)" srcset="assets/dash-overview-s.webp?v=521134abcc" type="image/webp"><img class="dx-beat__still" src="assets/dash-overview.webp?v=5a7667e727" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
+            <video class="dx-beat__v" muted loop playsinline preload="none" tabindex="-1" disablepictureinpicture
+                   data-src="assets/dash-overview.mp4?v=092ccb1bdf" data-src-sm="assets/dash-overview-s.mp4?v=4131a1e6fb"
+                   aria-label="The dashboard’s home screen, from our demo account"></video>
+          </div>
+          <figcaption class="dx-beat__note">Demo account with sample figures.</figcaption>
+        </figure>
+      </div>
+    </div>
+
     <!-- ---------- handed back ---------- -->
-    <div class="band band--l band--drop band--handed" data-seg="mid" data-a="310" data-b="446" style="--o:12">
+    <div class="band band--l band--drop band--handed" data-seg="mid" data-a="404" data-b="540" style="--o:12">
       <div class="band__in">
         <h2 class="hl"><span class="ln">You run the place.</span> <span class="ln ln--2">We run the rest.</span></h2>
         <p class="sub">Anything that needs your okay comes to you ready to approve.</p>
@@ -470,6 +508,108 @@ window.__GATES = [
     <span class="charge__label">Scroll</span>
   </div>
  </div>
+</section>
+
+<!-- ============ THE DASHBOARD: six parts of it, each one playing ============
+     Every clip is a recording of the dashboard’s demo account. No clip has a
+     src here: assets/dash.js gives it one when it is about to be seen, and
+     the still under each video (lazy, so a phone fetches none of this until
+     the reader is near) stands in until then. -->
+<section class="dx-dash" id="dashboard" aria-labelledby="dash-h">
+  <div class="wrap">
+    <header class="sec-head rv">
+      <h2 id="dash-h" class="hl hl--sec"><span class="ln">Everything in one place.</span> <span class="ln ln--2">Your dashboard shows all of it.</span></h2>
+      <p class="lede">Every client gets a private dashboard. This is what’s in it.</p>
+    </header>
+
+    <div class="dx-bento" data-msg-play="Play clip" data-msg-pause="Pause clip">
+      <article class="dx-cell dx-cell--a rv" style="--i:0">
+        <div class="dx-cell__text">
+          <h3 class="dx-cell__ttl">Approve a week of posts. In one tap.</h3>
+          <p class="dx-cell__line">Next week’s posts arrive written and designed. Approve the week, or leave a note asking for changes.</p>
+        </div>
+        <div class="dx-media">
+          <img class="dx-media__still" src="assets/dash-approve-s.webp?v=c6649156b1" srcset="assets/dash-approve-s.webp?v=c6649156b1 800w, assets/dash-approve.webp?v=56df5be7ac 1600w" sizes="(max-width: 760px) 260px, (max-width: 1020px) 90vw, 43vw" width="800" height="450" alt="" loading="lazy" decoding="async">
+          <video class="dx-loop" muted loop playsinline preload="none" tabindex="-1" disablepictureinpicture
+                 data-src="assets/dash-approve.mp4?v=a7b4ec2eac" data-src-sm="assets/dash-approve-s.mp4?v=2f074bc81a"
+                 aria-label="Approving next week’s posts, from our demo account"></video>
+        </div>
+      </article>
+
+      <article class="dx-cell dx-cell--b rv" style="--i:1">
+        <div class="dx-cell__text">
+          <h3 class="dx-cell__ttl">Know what your marketing earns.</h3>
+          <p class="dx-cell__line">Bookings, calls, directions and visits, each showing where it came from, with a summary in plain words every month.</p>
+        </div>
+        <div class="dx-media">
+          <img class="dx-media__still" src="assets/dash-results-s.webp?v=8906749f38" srcset="assets/dash-results-s.webp?v=8906749f38 800w, assets/dash-results.webp?v=6f3b285144 1600w" sizes="(max-width: 760px) 260px, (max-width: 1020px) 50vw, 24vw" width="800" height="450" alt="" loading="lazy" decoding="async">
+          <video class="dx-loop" muted loop playsinline preload="none" tabindex="-1" disablepictureinpicture
+                 data-src="assets/dash-results.mp4?v=6a89bfa7ee" data-src-sm="assets/dash-results-s.mp4?v=a7e91faf0a"
+                 aria-label="The month’s bookings and calls with a written summary, from our demo account"></video>
+        </div>
+      </article>
+
+      <article class="dx-cell dx-cell--c rv" style="--i:2">
+        <div class="dx-cell__text">
+          <h3 class="dx-cell__ttl">Always know what we’re working on.</h3>
+          <p class="dx-cell__line">Every project, the step we’re on, the next one, and anything waiting for you.</p>
+        </div>
+        <div class="dx-media">
+          <img class="dx-media__still" src="assets/dash-work-s.webp?v=ad6caa80b1" width="800" height="450" alt="" loading="lazy" decoding="async">
+          <video class="dx-loop" muted loop playsinline preload="none" tabindex="-1" disablepictureinpicture
+                 data-src-sm="assets/dash-work-s.mp4?v=96b3d9e060"
+                 aria-label="Every project and the step it is on, from our demo account"></video>
+        </div>
+      </article>
+
+      <article class="dx-cell dx-cell--d rv" style="--i:3">
+        <div class="dx-cell__text">
+          <h3 class="dx-cell__ttl">Real people. One message away.</h3>
+          <p class="dx-cell__line">Message the people doing the work, like a text. Every message is kept.</p>
+        </div>
+        <div class="dx-media">
+          <img class="dx-media__still" src="assets/dash-message-s.webp?v=7a875ba56c" width="800" height="450" alt="" loading="lazy" decoding="async">
+          <video class="dx-loop" muted loop playsinline preload="none" tabindex="-1" disablepictureinpicture
+                 data-src-sm="assets/dash-message-s.mp4?v=4b0d66230c"
+                 aria-label="Writing a message in the dashboard, from our demo account"></video>
+        </div>
+      </article>
+
+      <article class="dx-cell dx-cell--e rv" style="--i:4">
+        <div class="dx-cell__text">
+          <h3 class="dx-cell__ttl">A weekly update. Without the meeting.</h3>
+          <p class="dx-cell__line">What we did, what changed, why it matters and what comes next. Filter by service.</p>
+        </div>
+        <div class="dx-media">
+          <img class="dx-media__still" src="assets/dash-updates-s.webp?v=d816c356c7" srcset="assets/dash-updates-s.webp?v=d816c356c7 800w, assets/dash-updates.webp?v=84630a0221 1600w" sizes="(max-width: 760px) 260px, (max-width: 1020px) 50vw, 38vw" width="800" height="450" alt="" loading="lazy" decoding="async">
+          <video class="dx-loop" muted loop playsinline preload="none" tabindex="-1" disablepictureinpicture
+                 data-src="assets/dash-updates.mp4?v=e1829f8a31" data-src-sm="assets/dash-updates-s.mp4?v=e41aef888d"
+                 aria-label="The weekly updates feed, from our demo account"></video>
+        </div>
+      </article>
+
+      <article class="dx-cell dx-cell--f rv" style="--i:5">
+        <div class="dx-cell__text">
+          <h3 class="dx-cell__ttl">New hours, updated everywhere.</h3>
+          <p class="dx-cell__line">Confirm them once. Google, Apple Maps and your website follow.</p>
+        </div>
+        <div class="dx-media">
+          <img class="dx-media__still" src="assets/dash-hours-s.webp?v=4ea2d4f590" width="800" height="450" alt="" loading="lazy" decoding="async">
+          <video class="dx-loop" muted loop playsinline preload="none" tabindex="-1" disablepictureinpicture
+                 data-src-sm="assets/dash-hours-s.mp4?v=43d54803ca"
+                 aria-label="Confirming new opening hours, from our demo account"></video>
+        </div>
+      </article>
+    </div>
+
+    <div class="dx-foot rv">
+      <p class="dx-note">Demo account with sample figures.</p>
+      <p class="dx-foot__links">
+        <a class="btn btn--ghost" href="#watch">Watch the full film</a>
+        <a class="btn btn--ghost" href="/dashboard/demo/">Try the demo</a>
+      </p>
+    </div>
+  </div>
 </section>
 
 <!-- ============ THE WORK: the same panel component, now showing the work ============ -->
@@ -567,6 +707,49 @@ window.__GATES = [
           </div>
         </div>
       </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE WHOLE DASHBOARD: the film, in a window that lies flat as you reach it ============
+     The window starts tilted back and the scroll lays it flat (assets/dash.css;
+     where a browser cannot tie an animation to the scroll, assets/dash.js lays
+     it flat once). The film never starts by itself and it has music, so the
+     button says so. dash.js gives it a src once the reader is near. -->
+<section class="dx-watch" id="watch" aria-labelledby="watch-h">
+  <div class="wrap">
+    <header class="sec-head rv">
+      <h2 id="watch-h" class="hl hl--sec"><span class="ln">The whole dashboard.</span> <span class="ln ln--2">Start to finish, in under a minute.</span></h2>
+    </header>
+
+    <div class="dx-watch__body">
+      <div class="dx-stage">
+        <div class="dx-frame" id="dxFrame">
+          <div class="dx-frame__bar" aria-hidden="true"><i></i><i></i><i></i><span class="dx-frame__url">domin8temedia.com/dashboard</span></div>
+          <div class="dx-frame__screen">
+            <img class="dx-frame__still" src="assets/dash-master-s.webp?v=87c404f16e" srcset="assets/dash-master-s.webp?v=87c404f16e 800w, assets/dash-master.webp?v=07583c2b67 1600w" sizes="(max-width: 760px) 260px, 90vw" width="800" height="450" alt="" loading="lazy" decoding="async">
+            <button class="dx-frame__play" id="dxPlay" type="button" aria-label="Play the film with sound"><span class="dx-frame__btn"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 2.2v11.6L13.6 8z"/></svg><span class="dx-frame__lbl">Play with sound</span></span></button>
+            <video id="dxMaster" controls playsinline preload="none"
+                   data-src="assets/dash-master.mp4?v=f3b74e7740" data-src-sm="assets/dash-master-s.mp4?v=6d4f123098"
+                   aria-label="The Domin8te dashboard film, under a minute, with music"></video>
+          </div>
+        </div>
+      </div>
+
+      <ol class="dx-chapters rv" id="dxChapters" aria-label="Film chapters">
+        <li><button class="dx-ch" type="button" data-t="0" aria-current="true"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:00</span> <span class="dx-ch__n">Your marketing. One dashboard.</span></button></li>
+        <li><button class="dx-ch" type="button" data-t="3"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:03</span> <span class="dx-ch__n">Your posts are ready</span></button></li>
+        <li><button class="dx-ch" type="button" data-t="13"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:13</span> <span class="dx-ch__n">New hours, prepped for you</span></button></li>
+        <li><button class="dx-ch" type="button" data-t="18"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:18</span> <span class="dx-ch__n">What it brought in</span></button></li>
+        <li><button class="dx-ch" type="button" data-t="23"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:23</span> <span class="dx-ch__n">Every project, every step</span></button></li>
+        <li><button class="dx-ch" type="button" data-t="28"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:28</span> <span class="dx-ch__n">Message us</span></button></li>
+        <li><button class="dx-ch" type="button" data-t="33"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:33</span> <span class="dx-ch__n">Your plan, in plain words</span></button></li>
+        <li><button class="dx-ch" type="button" data-t="38"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:38</span> <span class="dx-ch__n">Settings and dark mode</span></button></li>
+        <li><button class="dx-ch" type="button" data-t="43"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:43</span> <span class="dx-ch__n">Every update in one feed</span></button></li>
+        <li><button class="dx-ch" type="button" data-t="48"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:48</span> <span class="dx-ch__n">Run your restaurant. We run the marketing.</span></button></li>
+      </ol>
+
+      <p class="dx-note rv">Demo account with sample figures. The film has music.</p>
     </div>
   </div>
 </section>
@@ -713,7 +896,8 @@ window.__GATES = [
   <div class="wrap foot__in">
     <p class="foot__brand"><span>Domin<span class="eight">8</span>te Media</span></p>
     <p class="foot__line">&copy; <span id="yr">2026</span> Domin8te Media. For restaurants, cafes, coffee shops and bakeries.</p>
-    <p class="foot__note">The examples and graphics on this page are illustrative and made in-house.</p>
+    <p class="foot__note">The dashboard shown is our demo account with sample figures. The other examples and graphics on this page are illustrative and made in-house.</p>
+    <button class="dx-toggle dx-toggle--foot" id="themeToggleFoot" type="button" aria-label="Switch to light background" aria-pressed="false"><svg class="dx-toggle__ico" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><g class="dx-toggle__sun"><circle cx="10" cy="10" r="3.4"/><path d="M10 1.9v2.3M10 15.8v2.3M1.9 10h2.3M15.8 10h2.3M4.27 4.27 5.9 5.9M14.1 14.1l1.63 1.63M4.27 15.73 5.9 14.1M14.1 5.9l1.63-1.63"/></g><path class="dx-toggle__moon" d="M16.9 11.6A7.1 7.1 0 1 1 8.4 3.1a5.6 5.6 0 0 0 8.5 8.5Z"/></svg><span class="dx-toggle__txt">Light background</span></button>
   </div>
 </footer>
 
@@ -721,7 +905,8 @@ window.__GATES = [
 
 <script src="assets/pfilm.js?v=b40b1f4550" defer></script>
 <script src="assets/phone.js?v=0cb13caa03" defer></script>
-<script src="assets/site.js?v=8bc4a2d982" defer></script>
+<script src="assets/site.js?v=7336543c12" defer></script>
+<script src="assets/dash.js?v=7315dacbd9" defer></script>
 <script>/* the sky film is the desktop's alone; a phone never fetches it */
 if (document.documentElement.classList.contains('film')) { var s = document.createElement('script'); s.src = 'assets/sky.js?v=adf3056ac0'; document.body.appendChild(s) }</script>
 </body>

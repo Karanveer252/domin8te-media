@@ -1,0 +1,604 @@
+/* ============================================================
+   THE DASHBOARD, IN THE PAGE (2026-10-04)
+   Two sections below the film, set in the page's own voice:
+   "Everything in one place." is a grid of six panels, each one
+   playing a part of the client dashboard; "The whole dashboard."
+   is the full film in a window that starts tilted back and lies
+   flat as the scroll reaches it.
+
+   Every colour comes from the page's tokens, so a theme that
+   redefines them carries these sections with it. The one literal
+   is the cream behind a clip (#F1E7DB, the dashboard's own page),
+   and the two things that sit on a clip: its play mark and that
+   mark's focus ring. The recordings are 16:9 and no box here is
+   any other shape, so no part of the dashboard is ever cropped.
+   Every box is reserved by aspect-ratio: nothing moves when a
+   clip arrives.
+
+   assets/dash.js loads and plays the clips, and drives the film's
+   chapters. Without it the stills stand, the window lies flat
+   (the tilt is CSS where the browser can tie it to the scroll)
+   and the play marks are never made.
+   ============================================================ */
+
+/* ============================================================
+   ROUNDER CORNERS (Karan, 2026-10-04: "make the corners more
+   rounded, for the pictures and the cards")
+   The page keeps its two radius tokens and they are raised here,
+   in one place, for both grounds: --r-card is every card and
+   plate (the film's tickets, the pair, the work's frames, the
+   picker's options and plan, the panels below), --r-mock every
+   picture set inside a card (the mock screens, a panel's clip).
+   Type, buttons, fields and hairlines keep their sharp voice.
+   ============================================================ */
+html[data-v="editorial"]{--r-card:20px;--r-mock:13px}
+/* the short orange rule on a card's top edge starts where the edge runs
+   straight, past the corner */
+html[data-v="editorial"] .pan__frame::before{left:var(--r-card)}
+/* the plates' tabs sat on a square corner; on a round one they move in with it */
+html[data-v="editorial"] .ba__tab{left:var(--r-card);border-radius:8px 8px 0 0}
+html[data-v="editorial"] .act--ba--after .ba__tab{left:auto;right:var(--r-card)}
+
+html[data-v="editorial"] .dx-dash,
+html[data-v="editorial"] .dx-watch{padding:var(--sec-pad) 0}
+
+/* the two heads yield to what is under them, as the picker's and the form's do */
+@media (min-width:1101px){
+  html[data-v="editorial"] .dx-dash .hl--sec,
+  html[data-v="editorial"] .dx-watch .hl--sec{font-size:calc(var(--sec-size) * .72)}
+  html[data-v="editorial"] .dx-dash .sec-head,
+  html[data-v="editorial"] .dx-watch .sec-head{margin-bottom:clamp(32px,5vh,64px)}
+}
+/* the lede is two short sentences: broken evenly, never left with a two-word tail */
+html[data-v="editorial"] .dx-dash .sec-head .lede{text-wrap:balance}
+
+/* the quiet line under each section: what the footage is */
+.dx-note{margin:0;font-size:14px;line-height:1.5;color:var(--ink-3);text-wrap:pretty}
+
+/* ============================================================
+   EVERYTHING IN ONE PLACE: the grid
+   Four columns on the page's own twelve (each is three of them,
+   the gutter is the page's), in the rows
+       a a b b
+       a a c d
+       e e e f
+   a is the lead: its words over a large clip. b and e are wide,
+   words beside the clip; c, d and f are single, clip over words.
+   The rows take their height from b and from the single cells;
+   a's words take up whatever is left over its clip.
+   ============================================================ */
+
+.dx-bento{
+  --dx-pad:clamp(16px,1.5vw,26px);
+  --dx-ttl:clamp(21px,1.7vw,30px);
+  display:grid;gap:var(--col-gap);
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-template-areas:"a a b b" "a a c d" "e e e f";
+}
+.dx-cell--a{grid-area:a}
+.dx-cell--b{grid-area:b}
+.dx-cell--c{grid-area:c}
+.dx-cell--d{grid-area:d}
+.dx-cell--e{grid-area:e}
+.dx-cell--f{grid-area:f}
+
+/* a panel, as the film's tickets are: the raised ground, a hairline, the
+   page's card corner; on the light ground it stands on a soft shadow
+   (--card-shadow, light.css) */
+.dx-cell{
+  position:relative;min-width:0;margin:0;
+  display:flex;flex-direction:column;gap:var(--dx-pad);
+  padding:var(--dx-pad);
+  background:var(--raise);border:1px solid var(--line);border-radius:var(--r-card);
+  box-shadow:var(--card-shadow,none);
+}
+/* the panel's mark, as on the work: a short orange rule on its top edge,
+   past the corner, drawn as the panel arrives */
+.dx-cell::before{
+  content:"";position:absolute;left:var(--r-card);top:-1px;z-index:1;
+  width:56px;height:2px;background:var(--acc);pointer-events:none;
+  transition:width .6s var(--ease-out);
+}
+html.js .dx-cell.rv::before{transform:scaleX(0);transform-origin:left center;transition:width .6s var(--ease-out),transform .8s var(--ease-out) .25s}
+html.js .dx-cell.rv.in::before{transform:scaleX(1)}
+
+.dx-cell__text{display:flex;flex-direction:column;gap:10px;min-width:0}
+.dx-cell__ttl{
+  margin:0;
+  font:200 var(--dx-ttl)/1.06 var(--f-display);
+  letter-spacing:0;word-spacing:-.04em;text-transform:uppercase;
+  color:var(--ink);text-wrap:balance;font-synthesis:none;
+}
+.dx-cell__line{margin:0;max-width:46ch;font-size:15px;line-height:1.5;color:var(--ink-2);text-wrap:pretty}
+
+/* a clip's box: the dashboard's cream until the still is in, a hairline, 16:9 */
+.dx-media{
+  position:relative;flex:none;aspect-ratio:16 / 9;overflow:hidden;
+  background:#F1E7DB;border:1px solid var(--line);border-radius:var(--r-mock);
+}
+.dx-media > img,
+.dx-media > video{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:none;object-fit:cover}
+/* the video lies over its still and stays clear until it holds the still's
+   own frame (dash.js starts each clip from its middle), so nothing jumps */
+.dx-media > video{opacity:0;transition:opacity .35s var(--ease)}
+.dx-media.is-live > video{opacity:1}
+
+/* ---- the six compositions ---- */
+/* a: the words take the room the two rows leave, title up, line down on the
+   clip. Its title is sized from the panel's own width, so it breaks the same
+   way at every screen: two lines here, three where the panel is narrow */
+.dx-cell--a{--dx-ttl:clamp(30px,3.1vw,54px)}
+@supports (width:1cqw){
+  .dx-cell--a{container-type:inline-size;--dx-ttl:clamp(30px,9cqw,60px)}
+}
+.dx-cell--a .dx-cell__text{flex:1 1 auto;justify-content:space-between;gap:16px}
+.dx-cell--a .dx-cell__line{font-size:16px}
+/* b: words left, clip right; the title sits on the clip's top edge and the
+   line on its bottom one. Where the words run taller than the clip, the clip
+   sits midway beside them */
+.dx-cell--b{flex-direction:row;align-items:center}
+.dx-cell--b .dx-cell__text{flex:1 1 0;align-self:stretch;justify-content:space-between}
+.dx-cell--b .dx-media{flex:0 0 56%}
+/* c, d, f: clip over words */
+.dx-cell--c .dx-media,.dx-cell--d .dx-media,.dx-cell--f .dx-media{order:-1}
+/* e: clip left, words right, a step up in size from the single cells */
+.dx-cell--e{--dx-ttl:clamp(24px,2.3vw,40px);flex-direction:row;align-items:center}
+.dx-cell--e .dx-cell__text{flex:1 1 0;align-self:stretch;justify-content:space-between}
+.dx-cell--e .dx-media{order:-1;flex:0 0 58%}
+
+/* ---- four columns on a narrow screen (a tablet on its side): the lead's
+   title takes three lines to fill its panel, b gives its words more of the
+   width, and e's clip takes all the width its words can spare ---- */
+@media (min-width:1021px) and (max-width:1199px){
+  .dx-bento{--dx-pad:16px}
+  .dx-cell--a{--dx-ttl:clamp(34px,4.2vw,50px)}
+  @supports (width:1cqw){
+    .dx-cell--a{--dx-ttl:clamp(34px,10.6cqw,50px)}
+  }
+  .dx-cell__line{font-size:14.5px}
+  .dx-cell--a .dx-cell__line{font-size:15px}
+  .dx-cell--b .dx-media{flex-basis:47%}
+  .dx-cell--e .dx-cell__text{flex:0 0 clamp(176px,30%,260px)}
+  .dx-cell--e .dx-media{flex:1 1 0}
+}
+
+/* ---- arriving: each panel is one of the page's reveals (.rv), a beat
+   apart along its row ---- */
+html.js .dx-bento .dx-cell.rv{
+  --dx-d:calc(var(--i,0) * 70ms);
+  transition:opacity .9s var(--ease-out) var(--dx-d),transform .9s var(--ease-out) var(--dx-d),border-color .4s var(--ease);
+}
+html.js .dx-bento .dx-cell.rv.done{transition-delay:0s}
+
+/* ---- with a mouse: the hairline warms and the orange rule runs the top edge.
+   Nothing scales, so the dashboard's small type stays sharp ---- */
+@media (hover:hover) and (pointer:fine){
+  .dx-cell:hover{border-color:var(--line-2)}
+  @supports (color:color-mix(in srgb,red,blue)){
+    .dx-cell:hover{border-color:color-mix(in srgb,var(--acc) 26%,var(--line-2))}
+  }
+  .dx-cell:hover::before{width:calc(100% - var(--r-card) * 2)}
+}
+
+/* ---- a clip's control (made by dash.js): the whole clip is the button, its
+   mark a small dark square in the corner, like the caption in the recording.
+   Where clips wait to be tapped the mark shows; where they play in view it
+   comes up under the pointer or the keyboard, and stays if you paused ---- */
+.dx-play{
+  position:absolute;inset:0;z-index:2;display:block;width:100%;height:100%;margin:0;padding:0;
+  border:0;border-radius:0;background:none;color:inherit;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.dx-play__ico{
+  position:absolute;left:10px;bottom:10px;
+  display:grid;place-items:center;width:36px;height:36px;border-radius:10px;
+  background:rgba(10,10,10,.86);color:#EDEAE4;
+  opacity:0;transition:opacity .25s var(--ease),background-color .25s var(--ease);
+}
+.dx-play__ico svg{display:block;width:14px;height:14px;fill:currentColor}
+.dx-play__stop{display:none}
+.dx-media.is-playing .dx-play__go{display:none}
+.dx-media.is-playing .dx-play__stop{display:block}
+.dx-media.is-tap:not(.is-playing) .dx-play__ico,
+.dx-media.is-held .dx-play__ico,
+.dx-play:focus-visible .dx-play__ico{opacity:1}
+@media (hover:hover){
+  .dx-play:hover .dx-play__ico{opacity:1}
+}
+/* the page's focus ring is cream, and this sits on cream */
+html[data-v="editorial"] .dx-play:focus-visible{outline:2px solid #0A0A0A;outline-offset:-5px}
+
+/* ---- the foot: what the footage is, and the two ways on ---- */
+.dx-foot{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 32px;
+  margin-top:clamp(18px,3vh,32px);
+}
+.dx-foot__links{display:flex;flex-wrap:wrap;gap:0 30px;margin:0}
+
+/* ---- two columns: a, b, e and f run full width (f turns on its side like
+   b), c and d stay a pair ---- */
+@media (max-width:1020px){
+  .dx-bento{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-areas:"a a" "b b" "c d" "e e" "f f";
+  }
+  .dx-cell--a{--dx-ttl:clamp(30px,5.2vw,48px)}
+  @supports (width:1cqw){
+    .dx-cell--a{--dx-ttl:clamp(30px,8.4cqw,56px)}
+  }
+  .dx-cell--a .dx-cell__text{flex:none;gap:12px}
+  .dx-cell--b,.dx-cell--f{--dx-ttl:clamp(22px,3vw,30px)}
+  .dx-cell--e{--dx-ttl:clamp(24px,3.4vw,34px)}
+  .dx-cell--f{flex-direction:row;align-items:center}
+  .dx-cell--f .dx-cell__text{flex:1 1 0;align-self:stretch;justify-content:space-between}
+  .dx-cell--f .dx-media{order:0;flex:0 0 56%}
+  .dx-cell--e .dx-media{flex-basis:56%}
+  /* each row arrives by itself here, so only the pair is a beat apart */
+  html.js .dx-bento .dx-cell.rv{--dx-d:0ms}
+  html.js .dx-bento .dx-cell--d.rv{--dx-d:70ms}
+}
+
+/* ---- one column: every panel is its clip over its words, but the lead,
+   which keeps its words first and its larger title ---- */
+@media (max-width:640px){
+  .dx-bento{
+    --dx-pad:16px;--dx-ttl:clamp(21px,6.2vw,24px);
+    gap:16px;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-areas:"a" "b" "c" "d" "e" "f";
+  }
+  .dx-cell--a{--dx-ttl:clamp(28px,8.4vw,36px)}
+  @supports (width:1cqw){
+    .dx-cell--a{--dx-ttl:clamp(22px,11.6cqw,40px)}
+  }
+  .dx-cell--b,.dx-cell--e,.dx-cell--f{--dx-ttl:clamp(21px,6.2vw,24px);flex-direction:column;align-items:stretch}
+  .dx-cell--b .dx-cell__text,.dx-cell--e .dx-cell__text,.dx-cell--f .dx-cell__text{flex:none;justify-content:flex-start}
+  .dx-cell--b .dx-media,.dx-cell--e .dx-media,.dx-cell--f .dx-media{order:-1;flex:none}
+  .dx-cell__line,.dx-cell--a .dx-cell__line{font-size:15.5px}
+  html.js .dx-bento .dx-cell--d.rv{--dx-d:0ms}
+  .dx-foot{flex-direction:column;align-items:flex-start;gap:4px;margin-top:22px}
+}
+
+/* ============================================================
+   THE WHOLE DASHBOARD: the film in its window
+   The window is as wide as the column allows while the whole of
+   it still fits the screen under the header; the chapters and the
+   note keep its width. The stage holds the perspective and the
+   window turns in it: tilted back 22 degrees and a tenth smaller
+   as it comes up into view, flat by the time it is all on screen.
+   The scroll drives that where the browser can do it (a view
+   timeline on the stage, which does not turn, so the turning never
+   feeds back into its own progress); elsewhere dash.js lays it
+   flat once, when it is a third in view. Reduced motion: flat.
+   ============================================================ */
+
+.dx-watch__body{
+  width:min(100%,max(calc((100vh - var(--hdr-h) - 76px) * 16 / 9),420px));
+  margin-inline:auto;
+}
+.dx-stage{perspective:1600px}
+
+.dx-frame{
+  position:relative;isolation:isolate;
+  background:var(--raise);border:1px solid var(--line-2);border-radius:var(--r-card);
+  /* the light under it: the accent, pooled low. A theme may hand both in
+     (--dx-shadow for the cast, --dx-glow for the pool's colour) */
+  box-shadow:var(--dx-shadow,0 46px 120px -50px color-mix(in srgb,var(--acc) 44%,transparent));
+}
+.dx-frame::before{
+  content:"";position:absolute;left:4%;right:4%;top:58%;bottom:-14%;z-index:-1;pointer-events:none;
+  background:radial-gradient(50% 50% at 50% 50%,var(--dx-glow,color-mix(in srgb,var(--acc) 36%,transparent)),transparent);
+  filter:blur(30px);
+}
+/* and a warm glint along its top edge */
+.dx-frame::after{
+  content:"";position:absolute;left:12%;right:12%;top:-1px;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--acc),transparent);opacity:.6;
+}
+
+/* the window's bar: three square marks and the address, for show */
+.dx-frame__bar{
+  display:flex;align-items:center;gap:6px;height:36px;padding:0 16px;
+  background:var(--raise-2);border-bottom:1px solid var(--line);
+  border-radius:calc(var(--r-card) - 1px) calc(var(--r-card) - 1px) 0 0;
+}
+.dx-frame__bar i{flex:none;width:8px;height:8px;border:1px solid var(--ghost-line);border-radius:50%}
+.dx-frame__url{
+  flex:0 1 320px;min-width:0;margin:0 auto;padding:5px 10px;
+  transform:translateX(-21px);   /* centred on the window, not on what the marks leave */
+  background:var(--bg);border:1px solid var(--line);border-radius:999px;
+  font:400 12px/1 var(--f-text);letter-spacing:.01em;color:var(--ink-2);text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+.dx-frame__screen{
+  position:relative;aspect-ratio:16 / 9;overflow:hidden;background:#F1E7DB;
+  border-radius:0 0 calc(var(--r-card) - 1px) calc(var(--r-card) - 1px);
+}
+.dx-frame__screen > img,
+.dx-frame__screen > video{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:none;object-fit:cover}
+
+/* the play button: the page's own primary button with a play mark, set low
+   and centred, under the title card's words and over the player's own bar.
+   Made live by dash.js; it goes while the film plays and returns at the end */
+.dx-frame__play{
+  position:absolute;left:50%;top:80%;z-index:2;
+  display:none;margin:0;padding:0;border:0;border-radius:0;background:none;color:inherit;cursor:pointer;
+  transform:translate(-50%,-50%);
+  transition:opacity .3s var(--ease),visibility 0s linear 0s;
+  -webkit-tap-highlight-color:transparent;
+}
+html.js .dx-frame__play{display:block}
+.dx-frame.is-playing .dx-frame__play{opacity:0;visibility:hidden;transition:opacity .3s var(--ease),visibility 0s linear .3s}
+.dx-frame__btn{
+  display:inline-flex;align-items:center;gap:14px;min-height:60px;padding:0 30px 0 26px;
+  background:var(--btn-bg);color:var(--btn-ink);
+  font:600 14px/1 var(--f-text);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;
+  transition:background-color .25s var(--ease);
+}
+.dx-frame__btn svg{flex:none;display:block;width:14px;height:14px;fill:currentColor}
+.dx-frame__play:hover .dx-frame__btn{background:var(--btn-bg-hover)}
+.dx-frame__play:active .dx-frame__btn{transform:translateY(1px)}
+/* on the cream card the page's cream ring would be lost */
+html[data-v="editorial"] .dx-frame__play:focus-visible{outline:2px solid #0A0A0A;outline-offset:4px}
+
+/* ---- the tilt ---- */
+@keyframes dx-flatten{
+  from{transform:rotateX(22deg) scale(.9)}
+  to{transform:none}
+}
+@media (prefers-reduced-motion:no-preference){
+  @supports (animation-timeline:view()){
+    .dx-stage{view-timeline-name:--dx-tilt;view-timeline-axis:block}
+    .dx-frame{
+      animation:dx-flatten linear both;
+      animation-timeline:--dx-tilt;   /* after the shorthand, which resets it */
+      animation-range:entry 0% cover 45%;
+    }
+  }
+  @supports not (animation-timeline:view()){
+    html.js .dx-frame{transform:rotateX(22deg) scale(.9);transition:transform 1.4s var(--ease-out)}
+    html.js .dx-frame.is-flat{transform:none}
+  }
+}
+
+/* ---- the chapters: ten steps on one rule, each filling as its part plays ---- */
+.dx-chapters{
+  position:relative;list-style:none;
+  margin:clamp(22px,3.4vh,36px) 0 0;padding:0;
+  display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:0 clamp(6px,.7vw,12px);
+}
+.dx-chapters > li{min-width:0}
+.dx-ch{
+  position:relative;display:flex;flex-direction:column;gap:8px;
+  width:100%;min-height:44px;margin:0;padding:14px 0 8px;
+  border:0;border-radius:0;background:none;
+  font:inherit;text-align:left;color:var(--ink-2);cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.dx-ch__bar{position:absolute;left:0;right:0;top:0;height:2px;overflow:hidden;background:var(--line-2);transition:background-color .25s var(--ease)}
+.dx-ch__bar > i{position:absolute;inset:0;background:var(--acc);transform:scaleX(var(--fill,0));transform-origin:left center}
+.dx-ch__t{font:600 12px/1 var(--f-text);letter-spacing:.14em;font-variant-numeric:tabular-nums;color:var(--ink-3);transition:color .25s var(--ease)}
+.dx-ch__n{font-size:14px;line-height:1.35;color:var(--ink-2);text-wrap:pretty;transition:color .25s var(--ease)}
+.dx-ch:hover .dx-ch__n,
+.dx-ch[aria-current] .dx-ch__n{color:var(--ink)}
+.dx-ch:hover .dx-ch__bar{background:var(--muted-line)}
+.dx-ch[aria-current] .dx-ch__t{color:var(--acc-ink,var(--acc))}
+html[data-v="editorial"] .dx-ch:focus-visible{outline-offset:3px}
+
+.dx-watch .dx-note{margin-top:clamp(16px,2.6vh,26px)}
+
+/* ---- narrower than ten steps can stand: a row to swipe, snapping to a
+   step, the next one showing at the edge so it reads as a row ---- */
+@media (max-width:1099px){
+  .dx-chapters{
+    display:flex;gap:0 10px;
+    margin-top:22px;padding:6px 32px 6px 0;
+    overflow-x:auto;overscroll-behavior-x:contain;
+    scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);
+  }
+  .dx-chapters::-webkit-scrollbar{display:none}
+  .dx-chapters > li{flex:0 0 156px;scroll-snap-align:start}
+  .dx-ch{min-height:76px}
+}
+
+/* ============================================================
+   THE PHONE
+   ============================================================ */
+@media (max-width:760px){
+  /* the lower page's own rhythm (the work, the picker and the form get the same) */
+  html[data-v="editorial"] .dx-dash,
+  html[data-v="editorial"] .dx-watch{padding:clamp(72px,10vh,96px) 0}
+  /* the window's bar and its button step down; the button moves to the top
+     corner, clear of the title card's words and of the player's own controls */
+  .dx-frame__bar{height:28px;padding:0 9px;gap:5px}
+  .dx-frame__bar i{width:6px;height:6px}
+  .dx-frame__url{transform:none;margin:0 0 0 auto;flex-basis:auto;padding:4px 8px;font-size:10.5px}
+  .dx-frame__play{left:auto;right:4px;top:4px;padding:4px;transform:none}   /* a 44px target round a 36px button */
+  .dx-frame__btn{min-height:36px;padding:0 12px 0 10px;gap:8px;font-size:10.5px;letter-spacing:.09em}
+  .dx-frame__btn svg{width:11px;height:11px}
+  .dx-frame::before{left:8%;right:8%;bottom:-10%;filter:blur(20px)}
+  .dx-frame{box-shadow:var(--dx-shadow,0 30px 70px -40px color-mix(in srgb,var(--acc) 40%,transparent))}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .dx-cell::before{transition:none}
+}
+
+/* ============================================================
+   THE DASHBOARD BEAT (the one .band--dash inside the scroll film)
+   A window onto the client dashboard, in the page's own skin: a
+   hairline frame with the page's card corner and a thin mat, and an
+   orange glow pooled under it, so the cream screen reads as lit
+   against the black ground. It is laid out three ways, like every
+   beat: stacked under the words in the story and on a phone, and
+   a large window at the right of the stage in the desktop film,
+   where the line comes to rest under its lower left corner.
+   The film keeps its dark tokens in both themes, so everything
+   here is drawn from tokens and follows it.
+   ============================================================ */
+
+.dx-beat{
+  --dx-mat:5px;
+  position:relative;isolation:isolate;
+  margin:clamp(28px,5vh,40px) 0 0;
+}
+/* the glow: a pool of the accent under the window, behind it */
+.dx-beat::before{
+  content:"";position:absolute;z-index:-1;left:6%;right:6%;top:56%;bottom:-14%;pointer-events:none;
+  background:radial-gradient(50% 50% at 50% 50%,color-mix(in srgb,var(--acc) 38%,transparent),transparent);
+}
+/* the frame. Its content box is the 16:9 screen, so the clip is never
+   cropped by the mat, and the box is reserved before anything loads: on a
+   phone the line is measured against this height */
+.dx-beat__screen{
+  position:relative;box-sizing:content-box;
+  width:calc(100% - var(--dx-mat) * 2 - 2px);aspect-ratio:16/9;
+  padding:var(--dx-mat);
+  border:1px solid var(--line-2);border-radius:var(--r-card);
+  background:var(--raise);
+  box-shadow:0 44px 90px -56px color-mix(in srgb,var(--acc) 50%,transparent);
+}
+/* a lit top edge, the light the screen throws on its own frame */
+.dx-beat__screen::after{
+  content:"";position:absolute;left:10%;right:10%;top:-1px;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--acc-hover) 70%,transparent),transparent);
+}
+/* the still and the clip share the screen. The still is the clip's own
+   middle frame and stays underneath; the clip is shown over it only once it
+   is playing from that same frame, so the picture never jumps. The cream is
+   the dashboard's page colour, for the moment before the still arrives */
+.dx-beat__screen picture{
+  display:block;position:absolute;inset:var(--dx-mat);
+  background:#F1E7DB;border-radius:calc(var(--r-card) - var(--dx-mat) - 1px);overflow:hidden;
+}
+.dx-beat__still{display:block;width:100%;height:100%;object-fit:cover}
+.dx-beat__v{
+  display:block;position:absolute;left:var(--dx-mat);top:var(--dx-mat);
+  width:calc(100% - var(--dx-mat) * 2);height:calc(100% - var(--dx-mat) * 2);
+  object-fit:cover;border-radius:calc(var(--r-card) - var(--dx-mat) - 1px);
+  opacity:0;
+}
+.dx-beat.is-live .dx-beat__v{opacity:1}
+
+/* the honest note: these are a demo account's figures */
+.dx-beat__note{
+  margin:12px 0 0;
+  font:400 13px/1.45 var(--f-text);letter-spacing:.01em;color:var(--ink-3);
+}
+
+/* ---- the control (made by dash.js, so it is absent without script) ----
+   The whole screen is the target; the mark is a small square in its corner,
+   the page's own primary button at the size of a thumb. It shows when the
+   clip is waiting to be asked for (reduced motion, a phone on a weak or
+   unknown signal, a visitor who paused it), and otherwise only under the
+   pointer or the keyboard, as the way to pause. */
+.dx-beat__play{
+  position:absolute;inset:0;z-index:2;
+  margin:0;padding:0;border:0;border-radius:0;background:none;
+  color:var(--btn-ink);
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;cursor:pointer;
+}
+.dx-beat__play i{
+  position:absolute;left:calc(var(--dx-mat) + 12px);bottom:calc(var(--dx-mat) + 12px);
+  display:grid;place-items:center;width:44px;height:44px;border-radius:12px;
+  background:var(--btn-bg);
+  opacity:0;
+  transition:opacity .25s var(--ease),background-color .25s var(--ease);
+}
+.dx-beat__play i::before{
+  content:"";width:13px;height:15px;margin-left:3px;background:currentColor;
+  clip-path:polygon(0 0,100% 50%,0 100%);
+}
+.dx-beat.is-playing .dx-beat__play i::before{
+  width:12px;height:14px;margin-left:0;
+  clip-path:polygon(0 0,34% 0,34% 100%,0 100%,0 0,66% 0,100% 0,100% 100%,66% 100%,66% 0);
+}
+.dx-beat.is-idle .dx-beat__play i{opacity:1}
+/* the ring sits on the cream screen, so it takes the button's dark ink
+   rather than the page's light focus colour, and it is drawn round the mark,
+   not round the whole screen */
+.dx-beat .dx-beat__play:focus-visible{outline:none}
+.dx-beat .dx-beat__play:focus-visible i{opacity:1;outline:2px solid var(--btn-ink);outline-offset:3px}
+@media (hover:hover) and (pointer:fine){
+  .dx-beat__play:hover i{opacity:1;background:var(--btn-bg-hover,var(--acc-hover))}
+}
+.dx-beat.is-failed .dx-beat__play{display:none}
+
+/* ============================================================
+   THE STORY (phones, portrait tablets, reduced motion): the window
+   stacks under the words, the full width of the column, and comes
+   in with its band.
+   ============================================================ */
+
+html.js.story .band .dx-beat{
+  opacity:0;transform:translateY(18px);
+  transition:opacity .9s var(--ease-out) .24s,transform .9s var(--ease-out) .24s;
+}
+html.js.story .band.in .dx-beat{opacity:1;transform:none}
+/* before the phone's script has arrived on a weak signal, nothing waits on it */
+html.snake:not(.snake-on) .film .band .dx-beat{opacity:1!important;transform:none!important}
+/* on the phone's line every beat has a big line and a small one */
+html.snake .band--dash .ln--2{font-size:.8em}
+/* reduced motion on a wide screen: a size that reads, like the panels and the plates */
+@media (min-width:900px){
+  html.story .band .dx-beat{width:min(100%,640px)}
+}
+@media (prefers-reduced-motion:reduce){
+  html.js.story .band .dx-beat{opacity:1;transform:none}
+}
+
+/* ============================================================
+   THE FILM: the words keep the top left, where the next beat's
+   words will stand, and the window takes the right of the stage.
+   ============================================================ */
+
+/* three short lines and a block set into the gap under them */
+html[data-v="editorial"].film .band--dash .band__in{position:static;width:calc(var(--hl-size) * 4.85)}
+html[data-v="editorial"].film .band--dash .hl{font-size:calc(var(--hl-size) * .86)}
+html[data-v="editorial"].film .band--dash .sub{margin-left:calc(var(--hl-size) * 1.4);max-width:calc(var(--hl-size) * 3.45)}
+
+/* Where the window stands is set by the line and by the words. Through this
+   beat's hold the tip rests between (50.5vw + 1.2vh, 66.2vh) and
+   (51.2vw + 1.7vh, 64.8vh) of the stage (site.js: TIP against CAM at q .739
+   to .741, with the last of the rail's camera lock). The window's lower edge
+   is put just under that, so the line runs in under it and its glow spills
+   out below, the way the line passes under the front plate of the pair.
+   Karan, 2026-10-04: "too small, make it bigger". So the window is as large
+   as the stage allows: from the page's right margin leftwards to a gap
+   beside the words (their column is 4.85 headline sizes wide), or as tall as
+   the room between the header and the line, whichever is reached first.
+   --dx-sbw is the scrollbar's width, which vw units count and the header
+   does not (dash.js measures it). */
+html.film .band--dash .dx-beat{
+  --dx-mat:clamp(4px,.7vh,7px);
+  --dx-w:min(
+    calc((65.2vh - var(--hdr-h) - var(--dx-mat) * 2 - 2px) * 1.7778),
+    calc(100vw - var(--dx-sbw,0px) - var(--gut) * 2 - var(--hl-size) * 4.85 - 4vw));
+  /* the entrance, scrubbed by the band's --k like every caption: the window
+     starts tilted back on its lower edge, a little low and unlit, and lies
+     flat as the beat settles. It echoes the full film's window further down
+     the page. --fe is --fk eased out, so it lands softly however it is scrolled */
+  --fk:clamp(0,calc((var(--k,1) - .2) * 1.25),1);
+  --fe:calc(var(--fk) * (2 - var(--fk)));
+  position:absolute;left:auto;right:calc(var(--gut) + var(--dx-sbw,0px));bottom:31.8vh;
+  width:var(--dx-w);
+  margin:0;
+  opacity:clamp(0,calc(var(--fk) * 2.8),1);
+  transform:perspective(1400px) translate3d(0,calc((1 - var(--fe)) * 5vh),0) rotateX(calc((1 - var(--fe)) * 14deg));
+  transform-origin:50% 100%;
+  will-change:transform,opacity;
+}
+html.film .band--dash .dx-beat__note{
+  position:absolute;right:0;top:calc(100% + 1.6vh);margin:0;
+  font-size:clamp(12px,1.5vh,13px);white-space:nowrap;
+}
+/* a band takes no pointer in the film; the window's control does */
+html.film .band--dash .dx-beat__play{pointer-events:auto}
+
+/* a stage too short to hold the window keeps the words */
+@media (max-height:560px){
+  html.film .band--dash .dx-beat{display:none}
+}

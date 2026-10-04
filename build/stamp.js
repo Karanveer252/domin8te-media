@@ -13,7 +13,17 @@ const ROOT = 'C:/Work/domin8te-media';
 const html = path.join(ROOT, 'index.html');
 const assets = ['assets/site.css', 'assets/v-editorial.css', 'assets/site.js', 'assets/sky.js', 'assets/pfilm.js', 'assets/phone.js', 'assets/sky-a-still.jpg', 'assets/sky-b-still.jpg',
   'assets/cy-l1.webp', 'assets/cy-l2.webp', 'assets/cy-l3.webp', 'assets/cy-l4.webp', 'assets/cy-l1.avif', 'assets/cy-l2.avif', 'assets/cy-l3.avif', 'assets/cy-l4.avif',
-  'assets/cy-l3d.webp', 'assets/cy-l4d.webp', 'assets/cy-l3d.avif', 'assets/cy-l4d.avif'];
+  'assets/cy-l3d.webp', 'assets/cy-l4d.webp', 'assets/cy-l3d.avif', 'assets/cy-l4d.avif',
+  /* the dashboard in the page (2026-10-04): its styles, the light ground, its script, and every clip
+     and still, whose URLs all live in index.html (data-src, data-src-sm, poster, srcset) */
+  'assets/dash.css', 'assets/light.css', 'assets/dash.js',
+  'assets/dash-overview.mp4', 'assets/dash-overview-s.mp4', 'assets/dash-overview.webp', 'assets/dash-overview-s.webp',
+  'assets/dash-approve.mp4', 'assets/dash-approve-s.mp4', 'assets/dash-approve.webp', 'assets/dash-approve-s.webp',
+  'assets/dash-results.mp4', 'assets/dash-results-s.mp4', 'assets/dash-results.webp', 'assets/dash-results-s.webp',
+  'assets/dash-updates.mp4', 'assets/dash-updates-s.mp4', 'assets/dash-updates.webp', 'assets/dash-updates-s.webp',
+  'assets/dash-work-s.mp4', 'assets/dash-work-s.webp', 'assets/dash-message-s.mp4', 'assets/dash-message-s.webp',
+  'assets/dash-hours-s.mp4', 'assets/dash-hours-s.webp',
+  'assets/dash-master.mp4', 'assets/dash-master-s.mp4', 'assets/dash-master.webp', 'assets/dash-master-s.webp'];
 
 /* the film and its poster are fetched by site.js, so their tokens live
    there; stamp those first, then the script's own token in the html.

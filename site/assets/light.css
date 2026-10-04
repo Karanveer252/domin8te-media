@@ -1,0 +1,406 @@
+/* ============================================================
+   The background switch: the dashboard's light ground.
+
+   Dark is the page as it was and needs no attribute. With
+   html[data-theme="light"] (set by the head script from the
+   stored choice, flipped by assets/dash.js) the WHOLE page takes
+   the dashboard's light tokens: its cream page, its warm ink and
+   hairlines, its dark dot. Karan, 2026-10-04: "make sure the
+   whole website switches to light mode. There should not be half
+   section in the dark mode and half in the light mode."
+
+   So the scroll film changes ground too. Its words and line are
+   drawn in the light tokens. Its two kinds of footage were
+   rendered on black and cannot simply be recoloured:
+     the cloche film is shown as a picture, a rounded window at
+       the right of the stage, with the words beside it on cream;
+     the cloud films are turned over (inverted, hue kept) and
+       laid on the cream, so they read as charcoal cloud and
+       dark words on paper.
+   Type, the 28px dot pitch and the layout are not touched.
+
+   Order: the tokens and the switch itself (both themes), then
+   light: tokens, browser surfaces, the header, cards, the film
+   on the desktop, the story layout, the sections, the phone's
+   bar, the cross-fade.
+   ============================================================ */
+
+/* ---- two tokens the dark page never needed ----
+   --acc-ink is orange used as text: the accent itself on the dark ground, a
+   deeper orange on cream, where #FF5B1F is under 3:1. --dx-shadow is what a
+   framed screen stands on: the orange under-glow here, the dashboard's soft
+   shadow on cream. */
+html[data-v="editorial"]{
+  --acc-ink:var(--acc);
+  --acc-display:var(--acc);   /* orange as large display type: the accent itself, a touch deeper on cream */
+  --dx-shadow:0 46px 120px -50px rgba(255,91,31,.5),0 2px 0 rgba(0,0,0,.6);
+  --card-shadow:none;         /* what a card stands on: nothing on the dark ground, a soft shadow on cream */
+}
+
+/* ============================================================
+   THE SWITCH (both themes)
+   One small round of hairline beside the Dashboard pill, in its
+   weight; on a phone the header is tuned for two pills, so the
+   switch is a line of text in the footer instead. Without script
+   neither shows.
+   ============================================================ */
+
+.dx-toggle{display:none}
+html.js[data-v="editorial"] .dx-toggle{
+  display:inline-flex;align-items:center;justify-content:center;flex:none;
+  width:40px;height:40px;padding:0;
+  /* the nav spaces its pills widely; the switch keeps close to the pill it sits beside */
+  margin:0 calc(10px - clamp(6px,1.4vw,26px)) 0 0;
+  border:1px solid var(--line-2);border-radius:999px;
+  background:none;color:var(--ink);font:inherit;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  transition:border-color .2s,background-color .2s;
+}
+/* a hover that a mouse can leave: a tapped switch would keep it */
+@media (hover:hover){
+  html.js[data-v="editorial"] .nav .dx-toggle:hover{border-color:var(--ink);background:rgba(237,234,228,.06)}
+}
+html[data-v="editorial"] .dx-toggle__ico{
+  display:block;flex:none;width:16px;height:16px;overflow:visible;
+  fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;
+}
+/* the glyph is where the switch leads: the sun on the dark ground, the moon on the light */
+.dx-toggle__sun,.dx-toggle__moon{transform-origin:10px 10px}
+.dx-toggle__moon{opacity:0;transform:rotate(-50deg) scale(.6)}
+html[data-theme="light"] .dx-toggle__sun{opacity:0;transform:rotate(50deg) scale(.6)}
+html[data-theme="light"] .dx-toggle__moon{opacity:1;transform:none}
+@media (prefers-reduced-motion:no-preference){
+  .dx-toggle__sun,.dx-toggle__moon{transition:opacity .3s var(--ease),transform .5s var(--ease-out)}
+}
+
+/* the footer's copy of it: the page's micro label on a hairline, like its other quiet links */
+html.js[data-v="editorial"] .dx-toggle--foot{display:none}
+@media (max-width:760px){
+  html.js[data-v="editorial"] .dx-toggle{display:none}
+  html.js[data-v="editorial"] .dx-toggle--foot{
+    display:inline-flex;grid-column:1 / -1;justify-self:start;
+    width:auto;height:auto;min-height:44px;margin:0;padding:0 2px;gap:10px;
+    border:0;border-radius:0;
+    font:600 12px/1 var(--f-text);letter-spacing:.14em;text-transform:uppercase;
+  }
+  html[data-v="editorial"] .dx-toggle__txt{
+    padding:9px 0 8px;
+    background:linear-gradient(var(--ghost-line),var(--ghost-line)) left bottom / 100% 1px no-repeat;
+  }
+  html[data-v="editorial"] .dx-toggle--foot:hover .dx-toggle__txt{
+    background:linear-gradient(var(--ink),var(--ink)) left bottom / 100% 1px no-repeat;
+  }
+}
+
+/* ============================================================
+   LIGHT: THE TOKENS
+   The dashboard's own values (its console's light block). The
+   accent fill is unchanged; only its hover, and orange as text.
+   ============================================================ */
+
+html[data-v="editorial"][data-theme="light"]{
+  color-scheme:light;
+
+  --bg:#F4F1EC;
+  /* Karan, 2026-10-04: "it is hard to see the cards, so make them have a
+     border or something, or a background shadow". A card is white on the
+     cream, its hairline is firmer than the console's, and it stands on the
+     dashboard's soft shadow (--card-shadow) */
+  --raise:#FFFFFF;
+  --raise-2:#F6F2EC;
+  --line:rgba(94,72,50,.22);
+  --line-2:rgba(94,72,50,.34);
+
+  --ink:#1D1A16;
+  --ink-2:#4A443D;
+  --ink-3:#6B645B;
+  --muted-line:#8A8176;
+
+  --acc-hover:#FF7440;
+  --acc-ink:#AE3A0B;
+  --acc-display:#E8480C;   /* 3.5:1 on the cream: large display type only */
+  --btn-ink:#1D1A16;
+  --ghost-line:rgba(29,26,22,.32);
+  --focus:#1D1A16;
+  --bad:#A8231B;
+  --good:#176240;
+
+  --dots:radial-gradient(circle,rgba(10,10,10,.11) 1px,rgba(10,10,10,0) 1.6px);
+  --dx-shadow:0 2px 4px rgba(40,30,20,.06),0 30px 70px -34px rgba(40,30,20,.42);
+  --card-shadow:0 1px 2px rgba(40,30,20,.06),0 12px 30px -16px rgba(40,30,20,.3);
+  /* the page's ground as numbers, for the fades that go to nothing */
+  --dx-ground-rgb:244,241,236;
+
+  scrollbar-color:rgba(94,72,50,.28) transparent;
+}
+
+/* ============================================================
+   LIGHT: BROWSER SURFACES AND TYPE
+   ============================================================ */
+
+html[data-v="editorial"][data-theme="light"] ::-webkit-scrollbar-thumb{background:rgba(94,72,50,.28)}
+html[data-v="editorial"][data-theme="light"] a{text-decoration-color:rgba(29,26,22,.34)}
+html[data-v="editorial"][data-theme="light"] a:hover{text-decoration-color:currentColor}
+
+/* the accent word is orange as large display type: on cream it takes the
+   slightly deeper orange that holds 3:1 there */
+html[data-v="editorial"][data-theme="light"] .hl .acc,
+html[data-v="editorial"][data-theme="light"] .hl--hero .ln--2{color:var(--acc-display)}
+html[data-v="editorial"][data-theme="light"] .hl--hero:has(.acc) .ln--2{color:var(--ink-3)}
+
+/* ============================================================
+   LIGHT: THE HEADER
+   ============================================================ */
+
+/* its ground, fading out below the bar */
+html[data-v="editorial"][data-theme="light"] .hdr::before{
+  background:linear-gradient(180deg,var(--bg) 0%,var(--bg) calc(100% - 28px),rgba(var(--dx-ground-rgb),0) 100%);
+}
+html[data-v="editorial"][data-theme="light"] .nav__link--dash:hover{background:rgba(94,72,50,.06)}
+@media (hover:hover){
+  html.js[data-v="editorial"][data-theme="light"] .nav .dx-toggle:hover{background:rgba(94,72,50,.06)}
+}
+/* the side rail of progress */
+html[data-v="editorial"][data-theme="light"] .hdr__progress{background:rgba(94,72,50,.2)}
+
+/* ============================================================
+   LIGHT: CARDS
+   White on the cream, a firm hairline (the tokens above) and the
+   dashboard's soft shadow under every card and plate.
+   ============================================================ */
+
+html[data-v="editorial"][data-theme="light"] .opt__txt,
+html[data-v="editorial"][data-theme="light"] .pick__plan,
+html[data-v="editorial"][data-theme="light"] .work .pan__media,
+html[data-v="editorial"][data-theme="light"].story .pan.act .pan__frame,
+html[data-v="editorial"][data-theme="light"] .ba__img{box-shadow:var(--card-shadow)}
+/* a clip's box inside a white card: the dashboard's own cream, an edge to hold it */
+html[data-v="editorial"][data-theme="light"] .dx-media{border-color:var(--line-2)}
+/* the framed windows (the film beat's, the full film's) stand on the larger
+   shadow; the orange pool under them belongs to the dark ground */
+html[data-v="editorial"][data-theme="light"] .dx-frame::before,
+html[data-v="editorial"][data-theme="light"] .dx-frame::after,
+html[data-v="editorial"][data-theme="light"] .dx-beat::before,
+html[data-v="editorial"][data-theme="light"] .dx-beat__screen::after{display:none}
+html[data-v="editorial"][data-theme="light"] .dx-beat__screen{box-shadow:var(--dx-shadow)}
+/* the film's tickets: the plate behind each one is the card */
+html[data-v="editorial"][data-theme="light"].film[data-cards="railflow"] .pan.act .pan__frame::before{
+  box-shadow:0 1px 2px rgba(40,30,20,.06),0 26px 60px -30px rgba(40,30,20,.38);
+}
+html[data-v="editorial"][data-theme="light"].film[data-cards="railflow"] .pan.act.is-lit .pan__clip{box-shadow:0 0 14px rgba(255,91,31,.4)}
+
+/* ============================================================
+   LIGHT: THE FILM ON THE DESKTOP
+   ============================================================ */
+
+/* ---- the cloche film, as a picture ----
+   The film was rendered on black and stays exactly where it is on the stage
+   (its last frames hand the line on to the page's own, so it cannot be moved
+   or scaled). On the light ground it is seen through a rounded window at the
+   right: from just left of where the mark rises (the stage's middle, less
+   3vh) to the page's right margin, under the header. The words stand beside
+   it on the cream, so the first screen is a light page with a picture. */
+html[data-v="editorial"][data-theme="light"].film .hero{
+  clip-path:inset(calc(var(--hdr-h) + 2vh) var(--gut) 4vh calc(50% - 3vh) round calc(var(--r-card) + 8px));
+}
+/* wider than 16:9 the film's frame stops short of the stage's edges and is
+   feathered there: the window closes in to the frame's solid part */
+@media (min-aspect-ratio:181/100){
+  html[data-v="editorial"][data-theme="light"].film .hero{
+    clip-path:inset(calc(var(--hdr-h) + 2vh) max(var(--gut),calc(50% - 76vh)) 4vh calc(50% - 3vh) round calc(var(--r-card) + 8px));
+  }
+}
+/* nothing lies over the words now, so they need no scrim */
+html[data-v="editorial"][data-theme="light"].film .stage::after{display:none}
+
+/* the words keep to the cream beside the picture. The hero's whole block is
+   sized from one token, so it is stepped down here and everything in it
+   follows; its second link drops under the button instead of running on
+   into the picture */
+html[data-v="editorial"][data-theme="light"].film{--hero-size:clamp(48px,min(5.2vw,8.8vh),98px)}
+html[data-v="editorial"][data-theme="light"].film .band--hero .band__in{width:calc(50vw - 3vh - var(--gut) - 2.5vw)}
+html[data-v="editorial"][data-theme="light"].film .band--hero .cta{flex-wrap:wrap;width:auto}
+/* "The first step toward something bigger." is set wider than the cream
+   beside the picture, and comes in while the film's last frames (the line
+   leaving a black screen) are still up. So the picture bows out as that band
+   arrives: it fades in under half a second, and comes back if the scroll goes
+   back up. site.js sets the film's opacity inline, hence the !important. */
+html[data-v="editorial"][data-theme="light"].film .hero{transition:opacity .45s var(--ease)}
+html[data-v="editorial"][data-theme="light"].film .stage:has(.band--climb.on) .hero{opacity:0!important}
+
+/* ---- the line ----
+   On black it is a lit tube: a dark casing, a wide glow, the spectrum, a
+   white-hot core. On cream the white would vanish and the black would be a
+   smear, so the spectrum itself carries it: a faint warm shadow for a casing,
+   the glow kept, the core a thin highlight, the heat a deeper orange. */
+html[data-v="editorial"][data-theme="light"] .thread--case{
+  stroke:#3A2A1C;
+  opacity:calc(.12 * var(--pw,0) + .1 * var(--ten,0));
+}
+html[data-v="editorial"][data-theme="light"] .thread--glow{opacity:calc(.02 + .09 * var(--pw,0) + .05 * var(--ten,0))}
+html[data-v="editorial"][data-theme="light"] .thread--body{opacity:calc(.5 + .5 * var(--pw,0))}
+html[data-v="editorial"][data-theme="light"] .thread--hot{stroke:#FF6A1F;opacity:calc(.55 * var(--ten,0))}
+html[data-v="editorial"][data-theme="light"] .thread--core{stroke:#FFFFFF;opacity:calc(.22 * var(--pw,0) + .3 * var(--ten,0))}
+html[data-v="editorial"][data-theme="light"] .tip{fill:#FF6A1F}
+html[data-v="editorial"][data-theme="light"].film .bloom{
+  background:radial-gradient(circle,rgba(255,112,36,.5) 0%,rgba(255,138,60,.24) 10%,rgba(255,160,90,.1) 32%,rgba(255,160,90,0) 66%);
+}
+
+/* ---- the clouds ----
+   The sky film is white cloud and white words on black. Turned over, with
+   the hue turned back (so the orange word stays orange), it is charcoal cloud
+   and dark words on white; a layer of the page's cream multiplied over it
+   makes that white the page. The film's own canvas is what is turned, so the
+   flash that sky.js lays over it stays a flash of light. */
+html[data-v="editorial"][data-theme="light"].film .sky__frame{filter:invert(1) hue-rotate(180deg)}
+html[data-v="editorial"][data-theme="light"].film .sky::after{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:var(--bg);mix-blend-mode:multiply;
+}
+html[data-v="editorial"][data-theme="light"].film .sky__flash{
+  z-index:2;mix-blend-mode:normal;
+  background:radial-gradient(ellipse 78% 64% at 50% 60%,rgba(255,255,255,.9) 0%,rgba(255,250,240,.4) 38%,rgba(255,250,240,0) 74%);
+}
+
+/* the strain: on black the frame closes in with darkness. On cream it closes
+   in with a warm dusk, half as heavy, and the break is a white bloom */
+html[data-v="editorial"][data-theme="light"] .strain::before{
+  background:
+    radial-gradient(ellipse 58% 54% at 50% 52%,rgba(70,52,36,0) 36%,rgba(70,52,36,.46) 100%),
+    radial-gradient(ellipse 30% 26% at calc(var(--fx,72) * 1%) calc(var(--fy,56) * 1%),rgba(255,140,60,.16) 0%,rgba(255,140,60,0) 100%);
+  background:
+    radial-gradient(ellipse calc(58% - 16% * var(--ten,0) * var(--vig,1)) calc(54% - 15% * var(--ten,0) * var(--vig,1)) at 50% 52%,rgba(70,52,36,0) 34%,rgba(70,52,36,.5) 100%),
+    radial-gradient(ellipse 30% 26% at calc(var(--fx,72) * 1%) calc(var(--fy,56) * 1%),rgba(255,140,60,.18) 0%,rgba(255,140,60,0) 100%);
+}
+html[data-v="editorial"][data-theme="light"] .strain::after{
+  background:radial-gradient(ellipse 52% 48% at calc(var(--fx,72) * 1%) calc(var(--fy,54) * 1%),rgba(255,255,255,.7) 0%,rgba(255,255,255,0) 62%);
+  background:radial-gradient(ellipse calc(52% + 20% * var(--brk,0)) calc(48% + 18% * var(--brk,0)) at calc(var(--fx,72) * 1%) calc(var(--fy,54) * 1%),rgba(255,255,255,.8) 0%,rgba(255,255,255,0) 64%);
+}
+
+/* the front plate's tab is orange with the dark page's ink; keep that ink */
+html[data-v="editorial"][data-theme="light"].film .act--ba.is-front .ba__tab{color:#1D1A16}
+
+/* ============================================================
+   LIGHT: THE STORY LAYOUT (reduced motion, portrait tablets)
+   The cloud beats there are a still with the words set over it:
+   the still is turned over like the film, and the words take the
+   page's ink.
+   ============================================================ */
+
+@media (min-width:761px){
+  html[data-v="editorial"][data-theme="light"].story .skystill{isolation:isolate;border-radius:var(--r-card);overflow:hidden}
+  html[data-v="editorial"][data-theme="light"].story .skystill__img{filter:invert(1) hue-rotate(180deg)}
+  html[data-v="editorial"][data-theme="light"].story .skystill::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:var(--bg);mix-blend-mode:multiply;
+  }
+  html[data-v="editorial"][data-theme="light"].story .skystill__words{z-index:1}
+}
+
+/* ============================================================
+   LIGHT: THE PHONE'S FILM (phone.js, the line down the page)
+   The same rule as the desktop: the page is cream from the first
+   screen to the last, and footage made on black is a picture.
+   ============================================================ */
+
+@media (max-width:760px){
+  /* ---- the opening: the cloche film as a picture ----
+     On black the scene melts into the page at its top and bottom, comes up
+     under the hero's buttons and takes the next words into its lower edge.
+     On cream it is a rounded picture that stands clear of the words: it
+     starts below the buttons, keeps its edges, and the next words begin
+     under it. phone.js measures all of this, so the line follows. */
+  html.snake[data-v="editorial"][data-theme="light"].story .act--still{margin-top:clamp(20px,6vw,32px)}
+  html.snake[data-v="editorial"][data-theme="light"].story .pscene__box .still,
+  html.snake[data-v="editorial"][data-theme="light"] .pscene__film,
+  html.snake[data-v="editorial"][data-theme="light"] .pscene__video,
+  html.snake[data-v="editorial"][data-theme="light"] .pscene__alt{
+    left:12px;right:12px;width:calc(100% - 24px);
+    -webkit-mask-image:none;mask-image:none;
+    border-radius:calc(var(--r-card) + 6px);
+  }
+  html.snake[data-v="editorial"][data-theme="light"] .band--studio{margin-top:0;padding-top:clamp(26px,5vh,40px)}
+
+  /* ---- the cloud beats ----
+     The clouds here are layers lit by a low sun on a clear sky, so on cream
+     they are simply clouds in daylight. What was written for the night goes:
+     the evening blue over the horizon, the black the scene sank into at its
+     foot. The warm light on the horizon stays. */
+  html[data-v="editorial"][data-theme="light"].story .sky3__glow{
+    background:
+      radial-gradient(70% 3.2% at 50% calc(var(--vp) + 1vh),rgba(255,214,170,.5),rgba(255,200,150,0) 100%),
+      radial-gradient(95% 15% at 50% calc(var(--vp) + 1vh),rgba(255,156,96,.2),rgba(255,140,90,.06) 60%,rgba(255,140,90,0) 100%);
+  }
+  html.snake[data-v="editorial"][data-theme="light"] .sky3::before,
+  html.snake[data-v="editorial"][data-theme="light"] .act--sky-b .sky3::before{
+    background:linear-gradient(180deg,rgba(var(--dx-ground-rgb),0) 0,var(--bg) 40px,var(--bg) calc(100% - 10vh),rgba(var(--dx-ground-rgb),0) 100%);
+  }
+  html.snake[data-v="editorial"][data-theme="light"] .sky3::after{
+    background:linear-gradient(0deg,var(--bg) 0,rgba(var(--dx-ground-rgb),.92) 18%,rgba(var(--dx-ground-rgb),.7) 42%,rgba(var(--dx-ground-rgb),.38) 68%,rgba(var(--dx-ground-rgb),.12) 88%,rgba(var(--dx-ground-rgb),0) 100%);
+  }
+  html[data-v="editorial"][data-theme="light"].story .skystill::before{background:linear-gradient(180deg,var(--bg),rgba(var(--dx-ground-rgb),0))}
+  html[data-v="editorial"][data-theme="light"].story .skystill::after{background:linear-gradient(0deg,var(--bg),rgba(var(--dx-ground-rgb),0))}
+  html[data-v="editorial"][data-theme="light"].story .act--sky .hl--sky .acc{color:var(--acc-display)}
+
+  /* ---- the line ----
+     Its white-hot core and tip are light on black; on cream the spectrum
+     carries it, with a thin highlight for a core and an ember for a head */
+  html.snake[data-v="editorial"][data-theme="light"] .snk__core{stroke:#FFFFFF;stroke-opacity:.5}
+  html.snake[data-v="editorial"][data-theme="light"] .snk__g1{opacity:.16}
+  html.snake[data-v="editorial"][data-theme="light"] .snk__g2{opacity:.08}
+  html.snake[data-v="editorial"][data-theme="light"] .snk__tip{
+    background:radial-gradient(circle,rgba(255,106,31,.95) 0,rgba(255,120,44,.7) 3%,rgba(255,140,70,.3) 9%,rgba(255,160,100,.12) 26%,rgba(255,170,120,.04) 46%,rgba(255,170,120,0) 66%);
+  }
+  /* the empty room behind was dimmed toward black; on cream it is just faded */
+  html.snake[data-v="editorial"][data-theme="light"] .act--ba--before .ba__img{filter:brightness(.9) saturate(.7) opacity(.72)}
+}
+
+/* ============================================================
+   LIGHT: THE SECTIONS BELOW THE FILM
+   ============================================================ */
+
+/* the work mark's rule and resting arrows were drawn in cream */
+html[data-v="editorial"][data-theme="light"] .wmk path[stroke="#F2EDE3"]{stroke:var(--ink)}
+/* the listing mock is a light card; on the light panel it needs its edge */
+html[data-v="editorial"][data-theme="light"] .work .mk--seo{box-shadow:0 0 0 1px var(--line-2),var(--dx-shadow)}
+
+/* the picked option's arrow is a thin stroke: orange as ink */
+html[data-v="editorial"][data-theme="light"] .opt input:checked + .opt__txt::after{background:var(--acc-ink)}
+
+/* the form: the hover line, the select's arrow and its list. focus and the
+   invalid state are restated after the hover so they still win over it */
+html[data-v="editorial"][data-theme="light"] input:hover,
+html[data-v="editorial"][data-theme="light"] select:hover,
+html[data-v="editorial"][data-theme="light"] textarea:hover{border-color:rgba(94,72,50,.55)}
+html[data-v="editorial"][data-theme="light"] input:focus,
+html[data-v="editorial"][data-theme="light"] select:focus,
+html[data-v="editorial"][data-theme="light"] textarea:focus{border-color:var(--ink)}
+html[data-v="editorial"][data-theme="light"] input[aria-invalid="true"],
+html[data-v="editorial"][data-theme="light"] textarea[aria-invalid="true"]{border-color:var(--bad)}
+html[data-v="editorial"][data-theme="light"] select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%231D1A16' stroke-width='1.3'/%3E%3C/svg%3E");
+}
+html[data-v="editorial"][data-theme="light"] option{background:#FBFAF8;color:var(--ink)}
+
+/* ============================================================
+   LIGHT: THE PHONE'S CONTACT BAR
+   On cream it stands on the dashboard's soft shadow and the page
+   fades out under it into cream.
+   ============================================================ */
+
+html[data-v="editorial"][data-theme="light"] .ctabar{box-shadow:0 1px 2px rgba(40,30,20,.08),0 14px 30px -14px rgba(40,30,20,.4)}
+@media (max-width:760px){
+  html[data-v="editorial"][data-theme="light"].story body::after{
+    background:linear-gradient(180deg,rgba(244,241,236,0) 0%,rgba(244,241,236,.86) 55%,#F4F1EC 100%);
+  }
+}
+
+/* ============================================================
+   THE CROSS-FADE
+   dash.js makes the switch inside a view transition where the
+   browser has one, so the two grounds dissolve into each other;
+   nothing moves, only colour changes. Reduced motion never
+   starts one.
+   ============================================================ */
+
+::view-transition-old(root),::view-transition-new(root){animation-duration:.3s;animation-timing-function:ease}

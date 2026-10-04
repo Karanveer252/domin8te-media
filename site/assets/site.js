@@ -233,14 +233,23 @@ var AMP = (function (a) {
   return o;
 })(FEEL.amp);
 
-/* the jobs and the pair, in vh from the end of the first cloud beat */
+/* the jobs, the dashboard and the pair, in vh from the end of the first cloud
+   beat. The dashboard beat (2026-10-04) is one more hold, DASH_HOLD vh long,
+   in the only free stretch of q there is: the rail is gone by .736 and the
+   pair does not start until .742, so the line rests between .739 and .741
+   with the right of the stage empty for the dashboard's window. Everything
+   after it sits 6 + DASH_HOLD vh later than it did and keeps its own pace.
+   Karan has pushed back on scroll length before, so the whole beat may add
+   100vh to the pin at most. */
+var DASH_HOLD = 88;
 var MID_KEYS = [
   [32, .505], [76, .52],
   [102, .574], [146, .589],
   [172, .634], [216, .649],
   [242, .694], [286, .709],
-  [316, .745],
-  [346, .775], [446, .795]
+  [312, .739], [312 + DASH_HOLD, .741],
+  [322 + DASH_HOLD, .745],
+  [352 + DASH_HOLD, .775], [452 + DASH_HOLD, .795]
 ];
 /* scroll into film seconds, over the cloche film's 340vh: the lifted mark is
    held for 100vh while the band is read */
@@ -252,7 +261,7 @@ var RANGE_VH = 0, SEG = null, PV = 0, Q0 = .18, QMAP = null, VTIME = null;
 function D(vh) { return vh / RANGE_VH }
 
 function buildTimeline() {
-  var b1 = 420, mid = b1 + FEEL.L1, b2 = mid + 500, res = b2 + FEEL.L2;
+  var b1 = 420, mid = b1 + FEEL.L1, b2 = mid + 506 + DASH_HOLD, res = b2 + FEEL.L2;
   RANGE_VH = res + 200;
   SEG = { pre: [0, b1], b1: [b1, mid], mid: [mid, b2], b2: [b2, res], res: [res, RANGE_VH] };
   PV = D(340);   /* the cloche film owns the first 340vh of the pin */
@@ -1819,42 +1828,50 @@ if (baBefore && baAfter) {
    invisible. Touch, reduced motion and no-JS keep the CSS dots.
    The loop only runs while something moves; a still page costs
    nothing.
+
+   Each field carries its own ink, and both follow the background
+   switch (assets/dash.js): the light dot on the dark ground, the
+   dashboard's dark dot on the light one, redrawn when the switch
+   says `themechange`. The whole page changes ground, the film
+   included (Karan, 2026-10-04: no half in one mode and half in
+   the other).
    ============================================================ */
 
 var DOT = parseFloat(getComputedStyle(root).getPropertyValue('--dot')) || 0;
 var GRID_INK = '237,234,228', GRID_A = .095;
+var LIGHT_INK = '10,10,10', LIGHT_A = .11;   /* the page's dot on the light ground, as light.css draws it */
 var REACH = 150, REACH2 = REACH * REACH;   /* how far from the cursor the dots feel it */
 var SPRING = 18, DAMP = .82;
 var gridOn = false, gridRaf = null, gridLast = 0;
 var worldX = 0, worldY = 0, scrimNow = 1, stageTop = 0;
 var mcx = -1e4, mcy = -1e4, pmcx = -1e4, pmcy = -1e4, mouseIn = false;
-var pageField = null, filmField = null, sprite = null;
+var pageField = null, filmField = null;
 var fineMq = matchMedia('(hover:hover) and (pointer:fine)');
 
 function ph(v) { return ((v % DOT) + DOT) % DOT }
 
 /* one dot, drawn once: the CSS gradient, solid to 1px and gone by 1.6px */
-function makeSprite(dpr) {
+function makeSprite(dpr, ink) {
   var c = document.createElement('canvas');
   c.width = c.height = Math.round(4 * dpr);
   var x = c.getContext('2d');
   x.scale(dpr, dpr);
   var g = x.createRadialGradient(2, 2, 0, 2, 2, 1.6);
-  g.addColorStop(0, 'rgb(' + GRID_INK + ')');
-  g.addColorStop(.625, 'rgb(' + GRID_INK + ')');
-  g.addColorStop(1, 'rgba(' + GRID_INK + ',0)');
+  g.addColorStop(0, 'rgb(' + ink + ')');
+  g.addColorStop(.625, 'rgb(' + ink + ')');
+  g.addColorStop(1, 'rgba(' + ink + ',0)');
   x.fillStyle = g;
   x.fillRect(0, 0, 4, 4);
   return c;
 }
 
 /* one cell of the quiet grid, so the whole field is a single pattern fill */
-function makeTile(dpr) {
+function makeTile(dpr, sprite, a) {
   var c = document.createElement('canvas');
   c.width = c.height = Math.round(DOT * dpr);
   var x = c.getContext('2d');
   x.scale(c.width / DOT, c.height / DOT);
-  x.globalAlpha = GRID_A;
+  x.globalAlpha = a;
   x.drawImage(sprite, DOT / 2 - 2, DOT / 2 - 2, 4, 4);
   return c;
 }
@@ -1868,7 +1885,14 @@ function Field(canvas) {
   this.top = 0;                   /* the canvas in the viewport */
   this.show = false;
   this.tile = null;
+  this.ink = GRID_INK; this.a = GRID_A;   /* this field's dot: its colour and its resting strength */
+  this.sprite = null;
 }
+/* give the field its ink; size() then lays the quiet grid in it */
+Field.prototype.dye = function (ink, a) {
+  this.ink = ink; this.a = a;
+  this.sprite = makeSprite(Math.min(window.devicePixelRatio || 1, 2), ink);
+};
 Field.prototype.size = function () {
   var dpr = Math.min(window.devicePixelRatio || 1, 2);
   var w = this.c.clientWidth, h = this.c.clientHeight;
@@ -1885,7 +1909,7 @@ Field.prototype.size = function () {
   /* the tile is drawn at device resolution and scaled back to one cell;
      without pattern transforms it is drawn at 1x and stays a touch soft */
   var sharp = !!(window.DOMMatrix && window.CanvasPattern && CanvasPattern.prototype.setTransform);
-  var t = makeTile(sharp ? dpr : 1);
+  var t = makeTile(sharp ? dpr : 1, this.sprite, this.a);
   this.tile = this.ctx.createPattern(t, 'repeat');
   if (sharp) this.tile.setTransform(new DOMMatrix([DOT / t.width, 0, 0, DOT / t.height, 0, 0]));
 };
@@ -1930,6 +1954,7 @@ Field.prototype.paint = function () {
   var ox = this.ox, oy = this.oy, hot = this.hot;
   var cols = this.cols, rows = this.rows, px = this.px, py = this.py;
   var mx = this.mx, my = this.my;
+  var ink = this.ink, a = this.a, sprite = this.sprite;
   var k = 0, i, j, x, y, dx, dy, d2, hits = 0;
   ctx.clearRect(0, 0, w, h);
   /* the quiet grid: one pattern fill, its origin on the phase */
@@ -1959,10 +1984,10 @@ Field.prototype.paint = function () {
       if (!hot[k]) continue;
       var m = Math.abs(ox[k]) + Math.abs(oy[k]);
       x = (i - 1) * DOT + px + ox[k]; y = (j - 1) * DOT + py + oy[k];
-      if (i + 1 < cols) gridLine(ctx, x, y, k + 1, i + 1, j, m, ox, oy, px, py);
-      if (j + 1 < rows) gridLine(ctx, x, y, k + cols, i, j + 1, m, ox, oy, px, py);
-      if (i > 0 && !hot[k - 1]) gridLine(ctx, x, y, k - 1, i - 1, j, m, ox, oy, px, py);
-      if (j > 0 && !hot[k - cols]) gridLine(ctx, x, y, k - cols, i, j - 1, m, ox, oy, px, py);
+      if (i + 1 < cols) gridLine(ctx, x, y, k + 1, i + 1, j, m, ox, oy, px, py, ink);
+      if (j + 1 < rows) gridLine(ctx, x, y, k + cols, i, j + 1, m, ox, oy, px, py, ink);
+      if (i > 0 && !hot[k - 1]) gridLine(ctx, x, y, k - 1, i - 1, j, m, ox, oy, px, py, ink);
+      if (j > 0 && !hot[k - cols]) gridLine(ctx, x, y, k - cols, i, j - 1, m, ox, oy, px, py, ink);
     }
   }
   /* the dots the cursor reaches: brighter and a touch larger near it */
@@ -1974,20 +1999,20 @@ Field.prototype.paint = function () {
       dx = mx - x; dy = my - y; d2 = dx * dx + dy * dy;
       var pw = d2 < REACH2 ? 1 - Math.sqrt(d2) / REACH : 0;
       var r = 2 + pw;
-      ctx.globalAlpha = GRID_A + (.42 - GRID_A) * pw * pw;
+      ctx.globalAlpha = a + (.42 - a) * pw * pw;
       ctx.drawImage(sprite, x - r, y - r, r * 2, r * 2);
     }
   }
   ctx.globalAlpha = 1;
 };
-function gridLine(ctx, x, y, n, ni, nj, m, ox, oy, px, py) {
+function gridLine(ctx, x, y, n, ni, nj, m, ox, oy, px, py, ink) {
   /* the pair's travel decides the line, steeply: a nudge shows nothing,
      a dot pushed a cell's third joins its neighbours */
   var s = (m + Math.abs(ox[n]) + Math.abs(oy[n])) / 16;
   if (s < .12) return;
   if (s > 1) s = 1;
   s *= s;
-  ctx.strokeStyle = 'rgba(' + GRID_INK + ',' + (s * .14).toFixed(3) + ')';
+  ctx.strokeStyle = 'rgba(' + ink + ',' + (s * .14).toFixed(3) + ')';
   ctx.beginPath();
   ctx.moveTo(x, y);
   ctx.lineTo((ni - 1) * DOT + px + ox[n], (nj - 1) * DOT + py + oy[n]);
@@ -2044,6 +2069,14 @@ function gridMove(e) {
   gridKick();
 }
 function gridLeave() { mouseIn = false; gridKick() }
+/* which ink the fields take: the light dot on the dark ground, the dark dot
+   on the light one, the film's world the same as the page */
+function gridDye() {
+  var light = root.getAttribute('data-theme') === 'light';
+  pageField.dye(light ? LIGHT_INK : GRID_INK, light ? LIGHT_A : GRID_A);
+  filmField.dye(light ? LIGHT_INK : GRID_INK, light ? LIGHT_A : GRID_A);
+}
+function gridTheme() { if (gridOn) { gridDye(); gridResize() } }
 
 function gridStart() {
   if (gridOn || !DOT || !fineMq.matches || reduced()) return;
@@ -2053,8 +2086,8 @@ function gridStart() {
   document.body.insertBefore(pc, document.body.firstChild);
   /* under the sky's layer, so its beats cover the field the way the hero does */
   if (stage && world) stage.insertBefore(fc, document.getElementById('sky') || world);
-  sprite = makeSprite(Math.min(window.devicePixelRatio || 1, 2));
   pageField = new Field(pc); filmField = new Field(fc);
+  gridDye();
   gridOn = true;
   /* paint before the CSS dots go, in the same frame, so nothing flashes */
   root.classList.add('dots-live');
@@ -2082,6 +2115,7 @@ if (fineMq.addEventListener) fineMq.addEventListener('change', gridMode);
 else if (fineMq.addListener) fineMq.addListener(gridMode);
 if (rmq.addEventListener) rmq.addEventListener('change', gridMode);
 else if (rmq.addListener) rmq.addListener(gridMode);
+window.addEventListener('themechange', gridTheme);
 
 /* ============================================================
    GO

@@ -12,7 +12,8 @@ param([string]$Message = 'Update')
 $ErrorActionPreference = 'Stop'
 $repo = 'C:\Work\domin8te-git'
 
-$skipDirs = @('node_modules', '.git', 'video', 'cloche3d', 'sky3d', 'gauntlet', 'phone-gauntlet', 'cards', 'shots', 'concepts')
+# dash-integration\work holds scratch copies of the whole site (with its clips), merged and long since in site/: a full path, so no other folder named "work" is dropped
+$skipDirs = @('node_modules', '.git', 'video', 'cloche3d', 'sky3d', 'gauntlet', 'phone-gauntlet', 'cards', 'shots', 'concepts', 'C:\Work\domin8te-build\dash-integration\work')
 $skipFiles = @('*.zip', '.env', '.env.*', 'send.php')  # send.php: contact-form mail settings, kept off GitHub
 
 robocopy 'C:\Work\domin8te-media' "$repo\site" /MIR /XD .git node_modules /XF $skipFiles /NFL /NDL /NJH /NJS /NP | Out-Null

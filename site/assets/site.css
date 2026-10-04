@@ -283,15 +283,16 @@ html.js.story .act.in{opacity:1;transform:none}
 
 /* ============================================================
    THE FILM LAYOUT. One pinned stage, one world that pans.
-   1000 world units = 100vh. The pin is 1970vh: 340vh of the
+   1000 world units = 100vh. The pin is 2064vh: 340vh of the
    cloche film, then the journey. site.js maps scroll to world
    progress piecewise, with a hold in every beat, so each one is
    read before the next takes a push to reach.
    ============================================================ */
 
 /* site.js sets this inline from its own timeline; this is the same number,
-   for the moment before the script runs. 420 + 400 + 500 + 350 + 200, + 100 */
-html.film .film{height:1970vh}
+   for the moment before the script runs. 420 + 400 + 594 + 350 + 200, + 100
+   (the 594 is the jobs, the dashboard beat and the pair: 506 + DASH_HOLD) */
+html.film .film{height:2064vh}
 html.film .film__anchor{top:120vh}
 
 html.film .stage{

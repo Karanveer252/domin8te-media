@@ -1,0 +1,145 @@
+/* ============================================================
+   LIGHT: THE HEADER
+   ============================================================ */
+
+/* its ground, fading out below the bar */
+html[data-v="editorial"][data-theme="light"] .hdr::before{
+  background:linear-gradient(180deg,var(--bg) 0%,var(--bg) calc(100% - 28px),rgba(var(--dx-ground-rgb),0) 100%);
+}
+html[data-v="editorial"][data-theme="light"] .nav__link--dash:hover{background:rgba(94,72,50,.06)}
+@media (hover:hover){
+  html.js[data-v="editorial"][data-theme="light"] .nav .dx-toggle:hover{background:rgba(94,72,50,.06)}
+}
+/* the side rail of progress */
+html[data-v="editorial"][data-theme="light"] .hdr__progress{background:rgba(94,72,50,.2)}
+
+/* ============================================================
+   LIGHT: CARDS
+   White on the cream, a firm hairline (the tokens above) and the
+   dashboard's soft shadow under every card and plate.
+   ============================================================ */
+
+html[data-v="editorial"][data-theme="light"] .opt__txt,
+html[data-v="editorial"][data-theme="light"] .pick__plan,
+html[data-v="editorial"][data-theme="light"] .work .pan__media,
+html[data-v="editorial"][data-theme="light"].story .pan.act .pan__frame,
+html[data-v="editorial"][data-theme="light"] .ba__img{box-shadow:var(--card-shadow)}
+/* a clip's box inside a white card: the dashboard's own cream, an edge to hold it */
+html[data-v="editorial"][data-theme="light"] .dx-media{border-color:var(--line-2)}
+/* the framed windows (the film beat's, the full film's) stand on the larger
+   shadow; the orange pool under them belongs to the dark ground */
+html[data-v="editorial"][data-theme="light"] .dx-frame::before,
+html[data-v="editorial"][data-theme="light"] .dx-frame::after,
+html[data-v="editorial"][data-theme="light"] .dx-beat::before,
+html[data-v="editorial"][data-theme="light"] .dx-beat__screen::after{display:none}
+html[data-v="editorial"][data-theme="light"] .dx-beat__screen{box-shadow:var(--dx-shadow)}
+/* the film's tickets: the plate behind each one is the card */
+html[data-v="editorial"][data-theme="light"].film[data-cards="railflow"] .pan.act .pan__frame::before{
+  box-shadow:0 1px 2px rgba(40,30,20,.06),0 26px 60px -30px rgba(40,30,20,.38);
+}
+html[data-v="editorial"][data-theme="light"].film[data-cards="railflow"] .pan.act.is-lit .pan__clip{box-shadow:0 0 14px rgba(255,91,31,.4)}
+
+/* ============================================================
+   LIGHT: THE FILM ON THE DESKTOP
+   ============================================================ */
+
+/* ---- the cloche film, as a picture ----
+   The film was rendered on black and stays exactly where it is on the stage
+   (its last frames hand the line on to the page's own, so it cannot be moved
+   or scaled). On the light ground it is seen through a rounded window at the
+   right: from just left of where the mark rises (the stage's middle, less
+   3vh) to the page's right margin, under the header. The words stand beside
+   it on the cream, so the first screen is a light page with a picture. */
+html[data-v="editorial"][data-theme="light"].film .hero{
+  clip-path:inset(calc(var(--hdr-h) + 2vh) var(--gut) 4vh calc(50% - 3vh) round calc(var(--r-card) + 8px));
+}
+/* wider than 16:9 the film's frame stops short of the stage's edges and is
+   feathered there: the window closes in to the frame's solid part */
+@media (min-aspect-ratio:181/100){
+  html[data-v="editorial"][data-theme="light"].film .hero{
+    clip-path:inset(calc(var(--hdr-h) + 2vh) max(var(--gut),calc(50% - 76vh)) 4vh calc(50% - 3vh) round calc(var(--r-card) + 8px));
+  }
+}
+/* nothing lies over the words now, so they need no scrim */
+html[data-v="editorial"][data-theme="light"].film .stage::after{display:none}
+
+/* the words keep to the cream beside the picture. The hero's whole block is
+   sized from one token, so it is stepped down here and everything in it
+   follows; its second link drops under the button instead of running on
+   into the picture */
+html[data-v="editorial"][data-theme="light"].film{--hero-size:clamp(48px,min(5.2vw,8.8vh),98px)}
+html[data-v="editorial"][data-theme="light"].film .band--hero .band__in{width:calc(50vw - 3vh - var(--gut) - 2.5vw)}
+html[data-v="editorial"][data-theme="light"].film .band--hero .cta{flex-wrap:wrap;width:auto}
+/* "The first step toward something bigger." comes in while the picture is
+   still up, and is set wider than the cream beside it: it steps down a size
+   and breaks inside the column */
+html[data-v="editorial"][data-theme="light"].film .band--climb .band__in{width:calc(50vw - 3vh - var(--gut) - 2.5vw)}
+html[data-v="editorial"][data-theme="light"].film .band--climb .hl{font-size:calc(var(--hl-size) * .98)}
+
+/* ---- the line ----
+   On black it is a lit tube: a dark casing, a wide glow, the spectrum, a
+   white-hot core. On cream the white would vanish and the black would be a
+   smear, so the spectrum itself carries it: a faint warm shadow for a casing,
+   the glow kept, the core a thin highlight, the heat a deeper orange. */
+html[data-v="editorial"][data-theme="light"] .thread--case{
+  stroke:#3A2A1C;
+  opacity:calc(.12 * var(--pw,0) + .1 * var(--ten,0));
+}
+html[data-v="editorial"][data-theme="light"] .thread--glow{opacity:calc(.05 + .2 * var(--pw,0) + .06 * var(--ten,0))}
+html[data-v="editorial"][data-theme="light"] .thread--body{opacity:calc(.5 + .5 * var(--pw,0))}
+html[data-v="editorial"][data-theme="light"] .thread--hot{stroke:#FF6A1F;opacity:calc(.55 * var(--ten,0))}
+html[data-v="editorial"][data-theme="light"] .thread--core{stroke:#FFFFFF;opacity:calc(.22 * var(--pw,0) + .3 * var(--ten,0))}
+html[data-v="editorial"][data-theme="light"] .tip{fill:#FF6A1F}
+html[data-v="editorial"][data-theme="light"].film .bloom{
+  background:radial-gradient(circle,rgba(255,112,36,.5) 0%,rgba(255,138,60,.24) 10%,rgba(255,160,90,.1) 32%,rgba(255,160,90,0) 66%);
+}
+
+/* ---- the clouds ----
+   The sky film is white cloud and white words on black. Turned over, with
+   the hue turned back (so the orange word stays orange), it is charcoal cloud
+   and dark words on white; a layer of the page's cream multiplied over it
+   makes that white the page. The film's own canvas is what is turned, so the
+   flash that sky.js lays over it stays a flash of light. */
+html[data-v="editorial"][data-theme="light"].film .sky__frame{filter:invert(1) hue-rotate(180deg)}
+html[data-v="editorial"][data-theme="light"].film .sky::after{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:var(--bg);mix-blend-mode:multiply;
+}
+html[data-v="editorial"][data-theme="light"].film .sky__flash{
+  z-index:2;mix-blend-mode:normal;
+  background:radial-gradient(ellipse 78% 64% at 50% 60%,rgba(255,255,255,.9) 0%,rgba(255,250,240,.4) 38%,rgba(255,250,240,0) 74%);
+}
+
+/* the strain: on black the frame closes in with darkness. On cream it closes
+   in with a warm dusk, half as heavy, and the break is a white bloom */
+html[data-v="editorial"][data-theme="light"] .strain::before{
+  background:
+    radial-gradient(ellipse 58% 54% at 50% 52%,rgba(70,52,36,0) 36%,rgba(70,52,36,.46) 100%),
+    radial-gradient(ellipse 30% 26% at calc(var(--fx,72) * 1%) calc(var(--fy,56) * 1%),rgba(255,140,60,.16) 0%,rgba(255,140,60,0) 100%);
+  background:
+    radial-gradient(ellipse calc(58% - 16% * var(--ten,0) * var(--vig,1)) calc(54% - 15% * var(--ten,0) * var(--vig,1)) at 50% 52%,rgba(70,52,36,0) 34%,rgba(70,52,36,.5) 100%),
+    radial-gradient(ellipse 30% 26% at calc(var(--fx,72) * 1%) calc(var(--fy,56) * 1%),rgba(255,140,60,.18) 0%,rgba(255,140,60,0) 100%);
+}
+html[data-v="editorial"][data-theme="light"] .strain::after{
+  background:radial-gradient(ellipse 52% 48% at calc(var(--fx,72) * 1%) calc(var(--fy,54) * 1%),rgba(255,255,255,.7) 0%,rgba(255,255,255,0) 62%);
+  background:radial-gradient(ellipse calc(52% + 20% * var(--brk,0)) calc(48% + 18% * var(--brk,0)) at calc(var(--fx,72) * 1%) calc(var(--fy,54) * 1%),rgba(255,255,255,.8) 0%,rgba(255,255,255,0) 64%);
+}
+
+/* the front plate's tab is orange with the dark page's ink; keep that ink */
+html[data-v="editorial"][data-theme="light"].film .act--ba.is-front .ba__tab{color:#1D1A16}
+
+/* ============================================================
+   LIGHT: THE STORY LAYOUT (reduced motion, portrait tablets)
+   The cloud beats there are a still with the words set over it:
+   the still is turned over like the film, and the words take the
+   page's ink.
+   ============================================================ */
+
+html[data-v="editorial"][data-theme="light"].story .skystill{isolation:isolate;border-radius:var(--r-card);overflow:hidden}
+html[data-v="editorial"][data-theme="light"].story .skystill__img{filter:invert(1) hue-rotate(180deg)}
+html[data-v="editorial"][data-theme="light"].story .skystill::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:var(--bg);mix-blend-mode:multiply;
+}
+html[data-v="editorial"][data-theme="light"].story .skystill__words{z-index:1}
+
