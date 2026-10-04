@@ -236,6 +236,29 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke
 .connect-status{margin-top:36px}
 .banner{margin:0 0 26px;padding:14px 16px;border-left:3px solid var(--or);background:var(--or-t);font-size:15px;color:var(--ink);max-width:640px}
 
+/* where to tap pictures (drawn in guides.js) */
+svg.ill{display:block;width:100%;height:auto;fill:#000;stroke:none;stroke-width:1}
+.shots{margin-top:40px}
+.shots-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;margin-bottom:14px}
+.shots-head .small{margin:0}
+.shots-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 18px}
+.shot{margin:0;min-width:0}
+.shot-btn{display:block;width:100%;border-radius:9px;cursor:zoom-in;box-shadow:0 1px 2px rgba(34,40,70,.06),0 10px 24px -16px rgba(34,40,90,.28);transition:box-shadow .2s,transform .2s var(--ease)}
+.shot-btn:hover{box-shadow:0 2px 4px rgba(34,40,70,.08),0 16px 32px -16px rgba(34,40,90,.36);transform:translateY(-2px)}
+.shot figcaption{display:grid;grid-template-columns:30px 1fr;gap:4px;margin-top:10px;font-size:15px;line-height:1.45;color:var(--ink-2)}
+.shot figcaption b{font:600 12px/1.8 var(--f);letter-spacing:.1em;color:var(--or-ink)}
+.zoom{width:min(980px,calc(100% - 24px));max-height:calc(100vh - 24px);padding:0;border:1px solid var(--hair-2);background:var(--raise);color:var(--ink);overflow:auto}
+.zoom::backdrop{background:rgba(29,26,22,.5)}
+.zoom-art{padding:clamp(12px,2.4vw,24px);background:var(--ground)}
+.zoom-art svg.ill{max-height:calc(100vh - 150px);margin:0 auto;width:auto;max-width:100%}
+.zoom-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px 10px 20px;border-top:1px solid var(--hair)}
+.zoom-bar p{margin:0;font-size:16px}
+.zoom-bar p b{font:600 12px/1 var(--f);letter-spacing:.1em;color:var(--or-ink);margin-right:8px}
+.zoom-nav{display:flex;align-items:center;flex:none}
+.zoom-nav button{width:44px;height:44px;display:grid;place-items:center;color:var(--ink-2)}
+.zoom-nav button:hover{color:var(--ink)}
+#zoomCount{font:600 12px/1 var(--f);letter-spacing:.1em;color:var(--ink-3);min-width:52px;text-align:center}
+
 /* toggles */
 .tgl{list-style:none;margin:0;padding:0;border-top:1px solid var(--hair);max-width:680px}
 .tgl li{border-bottom:1px solid var(--hair)}
@@ -346,6 +369,10 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke
   .field.half{grid-column:1/-1}
   .connect{grid-template-columns:minmax(0,1fr)}
   .card{order:-1}
+  .shots-grid{display:flex;gap:14px;overflow-x:auto;scrollbar-width:thin;scroll-snap-type:x mandatory;margin:0 calc(-1 * var(--gut));padding:4px var(--gut) 10px;scroll-padding:0 var(--gut)}
+  .shot{flex:0 0 84%;scroll-snap-align:start}
+  .shot-btn:hover{transform:none}
+  .zoom-bar{flex-wrap:wrap;padding-left:14px}
   #backBtn span{display:none}
   .dock-right{flex:1;justify-content:flex-end}
   .dock .primary{flex:1;max-width:240px;padding:0 16px}

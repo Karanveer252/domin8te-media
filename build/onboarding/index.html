@@ -79,9 +79,23 @@
   </div>
 </dialog>
 
+<dialog class="zoom" id="zoom" aria-labelledby="zoomCap">
+  <div class="zoom-art" id="zoomArt"></div>
+  <div class="zoom-bar">
+    <p id="zoomCap"></p>
+    <div class="zoom-nav">
+      <button type="button" id="zoomPrev" aria-label="Previous picture"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4 6 10l6 6"/></svg></button>
+      <span id="zoomCount"></span>
+      <button type="button" id="zoomNext" aria-label="Next picture"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 4l6 6-6 6"/></svg></button>
+      <button type="button" id="zoomClose" aria-label="Close"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15"/></svg></button>
+    </div>
+  </div>
+</dialog>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="steps.js"></script>
+<script src="guides.js"></script>
 <script src="onboarding.js"></script>
 </body>
 </html>

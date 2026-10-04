@@ -1,0 +1,8 @@
+646a647,653
+> /* the ad's tag is a pill that hugs its word in the card's top corner, not a
+>    bar across the card over its headline; in the film's small cards it sits
+>    just above the headline instead */
+> .mk--ad > .mk-ad__tag{position:absolute;top:1.6em;left:1.6em;align-self:flex-start}
+> html.film .pan.act .mk--ad > .mk-ad__tag{position:relative;top:auto;left:auto}
+> /* cream words on daylight photos: the photos go down under the words */
+> .mk-site__hero .mk-photo,.mk--ad .mk-photo{filter:brightness(.62) saturate(.92)}

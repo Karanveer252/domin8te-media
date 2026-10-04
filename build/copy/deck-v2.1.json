@@ -343,7 +343,7 @@
    },
    {
     "id": "other",
-    "label": "Something else on your mind?",
+    "label": "Have something else on mind?",
     "steps": {
      "first": "You tell us what is going wrong, in your own words, on the phone or in the form below.",
      "then": "We look at your site, Google listing, posts and ads together, and say plainly what we would do.",

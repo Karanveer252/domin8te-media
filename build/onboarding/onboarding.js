@@ -136,6 +136,30 @@
     return '<div class="sample" aria-live="polite"><header><span class="av" aria-hidden="true">' + esc(name.trim()[0] || 'B') + '</span>' +
       '<span class="who">' + esc(name) + '<span>' + esc(o.l) + '</span></span><span class="from tagx">Sample</span></header><p>' + esc(o.ex) + '</p></div>';
   }
+  /* "where to tap" pictures (guides.js), one per numbered step */
+  const GUIDES = window.ONB_GUIDES || {};
+  function guideCtx() {
+    const name = (S.d.rname || 'Your place').trim();
+    return { name, first: (S.d.first || 'You').trim(), email: STUDIO_EMAIL, handle: '@' + (name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'yourplace') };
+  }
+  function shots(s) {
+    const g = GUIDES[s.id]; if (!g) return '';
+    const c = guideCtx();
+    return '<section class="shots" aria-label="Where to tap"><div class="shots-head"><p class="label">Where to tap</p>' +
+      '<p class="small">Illustrations, not real screenshots. Tap one to see it bigger.</p></div><div class="shots-grid">' +
+      g.map((p, n) => '<figure class="shot"><button type="button" class="shot-btn" data-zoom="' + n + '" aria-label="Enlarge picture ' + (n + 1) + ': ' + esc(p.cap) + '">' + p.draw(c) + '</button>' +
+        '<figcaption><b>' + String(n + 1).padStart(2, '0') + '</b><span>' + esc(p.cap) + '</span></figcaption></figure>').join('') +
+      '</div></section>';
+  }
+  const zoom = $('#zoom'); let zoomAt = 0;
+  function showZoom(n) {
+    const g = GUIDES[cur().s.id]; if (!g) return;
+    zoomAt = (n + g.length) % g.length;
+    $('#zoomArt').innerHTML = g[zoomAt].draw(guideCtx());
+    $('#zoomCap').innerHTML = '<b>' + String(zoomAt + 1).padStart(2, '0') + '</b> ' + esc(g[zoomAt].cap);
+    $('#zoomCount').textContent = (zoomAt + 1) + ' of ' + g.length;
+    if (!zoom.open) zoom.showModal();
+  }
   function fileRow(key, f, n) {
     const url = thumbs[key + '/' + f.name];
     const ext = (f.name.split('.').pop() || '').slice(0, 4).toUpperCase();
@@ -182,6 +206,7 @@
         '<div class="card"><p class="label">Our email, to paste in</p><div class="copy"><span>' + STUDIO_EMAIL + '</span><button type="button" data-act="copy">Copy</button></div>' +
         (s.link ? '<a class="ghost line open" href="' + s.link.href + '" target="_blank" rel="noopener">' + esc(s.link.l) + I.ext + '</a>' : '') +
         '<p class="small">No password needed. The invite gives us access, and you can remove it any time. About 2 minutes. If your screens look different, do it on the call.</p></div></div>' +
+        shots(s) +
         '<div class="connect-status"><p class="label" style="margin-bottom:12px">How did it go?</p><div class="opts" role="radiogroup" aria-label="How did it go?">' + optRows(s, S.d[s.key]) + '</div></div></div>';
     },
     toggles(s) {
@@ -356,6 +381,7 @@
     const t = e.target;
     const { s } = cur();
     let el;
+    if ((el = t.closest('[data-zoom]'))) return showZoom(+el.dataset.zoom);
     if ((el = t.closest('[data-chip]'))) return onChip(el, s);
     if ((el = t.closest('.opt'))) return onOpt(el, s);
     if ((el = t.closest('[data-tg]'))) {
@@ -508,7 +534,17 @@
   $('#laterClose').addEventListener('click', () => later.close());
   $('#laterEmail').addEventListener('click', () => { later.close(); toast('Demo only: the real version emails your link to ' + (S.d.email || 'you') + '.'); });
 
+  $('#zoomPrev').addEventListener('click', () => showZoom(zoomAt - 1));
+  $('#zoomNext').addEventListener('click', () => showZoom(zoomAt + 1));
+  $('#zoomClose').addEventListener('click', () => zoom.close());
+  zoom.addEventListener('click', e => { if (e.target === zoom) zoom.close(); });
+
   document.addEventListener('keydown', e => {
+    if (zoom.open) {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); showZoom(zoomAt - 1); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); showZoom(zoomAt + 1); }
+      return;
+    }
     if (e.key === 'Escape') { if (!helpEl.hidden) closeHelp(); if (railEl.classList.contains('open')) closeRail(); return; }
     if (later.open || !helpEl.hidden || e.altKey || e.ctrlKey || e.metaKey) return;
     const t = e.target, tag = t.tagName;
