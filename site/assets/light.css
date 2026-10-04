@@ -11,12 +11,18 @@
 
    So the scroll film changes ground too. Its words and line are
    drawn in the light tokens. Its two kinds of footage were
-   rendered on black and cannot simply be recoloured:
-     the cloche film is shown as a picture, a rounded window at
-       the right of the stage, with the words beside it on cream;
-     the cloud films are turned over (inverted, hue kept) and
-       laid on the cream, so they read as charcoal cloud and
-       dark words on paper.
+   rendered on black, and each becomes its daytime self:
+     the cloche film is turned over (lightness inverted, hue
+       kept), so the dark room is a bright one and the film's
+       black is the page: it has no edge, and the words stand
+       on it exactly as they do on the dark ground;
+     the cloud films keep their white cloud and white words and
+       lose their black, over a morning sky: the night sky's
+       day.
+   (The first version framed the cloche film as a dark picture
+   and turned the clouds to charcoal. Karan, 2026-10-04: "the
+   feel the growth and taking customers part has been removed
+   ... this does not look good ... blend it or something".)
    Type, the 28px dot pitch and the layout are not touched.
 
    Order: the tokens and the switch itself (both themes), then
@@ -193,40 +199,47 @@ html[data-v="editorial"][data-theme="light"].film[data-cards="railflow"] .pan.ac
    LIGHT: THE FILM ON THE DESKTOP
    ============================================================ */
 
-/* ---- the cloche film, as a picture ----
-   The film was rendered on black and stays exactly where it is on the stage
-   (its last frames hand the line on to the page's own, so it cannot be moved
-   or scaled). On the light ground it is seen through a rounded window at the
-   right: from just left of where the mark rises (the stage's middle, less
-   3vh) to the page's right margin, under the header. The words stand beside
-   it on the cream, so the first screen is a light page with a picture. */
-html[data-v="editorial"][data-theme="light"].film .hero{
-  clip-path:inset(calc(var(--hdr-h) + 2vh) var(--gut) 4vh calc(50% - 3vh) round calc(var(--r-card) + 8px));
-}
-/* wider than 16:9 the film's frame stops short of the stage's edges and is
-   feathered there: the window closes in to the frame's solid part */
-@media (min-aspect-ratio:181/100){
-  html[data-v="editorial"][data-theme="light"].film .hero{
-    clip-path:inset(calc(var(--hdr-h) + 2vh) max(var(--gut),calc(50% - 76vh)) 4vh calc(50% - 3vh) round calc(var(--r-card) + 8px));
-  }
-}
-/* nothing lies over the words now, so they need no scrim */
-html[data-v="editorial"][data-theme="light"].film .stage::after{display:none}
+/* ---- the cloche film, turned over ----
+   The film was rendered in a dark room and stays exactly where it is on the
+   stage (its last frames hand the line on to the page's own). Turned over,
+   the dark room is a bright one: a polished cloche in a white kitchen, its
+   lamps soft dots, and the film's black, which is most of the frame's left,
+   is white. A layer of the page's cream multiplied over that makes the white
+   the page exactly, so the film has no edge anywhere and the words stand on
+   it as they do on the dark ground. Nothing about the layout changes.
 
-/* the words keep to the cream beside the picture. The hero's whole block is
-   sized from one token, so it is stepped down here and everything in it
-   follows; its second link drops under the button instead of running on
-   into the picture */
-html[data-v="editorial"][data-theme="light"].film{--hero-size:clamp(48px,min(5.2vw,8.8vh),98px)}
-html[data-v="editorial"][data-theme="light"].film .band--hero .band__in{width:calc(50vw - 3vh - var(--gut) - 2.5vw)}
-html[data-v="editorial"][data-theme="light"].film .band--hero .cta{flex-wrap:wrap;width:auto}
-/* "The first step toward something bigger." is set wider than the cream
-   beside the picture, and comes in while the film's last frames (the line
-   leaving a black screen) are still up. So the picture bows out as that band
-   arrives: it fades in under half a second, and comes back if the scroll goes
-   back up. site.js sets the film's opacity inline, hence the !important. */
-html[data-v="editorial"][data-theme="light"].film .hero{transition:opacity .45s var(--ease)}
-html[data-v="editorial"][data-theme="light"].film .stage:has(.band--climb.on) .hero{opacity:0!important}
+   Two grades, because one cannot serve both subjects. brightness() before
+   the turn says how dark the film's whites may become. At .72 the cloche
+   keeps the dark reflections that draw it. The mark is light itself, and at
+   .72 it turns to dull glass; so while its beat is up (and for the line's
+   exit after it) the grade lifts to .56 with more colour, and the mark keeps
+   its spectrum. The change rides a transition, the way a room's light comes
+   up. Without :has() the first grade simply stays. */
+html[data-v="editorial"][data-theme="light"].film .hero{isolation:isolate;background:#fff}
+html[data-v="editorial"][data-theme="light"].film .hero__frame{
+  filter:brightness(.72) invert(1) hue-rotate(180deg) saturate(1.5);
+  transition:filter .8s var(--ease);
+}
+html[data-v="editorial"][data-theme="light"].film .stage:has(.band--studio.on) .hero__frame,
+html[data-v="editorial"][data-theme="light"].film .stage:has(.band--climb.on) .hero__frame{
+  filter:brightness(.56) invert(1) hue-rotate(180deg) saturate(2.1);
+}
+/* the switch between the grounds is a cut, never a film seen half turned
+   (dash.js holds this class for the moment of the change) */
+html.dx-flip .hero__frame{transition:none!important}
+html[data-v="editorial"][data-theme="light"].film .hero::after{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:var(--bg);mix-blend-mode:multiply;
+}
+/* the loading ring was drawn in white */
+html[data-v="editorial"][data-theme="light"].film .hero__ring{z-index:2}
+html[data-v="editorial"][data-theme="light"].film .hero__ring circle{stroke:rgba(29,26,22,.14)}
+html[data-v="editorial"][data-theme="light"].film .hero__ring .hero__ringarc{stroke:rgba(29,26,22,.62)}
+/* the words' scrim: the page's cream instead of the dark, so thin strokes
+   hold where the turned film has its steam and its marble */
+html[data-v="editorial"][data-theme="light"].film .stage::after{
+  background:linear-gradient(90deg,rgba(var(--dx-ground-rgb),.72) 0%,rgba(var(--dx-ground-rgb),.46) 34%,rgba(var(--dx-ground-rgb),.1) 58%,rgba(var(--dx-ground-rgb),0) 70%);
+}
 
 /* ---- the line ----
    On black it is a lit tube: a dark casing, a wide glow, the spectrum, a
@@ -246,31 +259,30 @@ html[data-v="editorial"][data-theme="light"].film .bloom{
   background:radial-gradient(circle,rgba(255,112,36,.5) 0%,rgba(255,138,60,.24) 10%,rgba(255,160,90,.1) 32%,rgba(255,160,90,0) 66%);
 }
 
-/* ---- the clouds ----
-   The sky film is white cloud and white words on black. Turned over, with
-   the hue turned back (so the orange word stays orange), it is charcoal cloud
-   and dark words on white; a layer of the page's cream multiplied over it
-   makes that white the page. The film's own canvas is what is turned, so the
-   flash that sky.js lays over it stays a flash of light. */
-html[data-v="editorial"][data-theme="light"].film .sky__frame{filter:invert(1) hue-rotate(180deg)}
-html[data-v="editorial"][data-theme="light"].film .sky::after{
-  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
-  background:var(--bg);mix-blend-mode:multiply;
+/* ---- the clouds: the same sky, by day ----
+   The sky film is white cloud and white words on black: a night sky. On the
+   light ground it is that sky by day. A filter (#skyDay, in index.html's
+   defs) takes the film's black out and leaves everything else as it was
+   filmed: cloud and the white words at their own density, the orange word
+   untouched. Behind the film the layer is a morning sky that pales into the
+   page's cream at its foot, so the beat rises out of the page and sinks back
+   into it; sky.js fades the layer, and the sky comes and goes with it. The
+   flash sky.js lays over the film is light on a sky either way, and is left
+   alone. */
+html[data-v="editorial"][data-theme="light"].film .sky{
+  background:linear-gradient(180deg,#6A9FE2 0%,#73A6E5 34%,#9DC0EC 60%,#D3DEEA 82%,var(--bg) 100%);
 }
-html[data-v="editorial"][data-theme="light"].film .sky__flash{
-  z-index:2;mix-blend-mode:normal;
-  background:radial-gradient(ellipse 78% 64% at 50% 60%,rgba(255,255,255,.9) 0%,rgba(255,250,240,.4) 38%,rgba(255,250,240,0) 74%);
-}
+html[data-v="editorial"][data-theme="light"].film .sky__frame{filter:url(#skyDay)}
 
-/* the strain: on black the frame closes in with darkness. On cream it closes
-   in with a warm dusk, half as heavy, and the break is a white bloom */
+/* the strain: on black the frame closes in with darkness. By day it closes
+   in with cloud, a white haze from the edges, and the break is a white bloom */
 html[data-v="editorial"][data-theme="light"] .strain::before{
   background:
-    radial-gradient(ellipse 58% 54% at 50% 52%,rgba(70,52,36,0) 36%,rgba(70,52,36,.46) 100%),
-    radial-gradient(ellipse 30% 26% at calc(var(--fx,72) * 1%) calc(var(--fy,56) * 1%),rgba(255,140,60,.16) 0%,rgba(255,140,60,0) 100%);
+    radial-gradient(ellipse 58% 54% at 50% 52%,rgba(250,249,247,0) 36%,rgba(250,249,247,.88) 100%),
+    radial-gradient(ellipse 30% 26% at calc(var(--fx,72) * 1%) calc(var(--fy,56) * 1%),rgba(255,170,90,.18) 0%,rgba(255,170,90,0) 100%);
   background:
-    radial-gradient(ellipse calc(58% - 16% * var(--ten,0) * var(--vig,1)) calc(54% - 15% * var(--ten,0) * var(--vig,1)) at 50% 52%,rgba(70,52,36,0) 34%,rgba(70,52,36,.5) 100%),
-    radial-gradient(ellipse 30% 26% at calc(var(--fx,72) * 1%) calc(var(--fy,56) * 1%),rgba(255,140,60,.18) 0%,rgba(255,140,60,0) 100%);
+    radial-gradient(ellipse calc(58% - 16% * var(--ten,0) * var(--vig,1)) calc(54% - 15% * var(--ten,0) * var(--vig,1)) at 50% 52%,rgba(250,249,247,0) 34%,rgba(250,249,247,.9) 100%),
+    radial-gradient(ellipse 30% 26% at calc(var(--fx,72) * 1%) calc(var(--fy,56) * 1%),rgba(255,170,90,.2) 0%,rgba(255,170,90,0) 100%);
 }
 html[data-v="editorial"][data-theme="light"] .strain::after{
   background:radial-gradient(ellipse 52% 48% at calc(var(--fx,72) * 1%) calc(var(--fy,54) * 1%),rgba(255,255,255,.7) 0%,rgba(255,255,255,0) 62%);
@@ -282,19 +294,33 @@ html[data-v="editorial"][data-theme="light"].film .act--ba.is-front .ba__tab{col
 
 /* ============================================================
    LIGHT: THE STORY LAYOUT (reduced motion, portrait tablets)
-   The cloud beats there are a still with the words set over it:
-   the still is turned over like the film, and the words take the
-   page's ink.
+   The film's two treatments, on its stills. The opening still
+   is turned over like the cloche film. A cloud beat is a still
+   with the words set over it: the still loses its black over the
+   same morning sky, and the words are white on it, as they are in
+   the film.
    ============================================================ */
 
 @media (min-width:761px){
-  html[data-v="editorial"][data-theme="light"].story .skystill{isolation:isolate;border-radius:var(--r-card);overflow:hidden}
-  html[data-v="editorial"][data-theme="light"].story .skystill__img{filter:invert(1) hue-rotate(180deg)}
-  html[data-v="editorial"][data-theme="light"].story .skystill::after{
+  html[data-v="editorial"][data-theme="light"].story .act--still .still{filter:brightness(.72) invert(1) hue-rotate(180deg) saturate(1.5)}
+  /* the page's cream over it, melting where the still melts, so its white is the page */
+  html[data-v="editorial"][data-theme="light"].story .act--still .pscene__box{isolation:isolate}
+  html[data-v="editorial"][data-theme="light"].story .act--still .pscene__box::after{
     content:"";position:absolute;inset:0;pointer-events:none;
     background:var(--bg);mix-blend-mode:multiply;
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 18%,#000 72%,transparent 100%);
+    mask-image:linear-gradient(180deg,transparent 0,#000 18%,#000 72%,transparent 100%);
   }
-  html[data-v="editorial"][data-theme="light"].story .skystill__words{z-index:1}
+
+  html[data-v="editorial"][data-theme="light"].story .skystill{
+    border-radius:var(--r-card);overflow:hidden;
+    background:linear-gradient(180deg,#6A9FE2 0%,#73A6E5 34%,#9DC0EC 60%,#D3DEEA 84%,#ECEAE7 100%);
+  }
+  html[data-v="editorial"][data-theme="light"].story .skystill__img{filter:url(#skyDay)}
+  html[data-v="editorial"][data-theme="light"].story .skystill__words .hl--sky,
+  html[data-v="editorial"][data-theme="light"].story .skystill__words .hl--sky .ln--2{color:#fff}
+  html[data-v="editorial"][data-theme="light"].story .skystill__words .hl--sky{text-shadow:0 2px 8px rgba(30,62,118,.46),0 0 36px rgba(30,62,118,.36)}
+  html[data-v="editorial"][data-theme="light"].story .skystill__words .hl--sky .acc{color:var(--acc)}
 }
 
 /* ============================================================
@@ -304,22 +330,29 @@ html[data-v="editorial"][data-theme="light"].film .act--ba.is-front .ba__tab{col
    ============================================================ */
 
 @media (max-width:760px){
-  /* ---- the opening: the cloche film as a picture ----
-     On black the scene melts into the page at its top and bottom, comes up
-     under the hero's buttons and takes the next words into its lower edge.
-     On cream it is a rounded picture that stands clear of the words: it
-     starts below the buttons, keeps its edges, and the next words begin
-     under it. phone.js measures all of this, so the line follows. */
-  html.snake[data-v="editorial"][data-theme="light"].story .act--still{margin-top:clamp(20px,6vw,32px)}
+  /* ---- the opening: the cloche film, turned over ----
+     As on the desktop. The scene keeps its place and its melting edges (it
+     comes up under the hero's buttons and takes the next words into its
+     lower edge, exactly as on black); its film, its first still and the
+     mark's still are turned over, and the page's cream multiplied over the
+     scene makes the film's white the page. One grade here, between the
+     desktop's two: the phone has no band to hang the second on. The line's
+     own svg sits above that layer and keeps its colours. */
+  html.snake[data-v="editorial"][data-theme="light"] .pscene__box{isolation:isolate}
   html.snake[data-v="editorial"][data-theme="light"].story .pscene__box .still,
   html.snake[data-v="editorial"][data-theme="light"] .pscene__film,
   html.snake[data-v="editorial"][data-theme="light"] .pscene__video,
   html.snake[data-v="editorial"][data-theme="light"] .pscene__alt{
-    left:12px;right:12px;width:calc(100% - 24px);
-    -webkit-mask-image:none;mask-image:none;
-    border-radius:calc(var(--r-card) + 6px);
+    filter:brightness(.64) invert(1) hue-rotate(180deg) saturate(1.8);
   }
-  html.snake[data-v="editorial"][data-theme="light"] .band--studio{margin-top:0;padding-top:clamp(26px,5vh,40px)}
+  /* the layer melts where the scene does, so the page's dots are not cut off
+     at the frame's edge */
+  html.snake[data-v="editorial"][data-theme="light"] .pscene__box::after{
+    content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
+    background:var(--bg);mix-blend-mode:multiply;
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 16%,#000 82%,transparent 100%);
+    mask-image:linear-gradient(180deg,transparent 0,#000 16%,#000 82%,transparent 100%);
+  }
 
   /* ---- the cloud beats ----
      The clouds here are layers lit by a low sun on a clear sky, so on cream

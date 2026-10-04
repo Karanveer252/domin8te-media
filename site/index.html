@@ -22,9 +22,9 @@
 <link rel="preload" href="assets/fonts/bvp-200.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/mark-8.webp" as="image" type="image/webp">
 <link rel="stylesheet" href="assets/site.css?v=68195a0b8e">
-<link rel="stylesheet" href="assets/v-editorial.css?v=2a0238bbbf">
+<link rel="stylesheet" href="assets/v-editorial.css?v=9aa20f5d3c">
 <link rel="stylesheet" href="assets/dash.css?v=85df72a141">
-<link rel="stylesheet" href="assets/light.css?v=db92d93852">
+<link rel="stylesheet" href="assets/light.css?v=f851ef3a57">
 
 <script type="application/ld+json">
 {
@@ -159,6 +159,14 @@ window.__GATES = [
       <stop offset="55%" stop-color="#0FA3C2"/>
       <stop offset="100%" stop-color="#D51C73"/>
     </linearGradient>
+
+    <!-- the light ground's day sky (light.css): takes the cloud film's black
+         out. A pixel's cover is read from its red, and its colour is lifted
+         toward white by what the red lacks: cloud and the white words keep
+         their own density, the orange word (its red is full) stays as it is. -->
+    <filter id="skyDay" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">
+      <feColorMatrix type="matrix" values=".5 0 0 0 .5  -.5 1 0 0 .5  -.5 0 1 0 .5  2 0 0 0 0"/>
+    </filter>
 
     <symbol id="mark" viewBox="-10 -4 220 128">
       <path class="mark__twist" d="M100 60C100 32 78 16 52 16C26 16 8 36 8 60C8 84 26 104 52 104C78 104 100 88 100 60C100 32 122 16 148 16C174 16 192 36 192 60C192 84 174 104 148 104C122 104 100 88 100 60Z"
@@ -906,7 +914,7 @@ window.__GATES = [
 <script src="assets/pfilm.js?v=b40b1f4550" defer></script>
 <script src="assets/phone.js?v=0cb13caa03" defer></script>
 <script src="assets/site.js?v=7336543c12" defer></script>
-<script src="assets/dash.js?v=7315dacbd9" defer></script>
+<script src="assets/dash.js?v=2e0272c8cd" defer></script>
 <script>/* the sky film is the desktop's alone; a phone never fetches it */
 if (document.documentElement.classList.contains('film')) { var s = document.createElement('script'); s.src = 'assets/sky.js?v=adf3056ac0'; document.body.appendChild(s) }</script>
 </body>

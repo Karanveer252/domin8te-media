@@ -9,7 +9,7 @@
    Every session self-destructs after `ttl` ms (default 240 s) so a stuck page can never hang a shell. */
 const { spawn } = require('child_process');
 const fs = require('fs'), path = require('path'), os = require('os'), net = require('net');
-const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const CHROME = process.env.CDP_BROWSER || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function freePort() {

@@ -545,10 +545,13 @@ if (film && frame) (function () {
    own bar colour, and the dot field, which hears `themechange`).
 
    The whole page changes ground, the scroll film included. Its
-   cloche film is rendered on black, so on the light ground it is
-   shown as a picture; its cloud films are turned to charcoal on
-   cream (all of that is light.css). Nothing here needs to know
-   where the film is.
+   footage was rendered on black: on the light ground the cloche
+   film is turned over into a bright room and the cloud films
+   lose their black over a day sky (all of that is light.css).
+   Nothing here needs to know where the film is; it only marks
+   the moment of the change (html.dx-flip), so that the film's
+   grade, which eases between its two beats, cuts with the ground
+   instead of being seen half turned.
    ============================================================ */
 (function () {
 'use strict';
@@ -583,7 +586,11 @@ function paintButtons() {
   });
 }
 
+var flipT = null;
 function apply(light, keep) {
+  root.classList.add('dx-flip');
+  if (flipT !== null) clearTimeout(flipT);
+  flipT = setTimeout(function () { flipT = null; root.classList.remove('dx-flip') }, 450);
   if (light) root.setAttribute('data-theme', 'light');
   else root.removeAttribute('data-theme');
   if (keep) { try { localStorage.setItem(KEY, light ? 'light' : 'dark') } catch (e) {} }

@@ -349,6 +349,10 @@ html[data-v="editorial"].film .band--jobs .sub{margin-left:calc(var(--hl-size) *
 /* the climb: one statement, set big */
 html[data-v="editorial"].film .band--climb .band__in{width:min(calc(var(--hl-size) * 12),52vw)}
 html[data-v="editorial"].film .band--climb .hl{font-size:calc(var(--hl-size) * 1.12)}
+/* its last two words are tied ("something bigger.") and on a stage narrower
+   than 16:9 they run past the column; the reveal's mask reached only .6em
+   past it and cut the R off. It reaches as far as the words can now */
+html[data-v="editorial"].film .band--climb .ln{clip-path:inset(-.3em -6em calc((1 - var(--lk)) * 104% - .3em) -.6em)}
 /* handed back: two long lines, given room */
 html[data-v="editorial"].film .band--handed .band__in{width:min(calc(var(--hl-size) * 6.2),30vw,44vh)}
 html[data-v="editorial"].film .band--handed .hl{font-size:calc(var(--hl-size) * .86)}
