@@ -3,5 +3,6 @@ Allow: /
 Disallow: /send.php
 Disallow: /dashboard
 Disallow: /console
+Disallow: /onboarding
 
 Sitemap: https://domin8temedia.com/sitemap.xml

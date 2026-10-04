@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /send.php
+Disallow: /dashboard
+Disallow: /console
+
+Sitemap: https://domin8temedia.com/sitemap.xml

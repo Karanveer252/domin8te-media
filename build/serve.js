@@ -2,7 +2,9 @@
    live site never carries: while Karan compares treatments of the jobs
    cards, index.html gets a small switcher injected (preview/cards.js). */
 const http=require('http'),fs=require('fs'),path=require('path');
-const ROOT='C:/Work/domin8te-media',PREVIEW='C:/Work/domin8te-build/preview',PORT=Number(process.env.PORT||8080);
+/* `--root <folder>` (or ROOT in the environment) serves a working copy of the site instead of the deploy folder */
+const ROOT_ARG=process.argv.indexOf('--root');
+const ROOT=(ROOT_ARG>-1&&process.argv[ROOT_ARG+1])||process.env.ROOT||'C:/Work/domin8te-media',PREVIEW='C:/Work/domin8te-build/preview',PORT=Number(process.env.PORT||8080);
 const MIME={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8',
   '.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml','.xml':'application/xml','.txt':'text/plain','.json':'application/json',
   '.mp4':'video/mp4','.webp':'image/webp','.woff2':'font/woff2'};
@@ -22,6 +24,17 @@ http.createServer((req,res)=>{
     return;
   }
   const f=path.join(ROOT,p);
+  /* byte ranges for media, as the live host answers them: a <video> cannot seek or loop a large mp4 without them */
+  const rng=req.headers.range&&/bytes=(\d*)-(\d*)/.exec(req.headers.range);
+  if(rng&&path.extname(f)==='.mp4'){
+    fs.stat(f,(e,st)=>{ if(e||!st.isFile()){res.writeHead(404).end('not found');return}
+      let start=rng[1]?+rng[1]:st.size-(+rng[2]),end=rng[1]&&rng[2]?+rng[2]:st.size-1;
+      if(start>=st.size||start<0){res.writeHead(416,{'Content-Range':'bytes */'+st.size}).end();return}
+      end=Math.min(end,st.size-1);
+      res.writeHead(206,{'Content-Type':'video/mp4','Content-Range':'bytes '+start+'-'+end+'/'+st.size,'Accept-Ranges':'bytes','Content-Length':end-start+1,'Cache-Control':'no-store'});
+      fs.createReadStream(f,{start,end}).pipe(res) });
+    return;
+  }
   fs.readFile(f,(e,b)=>{ if(e){res.writeHead(404).end('not found');return}
     if(p==='/index.html'){
       let tags='';

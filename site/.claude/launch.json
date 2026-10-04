@@ -4,29 +4,53 @@
     {
       "name": "portal-directions",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["C:/Work/domin8te-build/portal/serve.js"],
+      "runtimeArgs": [
+        "C:/Work/domin8te-build/portal/serve.js"
+      ],
       "port": 4173,
       "autoPort": true
     },
     {
       "name": "site",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["C:/Work/domin8te-build/serve.js"],
+      "runtimeArgs": [
+        "C:/Work/domin8te-build/serve.js"
+      ],
       "port": 8080,
       "autoPort": true
     },
     {
       "name": "dash-variants",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["C:/Work/domin8te-build/dashboard-variants/serve.js"],
+      "runtimeArgs": [
+        "C:/Work/domin8te-build/dashboard-variants/serve.js"
+      ],
       "port": 8090,
       "autoPort": true
     },
     {
       "name": "onboarding",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["C:/Work/domin8te-build/onboarding/serve.js"],
+      "runtimeArgs": [
+        "C:/Work/domin8te-build/onboarding/serve.js"
+      ],
       "port": 4310,
+      "autoPort": true
+    },
+    {
+      "name": "held-back-fixes",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:/Work/domin8te-build/held-back-20261004/serve.js"
+      ],
+      "port": 8093,
+      "autoPort": true
+    },
+    {
+      "name": "working-copies",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Work/domin8te-build/dash-integration/tools/wc-serve.js"],
+      "port": 8100,
       "autoPort": true
     }
   ]

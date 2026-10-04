@@ -1,0 +1,36 @@
+<re-html>
+  <re-head>
+    <re-title>New sign-in to Domin8te</re-title>
+    <re-font href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;700&display=swap"></re-font>
+    <re-style>
+      body, td, p, h1, a { font-family: "Schibsted Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+      .otp { letter-spacing: 12px; font-variant-numeric: tabular-nums; }
+      .label { letter-spacing: 1.6px; text-transform: uppercase; }
+      .cta { letter-spacing: 1.5px; text-transform: uppercase; }
+      .url { word-break: break-all; }
+      @media (max-width: 620px) {
+        .otp { font-size: 34px !important; letter-spacing: 8px !important; }
+      }
+    </re-style>
+  </re-head>
+  <re-body background-color="#F4F1EC" padding="40px 12px 48px">
+    <re-preheader>Your Domin8te account was just signed in to from a new device.</re-preheader>
+    <re-container width="600px">
+
+      <re-header background-color="#0A0A0A" padding="0">
+        <re-image src="https://domin8temedia.com/assets/email/header-security-notice.png" width="600px" alt="Domin8te"></re-image>
+      </re-header>
+
+      <re-main background-color="#FFFFFF" padding="44px 44px 40px" border="1px solid #E6E0D7">
+        <re-heading level="h1" color="#1D1A16" font-weight="600" margin="0 0 12px">New sign-in</re-heading>
+        <re-text color="#4A443D" font-size="16px" line-height="1.55" margin="0 0 28px">Your Domin8te account was just signed in to from a new device.</re-text>
+        <re-text color="#6B645B" font-size="14px" line-height="1.55" margin="0">Not you? Contact <a href="mailto:karanhelps@domin8temedia.com" style="color:#AE3A0B">karanhelps@domin8temedia.com</a>.</re-text>
+      </re-main>
+
+      <re-footer padding="24px 4px 0">
+        <re-text color="#6B645B" font-size="12px" line-height="1.55" margin="0">&copy; {{current_year}} Domin8te Media &nbsp;·&nbsp; <a href="https://domin8temedia.com" style="color:#6B645B">domin8temedia.com</a></re-text>
+      </re-footer>
+
+    </re-container>
+  </re-body>
+</re-html>
