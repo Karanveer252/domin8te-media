@@ -546,12 +546,12 @@ if (film && frame) (function () {
 
    The whole page changes ground, the scroll film included. Its
    footage was rendered on black: on the light ground the cloche
-   film is turned over into a bright room and the cloud films
-   lose their black over a day sky (all of that is light.css).
-   Nothing here needs to know where the film is; it only marks
-   the moment of the change (html.dx-flip), so that the film's
-   grade, which eases between its two beats, cuts with the ground
-   instead of being seen half turned.
+   film keeps its own colours, feathered into the cream, and the
+   cloud films lose their black over a day sky (all of that is
+   light.css). Nothing here needs to know where the film is; it
+   only marks the moment of the change (html.dx-flip), so that the
+   fade the cloche film eases through at its end cuts with the
+   ground instead of being seen half way.
    ============================================================ */
 (function () {
 'use strict';
@@ -628,5 +628,108 @@ window.addEventListener('storage', function (e) {
 
 paintButtons();
 paintBar();
+
+})();
+
+/* ============================================================
+   Domin8te Media, the light ground's sky around the beats.
+
+   On the light ground the film's two cloud beats are a day sky,
+   and this is that sky reaching out past them (light.css,
+   .dx-sky): as the line begins to climb toward a beat a pale sky
+   comes up behind it with three depths of the sky film's own
+   clouds, the beat's blue comes in with the beat's film, and the
+   whole of it goes when the beat does.
+
+   The clouds move with the film's camera. site.js hands over the
+   world's offset on every frame it draws (window.__dxSky), and
+   each depth takes a share of it, a near cloud more than a far
+   one, so they slide down and away as the line rises and pass
+   behind it as it travels; they also drift a little with the
+   scroll itself, so they keep moving while a beat holds its words.
+   Each depth is one repeating picture moved within one repeat by
+   transform, so a frame costs three transforms and an opacity.
+   Nothing here runs on the dark ground.
+   ============================================================ */
+(function () {
+'use strict';
+
+var root = document.documentElement;
+var box = document.querySelector('.dx-sky');
+var sky = document.getElementById('sky');
+if (!box || !sky) return;
+var deep = box.querySelector('.dx-sky__deep');
+
+/* f: the share of the camera's travel. w, h: one repeat of the picture, in vh
+   (the pictures are drawn at these proportions). o: opacity while the line
+   climbs, and under the beat's film, where the near clouds would sit behind
+   the film's own and go. d: the drift with the scroll */
+var DEPTHS = [
+  { name: 'far',  f: .12, w: 150,    h: 100, o: [.8, .6],  d: .05 },
+  { name: 'mid',  f: .24, w: 175,    h: 125, o: [.92, .4], d: .09 },
+  { name: 'near', f: .42, w: 213.33, h: 160, o: [.95, 0],  d: .12 }
+];
+DEPTHS.forEach(function (L) { L.el = box.querySelector('.dx-sky__l--' + L.name); L.tx = null; L.op = -1 });
+
+function smooth(p, a, b) { var t = (p - a) / (b - a); t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t) }
+function mod(v, m) { return ((v % m) + m) % m }
+function isLight() { return root.getAttribute('data-theme') === 'light' }
+
+var vh = 0, rangeVh = 0, shownO = -1, shownDeep = -1, last = null;
+
+/* each depth is a repeat larger than the stage each way, so moving it by
+   less than one repeat never shows an edge */
+function size() {
+  vh = innerHeight / 100;
+  DEPTHS.forEach(function (L) {
+    var w = L.w * vh, h = L.h * vh;
+    L.el.style.width = 'calc(100% + ' + w.toFixed(1) + 'px)';
+    L.el.style.height = 'calc(100% + ' + h.toFixed(1) + 'px)';
+    L.el.style.backgroundSize = w.toFixed(1) + 'px ' + h.toFixed(1) + 'px';
+    L.tx = null;
+  });
+}
+
+function paint(p, P, wx, wy) {
+  last = [p, P, wx, wy];
+  if (!isLight()) {
+    if (shownO !== 0) { shownO = 0; box.style.opacity = '0'; box.classList.remove('on') }
+    return;
+  }
+  if (!vh) size();
+  /* sky.js has just set the beat's opacity for this frame */
+  var so = parseFloat(sky.style.opacity) || 0;
+  /* before each beat the sky comes up as the line climbs to it (q .185 to .27,
+     and .825 to .87 once the pair's plates have gone), and the beat's own
+     opacity takes over from there */
+  var o = Math.max(so,
+    smooth(p, .185, .27) * (1 - smooth(p, .31, .33)) +
+    smooth(p, .825, .87) * (1 - smooth(p, .89, .91)));
+  var oq = Math.round(o * 200) / 200;
+  if (oq !== shownO) { shownO = oq; box.style.opacity = oq.toFixed(3); box.classList.toggle('on', oq > 0) }
+  if (oq <= 0) return;
+
+  var dq = Math.round(so * 100) / 100;
+  if (dq !== shownDeep) { shownDeep = dq; deep.style.opacity = dq.toFixed(2) }
+
+  if (!rangeVh) rangeVh = (window.__feel && window.__feel.range()) || 1964;
+  var drift = P * rangeVh * vh;
+  for (var i = 0; i < DEPTHS.length; i++) {
+    var L = DEPTHS[i], w = L.w * vh, h = L.h * vh;
+    var tx = mod(wx * L.f - drift * L.d * .5, w) - w;
+    var ty = mod(wy * L.f + drift * L.d, h) - h;
+    if (L.tx === null || Math.abs(tx - L.tx) > .3 || Math.abs(ty - L.ty) > .3) {
+      L.tx = tx; L.ty = ty;
+      L.el.style.transform = 'translate3d(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px,0)';
+    }
+    var op = L.o[0] + (L.o[1] - L.o[0]) * so;
+    if (Math.abs(op - L.op) > .01) { L.op = op; L.el.style.opacity = op.toFixed(3) }
+  }
+}
+
+window.__dxSky = paint;
+window.addEventListener('resize', function () { vh = 0; if (last) paint.apply(null, last) });
+/* the switch can be thrown mid-film, between two of its frames */
+window.addEventListener('themechange', function () { if (last) paint.apply(null, last) });
 
 })();

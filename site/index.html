@@ -24,7 +24,7 @@
 <link rel="stylesheet" href="assets/site.css?v=68195a0b8e">
 <link rel="stylesheet" href="assets/v-editorial.css?v=9aa20f5d3c">
 <link rel="stylesheet" href="assets/dash.css?v=85df72a141">
-<link rel="stylesheet" href="assets/light.css?v=f851ef3a57">
+<link rel="stylesheet" href="assets/light.css?v=f2976391df">
 
 <script type="application/ld+json">
 {
@@ -219,6 +219,17 @@ window.__GATES = [
       <circle class="hero__ringarc" cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,.7)"
               stroke-width="2" stroke-linecap="round" stroke-dasharray="126" transform="rotate(-90 24 24)"/>
     </svg>
+  </div>
+
+  <!-- the light ground's sky (assets/light.css; moved by assets/dash.js with
+       the film's camera): a pale sky and three depths of the sky film's own
+       clouds, behind the line's climb and under both cloud beats. The dark
+       ground never shows it, so its pictures never load there. -->
+  <div class="dx-sky" aria-hidden="true">
+    <i class="dx-sky__deep"></i>
+    <i class="dx-sky__l dx-sky__l--far" style="background-image:url(assets/dx-cloud-far.webp?v=9ffc6ccad6)"></i>
+    <i class="dx-sky__l dx-sky__l--mid" style="background-image:url(assets/dx-cloud-mid.webp?v=3cb7180eba)"></i>
+    <i class="dx-sky__l dx-sky__l--near" style="background-image:url(assets/dx-cloud-near.webp?v=20a8460990)"></i>
   </div>
 
   <!-- the sky: the two cloud beats, one Blender film scrubbed by the scroll
@@ -913,8 +924,8 @@ window.__GATES = [
 
 <script src="assets/pfilm.js?v=b40b1f4550" defer></script>
 <script src="assets/phone.js?v=0cb13caa03" defer></script>
-<script src="assets/site.js?v=7336543c12" defer></script>
-<script src="assets/dash.js?v=2e0272c8cd" defer></script>
+<script src="assets/site.js?v=2eca082d18" defer></script>
+<script src="assets/dash.js?v=a56a2b4ced" defer></script>
 <script>/* the sky film is the desktop's alone; a phone never fetches it */
 if (document.documentElement.classList.contains('film')) { var s = document.createElement('script'); s.src = 'assets/sky.js?v=adf3056ac0'; document.body.appendChild(s) }</script>
 </body>

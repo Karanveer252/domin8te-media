@@ -23,7 +23,9 @@ const assets = ['assets/site.css', 'assets/v-editorial.css', 'assets/site.js', '
   'assets/dash-updates.mp4', 'assets/dash-updates-s.mp4', 'assets/dash-updates.webp', 'assets/dash-updates-s.webp',
   'assets/dash-work-s.mp4', 'assets/dash-work-s.webp', 'assets/dash-message-s.mp4', 'assets/dash-message-s.webp',
   'assets/dash-hours-s.mp4', 'assets/dash-hours-s.webp',
-  'assets/dash-master.mp4', 'assets/dash-master-s.mp4', 'assets/dash-master.webp', 'assets/dash-master-s.webp'];
+  'assets/dash-master.mp4', 'assets/dash-master-s.mp4', 'assets/dash-master.webp', 'assets/dash-master-s.webp',
+  /* the light ground's sky around the beats (2026-10-05): its three depths of cloud, inline in index.html */
+  'assets/dx-cloud-far.webp', 'assets/dx-cloud-mid.webp', 'assets/dx-cloud-near.webp'];
 
 /* the film and its poster are fetched by site.js, so their tokens live
    there; stamp those first, then the script's own token in the html.

@@ -768,6 +768,8 @@ function draw(P) {
   /* the sky's two beats: the layer's opacity and frame are sky.js's. pf is the
      progress the FILM shows, which the slingshot runs ahead of the world's */
   if (window.__sky) window.__sky(p, P, pf);
+  /* the light ground's sky around the beats takes the camera (assets/dash.js) */
+  if (window.__dxSky) window.__dxSky(p, P, worldX, worldY);
 
   DBG.p = p; DBG.pf = pf; DBG.ten = ten; DBG.brk = brk; DBG.hit = hitE; DBG.flash = flashE;
 }
