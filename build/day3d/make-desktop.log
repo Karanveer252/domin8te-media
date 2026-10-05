@@ -1,0 +1,25 @@
+Fra:0 Mem:773.00M (Peak 867.93M) | Time:00:44.13 | Mem:81.97M, Peak:232.26M | Scene, ViewLayer | Finished
+Fra:25 Mem:809.53M (Peak 904.45M) | Time:00:11.36 | Mem:81.97M, Peak:81.97M | Scene, ViewLayer | Finished
+Fra:50 Mem:846.03M (Peak 940.95M) | Time:00:12.09 | Mem:81.97M, Peak:81.97M | Scene, ViewLayer | Finished
+Fra:75 Mem:882.53M (Peak 977.46M) | Time:00:12.58 | Mem:81.97M, Peak:81.97M | Scene, ViewLayer | Finished
+Fra:100 Mem:919.04M (Peak 1013.96M) | Time:00:15.47 | Mem:81.97M, Peak:232.26M | Scene, ViewLayer | Finished
+Fra:125 Mem:955.54M (Peak 1050.47M) | Time:00:12.47 | Mem:81.97M, Peak:232.26M | Scene, ViewLayer | Finished
+Fra:150 Mem:992.05M (Peak 1086.97M) | Time:00:16.78 | Mem:81.97M, Peak:232.26M | Scene, ViewLayer | Finished
+Fra:175 Mem:1028.55M (Peak 1123.47M) | Time:00:12.46 | Mem:81.97M, Peak:81.97M | Scene, ViewLayer | Finished
+Fra:200 Mem:1064.94M (Peak 1159.86M) | Time:00:11.80 | Mem:81.87M, Peak:81.87M | Scene, ViewLayer | Finished
+Fra:225 Mem:1090.06M (Peak 1184.98M) | Time:00:11.26 | Mem:73.87M, Peak:73.87M | Scene, ViewLayer | Finished
+Fra:250 Mem:1142.20M (Peak 1237.13M) | Time:00:11.23 | Mem:73.87M, Peak:73.87M | Scene, ViewLayer | Finished
+Fra:275 Mem:1194.35M (Peak 1289.27M) | Time:00:08.28 | Mem:73.87M, Peak:73.87M | Scene, ViewLayer | Finished
+ANIM DONE
+ANIM DONE
+GRADED SEQ 0 288
+GRADED SEQ 0 288
+ended 289 -> render/out
+total 3376
+drwxr-xr-x 1 kvsd1 197609       0 Oct  5 07:39 .
+drwxr-xr-x 1 kvsd1 197609       0 Oct  5 07:39 ..
+-rw-r--r-- 1 kvsd1 197609    1623 Oct  5 07:39 encode.log
+-rw-r--r-- 1 kvsd1 197609    6437 Oct  5 07:39 hero-data.json
+-rw-r--r-- 1 kvsd1 197609   56048 Oct  5 07:39 hero-poster.jpg
+-rw-r--r-- 1 kvsd1 197609 3329573 Oct  5 07:39 hero-scrub.mp4
+-rw-r--r-- 1 kvsd1 197609   45351 Oct  5 07:39 hero-still.jpg

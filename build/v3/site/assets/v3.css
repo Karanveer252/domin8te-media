@@ -1,0 +1,180 @@
+/* ============================================================
+   Version 3: the daylight page (Karan, 2026-10-05: "use the photos
+   in this folder to get an idea and build me a version three of
+   the page"; his folder "grokbot generated domin8temedia images").
+
+   What the pictures share, and what this sheet does with it: the
+   light ground only (no switch); a cool navy ink on the warm cream;
+   a white bar for a header; pill buttons with white type; the
+   hero's "SPECIALS." set huge, the rest of the line quiet; "MEET."
+   in the thinnest weight; graph paper behind the first step; the
+   two cloud beats as heavy, extruded words over a sunny sky and a
+   sea of cloud; a white "Scroll" pill; a spectrum rule under the
+   closing wordmark. The cloche film is the day film (day3d/), which
+   ends on the page's cream by itself.
+
+   Loaded after the shared sheets, only by v3/site/index.html.
+   ============================================================ */
+
+/* ---- tokens: navy ink on the cream ---- */
+html[data-v="editorial"][data-theme="light"]{
+  --ink:#18202F;
+  --ink-2:#465063;
+  --ink-3:#687083;
+  --v3-cta:#CA4A14;          /* white type on it holds 4.6:1 */
+  --v3-cta-hover:#B5410F;
+}
+.dx-toggle,html.js[data-v="editorial"] .dx-toggle,html.js[data-v="editorial"] .dx-toggle--foot{display:none!important}
+
+/* ---- the header: a white bar, always ---- */
+html[data-v="editorial"][data-theme="light"] .hdr::before,
+html[data-v="editorial"][data-theme="light"] .hdr.is-scrolled::before{
+  inset:0;opacity:1;background:#fff;
+  box-shadow:0 1px 0 rgba(24,32,47,.07),0 14px 34px -24px rgba(24,32,47,.35);
+}
+html[data-v="editorial"][data-theme="light"] .nav__link--dash{background:#fff;border-color:rgba(24,32,47,.16)}
+
+/* ---- buttons: pills, white type ---- */
+html[data-v="editorial"][data-theme="light"] .btn--primary,
+html[data-v="editorial"][data-theme="light"] .nav__cta{
+  background:var(--v3-cta);color:#fff;border-radius:999px;
+}
+html[data-v="editorial"][data-theme="light"] .btn--primary:hover,
+html[data-v="editorial"][data-theme="light"] .nav__cta:hover{background:var(--v3-cta-hover);color:#fff}
+html[data-v="editorial"][data-theme="light"] .band--hero .btn--primary{min-height:56px;padding:0 30px;box-shadow:0 12px 26px -14px rgba(202,74,20,.7)}
+
+/* ---- the hero: "We'll post the" quiet, "SPECIALS." huge, the second line spaced small caps ----
+   The widest line is now "SPECIALS." at 1.9 of the token (about 9.4 of it), so the
+   token is held so that line still ends short of the film's soft edge */
+html[data-v="editorial"][data-theme="light"].film{--hero-size:clamp(34px,min(4.9vw,8vh,calc((50vw - 12vh - var(--gut)) / 9.4)),92px)}
+html[data-v="editorial"][data-theme="light"] .hl--hero{color:var(--ink);font-weight:200}
+html[data-v="editorial"][data-theme="light"] .hl--hero .ln{display:block}
+html[data-v="editorial"][data-theme="light"] .hl--hero .acc{
+  display:block;font-size:1.9em;line-height:.9;margin:.06em 0 .1em -.03em;
+  font-weight:800;font-style:italic;letter-spacing:-.025em;color:var(--acc-display);
+}
+html[data-v="editorial"][data-theme="light"] .hl--hero .ln--2,
+html[data-v="editorial"][data-theme="light"] .hl--hero:has(.acc) .ln--2{
+  font-size:.4em;font-weight:400;letter-spacing:.16em;color:var(--ink-3);margin-top:.35em;
+}
+/* the block is as wide as its widest line ("SPECIALS." at 1.9 of the token), so the line's reveal
+   (a clip a little wider than the block) never cuts its last letters */
+html[data-v="editorial"][data-theme="light"].film .band--hero .band__in{width:calc(var(--hero-size) * 9.6)}
+html[data-v="editorial"][data-theme="light"].film .band--hero .badge,
+html[data-v="editorial"][data-theme="light"].film .band--hero .sub,
+html[data-v="editorial"][data-theme="light"].film .band--hero .cta{margin-left:0}
+html[data-v="editorial"][data-theme="light"].film .band--hero .sub{font-size:clamp(16px,1.25vw,20px);max-width:30ch;color:var(--ink-2)}
+html[data-v="editorial"][data-theme="light"].film .band--hero .cta{flex-wrap:wrap;width:auto;gap:18px 34px}
+
+/* ---- meet: the thinnest MEET., the partner line in spaced caps ---- */
+html[data-v="editorial"][data-theme="light"] .band--studio .ln--strong{font-weight:200;font-size:2.05em;line-height:.92;letter-spacing:-.01em;color:var(--ink)}
+html[data-v="editorial"][data-theme="light"] .band--studio .ln--2{font-size:.44em;letter-spacing:.14em;color:var(--ink-2);margin-top:.5em}
+
+/* ---- the first step: graph paper under the climb, at the right ---- */
+html[data-v="editorial"][data-theme="light"].film .band--climb::after{
+  content:"";position:absolute;right:5vw;bottom:9vh;width:36vw;height:46vh;pointer-events:none;
+  background:
+    linear-gradient(rgba(24,32,47,.09) 1px,transparent 1px) 0 0 / 52px 52px,
+    linear-gradient(90deg,rgba(24,32,47,.09) 1px,transparent 1px) 0 0 / 52px 52px;
+  -webkit-mask-image:radial-gradient(70% 70% at 70% 62%,#000 30%,transparent 100%);
+  mask-image:radial-gradient(70% 70% at 70% 62%,#000 30%,transparent 100%);
+}
+
+/* ---- the cloud beats: words in the sky ----
+   No film (sky.js says so from the start), so the beat is the page's own
+   words, set as heavy extruded letters over a sunny sky and a sea of cloud.
+   --wk (sky.js) is how far the words have formed: they rise out of the cloud,
+   sharpen and settle */
+html[data-v="editorial"][data-theme="light"].film .sky__frame{filter:none}
+html[data-v="editorial"][data-theme="light"] .dx-sky__deep{
+  background:
+    radial-gradient(55% 60% at 86% 64%,rgba(255,238,206,.95) 0%,rgba(255,238,206,.5) 38%,rgba(255,238,206,0) 72%),
+    linear-gradient(180deg,#A8C8EA 0%,#BCD5EF 30%,#DCE5EE 64%,#F3EEE6 88%,var(--bg) 100%);
+}
+.v3-sea{display:none}
+html[data-v="editorial"][data-theme="light"].film .v3-sea{
+  display:block;position:absolute;left:-3vw;right:-3vw;bottom:-6vh;height:64vh;z-index:0;pointer-events:none;
+  background-position:center bottom;background-size:100% auto;background-repeat:no-repeat;
+  transform:translateY(calc((1 - var(--wk,0)) * 14vh));
+}
+html.film .sky:not([data-beat="a"]) .v3-sea--a,
+html.film .sky:not([data-beat="b"]) .v3-sea--b{display:none}
+html[data-v="editorial"][data-theme="light"].film .sky__frame{z-index:1}
+html[data-v="editorial"][data-theme="light"].film .sky__fb{padding:0 5vw;align-items:center}
+html[data-v="editorial"][data-theme="light"].film .sky__fb--a{padding-bottom:8vh}
+html[data-v="editorial"][data-theme="light"].film .sky__fb .hl--sky{
+  font:600 min(8.6vw,14vh)/1.02 var(--f-display);letter-spacing:-.03em;word-spacing:.02em;text-transform:none;
+  color:#363B44;-webkit-text-stroke:.024em #363B44;
+  text-shadow:
+    0 .012em 0 #2D3139,0 .024em 0 #2A2E36,0 .036em 0 #272B32,0 .048em 0 #24272E,
+    0 .06em 0 #21242A,0 .072em 0 #1E2126,0 .084em .004em #1B1D22,
+    0 .12em .1em rgba(18,22,30,.26),0 .22em .34em rgba(18,22,30,.2);
+  transform:translateY(calc((1 - var(--wk,1)) * 16vh)) scale(calc(.86 + .14 * var(--wk,1)));
+  opacity:var(--wk,1);
+  filter:blur(calc((1 - var(--wk,1)) * 7px));
+}
+html[data-v="editorial"][data-theme="light"].film .sky__fb .hl--sky .ln{display:block}
+html[data-v="editorial"][data-theme="light"].film .sky__fb .hl--sky .ln--2{font-size:.64em;color:#363B44;margin-top:.12em}
+html[data-v="editorial"][data-theme="light"].film .sky__fb .hl--sky .acc{
+  color:#FF6A1F;-webkit-text-stroke-color:#FF6A1F;
+  text-shadow:
+    0 .012em 0 #F25F18,0 .024em 0 #E85814,0 .036em 0 #DD5212,0 .048em 0 #D24B10,
+    0 .06em 0 #C5450E,0 .072em 0 #B8400D,0 .084em .004em #A93A0C,
+    0 .12em .1em rgba(120,40,8,.24),0 .22em .34em rgba(18,22,30,.18);
+}
+
+/* ---- the scroll pill: white ---- */
+html[data-v="editorial"][data-theme="light"].film .charge{
+  background:rgba(255,255,255,.94);border-color:rgba(24,32,47,.08);
+  box-shadow:0 14px 34px -16px rgba(24,32,47,.42);
+}
+html[data-v="editorial"][data-theme="light"].film .charge.is-launched{background:rgba(255,255,255,0);border-color:rgba(24,32,47,0);box-shadow:none}
+html[data-v="editorial"][data-theme="light"] .charge__label{color:var(--ink)}
+
+/* ---- the cloche film ends on the cream by itself: no turning over ---- */
+html[data-v="editorial"][data-theme="light"].film .stage:has(.band--climb.on) .hero__frame{filter:none}
+html[data-v="editorial"][data-theme="light"].film .stage:has(.band--climb.on) .hero::after{opacity:0}
+
+/* ---- before and after: pill tags ---- */
+html[data-v="editorial"][data-theme="light"] .ba__tab{border-radius:999px;padding-left:14px;padding-right:14px}
+
+/* ---- the close: the wordmark heavier, a spectrum rule under it ---- */
+html[data-v="editorial"][data-theme="light"] .wordmark{font-weight:600;color:var(--ink)}
+html[data-v="editorial"][data-theme="light"] .wordmark__sub{font-weight:400;color:#9AA0AA}
+html[data-v="editorial"][data-theme="light"] .wordmark::after{
+  content:"";display:block;height:.09em;margin-top:.32em;border-radius:.09em;
+  background:linear-gradient(90deg,#E5322B,#F2912F,#F3CB3C,#5CB246,#0FA3C2,#2E5FA8,#7A3E97,#D51C73);
+}
+
+/* ============================================================
+   THE PHONE
+   ============================================================ */
+@media (max-width:760px){
+  /* the hero's SPECIALS. keeps to the phone's column */
+  html[data-v="editorial"][data-theme="light"] .hl--hero .acc{font-size:min(1.9em,calc((100vw - 96px) / 5.4))}
+  /* the contact bar: the same pill as the header's */
+  html[data-v="editorial"][data-theme="light"] .ctabar{background:var(--v3-cta);color:#fff;border-radius:999px;box-shadow:0 14px 30px -14px rgba(202,74,20,.75)}
+  html[data-v="editorial"][data-theme="light"] .ctabar:hover{background:var(--v3-cta-hover);color:#fff}
+
+  /* the cloud beats: the same sunny sky and white cloud as the desktop's, and
+     the same heavy words, extruded more shallowly here: they rise out of
+     masks that leave only a little room below the letters */
+  html.snake[data-v="editorial"][data-theme="light"] .sky3::before,
+  html.snake[data-v="editorial"][data-theme="light"] .act--sky-b .sky3::before{
+    background:linear-gradient(180deg,rgba(var(--dx-ground-rgb),0) 0,#C3D8EE 60px,#D5E2EE 40%,#ECEBE8 82%,rgba(var(--dx-ground-rgb),0) 100%);
+  }
+  html.snake[data-v="editorial"][data-theme="light"] .sky3__l{filter:brightness(1.45) contrast(.82) saturate(.5)}
+  html[data-v="editorial"][data-theme="light"].story .act--sky .hl--sky{
+    font-weight:600;text-transform:none;letter-spacing:-.03em;word-spacing:0;
+    color:#363B44;-webkit-text-stroke:.02em #363B44;
+    text-shadow:0 .012em 0 #2D3139,0 .024em 0 #272B32,0 .036em 0 #22252B,0 .048em 0 #1E2126,0 .07em .04em rgba(18,22,30,.22);
+  }
+  html[data-v="editorial"][data-theme="light"].story .act--sky .hl--sky .acc{
+    font-weight:600;font-style:normal;letter-spacing:-.03em;color:#FF6A1F;-webkit-text-stroke-color:#FF6A1F;
+    text-shadow:0 .012em 0 #F25F18,0 .024em 0 #DD5212,0 .036em 0 #CA4810,0 .048em 0 #B8400D,0 .07em .04em rgba(120,40,8,.2);
+  }
+  html[data-v="editorial"][data-theme="light"].story .act--sky-b .hl--sky .ln--2{color:#363B44}
+  /* the second beat's night layers stay away: version 3 is all day */
+  html.snake[data-v="editorial"][data-theme="light"] .sky3__dk{display:none}
+  html.snake[data-v="editorial"][data-theme="light"] .act--sky-b .sky3__l:not(.sky3__dk){opacity:1}
+}

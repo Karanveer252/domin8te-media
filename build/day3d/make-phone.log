@@ -1,0 +1,24 @@
+Fra:0 Mem:716.15M (Peak 796.25M) | Time:00:34.30 | Mem:81.97M, Peak:208.78M | Scene, ViewLayer | Finished
+Fra:25 Mem:752.66M (Peak 832.76M) | Time:00:10.15 | Mem:81.97M, Peak:81.97M | Scene, ViewLayer | Finished
+Fra:50 Mem:789.17M (Peak 869.26M) | Time:00:10.01 | Mem:81.97M, Peak:81.97M | Scene, ViewLayer | Finished
+Fra:75 Mem:825.67M (Peak 905.76M) | Time:00:12.56 | Mem:81.97M, Peak:81.97M | Scene, ViewLayer | Finished
+Fra:100 Mem:862.18M (Peak 942.27M) | Time:00:11.96 | Mem:81.97M, Peak:81.97M | Scene, ViewLayer | Finished
+Fra:125 Mem:898.68M (Peak 978.77M) | Time:00:12.58 | Mem:81.97M, Peak:81.97M | Scene, ViewLayer | Finished
+Fra:150 Mem:935.18M (Peak 1015.28M) | Time:00:11.66 | Mem:81.97M, Peak:81.97M | Scene, ViewLayer | Finished
+Fra:175 Mem:971.69M (Peak 1051.78M) | Time:00:11.13 | Mem:81.97M, Peak:81.97M | Scene, ViewLayer | Finished
+Fra:200 Mem:1008.07M (Peak 1088.17M) | Time:00:11.50 | Mem:81.87M, Peak:81.87M | Scene, ViewLayer | Finished
+Fra:225 Mem:1033.20M (Peak 1113.29M) | Time:00:10.41 | Mem:73.87M, Peak:73.87M | Scene, ViewLayer | Finished
+Fra:250 Mem:1085.34M (Peak 1165.43M) | Time:00:10.32 | Mem:73.87M, Peak:73.87M | Scene, ViewLayer | Finished
+Fra:275 Mem:1137.48M (Peak 1217.58M) | Time:00:08.06 | Mem:73.87M, Peak:73.87M | Scene, ViewLayer | Finished
+ANIM DONE
+ANIM DONE
+GRADED SEQ 0 288
+GRADED SEQ 0 288
+ended 289 -> render/out-phone
+total 480
+drwxr-xr-x 1 kvsd1 197609      0 Oct  5 07:25 .
+drwxr-xr-x 1 kvsd1 197609      0 Oct  5 07:25 ..
+-rw-r--r-- 1 kvsd1 197609 451825 Oct  5 07:25 cl-film.mp4
+-rw-r--r-- 1 kvsd1 197609   8550 Oct  5 07:25 cl-mark-ph.webp
+-rw-r--r-- 1 kvsd1 197609  10264 Oct  5 07:25 cl-ph0.webp
+-rw-r--r-- 1 kvsd1 197609   1952 Oct  5 07:25 encode.log

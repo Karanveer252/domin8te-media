@@ -54,6 +54,13 @@
       "autoPort": true
     },
     {
+      "name": "site-v3",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Work/domin8te-build/serve.js", "--overlay", "C:/Work/domin8te-build/v3/site", "--port", "8095"],
+      "port": 8095,
+      "autoPort": true
+    },
+    {
       "name": "working-copies",
       "runtimeExecutable": "node",
       "runtimeArgs": ["C:/Work/domin8te-build/dash-integration/tools/wc-serve.js"],
