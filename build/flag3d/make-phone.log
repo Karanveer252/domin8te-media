@@ -1,0 +1,26 @@
+Fra:0 Mem:786.24M (Peak 866.33M) | Time:00:08.24 | Mem:71.75M, Peak:198.56M | Scene, ViewLayer | Finished
+Fra:20 Mem:815.45M (Peak 1044.97M) | Time:00:02.99 | Mem:71.75M, Peak:71.75M | Scene, ViewLayer | Finished
+Fra:40 Mem:844.66M (Peak 1074.17M) | Time:00:02.56 | Mem:71.75M, Peak:71.75M | Scene, ViewLayer | Finished
+Fra:60 Mem:873.86M (Peak 1103.37M) | Time:00:02.39 | Mem:71.75M, Peak:71.75M | Scene, ViewLayer | Finished
+Fra:80 Mem:903.06M (Peak 1132.58M) | Time:00:02.47 | Mem:71.75M, Peak:71.75M | Scene, ViewLayer | Finished
+Fra:100 Mem:932.27M (Peak 1161.78M) | Time:00:02.84 | Mem:71.75M, Peak:71.75M | Scene, ViewLayer | Finished
+Fra:120 Mem:961.47M (Peak 1190.98M) | Time:00:02.92 | Mem:71.75M, Peak:71.75M | Scene, ViewLayer | Finished
+Fra:140 Mem:990.67M (Peak 1220.19M) | Time:00:02.23 | Mem:71.75M, Peak:71.75M | Scene, ViewLayer | Finished
+Fra:160 Mem:1019.87M (Peak 1249.39M) | Time:00:02.47 | Mem:71.75M, Peak:71.75M | Scene, ViewLayer | Finished
+Fra:180 Mem:1049.08M (Peak 1278.59M) | Time:00:02.33 | Mem:71.75M, Peak:71.75M | Scene, ViewLayer | Finished
+Fra:200 Mem:1078.28M (Peak 1307.79M) | Time:00:02.33 | Mem:71.75M, Peak:71.75M | Scene, ViewLayer | Finished
+Fra:220 Mem:1110.63M (Peak 1340.13M) | Time:00:03.97 | Mem:71.77M, Peak:71.77M | Scene, ViewLayer | Finished
+Fra:240 Mem:1152.34M (Peak 1381.85M) | Time:00:02.39 | Mem:71.77M, Peak:71.77M | Scene, ViewLayer | Finished
+Fra:260 Mem:1194.06M (Peak 1423.56M) | Time:00:02.33 | Mem:71.77M, Peak:71.77M | Scene, ViewLayer | Finished
+Fra:280 Mem:1234.29M (Peak 1465.28M) | Time:00:02.48 | Mem:70.29M, Peak:70.29M | Scene, ViewLayer | Finished
+ANIM DONE
+GRADED SEQ 0 288
+cl-ph0 (720, 1080) 13 KB
+cl-mark-ph (720, 1080) 13 KB
+total 776
+drwxr-xr-x 1 kvsd1 197609      0 Oct  5 04:28 .
+drwxr-xr-x 1 kvsd1 197609      0 Oct  5 04:28 ..
+-rw-r--r-- 1 kvsd1 197609 745524 Oct  5 04:28 cl-film.mp4
+-rw-r--r-- 1 kvsd1 197609  13534 Oct  5 04:28 cl-mark-ph.webp
+-rw-r--r-- 1 kvsd1 197609  14124 Oct  5 04:28 cl-ph0.webp
+-rw-r--r-- 1 kvsd1 197609   1420 Oct  5 04:28 encode.log
