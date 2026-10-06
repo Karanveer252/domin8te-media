@@ -8,9 +8,10 @@
    same line, head, colours, edge and rim) stands exactly where it was.
    The copy squashes, stretches up and to the left and settles (the
    demo's keyframes, scaled to the cursor), its rainbow runs one full
-   turn toward the head and lands on its own colours again, a soft
-   spectrum bloom lights under it, it flashes a touch brighter, and six
-   tiny sparkles burst up and to the left. At rest the colours never
+   turn toward the head and lands on its own colours again, it flashes
+   a touch brighter, and six tiny sparkles burst up and to the left (no
+   glow under it: 2026-10-06, Karan, "remove the glow from the cursor
+   on click"). At rest the colours never
    move. It follows the mouse while it plays; the real cursor comes back
    under it as it settles. Only where the growth cursor is showing,
    only with a mouse, never with reduced motion.
@@ -77,7 +78,7 @@ function bump(u, a, p, b) { if (u <= a || u >= b) return 0; return u < p ? smoot
 function rnd(seed, k) { var x = Math.sin(seed * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x) }
 
 var root = document.documentElement;
-var box = null, wrap = null, svg = null, grad = null, bloom = null, sparks = [], raf = 0, t0 = 0, seed = 0, px = 0, py = 0;
+var box = null, wrap = null, svg = null, grad = null, sparks = [], raf = 0, t0 = 0, seed = 0;
 
 function el(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); return e }
 function pair(parent, paint, bw, hw) {
@@ -117,14 +118,9 @@ function build() {
     box.appendChild(d);
     return d;
   });
-  bloom = document.createElement('div');                              /* its own layer, so its screen blend lands on the page */
-  bloom.className = 'v3cur-bloom';
-  bloom.setAttribute('aria-hidden', 'true');
   document.body.appendChild(box);
-  document.body.appendChild(bloom);
 }
 function place(x, y) {
-  px = x; py = y;
   box.style.transform = 'translate(' + (x - HOT_X - PAD) + 'px,' + (y - HOT_Y - PAD) + 'px)';
 }
 
@@ -140,10 +136,6 @@ function draw(ms) {
   /* the rainbow: one full period toward the head, then exactly its own colours again */
   var k = SPIN(u) * PER;
   grad.setAttribute('gradientTransform', k > 0 && k < PER ? 'translate(' + (V[0] * k).toFixed(3) + ' ' + (V[1] * k).toFixed(3) + ')' : '');
-  /* the bloom, under the head, peaking at 42% */
-  var bo = .42 * bump(u, .04, .4, 1);
-  bloom.style.opacity = bo.toFixed(3);
-  bloom.style.transform = 'translate(' + (px - HOT_X + 12) + 'px,' + (py - HOT_Y + 12) + 'px) translate(-50%,-50%) scale(' + (.78 + .3 * smooth(u / .5)).toFixed(3) + ')';
   /* the sparkles */
   for (var s = 0; s < 6; s++) {
     var sp = sparks[s], l = (u - SPARK_AT - s * .02) / (SPARK_LIFE - .1);
@@ -172,7 +164,7 @@ function stop() {
   if (raf) cancelAnimationFrame(raf);
   raf = 0;
   root.classList.remove('v3cur-on');
-  if (box) { box.style.visibility = 'hidden'; wrap.style.opacity = '1'; bloom.style.opacity = '0' }
+  if (box) { box.style.visibility = 'hidden'; wrap.style.opacity = '1' }
 }
 
 /* the tuning panel */
