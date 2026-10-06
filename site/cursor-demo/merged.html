@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Growth Cursor Motion</title>
+<!--
+  Domin8te growth cursor: parallax tilt + spectrum shift + growth pulse (2026-10-06, Karan's spec).
+  Self-contained. The same timing drives the page and the GIF: ?render turns off the mouse and
+  exposes window.__frame(seconds), which C:/Work/domin8te-build/cursor-demo/render.js steps through.
+  The mark is the site cursor's own geometry (v3-cursor.js, measured from v3/cursor2/source.webp).
+-->
+<style>
+:root{
+  --cream:#F7F1E8; --ink:#2B2520; --muted:#8E8377;
+  --S:clamp(300px,50vmin,420px);
+}
+html,body{margin:0;height:100%;background:var(--cream)}
+body{overflow:hidden;color:var(--ink);font-family:"Inter","Segoe UI",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.stage{position:relative;width:100%;height:100%;display:grid;place-items:center;user-select:none;-webkit-user-select:none}
+.label{position:absolute;top:34px;left:16px;right:16px;text-align:center;font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+.hint{position:absolute;bottom:32px;left:16px;right:16px;text-align:center;font-size:12.5px;letter-spacing:.04em;color:var(--muted)}
+.hint b{display:inline-block;width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.6;vertical-align:middle;margin:0 .7em}
+
+/* the bloom lives in the page's own layer (not the tilted card) so its screen blend lands on the cream */
+.bloom{position:absolute;left:50%;top:50%;width:calc(var(--S)*1.3);height:calc(var(--S)*1.3);
+  margin:calc(var(--S)*-.65) 0 0 calc(var(--S)*-.65);border-radius:50%;pointer-events:none;opacity:0;
+  background:radial-gradient(closest-side,#6A4BFF 0%,#2F8CFF 18%,#13C2C9 34%,#3FD670 48%,#FFC83A 62%,#FF8A2A 74%,rgba(255,90,60,0) 100%);
+  mix-blend-mode:screen;filter:blur(calc(var(--S)*.05))}
+
+.scene{position:relative;width:var(--S);height:var(--S);perspective:1000px}
+.card{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
+.depth{position:absolute;inset:0;transform:translate3d(2.5%,4.5%,-60px) scale(1.06);pointer-events:none}
+.pulse{position:absolute;inset:0;transform-origin:42% 38%}
+.sparks{position:absolute;inset:0;transform:translateZ(40px);pointer-events:none}
+.spark{position:absolute;left:0;top:0;opacity:0;will-change:transform,opacity}
+.spark svg{display:block;width:100%;height:100%}
+.spark--white{filter:drop-shadow(0 0 2px rgba(106,75,255,.55)) drop-shadow(0 0 5px rgba(47,140,255,.35))}
+.scene svg.mark,.scene svg.shade{display:block;width:100%;height:100%;overflow:visible}
+
+html.render .label,html.render .hint{display:none}
+html.render{--S:57vmin}
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+  <div class="label">Domin8te · Parallax + Spectrum + Growth Pulse</div>
+  <div class="bloom" id="bloom" aria-hidden="true"></div>
+  <div class="scene" id="scene">
+    <div class="card" id="card">
+      <div class="depth" id="depth"></div>
+      <div class="pulse" id="pulse"></div>
+      <div class="sparks" id="sparks" aria-hidden="true"></div>
+    </div>
+  </div>
+  <div class="hint">Move mouse to tilt<b></b>Click for growth pulse</div>
+</main>
+<script>
+(function () {
+'use strict';
+var RENDER = /[?&]render\b/.test(location.search);
+var root = document.documentElement;
+if (RENDER) root.classList.add('render');
+var rmq = matchMedia('(prefers-reduced-motion: reduce)');
+
+/* ---------------------------------------------------------------- the mark
+   The site cursor's geometry on its 64 grid: the head's tip and two corners, the neck, the line's
+   two corners and the tail. The sticker is a stack of strokes on that one line: soft shadows, the
+   sticker's thickness, the white die-cut rim, a thin ink edge, the gel colour, its highlights. */
+var TIP = [3.8, 2.7], HR = [34.2, 17.5], HL = [5.4, 37.0];
+var NECK = [(HR[0] + HL[0]) / 2 + .4, (HR[1] + HL[1]) / 2 + .5];
+var BODY = [[55.2, 53.0], [40.4, 32.4], [28.5, 39.4], NECK];        /* tail, step, step, neck */
+var C = 3.3, E = .62, R = 2.95;                                       /* gel half-width, ink edge, white rim */
+function f2(n) { return (+n).toFixed(2) }
+function line(a) { return a.map(function (p, i) { return (i ? 'L' : 'M') + f2(p[0]) + ' ' + f2(p[1]) }).join('') }
+function mix(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t] }
+var B = line(BODY), H = line([TIP, HR, HL]) + 'Z';
+var CEN = [(TIP[0] + HR[0] + HL[0]) / 3, (TIP[1] + HR[1] + HL[1]) / 3];
+var T2 = mix(TIP, CEN, .25), HL2 = mix(HL, CEN, .25), HR2 = mix(HR, CEN, .25);
+var HEAD_HI = line([mix(HL2, T2, .36), T2, mix(T2, HR2, .52)]);
+var SHAFT_HI = line([mix(BODY[0], BODY[1], .14), BODY[1], BODY[2], mix(BODY[2], BODY[3], .6)]);
+function shape(paint, bodyW, headW, more) {
+  more = more || '';
+  return '<path d="' + B + '" fill="none" stroke="' + paint + '" stroke-width="' + f2(bodyW) + '"' + more + '/>' +
+         '<path d="' + H + '" fill="' + paint + '" stroke="' + paint + '" stroke-width="' + f2(headW) + '"' + more + '/>';
+}
+var RIM = [2 * (C + E + R), 2 * (E + R)], EDGE = [2 * (C + E), 2 * E], GEL = [2 * C, .2];
+
+/* the spectrum: one rainbow along the body, tip to tail, written twice (0 to 1 covers two) and closed
+   on its first colour so the repeat has no seam; it travels toward the head by exactly one rainbow
+   every 3.2 seconds, so the loop is seamless by construction */
+var RAINBOW = ['#6A4BFF', '#2F8CFF', '#13C2C9', '#3FD670', '#C9DD3A', '#FFC83A', '#FF8A2A', '#FF5A3C'];
+var SPECTRUM_S = 3.2;
+var AX = [BODY[0][0] - TIP[0], BODY[0][1] - TIP[1]], AL = Math.hypot(AX[0], AX[1]);
+var DX = AX[0] / AL, DY = AX[1] / AL;
+var PERIOD = 80;                                                      /* one rainbow, in grid units along the axis */
+var G1 = [TIP[0] - 2.4 * DX, TIP[1] - 2.4 * DY], G2 = [G1[0] + 2 * PERIOD * DX, G1[1] + 2 * PERIOD * DY];
+function stops() {
+  var s = '', i;
+  for (i = 0; i < 16; i++) s += '<stop offset="' + (i / 16).toFixed(4) + '" stop-color="' + RAINBOW[i % 8] + '"/>';
+  return s + '<stop offset="1" stop-color="' + RAINBOW[0] + '"/>';
+}
+
+var markSVG =
+'<svg class="mark" viewBox="-7 -8 76 76" aria-label="Domin8te growth cursor" role="img">' +
+'<defs>' +
+  '<linearGradient id="spec" gradientUnits="userSpaceOnUse" spreadMethod="repeat" x1="' + f2(G1[0]) + '" y1="' + f2(G1[1]) + '" x2="' + f2(G2[0]) + '" y2="' + f2(G2[1]) + '">' + stops() +
+    '<animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="' + f2(-PERIOD * DX) + ' ' + f2(-PERIOD * DY) + '" dur="' + SPECTRUM_S + 's" repeatCount="indefinite"/>' +
+  '</linearGradient>' +
+  '<linearGradient id="rimG" gradientUnits="userSpaceOnUse" x1="4" y1="2" x2="58" y2="60"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".55" stop-color="#FFFDF9"/><stop offset="1" stop-color="#F3ECE1"/></linearGradient>' +
+  '<linearGradient id="exG" gradientUnits="userSpaceOnUse" x1="4" y1="2" x2="58" y2="60"><stop offset="0" stop-color="#E8DECF"/><stop offset="1" stop-color="#D2C3AA"/></linearGradient>' +
+  '<filter id="soft1" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation=".75"/></filter>' +
+  '<filter id="soft2" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.1"/></filter>' +
+  '<filter id="blurHi" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation=".35"/></filter>' +
+  /* the gel: a soft inner shadow on the lower right, a lit crescent on the upper left */
+  '<filter id="gel" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">' +
+    '<feGaussianBlur in="SourceAlpha" stdDeviation=".95" result="b"/>' +
+    '<feOffset in="b" dx="-1.15" dy="-1.35" result="o1"/>' +
+    '<feComposite in="SourceAlpha" in2="o1" operator="out" result="c1"/>' +
+    '<feFlood flood-color="#3B1D6E" flood-opacity=".42"/><feComposite in2="c1" operator="in" result="shadeA"/>' +
+    '<feBlend in="shadeA" in2="SourceGraphic" mode="multiply" result="shaded"/>' +
+    '<feOffset in="b" dx=".85" dy="1.05" result="o2"/>' +
+    '<feComposite in="SourceAlpha" in2="o2" operator="out" result="c2"/>' +
+    '<feFlood flood-color="#FFFFFF" flood-opacity=".5"/><feComposite in2="c2" operator="in" result="lite"/>' +
+    '<feComposite in="shaded" in2="SourceAlpha" operator="in" result="body"/>' +
+    '<feMerge><feMergeNode in="body"/><feMergeNode in="lite"/></feMerge>' +
+  '</filter>' +
+  '<clipPath id="headClip"><path d="' + H + '"/></clipPath>' +
+  '<radialGradient id="headGloss" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".62"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
+'</defs>' +
+'<g stroke-linecap="round" stroke-linejoin="round">' +
+  '<g filter="url(#soft2)" opacity=".17" transform="translate(1.7 3.8)">' + shape('#4A3420', RIM[0], RIM[1]) + '</g>' +
+  '<g filter="url(#soft1)" opacity=".24" transform="translate(.5 2.1)">' + shape('#4A3420', RIM[0], RIM[1]) + '</g>' +
+  '<g transform="translate(.3 1.8)">' + shape('url(#exG)', RIM[0], RIM[1]) + '</g>' +
+  shape('url(#rimG)', RIM[0], RIM[1]) +
+  shape('#17132B', EDGE[0], EDGE[1]) +
+  '<g filter="url(#gel)">' + shape('url(#spec)', GEL[0], GEL[1]) + '</g>' +
+  '<g id="gloss">' +
+    '<g clip-path="url(#headClip)"><ellipse cx="12.2" cy="14.2" rx="7.6" ry="4.2" transform="rotate(48 12.2 14.2)" fill="url(#headGloss)"/></g>' +
+    '<path d="' + HEAD_HI + '" fill="none" stroke="#fff" stroke-opacity=".72" stroke-width=".95" filter="url(#blurHi)"/>' +
+    '<path d="' + SHAFT_HI + '" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width=".85" transform="translate(-.45 -.55)" filter="url(#blurHi)"/>' +
+  '</g>' +
+'</g>' +
+'</svg>';
+
+/* the far shadow: the same silhouette, wide and soft, a layer behind the mark so it parallaxes */
+var shadeSVG =
+'<svg class="shade" viewBox="-7 -8 76 76" aria-hidden="true"><defs>' +
+'<filter id="far" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3"/></filter></defs>' +
+'<g filter="url(#far)" opacity=".2" stroke-linecap="round" stroke-linejoin="round">' + shape('#3D2A18', RIM[0] + 1, RIM[1] + 1) + '</g></svg>';
+
+var pulseEl = document.getElementById('pulse'), card = document.getElementById('card');
+var depth = document.getElementById('depth'), bloom = document.getElementById('bloom');
+var sparksEl = document.getElementById('sparks'), scene = document.getElementById('scene');
+pulseEl.innerHTML = markSVG;
+depth.innerHTML = shadeSVG;
+var mark = pulseEl.querySelector('svg'), gloss = mark.getElementById ? mark.getElementById('gloss') : mark.querySelector('#gloss');
+
+/* ---------------------------------------------------------------- the growth pulse
+   520 ms; CSS keyframe semantics: the easing runs within each step, exactly as an @keyframes rule
+   with animation-timing-function would; the origin sits toward the head (42% 38%) */
+var DUR = 520, LOCK = 540;
+var KF = [[0, 1, 1, 0, 0], [.12, 1.07, .90, 2, 4], [.38, .93, 1.14, -10, -16], [.58, 1.03, 1.05, -4, -6], [.78, .99, 1.01, -1, -1], [1, 1, 1, 0, 0]];
+function bezier(x1, y1, x2, y2) {
+  function bx(t) { return ((1 - 3 * x2 + 3 * x1) * t + (3 * x2 - 6 * x1)) * t * t + 3 * x1 * t }
+  function by(t) { return ((1 - 3 * y2 + 3 * y1) * t + (3 * y2 - 6 * y1)) * t * t + 3 * y1 * t }
+  function dx(t) { return 3 * (1 - 3 * x2 + 3 * x1) * t * t + 2 * (3 * x2 - 6 * x1) * t + 3 * x1 }
+  return function (x) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    var t = x, i;
+    for (i = 0; i < 8; i++) { var e = bx(t) - x, d = dx(t); if (Math.abs(e) < 1e-6) break; if (Math.abs(d) < 1e-6) break; t -= e / d }
+    if (t < 0 || t > 1 || Math.abs(bx(t) - x) > 1e-4) {                 /* fall back to bisection */
+      var lo = 0, hi = 1; t = x;
+      for (i = 0; i < 40; i++) { if (bx(t) < x) lo = t; else hi = t; t = (lo + hi) / 2 }
+    }
+    return by(t);
+  };
+}
+var EASE = bezier(.22, 1, .36, 1);
+function smooth(t) { t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t) }
+function bump(u, a, p, b) { if (u <= a || u >= b) return 0; return u < p ? smooth((u - a) / (p - a)) : 1 - smooth((u - p) / (b - p)) }
+function pulseAt(ms) {
+  if (!(ms >= 0 && ms < DUR)) return null;
+  var u = ms / DUR, i = 1;
+  while (u > KF[i][0]) i++;
+  var a = KF[i - 1], b = KF[i], f = EASE((u - a[0]) / (b[0] - a[0]));
+  return {
+    sx: a[1] + (b[1] - a[1]) * f, sy: a[2] + (b[2] - a[2]) * f,
+    tx: a[3] + (b[3] - a[3]) * f, ty: a[4] + (b[4] - a[4]) * f,
+    flash: bump(u, .1, .4, .8),                                       /* brightness and saturation, peaking at 40% */
+    bloom: .42 * bump(u, .04, .4, 1)                                  /* the spectrum bloom, peaking at 42% */
+  };
+}
+
+/* the sparkles: six, out of the head, up and to the left */
+var SPARK_AT = .18 * DUR, SPARK_LIFE = 440, SPARK_STAGGER = 14;
+var SPARK_COL = ['#6A4BFF', '#13C2C9', '#FFC83A', '#FFFFFF', '#3FD670', '#FF5A3C'];
+var SPARK_ANG = [-62, -37, -13, 11, 35, 60], SPARK_DIST = [.17, .23, .27, .25, .21, .17], SPARK_SIZE = [.062, .05, .072, .064, .048, .056];
+var STAR = 'M0-10C1.1-2.6 2.6-1.1 10 0C2.6 1.1 1.1 2.6 0 10C-1.1 2.6-2.6 1.1-10 0C-2.6-1.1-1.1-2.6 0-10Z';
+var sparks = SPARK_COL.map(function (c) {
+  var d = document.createElement('div');
+  d.className = 'spark' + (c === '#FFFFFF' ? ' spark--white' : '');
+  d.innerHTML = '<svg viewBox="-10 -10 20 20"><path d="' + STAR + '" fill="' + c + '"/><circle r="1.6" fill="#fff" opacity=".9"/></svg>';
+  sparksEl.appendChild(d);
+  return d;
+});
+var ORIGIN = [(9.5 + 7) / 76, (10 + 8) / 76];                         /* the head, as a share of the box */
+function rnd(seed, k) { var x = Math.sin(seed * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x) }
+function drawSparks(ms, seed, S) {
+  for (var k = 0; k < 6; k++) {
+    var el = sparks[k], l = (ms - SPARK_AT - k * SPARK_STAGGER) / (SPARK_LIFE - 5 * SPARK_STAGGER);
+    if (!(l >= 0 && l <= 1)) { if (el.style.opacity !== '0') el.style.opacity = '0'; continue }
+    var ang = (-135 + SPARK_ANG[k] + (rnd(seed, k) - .5) * 12) * Math.PI / 180;
+    var dist = SPARK_DIST[k] * S * (.9 + rnd(seed, k + 9) * .2);
+    var go = 1 - Math.pow(1 - l, 3);
+    var x = ORIGIN[0] * S + Math.cos(ang) * dist * go, y = ORIGIN[1] * S + Math.sin(ang) * dist * go;
+    var size = SPARK_SIZE[k] * S, sc = (l < .18 ? .4 + .6 * smooth(l / .18) : 1 - .55 * smooth((l - .18) / .82));
+    var op = l < .12 ? l / .12 : 1 - smooth((l - .42) / .58);
+    el.style.width = el.style.height = size.toFixed(1) + 'px';
+    el.style.transform = 'translate(' + (x - size / 2).toFixed(2) + 'px,' + (y - size / 2).toFixed(2) + 'px) rotate(' + (l * 90 + k * 15).toFixed(1) + 'deg) scale(' + sc.toFixed(3) + ')';
+    el.style.opacity = op.toFixed(3);
+  }
+}
+
+/* ---------------------------------------------------------------- one frame of everything */
+function apply(rx, ry, pms, seed) {
+  card.style.transform = 'rotateX(' + rx.toFixed(3) + 'deg) rotateY(' + ry.toFixed(3) + 'deg)';
+  /* the light stays put while the mark turns: its highlights slide a touch the other way */
+  gloss.setAttribute('transform', 'translate(' + (-ry * .035).toFixed(3) + ' ' + (rx * .035).toFixed(3) + ')');
+  var p = pulseAt(pms), S = scene.offsetWidth;
+  if (p) {
+    pulseEl.style.transform = 'scale(' + p.sx.toFixed(4) + ',' + p.sy.toFixed(4) + ') translate(' + p.tx.toFixed(2) + 'px,' + p.ty.toFixed(2) + 'px)';
+    pulseEl.style.filter = p.flash > .001 ? 'brightness(' + (1 + .13 * p.flash).toFixed(3) + ') saturate(' + (1 + .38 * p.flash).toFixed(3) + ')' : 'none';
+    bloom.style.opacity = p.bloom.toFixed(3);
+    var g = .78 + .3 * smooth(pms / DUR / .5);
+    bloom.style.transform = 'translate(-6%,-8%) scale(' + g.toFixed(3) + ')';
+    depth.style.opacity = (1 - .3 * Math.max(0, -p.ty / 16)).toFixed(3);   /* lifted: the far shadow lets go a little */
+  } else {
+    pulseEl.style.transform = ''; pulseEl.style.filter = ''; bloom.style.opacity = '0'; depth.style.opacity = '';
+  }
+  drawSparks(pms, seed, S);
+}
+
+/* ---------------------------------------------------------------- tilt */
+var TILT = 12, LERP = .14;
+function orbit(t, amp) { return [Math.sin(t * .65) * 6.5 * amp, Math.cos(t * .5) * 8 * amp] }
+function follow(cur, target, dt) { var k = 1 - Math.pow(1 - LERP, dt * 60); return cur + (target - cur) * k }
+
+if (!RENDER) {
+  var rx = 0, ry = 0, hover = false, nx = 0, ny = 0, clickAt = -1e9, seed = 0, last = performance.now();
+  var o0 = orbit(last / 1000, rmq.matches ? 0 : 1); rx = o0[0]; ry = o0[1];
+  var stage = document.getElementById('stage');
+  addEventListener('pointermove', function (e) {
+    var r = stage.getBoundingClientRect();
+    nx = Math.max(-1, Math.min(1, (e.clientX - r.left) / r.width * 2 - 1));
+    ny = Math.max(-1, Math.min(1, (e.clientY - r.top) / r.height * 2 - 1));
+    hover = true;
+  }, { passive: true });
+  document.documentElement.addEventListener('mouseleave', function () { hover = false });
+  addEventListener('blur', function () { hover = false });
+  addEventListener('pointerdown', function (e) {
+    if (e.button !== 0) return;
+    var now = performance.now();
+    if (now - clickAt < LOCK) return;                                 /* one pulse at a time */
+    clickAt = now; seed++;
+  });
+  (function tick(now) {
+    var dt = Math.min(.05, Math.max(0, (now - last) / 1000)); last = now;
+    var tx, ty;
+    if (hover) { tx = -ny * TILT; ty = nx * TILT } else { var o = orbit(now / 1000, rmq.matches ? 0 : 1); tx = o[0]; ty = o[1] }
+    rx = follow(rx, tx, dt); ry = follow(ry, ty, dt);
+    apply(rx, ry, now - clickAt, seed);
+    requestAnimationFrame(tick);
+  })(last);
+} else {
+  /* the GIF's script (one loop of LOOP seconds): idle; the mouse far left; far right; it leaves and
+     clicks; a breath; a second click. The tilt is stepped exactly as the page steps it (the same lerp,
+     at a fixed 240 Hz), run in from two loops back so it is settled; over the last half second it is
+     blended into the loop's own start, so the GIF has no seam */
+  var LOOP = SPECTRUM_S, HZ = 240, CLICKS = [1.9, 2.64];
+  function mouseAt(t) {
+    var w = ((t % LOOP) + LOOP) % LOOP;
+    if (w >= .9 && w < 1.4) return [-1, 0];
+    if (w >= 1.4 && w < 1.9) return [1, 0];
+    return null;
+  }
+  var track = [], n0 = -2 * LOOP * HZ, n1 = LOOP * HZ, srx, sry;
+  (function () {
+    var o = orbit(-2 * LOOP, 1); srx = o[0]; sry = o[1];
+    for (var n = n0; n <= n1; n++) {
+      var t = n / HZ, m = mouseAt(t), tg = m ? [-m[1] * TILT, m[0] * TILT] : orbit(t, 1);
+      srx = follow(srx, tg[0], 1 / HZ); sry = follow(sry, tg[1], 1 / HZ);
+      track.push([srx, sry]);
+    }
+  })();
+  function S_at(t) { var i = Math.round(t * HZ) - n0; return track[Math.max(0, Math.min(track.length - 1, i))] }
+  var svgs = [mark];
+  svgs.forEach(function (s) { s.pauseAnimations() });
+  window.__frame = function (t) {
+    var a = S_at(t), b = S_at(t - LOOP), w = smooth((t - (LOOP - .5)) / .5);
+    var pms = -1e9, seed = 0;
+    CLICKS.forEach(function (c, i) { if (t >= c) { pms = (t - c) * 1000; seed = i + 1 } });
+    svgs.forEach(function (s) { s.setCurrentTime(t % SPECTRUM_S) });
+    apply(a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w, pms, seed);
+    return true;
+  };
+  window.__loop = LOOP;
+}
+})();
+</script>
+</body>
+</html>
