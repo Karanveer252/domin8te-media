@@ -1,18 +1,0 @@
-Input #0, image2, from 'render/out-phone/f%04d.png':
-  Duration: 00:00:19.27, start: 0.000000, bitrate: N/A
-  Stream #0:0: Video: png, rgb24(pc, gbr/unknown/unknown), 720x1080, 15 fps, 15 tbr, 15 tbn
-Stream mapping:
-  Stream #0:0 -> #0:0 (png (native) -> h264 (h264_nvenc))
-Press [q] to stop, [?] for help
-Output #0, mp4, to 'deliver-phone/cl-film.mp4':
-  Metadata:
-    encoder         : Lavf61.1.100
-  Stream #0:0: Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, bt709, progressive), 720x1080, q=2-31, 15360 tbn
-      Metadata:
-        encoder         : Lavc61.3.100 h264_nvenc
-      Side data:
-        cpb: bitrate max/min/avg: 2500000/0/0 buffer size: 0 vbv_delay: N/A
-frame=    0 fps=0.0 q=0.0 size=       0KiB time=N/A bitrate=N/A speed=N/A    frame=   11 fps= 11 q=23.0 size=       0KiB time=00:00:00.66 bitrate=   0.6kbits/s speed=0.654x    frame=   36 fps= 23 q=24.0 size=       0KiB time=00:00:02.33 bitrate=   0.2kbits/s speed=1.52x    frame=   62 fps= 30 q=24.0 size=     256KiB time=00:00:04.06 bitrate= 515.8kbits/s speed=1.98x    frame=   87 fps= 34 q=23.0 size=     256KiB time=00:00:05.73 bitrate= 365.8kbits/s speed=2.23x    [vost#0:0/h264_nvenc @ 0000021fef4a2e40] Non-monotonic DTS; previous: 124928, current: 124928; changing to 124929. This may result in incorrect timestamps in the output file.
-[mp4 @ 0000021fef7bc880] Starting second pass: moving the moov atom to the beginning of the file
-[out#0/mp4 @ 0000021fed14e040] video:582KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.261378%
-frame=  145 fps= 48 q=19.0 Lsize=     583KiB time=00:00:09.60 bitrate= 497.7kbits/s speed= 3.2x    
