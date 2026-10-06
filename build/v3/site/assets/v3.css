@@ -62,10 +62,11 @@ html[data-v="editorial"][data-theme="light"] .opt__txt{background:#fff;border-co
 html[data-v="editorial"][data-theme="light"] .opt:hover .opt__txt{background:#fff;border-color:var(--line-2)}
 html[data-v="editorial"][data-theme="light"] .opt input:checked + .opt__txt{background:#fff;border-color:var(--ink)}
 
-/* the click (v3-cursor.js): while it plays, a copy of the cursor stands in for it in its own
-   32px window, the arrow leaving up and to the left and rising back in from the lower right */
-.v3cur{position:fixed;left:0;top:0;z-index:2147483647;width:32px;height:32px;overflow:hidden;pointer-events:none;visibility:hidden;will-change:transform}
-.v3cur i{display:block;width:32px;height:32px;background:center / 32px 32px no-repeat}
+/* the click (v3-cursor.js): while it plays, a copy of the cursor stands in for it, slithering
+   up and off with a spectrum tail and back up from below into place. The box sits on the click
+   point; the copy turns about its own point (the arrow's tip) */
+.v3cur{position:fixed;left:0;top:0;z-index:2147483647;width:0;height:0;overflow:visible;pointer-events:none;visibility:hidden;will-change:transform}
+.v3cur i{position:absolute;left:0;top:0;display:block;width:32px;height:32px;background:center / 32px 32px no-repeat;transform-origin:2px 4px;will-change:transform,opacity}
 html.v3cur-on,html.v3cur-on *{cursor:none!important}
 
 /* ---- the line: a lit glass tube lying just above the page ----
