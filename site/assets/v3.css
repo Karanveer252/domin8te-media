@@ -77,6 +77,16 @@ html[data-v="editorial"][data-theme="light"] .opt input:checked + .opt__txt{back
 .v3cur svg{display:block;position:absolute;left:0;top:0;overflow:visible}
 html[data-v="editorial"][data-theme="light"].v3cur-on,html[data-v="editorial"][data-theme="light"].v3cur-on *{cursor:none!important}
 
+/* the cursor's tuning panel (v3-cursor.js: only on localhost or with ?tune) */
+.v3tune{position:fixed;left:16px;bottom:16px;z-index:2147483646;display:grid;gap:8px;width:230px;padding:14px 16px 12px;
+  background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(60,42,24,.08),0 18px 40px -18px rgba(60,42,24,.45);
+  font:500 13px/1.3 var(--f-text,system-ui);color:#0E1420}
+.v3tune__lbl{display:flex;justify-content:space-between;gap:10px;font-weight:600}
+.v3tune__val{font-weight:600;color:#CA4A14;font-variant-numeric:tabular-nums}
+.v3tune__range{width:100%;accent-color:#CA4A14}
+.v3tune__hint{font-size:12px;color:#566074}
+.v3tune__reset{justify-self:start;padding:6px 12px;border:1px solid rgba(14,20,32,.18);border-radius:999px;background:#fff;font:600 12px/1 var(--f-text,system-ui);color:#0E1420}
+
 /* ---- the line: a lit glass tube lying just above the page ----
    Karan: "make the snake kind of pop, not out of the screen". On the
    light ground a glow cannot show (light on light), so the tube is

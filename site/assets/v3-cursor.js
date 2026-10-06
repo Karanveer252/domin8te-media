@@ -25,7 +25,14 @@ if (!document.body || !window.requestAnimationFrame) return;
 
 var NS = 'http://www.w3.org/2000/svg';
 var HOT_X = 2, HOT_Y = 1;                       /* the click point in px (v3.css): the design's tip */
-var MS = 444;                                   /* the whole click (Karan, 2026-10-06: "2x faster", 1000 -> 500ms, "1.5x more faster", 500 -> 333ms, then ".75 speed", 333 -> 444ms) */
+var BASE_MS = 444;                              /* the whole click at 1x (Karan, 2026-10-06: "2x faster", 1000 -> 500ms, "1.5x more faster", 500 -> 333ms, then ".75 speed", 333 -> 444ms) */
+/* the speed (2026-10-06, Karan: "give me a slider by which I can adjust the animation speed"): a tuning
+   panel, only on localhost or with ?tune in the address, sets it and keeps it in this browser
+   (d8cursor.speed); everyone else gets 1x */
+var TUNE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || /[?&]tune\b/.test(location.search);
+var SPEED = 1;
+if (TUNE) { try { SPEED = parseFloat(localStorage.getItem('d8cursor.speed')) || 1 } catch (e) {} }
+var MS = BASE_MS / SPEED;
 
 /* the cursor's own geometry, on its 64 grid (2 a pixel): Karan's design (v3/cursor2/source.webp, cut by
    cut.py; 2026-10-06 "use this design for the cursor"), measured from its dark outline: the head's tip
@@ -109,7 +116,8 @@ function smooth(t) { t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t) }
    new one comes up the straight from the lower right, round the same corners, and stops with its tip
    on the click point. Its shape is the cursor's at every moment of rest, so nothing ever changes
    shape and nothing snaps; the corners stay where they are and the arrow passes through them. */
-var OUT = .45;                                  /* the share of the play spent leaving */
+var OUT = .4;                                   /* the share of the play spent leaving: more of it for the arrival */
+var FADE = .18;                                 /* the last share, over which the real cursor takes over (2026-10-06, Karan: "make the animation smoother when it snaps back into place") */
 var OUT_D = 96, IN_D = 100;                     /* run out (the tail clears the box's top), and in from (the whole arrow outside the box's lower right) */
 var NECKD = LL;                                 /* the tip to the neck */
 var RAIL = [TIP, NECK0, PTS[2], PTS[1], PTS[0]], RCUM = [0], RTOT;
@@ -132,7 +140,7 @@ function headAt(ms) {
   var u = ms / MS;
   if (u < OUT) { var p = u / OUT; return OUT_D * (.6 * p + .4 * p * p) }          /* off at once, then faster */
   var q = (u - OUT) / (1 - OUT);
-  return -IN_D * Math.pow(1 - q, 2);                                              /* in, easing to a stop on the click point */
+  return -IN_D * Math.pow(1 - q, 3);                                              /* in, gliding to a stop on the click point (a softer, longer ease than before) */
 }
 function snake(ms) {
   var D = headAt(ms), P = [], i;
@@ -166,16 +174,42 @@ function frame(now) {
   var ms = now - t0;
   if (ms >= MS) { stop(); return }
   draw(ms);
+  /* no swap at the end: over the last moments the real cursor is back under the copy, which fades
+     out over it as it settles, so the hand-over is a dissolve, not a snap */
+  var fo = smooth((ms / MS - (1 - FADE)) / FADE);
+  if (fo > 0 && root.classList.contains('v3cur-on')) root.classList.remove('v3cur-on');
+  svg.style.opacity = (1 - fo).toFixed(3);
   raf = requestAnimationFrame(frame);
 }
 function stop() {
   if (raf) cancelAnimationFrame(raf);
   raf = 0;
   root.classList.remove('v3cur-on');
-  if (box) box.style.visibility = 'hidden';
+  if (box) { box.style.visibility = 'hidden'; svg.style.opacity = '1' }
 }
 
+/* the tuning panel */
+if (TUNE) (function () {
+  var pn = document.createElement('div');
+  pn.className = 'v3tune';
+  pn.innerHTML = '<label class="v3tune__lbl" for="v3tuneR">Cursor speed <b class="v3tune__val"></b></label>' +
+    '<input class="v3tune__range" id="v3tuneR" type="range" min="0.25" max="3" step="0.05">' +
+    '<span class="v3tune__hint">Click anywhere to try it</span>' +
+    '<button class="v3tune__reset" type="button">Reset to 1x</button>';
+  document.body.appendChild(pn);
+  var r = pn.querySelector('input'), v = pn.querySelector('.v3tune__val');
+  function show() { v.textContent = SPEED.toFixed(2) + 'x · ' + Math.round(BASE_MS / SPEED) + ' ms' }
+  function set(x) {
+    SPEED = Math.max(.25, Math.min(3, x)); MS = BASE_MS / SPEED; r.value = SPEED; show();
+    try { localStorage.setItem('d8cursor.speed', String(SPEED)) } catch (e) {}
+  }
+  r.value = SPEED; show();
+  r.addEventListener('input', function () { set(parseFloat(r.value)) });
+  pn.querySelector('button').addEventListener('click', function () { set(1) });
+})();
+
 document.addEventListener('pointerdown', function (e) {
+  if (e.target.closest && e.target.closest('.v3tune')) return;   /* the panel's own controls play nothing */
   if (e.pointerType !== 'mouse' || e.button !== 0 || !fine.matches || rmq.matches) return;
   /* only where the growth arrow is the cursor: not over links, fields or the hand */
   if (!/v3-cursor-/.test(getComputedStyle(e.target.nodeType === 1 ? e.target : document.body).cursor)) return;
@@ -183,6 +217,7 @@ document.addEventListener('pointerdown', function (e) {
   if (raf) cancelAnimationFrame(raf);
   place(e.clientX, e.clientY);
   draw(0);
+  svg.style.opacity = '1';
   box.style.visibility = 'visible';
   root.classList.add('v3cur-on');
   t0 = performance.now();
