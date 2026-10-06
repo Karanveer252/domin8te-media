@@ -25,6 +25,7 @@
 <link rel="stylesheet" href="assets/v-editorial.css?v=9aa20f5d3c">
 <link rel="stylesheet" href="assets/dash.css?v=85df72a141">
 <link rel="stylesheet" href="assets/light.css?v=f2976391df">
+<link rel="stylesheet" href="assets/v3.css?v=07f8d3d8d5">
 
 <script type="application/ld+json">
 {
@@ -91,12 +92,9 @@ window.__GATES = [
   /* the background: dark unless the visitor chose the light ground with the
      switch in the header (assets/dash.js); read here so the choice is in
      place from the first paint, the browser's own bar with it */
-  try {
-    if (localStorage.getItem('d8site.theme') === 'light') {
-      r.setAttribute('data-theme', 'light');
-      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#F4F1EC');
-    }
-  } catch (e) {}
+  /* version 3 is the daylight page: always the light ground */
+  r.setAttribute('data-theme', 'light');
+  try { document.querySelector('meta[name="theme-color"]').setAttribute('content', '#F4F1EC') } catch (e) {}
   window.addEventListener('load', function () { if (!r.classList.contains('snake-on')) r.classList.remove('snake') });
 
   /* the film only makes sense if the script arrives to drive it */
@@ -227,9 +225,9 @@ window.__GATES = [
        ground never shows it, so its pictures never load there. -->
   <div class="dx-sky" aria-hidden="true">
     <i class="dx-sky__deep"></i>
-    <i class="dx-sky__l dx-sky__l--far" style="background-image:url(assets/dx-cloud-far.webp?v=9ffc6ccad6)"></i>
-    <i class="dx-sky__l dx-sky__l--mid" style="background-image:url(assets/dx-cloud-mid.webp?v=3cb7180eba)"></i>
-    <i class="dx-sky__l dx-sky__l--near" style="background-image:url(assets/dx-cloud-near.webp?v=20a8460990)"></i>
+    <i class="dx-sky__l dx-sky__l--far" style="background-image:url(assets/dx-cloud-far.webp?v=52cd342e9f)"></i>
+    <i class="dx-sky__l dx-sky__l--mid" style="background-image:url(assets/dx-cloud-mid.webp?v=55f4097f6e)"></i>
+    <i class="dx-sky__l dx-sky__l--near" style="background-image:url(assets/dx-cloud-near.webp?v=a6a54f6e9e)"></i>
   </div>
 
   <!-- the sky: the two cloud beats, one Blender film scrubbed by the scroll
@@ -255,7 +253,10 @@ window.__GATES = [
       </defs>
 
       <g class="bolt" id="boltg">
+        <use class="thread thread--shade thread--shade2" href="#boltPath"/>
+        <use class="thread thread--shade thread--shade1" href="#boltPath"/>
         <use class="thread thread--case" href="#boltPath"/>
+        <use class="thread thread--rim" href="#boltPath"/>
         <use class="thread thread--glow" href="#boltPath"/>
         <use class="thread thread--body" href="#boltPath"/>
         <use class="thread thread--hot" href="#boltPath"/>
@@ -321,14 +322,14 @@ window.__GATES = [
          them until the clouds part on the words. -->
     <div class="act act--sky act--sky-a" style="--o:5">
       <figure class="skystill">
-        <picture><img class="skystill__img" src="assets/sky-a-still.jpg?v=e0695f56e3" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
+        <picture><img class="skystill__img" src="assets/sky-a-still.jpg?v=9de71df4d7" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
         <div class="sky3" aria-hidden="true">
         <i class="sky3__glow"></i>
         <canvas class="sky3__line"></canvas>
-        <picture><source type="image/avif" srcset="assets/cy-l4.avif?v=325a8fcad9"><img class="sky3__l" src="assets/cy-l4.webp?v=af4b356d61" width="1059" height="158" alt="" loading="lazy" decoding="async" style="--x:3;--y:1012;--w:1059;--d:120;--z:2"></picture>
-        <picture><source type="image/avif" srcset="assets/cy-l3.avif?v=0af6c3b29d"><img class="sky3__l" src="assets/cy-l3.webp?v=8f4f986568" width="1080" height="1391" alt="" loading="lazy" decoding="async" style="--x:0;--y:1009;--w:1080;--d:34;--z:3"></picture>
-        <picture><source type="image/avif" srcset="assets/cy-l2.avif?v=1513812838"><img class="sky3__l sky3__near" src="assets/cy-l2.webp?v=f831be0e64" width="810" height="1052" alt="" loading="lazy" decoding="async" style="--x:0;--y:930;--w:1080;--d:20;--z:5"></picture>
-        <picture><source type="image/avif" srcset="assets/cy-l1.avif?v=c28c53efa6"><img class="sky3__l sky3__near" src="assets/cy-l1.webp?v=02cd2090fd" width="810" height="986" alt="" loading="lazy" decoding="async" style="--x:0;--y:1050;--w:1080;--d:11;--z:6"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l4.avif?v=21d36ee7cb"><img class="sky3__l" src="assets/cy-l4.webp?v=ebf9582b9d" width="1059" height="158" alt="" loading="lazy" decoding="async" style="--x:3;--y:1012;--w:1059;--d:120;--z:2"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l3.avif?v=9a509a4e3a"><img class="sky3__l" src="assets/cy-l3.webp?v=20b1144185" width="1080" height="1391" alt="" loading="lazy" decoding="async" style="--x:0;--y:1009;--w:1080;--d:34;--z:3"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l2.avif?v=1c97fb2a78"><img class="sky3__l sky3__near" src="assets/cy-l2.webp?v=55b3e1dba0" width="810" height="1052" alt="" loading="lazy" decoding="async" style="--x:0;--y:930;--w:1080;--d:20;--z:5"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l1.avif?v=1fc9bb50e3"><img class="sky3__l sky3__near" src="assets/cy-l1.webp?v=60da668b1a" width="810" height="986" alt="" loading="lazy" decoding="async" style="--x:0;--y:1050;--w:1080;--d:11;--z:6"></picture>
         </div>
         <figcaption class="skystill__words"><h2 class="hl hl--sky"><span class="ln">Feel the <em class="acc">growth.</em></span></h2></figcaption>
       </figure>
@@ -482,13 +483,13 @@ window.__GATES = [
          drift and the light goes (phone.js). -->
     <div class="act act--sky act--sky-b" style="--o:14">
       <figure class="skystill">
-        <picture><img class="skystill__img" src="assets/sky-b-still.jpg?v=a741bd86eb" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
+        <picture><img class="skystill__img" src="assets/sky-b-still.jpg?v=039098d3f8" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
         <div class="sky3" aria-hidden="true">
         <i class="sky3__glow"></i>
         <canvas class="sky3__line"></canvas>
-        <picture><source type="image/avif" srcset="assets/cy-l4.avif?v=325a8fcad9"><img class="sky3__l" src="assets/cy-l4.webp?v=af4b356d61" width="1059" height="158" alt="" loading="lazy" decoding="async" style="--x:3;--y:1012;--w:1059;--d:120;--z:2"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l4.avif?v=21d36ee7cb"><img class="sky3__l" src="assets/cy-l4.webp?v=ebf9582b9d" width="1059" height="158" alt="" loading="lazy" decoding="async" style="--x:3;--y:1012;--w:1059;--d:120;--z:2"></picture>
         <picture><source type="image/avif" srcset="assets/cy-l4d.avif?v=2b26b10159"><img class="sky3__l sky3__dk" src="assets/cy-l4d.webp?v=deee45f358" width="1059" height="158" alt="" loading="lazy" decoding="async" style="--x:3;--y:1012;--w:1059;--d:120;--z:2"></picture>
-        <picture><source type="image/avif" srcset="assets/cy-l3.avif?v=0af6c3b29d"><img class="sky3__l" src="assets/cy-l3.webp?v=8f4f986568" width="1080" height="1391" alt="" loading="lazy" decoding="async" style="--x:0;--y:1009;--w:1080;--d:34;--z:3"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l3.avif?v=9a509a4e3a"><img class="sky3__l" src="assets/cy-l3.webp?v=20b1144185" width="1080" height="1391" alt="" loading="lazy" decoding="async" style="--x:0;--y:1009;--w:1080;--d:34;--z:3"></picture>
         <picture><source type="image/avif" srcset="assets/cy-l3d.avif?v=f7358e053f"><img class="sky3__l sky3__dk" src="assets/cy-l3d.webp?v=c21e3b5fe1" width="1080" height="1391" alt="" loading="lazy" decoding="async" style="--x:0;--y:1009;--w:1080;--d:34;--z:3"></picture>
         </div>
         <figcaption class="skystill__words"><h2 class="hl hl--sky"><span class="ln">Taking your time?</span> <span class="ln ln--2">They’re <em class="acc">taking</em> your <em class="acc">customers</em>.</span></h2></figcaption>
@@ -746,7 +747,7 @@ window.__GATES = [
         <div class="dx-frame" id="dxFrame">
           <div class="dx-frame__bar" aria-hidden="true"><i></i><i></i><i></i><span class="dx-frame__url">domin8temedia.com/dashboard</span></div>
           <div class="dx-frame__screen">
-            <img class="dx-frame__still" src="assets/dash-master-s.webp?v=87c404f16e" srcset="assets/dash-master-s.webp?v=87c404f16e 800w, assets/dash-master.webp?v=07583c2b67 1600w" sizes="(max-width: 760px) 260px, 90vw" width="800" height="450" alt="" loading="lazy" decoding="async">
+            <img class="dx-frame__still" src="assets/dash-master-s.webp?v=60e217f68b" srcset="assets/dash-master-s.webp?v=60e217f68b 1600w, assets/dash-master.webp?v=f5030785af 3200w" sizes="(max-width: 760px) 100vw, 90vw" width="1600" height="900" alt="" loading="lazy" decoding="async">
             <button class="dx-frame__play" id="dxPlay" type="button" aria-label="Play the film with sound"><span class="dx-frame__btn"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 2.2v11.6L13.6 8z"/></svg><span class="dx-frame__lbl">Play with sound</span></span></button>
             <video id="dxMaster" controls playsinline preload="none"
                    data-src="assets/dash-master.mp4?v=f3b74e7740" data-src-sm="assets/dash-master-s.mp4?v=6d4f123098"
@@ -756,7 +757,7 @@ window.__GATES = [
       </div>
 
       <ol class="dx-chapters rv" id="dxChapters" aria-label="Film chapters">
-        <li><button class="dx-ch" type="button" data-t="0" aria-current="true"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:00</span> <span class="dx-ch__n">Your marketing. One dashboard.</span></button></li>
+        <li><button class="dx-ch" type="button" data-t="0" aria-current="true"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:00</span> <span class="dx-ch__n">Your whole business. One dashboard.</span></button></li>
         <li><button class="dx-ch" type="button" data-t="3"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:03</span> <span class="dx-ch__n">Your posts are ready</span></button></li>
         <li><button class="dx-ch" type="button" data-t="13"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:13</span> <span class="dx-ch__n">New hours, prepped for you</span></button></li>
         <li><button class="dx-ch" type="button" data-t="18"><i class="dx-ch__bar"><i></i></i><span class="dx-ch__t">0:18</span> <span class="dx-ch__n">What it brought in</span></button></li>
@@ -923,10 +924,11 @@ window.__GATES = [
 <a class="ctabar" id="ctabar" href="#contact">Get your plan</a>
 
 <script src="assets/pfilm.js?v=b40b1f4550" defer></script>
-<script src="assets/phone.js?v=0cb13caa03" defer></script>
-<script src="assets/site.js?v=2eca082d18" defer></script>
+<script src="assets/phone.js?v=718870e6ea" defer></script>
+<script src="assets/site.js?v=3980e1df77" defer></script>
 <script src="assets/dash.js?v=a56a2b4ced" defer></script>
+<script src="assets/v3-cursor.js?v=84f4e250a6" defer></script>
 <script>/* the sky film is the desktop's alone; a phone never fetches it */
-if (document.documentElement.classList.contains('film')) { var s = document.createElement('script'); s.src = 'assets/sky.js?v=adf3056ac0'; document.body.appendChild(s) }</script>
+if (document.documentElement.classList.contains('film')) { var s = document.createElement('script'); s.src = 'assets/sky.js?v=7ed1ad638d'; document.body.appendChild(s) }</script>
 </body>
 </html>
