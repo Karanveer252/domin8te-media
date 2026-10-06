@@ -62,6 +62,12 @@ html[data-v="editorial"][data-theme="light"] .opt__txt{background:#fff;border-co
 html[data-v="editorial"][data-theme="light"] .opt:hover .opt__txt{background:#fff;border-color:var(--line-2)}
 html[data-v="editorial"][data-theme="light"] .opt input:checked + .opt__txt{background:#fff;border-color:var(--ink)}
 
+/* the click (v3-cursor.js): while it plays, a copy of the cursor stands in for it in its own
+   32px window, the arrow leaving up and to the left and rising back in from the lower right */
+.v3cur{position:fixed;left:0;top:0;z-index:2147483647;width:32px;height:32px;overflow:hidden;pointer-events:none;visibility:hidden;will-change:transform}
+.v3cur i{display:block;width:32px;height:32px;background:center / 32px 32px no-repeat}
+html.v3cur-on,html.v3cur-on *{cursor:none!important}
+
 /* ---- the line: a lit glass tube lying just above the page ----
    Karan: "make the snake kind of pop, not out of the screen". On the
    light ground a glow cannot show (light on light), so the tube is
@@ -146,8 +152,8 @@ html[data-v="editorial"][data-theme="light"].film .band--climb::after{
    (#skyDay) is not wanted. Until the film's pictures are in, the beat
    shows its finished picture (the poster), never an empty sky */
 html[data-v="editorial"][data-theme="light"].film .sky__frame{filter:none;background:center / cover no-repeat}
-html[data-v="editorial"][data-theme="light"].film .sky[data-beat="a"] .sky__frame{background-image:url(v3-sky-a.jpg?v=dc8a85e24f)}
-html[data-v="editorial"][data-theme="light"].film .sky[data-beat="b"] .sky__frame{background-image:url(v3-sky-b.jpg?v=2dc94f3bc8)}
+html[data-v="editorial"][data-theme="light"].film .sky[data-beat="a"] .sky__frame{background-image:url(v3-sky-a.jpg?v=b674898a86)}
+html[data-v="editorial"][data-theme="light"].film .sky[data-beat="b"] .sky__frame{background-image:url(v3-sky-b.jpg?v=d6e0fd7c43)}
 html[data-v="editorial"][data-theme="light"] .dx-sky__deep{
   background:linear-gradient(180deg,#3F86DA 0%,#5C9BE3 30%,#92BDEC 56%,#D6E4F2 80%,var(--bg) 100%);
 }
@@ -228,6 +234,11 @@ html[data-v="editorial"][data-theme="light"] .wordmark::after{
   html.snake[data-v="editorial"][data-theme="light"] .snk__g1{stroke:#1A120C;opacity:.4}
   html.snake[data-v="editorial"][data-theme="light"] .snk__band{opacity:.35}
   html.snake[data-v="editorial"][data-theme="light"] .snk__core{stroke:#fff;stroke-opacity:.75;transform:translate(0,-1.4px)}
+
+  /* the cloud beats held half as long (Karan: "make the feel the growth and taking your
+     time section last for 50% less time"): the pinned run 120vh -> 60vh; the desktop's
+     beats are halved in site.js (FEEL.L1, L2) */
+  html.snake .act--sky{--sky-run:60vh}
 
   /* the second beat's night layers stay away: version 3 is all day */
   html.snake[data-v="editorial"][data-theme="light"] .sky3__dk{display:none}

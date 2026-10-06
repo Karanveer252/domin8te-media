@@ -26,7 +26,7 @@ var video = document.getElementById('skyVideo');
 if (!layer || !canvas || !video) return;
 
 /* content token, stamped by stamp.js: a new film is a new URL */
-var URL_ = 'assets/sky-scrub.mp4?v=e46184edf9';
+var URL_ = 'assets/sky-scrub.mp4?v=31dea216b0';
 var FPS = 30;
 
 /* each beat fades in over a..b and out over c..d of the world's progress,

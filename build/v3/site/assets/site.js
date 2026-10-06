@@ -219,7 +219,9 @@ function armReveals() {
      fire     at q `at` the film plays itself on to `to` in `ms`; lo and hi are
               the beat's bounds, outside which it is not armed */
 var FEEL = {
-  L1: 400, L2: 350,
+  /* version 3 (Karan, 2026-10-05: "make the feel the growth and taking your time section
+     last for 50% less time"): half of 400 and 350 */
+  L1: 200, L2: 175,
   k1: [[0, .30], [.30, .335], [.62, .3615], [.80, .41], [.95, .452], [1, .46]],
   k2: [[0, .875], [.33, .905], [.62, .9237], [.82, .945], [.95, .956], [1, .965]],
   ev: [{ a: .303, b: .3615, c: .47 }, { a: .878, b: .9237, c: .97 }],
