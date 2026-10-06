@@ -87,10 +87,11 @@ function shape(paint, bodyW, headW, more) {
 var RIM = [2 * (C + E + R), 2 * (E + R)], EDGE = [2 * (C + E), 2 * E], GEL = [2 * C, .2];
 
 /* the spectrum: one rainbow along the body, tip to tail, written twice (0 to 1 covers two) and closed
-   on its first colour so the repeat has no seam; it travels toward the head by exactly one rainbow
-   every 3.2 seconds, so the loop is seamless by construction */
+   on its first colour so the repeat has no seam. At rest it stands still (2026-10-06, Karan: "only make
+   it change the gradient when clicked, when not clicked make the gradient static"); each click runs it
+   one full rainbow toward the head over the pulse, so it lands exactly where it started */
 var RAINBOW = ['#6A4BFF', '#2F8CFF', '#13C2C9', '#3FD670', '#C9DD3A', '#FFC83A', '#FF8A2A', '#FF5A3C'];
-var SPECTRUM_S = 3.2;
+var SPIN = bezier(.25, .1, .2, 1);                                   /* off with the click, landing softly */
 var AX = [BODY[0][0] - TIP[0], BODY[0][1] - TIP[1]], AL = Math.hypot(AX[0], AX[1]);
 var DX = AX[0] / AL, DY = AX[1] / AL;
 var PERIOD = 80;                                                      /* one rainbow, in grid units along the axis */
@@ -105,7 +106,6 @@ var markSVG =
 '<svg class="mark" viewBox="-7 -8 76 76" aria-label="Domin8te growth cursor" role="img">' +
 '<defs>' +
   '<linearGradient id="spec" gradientUnits="userSpaceOnUse" spreadMethod="repeat" x1="' + f2(G1[0]) + '" y1="' + f2(G1[1]) + '" x2="' + f2(G2[0]) + '" y2="' + f2(G2[1]) + '">' + stops() +
-    '<animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="' + f2(-PERIOD * DX) + ' ' + f2(-PERIOD * DY) + '" dur="' + SPECTRUM_S + 's" repeatCount="indefinite"/>' +
   '</linearGradient>' +
   '<linearGradient id="rimG" gradientUnits="userSpaceOnUse" x1="4" y1="2" x2="58" y2="60"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".55" stop-color="#FFFDF9"/><stop offset="1" stop-color="#F3ECE1"/></linearGradient>' +
   '<linearGradient id="exG" gradientUnits="userSpaceOnUse" x1="4" y1="2" x2="58" y2="60"><stop offset="0" stop-color="#E8DECF"/><stop offset="1" stop-color="#D2C3AA"/></linearGradient>' +
@@ -154,7 +154,7 @@ var depth = document.getElementById('depth'), bloom = document.getElementById('b
 var sparksEl = document.getElementById('sparks'), scene = document.getElementById('scene');
 pulseEl.innerHTML = markSVG;
 depth.innerHTML = shadeSVG;
-var mark = pulseEl.querySelector('svg'), gloss = mark.getElementById ? mark.getElementById('gloss') : mark.querySelector('#gloss');
+var mark = pulseEl.querySelector('svg'), spec = mark.querySelector('#spec'), gloss = mark.getElementById ? mark.getElementById('gloss') : mark.querySelector('#gloss');
 
 /* ---------------------------------------------------------------- the growth pulse
    520 ms; CSS keyframe semantics: the easing runs within each step, exactly as an @keyframes rule
@@ -228,6 +228,8 @@ function apply(rx, ry, pms, seed) {
   /* the light stays put while the mark turns: its highlights slide a touch the other way */
   gloss.setAttribute('transform', 'translate(' + (-ry * .035).toFixed(3) + ' ' + (rx * .035).toFixed(3) + ')');
   var p = pulseAt(pms), S = scene.offsetWidth;
+  var k = p ? SPIN(pms / DUR) : 0;
+  spec.setAttribute('gradientTransform', k ? 'translate(' + (-PERIOD * DX * k).toFixed(3) + ' ' + (-PERIOD * DY * k).toFixed(3) + ')' : '');
   if (p) {
     pulseEl.style.transform = 'scale(' + p.sx.toFixed(4) + ',' + p.sy.toFixed(4) + ') translate(' + p.tx.toFixed(2) + 'px,' + p.ty.toFixed(2) + 'px)';
     pulseEl.style.filter = p.flash > .001 ? 'brightness(' + (1 + .13 * p.flash).toFixed(3) + ') saturate(' + (1 + .38 * p.flash).toFixed(3) + ')' : 'none';
@@ -277,7 +279,7 @@ if (!RENDER) {
      clicks; a breath; a second click. The tilt is stepped exactly as the page steps it (the same lerp,
      at a fixed 240 Hz), run in from two loops back so it is settled; over the last half second it is
      blended into the loop's own start, so the GIF has no seam */
-  var LOOP = SPECTRUM_S, HZ = 240, CLICKS = [1.9, 2.64];
+  var LOOP = 3.2, HZ = 240, CLICKS = [1.9, 2.64];
   function mouseAt(t) {
     var w = ((t % LOOP) + LOOP) % LOOP;
     if (w >= .9 && w < 1.4) return [-1, 0];
@@ -294,13 +296,10 @@ if (!RENDER) {
     }
   })();
   function S_at(t) { var i = Math.round(t * HZ) - n0; return track[Math.max(0, Math.min(track.length - 1, i))] }
-  var svgs = [mark];
-  svgs.forEach(function (s) { s.pauseAnimations() });
   window.__frame = function (t) {
     var a = S_at(t), b = S_at(t - LOOP), w = smooth((t - (LOOP - .5)) / .5);
     var pms = -1e9, seed = 0;
     CLICKS.forEach(function (c, i) { if (t >= c) { pms = (t - c) * 1000; seed = i + 1 } });
-    svgs.forEach(function (s) { s.setCurrentTime(t % SPECTRUM_S) });
     apply(a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w, pms, seed);
     return true;
   };
