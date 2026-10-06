@@ -26,7 +26,7 @@ var video = document.getElementById('skyVideo');
 if (!layer || !canvas || !video) return;
 
 /* content token, stamped by stamp.js: a new film is a new URL */
-var URL_ = 'assets/sky-scrub.mp4?v=4340bab647';
+var URL_ = 'assets/sky-scrub.mp4?v=e46184edf9';
 var FPS = 30;
 
 /* each beat fades in over a..b and out over c..d of the world's progress,
@@ -65,7 +65,6 @@ function track(keys, p) {
 /* ---------- the layer ---------- */
 
 var shownOp = -1, shownBeat = -1, loading = false, videoReady = false, failed = false;
-var shownWk = -1;   /* version 3 */
 var idleAt = null;
 
 function setOp(op, beat) {
@@ -105,12 +104,6 @@ window.__sky = function (p, P, pf) {
      is a few screens down, whichever comes first: never in the hero's way */
   if (!loading && (P > .12 || (hero && hero.classList.contains('video-ready')))) load();
   setOp(op, beat);
-  /* version 3: how far the beat's words have formed, 0 to 1, from the frame the
-     film would be showing (each beat forms its words over frames 28 to 78) */
-  if (beat >= 0) {
-    var wk = smooth(frame - (beat === 0 ? 0 : 96), 28, 78), wq = Math.round(wk * 200) / 200;
-    if (wq !== shownWk) { shownWk = wq; layer.style.setProperty('--wk', wq.toFixed(3)) }
-  }
   if (op > 0 && frame >= 0) {
     if (idleAt !== null) { clearTimeout(idleAt); idleAt = null }
     want(frame);
@@ -123,7 +116,7 @@ window.__sky = function (p, P, pf) {
 /* for the scrub test: what is wanted and what is on screen */
 window.__skyState = function () {
   var drawn = FD ? drawnFrame : (videoReady ? Math.round((video.currentTime || 0) * FPS) : -1);
-  return { want: wantFrame, drawn: drawn, wc: !!FD, video: videoReady, failed: failed, op: shownOp, t: video.currentTime || 0 };
+  return { want: wantFrame, drawn: drawn, wc: !!FD, video: videoReady, failed: failed, op: shownOp, t: video.currentTime || 0, gopMs: FD && FD.groups > 2 ? Math.round(FD.slowMs / (FD.groups - 2)) : -1 };
 };
 
 function want(frame) {
@@ -141,10 +134,6 @@ function fail() {
 function load() {
   if (loading) return;
   loading = true;
-  /* version 3: no film. The beats are the page's own words over the day sky
-     (v3.css), shown the way the page shows them when the film cannot play */
-  fail();
-  return;
   if (!window.fetch || !window.ReadableStream) { fail(); return }
   var ctrl = new AbortController();
   var watchdog = setTimeout(function () { ctrl.abort() }, 30000);
@@ -519,7 +508,11 @@ function decodeGop(g) {
     var ms = performance.now() - t0;
     if (++fd.groups > 2) {
       fd.slowMs += ms;
-      if (fd.groups === 6 && fd.slowMs / 3 > 90) { filmFallback(); return }
+      /* version 3 (2026-10-05, Karan: "most of the times the clouds animation doesn't
+         load properly"): the cut to the video element came at 90ms a group, which a
+         laptop decoding in software reaches, and the video element's seeks are far
+         worse than a slow decode (a group is 8 frames: even 400ms keeps 20 a second) */
+      if (fd.groups === 6 && fd.slowMs / 3 > 400) { filmFallback(); return }
     }
     paintFrame();
     pumpDecoder();
@@ -574,7 +567,4 @@ function filmFallback() {
 document.addEventListener('visibilitychange', function () {
   if (document.hidden) dropFrames();
 });
-/* version 3: the words, never the film, from the first frame */
-load();
-
 })();

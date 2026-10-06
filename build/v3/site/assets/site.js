@@ -799,7 +799,7 @@ var heroRing = document.getElementById('heroRing');
 var hctx = heroCanvas && heroCanvas.getContext ? heroCanvas.getContext('2d') : null;
 
 /* content tokens, like the css and js: a new film is a new URL, never a stale cache */
-var VIDEO_URL = 'assets/hero-scrub.mp4?v=c709dc8d8c';
+var VIDEO_URL = 'assets/hero-scrub.mp4?v=fc4ebe2e6f';
 var heroTime = 1.8, heroAlpha = 1, heroReady = false, heroInit = false;
 var HERO = null;
 
@@ -1155,7 +1155,8 @@ function decodeGop(g) {
     var ms = performance.now() - t0;
     if (++fd.groups > 2) {
       fd.slowMs += ms;
-      if (fd.groups === 6 && fd.slowMs / 3 > 90) { filmFallback(); return }
+      /* version 3: as in sky.js, the cut to the video element waits for a really slow decoder */
+      if (fd.groups === 6 && fd.slowMs / 3 > 400) { filmFallback(); return }
     }
     paintFrame();
     pumpDecoder();
@@ -1245,7 +1246,7 @@ function failHero() { if (hero) hero.classList.add('video-failed') }
 function initHeroOnce() {
   if (heroInit || !hero) return;
   heroInit = true;
-  heroFrame.style.backgroundImage = "url('assets/hero-poster.jpg?v=840ded971d')";
+  heroFrame.style.backgroundImage = "url('assets/hero-poster.jpg?v=54bbea9307')";
 
   fetch('assets/hero-data.json?v=8f6d61f8bc')
     .then(function (r) { return r.json() })

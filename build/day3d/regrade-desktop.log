@@ -1,0 +1,11 @@
+GRADED SEQ 0 288
+GRADED SEQ 0 288
+ended 289 -> render/out
+total 3780
+drwxr-xr-x 1 kvsd1 197609       0 Oct  5 07:39 .
+drwxr-xr-x 1 kvsd1 197609       0 Oct  5 20:43 ..
+-rw-r--r-- 1 kvsd1 197609    1425 Oct  5 21:25 encode.log
+-rw-r--r-- 1 kvsd1 197609    6437 Oct  5 21:25 hero-data.json
+-rw-r--r-- 1 kvsd1 197609   62128 Oct  5 21:25 hero-poster.jpg
+-rw-r--r-- 1 kvsd1 197609 3727830 Oct  5 21:25 hero-scrub.mp4
+-rw-r--r-- 1 kvsd1 197609   50134 Oct  5 21:25 hero-still.jpg

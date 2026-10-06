@@ -73,7 +73,13 @@ LIFT = float(arg('--lift', 0.0))
 lift = ct.nodes.new('CompositorNodeMixRGB'); lift.blend_type = 'ADD'; lift.inputs['Fac'].default_value = 1.0
 lift.inputs[2].default_value = (LIFT, LIFT, LIFT * 1.15, 1)
 comp = ct.nodes.new('CompositorNodeComposite')
-ct.links.new(img.outputs['Image'], glare.inputs['Image'])
+# --warm r,g,b: a scene-linear white balance before everything else (v3 regrade, 2026-10-05: the
+# day kitchen read grey and washed; the pictures it was built from are warm sunlight)
+_wm = [float(x) for x in str(arg('--warm', '1,1,1')).split(',')]
+warm = ct.nodes.new('CompositorNodeMixRGB'); warm.blend_type = 'MULTIPLY'; warm.inputs['Fac'].default_value = 1.0
+warm.inputs[2].default_value = (_wm[0], _wm[1], _wm[2], 1)
+ct.links.new(img.outputs['Image'], warm.inputs[1])
+ct.links.new(warm.outputs['Image'], glare.inputs['Image'])
 ct.links.new(ell.outputs['Mask'], blur.inputs['Image'])
 ct.links.new(glare.outputs['Image'], vmix.inputs[1])
 ct.links.new(blur.outputs['Image'], vmix.inputs[2])

@@ -16,14 +16,57 @@
    Loaded after the shared sheets, only by v3/site/index.html.
    ============================================================ */
 
-/* ---- tokens: navy ink on the cream ---- */
+/* ---- tokens: three values, not one ----
+   Karan, 2026-10-05: "the rest of the website kinda looks washed out
+   because of the white background ... don't just go ahead and bold
+   everything". It looked washed out because ground, cards and type
+   all sat at the top of the scale: cream under white cards under thin
+   grey words. Now each has its own step: the ground drops to a warm
+   sand with a faint paper grain, the cards stay white and so stand off
+   it, and the ink goes to near black. The second line of a headline
+   is set apart by hue (a dusk blue) instead of by fading it to grey,
+   so it keeps its contrast. The weights are unchanged. Both films end
+   on this sand (day3d/end.py, daysky/compose.py) */
 html[data-v="editorial"][data-theme="light"]{
-  --ink:#18202F;
-  --ink-2:#465063;
-  --ink-3:#687083;
+  --bg:#ECE6DD;
+  --dx-ground-rgb:236,230,221;
+  --raise-2:#F7F4EF;
+  --ink:#0E1420;
+  --ink-2:#394357;
+  --ink-3:#566074;
+  --v3-dusk:#3A4E7A;         /* 6.6:1 on the sand, 8.2:1 on a card */
   --v3-cta:#CA4A14;          /* white type on it holds 4.6:1 */
   --v3-cta-hover:#B5410F;
+  --card-shadow:0 1px 2px rgba(60,42,24,.07),0 14px 34px -18px rgba(60,42,24,.32);
+  --v3-grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .3  0 0 0 0 .22  0 0 0 0 .14  0 0 0 .5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.22'/></svg>");
 }
+html[data-v="editorial"][data-theme="light"] body,
+html[data-v="editorial"][data-theme="light"].film .stage{background:var(--v3-grain),var(--bg)}
+html[data-v="editorial"][data-theme="light"] .hl .ln--2,
+html[data-v="editorial"][data-theme="light"] .band--studio .ln--2{color:var(--v3-dusk)}
+/* the options are cards too */
+html[data-v="editorial"][data-theme="light"] .opt__txt{background:#fff;border-color:transparent;border-radius:14px;box-shadow:var(--card-shadow)}
+html[data-v="editorial"][data-theme="light"] .opt:hover .opt__txt{background:#fff;border-color:var(--line-2)}
+html[data-v="editorial"][data-theme="light"] .opt input:checked + .opt__txt{background:#fff;border-color:var(--ink)}
+
+/* ---- the line: a lit glass tube lying just above the page ----
+   Karan: "make the snake kind of pop, not out of the screen". On the
+   light ground a glow cannot show (light on light), so the tube is
+   given what a real one has in daylight: edges in its own colour,
+   darkened (the case, the spectrum itself, under a dark film: the rim),
+   a white highlight along its top, and a soft shadow on the page a
+   little below it. The shadows and the rim are new <use>s in
+   index.html's #boltg; they share the bolt's dash, so they draw with it */
+html[data-v="editorial"][data-theme="light"]{--lnw:calc(4px + 10px * var(--pw,0) + 7px * var(--ten,0))}
+html[data-v="editorial"][data-theme="light"] .thread--shade{stroke:#1A2232;fill:none}
+html[data-v="editorial"][data-theme="light"] .thread--shade2{stroke-width:calc(var(--lnw) + 24px);opacity:calc(.035 + .02 * var(--pw,0));transform:translate(0,20px)}
+html[data-v="editorial"][data-theme="light"] .thread--shade1{stroke-width:calc(var(--lnw) + 7px);opacity:calc(.08 + .05 * var(--pw,0));transform:translate(0,9px)}
+html[data-v="editorial"][data-theme="light"] .thread--case{stroke:url(#specg);stroke-width:calc(var(--lnw) + 3.6px);opacity:1}
+html[data-v="editorial"][data-theme="light"] .thread--rim{stroke:#160D08;fill:none;stroke-width:calc(var(--lnw) + 3.6px);opacity:.36}
+html[data-v="editorial"][data-theme="light"] .thread--glow{opacity:calc(.03 + .04 * var(--pw,0))}
+html[data-v="editorial"][data-theme="light"] .thread--body{stroke-width:var(--lnw);opacity:1}
+html[data-v="editorial"][data-theme="light"] .thread--hot{stroke-width:var(--lnw)}
+html[data-v="editorial"][data-theme="light"] .thread--core{stroke:#fff;stroke-width:calc(var(--lnw) * .3);opacity:calc(.55 + .2 * var(--pw,0));transform:translate(0,calc(var(--lnw) * -.2))}
 .dx-toggle,html.js[data-v="editorial"] .dx-toggle,html.js[data-v="editorial"] .dx-toggle--foot{display:none!important}
 
 /* ---- the header: a white bar, always ---- */
@@ -55,7 +98,7 @@ html[data-v="editorial"][data-theme="light"] .hl--hero .acc{
 }
 html[data-v="editorial"][data-theme="light"] .hl--hero .ln--2,
 html[data-v="editorial"][data-theme="light"] .hl--hero:has(.acc) .ln--2{
-  font-size:.4em;font-weight:400;letter-spacing:.16em;color:var(--ink-3);margin-top:.35em;
+  font-size:.4em;font-weight:400;letter-spacing:.16em;color:var(--v3-dusk);margin-top:.35em;
 }
 /* the block is as wide as its widest line ("SPECIALS." at 1.9 of the token), so the line's reveal
    (a clip a little wider than the block) never cuts its last letters */
@@ -68,7 +111,7 @@ html[data-v="editorial"][data-theme="light"].film .band--hero .cta{flex-wrap:wra
 
 /* ---- meet: the thinnest MEET., the partner line in spaced caps ---- */
 html[data-v="editorial"][data-theme="light"] .band--studio .ln--strong{font-weight:200;font-size:2.05em;line-height:.92;letter-spacing:-.01em;color:var(--ink)}
-html[data-v="editorial"][data-theme="light"] .band--studio .ln--2{font-size:.44em;letter-spacing:.14em;color:var(--ink-2);margin-top:.5em}
+html[data-v="editorial"][data-theme="light"] .band--studio .ln--2{font-size:.44em;letter-spacing:.14em;color:var(--v3-dusk);margin-top:.5em}
 
 /* ---- the first step: graph paper under the climb, at the right ---- */
 html[data-v="editorial"][data-theme="light"].film .band--climb::after{
@@ -80,48 +123,27 @@ html[data-v="editorial"][data-theme="light"].film .band--climb::after{
   mask-image:radial-gradient(70% 70% at 70% 62%,#000 30%,transparent 100%);
 }
 
-/* ---- the cloud beats: words in the sky ----
-   No film (sky.js says so from the start), so the beat is the page's own
-   words, set as heavy extruded letters over a sunny sky and a sea of cloud.
-   --wk (sky.js) is how far the words have formed: they rise out of the cloud,
-   sharpen and settle */
-html[data-v="editorial"][data-theme="light"].film .sky__frame{filter:none}
+/* ---- the cloud beats: the sky film, by day ----
+   Rendered again in daylight (build/daysky: the night film's clouds and
+   camera, a noon sun, a blue sky lighting the shadow sides, the words in
+   heavy charcoal and orange), transparent, then laid over this page's own
+   sky (daysky/compose.py: these stops, top to bottom of the frame, which
+   is the screen's height). So the film's sky and .dx-sky__deep are one
+   colour and the frame's edges never show; the night film's key
+   (#skyDay) is not wanted. Until the film's pictures are in, the beat
+   shows its finished picture (the poster), never an empty sky */
+html[data-v="editorial"][data-theme="light"].film .sky__frame{filter:none;background:center / cover no-repeat}
+html[data-v="editorial"][data-theme="light"].film .sky[data-beat="a"] .sky__frame{background-image:url(v3-sky-a.jpg?v=dc8a85e24f)}
+html[data-v="editorial"][data-theme="light"].film .sky[data-beat="b"] .sky__frame{background-image:url(v3-sky-b.jpg?v=2dc94f3bc8)}
 html[data-v="editorial"][data-theme="light"] .dx-sky__deep{
-  background:
-    radial-gradient(55% 60% at 86% 64%,rgba(255,238,206,.95) 0%,rgba(255,238,206,.5) 38%,rgba(255,238,206,0) 72%),
-    linear-gradient(180deg,#A8C8EA 0%,#BCD5EF 30%,#DCE5EE 64%,#F3EEE6 88%,var(--bg) 100%);
+  background:linear-gradient(180deg,#3F86DA 0%,#5C9BE3 30%,#92BDEC 56%,#D6E4F2 80%,var(--bg) 100%);
 }
-.v3-sea{display:none}
-html[data-v="editorial"][data-theme="light"].film .v3-sea{
-  display:block;position:absolute;left:-3vw;right:-3vw;bottom:-6vh;height:64vh;z-index:0;pointer-events:none;
-  background-position:center bottom;background-size:100% auto;background-repeat:no-repeat;
-  transform:translateY(calc((1 - var(--wk,0)) * 14vh));
-}
-html.film .sky:not([data-beat="a"]) .v3-sea--a,
-html.film .sky:not([data-beat="b"]) .v3-sea--b{display:none}
-html[data-v="editorial"][data-theme="light"].film .sky__frame{z-index:1}
-html[data-v="editorial"][data-theme="light"].film .sky__fb{padding:0 5vw;align-items:center}
-html[data-v="editorial"][data-theme="light"].film .sky__fb--a{padding-bottom:8vh}
-html[data-v="editorial"][data-theme="light"].film .sky__fb .hl--sky{
-  font:600 min(8.6vw,14vh)/1.02 var(--f-display);letter-spacing:-.03em;word-spacing:.02em;text-transform:none;
-  color:#363B44;-webkit-text-stroke:.024em #363B44;
-  text-shadow:
-    0 .012em 0 #2D3139,0 .024em 0 #2A2E36,0 .036em 0 #272B32,0 .048em 0 #24272E,
-    0 .06em 0 #21242A,0 .072em 0 #1E2126,0 .084em .004em #1B1D22,
-    0 .12em .1em rgba(18,22,30,.26),0 .22em .34em rgba(18,22,30,.2);
-  transform:translateY(calc((1 - var(--wk,1)) * 16vh)) scale(calc(.86 + .14 * var(--wk,1)));
-  opacity:var(--wk,1);
-  filter:blur(calc((1 - var(--wk,1)) * 7px));
-}
-html[data-v="editorial"][data-theme="light"].film .sky__fb .hl--sky .ln{display:block}
-html[data-v="editorial"][data-theme="light"].film .sky__fb .hl--sky .ln--2{font-size:.64em;color:#363B44;margin-top:.12em}
-html[data-v="editorial"][data-theme="light"].film .sky__fb .hl--sky .acc{
-  color:#FF6A1F;-webkit-text-stroke-color:#FF6A1F;
-  text-shadow:
-    0 .012em 0 #F25F18,0 .024em 0 #E85814,0 .036em 0 #DD5212,0 .048em 0 #D24B10,
-    0 .06em 0 #C5450E,0 .072em 0 #B8400D,0 .084em .004em #A93A0C,
-    0 .12em .1em rgba(120,40,8,.24),0 .22em .34em rgba(18,22,30,.18);
-}
+/* the strain (the frame closing in while the scroll charges the beat) closed in
+   with a white haze by day; over a bright blue sky that only fogged the words, so
+   here it is a breath of it */
+html[data-v="editorial"][data-theme="light"].film .strain::before{opacity:calc(var(--ten,0) * .28)}
+/* if the film cannot play at all, the poster is the beat: no second set of words over it */
+html[data-v="editorial"][data-theme="light"].film .sky.sky-failed .sky__fb{display:none!important}
 
 /* ---- the scroll pill: white ---- */
 html[data-v="editorial"][data-theme="light"].film .charge{
@@ -152,18 +174,27 @@ html[data-v="editorial"][data-theme="light"] .wordmark::after{
 @media (max-width:760px){
   /* the hero's SPECIALS. keeps to the phone's column */
   html[data-v="editorial"][data-theme="light"] .hl--hero .acc{font-size:min(1.9em,calc((100vw - 96px) / 5.4))}
+  /* the opening: the whole cloche on the first screen (Karan sent the first
+     screen with the dome cut off at the foot). The scene is pulled up under
+     the words so its plate ends just above the screen's foot: the words end
+     about 536px down on most phones, and the plate sits at 70% of the 2:3
+     scene (105vw down it). The scene's top fades out over its first 16%, so
+     the words and the link sit on the faded wall, never on the dome; on the
+     shortest phones the pull stops at 120px, the knob still clear of the link */
+  html.snake[data-v="editorial"][data-theme="light"].story .act--still{margin-top:max(-120px,min(22px,calc(100svh - 105vw - 536px)))}
   /* the contact bar: the same pill as the header's */
   html[data-v="editorial"][data-theme="light"] .ctabar{background:var(--v3-cta);color:#fff;border-radius:999px;box-shadow:0 14px 30px -14px rgba(202,74,20,.75)}
   html[data-v="editorial"][data-theme="light"] .ctabar:hover{background:var(--v3-cta-hover);color:#fff}
 
-  /* the cloud beats: the same sunny sky and white cloud as the desktop's, and
-     the same heavy words, extruded more shallowly here: they rise out of
-     masks that leave only a little room below the letters */
+  /* the cloud beats: the desktop's day sky, and the phone's own cloud layers
+     rendered again by day (daysky/render-cy.sh: the night layers' shapes, a
+     noon sun, a blue sky in their shadows), so nothing is filtered here; the
+     same heavy words, extruded more shallowly: they rise out of masks that
+     leave only a little room below the letters */
   html.snake[data-v="editorial"][data-theme="light"] .sky3::before,
   html.snake[data-v="editorial"][data-theme="light"] .act--sky-b .sky3::before{
-    background:linear-gradient(180deg,rgba(var(--dx-ground-rgb),0) 0,#C3D8EE 60px,#D5E2EE 40%,#ECEBE8 82%,rgba(var(--dx-ground-rgb),0) 100%);
+    background:linear-gradient(180deg,rgba(var(--dx-ground-rgb),0) 0,rgba(146,189,236,.55) 70px,#6FA7E6 170px,#4F92DF 26%,#92BDEC 54%,#D6E4F2 78%,rgba(var(--dx-ground-rgb),0) 100%);
   }
-  html.snake[data-v="editorial"][data-theme="light"] .sky3__l{filter:brightness(1.45) contrast(.82) saturate(.5)}
   html[data-v="editorial"][data-theme="light"].story .act--sky .hl--sky{
     font-weight:600;text-transform:none;letter-spacing:-.03em;word-spacing:0;
     color:#363B44;-webkit-text-stroke:.02em #363B44;
@@ -174,6 +205,17 @@ html[data-v="editorial"][data-theme="light"] .wordmark::after{
     text-shadow:0 .012em 0 #F25F18,0 .024em 0 #DD5212,0 .036em 0 #CA4810,0 .048em 0 #B8400D,0 .07em .04em rgba(120,40,8,.2);
   }
   html[data-v="editorial"][data-theme="light"].story .act--sky-b .hl--sky .ln--2{color:#363B44}
+  /* the phone's line: the desktop's tube (phone.js draws its own layers: four
+     glows, the body, a lighter band, a core). The two widest glows become its
+     shadow on the page, a little below it; the narrowest, a dark rim; the
+     core, a highlight along its top */
+  html.snake[data-v="editorial"][data-theme="light"] .snk__g4{stroke:#1A2232;opacity:.045;transform:translate(0,9px)}
+  html.snake[data-v="editorial"][data-theme="light"] .snk__g3{stroke:#1A2232;opacity:.075;transform:translate(0,5px)}
+  html.snake[data-v="editorial"][data-theme="light"] .snk__g2{opacity:0}
+  html.snake[data-v="editorial"][data-theme="light"] .snk__g1{stroke:#1A120C;opacity:.4}
+  html.snake[data-v="editorial"][data-theme="light"] .snk__band{opacity:.35}
+  html.snake[data-v="editorial"][data-theme="light"] .snk__core{stroke:#fff;stroke-opacity:.75;transform:translate(0,-1.4px)}
+
   /* the second beat's night layers stay away: version 3 is all day */
   html.snake[data-v="editorial"][data-theme="light"] .sky3__dk{display:none}
   html.snake[data-v="editorial"][data-theme="light"] .act--sky-b .sky3__l:not(.sky3__dk){opacity:1}

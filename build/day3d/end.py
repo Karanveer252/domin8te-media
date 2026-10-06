@@ -5,7 +5,9 @@
 import sys, os
 import numpy as np
 from PIL import Image
-CREAM = np.array([244, 241, 236], dtype=float)
+# the page's ground (v3.css --bg): the sand #ECE6DD since 2026-10-05 (Karan: "the rest of the website
+# looks washed out because of the white background"); CREAM=r,g,b overrides it
+CREAM = np.array([float(x) for x in os.environ.get('CREAM', '236,230,221').split(',')], dtype=float)
 F_DIM0, F_DIM1, N = 234, 282, 289
 def smooth(x, a, b):
     t = min(1.0, max(0.0, (x - a) / (b - a))); return t * t * (3 - 2 * t)

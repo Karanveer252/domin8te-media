@@ -25,7 +25,7 @@
 <link rel="stylesheet" href="assets/v-editorial.css?v=9aa20f5d3c">
 <link rel="stylesheet" href="assets/dash.css?v=85df72a141">
 <link rel="stylesheet" href="assets/light.css?v=f2976391df">
-<link rel="stylesheet" href="assets/v3.css?v=11510398f7">
+<link rel="stylesheet" href="assets/v3.css?v=77488dfe29">
 
 <script type="application/ld+json">
 {
@@ -225,9 +225,9 @@ window.__GATES = [
        ground never shows it, so its pictures never load there. -->
   <div class="dx-sky" aria-hidden="true">
     <i class="dx-sky__deep"></i>
-    <i class="dx-sky__l dx-sky__l--far" style="background-image:url(assets/dx-cloud-far.webp?v=9ffc6ccad6)"></i>
-    <i class="dx-sky__l dx-sky__l--mid" style="background-image:url(assets/dx-cloud-mid.webp?v=3cb7180eba)"></i>
-    <i class="dx-sky__l dx-sky__l--near" style="background-image:url(assets/dx-cloud-near.webp?v=20a8460990)"></i>
+    <i class="dx-sky__l dx-sky__l--far" style="background-image:url(assets/dx-cloud-far.webp?v=52cd342e9f)"></i>
+    <i class="dx-sky__l dx-sky__l--mid" style="background-image:url(assets/dx-cloud-mid.webp?v=55f4097f6e)"></i>
+    <i class="dx-sky__l dx-sky__l--near" style="background-image:url(assets/dx-cloud-near.webp?v=a6a54f6e9e)"></i>
   </div>
 
   <!-- the sky: the two cloud beats, one Blender film scrubbed by the scroll
@@ -235,8 +235,6 @@ window.__GATES = [
        clouds. The words are in the film; the story props above carry them as
        text. If the film cannot play at all, the words alone show here. -->
   <div class="sky" id="sky" aria-hidden="true">
-    <i class="v3-sea v3-sea--a" style="background-image:url(assets/v3-sea-a.webp?v=f5a6bd8578)"></i>
-    <i class="v3-sea v3-sea--b" style="background-image:url(assets/v3-sea-b.webp?v=fe7653d58b)"></i>
     <div class="sky__frame">
       <video class="sky__video" id="skyVideo" muted playsinline preload="none"
              tabindex="-1" disablepictureinpicture></video>
@@ -255,7 +253,10 @@ window.__GATES = [
       </defs>
 
       <g class="bolt" id="boltg">
+        <use class="thread thread--shade thread--shade2" href="#boltPath"/>
+        <use class="thread thread--shade thread--shade1" href="#boltPath"/>
         <use class="thread thread--case" href="#boltPath"/>
+        <use class="thread thread--rim" href="#boltPath"/>
         <use class="thread thread--glow" href="#boltPath"/>
         <use class="thread thread--body" href="#boltPath"/>
         <use class="thread thread--hot" href="#boltPath"/>
@@ -321,14 +322,14 @@ window.__GATES = [
          them until the clouds part on the words. -->
     <div class="act act--sky act--sky-a" style="--o:5">
       <figure class="skystill">
-        <picture><img class="skystill__img" src="assets/sky-a-still.jpg?v=e0695f56e3" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
+        <picture><img class="skystill__img" src="assets/sky-a-still.jpg?v=12dd937e55" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
         <div class="sky3" aria-hidden="true">
         <i class="sky3__glow"></i>
         <canvas class="sky3__line"></canvas>
-        <picture><source type="image/avif" srcset="assets/cy-l4.avif?v=325a8fcad9"><img class="sky3__l" src="assets/cy-l4.webp?v=af4b356d61" width="1059" height="158" alt="" loading="lazy" decoding="async" style="--x:3;--y:1012;--w:1059;--d:120;--z:2"></picture>
-        <picture><source type="image/avif" srcset="assets/cy-l3.avif?v=0af6c3b29d"><img class="sky3__l" src="assets/cy-l3.webp?v=8f4f986568" width="1080" height="1391" alt="" loading="lazy" decoding="async" style="--x:0;--y:1009;--w:1080;--d:34;--z:3"></picture>
-        <picture><source type="image/avif" srcset="assets/cy-l2.avif?v=1513812838"><img class="sky3__l sky3__near" src="assets/cy-l2.webp?v=f831be0e64" width="810" height="1052" alt="" loading="lazy" decoding="async" style="--x:0;--y:930;--w:1080;--d:20;--z:5"></picture>
-        <picture><source type="image/avif" srcset="assets/cy-l1.avif?v=c28c53efa6"><img class="sky3__l sky3__near" src="assets/cy-l1.webp?v=02cd2090fd" width="810" height="986" alt="" loading="lazy" decoding="async" style="--x:0;--y:1050;--w:1080;--d:11;--z:6"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l4.avif?v=21d36ee7cb"><img class="sky3__l" src="assets/cy-l4.webp?v=ebf9582b9d" width="1059" height="158" alt="" loading="lazy" decoding="async" style="--x:3;--y:1012;--w:1059;--d:120;--z:2"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l3.avif?v=9a509a4e3a"><img class="sky3__l" src="assets/cy-l3.webp?v=20b1144185" width="1080" height="1391" alt="" loading="lazy" decoding="async" style="--x:0;--y:1009;--w:1080;--d:34;--z:3"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l2.avif?v=1c97fb2a78"><img class="sky3__l sky3__near" src="assets/cy-l2.webp?v=55b3e1dba0" width="810" height="1052" alt="" loading="lazy" decoding="async" style="--x:0;--y:930;--w:1080;--d:20;--z:5"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l1.avif?v=1fc9bb50e3"><img class="sky3__l sky3__near" src="assets/cy-l1.webp?v=60da668b1a" width="810" height="986" alt="" loading="lazy" decoding="async" style="--x:0;--y:1050;--w:1080;--d:11;--z:6"></picture>
         </div>
         <figcaption class="skystill__words"><h2 class="hl hl--sky"><span class="ln">Feel the <em class="acc">growth.</em></span></h2></figcaption>
       </figure>
@@ -482,13 +483,13 @@ window.__GATES = [
          drift and the light goes (phone.js). -->
     <div class="act act--sky act--sky-b" style="--o:14">
       <figure class="skystill">
-        <picture><img class="skystill__img" src="assets/sky-b-still.jpg?v=a741bd86eb" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
+        <picture><img class="skystill__img" src="assets/sky-b-still.jpg?v=4b7606deb3" width="1600" height="900" alt="" loading="lazy" decoding="async"></picture>
         <div class="sky3" aria-hidden="true">
         <i class="sky3__glow"></i>
         <canvas class="sky3__line"></canvas>
-        <picture><source type="image/avif" srcset="assets/cy-l4.avif?v=325a8fcad9"><img class="sky3__l" src="assets/cy-l4.webp?v=af4b356d61" width="1059" height="158" alt="" loading="lazy" decoding="async" style="--x:3;--y:1012;--w:1059;--d:120;--z:2"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l4.avif?v=21d36ee7cb"><img class="sky3__l" src="assets/cy-l4.webp?v=ebf9582b9d" width="1059" height="158" alt="" loading="lazy" decoding="async" style="--x:3;--y:1012;--w:1059;--d:120;--z:2"></picture>
         <picture><source type="image/avif" srcset="assets/cy-l4d.avif?v=2b26b10159"><img class="sky3__l sky3__dk" src="assets/cy-l4d.webp?v=deee45f358" width="1059" height="158" alt="" loading="lazy" decoding="async" style="--x:3;--y:1012;--w:1059;--d:120;--z:2"></picture>
-        <picture><source type="image/avif" srcset="assets/cy-l3.avif?v=0af6c3b29d"><img class="sky3__l" src="assets/cy-l3.webp?v=8f4f986568" width="1080" height="1391" alt="" loading="lazy" decoding="async" style="--x:0;--y:1009;--w:1080;--d:34;--z:3"></picture>
+        <picture><source type="image/avif" srcset="assets/cy-l3.avif?v=9a509a4e3a"><img class="sky3__l" src="assets/cy-l3.webp?v=20b1144185" width="1080" height="1391" alt="" loading="lazy" decoding="async" style="--x:0;--y:1009;--w:1080;--d:34;--z:3"></picture>
         <picture><source type="image/avif" srcset="assets/cy-l3d.avif?v=f7358e053f"><img class="sky3__l sky3__dk" src="assets/cy-l3d.webp?v=c21e3b5fe1" width="1080" height="1391" alt="" loading="lazy" decoding="async" style="--x:0;--y:1009;--w:1080;--d:34;--z:3"></picture>
         </div>
         <figcaption class="skystill__words"><h2 class="hl hl--sky"><span class="ln">Taking your time?</span> <span class="ln ln--2">They’re <em class="acc">taking</em> your <em class="acc">customers</em>.</span></h2></figcaption>
@@ -923,10 +924,10 @@ window.__GATES = [
 <a class="ctabar" id="ctabar" href="#contact">Get your plan</a>
 
 <script src="assets/pfilm.js?v=b40b1f4550" defer></script>
-<script src="assets/phone.js?v=237311196c" defer></script>
-<script src="assets/site.js?v=fb0420970c" defer></script>
+<script src="assets/phone.js?v=7b511c960b" defer></script>
+<script src="assets/site.js?v=68e0194e0f" defer></script>
 <script src="assets/dash.js?v=a56a2b4ced" defer></script>
 <script>/* the sky film is the desktop's alone; a phone never fetches it */
-if (document.documentElement.classList.contains('film')) { var s = document.createElement('script'); s.src = 'assets/sky.js?v=704c37c43a'; document.body.appendChild(s) }</script>
+if (document.documentElement.classList.contains('film')) { var s = document.createElement('script'); s.src = 'assets/sky.js?v=c6e676751b'; document.body.appendChild(s) }</script>
 </body>
 </html>

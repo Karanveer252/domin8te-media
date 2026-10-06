@@ -19,6 +19,14 @@ const copies = [
   ['deliver/hero-data.json', 'assets/hero-data.json'], ['deliver/hero-still.jpg', 'assets/hero-still.jpg'],
   ['deliver-phone/cl-film.mp4', 'assets/cl-film.mp4'], ['deliver-phone/cl-ph0.webp', 'assets/cl-ph0.webp'],
   ['deliver-phone/cl-mark-ph.webp', 'assets/cl-mark-ph.webp']];
+/* the day sky (2026-10-05): the cloud beats' film and posters (daysky/deliver), the moving
+   cloud tiles cut from it (daysky/tiles), the phone's cloud layers by day (daysky/cy/out) */
+const SKY = path.join(__dirname, '..', 'daysky');
+copies.push(['../daysky/deliver/sky-scrub.mp4', 'assets/sky-scrub.mp4'], ['../daysky/deliver/v3-sky-a.jpg', 'assets/v3-sky-a.jpg'],
+  ['../daysky/deliver/v3-sky-b.jpg', 'assets/v3-sky-b.jpg'],
+  ['../daysky/deliver/sky-a-still.jpg', 'assets/sky-a-still.jpg'], ['../daysky/deliver/sky-b-still.jpg', 'assets/sky-b-still.jpg']);
+for (const t of ['far', 'mid', 'near']) copies.push(['../daysky/tiles/dx-cloud-' + t + '.webp', 'assets/dx-cloud-' + t + '.webp']);
+for (const l of ['l1', 'l2', 'l3', 'l4']) for (const x of ['webp', 'avif']) copies.push(['../daysky/cy/out/cy-' + l + '.' + x, 'assets/cy-' + l + '.' + x]);
 for (const [from, to] of copies) {
   const src = path.join(FLAG, from);
   if (fs.existsSync(src)) { fs.copyFileSync(src, path.join(V2, to)); console.log('copied', to) }
@@ -39,4 +47,7 @@ function restamp(file, names) {
 }
 restamp(path.join(V2, 'assets', 'site.js'), ['hero-scrub.mp4', 'hero-poster.jpg', 'hero-data.json']);
 restamp(path.join(V2, 'assets', 'phone.js'), ['cl-film.mp4']);
-restamp(path.join(V2, 'index.html'), ['site.js', 'phone.js', 'sky.js', 'v3.css', 'v3-sea-a.webp', 'v3-sea-b.webp', 'v3-mark.webp']);
+restamp(path.join(V2, 'assets', 'sky.js'), ['sky-scrub.mp4']);
+restamp(path.join(V2, 'assets', 'v3.css'), ['v3-sky-a.jpg', 'v3-sky-b.jpg']);
+restamp(path.join(V2, 'index.html'), ['site.js', 'phone.js', 'sky.js', 'v3.css', 'v3-mark.webp', 'sky-a-still.jpg', 'sky-b-still.jpg', 'dx-cloud-far.webp', 'dx-cloud-mid.webp', 'dx-cloud-near.webp',
+  'cy-l1.webp', 'cy-l1.avif', 'cy-l2.webp', 'cy-l2.avif', 'cy-l3.webp', 'cy-l3.avif', 'cy-l4.webp', 'cy-l4.avif']);

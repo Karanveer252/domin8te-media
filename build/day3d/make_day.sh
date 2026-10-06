@@ -7,9 +7,9 @@ set -e
 cd /c/Work/domin8te-build/day3d
 BL=/c/Work/tools/blender-4.5.14-windows-x64/blender.exe
 FF="/c/Program Files/Virtual Desktop Streamer/ffmpeg.exe"
-G="--exp .2 --bloom .3 --thresh 1.6 --size .5 --vig 0"
+G="${G:---exp 0 --bloom .35 --thresh 1.4 --size .5 --vig .42 --vsize 1.3 --vblur 380 --warm 1.12,1.0,.84}"
 PH=""; S=""; WH=""
-if [ "$1" = "--phone" ]; then PH="--phone"; S="-phone"; WH="--w 720 --h 1080"; fi
+if [ "$1" = "--phone" ]; then PH="--phone"; S="-phone"; WH="--w 720 --h 1080"; G="${G/--vblur 380/--vblur 260}"; fi
 n() { ls "$1" 2>/dev/null | wc -l; }
 [ "$(n render/exr$S)" -ge 289 ] || "$BL" -b --python-exit-code 1 -P build_day.py -- --anim $PH 2>&1 | grep -E "Fra:.*Finished|ANIM DONE|Error|Traceback" | awk 'NR%25==1 || /DONE|Error|Trace/'
 [ "$(n render/exr-rib$S)" -ge 289 ] || "$BL" -b --python-exit-code 1 -P build_day.py -- --anim --ribbon-only $PH 2>&1 | grep -E "ANIM DONE|Error|Traceback"
