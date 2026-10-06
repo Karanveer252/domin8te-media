@@ -799,7 +799,7 @@ var heroRing = document.getElementById('heroRing');
 var hctx = heroCanvas && heroCanvas.getContext ? heroCanvas.getContext('2d') : null;
 
 /* content tokens, like the css and js: a new film is a new URL, never a stale cache */
-var VIDEO_URL = 'assets/hero-scrub.mp4?v=c343f4b03f';
+var VIDEO_URL = 'assets/hero-scrub.mp4?v=8cadec0252';
 var heroTime = 1.8, heroAlpha = 1, heroReady = false, heroInit = false;
 var HERO = null;
 

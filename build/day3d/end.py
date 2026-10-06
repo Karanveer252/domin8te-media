@@ -32,7 +32,18 @@ def glow(out, r, k):
         al = np.clip(ga * amt * k * 1.6, 0, 1)
         res = res * (1 - al) + gc * 255 * al
     ra = r[..., 3:4]
-    return res * (1 - ra) + r[..., :3] * 255 * ra
+    return res * (1 - ra) + deepen(r[..., :3]) * 255 * ra
+# the ribbon deeper (Karan, 2026-10-05: "make the logo darker"): its colours pulled down and saturated
+# (gamma on a saturation lift), the white glints kept; used wherever the ribbon is laid back over the frame
+DEEP = float(os.environ.get('DEEP', '0'))
+def deepen(rgb):
+    """rgb: HxWx3 0..1 -> deeper"""
+    if DEEP <= 0: return rgb
+    lum = (rgb * [.2126, .7152, .0722]).sum(axis=2, keepdims=True)
+    sat = np.clip(lum + (rgb - lum) * (1 + .6 * DEEP), 0, 1)
+    d = sat ** (1 + .9 * DEEP)
+    glint = np.clip((lum - .82) / .15, 0, 1)                # the speculars stay bright
+    return d * (1 - glint) + rgb * glint
 src, rib, dst = sys.argv[1:4]
 os.makedirs(dst, exist_ok=True)
 for f in range(N):
@@ -46,6 +57,6 @@ for f in range(N):
         out = out * (1 - d) + CREAM * d
         r = np.asarray(Image.open(os.path.join(rib, 'f%04d.png' % f)).convert('RGBA')).astype(float) / 255
         ra = r[..., 3:4] * d
-        out = r[..., :3] * 255 * ra + out * (1 - ra)
+        out = deepen(r[..., :3]) * 255 * ra + out * (1 - ra)
     Image.fromarray(np.clip(out + 0.5, 0, 255).astype(np.uint8)).save(os.path.join(dst, 'f%04d.png' % f))
 print('ended', N, '->', dst)

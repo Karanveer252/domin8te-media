@@ -1,0 +1,48 @@
+copied assets/hero-scrub.mp4
+copied assets/hero-poster.jpg
+copied assets/hero-data.json
+copied assets/hero-still.jpg
+copied assets/cl-film.mp4
+copied assets/cl-ph0.webp
+copied assets/cl-mark-ph.webp
+copied assets/sky-scrub.mp4
+copied assets/v3-sky-a.jpg
+copied assets/v3-sky-b.jpg
+copied assets/sky-a-still.jpg
+copied assets/sky-b-still.jpg
+copied assets/dx-cloud-far.webp
+copied assets/dx-cloud-mid.webp
+copied assets/dx-cloud-near.webp
+copied assets/cy-l1.webp
+copied assets/cy-l1.avif
+copied assets/cy-l2.webp
+copied assets/cy-l2.avif
+copied assets/cy-l3.webp
+copied assets/cy-l3.avif
+copied assets/cy-l4.webp
+copied assets/cy-l4.avif
+hero-scrub.mp4 -> 8cadec0252 (site.js)
+hero-poster.jpg -> 54bbea9307 (site.js)
+hero-data.json -> 8f6d61f8bc (site.js)
+cl-film.mp4 -> 095461d50b (phone.js)
+sky-scrub.mp4 -> e46184edf9 (sky.js)
+v3-sky-a.jpg -> dc8a85e24f (v3.css)
+v3-sky-b.jpg -> 2dc94f3bc8 (v3.css)
+site.js -> 3743871ce8 (index.html)
+phone.js -> b106ecbe48 (index.html)
+sky.js -> c6e676751b (index.html)
+v3.css -> 0f51715034 (index.html)
+v3-mark.webp -> 90aecb1091 (index.html)
+sky-a-still.jpg -> 12dd937e55 (index.html)
+sky-b-still.jpg -> 4b7606deb3 (index.html)
+dx-cloud-far.webp -> 52cd342e9f (index.html)
+dx-cloud-mid.webp -> 55f4097f6e (index.html)
+dx-cloud-near.webp -> a6a54f6e9e (index.html)
+cy-l1.webp -> 60da668b1a (index.html)
+cy-l1.avif -> 1fc9bb50e3 (index.html)
+cy-l2.webp -> 55b3e1dba0 (index.html)
+cy-l2.avif -> 1c97fb2a78 (index.html)
+cy-l3.webp -> 20b1144185 (index.html)
+cy-l3.avif -> 9a509a4e3a (index.html)
+cy-l4.webp -> ebf9582b9d (index.html)
+cy-l4.avif -> 21d36ee7cb (index.html)

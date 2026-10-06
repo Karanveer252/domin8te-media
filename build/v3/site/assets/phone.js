@@ -41,7 +41,7 @@
      (the cubic the render's snake-phone.json was sampled from), the rope's
      colour and girth where the line takes it on, and the frames over which
      the room goes dark and the line is lit */
-  var FILM = 'assets/cl-film.mp4?v=410b8479e9', ALT = 'assets/cl-mark-ph.webp', FRAMES = 145;   /* every second frame of the render */
+  var FILM = 'assets/cl-film.mp4?v=095461d50b', ALT = 'assets/cl-mark-ph.webp', FRAMES = 145;   /* every second frame of the render */
   var RAIL = [[470, 1010], [380, 1180], [120, 1330], [40, 1680]];
   /* as the room goes dark the rope shortens to a stub on the first quarter
      of the rail (render frames 266-284): the line is lit over it, then grows
