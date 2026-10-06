@@ -1673,7 +1673,7 @@ if (plan) {
     if (!cta || !needSelect) return;
     var want = cta.dataset.need;
     for (var i = 0; i < needSelect.options.length; i++) {
-      if (needSelect.options[i].text === want) { needSelect.selectedIndex = i; break }
+      if (needSelect.options[i].text === want) { needSelect.selectedIndex = i; needSelect.dispatchEvent(new Event('change', { bubbles: true })); break }
     }
     var more = document.querySelector('.more');
     if (more) more.open = true;

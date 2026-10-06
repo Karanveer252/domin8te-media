@@ -79,6 +79,49 @@ html[data-v="editorial"][data-theme="light"] .opt input:checked + .opt__txt{back
 .v3cur__spark--white{filter:drop-shadow(0 0 1px rgba(106,75,255,.6)) drop-shadow(0 0 3px rgba(47,140,255,.4))}
 html[data-v="editorial"][data-theme="light"].v3cur-on,html[data-v="editorial"][data-theme="light"].v3cur-on *{cursor:none!important}
 
+/* the form's "What needs fixing first?" list (v3-select.js): the field keeps the form's own underline
+   look; its list is a soft card in the page's colours instead of the browser's blue-and-white menu.
+   The real <select> stays in the form, hidden */
+html[data-v="editorial"] .v3sel{position:relative}
+html[data-v="editorial"] .v3sel__native{position:absolute;left:0;bottom:0;width:1px;height:1px;min-height:0;padding:0;border:0;opacity:0;pointer-events:none;clip-path:inset(50%)}
+html[data-v="editorial"] .v3sel__btn{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:56px;padding:8px 0 12px;margin:0;
+  background:transparent;border:0;border-bottom:1px solid var(--line-2);border-radius:0;
+  font:400 clamp(19px,1.5vw,24px)/1.35 var(--f-text);color:var(--ink);text-align:left;
+  transition:border-color .2s var(--ease),box-shadow .2s var(--ease);
+}
+html[data-v="editorial"] .v3sel__btn.is-empty .v3sel__val{color:var(--ink-3)}
+html[data-v="editorial"] .v3sel__btn:hover{border-color:rgba(94,72,50,.55)}
+html[data-v="editorial"] .v3sel__btn:focus{outline:none}
+html[data-v="editorial"] .v3sel__btn:focus-visible,
+html[data-v="editorial"] .v3sel.is-open .v3sel__btn{border-color:var(--ink);box-shadow:0 1px 0 0 var(--ink)}
+html[data-v="editorial"] .v3sel__chev{flex:none;margin-right:4px;color:var(--ink);transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+html[data-v="editorial"] .v3sel.is-open .v3sel__chev{transform:rotate(180deg)}
+html[data-v="editorial"] .v3sel__list{
+  position:absolute;left:0;right:0;top:calc(100% + 10px);z-index:30;margin:0;padding:6px;list-style:none;
+  max-height:min(380px,60vh);overflow:auto;overscroll-behavior:contain;
+  background:#FBF9F5;border:1px solid rgba(14,20,32,.09);border-radius:16px;
+  box-shadow:0 1px 2px rgba(60,42,24,.07),0 18px 44px -18px rgba(60,42,24,.38);
+  opacity:0;visibility:hidden;transform:translateY(-6px) scale(.985);transform-origin:50% 0;
+  transition:opacity .16s ease,transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s linear .22s;
+}
+html[data-v="editorial"] .v3sel.is-up .v3sel__list{top:auto;bottom:calc(100% + 10px);transform:translateY(6px) scale(.985);transform-origin:50% 100%}
+html[data-v="editorial"] .v3sel.is-open .v3sel__list{opacity:1;visibility:visible;transform:none;transition-delay:0s}
+html[data-v="editorial"] .v3sel__list:focus{outline:none}
+html[data-v="editorial"] .v3sel__opt{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:48px;padding:10px 14px;border-radius:10px;
+  font:400 clamp(17px,1.25vw,19px)/1.3 var(--f-text);color:var(--ink-2);
+  transition:background-color .12s ease,color .12s ease;
+}
+html[data-v="editorial"] .v3sel__opt.is-active{background:rgba(14,20,32,.055);color:var(--ink)}
+html[data-v="editorial"] .v3sel__opt[aria-selected="true"]{color:var(--ink);font-weight:600}
+html[data-v="editorial"] .v3sel__tick{flex:none;color:var(--v3-cta,#CA4A14);opacity:0;transform:scale(.6);transition:opacity .15s ease,transform .2s cubic-bezier(.2,.8,.2,1)}
+html[data-v="editorial"] .v3sel__opt[aria-selected="true"] .v3sel__tick{opacity:1;transform:none}
+html[data-v="editorial"] .v3sel__list:focus-visible .v3sel__opt.is-active{box-shadow:inset 0 0 0 1.5px rgba(14,20,32,.28)}
+@media (prefers-reduced-motion:reduce){
+  html[data-v="editorial"] .v3sel__list,html[data-v="editorial"] .v3sel__chev,html[data-v="editorial"] .v3sel__tick{transition:none}
+}
+
 /* the cursor's tuning panel (v3-cursor.js: only on localhost or with ?tune) */
 .v3tune{position:fixed;left:16px;bottom:16px;z-index:2147483646;display:grid;gap:8px;width:230px;padding:14px 16px 12px;
   background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(60,42,24,.08),0 18px 40px -18px rgba(60,42,24,.45);
