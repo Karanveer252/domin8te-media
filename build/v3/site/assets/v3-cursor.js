@@ -25,7 +25,7 @@ if (!document.body || !window.requestAnimationFrame) return;
 
 var NS = 'http://www.w3.org/2000/svg';
 var HOT_X = 2, HOT_Y = 4;                       /* the click point in px (v3.css); 5,9 on the 64 grid */
-var MS = 500;                                   /* the whole click (Karan, 2026-10-06: "make the cursor 2x faster": 1000 -> 500ms) */
+var MS = 333;                                   /* the whole click (Karan, 2026-10-06: "2x faster", 1000 -> 500ms, then "1.5x more faster", 500 -> 333ms) */
 
 /* the cursor's own geometry (v3/cursor/make.py), on its 64 grid */
 var PTS = [[57, 55], [40, 37], [29, 45], [13, 21]], TIP = [5, 9];
