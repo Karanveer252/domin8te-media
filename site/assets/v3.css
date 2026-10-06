@@ -521,3 +521,12 @@ html[data-v="editorial"] .dx-dash .hl--sec .ln--ask{
   display:block;margin:0 0 .16em -.03em;font-size:1.18em;line-height:.95;
   font-weight:800;font-style:italic;letter-spacing:-.03em;color:var(--acc-display);text-wrap:balance;
 }
+
+/* the plan card wears the options' own edge (2026-10-06, Karan: "add the same border to this section
+   as well"): no fill, no shadow, the same hairline and corner as the cards beside it */
+html[data-v="editorial"][data-theme="light"] .pick__plan,
+html.snake[data-v="editorial"][data-theme="light"] .pick__plan.has-pick,
+html.snake[data-v="editorial"][data-theme="light"] .pick__plan:not(.has-pick){
+  background:transparent;box-shadow:none;border:1px solid rgba(14,20,32,.16);border-radius:14px;
+}
+html[data-v="editorial"] .plan__ghost li::before{background:var(--bg)}
