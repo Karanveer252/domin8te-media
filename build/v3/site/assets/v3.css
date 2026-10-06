@@ -62,11 +62,13 @@ html[data-v="editorial"][data-theme="light"] .opt__txt{background:#fff;border-co
 html[data-v="editorial"][data-theme="light"] .opt:hover .opt__txt{background:#fff;border-color:var(--line-2)}
 html[data-v="editorial"][data-theme="light"] .opt input:checked + .opt__txt{background:#fff;border-color:var(--ink)}
 
-/* the click (v3-cursor.js): while it plays, a drawn copy of the cursor stands in for it, slithering
-   like a snake up and out of its own small window and back in from below. The window is the
-   cursor's 32px with 8px round it, so the curves and the shadow are never cut while it rests */
-.v3cur{position:fixed;left:0;top:0;z-index:2147483647;width:48px;height:48px;overflow:hidden;pointer-events:none;visibility:hidden;will-change:transform}
-.v3cur svg{display:block;position:absolute;left:8px;top:8px;overflow:visible;will-change:transform,opacity}
+/* the click (v3-cursor.js): while it plays, a drawn copy of the cursor stands in for it and
+   slithers like a snake up and out of its own window, and a new one slithers in from below.
+   The cursor sits low and right in a 176x208 window whose edges are soft all round, so the
+   snake fades out wherever it leaves and in wherever it comes, and the resting cursor is solid */
+.v3cur{position:fixed;left:0;top:0;z-index:2147483647;width:176px;height:208px;overflow:hidden;pointer-events:none;visibility:hidden;will-change:transform;
+  -webkit-mask-image:radial-gradient(ellipse 88px 104px at 102px 128px,#000 45%,transparent 92%);mask-image:radial-gradient(ellipse 88px 104px at 102px 128px,#000 45%,transparent 92%)}
+.v3cur svg{display:block;position:absolute;left:96px;top:112px;overflow:visible}
 html.v3cur-on,html.v3cur-on *{cursor:none!important}
 
 /* ---- the line: a lit glass tube lying just above the page ----
