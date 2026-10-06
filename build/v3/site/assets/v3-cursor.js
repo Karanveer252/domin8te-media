@@ -7,10 +7,12 @@
    A cursor image cannot move, so while a click plays the real one is
    hidden and a drawn copy of it (v3/cursor/make.py's geometry: the
    same line, head, colours, edge and rim) stands exactly where it
-   was. The head holds still on the click point; the body behind it
-   comes alive like a snake: its corners soften into curves and waves
-   run down it from the head to the tail, then it settles back into
-   the growth line and the real cursor returns. It follows the mouse
+   was. Its body comes alive like a snake (its corners soften into
+   curves and waves run down it from the head to the tail) and, as in
+   the first version ("make it go up and emerge from the bottom as it
+   was in the first version"), it slithers up and out of its own small
+   window the way it points and a new one rises back in from below,
+   settling into the growth line; then the real cursor returns. It follows the mouse
    while it plays. Only where the growth cursor is showing (links keep
    their hand and play nothing), only with a mouse, never with reduced
    motion.
@@ -26,6 +28,8 @@ var NS = 'http://www.w3.org/2000/svg';
 var HOT_X = 2, HOT_Y = 4;                       /* the click point in px (v3.css); 5,9 on the 64 grid */
 var MS = 950;                                   /* the whole slither */
 var AMP = 7, WAVE = 30, SPEED = 2.6;            /* wave height and length (grid units), waves run per play */
+var PAD = 8;                                    /* the window's margin round the 32px cursor (px) */
+var OUT = .42;                                  /* the share of the play spent leaving */
 
 /* the cursor's own geometry (v3/cursor/make.py), on its 64 grid */
 var PTS = [[57, 55], [40, 37], [29, 45], [13, 21]], TIP = [5, 9];
@@ -78,13 +82,13 @@ function build() {
   box.appendChild(svg);
   document.body.appendChild(box);
 }
-function place(x, y) { box.style.transform = 'translate(' + (x - HOT_X) + 'px,' + (y - HOT_Y) + 'px)' }
+function place(x, y) { box.style.transform = 'translate(' + (x - HOT_X - PAD) + 'px,' + (y - HOT_Y - PAD) + 'px)' }
 function smooth(t) { t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t) }
 
 /* the body at time ms: corners rounded by the wave's strength, then waves running from head to tail */
 function bodyPath(ms) {
-  var u = ms / MS, A = AMP * smooth(u / .16) * (1 - smooth((u - .62) / .38));
-  var curl = smooth(u / .12) * (1 - smooth((u - .7) / .3));          /* how far the zigzag softens */
+  var u = ms / MS, A = AMP * smooth(u / .12) * (1 - smooth((u - .72) / .28));
+  var curl = smooth(u / .1) * (1 - smooth((u - .78) / .22));          /* how far the zigzag softens */
   var ph = SPEED * 2 * Math.PI * u, P = [], i;
   for (i = 0; i < N; i++) {
     var a = SAMP[Math.max(0, i - 3)], b = SAMP[Math.min(N - 1, i + 3)], p = SAMP[i];
@@ -102,7 +106,17 @@ function bodyPath(ms) {
   for (i = 1; i < N - 1; i++) d += 'Q' + P[i][0].toFixed(2) + ' ' + P[i][1].toFixed(2) + ' ' + ((P[i][0] + P[i + 1][0]) / 2).toFixed(2) + ' ' + ((P[i][1] + P[i + 1][1]) / 2).toFixed(2);
   return d + 'L' + P[N - 1][0].toFixed(2) + ' ' + P[N - 1][1].toFixed(2);
 }
+/* the flight, as the first version had it: out up and to the left, ease in; back from the lower
+   right, ease out */
+function fly(ms) {
+  var u = ms / MS, x, y, o;
+  if (u < OUT) { var p = u / OUT, e = p * p * p; x = -30 * e; y = -40 * e; o = 1 - .8 * p }
+  else { var q = (u - OUT) / (1 - OUT), k = 1 - Math.pow(1 - q, 3); x = 28 * (1 - k); y = 38 * (1 - k); o = Math.min(1, q * 4) }
+  svg.style.transform = 'translate(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px)';
+  svg.style.opacity = o.toFixed(3);
+}
 function draw(ms) {
+  fly(ms);
   var d = bodyPath(ms);
   parts.shB.setAttribute('d', d); parts.rimB.setAttribute('d', d); parts.edgeB.setAttribute('d', d);
   parts.colB.setAttribute('d', d); parts.hiB.setAttribute('d', d);
