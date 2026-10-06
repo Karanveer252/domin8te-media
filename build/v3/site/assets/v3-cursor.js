@@ -100,7 +100,7 @@ function smooth(t) { t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t) }
    approach, slowing as it slides up through the waves onto the growth line, ending exactly at
    rest. The head aims along its own neck. Units are the 64 grid (2 a pixel). */
 var GAP = 15;                                   /* the tip to the neck, along the track */
-var AW = 6.5, LAMBDA = 92, RAMP = 30;           /* the sway, its wavelength (about the body's length, so it shows one S: two bends at most, Karan: "only one or two bends"), how soon it is full */
+var AW = 10, LAMBDA = 190, RAMP = 34;           /* the sway, its wavelength (twice the body's length, so the body holds one bend at a time: Karan, "only one bend"), how soon it is full */
 var OUT_D = 215, IN_D = 170;                    /* how far it goes out (its tail past the window's soft edge), and comes from (the whole snake hidden) */
 var REST = [TIP, [TIP[0] - ux * GAP, TIP[1] - uy * GAP], PTS[2], PTS[1], PTS[0]], RCUM = [0], RTOT;
 (function () { for (var i = 1; i < REST.length; i++) RCUM.push(RCUM[i - 1] + Math.hypot(REST[i][0] - REST[i - 1][0], REST[i][1] - REST[i - 1][1])); RTOT = RCUM[RCUM.length - 1] })();
