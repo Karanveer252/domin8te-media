@@ -457,3 +457,60 @@ html.js[data-v="editorial"] .clients__grid .cl.rv:nth-child(3){transition-delay:
   html[data-v="editorial"] .clients .sec-head .hl,
   html[data-v="editorial"] .clients .sec-head .lede{grid-row:2}
 }
+
+/* ---- the picker's plan: one card, picked or not (2026-10-06, Karan: "redesign this nothing picked
+   thing, this does not look good"). It was a bare line of text in a box drawn only by its shadow;
+   now the card shows the plan's shape before a pick: the three steps as soft placeholders on a
+   dotted rail, which the real steps replace ---- */
+html[data-v="editorial"][data-theme="light"] .pick__plan{
+  box-sizing:border-box;background:#FBF9F5;border-radius:var(--r-card,20px);
+  box-shadow:0 0 0 1px rgba(14,20,32,.06),var(--card-shadow);
+  padding:clamp(22px,2.6vw,36px) clamp(24px,2.6vw,38px) clamp(22px,2.6vw,36px) clamp(52px,4.6vw,70px);
+}
+html[data-v="editorial"][data-theme="light"] .pick__rise{left:clamp(26px,2.3vw,34px);top:clamp(30px,3.4vw,44px);bottom:clamp(30px,3.4vw,44px);width:3px;border-radius:3px}
+html[data-v="editorial"][data-theme="light"] .pick__plan:not(.has-pick){display:flex;flex-direction:column;justify-content:center;padding-left:clamp(24px,2.6vw,38px)}
+html[data-v="editorial"][data-theme="light"] .pick__plan .step:first-child{border-top:0}
+html[data-v="editorial"] .plan--empty{max-width:none;align-self:stretch;font:inherit;color:inherit}
+html[data-v="editorial"] .plan__lead{
+  display:flex;align-items:center;gap:12px;margin:0 0 clamp(18px,2.6vh,28px);
+  font:600 12px/1 var(--f-text);letter-spacing:.2em;text-transform:uppercase;color:var(--acc-ink);
+}
+html[data-v="editorial"] .plan__lead::before{content:"";width:26px;height:2px;border-radius:2px;background:var(--acc-display)}
+html[data-v="editorial"] .plan__ghost{position:relative;margin:0;padding:0;list-style:none}
+/* the rail the real line will climb: dotted, from each step's node down to the next */
+html[data-v="editorial"] .plan__ghost li:not(:last-child)::after{
+  content:"";position:absolute;left:6px;top:calc(var(--gpad,0px) + 12px);height:100%;width:0;
+  border-left:2px dotted rgba(202,74,20,.35);
+}
+html[data-v="editorial"] .plan__ghost li + li{--gpad:clamp(14px,2vh,20px)}
+html[data-v="editorial"] .plan__ghost li{
+  position:relative;display:grid;grid-template-columns:14px minmax(0,1fr);column-gap:18px;row-gap:9px;
+  padding:clamp(14px,2vh,20px) 0;border-top:1px solid var(--line);
+}
+html[data-v="editorial"] .plan__ghost li:first-child{border-top:0;padding-top:0}
+html[data-v="editorial"] .plan__ghost li::before{
+  content:"";grid-column:1;grid-row:1;align-self:center;width:14px;height:14px;box-sizing:border-box;border-radius:50%;
+  background:#FBF9F5;border:2px solid rgba(202,74,20,.45);position:relative;z-index:1;
+}
+html[data-v="editorial"] .plan__gwhen{grid-column:2;grid-row:1;font:600 12px/1.2 var(--f-text);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+html[data-v="editorial"] .plan__ghost i{
+  grid-column:2;display:block;height:11px;border-radius:6px;
+  background:linear-gradient(90deg,rgba(14,20,32,.06) 0%,rgba(14,20,32,.06) 40%,rgba(14,20,32,.11) 50%,rgba(14,20,32,.06) 60%,rgba(14,20,32,.06) 100%) 0 0 / 300% 100%;
+  animation:planGhost 2.8s ease-in-out infinite;
+}
+html[data-v="editorial"] .plan__ghost li i:last-child{width:58%}
+html[data-v="editorial"] .plan__ghost li:nth-child(1) i:nth-of-type(1){width:92%}
+html[data-v="editorial"] .plan__ghost li:nth-child(2) i:nth-of-type(1){width:80%}
+html[data-v="editorial"] .plan__ghost li:nth-child(3) i:nth-of-type(1){width:88%}
+html[data-v="editorial"] .plan__ghost li:nth-child(2) i{animation-delay:.25s}
+html[data-v="editorial"] .plan__ghost li:nth-child(3) i{animation-delay:.5s}
+@keyframes planGhost{0%{background-position:100% 0}100%{background-position:0 0}}
+html[data-v="editorial"] .plan__hint{margin:clamp(18px,2.6vh,26px) 0 0;padding-top:clamp(16px,2.2vh,22px);border-top:1px solid var(--line);font:400 16px/1.5 var(--f-text);color:var(--ink-2);max-width:36ch}
+@media (prefers-reduced-motion:reduce){html[data-v="editorial"] .plan__ghost i{animation:none}}
+/* on a phone: the same card the picked plan already uses */
+@media (max-width:760px){
+  html.snake[data-v="editorial"][data-theme="light"] .pick__plan:not(.has-pick){
+    width:100%;margin-top:20px;padding:22px 20px 22px 20px;border-radius:18px;background:#FBF9F5;box-shadow:0 0 0 1px rgba(14,20,32,.06),var(--card-shadow);
+  }
+  html.snake[data-v="editorial"][data-theme="light"] .pick__plan.has-pick{background:#FBF9F5;box-shadow:0 0 0 1px rgba(14,20,32,.06),var(--card-shadow)}
+}
