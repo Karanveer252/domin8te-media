@@ -799,7 +799,7 @@ var heroRing = document.getElementById('heroRing');
 var hctx = heroCanvas && heroCanvas.getContext ? heroCanvas.getContext('2d') : null;
 
 /* content tokens, like the css and js: a new film is a new URL, never a stale cache */
-var VIDEO_URL = 'assets/hero-scrub.mp4?v=fc4ebe2e6f';
+var VIDEO_URL = 'assets/hero-scrub.mp4?v=c343f4b03f';
 var heroTime = 1.8, heroAlpha = 1, heroReady = false, heroInit = false;
 var HERO = null;
 
@@ -1844,7 +1844,12 @@ var DOT = parseFloat(getComputedStyle(root).getPropertyValue('--dot')) || 0;
 var GRID_INK = '237,234,228', GRID_A = .095;
 var LIGHT_INK = '10,10,10', LIGHT_A = .11;   /* the page's dot on the light ground, as light.css draws it */
 var REACH = 150, REACH2 = REACH * REACH;   /* how far from the cursor the dots feel it */
-var SPRING = 18, DAMP = .82;
+/* version 3 (Karan, 2026-10-05: "the same mouse animation on the website like my console"): the
+   console's tuning of this same field (console/index.html, "the dot field": animation 10%,
+   highlight 100%). A stiffer spring, more damping, a lighter push; the dots near the cursor go
+   to full ink and its joining lines show twice as strong. Its physics is also worked out in
+   slices of at most 1/60 s, as the console's is, so it feels the same at any frame rate */
+var SPRING = 54, DAMP = .34, PUSH = .6, PEAK = 1, GROW = .2, LINE_A = .28;
 var gridOn = false, gridRaf = null, gridLast = 0;
 var worldX = 0, worldY = 0, scrimNow = 1, stageTop = 0;
 var mcx = -1e4, mcy = -1e4, pmcx = -1e4, pmcy = -1e4, mouseIn = false;
@@ -1920,10 +1925,16 @@ Field.prototype.size = function () {
    home and damping. untouched dots cost one comparison. returns whether
    anything is still moving */
 Field.prototype.step = function (dt, speed) {
+  var n = Math.max(1, Math.ceil(dt * 60 - 1e-6)), h = dt / n, busy = false;
+  for (var q = 0; q < n; q++) busy = this.slice(h, speed) || busy;
+  return busy;
+};
+Field.prototype.slice = function (dt, speed) {
+  var damp = Math.pow(DAMP, dt * 60);
   var ox = this.ox, oy = this.oy, vx = this.vx, vy = this.vy;
   var cols = this.cols, rows = this.rows, px = this.px, py = this.py;
   var mx = this.mx, my = this.my;
-  var push = 240 + speed * 80, lim = DOT * .6, lim2 = lim * lim;
+  var push = (240 + speed * 80) * PUSH, lim = DOT * .6, lim2 = lim * lim;
   var busy = false, k = 0;
   for (var j = 0; j < rows; j++) {
     var hy = (j - 1) * DOT + py;
@@ -1936,7 +1947,7 @@ Field.prototype.step = function (dt, speed) {
         var d = Math.sqrt(d2), f = (1 - d / REACH) * push / d;
         ax -= dx * f; ay -= dy * f;
       }
-      var nvx = (vx[k] + ax * dt) * DAMP, nvy = (vy[k] + ay * dt) * DAMP;
+      var nvx = (vx[k] + ax * dt) * damp, nvy = (vy[k] + ay * dt) * damp;
       if (nvx === 0 && nvy === 0 && ox[k] === 0 && oy[k] === 0) continue;
       var nx = ox[k] + nvx * dt * 60, ny = oy[k] + nvy * dt * 60;
       var m2 = nx * nx + ny * ny;
@@ -2001,8 +2012,8 @@ Field.prototype.paint = function () {
       x = (i - 1) * DOT + px + ox[k]; y = (j - 1) * DOT + py + oy[k];
       dx = mx - x; dy = my - y; d2 = dx * dx + dy * dy;
       var pw = d2 < REACH2 ? 1 - Math.sqrt(d2) / REACH : 0;
-      var r = 2 + pw;
-      ctx.globalAlpha = a + (.42 - a) * pw * pw;
+      var r = 2 + pw * GROW;
+      ctx.globalAlpha = a + (PEAK - a) * pw * pw;
       ctx.drawImage(sprite, x - r, y - r, r * 2, r * 2);
     }
   }
@@ -2015,7 +2026,7 @@ function gridLine(ctx, x, y, n, ni, nj, m, ox, oy, px, py, ink) {
   if (s < .12) return;
   if (s > 1) s = 1;
   s *= s;
-  ctx.strokeStyle = 'rgba(' + ink + ',' + (s * .14).toFixed(3) + ')';
+  ctx.strokeStyle = 'rgba(' + ink + ',' + (s * LINE_A).toFixed(3) + ')';
   ctx.beginPath();
   ctx.moveTo(x, y);
   ctx.lineTo((ni - 1) * DOT + px + ox[n], (nj - 1) * DOT + py + oy[n]);

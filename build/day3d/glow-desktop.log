@@ -1,0 +1,9 @@
+ended 289 -> render/out
+total 3920
+drwxr-xr-x 1 kvsd1 197609       0 Oct  5 07:39 .
+drwxr-xr-x 1 kvsd1 197609       0 Oct  5 22:19 ..
+-rw-r--r-- 1 kvsd1 197609    2806 Oct  5 22:28 encode.log
+-rw-r--r-- 1 kvsd1 197609    6437 Oct  5 22:28 hero-data.json
+-rw-r--r-- 1 kvsd1 197609   62128 Oct  5 22:28 hero-poster.jpg
+-rw-r--r-- 1 kvsd1 197609 3871690 Oct  5 22:28 hero-scrub.mp4
+-rw-r--r-- 1 kvsd1 197609   50134 Oct  5 22:28 hero-still.jpg
