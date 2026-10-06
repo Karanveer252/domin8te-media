@@ -57,18 +57,20 @@ html[data-v="editorial"][data-theme="light"].film .stage{background:var(--v3-gra
 }
 html[data-v="editorial"][data-theme="light"] .hl .ln--2,
 html[data-v="editorial"][data-theme="light"] .band--studio .ln--2{color:var(--v3-dusk)}
-/* the options are cards too */
-html[data-v="editorial"][data-theme="light"] .opt__txt{background:#fff;border-color:transparent;border-radius:14px;box-shadow:var(--card-shadow)}
-html[data-v="editorial"][data-theme="light"] .opt:hover .opt__txt{background:#fff;border-color:var(--line-2)}
-html[data-v="editorial"][data-theme="light"] .opt input:checked + .opt__txt{background:#fff;border-color:var(--ink)}
+/* the options: see-through, each in its own fine rounded border, spaced so the borders never
+   touch (Karan, 2026-10-06: "make these cards background transparent and just give them a
+   little border"); the words sit in from the edge */
+html[data-v="editorial"][data-theme="light"] .pick__opts{border-top:0;gap:10px}
+html[data-v="editorial"][data-theme="light"] .opt__txt{background:transparent;border:1px solid rgba(14,20,32,.16);border-radius:14px;box-shadow:none;padding:14px 22px}
+html[data-v="editorial"][data-theme="light"] .opt:hover .opt__txt{background:transparent;border-color:rgba(14,20,32,.34)}
+html[data-v="editorial"][data-theme="light"] .opt input:checked + .opt__txt{background:transparent;border-color:var(--ink)}
 
-/* the click (v3-cursor.js): while it plays, a drawn copy of the cursor stands in for it and
-   slithers like a snake up and out of its own window, and a new one slithers in from below.
-   The cursor sits low and right in a 176x208 window whose edges are soft all round, so the
-   snake fades out wherever it leaves and in wherever it comes, and the resting cursor is solid */
-.v3cur{position:fixed;left:0;top:0;z-index:2147483647;width:176px;height:208px;overflow:hidden;pointer-events:none;visibility:hidden;will-change:transform;
-  -webkit-mask-image:radial-gradient(ellipse 88px 104px at 102px 128px,#000 45%,transparent 92%);mask-image:radial-gradient(ellipse 88px 104px at 102px 128px,#000 45%,transparent 92%)}
-.v3cur svg{display:block;position:absolute;left:96px;top:112px;overflow:visible}
+/* the click (v3-cursor.js): while it plays, a drawn copy of the cursor stands in for it in a
+   window that is exactly the cursor's own visible box (its 32px picture, whose first drawn row is
+   3px down: a 2.5px inset is snapped to 2 and showed a row the cursor never does), so it bends, leaves through that box's top and comes back through its foot without
+   a pixel ever drawn outside the spot the cursor already takes */
+.v3cur{position:fixed;left:0;top:0;z-index:2147483647;width:32px;height:32px;overflow:hidden;clip-path:inset(3px 0 0 0);pointer-events:none;visibility:hidden;will-change:transform}
+.v3cur svg{display:block;position:absolute;left:0;top:0;overflow:visible}
 html.v3cur-on,html.v3cur-on *{cursor:none!important}
 
 /* ---- the line: a lit glass tube lying just above the page ----

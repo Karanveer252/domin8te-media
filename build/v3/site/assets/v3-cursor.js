@@ -6,16 +6,20 @@
 
    A cursor image cannot move, so while a click plays the real one is
    hidden and a drawn copy of it (v3/cursor/make.py's geometry: the
-   same line, head, colours, edge and rim) stands exactly where it
-   was. Its body comes alive like a snake (its corners soften into
-   curves and waves run down it from the head to the tail) and, as in
-   the first version ("make it go up and emerge from the bottom as it
-   was in the first version"), it slithers up and out of its own small
-   window the way it points and a new one rises back in from below,
-   settling into the growth line; then the real cursor returns. It follows the mouse
-   while it plays. Only where the growth cursor is showing (links keep
-   their hand and play nothing), only with a mouse, never with reduced
-   motion.
+   same line, head, colours, edge and rim) stands exactly where it was.
+   Then ("don't even let it move one more px above where it currently
+   is ... it should start disappearing from the position it is in
+   currently and should come from the bottom again. only animate the
+   one bend"): the copy lives in a window that is exactly the cursor's
+   own visible box, so nothing is ever drawn outside the spot it
+   already takes. Its body bends into one arc and sways, the way a
+   snake strokes, as it moves up the way it points and is cut off at
+   that box's top edge; a new one comes in through the box's foot the
+   same way and straightens back into the growth line. The body's two
+   ends never move against each other, so nothing stretches in place.
+   It follows the mouse while it plays. Only where the growth cursor is
+   showing (links keep their hand and play nothing), only with a mouse,
+   never with reduced motion.
    ============================================================ */
 (function () {
 'use strict';
@@ -27,8 +31,6 @@ if (!document.body || !window.requestAnimationFrame) return;
 var NS = 'http://www.w3.org/2000/svg';
 var HOT_X = 2, HOT_Y = 4;                       /* the click point in px (v3.css); 5,9 on the 64 grid */
 var MS = 1000;                                  /* the whole slither */
-var PAD_L = 96, PAD_T = 112;                    /* where the cursor sits in its window (px, v3.css .v3cur): room all round to be seen going and coming */
-var OUT = .5;                                   /* the share of the play spent leaving */
 
 /* the cursor's own geometry (v3/cursor/make.py), on its 64 grid */
 var PTS = [[57, 55], [40, 37], [29, 45], [13, 21]], TIP = [5, 9];
@@ -38,21 +40,27 @@ var HEAD = 'M' + TIP[0] + ' ' + TIP[1] + 'L' + (BX + NX * 9).toFixed(2) + ' ' + 
            'L' + (BX - NX * 9).toFixed(2) + ' ' + (BY - NY * 9).toFixed(2) + 'Z';
 var BODY = PTS.slice(0, 3).concat([[BX + ux * 2, BY + uy * 2]]);   /* tail to neck */
 
-/* the body resampled evenly, tail (s = 0) to neck (s = L) */
-var N = 36, SAMP = [], L = 0;
+/* the body sampled along its length, tail (s = 0) to neck (s = L), every corner of the growth line
+   one of the samples, so drawn straight through them it is the growth line exactly */
+var N, SAMP = [], L = 0;
 (function () {
-  var seg = [], i;
-  for (i = 1; i < BODY.length; i++) { var d = Math.hypot(BODY[i][0] - BODY[i - 1][0], BODY[i][1] - BODY[i - 1][1]); seg.push(d); L += d }
-  for (var k = 0; k < N; k++) {
-    var s = L * k / (N - 1), j = 0, acc = 0;
-    while (j < seg.length - 1 && acc + seg[j] < s) { acc += seg[j]; j++ }
-    var f = seg[j] ? (s - acc) / seg[j] : 0;
-    SAMP.push([BODY[j][0] + (BODY[j + 1][0] - BODY[j][0]) * f, BODY[j][1] + (BODY[j + 1][1] - BODY[j][1]) * f, s]);
+  var i, k, seg = [];
+  for (i = 1; i < BODY.length; i++) { seg.push(Math.hypot(BODY[i][0] - BODY[i - 1][0], BODY[i][1] - BODY[i - 1][1])); L += seg[i - 1] }
+  var acc = 0;
+  SAMP.push([BODY[0][0], BODY[0][1], 0]);
+  for (i = 1; i < BODY.length; i++) {
+    var n = Math.max(2, Math.round(seg[i - 1] / L * 36));
+    for (k = 1; k <= n; k++) {
+      var f = k / n;
+      SAMP.push([BODY[i - 1][0] + (BODY[i][0] - BODY[i - 1][0]) * f, BODY[i - 1][1] + (BODY[i][1] - BODY[i - 1][1]) * f, acc + seg[i - 1] * f]);
+    }
+    acc += seg[i - 1];
   }
+  N = SAMP.length;
 })();
 
 var root = document.documentElement;
-var box = null, svg = null, parts = null, grad = null, raf = 0, t0 = 0;
+var box = null, svg = null, parts = null, grad = null, mover = null, raf = 0, t0 = 0;
 
 function el(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); return e }
 function build() {
@@ -71,6 +79,7 @@ function build() {
   [['0', '#FF5A3C'], ['.3', '#FFB13B'], ['.55', '#3FC36A'], ['.78', '#1AA7E0'], ['1', '#8A4DFF']].forEach(function (s) { gh.appendChild(el('stop', { offset: s[0], 'stop-color': s[1] })) });
   defs.appendChild(g); defs.appendChild(gh); defs.appendChild(f); svg.appendChild(defs);
   var all = el('g', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+  mover = all;
   var sh = el('g', { transform: 'translate(1.2 2.4)', opacity: .32, filter: 'url(#v3curS)' });
   parts = {
     shB: el('path', { fill: 'none', stroke: '#0E1420', 'stroke-width': 9 }), shH: el('path', { d: HEAD, fill: '#0E1420', stroke: '#0E1420', 'stroke-width': 5 }),
@@ -85,71 +94,56 @@ function build() {
   box.appendChild(svg);
   document.body.appendChild(box);
 }
-function place(x, y) { box.style.transform = 'translate(' + (x - HOT_X - PAD_L) + 'px,' + (y - HOT_Y - PAD_T) + 'px)' }
+function place(x, y) { box.style.transform = 'translate(' + (x - HOT_X) + 'px,' + (y - HOT_Y) + 'px)' }
 function smooth(t) { t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t) }
 
-/* ---- the slither: serpentine motion, the way a snake moves (gauntlet-loop v2, 2026-10-05:
-   Karan, "make it go up so that it does not feel like it is moving while still").
-   One track runs through the whole play: below the cursor a wavy approach, then the resting
-   growth line itself (from its tail to the tip), then a wavy way out above, the way the arrow
-   points. The snake is a stretch of that track a body's length long, the head at D and every
-   point of the body where the head was: so the curves stay put on the screen while the snake
-   slides through them, and the waves are what carry it, never a wiggle on top of a slide.
-   Out: D from 0 (exactly the cursor at rest), moving from the first frame and gathering speed,
-   off the growth line and into the waves until its tail is gone. In: a new one from far down the
-   approach, slowing as it slides up through the waves onto the growth line, ending exactly at
-   rest. The head aims along its own neck. Units are the 64 grid (2 a pixel). */
-var GAP = 15;                                   /* the tip to the neck, along the track */
-var AW = 10, LAMBDA = 190, RAMP = 34;           /* the sway, its wavelength (twice the body's length, so the body holds one bend at a time: Karan, "only one bend"), how soon it is full */
-var OUT_D = 215, IN_D = 170;                    /* how far it goes out (its tail past the window's soft edge), and comes from (the whole snake hidden) */
-var REST = [TIP, [TIP[0] - ux * GAP, TIP[1] - uy * GAP], PTS[2], PTS[1], PTS[0]], RCUM = [0], RTOT;
-(function () { for (var i = 1; i < REST.length; i++) RCUM.push(RCUM[i - 1] + Math.hypot(REST[i][0] - REST[i - 1][0], REST[i][1] - REST[i - 1][1])); RTOT = RCUM[RCUM.length - 1] })();
-var VL = Math.hypot(PTS[0][0] - PTS[1][0], PTS[0][1] - PTS[1][1]), VX = (PTS[0][0] - PTS[1][0]) / VL, VY = (PTS[0][1] - PTS[1][1]) / VL;
-function track(d) {
-  var a, w;
-  if (d >= 0) {                                  /* the way out: from the tip, the way it points */
-    a = AW * smooth(d / RAMP); w = Math.sin(2 * Math.PI * d / LAMBDA);
-    return [TIP[0] + ux * d + NX * a * w, TIP[1] + uy * d + NY * a * w];
-  }
-  var r = -d;
-  if (r <= RTOT) {                               /* the growth line, back from the tip */
-    var i = 1;
-    while (i < RCUM.length - 1 && RCUM[i] < r) i++;
-    var f = (r - RCUM[i - 1]) / (RCUM[i] - RCUM[i - 1]);
-    return [REST[i - 1][0] + (REST[i][0] - REST[i - 1][0]) * f, REST[i - 1][1] + (REST[i][1] - REST[i - 1][1]) * f];
-  }
-  var e = r - RTOT;                              /* the approach: on past the tail, down and away */
-  a = AW * smooth(e / RAMP); w = Math.sin(2 * Math.PI * e / LAMBDA);
-  return [PTS[0][0] + VX * e - VY * a * w, PTS[0][1] + VY * e + VX * a * w];
-}
-var NECK0 = track(-17), REST_AIM = Math.atan2(TIP[1] - NECK0[1], TIP[0] - NECK0[0]);
-function headAt(ms) {
+/* ---- the stroke: one bend (gauntlet-loop v2, 2026-10-06) ----
+   The body is the growth line morphing into a single arc between the same two ends (its tail and
+   its neck), so its ends hold while it bends; the arc sways from one side to the other once, a
+   snake's stroke; the whole arrow travels the way it points, from the first frame, and the window
+   (v3.css .v3cur: the cursor's own visible box) cuts it off at the top. In: the same from below,
+   slowing, the arc straightening back into the growth line exactly. Units are the 64 grid. */
+var OUT = .45;                                  /* the share of the play spent leaving */
+var OUT_D = 76, IN_D = 76;                      /* travel out (the tail clears the box's top), and from (the tip under the box's foot) */
+var BEND = 10;                                  /* the arc's depth at its fullest */
+var TAIL = SAMP[0], NECK = SAMP[N - 1];
+var CX = NECK[0] - TAIL[0], CY = NECK[1] - TAIL[1], CL = Math.hypot(CX, CY), CNX = -CY / CL, CNY = CX / CL;
+function stateAt(ms) {
   var u = ms / MS;
-  if (u < OUT) { var p = u / OUT; return OUT_D * (.5 * p + .5 * p * p) }      /* moving from the first frame, then faster */
-  var q = (u - OUT) / (1 - OUT);
-  return -IN_D * Math.pow(1 - q, 2.6);                                         /* from below, slowing to rest */
+  if (u < OUT) {
+    var p = u / OUT;
+    return { d: OUT_D * (.6 * p + .4 * p * p),               /* moving from the first frame, then faster */
+             m: 1,                                             /* the growth line is the arc from the first frame: one bend, never two (review 2) */
+             b: BEND * Math.sin(Math.PI * 2 * p * .75 + .5) }; /* the arc sways across */
+  }
+  var q = (u - OUT) / (1 - OUT), k = 1 - Math.pow(1 - q, 1.35);   /* still gliding the last pixel as the zigzag returns */
+  return { d: -IN_D * (1 - k),                                 /* from below, slowing to rest */
+           m: 1,                                             /* the one bend all the way home; the real cursor takes its place on arrival (review 3) */
+           b: -BEND * Math.cos(Math.PI * .5 * q) };          /* and its sway runs out as it arrives */
 }
 function snake(ms) {
-  var D = headAt(ms), P = [], i;
-  for (i = 0; i < N; i++) P.push(track(D - GAP - (L - SAMP[i][2])));
-  var tip = track(D), neck = track(D - 17);
-  return { P: P, tip: tip, turn: Math.atan2(tip[1] - neck[1], tip[0] - neck[0]) - REST_AIM, o: 1 };
+  var st = stateAt(ms), P = [], i;
+  for (i = 0; i < N; i++) {
+    var f = SAMP[i][2] / L, bulge = st.b * Math.sin(Math.PI * f);
+    var ax = TAIL[0] + CX * f + CNX * bulge, ay = TAIL[1] + CY * f + CNY * bulge;   /* the arc */
+    P.push([SAMP[i][0] + (ax - SAMP[i][0]) * st.m, SAMP[i][1] + (ay - SAMP[i][1]) * st.m]);
+  }
+  /* the head stays on the neck, turned with the arc's end */
+  var turn = -Math.atan2(Math.PI * st.b / CL, 1) * st.m;
+  return { P: P, d: st.d, turn: turn };
 }
 function curve(P) {
   var d = 'M' + P[0][0].toFixed(2) + ' ' + P[0][1].toFixed(2), i;
-  for (i = 1; i < P.length - 1; i++) d += 'Q' + P[i][0].toFixed(2) + ' ' + P[i][1].toFixed(2) + ' ' + ((P[i][0] + P[i + 1][0]) / 2).toFixed(2) + ' ' + ((P[i][1] + P[i + 1][1]) / 2).toFixed(2);
-  return d + 'L' + P[P.length - 1][0].toFixed(2) + ' ' + P[P.length - 1][1].toFixed(2);
+  for (i = 1; i < P.length; i++) d += 'L' + P[i][0].toFixed(2) + ' ' + P[i][1].toFixed(2);
+  return d;
 }
 function draw(ms) {
   var S = snake(ms), d = curve(S.P);
   ['shB', 'rimB', 'edgeB', 'colB', 'hiB'].forEach(function (k) { parts[k].setAttribute('d', d) });
-  /* the head moves with the tip and turns about it */
-  var ht = 'translate(' + (S.tip[0] - TIP[0]).toFixed(2) + ' ' + (S.tip[1] - TIP[1]).toFixed(2) + ') rotate(' + (S.turn * 180 / Math.PI).toFixed(2) + ' ' + TIP[0] + ' ' + TIP[1] + ')';
+  var ht = 'rotate(' + (S.turn * 180 / Math.PI).toFixed(2) + ' ' + NECK[0].toFixed(2) + ' ' + NECK[1].toFixed(2) + ')';
   ['shH', 'rimH', 'edgeH', 'colH'].forEach(function (k) { parts[k].setAttribute('transform', ht) });
-  /* the colours ride on the body: the gradient runs from its tail to its tip */
-  grad.setAttribute('x1', S.P[0][0].toFixed(2)); grad.setAttribute('y1', S.P[0][1].toFixed(2));
-  grad.setAttribute('x2', S.tip[0].toFixed(2)); grad.setAttribute('y2', S.tip[1].toFixed(2));
-  svg.style.opacity = S.o.toFixed(3);
+  /* the whole arrow travels the way it points (the colours ride with it) */
+  mover.setAttribute('transform', 'translate(' + (ux * S.d).toFixed(2) + ' ' + (uy * S.d).toFixed(2) + ')');
 }
 function frame(now) {
   var ms = now - t0;
