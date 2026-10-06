@@ -78,14 +78,30 @@ comp = ct.nodes.new('CompositorNodeComposite')
 _wm = [float(x) for x in str(arg('--warm', '1,1,1')).split(',')]
 warm = ct.nodes.new('CompositorNodeMixRGB'); warm.blend_type = 'MULTIPLY'; warm.inputs['Fac'].default_value = 1.0
 warm.inputs[2].default_value = (_wm[0], _wm[1], _wm[2], 1)
-ct.links.new(img.outputs['Image'], warm.inputs[1])
+# the frame scaled to the output size, never cropped: the phone's 1080x1620 render graded to 720x1080
+# used to come out as the middle 720x1080 of it, 1.5x too close, its mark too big and off centre and the
+# rope off the rail phone.js draws on (2026-10-06)
+sc = ct.nodes.new('CompositorNodeScale')
+for k, v in (('space', 'RENDER_SIZE'), ('frame_method', 'FIT')):
+    try: setattr(sc, k, v)
+    except Exception: pass
+set_in(sc, ['Type'], 'Render Size'); set_in(sc, ['Frame Type'], 'Fit')
+ct.links.new(img.outputs['Image'], sc.inputs['Image'])
+ct.links.new(sc.outputs['Image'], warm.inputs[1])
 ct.links.new(warm.outputs['Image'], glare.inputs['Image'])
 ct.links.new(ell.outputs['Mask'], blur.inputs['Image'])
 ct.links.new(glare.outputs['Image'], vmix.inputs[1])
 ct.links.new(blur.outputs['Image'], vmix.inputs[2])
 ct.links.new(vmix.outputs['Image'], lift.inputs[1])
 sa = ct.nodes.new('CompositorNodeSetAlpha')
-ct.links.new(lift.outputs['Image'], sa.inputs['Image']); ct.links.new(img.outputs['Alpha'], sa.inputs['Alpha'])
+sa_scale = ct.nodes.new('CompositorNodeScale')
+for k, v in (('space', 'RENDER_SIZE'), ('frame_method', 'FIT')):
+    try: setattr(sa_scale, k, v)
+    except Exception: pass
+set_in(sa_scale, ['Type'], 'Render Size'); set_in(sa_scale, ['Frame Type'], 'Fit')
+sep = ct.nodes.new('CompositorNodeSepRGBA') if hasattr(bpy.types, 'CompositorNodeSepRGBA') else None
+ct.links.new(img.outputs['Alpha'], sa_scale.inputs['Image'])
+ct.links.new(lift.outputs['Image'], sa.inputs['Image']); ct.links.new(sa_scale.outputs['Image'], sa.inputs['Alpha'])
 ct.links.new(sa.outputs['Image'], comp.inputs['Image'])
 
 if arg('--in'):

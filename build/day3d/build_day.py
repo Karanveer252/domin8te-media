@@ -492,6 +492,13 @@ for f in range(N):
     aim.location = a; aim.keyframe_insert('location', frame=f)
     cam_d.shift_x = lerp(lerp(SX0, SX1, k1), SX2, k2); cam_d.keyframe_insert('shift_x', frame=f)
     cam_d.shift_y = lerp(lerp(SY0, SY1, k1), SY2, k2); cam_d.keyframe_insert('shift_y', frame=f)
+if PHONE:
+    PL1, PL2, PSHIFT = float(arg('--plens', 112)), float(arg('--plens2', 112)), float(arg('--pshift', -0.05))
+    for f in range(N):
+        bump = ease_io(smooth(f, 140, 196)) * (1 - ease_io(smooth(f, 236, 262)))
+        cam_d.lens = lerp(PL1, PL2, bump); cam_d.keyframe_insert('lens', frame=f)
+        k1 = ease_io(smooth(f, F_REST, F_PUSH_END)); k2 = ease_io(smooth(f, F_PULL0, F_PULL1))
+        cam_d.shift_x = lerp(lerp(SX0, SX1, k1), SX2, k2) + PSHIFT * bump; cam_d.keyframe_insert('shift_x', frame=f)
 linear(cam); linear(aim); linear(cam_d)
 
 # the cloche: seated a hair above the rim so the glow leaks out; its front lifts on the back-rim

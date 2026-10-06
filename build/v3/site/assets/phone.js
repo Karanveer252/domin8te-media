@@ -73,6 +73,7 @@
 
   var film, scene, box, still, alt, canvas, video, player, hero, heroCta, mark, svg, osvg, tip, ctabar, navCta, hold = false;
   var pieces = [], geo = null, on = false, gid = 0, laidKey = '', shown = '';
+  var jobCards = [];   /* version 3: the four jobs, each with its progress rule (--pp) */
   var raf = 0, lastT = 0, cur = null, lastW = 0, vel = 0, lastY = 0, lastYt = 0;
   var runWrap, endWrap, exitWrap;
 
@@ -90,8 +91,9 @@
     a: { t: [0, 12, 0, 1], rise: [0, 1.5, 0, 1], dx: [0, 0, 0, 1], night: [0, 0, 0, 1], glow: [.6, 1, 0, .8],
          words: [.12, .13], ex: { t: 4.5, rise: 1.2 } },
     /* version 3 is all day (2026-10-06): the second beat keeps its sun, so its clouds stay in the sky
-       (the night twins are hidden in v3.css; night here emptied the sky) */
-    b: { t: [12, 3, 0, 1], rise: [1.5, .2, 0, 1], dx: [0, -1.2, 0, 1], night: [0, 0, .15, .8], glow: [1, .5, .05, .7],
+       (the night twins are hidden in v3.css; night here emptied the sky), and the camera starts
+       further back (t 12 -> 7), so the beat does not open on an empty sky */
+    b: { t: [7, 3, 0, 1], rise: [1.5, .2, 0, 1], dx: [0, -1.2, 0, 1], night: [0, 0, .15, .8], glow: [1, .5, .05, .7],
          words: [.02, .42], ex: { t: -3, rise: -.4 } }
   };
   var SKY_KEYS = ['t', 'rise', 'dx', 'night', 'glow'];
@@ -322,6 +324,14 @@
       if (!k.cx) return;
       var go = function () { var w = k.fig.clientWidth, h = k.fig.clientHeight; if (on && geo && k.built !== w + 'x' + h + k.side) { skyLineBuild(k, w, h); k.lineKey = '' } };
       if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 2000 }); else setTimeout(go, 300);
+    });
+
+    /* version 3 (2026-10-06, Karan: "an underline under the cards like a progress bar which starts
+       when the snake reaches and completes when the snake passes"): each job's place on the page, so
+       paint() can fill its rule from the line's head */
+    jobCards = [].slice.call(film.querySelectorAll('#jobs .pan')).map(function (e) {
+      var fr = e.querySelector('.pan__frame') || e;
+      return { el: e, y: pos(fr).y, h: fr.offsetHeight, pp: -1 };
     });
 
     /* ---- the runway, read from the layout (the CSS sets it, so it is in
@@ -570,6 +580,11 @@
       put(tip, 'transform', 'translate3d(' + f(pt.x) + 'px,' + f(pt.y) + 'px,0) scale(' + (Math.round(swell * 100) / 100) + ')');
     }
     put(tip, 'opacity', '' + q3(c.lit * (1 - smooth((c.done - .8) / .2))));
+    /* version 3: each job's rule fills as the head runs from its top edge to its foot */
+    if (pt) for (i = 0; i < jobCards.length; i++) {
+      var jc = jobCards[i], pp = Math.round(clamp((pt.y - jc.y) / jc.h, 0, 1) * 500) / 500;
+      if (pp !== jc.pp) { jc.pp = pp; jc.el.style.setProperty('--pp', pp.toFixed(3)); jc.el.classList.toggle('is-run', pp >= 1) }
+    }
 
     /* the cloud beats: only a beat near the screen is written to, and each
        layer gets its own transform and opacity (a custom property on the
@@ -789,8 +804,9 @@
     ww.globalAlpha = 1; ww.shadowBlur = 0; ww.shadowColor = 'rgba(0,0,0,0)'; ww.fill();
     wl.fillStyle = 'rgba(255,240,228,.5)'; ribbonPath(wl, path, .5, 0); wl.fill();
     wl.fillStyle = 'rgba(255,252,245,.92)'; ribbonPath(wl, path, .16, .3); wl.fill();
-    /* soft in over the frame's top 40px, as the frame's own sky is */
-    [ww, wl].forEach(function (x) {
+    /* soft in over the frame's top 40px, as the frame's own sky is. Version 3: the first beat's sky
+       starts solid (the first step's words already stand in it), so its line runs in unbroken */
+    if (k.beat !== 'a') [ww, wl].forEach(function (x) {
       x.globalCompositeOperation = 'destination-out';
       var g = x.createLinearGradient(0, 0, 0, 40); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
       x.fillStyle = g; x.fillRect(0, -40, Wd, 80);

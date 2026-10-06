@@ -262,6 +262,67 @@ html[data-v="editorial"][data-theme="light"] .act--word .rule{height:3px;margin-
   .dx-frame__btn svg{width:13px;height:13px;margin-left:2px}
   .dx-frame__lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
+  /* ---- 2026-10-06 phone pass 2 (Karan's seven screenshots) ---- */
+
+  /* the first step: it sat on the sand with a blank blue block under it, crossed by the night
+     version's horizon glow (white bands, no reason to be there by day). Now the sky starts behind the
+     words themselves, a slow daylight gradient that the first cloud beat carries straight on from,
+     and the glow is gone */
+  html.snake[data-v="editorial"][data-theme="light"] .band--climb{position:relative;isolation:isolate}
+  html.snake[data-v="editorial"][data-theme="light"] .band--climb::before{
+    content:"";position:absolute;top:0;bottom:0;left:50%;width:100vw;transform:translateX(-50%);z-index:-1;pointer-events:none;
+    background:linear-gradient(180deg,rgba(var(--dx-ground-rgb),0) 0,rgba(214,228,242,.55) 45%,#C7DCF2 100%);
+  }
+  html.snake[data-v="editorial"][data-theme="light"] .sky3__glow{display:none}
+  html.snake[data-v="editorial"][data-theme="light"] .act--sky-a .sky3::before{
+    background:linear-gradient(180deg,#C7DCF2 0,#8DB8EA 90px,#5C9BE3 24%,#4F92DF 34%,#92BDEC 56%,#D6E4F2 78%,rgba(var(--dx-ground-rgb),0) 100%);
+  }
+  html.snake[data-v="editorial"][data-theme="light"] .act--sky-a .skystill::before{display:none}
+
+  /* the four jobs, the site's main point: each its own white card, the job in larger type, and a rule
+     along its foot that fills, in the line's spectrum, as the line runs past (phone.js sets --pp from
+     the line's head: 0 when it reaches the card's top, 1 when it has passed its foot) */
+  html.snake[data-v="editorial"][data-theme="light"] .film #jobs .pan.act{margin-bottom:12px}
+  html.snake[data-v="editorial"][data-theme="light"] .film #jobs .pan .pan__frame{
+    background:#fff;border:0;border-radius:18px;box-shadow:var(--card-shadow);overflow:hidden;
+  }
+  html.snake[data-v="editorial"][data-theme="light"] .film #jobs .pan:last-of-type .pan__frame{border-bottom:0}
+  html.snake[data-v="editorial"][data-theme="light"] .film #jobs .pan .pan__head{left:20px;top:27px;font-size:13px}
+  html.snake[data-v="editorial"][data-theme="light"] .film #jobs .pan .pan__body{padding:22px 20px 34px 56px}
+  html.snake[data-v="editorial"][data-theme="light"] .film #jobs .pan .pan__ttl{font-size:clamp(30px,10vw,40px);line-height:1;margin:0 0 10px;color:var(--ink)}
+  html.snake[data-v="editorial"][data-theme="light"] .film #jobs .pan .pan__line{font-size:16px;color:var(--ink-2)}
+  html.snake[data-v="editorial"][data-theme="light"] .film #jobs .pan .pan__frame::before,
+  html.snake[data-v="editorial"][data-theme="light"] .film #jobs .pan .pan__frame::after{
+    display:block;content:"";position:absolute;left:56px;right:20px;bottom:16px;height:3px;border-radius:3px;pointer-events:none;
+  }
+  html.snake[data-v="editorial"][data-theme="light"] .film #jobs .pan .pan__frame::before{background:rgba(14,20,32,.08)}
+  html.snake[data-v="editorial"][data-theme="light"] .film #jobs .pan .pan__frame::after{
+    background:linear-gradient(90deg,#E5322B,#F2912F,#F3CB3C,#5CB246,#0FA3C2,#2E5FA8,#7A3E97);
+    transform:scaleX(var(--pp,0));transform-origin:left center;
+  }
+  html.snake[data-v="editorial"][data-theme="light"] .film #jobs .pan.is-run .pan__head{color:var(--acc-display)}
+
+  /* the ad pictures in the work section: on a narrow phone their headline ran out of its card
+     ("Musse", "course") and over the day tag; the pair now scales with the screen */
+  html[data-v="editorial"][data-theme="light"] .work .pan--ad .mk-pair{font-size:min(8.5px,1.95vw)}
+
+  /* before and after: closer to their words and to each other */
+  html.snake[data-v="editorial"][data-theme="light"] .act--ba--before{padding-top:clamp(84px,12vh,112px)}
+  html.snake[data-v="editorial"][data-theme="light"] .act--ba--after{margin-top:-72px}
+
+  /* the plan, once a problem is picked: it sat on the bare ground with its words against the orange
+     rule and no edge; now a white card, the rule inside it, the words clear of it */
+  html.snake[data-v="editorial"][data-theme="light"] .pick__plan.has-pick{
+    box-sizing:border-box;width:100%;background:#fff;border-radius:18px;box-shadow:var(--card-shadow);padding:6px 20px 24px 34px;margin-top:20px;
+  }
+  html.snake[data-v="editorial"][data-theme="light"] .pick__plan.has-pick .pick__rise{left:16px;top:24px;bottom:24px;width:3px;border-radius:3px}
+  html.snake[data-v="editorial"][data-theme="light"] .pick__plan.has-pick .step:first-child{border-top:0}
+  html.snake[data-v="editorial"][data-theme="light"] .pick__plan.has-pick .step__what{font-size:19px;line-height:1.35}
+  /* picking a problem used to widen the whole picker past the screen: the plan's button ("Start with
+     the website") would not wrap, and the grid's one column grew to fit it */
+  html.snake[data-v="editorial"] .pick__body{grid-template-columns:minmax(0,1fr)}
+  html.snake[data-v="editorial"] .pick__plan .plan__cta{max-width:100%;white-space:normal;text-align:center;line-height:1.25;padding-top:14px;padding-bottom:14px}
+
   /* the cloud beats held half as long (Karan: "make the feel the growth and taking your
      time section last for 50% less time"): the pinned run 120vh -> 60vh; the desktop's
      beats are halved in site.js (FEEL.L1, L2) */

@@ -134,3 +134,22 @@ for a, b in R3:
     s = s.replace(a, b, 1)
 io.open(p, 'w', encoding='utf-8', newline='').write(s)
 print('patched round 3', len(R3))
+
+# ---- round 4 (2026-10-06, Karan on the phone: "the logo is not centered"): as the infinity lifts and
+# grows (frames ~140-236) it drifted left (and the phone film was a 1.5x centre crop, grade.py now scales). On
+# left loop left the frame. On the phone only, the lens eases out from 112 to 92 and the frame shifts to
+# keep the mark centred, and both ease back by frame 262, before the rope's hand-off, so the line still
+# leaves where the page takes it on. Re-run: cp ../cloche3d/build.py build_day.py && python patch_day.py
+s = io.open(p, encoding='utf-8', newline='').read()
+a4 = "linear(cam); linear(aim); linear(cam_d)"
+assert s.count(a4) == 1, 'MISSING4'
+s = s.replace(a4, """if PHONE:
+    PL1, PL2, PSHIFT = float(arg('--plens', 112)), float(arg('--plens2', 112)), float(arg('--pshift', -0.05))
+    for f in range(N):
+        bump = ease_io(smooth(f, 140, 196)) * (1 - ease_io(smooth(f, 236, 262)))
+        cam_d.lens = lerp(PL1, PL2, bump); cam_d.keyframe_insert('lens', frame=f)
+        k1 = ease_io(smooth(f, F_REST, F_PUSH_END)); k2 = ease_io(smooth(f, F_PULL0, F_PULL1))
+        cam_d.shift_x = lerp(lerp(SX0, SX1, k1), SX2, k2) + PSHIFT * bump; cam_d.keyframe_insert('shift_x', frame=f)
+""" + a4, 1)
+io.open(p, 'w', encoding='utf-8', newline='').write(s)
+print('patched round 4')
