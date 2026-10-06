@@ -198,6 +198,11 @@ html[data-v="editorial"][data-theme="light"] .act--word .rule{height:3px;margin-
    THE PHONE
    ============================================================ */
 @media (max-width:760px){
+  /* the grain darkens what is under it by about 4 levels on average, so the ground the scenes and
+     films fade into (the flat sand, --bg) met the grained page in a visible seam (under the second
+     cloud beat). On the phone the grain sits on a sand that much lighter, so on average they agree */
+  html[data-v="editorial"][data-theme="light"]{background:var(--v3-grain),#F0EAE1}
+
   /* the hero's SPECIALS. keeps to the phone's column */
   html[data-v="editorial"][data-theme="light"] .hl--hero .acc{font-size:min(1.9em,calc((100vw - 96px) / 5.4))}
   /* the opening: the whole cloche on the first screen (Karan sent the first
@@ -230,7 +235,14 @@ html[data-v="editorial"][data-theme="light"] .act--word .rule{height:3px;margin-
     font-weight:600;font-style:normal;letter-spacing:-.03em;color:#FF6A1F;-webkit-text-stroke-color:#FF6A1F;
     text-shadow:0 .012em 0 #F25F18,0 .024em 0 #DD5212,0 .036em 0 #CA4810,0 .048em 0 #B8400D,0 .07em .04em rgba(120,40,8,.2);
   }
-  html[data-v="editorial"][data-theme="light"].story .act--sky-b .hl--sky .ln--2{color:#363B44}
+  /* the second beat's answer line: larger, and lifted off the blue by a soft light behind it, so
+     its orange words read (it was a small line of orange on mid blue) */
+  html[data-v="editorial"][data-theme="light"].story .act--sky-b .hl--sky .ln--2{color:#363B44;font-size:.7em}
+  html[data-v="editorial"][data-theme="light"].story .act--sky-b .hl--sky .ln--2 .acc{color:#FF5A14;-webkit-text-stroke-color:#FF5A14}
+  html[data-v="editorial"][data-theme="light"].story .act--sky .skystill__words::before{
+    content:"";position:absolute;left:50%;top:50%;width:120%;height:150%;transform:translate(-50%,-50%);z-index:-1;pointer-events:none;
+    background:radial-gradient(closest-side,rgba(255,255,255,.55),rgba(255,255,255,0));
+  }
   /* the phone's line: the desktop's tube (phone.js draws its own layers: four
      glows, the body, a lighter band, a core). The two widest glows become its
      shadow on the page, a little below it; the narrowest, a dark rim; the
@@ -241,6 +253,14 @@ html[data-v="editorial"][data-theme="light"] .act--word .rule{height:3px;margin-
   html.snake[data-v="editorial"][data-theme="light"] .snk__g1{stroke:#1A120C;opacity:.4}
   html.snake[data-v="editorial"][data-theme="light"] .snk__band{opacity:.35}
   html.snake[data-v="editorial"][data-theme="light"] .snk__core{stroke:#fff;stroke-opacity:.75;transform:translate(0,-1.4px)}
+
+  /* the dashboard film's play button: on the phone it sat in the window's corner, over the title
+     card's mark. Now a round play button low in the middle, under the card's words, the page's
+     own orange; its words stay in its label, and the note under the film says it has music */
+  .dx-frame__play{left:50%;right:auto;top:87%;padding:4px;transform:translate(-50%,-50%)}
+  .dx-frame__btn{width:40px;min-height:40px;height:40px;padding:0;justify-content:center;border-radius:50%;background:var(--v3-cta);color:#fff;box-shadow:0 10px 22px -10px rgba(202,74,20,.8)}
+  .dx-frame__btn svg{width:13px;height:13px;margin-left:2px}
+  .dx-frame__lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
   /* the cloud beats held half as long (Karan: "make the feel the growth and taking your
      time section last for 50% less time"): the pinned run 120vh -> 60vh; the desktop's

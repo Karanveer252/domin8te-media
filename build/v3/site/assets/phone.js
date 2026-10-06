@@ -89,7 +89,9 @@
   var SKY = {
     a: { t: [0, 12, 0, 1], rise: [0, 1.5, 0, 1], dx: [0, 0, 0, 1], night: [0, 0, 0, 1], glow: [.6, 1, 0, .8],
          words: [.12, .13], ex: { t: 4.5, rise: 1.2 } },
-    b: { t: [12, 3, 0, 1], rise: [1.5, .2, 0, 1], dx: [0, -1.2, 0, 1], night: [0, 1, .15, .8], glow: [1, 0, .05, .7],
+    /* version 3 is all day (2026-10-06): the second beat keeps its sun, so its clouds stay in the sky
+       (the night twins are hidden in v3.css; night here emptied the sky) */
+    b: { t: [12, 3, 0, 1], rise: [1.5, .2, 0, 1], dx: [0, -1.2, 0, 1], night: [0, 0, .15, .8], glow: [1, .5, .05, .7],
          words: [.02, .42], ex: { t: -3, rise: -.4 } }
   };
   var SKY_KEYS = ['t', 'rise', 'dx', 'night', 'glow'];
