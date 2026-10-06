@@ -6,17 +6,12 @@
 
    A cursor image cannot move, so while a click plays the real one is
    hidden and a drawn copy of it (v3/cursor/make.py's geometry: the
-   same line, head, colours, edge and rim) stands exactly where it was.
-   Then ("don't even let it move one more px above where it currently
-   is ... it should start disappearing from the position it is in
-   currently and should come from the bottom again. only animate the
-   one bend"): the copy lives in a window that is exactly the cursor's
-   own visible box, so nothing is ever drawn outside the spot it
-   already takes. Its body bends into one arc and sways, the way a
-   snake strokes, as it moves up the way it points and is cut off at
-   that box's top edge; a new one comes in through the box's foot the
-   same way and straightens back into the growth line. The body's two
-   ends never move against each other, so nothing stretches in place.
+   same line, head, colours, edge and rim) stands exactly where it was,
+   in a window that is exactly the cursor's own visible box, so nothing
+   is ever drawn outside the spot it already takes. The copy runs along
+   its own line like a train on rails: straight out through the box's
+   top, and a new one in from the lower right round the same corners to
+   rest; it never changes shape, so nothing snaps (see "the run" below).
    It follows the mouse while it plays. Only where the growth cursor is
    showing (links keep their hand and play nothing), only with a mouse,
    never with reduced motion.
@@ -60,7 +55,7 @@ var N, SAMP = [], L = 0;
 })();
 
 var root = document.documentElement;
-var box = null, svg = null, parts = null, grad = null, mover = null, raf = 0, t0 = 0;
+var box = null, svg = null, parts = null, grad = null, raf = 0, t0 = 0;
 
 function el(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); return e }
 function build() {
@@ -79,7 +74,6 @@ function build() {
   [['0', '#FF5A3C'], ['.3', '#FFB13B'], ['.55', '#3FC36A'], ['.78', '#1AA7E0'], ['1', '#8A4DFF']].forEach(function (s) { gh.appendChild(el('stop', { offset: s[0], 'stop-color': s[1] })) });
   defs.appendChild(g); defs.appendChild(gh); defs.appendChild(f); svg.appendChild(defs);
   var all = el('g', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
-  mover = all;
   var sh = el('g', { transform: 'translate(1.2 2.4)', opacity: .32, filter: 'url(#v3curS)' });
   parts = {
     shB: el('path', { fill: 'none', stroke: '#0E1420', 'stroke-width': 9 }), shH: el('path', { d: HEAD, fill: '#0E1420', stroke: '#0E1420', 'stroke-width': 5 }),
@@ -97,40 +91,53 @@ function build() {
 function place(x, y) { box.style.transform = 'translate(' + (x - HOT_X) + 'px,' + (y - HOT_Y) + 'px)' }
 function smooth(t) { t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t) }
 
-/* ---- the stroke: one bend (gauntlet-loop v2, 2026-10-06) ----
-   The body is the growth line morphing into a single arc between the same two ends (its tail and
-   its neck), so its ends hold while it bends; the arc sways from one side to the other once, a
-   snake's stroke; the whole arrow travels the way it points, from the first frame, and the window
-   (v3.css .v3cur: the cursor's own visible box) cuts it off at the top. In: the same from below,
-   slowing, the arc straightening back into the growth line exactly. Units are the 64 grid. */
+/* ---- the run: on its own rails (gauntlet-loop v2, 2026-10-06: Karan, "make it just run straight
+   and out while following the bend and come again from the bottom following the same bend", then
+   "I strictly want the arrow to follow the bend, not move like a snake and then snap into place").
+   The track is the growth line itself: straight on past the tip, the way the arrow points; back from
+   the tip, the neck, the line's two corners and its tail; and on past the tail, the way its last
+   stroke runs, down and to the right. The arrow runs along it like a train: the head goes straight
+   out through the top of the cursor's box while the body slides round its own corners after it; a
+   new one comes up the straight from the lower right, round the same corners, and stops with its tip
+   on the click point. Its shape is the cursor's at every moment of rest, so nothing ever changes
+   shape and nothing snaps; the corners stay where they are and the arrow passes through them. */
 var OUT = .45;                                  /* the share of the play spent leaving */
-var OUT_D = 76, IN_D = 76;                      /* travel out (the tail clears the box's top), and from (the tip under the box's foot) */
-var BEND = 10;                                  /* the arc's depth at its fullest */
-var TAIL = SAMP[0], NECK = SAMP[N - 1];
-var CX = NECK[0] - TAIL[0], CY = NECK[1] - TAIL[1], CL = Math.hypot(CX, CY), CNX = -CY / CL, CNY = CX / CL;
-function stateAt(ms) {
-  var u = ms / MS;
-  if (u < OUT) {
-    var p = u / OUT;
-    return { d: OUT_D * (.6 * p + .4 * p * p),               /* moving from the first frame, then faster */
-             m: 1,                                             /* the growth line is the arc from the first frame: one bend, never two (review 2) */
-             b: BEND * Math.sin(Math.PI * 2 * p * .75 + .5) }; /* the arc sways across */
+var OUT_D = 96, IN_D = 100;                     /* run out (the tail clears the box's top), and in from (the whole arrow outside the box's lower right) */
+var NECKD = 15;                                 /* the tip to the neck */
+var RAIL = [TIP, [TIP[0] - ux * NECKD, TIP[1] - uy * NECKD], PTS[2], PTS[1], PTS[0]], RCUM = [0], RTOT;
+(function () { for (var i = 1; i < RAIL.length; i++) RCUM.push(RCUM[i - 1] + Math.hypot(RAIL[i][0] - RAIL[i - 1][0], RAIL[i][1] - RAIL[i - 1][1])); RTOT = RCUM[RCUM.length - 1] })();
+var VL = Math.hypot(PTS[0][0] - PTS[1][0], PTS[0][1] - PTS[1][1]), VX = (PTS[0][0] - PTS[1][0]) / VL, VY = (PTS[0][1] - PTS[1][1]) / VL;
+function track(d) {
+  if (d >= 0) return [TIP[0] + ux * d, TIP[1] + uy * d];                 /* out past the tip */
+  var r = -d;
+  if (r <= RTOT) {                                                       /* the growth line, back from the tip */
+    var i = 1;
+    while (i < RCUM.length - 1 && RCUM[i] < r) i++;
+    var f = (r - RCUM[i - 1]) / (RCUM[i] - RCUM[i - 1]);
+    return [RAIL[i - 1][0] + (RAIL[i][0] - RAIL[i - 1][0]) * f, RAIL[i - 1][1] + (RAIL[i][1] - RAIL[i - 1][1]) * f];
   }
-  var q = (u - OUT) / (1 - OUT), k = 1 - Math.pow(1 - q, 1.35);   /* still gliding the last pixel as the zigzag returns */
-  return { d: -IN_D * (1 - k),                                 /* from below, slowing to rest */
-           m: 1,                                             /* the one bend all the way home; the real cursor takes its place on arrival (review 3) */
-           b: -BEND * Math.cos(Math.PI * .5 * q) };          /* and its sway runs out as it arrives */
+  var e = r - RTOT;                                                      /* in past the tail */
+  return [PTS[0][0] + VX * e, PTS[0][1] + VY * e];
+}
+var REST_NECK = track(-17), REST_AIM = Math.atan2(TIP[1] - REST_NECK[1], TIP[0] - REST_NECK[0]);
+function headAt(ms) {
+  var u = ms / MS;
+  if (u < OUT) { var p = u / OUT; return OUT_D * (.6 * p + .4 * p * p) }          /* off at once, then faster */
+  var q = (u - OUT) / (1 - OUT);
+  return -IN_D * Math.pow(1 - q, 2);                                              /* in, easing to a stop on the click point */
 }
 function snake(ms) {
-  var st = stateAt(ms), P = [], i;
+  var D = headAt(ms), P = [], i;
+  /* the body's points on the rails, and every corner of the rails that falls between two of them,
+     so the line goes exactly round its corners, never across them (review 5) */
+  var prev = null;
   for (i = 0; i < N; i++) {
-    var f = SAMP[i][2] / L, bulge = st.b * Math.sin(Math.PI * f);
-    var ax = TAIL[0] + CX * f + CNX * bulge, ay = TAIL[1] + CY * f + CNY * bulge;   /* the arc */
-    P.push([SAMP[i][0] + (ax - SAMP[i][0]) * st.m, SAMP[i][1] + (ay - SAMP[i][1]) * st.m]);
+    var di = D - NECKD - (L - SAMP[i][2]);
+    if (prev !== null) for (var c = RCUM.length - 1; c >= 1; c--) { var dc = -RCUM[c]; if (dc > prev && dc < di) P.push(track(dc)) }
+    P.push(track(di)); prev = di;
   }
-  /* the head stays on the neck, turned with the arc's end */
-  var turn = -Math.atan2(Math.PI * st.b / CL, 1) * st.m;
-  return { P: P, d: st.d, turn: turn };
+  var tip = track(D), neck = track(D - 17);
+  return { P: P, tip: tip, turn: Math.atan2(tip[1] - neck[1], tip[0] - neck[0]) - REST_AIM };
 }
 function curve(P) {
   var d = 'M' + P[0][0].toFixed(2) + ' ' + P[0][1].toFixed(2), i;
@@ -140,10 +147,12 @@ function curve(P) {
 function draw(ms) {
   var S = snake(ms), d = curve(S.P);
   ['shB', 'rimB', 'edgeB', 'colB', 'hiB'].forEach(function (k) { parts[k].setAttribute('d', d) });
-  var ht = 'rotate(' + (S.turn * 180 / Math.PI).toFixed(2) + ' ' + NECK[0].toFixed(2) + ' ' + NECK[1].toFixed(2) + ')';
+  /* the head on the tip, turned the way the track runs there */
+  var ht = 'translate(' + (S.tip[0] - TIP[0]).toFixed(2) + ' ' + (S.tip[1] - TIP[1]).toFixed(2) + ') rotate(' + (S.turn * 180 / Math.PI).toFixed(2) + ' ' + TIP[0] + ' ' + TIP[1] + ')';
   ['shH', 'rimH', 'edgeH', 'colH'].forEach(function (k) { parts[k].setAttribute('transform', ht) });
-  /* the whole arrow travels the way it points (the colours ride with it) */
-  mover.setAttribute('transform', 'translate(' + (ux * S.d).toFixed(2) + ' ' + (uy * S.d).toFixed(2) + ')');
+  /* the colours ride on the arrow: the body's gradient runs from its tail to its tip */
+  grad.setAttribute('x1', S.P[0][0].toFixed(2)); grad.setAttribute('y1', S.P[0][1].toFixed(2));
+  grad.setAttribute('x2', S.tip[0].toFixed(2)); grad.setAttribute('y2', S.tip[1].toFixed(2));
 }
 function frame(now) {
   var ms = now - t0;
