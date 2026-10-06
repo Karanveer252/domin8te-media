@@ -49,5 +49,5 @@ restamp(path.join(V2, 'assets', 'site.js'), ['hero-scrub.mp4', 'hero-poster.jpg'
 restamp(path.join(V2, 'assets', 'phone.js'), ['cl-film.mp4']);
 restamp(path.join(V2, 'assets', 'sky.js'), ['sky-scrub.mp4']);
 restamp(path.join(V2, 'assets', 'v3.css'), ['v3-sky-a.jpg', 'v3-sky-b.jpg']);
-restamp(path.join(V2, 'index.html'), ['site.js', 'phone.js', 'sky.js', 'v3.css', 'v3-cursor.js', 'v3-mark.webp', 'sky-a-still.jpg', 'sky-b-still.jpg', 'dx-cloud-far.webp', 'dx-cloud-mid.webp', 'dx-cloud-near.webp',
+restamp(path.join(V2, 'index.html'), ['site.js', 'phone.js', 'sky.js', 'v3.css', 'v3-cursor.js', 'sky-a-still.jpg', 'sky-b-still.jpg', 'dx-cloud-far.webp', 'dx-cloud-mid.webp', 'dx-cloud-near.webp',
   'cy-l1.webp', 'cy-l1.avif', 'cy-l2.webp', 'cy-l2.avif', 'cy-l3.webp', 'cy-l3.avif', 'cy-l4.webp', 'cy-l4.avif']);

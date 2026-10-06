@@ -62,11 +62,10 @@ html[data-v="editorial"][data-theme="light"] .opt__txt{background:#fff;border-co
 html[data-v="editorial"][data-theme="light"] .opt:hover .opt__txt{background:#fff;border-color:var(--line-2)}
 html[data-v="editorial"][data-theme="light"] .opt input:checked + .opt__txt{background:#fff;border-color:var(--ink)}
 
-/* the click (v3-cursor.js): while it plays, a copy of the cursor stands in for it, slithering
-   up and off with a spectrum tail and back up from below into place. The box sits on the click
-   point; the copy turns about its own point (the arrow's tip) */
-.v3cur{position:fixed;left:0;top:0;z-index:2147483647;width:0;height:0;overflow:visible;pointer-events:none;visibility:hidden;will-change:transform}
-.v3cur i{position:absolute;left:0;top:0;display:block;width:32px;height:32px;background:center / 32px 32px no-repeat;transform-origin:2px 4px;will-change:transform,opacity}
+/* the click (v3-cursor.js): while it plays, a drawn copy of the cursor stands in for it on the
+   same spot, its head still and its body slithering like a snake */
+.v3cur{position:fixed;left:0;top:0;z-index:2147483647;width:32px;height:32px;pointer-events:none;visibility:hidden;will-change:transform}
+.v3cur svg{display:block;overflow:visible}
 html.v3cur-on,html.v3cur-on *{cursor:none!important}
 
 /* ---- the line: a lit glass tube lying just above the page ----
@@ -180,13 +179,15 @@ html[data-v="editorial"][data-theme="light"].film .stage:has(.band--climb.on) .h
 /* ---- before and after: pill tags ---- */
 html[data-v="editorial"][data-theme="light"] .ba__tab{border-radius:999px;padding-left:14px;padding-right:14px}
 
-/* ---- the close: the wordmark heavier, a spectrum rule under it ---- */
+/* ---- the close: the wordmark heavier, and the drawn spectrum rule under it ----
+   Karan, 2026-10-05: the original logo stays (the glass mark that stood over it is gone,
+   assets/mark-720.webp as on the live site) and the static spectrum line under the name
+   goes; the rule that draws itself across as the page ends (site.css .rule) takes its
+   place, closer under the name */
 html[data-v="editorial"][data-theme="light"] .wordmark{font-weight:600;color:var(--ink)}
 html[data-v="editorial"][data-theme="light"] .wordmark__sub{font-weight:400;color:#9AA0AA}
-html[data-v="editorial"][data-theme="light"] .wordmark::after{
-  content:"";display:block;height:.09em;margin-top:.32em;border-radius:.09em;
-  background:linear-gradient(90deg,#E5322B,#F2912F,#F3CB3C,#5CB246,#0FA3C2,#2E5FA8,#7A3E97,#D51C73);
-}
+html[data-v="editorial"][data-theme="light"].film .act--word .rule{height:3px;margin-top:1vh}
+html[data-v="editorial"][data-theme="light"] .act--word .rule{height:3px;margin-top:10px}
 
 /* ============================================================
    THE PHONE
