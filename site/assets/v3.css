@@ -422,6 +422,7 @@ html[data-v="editorial"] .cl__pic::after{content:"";position:absolute;left:clamp
 html[data-v="editorial"] .cl__body{display:flex;flex-direction:column;flex:1;padding:clamp(24px,2.4vw,34px)}
 html[data-v="editorial"] .cl__kind{margin:0 0 12px;font:600 12px/1.4 var(--f-text);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
 html[data-v="editorial"] .cl__name{margin:0 0 14px;font:800 italic clamp(32px,3vw,46px)/1 var(--f-display);letter-spacing:-.03em;color:var(--ink)}
+html[data-v="editorial"] .cl__name--freddys span{font-weight:300;font-style:normal;letter-spacing:-.02em;color:var(--acc-display)}
 html[data-v="editorial"] .cl__name--lecookie{font-weight:300;font-style:normal;letter-spacing:-.02em}
 html[data-v="editorial"] .cl__name--lecookie em{font-weight:800;font-style:italic;letter-spacing:-.03em;color:var(--acc-display)}
 html[data-v="editorial"] .cl__line{margin:0;font:400 clamp(16px,1.2vw,18px)/1.55 var(--f-text);color:var(--ink-2);max-width:34ch}
