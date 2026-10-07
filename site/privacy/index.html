@@ -67,9 +67,27 @@
  ]
 }
 </script>
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '2195448994715770');
+fbq('track', 'PageView');
+</script>
+<!-- End Meta Pixel Code -->
 </head>
 
 <body class="wk-page">
+<!-- Meta Pixel Code (no script) -->
+<noscript><img height="1" width="1" style="display:none" alt=""
+src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscript=1"></noscript>
+<!-- End Meta Pixel Code (no script) -->
 <a class="skip" href="#main">Skip to content</a>
 
 <header class="hdr" id="hdr">
@@ -128,7 +146,8 @@
           <h3>When you use the client dashboard</h3>
           <p class="cs-p rv">Clients sign in to a private dashboard. To run it we keep your account details (name, email, sign-in records), the messages you send us, your approvals and notes, and the business information you share with us so we can do the work: hours, menus, photos and similar.</p>
           <h3>When you simply visit</h3>
-          <p class="cs-p rv">Our public pages do not use advertising cookies or tracking pixels. Like almost every website, our host records basic server logs (such as IP address, browser type and the page requested) to keep the site running and secure. If you switch the background on our homepage, your browser remembers that choice locally; it is not sent to us.</p>
+          <p class="cs-p rv">Our public pages use the Meta Pixel, a small piece of code from Meta, the company behind Facebook and Instagram. When you open one of these pages, it tells Meta which page you visited, so we can see whether our ads bring people to the site and show our ads to people likely to be interested. Meta may set cookies to do this and can connect the visit to a Facebook or Instagram account you are signed in to, under Meta’s own privacy policy. You can turn off ads based on your activity in your Facebook or Instagram ad settings, or block third-party cookies in your browser. The client dashboard does not use the pixel.</p>
+          <p class="cs-p rv">Like almost every website, our host records basic server logs (such as IP address, browser type and the page requested) to keep the site running and secure. If you switch the background on our homepage, your browser remembers that choice locally; it is not sent to us.</p>
       </section>
 
       <section class="cs-ch" id="use" aria-labelledby="use-h">
@@ -138,6 +157,7 @@
             <li>To reply to you and send the plan you asked for.</li>
             <li>To deliver the work for clients: running your website, listing, posts and ads, and keeping your dashboard up to date.</li>
             <li>To keep the site and the dashboard secure and working.</li>
+            <li>To see whether our own ads bring people to this site, through the Meta Pixel described above.</li>
             <li>To meet legal, tax and accounting duties.</li>
           </ul>
           <p class="cs-p rv">We do not sell your information, and we do not rent or trade it to anyone.</p>
@@ -159,6 +179,7 @@
             <li>Our email provider.</li>
             <li>Clerk, which handles sign-in for the client dashboard.</li>
             <li>Supabase, which stores dashboard data.</li>
+            <li>Meta, which runs the Meta Pixel on our public pages.</li>
             <li>The platforms you ask us to work on for you, such as Google, Meta (Facebook and Instagram) and your website platform, under your own accounts.</li>
           </ul>
           <p class="cs-p rv">Some of these providers store data outside Canada, including in the United States, where it may be subject to local law. We may also disclose information if the law requires it.</p>

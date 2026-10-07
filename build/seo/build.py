@@ -34,6 +34,10 @@ same words go into FAQPage JSON-LD, so what Google reads and what people read ne
 """
 import hashlib, html, json, os, re, sys
 from datetime import date
+import importlib.util
+_spec = importlib.util.spec_from_file_location('meta_pixel', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'meta-pixel.py'))
+_mp = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_mp)
+PIXEL = _mp.add                                                    # every generated page carries the Meta Pixel
 
 SITE = r'C:\Work\domin8te-media'
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -443,7 +447,7 @@ def main():
     for p in pages.values():
         out = os.path.join(SITE, p['path'].strip('/').replace('/', os.sep), 'index.html')
         os.makedirs(os.path.dirname(out), exist_ok=True)
-        open(out, 'w', encoding='utf-8', newline='\n').write(render(p, pages))
+        open(out, 'w', encoding='utf-8', newline='\n').write(PIXEL(render(p, pages))[0])   # with the Meta Pixel (../meta-pixel.py)
         probs, n = lint(p)
         print('%-52s %5d words %s' % (p['path'], n, ('  ** ' + '; '.join(probs)) if probs else ''))
     urls = sitemap(pages)
