@@ -454,6 +454,29 @@
       };
       const load = () => section(el, '#updates-body', () => ctx.client.getUpdates(), (list) => { all = list; return draw(); },
         () => ({ title: "We couldn't load your updates just now.", text: 'Your other pages still work. Try again in a moment.', retry: 'updates' }));
+      // the filter is one row that scrolls sideways when it is wider than the page (styles.css):
+      // fade only the side with more chips behind it, and keep the picked chip in view
+      const bar = /** @type {HTMLElement|null} */ (el.querySelector('.filter-bar'));
+      const edges = () => {
+        if (!bar) return;
+        bar.classList.toggle('at-start', bar.scrollLeft <= 2);
+        bar.classList.toggle('at-end', bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 2);
+      };
+      const showPicked = () => {
+        const seg = bar && bar.querySelector('input:checked');
+        const box = seg && /** @type {HTMLElement} */ (seg.parentElement);
+        if (!bar || !box) return;
+        const bl = bar.getBoundingClientRect().left, bx = box.getBoundingClientRect();
+        const l = bx.left - bl + bar.scrollLeft, r = l + bx.width, pad = 28;
+        if (l - pad < bar.scrollLeft) bar.scrollLeft = Math.max(0, l - pad);
+        else if (r + pad > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = r + pad - bar.clientWidth;
+        edges();
+      };
+      if (bar) {
+        bar.addEventListener('scroll', edges, { passive: true });
+        if (typeof ResizeObserver !== 'undefined') new ResizeObserver(edges).observe(bar);   // goes with the page
+        showPicked();
+      }
       load();
       return {
         retry: load,
@@ -462,6 +485,7 @@
           if (name !== 'service') return;
           filter = value;
           D8.ui.replaceHash(value === 'all' ? '#/updates' : '#/updates?service=' + value);
+          showPicked();
           const body = /** @type {HTMLElement|null} */ (el.querySelector('#updates-body'));
           if (all && body) body.innerHTML = draw();
         }
