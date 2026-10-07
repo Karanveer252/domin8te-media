@@ -1049,26 +1049,27 @@ td { font-variant-numeric: tabular-nums; }
 .ask-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--p-line); border-radius: 12px; }
 .ask-name { font-weight: 600; }
 
-/* Updates' filter: one row, never two (2026-10-06, Karan: "fix this thing and make it look better").
-   It wrapped inside its pill on narrow screens, a second row of chips under the first in one rounded
-   glass shape. Now the pill keeps one row and the bar scrolls sideways when it is wider than the page;
-   the side with more chips behind it fades out (pages.js marks .at-start / .at-end), and the picked
-   chip is scrolled into view. On a phone the row runs to the screen's edges. */
-.filter-bar {
-  --fl: 0px; --fr: 0px;
-  overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--fl), #000 calc(100% - var(--fr)), transparent 100%);
-  mask-image: linear-gradient(90deg, transparent 0, #000 var(--fl), #000 calc(100% - var(--fr)), transparent 100%);
-}
-.filter-bar::-webkit-scrollbar { display: none; }
-.filter-bar:not(.at-start) { --fl: 28px; }
-.filter-bar:not(.at-end) { --fr: 36px; }
-.filter-bar .segmented.is-chips { flex-wrap: nowrap; vertical-align: top; }
-.filter-bar .seg span { white-space: nowrap; }
-@media (max-width: 760px) {
-  .filter-bar { margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; }
-  .filter-bar:not(.at-start) { --fl: 32px; }
-  .filter-bar:not(.at-end) { --fr: 44px; }
+/* Updates' filter on narrow pages (2026-10-06, Karan: "fix this thing and make it look better"; a
+   sideways-scrolling row was tried and dropped: "it is hard to see if there is something else after
+   scrolling"). Where all the chips fit, it stays the one glass pill. Where they do not, the shared
+   pill goes and every chip becomes its own small glass pill, so a second line reads as a set of
+   tags, not a broken shape, and every choice is always in sight. */
+@container page (max-width: 640px) {
+  .filter-bar .segmented.is-chips {
+    gap: 8px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important;   /* the 18H liquid glass is set on the pill */
+  }
+  .filter-bar .segmented.is-chips::before, .filter-bar .segmented.is-chips::after { display: none !important; }   /* and its rim */
+  .filter-bar .segmented.is-chips .seg span {
+    padding: 8px 15px; border-radius: 999px;
+    border: 1px solid var(--p-glass-edge); background: var(--p-glass-soft);
+    box-shadow: inset 0 0 0 1px var(--p-line);
+    -webkit-backdrop-filter: var(--p-glass-blur); backdrop-filter: var(--p-glass-blur);
+  }
+  .filter-bar .segmented.is-chips .seg input:checked + span {
+    background: var(--p-active); border-color: transparent;
+    box-shadow: 0 1px 2px rgba(34, 40, 70, 0.1), inset 0 0 0 1.5px var(--p-ink);
+  }
 }
 
 /* ================================================================ shared Liquid Glass layer */
@@ -5675,29 +5676,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       };
       const load = () => section(el, '#updates-body', () => ctx.client.getUpdates(), (list) => { all = list; return draw(); },
         () => ({ title: "We couldn't load your updates just now.", text: 'Your other pages still work. Try again in a moment.', retry: 'updates' }));
-      // the filter is one row that scrolls sideways when it is wider than the page (styles.css):
-      // fade only the side with more chips behind it, and keep the picked chip in view
-      const bar = /** @type {HTMLElement|null} */ (el.querySelector('.filter-bar'));
-      const edges = () => {
-        if (!bar) return;
-        bar.classList.toggle('at-start', bar.scrollLeft <= 2);
-        bar.classList.toggle('at-end', bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 2);
-      };
-      const showPicked = () => {
-        const seg = bar && bar.querySelector('input:checked');
-        const box = seg && /** @type {HTMLElement} */ (seg.parentElement);
-        if (!bar || !box) return;
-        const bl = bar.getBoundingClientRect().left, bx = box.getBoundingClientRect();
-        const l = bx.left - bl + bar.scrollLeft, r = l + bx.width, pad = 28;
-        if (l - pad < bar.scrollLeft) bar.scrollLeft = Math.max(0, l - pad);
-        else if (r + pad > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = r + pad - bar.clientWidth;
-        edges();
-      };
-      if (bar) {
-        bar.addEventListener('scroll', edges, { passive: true });
-        if (typeof ResizeObserver !== 'undefined') new ResizeObserver(edges).observe(bar);   // goes with the page
-        showPicked();
-      }
       load();
       return {
         retry: load,
@@ -5706,7 +5684,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
           if (name !== 'service') return;
           filter = value;
           D8.ui.replaceHash(value === 'all' ? '#/updates' : '#/updates?service=' + value);
-          showPicked();
           const body = /** @type {HTMLElement|null} */ (el.querySelector('#updates-body'));
           if (all && body) body.innerHTML = draw();
         }
