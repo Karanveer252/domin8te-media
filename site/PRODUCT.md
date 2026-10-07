@@ -42,8 +42,8 @@ Behind the "core" is Karan, working solo with AI tools. "We" is a small-studio v
 - Plain HTML, CSS and JS with no framework or build step. It is hosted as a static site plus a PHP mailer on Hostinger.
 - The deploy folder ships only `index.html`, `.htaccess`, `robots.txt`, `send.php`, `sitemap.xml` and `assets/`. Build scratch lives in `C:\Work\domin8te-build`.
 - Css and js are cached as immutable, so changed files need new `?v=` tokens.
-- The site has no city or location anywhere.
-- **No pricing and no FAQ, by decision.** The page closes on the wordmark, one line and the lead form.
+- The site has no city anywhere. Since the SEO pass (2026-10-07) the footer says it serves independent restaurants and cafés across Canada and the US (Karan's choice).
+- **No pricing, and no FAQ on the homepage, by decision.** The homepage closes on the wordmark, one line and the lead form. FAQs live on /services/ and each service page (SEO pass, 2026-10-07, Karan's choice).
 - **Copy gate:** no em dashes, and none of these words: leverage, seamless, empower, unlock, robust, actionable, data-driven, solutions, elevate, transform. There are no exceptions; the hero was rewritten in September 2026 at Karan's request.
 - Pricing, packages, contracts and service areas are undecided and unpublished. Do not state them.
 
