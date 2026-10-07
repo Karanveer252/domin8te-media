@@ -51,6 +51,9 @@ html = html.replace('<!--PRECONNECT-->', () => hosts.filter(Boolean).map((h) => 
 html = html.replace('<link rel="stylesheet" href="console.css">', () => `<style>\n${fs.readFileSync(path.join(DIR, 'console.css'), 'utf8')}</style>`);
 html = html.replace(/<script src="([^"]+)"><\/script>/g, (m, src) => `<script>\n/* ${src} */\n${safe(fs.readFileSync(path.join(DIR, src), 'utf8'))}</script>`);
 if (/src="\.\.\//.test(html) || /href="console\.css"/.test(html)) throw new Error('something was not inlined');
+// the website's growth cursor (growth-cursor.js); its script is the site's own /assets/v3-cursor.js
+if (html.split('</body>').length !== 2) throw new Error('growth cursor: expected one </body>');
+html = html.replace('</body>', () => require('./growth-cursor')() + '</body>');
 
 const out = path.join(__dirname, 'versions', demoSite ? 'console-demo.html' : preview ? 'console-preview.html' : 'console.html');
 fs.writeFileSync(out, html);
