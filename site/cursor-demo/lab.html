@@ -21,7 +21,25 @@
      ?fps=60|120|144 sets the refresh rate (default 60); ?zoom=N the enlargement; ?ground=card shows white.
      (2026-10-07, round 3) est=default is now the script's own prior; the summary also plays each case on round
      2's clock ('-r2'), checks the no-report lateness bound, sweeps a middle shadow cover, plays further presses
-     during the pulse, and measures moving clicks against the last mouse report (where Windows draws). -->
+     during the pulse, and measures moving clicks against the last mouse report (where Windows draws).
+     (2026-10-07, pulse builder, round 2) &pulse=1 rows now also print oL / oC / oY (mean OKLab lightness and
+     colourfulness, and mean luma, over the pixels colourful at rest, a set that does not change with the frame)
+     and mv (how far the picture's farthest corner moved since the refresh before, in screen px). The demo row
+     is made one frame at a time (#pulse data-demo says how many came out right). &script=/path.js plays a
+     saved copy of the script instead, for before/after numbers.
+     (2026-10-07, click -> idle builder, round 1) The way back is measured now: hand-over refreshes are composited
+     as the screen does it (the copy, then the real cursor ON TOP in linear light) and costed against idle like
+     every other refresh (they were given 0); the strip shows that composite; simulate() lets the real cursor go
+     and gives it back as the script's own timetable does (plan().off / plan().hide, or the old dissolve when
+     &script= plays a build that has one); each simulated-clicks row has a 'way back' line; new sections for the
+     moving hand-over (a copy beside the returned real cursor) and a click during the way back. &drive=1 plays
+     whole clicks through the script's real frame loop on a fake clock (&debug=1 prints the raw times).
+     (2026-10-07, click -> idle builder, round 3) &drive=1 rows now hand the script the click's own Event Timing report
+     for the screen's true lateness (as Chrome would), with 'unmeasured + this click's report' and 'nothing measured at
+     all' rows; &critic=1 adds 'MOVE AFTER GIVE-BACK' (still mouse through the letting go, then a pointerrawupdate dt ms
+     after it, rAF-aligned pointermoves after that, the real cursor modelled from cursor:none at each hit test and at
+     Chrome's timer). The groundAt check pins the test grounds into view (a hidden pane is 0 x 0: set a viewport size)
+     and adds a WebGL film ground. -->
 <!-- the pulse's own styles (.v3cur, .v3cur__mark, the sparkles), as on the site -->
 <link rel="stylesheet" href="/assets/v3.css">
 <style>
@@ -58,10 +76,49 @@
   <div style="left:390px;background:#ECE6DD"><canvas width="40" height="40" style="position:absolute;left:20px;top:20px;width:40px;height:40px;pointer-events:none"></canvas></div>
   <div style="left:520px;background:rgba(14,20,32,.5)"></div>
   <img src="/assets/v3-cursor-64.png" alt="" style="left:650px;object-fit:cover;background:#ECE6DD">
+  <!-- (click -> idle builder, round 3) a WebGL film like the hero's (one full-frame draw, preserveDrawingBuffer off) -->
+  <div style="left:780px;background:#ECE6DD"><canvas class="hero__film" width="55" height="55" style="position:absolute;left:0;top:0;width:110px;height:110px"></canvas></div>
 </div>
-<script>document.querySelector('#grounds canvas').getContext('2d').fillRect(0, 0, 40, 40)</script>
+<script>document.querySelector('#grounds canvas').getContext('2d').fillRect(0, 0, 40, 40);
+(function () {
+  var gl = document.querySelector('#grounds canvas.hero__film').getContext('webgl', { alpha: false, preserveDrawingBuffer: false }); if (!gl) return;
+  var p = gl.createProgram();
+  [[gl.VERTEX_SHADER, 'attribute vec2 q;void main(){gl_Position=vec4(q,0.,1.);}'], [gl.FRAGMENT_SHADER, 'precision mediump float;void main(){gl_FragColor=vec4(.47,.43,.39,1.);}']].forEach(function (s) { var sh = gl.createShader(s[0]); gl.shaderSource(sh, s[1]); gl.compileShader(sh); gl.attachShader(p, sh) });
+  gl.linkProgram(p); gl.useProgram(p); gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  var a = gl.getAttribLocation(p, 'q'); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);                 /* drawn once: by the time groundAt() reads it, it is on the screen (cleared) */
+})();
+</script>
 <!-- always the latest script, never a cached one -->
-<script>document.write('<script src="/assets/v3-cursor.js?lab=' + Date.now() + '"><\/script>')</script>
+<!-- (round 2 pulse builder) &script=/a/saved/copy.js plays an earlier build instead, for before/after numbers -->
+<!-- (2026-10-07, click -> idle builder, round 1) &drive=1: the script itself, on a fake clock. requestAnimationFrame,
+     setTimeout and performance.now are replaced before it loads, so whole clicks (the real frame loop, its timers,
+     the let-go and the hand-over) are played refresh by refresh at &fps, whether or not this window is drawing;
+     every frame's state is logged into #metrics data-drive -->
+<script>
+if (/[?&]drive=1/.test(location.search)) (function () {
+  var T = 1000, Q = [], TM = [], id = 0, pn = performance.now.bind(performance);
+  performance.now = function () { return T };
+  window.requestAnimationFrame = function (cb) { Q.push({ id: ++id, cb: cb }); return id };
+  window.cancelAnimationFrame = function (k) { Q = Q.filter(function (q) { return q.id !== k }) };
+  var st = window.setTimeout, ct = window.clearTimeout;
+  window.setTimeout = function (cb, ms) { var a = [].slice.call(arguments, 2); TM.push({ id: ++id, at: T + (ms || 0), cb: function () { cb.apply(null, a) } }); return id };
+  window.clearTimeout = function (k) { TM = TM.filter(function (t) { return t.id !== k }) };
+  window.__drive = {
+    now: function () { return T },
+    /* to the next refresh at f: timers due before it first (each at its own time), then the frame callbacks */
+    frame: function (f, late, between) {
+      var next = Math.ceil((T + .001) / f) * f;
+      for (;;) { TM.sort(function (a, b) { return a.at - b.at }); var t = TM[0]; if (!t || t.at > next - .001) break; TM.shift(); T = Math.max(T, t.at + (late || 0)); t.cb() }
+      if (between) between(next); T = next; var q = Q; Q = []; q.forEach(function (x) { x.cb(T) });
+      return T;
+    },
+    at: function (t) { T = t }, real: { setTimeout: st, clearTimeout: ct, now: pn }
+  };
+})();
+</script>
+<script>(function () { var v = (new URLSearchParams(location.search).get('src') || '').replace(/[^a-z]/g, ''); document.write('<script src="' + (v ? '/cursor-demo/v-' + v + '.js' : '/assets/v3-cursor.js') + '?lab=' + Date.now() + '"><\/script>') })()</script>
 <script>
 (async function () {
   var q = new URLSearchParams(location.search);
@@ -72,7 +129,205 @@
   var L = window.__v3cur;
   if (!L) { document.body.insertAdjacentHTML('beforeend', '<p>Open with ?cursorlab in the address.</p>'); return }
   L.build();
-  for (var w = 0; w < 100 && !L.ready(); w++) await new Promise(function (r) { setTimeout(r, 30) });
+  var realTO = window.__drive ? window.__drive.real.setTimeout : setTimeout;
+  for (var w = 0; w < 100 && !L.ready(); w++) await new Promise(function (r) { realTO(r, 30) });
+  if (window.__drive) { driveLab(); return }
+  /* (2026-10-07, click -> idle builder, round 1) &drive=1: whole clicks through the script's own frame loop on the
+     fake clock (above), at 60 and 144Hz, for each lateness the script may have measured (lagSet) and the true
+     lateness m of the screen: when the real cursor is let go and given back, the frame that takes the copy away,
+     and from those, refresh by refresh at the true m and Chrome's cursor timer 20.5/22/25ms: refreshes showing
+     the copy under the returned real cursor ('both'), refreshes with neither ('blink'), and when the screen is
+     the idle cursor for good. Also a press during the pulse (a kick) and a click just after the real cursor is
+     given back (a new click from the hand-over): the copy's layers frame by frame */
+  function driveLab() {
+    var D = window.__drive, out = [], mq = matchMedia('(hover:hover) and (pointer:fine)').matches;
+    document.body.style.cursor = 'url(/assets/v3-cursor-32.png) 2 1, auto';
+    out.push('fine pointer: ' + mq + ', body cursor ok: ' + /v3-cursor-/.test(getComputedStyle(document.body).cursor));
+    function press(x, y) { var e = new PointerEvent('pointerdown', { pointerType: 'mouse', button: 0, clientX: x, clientY: y, bubbles: true }); Object.defineProperty(e, 'timeStamp', { value: D.now() }); document.body.dispatchEvent(e) }
+    function moveTo(x, y) { var e = new PointerEvent('pointermove', { pointerType: 'mouse', clientX: x, clientY: y, bubbles: true }); Object.defineProperty(e, 'timeStamp', { value: D.now() }); document.body.dispatchEvent(e) }
+    function play(fps, lag, extra) {
+      var f = 1000 / fps, log = [], bx = L.build(), mk = bx.querySelector('.v3cur__mark'), un = bx.querySelector('.v3cur__under'), co = bx.querySelector('.v3cur__core');
+      for (var i = 0; i < 14; i++) D.frame(f);
+      /* the script measures the frame interval only while a click plays (and once at load), so on a new refresh rate
+         one whole click is played first, unlogged, for it to learn the interval, as it would on a real screen */
+      if (play.fps !== fps) { play.fps = fps; moveTo(300, 300); press(300, 300); for (i = 0; i < 200 && L.state().raf; i++) D.frame(f); for (i = 0; i < 4; i++) D.frame(f) }
+      /* (round 2) live: what this click's own probes measure (play.live; null: none, the fallback on the history) */
+      L.lagSet(lag); if (L.liveSet) L.liveSet(play.live === undefined ? [] : play.live); if (L.slipSet) L.slipSet(play.slips || []);
+      moveTo(300, 300); D.at(D.now() + f / 2); var pd = D.now(); press(300, 300);
+      var tOn = -1, tOff = -1, hideAt = -1, n = 0, extraDone = false, t1 = -1;
+      while (n++ < 400) {
+        var t = D.frame(f, 0, extra && extra.between && !extraDone ? function (nx) { var s0 = L.state(); if (extra.when(nx, s0, pd)) { extraDone = true; extra.go(); var s2 = L.state(); log.push({ t: nx, ev: 'press (before the frame at ' + (nx - pd).toFixed(1) + ') -> tOff ' + s2.tOff + ' kicks ' + s2.kicks.length + ' raf ' + s2.raf }) } } : null), s = L.state(), on = document.documentElement.classList.contains('v3cur-on');
+        /* (click -> idle builder, round 3) play.ev: the screen's true lateness, reported for this click as Chrome's
+           Event Timing would (the first frame's refresh, its duration rounded to 8ms; none under 16ms, where the
+           script's own 300ms no-report timer stands in), a couple of frames after the first */
+        if (t1 < 0) t1 = t;
+        if (play.ev && n === 3) evFor(pd, t1, play.ev, f);
+        if (s.tOn >= 0 && tOn < 0) tOn = s.tOn; if (s.tOff >= 0 && tOff < 0) tOff = s.tOff;
+        var vis = bx.style.visibility !== 'hidden';
+        log.push({ t: t, on: on, vis: vis, tr: mk.style.transform, u: un ? un.style.opacity : '', c: co ? co.style.opacity : '', tOff: s.tOff });
+        if (extra && !extra.between && !extraDone && extra.when(t, s, pd)) { extraDone = true; extra.go(t, s); var s2 = L.state(); log.push({ t: t, ev: 'press -> tOff ' + s2.tOff + ' kicks ' + s2.kicks.length + ' raf ' + s2.raf }); if (s2.tOff < 0 && s.tOff >= 0) { tOff = -1 } }
+        /* (round 2) the frame that takes the copy away: it may come before the letting go (box hidden, loop running) */
+        if ((!s.raf || (!vis && !(extra && extraDone))) && hideAt < 0) hideAt = t;
+        if (hideAt >= 0 && !s.raf && t > hideAt + 3 * f) break;
+      }
+      return { f: f, pd: pd, tOn: tOn, tOff: L.state().tOff >= 0 ? L.state().tOff : tOff, hideAt: hideAt, log: log };
+    }
+    function vb(t, f) { return Math.ceil(t / f - .02) * f }
+    /* (click -> idle builder, round 3) the click's own Event Timing report for a screen m refreshes late, as Chrome
+       hands it over (duration to the first frame's refresh, rounded to 8ms; none under 16ms) */
+    function evFor(pd, t1, m, f) { var du = Math.round((t1 + m * f - pd) / 8) * 8; if (du >= 16 && L.evEntry) L.evEntry(pd, du) }
+    function judge(r, m) {
+      var f = r.f, both = 0, blink = 0, idleAt = 0;
+      [20.5, 22, 25].forEach(function (hand) {
+        var back = vb(r.tOff + hand, f), gone = r.hideAt + m * f;                 /* the copy's last frame leaves the screen at gone */
+        both = Math.max(both, Math.max(0, Math.round((gone - back) / f)));
+        blink = Math.max(blink, Math.max(0, Math.round((back - gone) / f)));
+        idleAt = Math.max(idleAt, Math.max(back, gone) - r.pd);
+      });
+      return 'both ' + both + ', blink ' + blink + ', idle for good ' + idleAt.toFixed(0) + 'ms after the click';
+    }
+    [[60, [1], 1], [60, [2], 2], [60, [3], 3], [60, [], 1], [60, [], 2], [60, [], 3], [144, [1], 1], [144, [2], 2], [144, [3], 3], [144, [], 2], [120, [2], 2]].forEach(function (c) {
+      play.ev = c[2]; play.live = []; var r = play(c[0], c[1], null), last = r.log.filter(function (l) { return l.vis && !l.ev }).slice(-1)[0]; play.ev = 0; play.live = undefined;
+      out.push(c[0] + 'Hz lag ' + (c[1].length ? c[1][0] : 'unmeasured') + ', screen m=' + c[2] + ': let go ' + (r.tOn - r.pd).toFixed(1) + ', given back ' + (r.tOff - r.pd).toFixed(1) + ', copy taken away in the frame at ' + (r.hideAt - r.pd).toFixed(1) + 'ms (last shown pose ' + (last && last.tr || 'rest') + ', layers ' + (last ? (last.u || '1') + '/' + (last.c || '1') : '-') + ') -> ' + judge(r, c[2]) + (q.get('debug') ? ' [abs tOn ' + r.tOn.toFixed(2) + ' tOff ' + r.tOff.toFixed(2) + ' hide ' + r.hideAt.toFixed(2) + ' f ' + r.f.toFixed(3) + ' P ' + JSON.stringify(L.state().P) + ' fr ' + L.lag().fr.toFixed(3) + '] tail ' + r.log.slice(-8).map(function (l) { return l.t.toFixed(2) + (l.on ? ' on' : ' off') + (l.vis ? ' vis' : ' hid') + ' ' + (l.tOff >= 0 ? l.tOff.toFixed(2) : '-') }).join(' | ') : ''));
+    });
+    /* (click -> idle builder, round 3; critic: "before any lateness has been measured ... the way back doubles the
+       shadow") nothing measured before the click and no probes, but this click's own Event Timing report */
+    [[60, 1], [60, 2], [60, 3], [120, 2], [144, 1], [144, 2], [144, 3]].forEach(function (c) {
+      play.live = []; play.ev = c[1]; var r = play(c[0], [], null); play.live = undefined; play.ev = 0;
+      out.push(c[0] + 'Hz lag unmeasured + this click\'s report, screen m=' + c[1] + ': this click measured ' + JSON.stringify(L.live ? L.live() : '-') + ', given back ' + (r.tOff - r.pd).toFixed(1) + ', copy gone in frame ' + (r.hideAt - r.pd).toFixed(1) + ' -> ' + judge(r, c[1]));
+    });
+    /* and nothing at all: no Event Timing report, no probe, no history (a browser without them): the way back
+       believes the quickest screen, so a slower one costs a refresh of both, never a blink */
+    [[60, 1], [60, 2], [144, 1], [144, 2]].forEach(function (c) {
+      play.live = []; var r = play(c[0], [], null); play.live = undefined;
+      out.push(c[0] + 'Hz nothing measured at all, screen m=' + c[1] + ': this click ' + JSON.stringify(L.live ? L.live() : '-') + ' -> ' + judge(r, c[1]));
+    });
+    /* a further press at 300ms: a kick, the hand-over waits for it */
+    play.ev = 2; var rk = play(60, [2], { when: function (t, s, pd) { return t - pd >= 300 }, go: function () { press(300, 300) } });
+    play.ev = 0;
+    out.push('kick at 300ms (60Hz m=2): given back ' + (rk.tOff - rk.pd).toFixed(1) + ', taken away ' + (rk.hideAt - rk.pd).toFixed(1) + ' -> ' + judge(rk, 2));
+    /* a new click one frame after the real cursor is given back: never a frame with the box hidden in between, and
+       no frame held back (core only) before the real cursor is surely back */
+    var rn = play(60, [1], { between: true, when: function (t, s) { return s.tOff >= 0 && s.raf }, go: function () { D.at(D.now() + 1); press(300, 300) } });
+    var gap = rn.log.some(function (l, i) { return i > 0 && !l.vis && !l.ev && rn.log.slice(i + 1).some(function (k) { return k.vis && !k.ev }) && rn.log.slice(0, i).some(function (k) { return k.ev }) });
+    var evAt = rn.log.findIndex(function (l) { return l.ev });
+    out.push('new click right after the real cursor is given back (60Hz m=1, given back by its timer a refresh before the copy goes): ' + rn.log[evAt].ev + '; box hidden between the two clicks: ' + (gap ? 'YES (bad)' : 'no') + '; next frames (t, class on, under/core opacity, moving): ' + rn.log.slice(evAt + 1, evAt + 7).map(function (l) { return (l.t - rn.log[evAt].t).toFixed(0) + ':' + (l.on ? 'on' : 'off') + ':' + (l.u || '1') + '/' + (l.c || '1') + ':' + (l.tr ? 'm' : '-') }).join(' ') + '; then let go again at +' + (rn.tOn >= 0 ? '' : '') + ' and the new click handed over in the frame at ' + (rn.hideAt - rn.pd).toFixed(0) + 'ms from the first click');
+    /* (2026-10-07, click -> idle critic, round 2) &critic=1: the way back where the screen does not do what was
+       measured: a lateness that varies between clicks (lagHist [1,2]), a screen slower than measured, and the real
+       cursor coming back outside 20-26ms (a mousemove brings it back at the next input, about one refresh; a busy
+       main thread makes Chrome's 20ms timer late) */
+    if (q.get('critic')) {
+      function judge2(r, m, hands) {
+        var f = r.f, res = [];
+        hands.forEach(function (hand) {
+          var back = vb(r.tOff + hand, f), gone = r.hideAt + m * f;
+          res.push(hand + 'ms: ' + (gone > back + .5 ? 'both ' + Math.round((gone - back) / f) : back > gone + .5 ? 'BLINK ' + Math.round((back - gone) / f) : 'clean'));
+        });
+        return res.join(', ');
+      }
+      /* (click -> idle builder, round 2) each case twice: with this click's own probes measuring the screen (live
+         [m, m]: the build's normal path, as Element Timing reports while the pulse plays), and with no probe at all
+         (the fallback on the last clicks' history). Hands 8 and 14 are the mousemove return, which the build no
+         longer meets with a still mouse (no mousemove) and holds off for while the mouse moves (moving rows below) */
+      [[60, [1, 2], 1], [60, [1, 2], 2], [144, [1, 2], 1], [144, [1, 2], 2], [144, [2, 3], 3], [60, [2], 3], [144, [2], 3], [60, [2], 1], [60, [3], 3], [144, [3], 3], [60, [1], 1], [144, [2], 2], [120, [1, 2], 2]].forEach(function (c) {
+        /* (round 3) 'no probes': the Element Timing probes fail, the click's own Event Timing report still comes ([]) */
+        [[c[2], c[2]], []].forEach(function (lv) {
+          play.live = lv; play.ev = c[2]; var r = play(c[0], c[1], null); play.live = null; play.ev = 0;
+          var last = r.log.filter(function (l) { return l.vis && !l.ev }).slice(-1)[0];
+          out.push('CRITIC ' + c[0] + 'Hz hist ' + JSON.stringify(c[1]) + ' screen m=' + c[2] + (lv.length ? ' probes ' + JSON.stringify(lv) : ' no probes (own report ' + JSON.stringify(L.live()) + ')') + ': given back ' + (r.tOff - r.pd).toFixed(1) + ', copy gone in frame ' + (r.hideAt - r.pd).toFixed(1) + ' (last pose ' + (last && last.tr || 'rest') + ') -> ' + judge2(r, c[2], [8, 14, 20, 22, 26, 30, 34]));
+        });
+      });
+      /* (round 2) a slip measured on an earlier click (a busy main thread: 4ms): the margin widens */
+      play.slips = [4]; play.ev = 2; var rs = play(144, [2], null); play.slips = []; play.ev = 0;
+      out.push('CRITIC 144Hz m=2, a 4ms slip measured before: given back ' + (rs.tOff - rs.pd).toFixed(1) + ', gone in frame ' + (rs.hideAt - rs.pd).toFixed(1) + ' -> ' + judge2(rs, 2, [20, 22, 26, 30, 32, 34]));
+      /* (round 2) the mouse moving through the end of the pulse: it stops at stopAt ms after the click (or never),
+         2 css px a refresh, its reports dispatched at the start of each frame, before its rAF (Chrome's rAF-aligned
+         input). The real cursor comes back with the first pointermove after the letting go (+1ms: Blink's hit test
+         and the hop to Windows), else on the timer (22ms) */
+      function playMove(fps, m, stopAt) {
+        var f = 1000 / fps, x = 300; for (var i = 0; i < 14; i++) D.frame(f);
+        /* a new refresh rate: one unlogged click first, for the script to learn the frame interval (as play() does) */
+        if (play.fps !== fps) { play.fps = fps; moveTo(x, 300); press(x, 300); for (i = 0; i < 300 && L.state().raf; i++) D.frame(f); for (i = 0; i < 4; i++) D.frame(f) }
+        L.lagSet([m]); L.liveSet([m, m]); L.slipSet([]); moveTo(x, 300); D.at(D.now() + f / 2); var pd = D.now(); press(x, 300);
+        var bx = L.build(), tOff = -1, firstMv = -1, hideAt = -1, n = 0, moveEnd = -1, nxStop = false, t1m = -1;
+        while (n++ < 900) {
+          if (n === 4) evFor(pd, t1m, m, f);
+          var t = D.frame(f, 0, function (nx) {
+            nxStop = nx - pd >= stopAt;
+            if (!nxStop) { x += 2; D.at(Math.max(D.now(), nx)); moveTo(x, 300); moveEnd = D.now(); var s0 = L.state(); if (s0.tOff >= 0 && firstMv < 0) firstMv = D.now() }
+          });
+          if (t1m < 0) t1m = t;
+          var s = L.state(); if (s.tOff >= 0 && tOff < 0) tOff = s.tOff;
+          if ((!s.raf || bx.style.visibility === 'hidden') && hideAt < 0) hideAt = t;
+          if (!s.raf && (firstMv >= 0 || t > hideAt + 4 * f || nxStop)) break;   /* a few frames on, for the first pointermove after the letting go */
+        }
+        var back = firstMv >= 0 ? vb(firstMv + 1, f) : vb(tOff + 22, f), gone = hideAt + m * f;
+        return fps + 'Hz m=' + m + ' mouse ' + (stopAt > 5000 ? 'never stops' : 'stops at ' + stopAt + 'ms') + ': last move ' + (moveEnd - pd).toFixed(0) + ', given back ' + (tOff - pd).toFixed(1) + (firstMv >= 0 ? ', real back with a pointermove at ' + (firstMv - pd).toFixed(1) : ', real back on the timer') + ', copy gone in frame ' + (hideAt - pd).toFixed(1) + ' -> ' + (gone > back + .5 ? 'GHOST/both ' + Math.round((gone - back) / f) : back > gone + .5 ? 'BLINK ' + Math.round((back - gone) / f) : 'clean');
+      }
+      [[60, 2, 300], [60, 2, 470], [60, 2, 600], [60, 3, 600], [144, 2, 470], [144, 2, 600], [60, 2, 1e9], [60, 1, 1e9], [60, 3, 1e9], [144, 2, 1e9], [144, 1, 1e9]].forEach(function (c) { out.push('MOVING ' + playMove(c[0], c[1], c[2])) });
+      /* (click -> idle builder, round 3; critic: "moving the mouse just after the real cursor is given back, but
+         before the copy's last frame leaves the screen, leaves a second arrow ... The lab never tests it") click,
+         pause, move on: the mouse still through the letting go, then its first report dt ms after it, as Chrome
+         delivers one: a pointerrawupdate at once, the pointermove at the start of the next frame (where Blink hit-
+         tests it and sets the cursor), then 2 css px a refresh for 12 refreshes, then still. The real cursor is
+         modelled from the page itself: back on the refresh after the first mousemove dispatched while cursor:none
+         is off, or after Chrome's timer (hand ms after each letting go) if cursor:none is still off when it fires.
+         Counted: refreshes showing the copy once the real cursor is back (a second arrow, or both shadows) and
+         refreshes showing neither (a blink), over the whole click */
+      function playMoveAfter(fps, m, dt, hand) {
+        var f = 1000 / fps, x = 300; for (var i = 0; i < 14; i++) D.frame(f);
+        if (play.fps !== fps) { play.fps = fps; moveTo(x, 300); press(x, 300); for (i = 0; i < 300 && L.state().raf; i++) D.frame(f); for (i = 0; i < 4; i++) D.frame(f) }
+        L.lagSet([m]); L.liveSet([m, m]); L.slipSet([]); moveTo(x, 300); for (i = 0; i < 4; i++) D.frame(f);
+        D.at(D.now() + f / 2); var pd = D.now(); press(x, 300);
+        /* cursor:none on or off, checked after everything that can change it (a timer runs whole before the hook below) */
+        var root = document.documentElement, cls = [];
+        function chk() { var on = root.classList.contains('v3cur-on'); if (!cls.length || cls[cls.length - 1].on !== on) cls.push({ t: D.now(), on: on }) }
+        chk();
+        function onAt(t) { var o = cls[0].on; cls.forEach(function (c) { if (c.t <= t) o = c.on }); return o }
+        var bx = L.build(), frames = [], moves = [], offs = [], raw = false, left = 12, n = 0, quiet = 0;
+        function raw1(xx) { var e = new PointerEvent('pointerrawupdate', { pointerType: 'mouse', clientX: xx, clientY: 300, bubbles: true }); Object.defineProperty(e, 'timeStamp', { value: D.now() }); document.dispatchEvent(e) }
+        var t1a = -1;
+        while (n++ < 900) {
+          if (n === 4) evFor(pd, t1a, m, f);
+          var t = D.frame(f, 0, function (nx) {
+            chk(); var s0 = L.state(); if (s0.tOff >= 0 && offs.indexOf(s0.tOff) < 0) offs.push(s0.tOff);
+            if (!raw && offs.length && offs[0] + dt < nx) { D.at(Math.max(D.now(), offs[0] + dt)); raw = true; x += 2; raw1(x); chk() }
+            else if (raw && left > 0) { D.at(Math.max(D.now(), nx - 1)); x += 2; raw1(x); chk() }
+            if (raw && left > 0) { D.at(nx); left--; moves.push({ X: nx, on: root.classList.contains('v3cur-on') }); moveTo(x, 300); chk() }
+            var s1 = L.state(); if (s1.tOff >= 0 && offs.indexOf(s1.tOff) < 0) offs.push(s1.tOff);
+          });
+          if (t1a < 0) t1a = t;
+          chk(); var s = L.state(); if (s.tOff >= 0 && offs.indexOf(s.tOff) < 0) offs.push(s.tOff);
+          frames.push({ t: t, vis: s.raf && bx.style.visibility !== 'hidden' });
+          if (!s.raf && left <= 0) { if (++quiet > 4) break }
+        }
+        var Tr = Infinity;
+        moves.forEach(function (mv) { if (!mv.on) Tr = Math.min(Tr, vb(mv.X + 1, f)) });
+        offs.forEach(function (o) { if (!onAt(o + hand)) Tr = Math.min(Tr, vb(o + hand, f)) });
+        var ghost = 0, blink = 0, shown = {};
+        frames.forEach(function (fr) { if (fr.vis) shown[Math.round((fr.t + m * f) * 1000)] = 1 });
+        var first = frames.filter(function (fr) { return fr.vis })[0], end = frames[frames.length - 1].t + (m + 2) * f;
+        for (var V = first.t + m * f; V <= end; V += f) { var cp = !!shown[Math.round(V * 1000)]; if (V >= Tr - .5 && cp) ghost++; if (V < Tr - .5 && !cp) blink++ }
+        return { s: fps + 'Hz m=' + m + ' move at letting go +' + dt + 'ms, hand ' + hand + ': let go ' + offs.length + 'x (' + offs.map(function (o) { return (o - pd).toFixed(0) }).join(',') + '), real back ' + (Tr - pd).toFixed(0) + 'ms -> ' + (ghost ? 'SECOND ARROW ' + ghost : 'clean') + (blink ? ', BLINK ' + blink : ''), ghost: ghost, blink: blink };
+      }
+      [[60, 1], [60, 2], [60, 3], [144, 1], [144, 2], [144, 3]].forEach(function (c) {
+        var row = [], g = 0, b = 0;
+        [2, 6, 12, 20].forEach(function (dt) { [20.5, 25].forEach(function (hand) { var r = playMoveAfter(c[0], c[1], dt, hand); g += r.ghost; b += r.blink; row.push('+' + dt + '/' + hand + ': ' + (r.ghost ? 'arrow ' + r.ghost : 'ok') + (r.blink ? ' blink ' + r.blink : '')) }) });
+        out.push('MOVE AFTER GIVE-BACK ' + c[0] + 'Hz m=' + c[1] + ': ' + row.join(', ') + ' => second-arrow refreshes ' + g + ', blinks ' + b);
+      });
+      out.push('MOVE AFTER GIVE-BACK detail: ' + playMoveAfter(60, 2, 2, 22).s + ' | ' + playMoveAfter(144, 2, 6, 22).s);
+      /* a new click a few ms after the real cursor is given back, 144Hz m=2: does any frame show core only? */
+      [2, 6, 12, 18, 24].forEach(function (dt) {
+        var tk = 0, rr = play(144, [2], { between: true, when: function (t, s) { if (s.tOff >= 0 && s.raf && t >= s.tOff + dt) { tk = s.tOff + dt; return true } return false }, go: function () { D.at(Math.max(D.now(), tk)); press(300, 300) } });
+        var ev = rr.log.findIndex(function (l) { return l.ev });
+        if (ev < 0) { out.push('CRITIC new click ~' + dt + 'ms after give-back: no press (copy gone first)'); return }
+        out.push('CRITIC new click ~' + dt + 'ms after give-back (144Hz m=2): ' + (ev >= 0 ? rr.log[ev].ev : 'no press') + ' frames: ' + rr.log.slice(ev + 1, ev + 8).map(function (l) { return (l.t - rr.log[ev].t).toFixed(1) + ':' + (l.on ? 'on' : 'off') + ':' + (l.u || '1') + '/' + (l.c || '1') }).join(' '));
+      });
+    }
+    var me = document.getElementById('metrics'); me.setAttribute('data-drive', out.join('\n'));
+    me.innerHTML = out.map(function (r) { return '<p>' + r + '</p>' }).join('');
+    window.__labReady = true;
+  }
   /* (2026-10-07, pulse critic) &pulse=1: the pulse body alone, refresh by refresh at &fps, in two rows A and B
      in a random order (&ab=0|1 to fix it): one is this build's copy (look(ms)), the other the approved demo
      (merged.html?render, its tilt held flat) at the cursor's size. Which is which is written only into the
@@ -80,12 +335,14 @@
      same filter), and the refresh-to-refresh change of every channel */
   if (q.get('pulse')) { await pulseLab(); return }
   async function pulseLab() {
+    /* (round 3 pulse builder) &dpr=N: the screen size to work at, whatever this window's is (a hidden pane reports other sizes as it loads) */
+    var DPRp = +(q.get('dpr') || 0) || window.devicePixelRatio || 1;
     document.getElementById('strip').remove();
     var f = 1000 / FPS, Zp = +(q.get('zoom') || 3), ab = q.get('ab') != null ? +q.get('ab') : (Math.random() < .5 ? 0 : 1);
     var wrapP = document.createElement('div'); wrapP.id = 'pulse'; wrapP.setAttribute('data-reveal', ab ? 'A=demo B=build' : 'A=build B=demo');
     document.body.insertBefore(wrapP, document.getElementById('metrics'));
     var g = q.get('ground') === 'card' ? '#FBF9F5' : '#ECE6DD';
-    L.fit(window.devicePixelRatio || 1, q.get('ground') === 'card' ? [251, 249, 245] : [236, 230, 221]);
+    L.fit(DPRp, q.get('ground') === 'card' ? [251, 249, 245] : [236, 230, 221]);
     var t0 = +(q.get('from') || -2 * f), t1 = +(q.get('to') || 560), times = [];
     for (var t = t0; t <= t1; t += f) times.push(t);
     function cellBox(lbl) { var c = document.createElement('div'); c.style.cssText = 'position:relative;display:inline-block;width:' + (64 * Zp) + 'px;height:' + (64 * Zp) + 'px;background:' + g + ';margin:0 4px 4px 0;overflow:hidden;vertical-align:top'; var b = document.createElement('b'); b.textContent = lbl; b.style.cssText = 'position:absolute;left:3px;bottom:2px;font:600 10px/1 system-ui;background:rgba(255,255,255,.8);padding:2px 3px;z-index:3'; c.appendChild(b); return c }
@@ -99,12 +356,46 @@
     }
     /* the demo: one iframe per refresh, its mark about the cursor's size (the mark spans ~60 of 76 units) */
     var DS = 40, IF = Math.round(DS / .57);
+    /* (round 2 builder; pulse critic: "with from/to set, many demo iframes render blank or in the wrong state",
+       30 iframes loading at once and racing their onload) the frames are now made one after another once the
+       rows are on the page: each iframe is loaded, set to its moment, and checked (its pulse transform must be
+       set inside the pulse, empty outside it) before the next begins; a cell that fails is marked red and
+       retried once. #pulse's data-demo says how many came out right */
+    var demoQueue = [];
     function demoCell(ms) {
-      var c = cellBox(Math.round(ms) + ''), fr = document.createElement('iframe');
-      fr.src = '/cursor-demo/merged.html?render'; fr.width = IF; fr.height = IF;
-      fr.style.cssText = 'position:absolute;border:0;left:' + ((64 - IF) / 2 + 4) * Zp + 'px;top:' + ((64 - IF) / 2 + 4) * Zp + 'px;transform:scale(' + Zp + ');transform-origin:0 0;background:transparent';
-      fr.onload = function () { try { var w = fr.contentWindow, dd = w.document; dd.documentElement.style.background = dd.body.style.background = g; w.__frame(1.9 + ms / 1000); dd.getElementById('card').style.transform = 'none'; dd.getElementById('bloom').style.display = 'none' } catch (e) { } };
-      c.appendChild(fr); return c;
+      var c = cellBox(Math.round(ms) + '');
+      demoQueue.push({ c: c, ms: ms });
+      return c;
+    }
+    function loadDemo(it) {
+      return new Promise(function (res) {
+        var fr = document.createElement('iframe'), done = false;
+        fr.width = IF; fr.height = IF;
+        fr.style.cssText = 'position:absolute;border:0;left:' + ((64 - IF) / 2 + 4) * Zp + 'px;top:' + ((64 - IF) / 2 + 4) * Zp + 'px;transform:scale(' + Zp + ');transform-origin:0 0;background:transparent';
+        function fin(ok) { if (done) return; done = true; res({ fr: fr, ok: ok }) }
+        fr.onload = function () {
+          try {
+            var w = fr.contentWindow, dd = w.document; if (w.location.href === 'about:blank') return;   /* the blank page an iframe holds before its src */
+            if (!w.__frame) return fin(false);
+            dd.documentElement.style.background = dd.body.style.background = g;
+            w.__frame(1.9 + it.ms / 1000); dd.getElementById('card').style.transform = 'none'; dd.getElementById('bloom').style.display = 'none';
+            var tr = dd.getElementById('pulse').style.transform, edge = Math.abs(it.ms) < .5 || Math.abs(it.ms - 520) < .5, inPulse = it.ms > 0 && it.ms < 520;   /* at its click and its end either is right */
+            setTimeout(function () { fin(edge || (inPulse ? !!tr : !tr)) }, 20);   /* not rAF: it stops while the window is hidden */
+          } catch (e) { fin(false) }
+        };
+        setTimeout(function () { fin(false) }, 4000);
+        fr.src = '/cursor-demo/merged.html?render';
+        it.c.appendChild(fr);
+      });
+    }
+    async function runDemo() {
+      var good = 0;
+      for (var n = 0; n < demoQueue.length; n++) {
+        var it = demoQueue[n], r = await loadDemo(it);
+        if (!r.ok) { r.fr.remove(); r = await loadDemo(it) }
+        if (r.ok) good++; else it.c.style.outline = '2px solid #e5484d';
+      }
+      wrapP.setAttribute('data-demo', good + '/' + demoQueue.length);
     }
     var rowsP = [[], []];
     times.forEach(function (ms) { rowsP[ab ? 1 : 0].push(buildCell(ms)); rowsP[ab ? 0 : 1].push(demoCell(ms)) });
@@ -116,7 +407,8 @@
     var core = L.build().querySelector('.v3cur__core'), rimC = L.build().querySelector('.v3cur__rim'), S2 = core.width, tmp = document.createElement('canvas'); tmp.width = tmp.height = S2;
     var tx = tmp.getContext('2d', { willReadFrequently: true }), out = [], prev = null, prevPix = null;
     function stat(filter) {
-      tx.clearRect(0, 0, S2, S2); tx.filter = filter || 'none'; tx.drawImage(core, 0, 0); tx.filter = 'none';
+      /* (round 3 pulse builder) the sticker is the core AND the rim laid together: the rim's pixels (cover 248-254 at 150%) take the run too now, so every mean below is over both */
+      tx.clearRect(0, 0, S2, S2); tx.filter = filter || 'none'; tx.drawImage(core, 0, 0); tx.drawImage(rimC, 0, 0); tx.filter = 'none';
       var d = tx.getImageData(0, 0, S2, S2).data, n = 0, sat = 0, Ls = 0, minL = 255, cols = 0;
       for (var i = 0; i < d.length; i += 4) if (d[i + 3] > 250) { var mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]); if (mx - mn > 60) { cols++; sat += mx - mn; var Y = .2126 * d[i] + .7152 * d[i + 1] + .0722 * d[i + 2]; Ls += Y; minL = Math.min(minL, Y) } n++ }
       /* (round 1 builder) share of coloured pixels with two channels at full (clipped neon), the critic's head
@@ -124,12 +416,23 @@
       var two = 0; for (i = 0; i < d.length; i += 4) if (d[i + 3] > 250 && Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]) > 60 && (d[i] === 255) + (d[i + 1] === 255) + (d[i + 2] === 255) >= 2) two++;
       function hx(x, y) { var j = (y * S2 + x) * 4; return '#' + [d[j], d[j + 1], d[j + 2]].map(function (v) { return (v < 16 ? '0' : '') + v.toString(16) }).join('') }
       var rd = rimC.getContext('2d').getImageData(0, 0, S2, S2).data, rs = 0, rn = 0; for (i = 0; i < rd.length; i += 4) if (rd[i + 3]) { rs += rd[i] + rd[i + 1] + rd[i + 2]; rn += 3 }
-      return { chroma: sat / Math.max(1, cols), Y: Ls / Math.max(1, cols), minY: minL, d: d, two: (100 * two / Math.max(1, cols)).toFixed(0) + '%', head: hx(9, 10), shaft: hx(16, 18), rim: (rs / Math.max(1, rn)).toFixed(1), rim22: hx(22, 22) };
+      /* (round 2 builder) mean OKLab L and C, and mean luma, over a fixed set: the pixels colourful at rest (OKLab
+         C >= .06), so the set does not change with the frame as the chroma>60 set above does */
+      var oL = 0, oC = 0, oY = 0, on = 0;
+      if (!mask) { mask = []; for (i = 0; i < d.length; i += 4) { if (d[i + 3] > 240) { var q0 = oklab(d[i], d[i + 1], d[i + 2]); if (Math.hypot(q0[1], q0[2]) >= .06) mask.push(i) } } }
+      var mud = 0, mudMin = 9, mudHex = '-', hue = {};
+      mask.forEach(function (i) { var q1 = oklab(d[i], d[i + 1], d[i + 2]), c1 = Math.hypot(q1[1], q1[2]), h1 = (Math.atan2(q1[2], q1[1]) * 180 / Math.PI + 360) % 360; hue[i] = h1; oL += q1[0]; oC += c1; oY += .2126 * d[i] + .7152 * d[i + 1] + .0722 * d[i + 2]; on++;
+        /* (round 3) mud: a dark yellow, ochre or brown (hue 40-115, OKLab L under .62, colourful) */
+        if (h1 > 40 && h1 < 115 && q1[0] < .62 && c1 > .05) { mud++; if (q1[0] < mudMin) { mudMin = q1[0]; mudHex = '#' + [d[i], d[i + 1], d[i + 2]].map(function (v) { return (v < 16 ? '0' : '') + v.toString(16) }).join('') } } });
+      /* (round 3) how coherent the colour is: the mean hue difference between side-by-side colourful pixels, core and rim together */
+      var nb = 0, nd = 0; mask.forEach(function (i) { [4, S2 * 4].forEach(function (o) { if (hue[i + o] != null) { nd += Math.abs(((hue[i] - hue[i + o]) % 360 + 540) % 360 - 180); nb++ } }) });
+      return { chroma: sat / Math.max(1, cols), Y: Ls / Math.max(1, cols), minY: minL, d: d, two: (100 * two / Math.max(1, cols)).toFixed(0) + '%', head: hx(9, 10), shaft: hx(16, 18), rim: (rs / Math.max(1, rn)).toFixed(1), rim22: hx(22, 22), oL: oL / on, oC: oC / on, oY: oY / on, mud: mud, mudMin: mudMin, mudHex: mudHex, nbr: nd / Math.max(1, nb) };
     }
+    var mask = null;
     /* (round 1 builder) how many visible sparkles (opacity > .05) have their centre over the sticker as it is posed */
-    var dpS = L.devPic(window.devicePixelRatio || 1);
+    var dpS = L.devPic(DPRp);
     function sparkOver(bx) {
-      var mk = bx.querySelector('.v3cur__mark'), m = /scale\(([-\d.]+),\s*([-\d.]+)\) translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(mk.style.transform) || [0, 1, 1, 0, 0], n = 0, dd = window.devicePixelRatio || 1;
+      var mk = bx.querySelector('.v3cur__mark'), m = /scale\(([-\d.]+),\s*([-\d.]+)\) translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(mk.style.transform) || [0, 1, 1, 0, 0], n = 0, dd = DPRp;
       Array.prototype.forEach.call(bx.querySelectorAll('.v3cur__spark'), function (e) {
         if (!(+e.style.opacity > .05)) return;
         var t = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(e.style.transform), w = parseFloat(e.style.width);
@@ -146,7 +449,74 @@
       var l = Math.cbrt(.4122214708 * r + .5363325363 * g + .0514459929 * b), m = Math.cbrt(.2119034982 * r + .6806995451 * g + .1073969566 * b), s = Math.cbrt(.0883024619 * r + .2817188376 * g + .6299787005 * b);
       return [.2104542553 * l + .793617785 * m - .0040720468 * s, 1.9779984951 * l - 2.428592205 * m + .4505937099 * s, .0259040371 * l + .7827717662 * m - .808675766 * s];
     }
-    var me = document.getElementById('metrics'), rest = stat('');
+    var me = document.getElementById('metrics'), rest = stat(''), series = [];
+    /* (2026-10-07, pulse builder, round 3) the critic's round-3 checks, after the rows:
+       - the flash: when the sticker's mean luma (oY) peaks, against the flash's own height (208ms, bump .1/.4/.8),
+         and how closely oY follows the flash over the pulse (r); it must peak within one refresh of 208ms;
+       - the run's reach: at 1, 1.25, 1.5 and 2x, every pixel colourful at rest (OKLab C >= .06, core or rim) that
+         does not change colour mid-turn (dE x100 under 3 at k .35, .5 and .65): it must be 0 at every size. Also
+         how many of the colourful pixels sit in the rim canvas, and the most of a colourful pixel's resting
+         colour left in the layer underneath, which the run cannot reach;
+       - the sparkles while moving: the box carried at 600 px/s while the pulse plays; how far each sparkle is
+         carried with it after its birth, against how far the box went (1 = glued to the box) */
+    function roundThree() {
+      var r = ['', 'round 3 checks'];
+      var best = null, f = 1000 / FPS, fx = [], yy = [];
+      function bmp(u, a, p, b) { function sm(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t) } if (u <= a || u >= b) return 0; return u < p ? sm((u - a) / (p - a)) : 1 - sm((u - p) / (b - p)) }
+      series.forEach(function (s) { if (s[0] <= 0) return; if (!best || s[1] > best[1]) best = s; fx.push(bmp(s[0] / 520, .1, .4, .8)); yy.push(s[1] - rest.oY) });
+      var mx = fx.reduce(function (a, b) { return a + b }, 0) / fx.length, my = yy.reduce(function (a, b) { return a + b }, 0) / yy.length, sxy = 0, sxx = 0, syy = 0;
+      fx.forEach(function (x, i) { sxy += (x - mx) * (yy[i] - my); sxx += (x - mx) * (x - mx); syy += (yy[i] - my) * (yy[i] - my) });
+      /* the top of the swell: the middle of the refreshes within a quarter of a level of the brightest (a flat top differs by less than anyone sees, so the single brightest refresh alone is noise) */
+      var top = series.filter(function (s) { return s[0] > 0 && best && s[1] >= best[1] - .25 }), topAt = top.length ? (top[0][0] + top[top.length - 1][0]) / 2 : 0;
+      var peakAt = best ? best[0] : 0, at208 = series.reduce(function (a, s) { return Math.abs(s[0] - 208) < Math.abs(a[0] - 208) ? s : a });
+      r.push('flash: oY rest ' + rest.oY.toFixed(1) + ', peak ' + (best ? best[1].toFixed(1) : '-') + ' (+' + (best ? (best[1] - rest.oY).toFixed(1) : '-') + ') brightest at ' + peakAt.toFixed(1) + 'ms (' + best[1].toFixed(2) + '), top of the swell ' + top[0][0].toFixed(1) + '-' + top[top.length - 1][0].toFixed(1) + 'ms, middle ' + topAt.toFixed(1) + 'ms; at ' + at208[0].toFixed(1) + 'ms ' + at208[1].toFixed(2) + '; oY vs flash r = ' + (sxy / Math.sqrt(sxx * syy)).toFixed(3) + (Math.abs(topAt - 208) <= f + .01 ? ' PASS (the top of the swell within a refresh of 208ms)' : ' FAIL (the top of the swell not within a refresh of 208ms)'));
+      var mudRest = series[0][3], mudMax = Math.max.apply(null, series.map(function (s) { return s[3] })), nbrRest = series[0][4], nbrMax = Math.max.apply(null, series.map(function (s) { return s[4] }));
+      r.push('mud (dark ochre/brown pixels): rest ' + mudRest + ', most in the pulse ' + mudMax + ' | neighbour hue difference, core+rim: rest ' + nbrRest.toFixed(1) + ' deg, most in the pulse ' + nbrMax.toFixed(1));
+      /* the run's reach, per size */
+      var gh = q.get('ground') === 'card' ? [251, 249, 245] : [236, 230, 221], coreC = L.build().querySelector('.v3cur__core'), rimC2 = L.build().querySelector('.v3cur__rim');
+      [1, 1.25, 1.5, 2].forEach(function (dd) {
+        L.fit(dd, gh); L.colourRun(0, 0);
+        function grab() { var S = coreC.width, c = document.createElement('canvas'); c.width = c.height = S; var x = c.getContext('2d'); x.drawImage(coreC, 0, 0); var a = x.getImageData(0, 0, S, S).data; x.clearRect(0, 0, S, S); x.drawImage(rimC2, 0, 0); return [a, x.getImageData(0, 0, S, S).data] }
+        /* (pixels under 16 of cover are left out: read back through a canvas their colour is mostly rounding, a neutral 226,226,223 at cover 4 reads 255,255,191) */
+        var r0 = grab(), col = [], neu = [], inRim = 0;
+        for (var i = 0; i < r0[0].length; i += 4) { var src = r0[0][i + 3] ? r0[0] : r0[1]; if (src[i + 3] < 16) continue; var o = oklab(src[i], src[i + 1], src[i + 2]), oc = Math.hypot(o[1], o[2]); if (oc >= .06) { col.push(i); if (src === r0[1]) inRim++ } else if (oc < .03) neu.push(i) }
+        var moved = {}, neuMoved = 0;
+        [.35, .5, .65].forEach(function (k) {
+          L.colourRun(k, 0); var g = grab();
+          col.forEach(function (i) { var a = r0[0][i + 3] ? r0[0] : r0[1], b = r0[0][i + 3] ? g[0] : g[1], A = oklab(a[i], a[i + 1], a[i + 2]), B = oklab(b[i], b[i + 1], b[i + 2]); if (100 * Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]) >= 3) moved[i] = 1 });
+          if (k === .5) neu.forEach(function (i) { var a = r0[0][i + 3] ? r0[0] : r0[1], b = r0[0][i + 3] ? g[0] : g[1]; if (a[i] !== b[i] || a[i + 1] !== b[i + 1] || a[i + 2] !== b[i + 2]) neuMoved++ });
+        });
+        var frozen = col.filter(function (i) { return !moved[i] }).length, ly = L.layers(dd, gh), au = 0;
+        col.forEach(function (i) { au = Math.max(au, ly.under.data[i + 3] / 255) });
+        r.push('@' + dd + 'x: colourful pixels ' + col.length + ' (' + inRim + ' in the rim canvas), not taking the run ' + frozen + (frozen ? ' FAIL' : ' PASS') + ', most resting colour left underneath ' + (100 * au).toFixed(1) + '%; neutral pixels (the white die-cut, the ink edge) changed mid-turn ' + neuMoved + ' of ' + neu.length);
+      });
+      L.fit(DPRp, gh); L.colourRun(0, 0);
+      /* the sparkles while moving */
+      if (!L.place) r.push('sparkles while moving: n/a (this build has no place())');
+      else {
+        var x0 = 300, y0 = 300, runs = [];
+        [0, .6].forEach(function (v) {
+          L.look(-1); L.place(x0, y0); var pos = [];
+          for (var t = 0; t <= 470; t += f) {
+            var b = L.place(x0 + v * t, y0 - v * .6 * t), bx = L.look(t);
+            pos.push(Array.prototype.map.call(bx.querySelectorAll('.v3cur__spark'), function (e) { var m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(e.style.transform); return +e.style.opacity > 0 && m ? [b[0] + +m[1], b[1] + +m[2], t] : null }));
+          }
+          runs.push(pos);
+        });
+        var worst = 0, carry = 0, first = [];
+        for (var n = 0; n < runs[0].length; n++) for (var s = 0; s < 6; s++) {
+          var a = runs[0][n][s], b = runs[1][n][s]; if (!a || !b) continue;
+          if (!first[s]) first[s] = [b[0] - a[0], b[1] - a[1], a[2]];
+          var age = a[2] - first[s][2]; if (age < 120) continue;
+          var drift = Math.hypot(b[0] - a[0] - first[s][0], b[1] - a[1] - first[s][1]), boxGo = .6 * Math.hypot(1, .6) * age;   /* from where it was born */
+          carry = Math.max(carry, drift); worst = Math.max(worst, drift / boxGo);
+        }
+        r.push('sparkles while moving (box at 600 px/s): each carried at most ' + carry.toFixed(1) + 'px with the hand, ' + (100 * worst).toFixed(0) + '% of the box\'s own travel 120ms+ after its birth (100% = glued to the box)');
+        L.look(-1); L.place(0, 0); L.look(0);
+      }
+      return r;
+    }
+
     times.forEach(function (ms) {
       var bx = L.look(ms < 0 ? -1 : ms), mk = bx.querySelector('.v3cur__mark'), body = mk.querySelector('div'), fl = body ? body.style.filter : '';
       var st = stat(fl), m = /scale\(([-\d.]+),\s*([-\d.]+)\) translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(mk.style.transform) || [0, 1, 1, 0, 0];
@@ -156,12 +526,21 @@
       var dE = 0;
       if (prevPix) { for (var i = 0; i < st.d.length; i += 4) { dpx = Math.max(dpx, Math.abs(st.d[i] - prevPix[i]) + Math.abs(st.d[i + 1] - prevPix[i + 1]) + Math.abs(st.d[i + 2] - prevPix[i + 2])); if (st.d[i + 3] > 250) { var A1 = oklab(st.d[i], st.d[i + 1], st.d[i + 2]), B1 = oklab(prevPix[i], prevPix[i + 1], prevPix[i + 2]); dE = Math.max(dE, 100 * Math.hypot(A1[0] - B1[0], A1[1] - B1[1], A1[2] - B1[2])) } } }
       var sp = Array.prototype.map.call(bx.querySelectorAll('.v3cur__spark'), function (e) { return (+e.style.opacity || 0).toFixed(2) }).join(',');
-      out.push(ms.toFixed(1) + 'ms  pose ' + pose.map(function (v) { return v.toFixed(3) }).join(' ') + (prev ? '  d ' + pose.map(function (v, k) { return (v - prev[k]).toFixed(3) }).join(' ') : '') + '  sticker Y ' + st.Y.toFixed(0) + ' (rest ' + rest.Y.toFixed(0) + ') minY ' + st.minY.toFixed(0) + ' chroma ' + st.chroma.toFixed(0) + ' (rest ' + rest.chroma.toFixed(0) + ') colour-step ' + dpx + ' dE ' + dE.toFixed(1) + '  sparks ' + sp + '  2ch@255 ' + st.two + ' head ' + st.head + ' shaft ' + st.shaft + ' rim mean ' + st.rim + ' rim(22,22) ' + st.rim22 + ' spark-in-sticker ' + sparkOver(bx) + ' lift ' + (bx.querySelector('.v3cur__lift') ? bx.querySelector('.v3cur__lift').style.display !== 'none' : '-') + '  ' + fl);
-      prev = pose; prevPix = st.d;
+      /* (round 2 builder) how far the picture's farthest corner moved since the refresh before, in screen px
+         (scale round ORIGIN 12.45,10.45, then the move) */
+      var mv = 0, dpr = DPRp;
+      if (prev) [[0, 0], [32, 0], [0, 32], [32, 32]].forEach(function (c) {
+        var a = [12.45 + pose[0] * (c[0] - 12.45 + pose[2]), 10.45 + pose[1] * (c[1] - 10.45 + pose[3])], b = [12.45 + prev[0] * (c[0] - 12.45 + prev[2]), 10.45 + prev[1] * (c[1] - 10.45 + prev[3])];
+        mv = Math.max(mv, Math.hypot(a[0] - b[0], a[1] - b[1]) * dpr);
+      });
+      out.push(ms.toFixed(1) + 'ms  oL ' + st.oL.toFixed(3) + ' oC ' + st.oC.toFixed(3) + ' (rest ' + rest.oL.toFixed(3) + '/' + rest.oC.toFixed(3) + ') oY ' + st.oY.toFixed(1) + ' mud ' + st.mud + (st.mud ? ' (' + st.mudHex + ' L ' + st.mudMin.toFixed(2) + ')' : '') + ' nbr-dh ' + st.nbr.toFixed(1) + ' mv ' + mv.toFixed(3) + 'px  pose ' + pose.map(function (v) { return v.toFixed(3) }).join(' ') + (prev ? '  d ' + pose.map(function (v, k) { return (v - prev[k]).toFixed(3) }).join(' ') : '') + '  sticker Y ' + st.Y.toFixed(0) + ' (rest ' + rest.Y.toFixed(0) + ') minY ' + st.minY.toFixed(0) + ' chroma ' + st.chroma.toFixed(0) + ' (rest ' + rest.chroma.toFixed(0) + ') colour-step ' + dpx + ' dE ' + dE.toFixed(1) + '  sparks ' + sp + '  2ch@255 ' + st.two + ' head ' + st.head + ' shaft ' + st.shaft + ' rim mean ' + st.rim + ' rim(22,22) ' + st.rim22 + ' spark-in-sticker ' + sparkOver(bx) + ' lift ' + (bx.querySelector('.v3cur__lift') ? bx.querySelector('.v3cur__lift').style.display !== 'none' : '-') + '  ' + fl);
+      prev = pose; prevPix = st.d; series.push([ms, st.oY, st.oC, st.mud, st.nbr]);
     });
+    out.push.apply(out, roundThree());
     L.look(0);
     me.setAttribute('data-pulse', out.join('\n'));
     me.innerHTML = out.map(function (r) { return '<p>' + r + '</p>' }).join('');
+    await runDemo();
     window.__labReady = true;
   }
   var me = document.getElementById('metrics');
@@ -226,7 +605,16 @@
     return c;
   }
 
-  var MS = L.MS, FADE = L.FADE_MS;
+  var MS = L.MS, FADE = L.FADE_MS || 0, SWAP = !!L.SWAP;
+  /* (2026-10-07, click -> idle builder, round 1) how far the copy's farthest corner is from its rest pose at ms,
+     in screen px (the curve's own, MOVE .2 as in the script): under .05 the copy is at rest to any eye, so the
+     real cursor coming back over it is a hand-over, not motion under it */
+  function offRest(ms) {
+    if (ms <= 0 || ms >= MS) return 0;
+    var u = ms / L.BASE_MS, C = L.CURVE, p = [C(u, 1), C(u, 2), C(u, 3) * .2, C(u, 4) * .2], w = 0;
+    [[0, 0], [32, 0], [0, 32], [32, 32]].forEach(function (c) { w = Math.max(w, Math.hypot(12.45 + p[0] * (c[0] - 12.45 + p[2]) - c[0], 10.45 + p[1] * (c[1] - 10.45 + p[3]) - c[1]) * DPR) });
+    return w;
+  }
   /* the screen, refresh by refresh (2026-10-07, round 2). Refreshes at j*f, the first frame drawn at 0, the
      click `phase` ms before it. Chrome shows the frame drawn at k*f on refresh k+m; Windows hides its cursor
      on the first refresh after it is let go + `hand` ms. `est`: the script's own idea of m (measured = m;
@@ -235,7 +623,7 @@
   function vb(t, f) { return Math.ceil(t / f - .02) * f }
   /* (round 3) est 'default' is the script's own prior (L.prior); a '-r2' suffix plays round 2's clock (the
      pulse timed from the refresh the real cursor is surely gone, not from the click) */
-  function simulate(fps, m, est, phase, hand, old) {
+  function simulate(fps, m, est, phase, hand, old, opt) {
     var f = 1000 / fps, pd = -phase, out = [], r2 = /-r2$/.test(est); est = est.replace(/-r2$/, '');
     var pr = L.prior ? L.prior(f) : { hi: Math.max(2, Math.ceil(34 / f)), lo: 1 };
     var hi = est === 'measured' ? m : pr.hi, lo = est === 'measured' ? m : pr.lo;
@@ -249,21 +637,68 @@
       at = function (now) { var r = P.at(now); if (now < tc - 1) r.ms = Math.min(r.ms, -1); r.o = r.held ? 0 : 1; return r };
     }
     var gone = vb(tc + hand, f);
-    for (var j = -2; j < 200; j++) {
-      var V = j * f, real = V < gone, k = j - m, fr = k >= 0 ? at(k * f) : null;
-      if (fr && fr.ms >= MS + FADE) { out.push({ V: V, idle: true }); if (out.filter(function (o) { return o.idle && o.V > 0 }).length > 2) break; continue }
-      out.push({ V: V, real: real, copy: fr, pd: pd, gone: gone });
+    /* (2026-10-07, click -> idle builder, round 1; the click -> idle critic: "simulate() assumes the real cursor
+       reappears on the same refresh as the copy's first ms >= MS frame") the way back, refresh by refresh, as the
+       script plays it: frames drawn at k*f in order; the real cursor given back at tOff (this build: plan().off,
+       by its timer `late` ms late if it fires between frames; a build with the dissolve: in the first frame whose
+       ms >= MS), and back on the screen on the refresh after tOff + `back` ms (Chrome's cursor timer and the hop
+       to Windows, as on the way in). The copy: this build, whole until the frame plan().hide takes it away; a
+       build with the dissolve, wrap opacity 1 - smooth((ms - MS) / FADE), gone from ms >= MS + FADE */
+    var late = (opt && opt.late) || 0, backH = (opt && opt.back) || hand, tOff = -1, kHide = Infinity, P2 = old ? null : P;
+    /* (click -> idle builder, round 2) the way back as frame() now plays it: plan().off gives R and when to let go
+       (in a frame where any moment in tMin..tMax does, else by a timer, `late` ms late), the copy is taken away in
+       the frame that shows on R at the lateness lb the script believes for this click (opt.lb, else its lo), before
+       the letting go if that frame comes first; opt.mv: a pointermove dispatched mv ms after the letting go brings
+       the real cursor back with it (back = mv + 1) and the script then takes the copy away at once (plan().back) */
+    var lb = (opt && opt.lb) || lo, HOd = null, mvT = Infinity;
+    for (var k2 = 0; k2 < 400; k2++) {
+      var now = k2 * f, a2 = at(now);
+      if (SWAP && P2 && P2.back) {
+        if (tOff < 0 && now >= tc - 1) {
+          if (kHide === Infinity) HOd = P2.off(now, MS, lb, 0, !!(opt && opt.mv != null));   /* past the hold the script plans for the mousemove return */
+          if ((HOd.k === 1 && now + 1 > HOd.tMin && now + 1 <= HOd.tMax) || now + .3 >= HOd.t) tOff = now + 1;
+          else if (HOd.t < now + f) tOff = HOd.t + late;
+          if (tOff >= 0 && opt && opt.mv != null) mvT = tOff + opt.mv;
+        }
+        var offNow = tOff >= 0 && tOff <= now + 1;
+        if (kHide === Infinity && HOd && P2.hide(now, offNow ? (HOd.mv ? Math.min(HOd.R, P2.back(tOff, 0, now >= mvT ? mvT : -1)) : P2.back(tOff, 0, now >= mvT ? mvT : -1)) : HOd.R, lb)) kHide = k2;
+        if (kHide !== Infinity && offNow) break;
+      } else if (SWAP && P2) {
+        /* a build before round 2 (&script=): let go and hide tied to one frame */
+        if (tOff < 0 && now >= tc - 1) { var ot = P2.off(now, MS).t; if (now >= ot - 1) tOff = now + 1; else if (ot < now + f && ot + late < now + f - 1) tOff = ot + late }
+        if (tOff >= 0 && tOff <= now + 1 && P2.hide(now, tOff)) { kHide = k2; break }
+      } else {
+        if (a2.ms >= MS + FADE && tOff >= 0) { kHide = k2; break }
+        if (tOff < 0 && a2.ms >= MS) tOff = now;
+      }
+    }
+    if (opt && opt.mv != null) backH = opt.mv + 1;
+    var back = tOff >= 0 ? vb(tOff + backH, f) : Infinity;
+    for (var j = -2; j < 400; j++) {
+      var V = j * f, real = V < gone || V >= back, k = j - m, fr = k >= 0 && k < kHide ? at(k * f) : null;
+      if (fr) { fr = Object.assign({}, fr); if (!(SWAP && P2) && fr.ms >= MS) fr.o = 1 - (function (t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t) })((fr.ms - MS) / FADE); fr.out = tOff >= 0 && (k * f >= tOff - f || V >= back); fr.all = !(SWAP && P2) && fr.ms >= MS }
+      if (k >= kHide && real) { out.push({ V: V, idle: true }); if (out.filter(function (o) { return o.idle && o.V > 0 }).length > 2) break; continue }
+      out.push({ V: V, real: real, copy: fr, pd: pd, gone: gone, back: back, tOff: tOff });
     }
     return out;
   }
   /* what each refresh costs, against the idle cursor (150%-type sizes at this screen's DPR, on this ground) */
   var idleScene = scene(DPR, groundHex, null, true), costCache = {};
   function cost(real, copy, held) {
-    var key = real + '|' + (copy ? copy.o.toFixed(3) + (copy.ms > 0 ? 'm' : '') : 'none');
+    /* (2026-10-07, click -> idle builder, round 1) the hand-over is measured now (it was given 0 outright, the
+       critic's "the lab cannot see any of this"): the copy as it is at the end (whole; or, in a build with the
+       dissolve, every layer at the wrap's opacity) with the real cursor ON TOP when it is back, against the idle
+       cursor; red from 12, as on the way in. A copy still within .05 screen px of rest counts as at rest */
+    var hand = copy && (copy.ms >= MS || (copy.out && offRest(copy.ms) < .05));
+    var key = real + '|' + (copy ? copy.o.toFixed(3) + (copy.ms > 0 ? 'm' : '') + (hand ? 'h' + (copy.all ? 'a' : '') : '') : 'none');
     if (costCache[key]) return costCache[key];
     var r;
-    if (copy && copy.ms > 0 && copy.ms < MS) r = real ? { big: 999, max: 999, tag: 'moves under the real cursor' } : { big: 0, max: 0, tag: 'pulse' };
-    else if (copy && copy.ms >= MS) r = { big: 0, max: 0, tag: 'hand-over' };
+    if (hand) {
+      var o = copy.o, lay = copy.all ? { under: o, core: o, rim: o } : cover(o);
+      r = diff(scene(DPR, groundHex, o > 0 ? lay : null, real), idleScene);
+      r.tag = 'hand-over: ' + (o <= 0 ? (real ? 'real cursor' : 'BLINK (nothing)') : real ? (o >= 1 ? 'both shadows' : 'both, copy at ' + o.toFixed(2)) : (o >= 1 ? 'copy alone' : 'copy alone at ' + o.toFixed(2)));
+    }
+    else if (copy && copy.ms > 0 && copy.ms < MS) r = real ? { big: 999, max: 999, tag: 'moves under the real cursor' } : { big: 0, max: 0, tag: 'pulse' };
     else {
       r = diff(scene(DPR, groundHex, copy ? cover(copy.o) : null, real), idleScene);
       r.tag = !copy ? (real ? 'idle' : 'BLINK (nothing)') : real ? (copy.o >= 1 ? 'both shadows' : copy.o <= 0 ? 'held under' : 'both, part shadow') : (copy.o >= 1 ? 'copy alone' : 'copy, shadow light');
@@ -278,7 +713,7 @@
     var c = o.copy, kind, bad = false;
     if (o.idle || (!c && o.real)) kind = 'idle';
     else if (!c) { kind = 'bad'; bad = true }
-    else if (c.ms >= MS) kind = 'hand';
+    else if (c.ms >= MS || c.out) kind = 'hand';
     else if (o.real) kind = 'over';
     else kind = 'pulse';
     var cs = o.idle ? null : cost(o.real, c);
@@ -287,14 +722,24 @@
     var inn = document.createElement('div'); inn.className = 'in';
     if (c && !o.idle) {
       var box = L.look(c.ms, c.held, false), clone = box.cloneNode(true);
-      if (c.o > 0 && c.o < 1) clone.querySelectorAll('.v3cur__mark > canvas, .v3cur__mark > div > canvas:last-child').forEach(function (cv) { cv.style.opacity = c.o });
+      if (c.all) clone.querySelector('.v3cur__mark').style.opacity = c.o;
+      else if (c.o > 0 && c.o < 1) clone.querySelectorAll('.v3cur__mark > canvas, .v3cur__mark > div > canvas:last-child').forEach(function (cv) { cv.style.opacity = c.o });
       var src = box.querySelectorAll('canvas'), dst = clone.querySelectorAll('canvas');
       for (var j = 0; j < src.length; j++) dst[j].getContext('2d').drawImage(src[j], 0, 0);
       inn.appendChild(clone);
       var mark = box.querySelector('.v3cur__mark'), bodyDiv = mark.querySelector('div');
       rows.push([o.V.toFixed(1), kind + (o.real ? ' +real' : ''), c.ms.toFixed(1), mark.style.transform || '-', mark.style.opacity, c.o.toFixed(3), (bodyDiv && bodyDiv.style.filter) || '-', cs ? cs.tag + ' ' + cs.max : '']);
     } else rows.push([o.V.toFixed(1), o.idle || o.real ? 'idle' : 'BLINK', '-', '-', '-', '-', '-', cs ? cs.tag + ' ' + cs.max : '']);
-    if (o.idle || (c && c.ms >= MS) || (!c && o.real)) inn.insertBefore(idleNode(), inn.firstChild);
+    /* (click -> idle builder, round 1) Windows draws its cursor ON TOP of what Chrome paints (the amber cells used
+       to put the idle cursor under the copy, and the violet ones covered the copy with an opaque idle picture):
+       a refresh with both on the screen now shows the very composite cost() measures, the copy as it is, then
+       the real cursor over it in linear light */
+    if (o.idle || (!c && o.real)) inn.insertBefore(idleNode(), inn.firstChild);
+    else if (o.real && c && !(c.ms > 0 && c.ms < MS && !(c.out && offRest(c.ms) < .05))) {
+      var sc = scene(DPR, groundHex, c.o > 0 ? (c.all ? { under: c.o, core: c.o, rim: c.o } : cover(c.o)) : null, true), scv = toCan(sc);
+      scv.className = 'idle'; scv.style.width = scv.style.height = (sc.width / DPR) + 'px'; scv.style.left = (L.PAD - M / DPR) + 'px'; scv.style.top = (L.PAD - M / DPR) + 'px';
+      inn.appendChild(scv);
+    }
     else if (o.real) inn.appendChild(idleNode());
     cell.appendChild(inn);
     var lb = document.createElement('b'); lb.textContent = Math.round(o.V) + 'ms' + (c && !o.idle ? ' · ' + Math.round(c.ms) : ''); cell.appendChild(lb);
@@ -334,19 +779,35 @@
       [1, 2, 3].forEach(function (m) {
         ['measured', 'measured-r2', 'default', 'default-r2', 'old'].forEach(function (est) {
           var worst = 0, dbl = 0, dblMax = 0, bad = 0, n = 0, press = 0, wtag = '';
+          /* (click -> idle builder, round 1) and the way back: the worst hand-over refresh against idle, refreshes
+             with the copy under the real cursor (avg, max), red ones (12+) and blinks, refreshes over 30 levels,
+             and when the screen is the idle cursor for good, after the click */
+          var wOut = 0, wOutTag = '', dOut = 0, dOutMax = 0, redOut = 0, over30 = 0, blinkOut = 0, idleAt = 0, idleMax = 0;
           for (var ph = 0; ph < 24; ph++) [20.5, 22, 25].forEach(function (hand) {
-            var f = 1000 / fps, seq = simulate(fps, m, est === 'old' ? 'default' : est, (ph + .5) / 24 * f, hand, est === 'old'), cd = 0, pr = null;
+            var f = 1000 / fps, seq = simulate(fps, m, est === 'old' ? 'default' : est, (ph + .5) / 24 * f, hand, est === 'old'), cd = 0, pr = null, co = 0, lastBusy = 0;
             seq.forEach(function (o) {
               if (o.idle) return;
+              lastBusy = o.V;
               var c = cost(o.real, o.copy);
+              var isOut = o.copy ? o.copy.out || o.copy.ms >= MS : o.tOff >= 0 && o.V > o.tOff;
+              if (isOut) {
+                if (c.max > wOut) { wOut = c.max; wOutTag = c.tag }
+                if (o.real && o.copy && o.copy.o > 0) co++;
+                if (c.max >= 12) redOut++;
+                if (c.max > 30) over30++;
+                if (!o.real && (!o.copy || o.copy.o <= 0)) blinkOut++;
+                return;
+              }
               if (c.max > worst) { worst = c.max; wtag = c.tag }
               if (o.real && o.copy && o.copy.o > 0 && o.copy.ms <= 0) cd++;
               if (c.max >= 12 && !(o.real && o.copy && o.copy.o >= 1 && o.copy.ms <= 0)) bad++;
               if (pr == null && o.copy && o.copy.ms > 0 && !o.real) pr = o.V - o.pd;
             });
             dbl += cd; dblMax = Math.max(dblMax, cd); n++; press += pr || 0;
+            dOut += co; dOutMax = Math.max(dOutMax, co); var ia = lastBusy + 1000 / fps - seq[0].pd; idleAt += ia; idleMax = Math.max(idleMax, ia);
           });
           report.push(fps + 'Hz m=' + m + ' ' + (est === 'old' ? 'round 1 ' : 'est ' + est).padEnd(13) + ': worst ' + worst + ' (' + wtag + '), both-shadow refreshes avg ' + (dbl / n).toFixed(2) + ' max ' + dblMax + ', bad refreshes ' + bad + '/' + n + ' clicks, press shows ' + (press / n).toFixed(1) + 'ms after the click');
+          if (est !== 'old') report.push('    way back: worst ' + wOut + ' (' + wOutTag + '), refreshes with the copy under the real cursor avg ' + (dOut / n).toFixed(2) + ' max ' + dOutMax + ', red (12+) ' + redOut + ', over 30 ' + over30 + ', blinks ' + blinkOut + ' /' + n + ' clicks; idle for good ' + (idleAt / n).toFixed(0) + 'ms after the click (latest ' + idleMax.toFixed(0) + ', pulse ' + MS.toFixed(0) + ')');
         });
       });
     });
@@ -385,6 +846,80 @@
       });
     });
     report.push('offset cost, whole copy under the real cursor: ' + [[0, 0], [1, 0], [1, 1], [2, 1], [3, 2], [6, 4]].map(function (o) { return o + ' → ' + costOff(o[0], o[1]).max }).join(' | ') + ' (held frames show nothing while moving)');
+    /* (click -> idle builder, round 1; critic: "the hand-over leaves a ghost when the mouse moves") the way back
+       while moving: every refresh that shows the copy under the real cursor once it is back is a second cursor
+       beside it, as far off as the copy's prediction misses (2,1 screen px; 6,4 for a flick). Per click: how many
+       such refreshes and how long, the worst one's cost at those offsets (the copy at its opacity on that refresh) */
+    H('moving hand-over @1.5x sand: refreshes with the copy beside the returned real cursor (24 phases x hand 20.5/22/25)');
+    /* (click -> idle builder, round 2) the rows below assume the real cursor comes back only on Chrome's timer;
+       while the mouse moves it comes back with the next mousemove (the critic's round 2). This build holds the way
+       back while the mouse moves (frame(): HOLD_MS), so with a moving mouse it starts only once the mouse has
+       stopped (then these rows are the still case, the copy exactly under the real cursor, no ghost), or, past the
+       hold, with the copy taken away at the first pointermove after the letting go. That last case: */
+    ghostC = {};
+    report.push('this build holds the way back while the mouse moves (up to ' + (L.HOLD_MS || 0) + 'ms); past the hold it lets go two refreshes before R, for the mousemove of the next frame to bring the real cursor back on R:');
+    [60, 144].forEach(function (fps) {
+      [1, 2, 3].forEach(function (m) {
+        var f = 1000 / fps, res = [];
+        /* mv: the pointermove that brings the real cursor back, ms after the letting go (in the frame two refreshes
+           before R): f = the next frame's own (Chrome dispatches mousemoves at the start of each frame, rAF-aligned),
+           1/4/8 = one dispatched between frames, earlier than that */
+        [1, 4, 8, f].forEach(function (mv) {
+          var gN = 0, gMax = 0, bl = 0, w21 = 0, n = 0;
+          for (var ph = 0; ph < 24; ph++) {
+            var seq = simulate(fps, m, 'measured', (ph + .5) / 24 * f, 22, false, { mv: mv }), g = 0;
+            seq.forEach(function (o) {
+              if (o.idle || o.V < o.tOff) return;
+              if (!o.real && (!o.copy || o.copy.o <= 0) && o.V > o.tOff) bl++;
+              if (!o.real || !o.copy || !(o.copy.out || o.copy.ms >= MS) || o.copy.o <= 0) return;
+              g++; w21 = Math.max(w21, costGhost(2, 1, o.copy.o, !!o.copy.all));
+            });
+            gN += g; gMax = Math.max(gMax, g); n++;
+          }
+          res.push('mv ' + (mv === f ? 'next frame' : mv.toFixed(0) + 'ms') + ': ghost avg ' + (gN / n).toFixed(2) + ' max ' + gMax + ' (cost at 2,1 ' + w21 + '), blinks ' + bl);
+        });
+        report.push('  ' + fps + 'Hz m=' + m + ' past the hold: ' + res.join(' | '));
+      });
+    });
+    report.push('timer-only rows (the old model; a still mouse, where the copy is exactly under the real cursor, so a ghost here is the both-shadows refresh):');
+    var ghostC = {};
+    function costGhost(dx, dy, o, all) { var k = [dx, dy, o.toFixed(3), all].join(); if (!ghostC[k]) ghostC[k] = diff(scene(1.5, gs, { under: o, core: all ? o : 1, rim: o, dx: dx, dy: dy }, true), idl).max; return ghostC[k] }
+    [60, 144].forEach(function (fps) {
+      [1, 2, 3].forEach(function (m) {
+        ['measured', 'default'].forEach(function (est) {
+          var gN = 0, gMax = 0, w21 = 0, w64 = 0, n = 0;
+          for (var ph = 0; ph < 24; ph++) [20.5, 22, 25].forEach(function (hand) {
+            var seq = simulate(fps, m, est, (ph + .5) / 24 * 1000 / fps, hand, false), g = 0;
+            seq.forEach(function (o) {
+              if (o.idle || !o.real || !o.copy || !(o.copy.out || o.copy.ms >= MS) || o.copy.o <= 0 || o.V < o.back) return;
+              g++; w21 = Math.max(w21, costGhost(2, 1, o.copy.o, !!o.copy.all)); w64 = Math.max(w64, costGhost(6, 4, o.copy.o, !!o.copy.all));
+            });
+            gN += g; gMax = Math.max(gMax, g); n++;
+          });
+          report.push(fps + 'Hz m=' + m + ' est ' + est.padEnd(9) + ': ghost refreshes avg ' + (gN / n).toFixed(2) + ' max ' + gMax + ' (' + (gMax * 1000 / fps).toFixed(0) + 'ms), worst cost at 2,1 px ' + w21 + ', at 6,4 px ' + w64);
+        });
+      });
+    });
+    /* (click -> idle builder, round 1; critic: "a click during the dissolve makes the shadow pop") a click at each
+       refresh of the way back: the copy's layers on the refresh before it and on the new click's first refresh,
+       the real cursor on the screen, and the step in cost between them (the new click's first frames as plan()
+       gives them, with the real cursor's return as bk) */
+    H('a click during the way back (60Hz, hand 22): the step it makes on the screen, per refresh it could land on');
+    [[2, 'measured'], [3, 'default']].forEach(function (cf) {
+      var f = 1000 / 60, seq = simulate(60, cf[0], cf[1], f / 2, 22, false), rowsC = [], worstStep = 0;
+      seq.forEach(function (o, i) {
+        if (o.idle || !o.copy || o.tOff < 0 || o.V < o.tOff - f) return;
+        var before = cost(o.real, o.copy).max;
+        /* the new click: drawn on the next frame, seen m refreshes later; first frame whole unless plan() says held */
+        var pr0 = cf[1] === 'measured' ? { hi: cf[0], lo: cf[0] } : L.prior(f), t1n = o.V + f - cf[0] * f, Pn = L.plan(f, pr0.hi, pr0.lo, t1n, null, t1n - f / 2, SWAP ? o.tOff + L.HAND_MAX : null), a = Pn.at(t1n), Vn = t1n + cf[0] * f;
+        var realN = Vn >= o.back && Vn < t1n + Math.ceil((Pn.tc + 22 - t1n) / f - .02) * f, lay = a.held ? HELD : WHOLE;
+        var oldO = !SWAP && o.copy.o < 1 ? 1 : null;          /* the dissolving build put the wrap back to 1 on a click */
+        var after = diff(scene(1.5, gs, oldO ? WHOLE : lay, realN), idl).max;
+        worstStep = Math.max(worstStep, after - before);
+        rowsC.push(Math.round(o.V) + 'ms: ' + before + ' → ' + after + (a.held ? ' (held)' : ''));
+      });
+      report.push('m=' + cf[0] + ' ' + cf[1] + ': ' + rowsC.join(' | ') + ' ; largest darkening step ' + worstStep);
+    });
 
     /* (round 2) grounds the correction was not made for: the copy made for the sand (round 1 whenever the
        clicked element's colour was not the ground under the footprint) against made for that very ground
@@ -399,9 +934,19 @@
       report.push('edge ' + e[0] + ' / ' + e[1] + ': made for the mean, over each side: ' + e.map(function (g) { return diff(scene(1.5, g, { under: 1, core: 1, rim: 1, fitG: mean }, false), scene(1.5, g, null, true)).s }).join(' | ') + '; made for the first: over the second ' + diff(scene(1.5, e[1], { under: 1, core: 1, rim: 1, fitG: e[0] }, false), scene(1.5, e[1], null, true)).s);
     });
     /* groundAt() on the test grounds below the table (scrolled into view: the hit test sees only the viewport) */
-    var sy0 = scrollY; document.getElementById('grounds').scrollIntoView();
-    var gb = document.getElementById('grounds').getBoundingClientRect(), ga = [10, 140, 270, 400, 530, 650].map(function (x0) { var g = L.groundAt(gb.left + x0 + 10, gb.top + 10); return g ? g.join(',') : 'none' }); scrollTo(0, sy0);
-    report.push('groundAt: sand ' + ga[0] + ' | card edge ' + ga[1] + ' | gradient ' + ga[2] + ' | canvas overlay (dark; canvases are passed over, so sand) ' + ga[3] + ' | half ink on white ' + ga[4] + ' | photo ' + ga[5]);
+    /* (click -> idle builder, round 3; critic: "groundAt() returned the sand fallback for every test ground ... the
+       scrolled grounds may have been out of view") the grounds are fixed at the top of the viewport while they are
+       read, so a sand here is the script's answer, not the lab's; and the WebGL film ground is read after it is on
+       the screen (cleared), as the hero's is at a click */
+    var gEl = document.getElementById('grounds'), gSt = gEl.style.cssText;
+    gEl.style.cssText = 'position:fixed;left:0;top:0;height:120px;margin:0;z-index:5;width:920px';
+    await new Promise(function (r) { setTimeout(r, 60) });   /* (not rAF: it stops while the window is hidden) */
+    var gb = gEl.getBoundingClientRect(), gT = performance.now(), ga = [10, 140, 270, 400, 530, 650, 780].map(function (x0) { var g = L.groundAt(gb.left + x0 + 10, gb.top + 10); return g ? g.join(',') : 'none' }), gDt = performance.now() - gT;
+    gEl.style.cssText = gSt;
+    report.push('groundAt (grounds in view, ' + innerWidth + 'x' + innerHeight + ', 7 reads in ' + gDt.toFixed(1) + 'ms): sand ' + ga[0] + ' | card edge ' + ga[1] + ' | gradient ' + ga[2] + ' | 2D canvas overlay, black rect from 20px (pointer-events:none) ' + ga[3] + ' | half ink on white ' + ga[4] + ' | photo ' + ga[5] + ' | WebGL film 120,110,99 ' + ga[6]);
+    /* and what the copy alone against the idle cursor costs at the hand-over over the film, made for what groundAt read (the critic's 4-level bar) */
+    var gf = ga[6].split(',').map(Number), filmG = [120, 110, 99];
+    report.push('copy alone vs idle over the WebGL film, made for groundAt\'s reading: ' + diff(scene(1.5, filmG, { under: 1, core: 1, rim: 1, fitG: gf.map(function (v) { return Math.min(255, Math.round(v / 4) * 4) }) }, false), scene(1.5, filmG, null, true)).s + ' (made for the sand, round 2: ' + diff(scene(1.5, filmG, { under: 1, core: 1, rim: 1, fitG: [236, 230, 221] }, false), scene(1.5, filmG, null, true)).s + ')');
 
     /* (round 3) the lateness measured: before any click (Element Timing on a hidden dot, warm()), and a click
        whose Event Timing report never comes (fast screens), which must still count */
@@ -415,6 +960,15 @@
     /* (round 3) the critic's middle cover for the one refresh that may show over the real cursor or alone */
     H('cover sweep @1.5x sand, one refresh that may be either: real over cover c / copy alone at cover c');
     report.push([0, .25, .4, .5, .6, .75, 1].map(function (c) { var a = diff(scene(d, gs, cover(c), true), idl).max, b = diff(scene(d, gs, cover(c), false), idl).max; return 'c ' + c + ': ' + a + ' / ' + b + ' (worst ' + Math.max(a, b) + ')' }).join(' | '));
+    /* (2026-10-07, click -> idle builder, round 2) the shadow alone at cover c, the rim whole (the critic's
+       suggestion for a refresh that may be either), and both at c: max levels and px at 12+, with the real
+       cursor over it / alone */
+    H('cover sweep @1.5x sand: shadow (under) at c, rim whole | both at c; real over it / copy alone (max, 12+ px)');
+    [.3, .45, .6, .7, .8, .85, .9, .95, 1].forEach(function (c) {
+      var u1 = diff(scene(d, gs, { under: c, core: 1, rim: 1 }, true), idl), u0 = diff(scene(d, gs, { under: c, core: 1, rim: 1 }, false), idl);
+      var b1 = diff(scene(d, gs, cover(c), true), idl), b0 = diff(scene(d, gs, cover(c), false), idl);
+      report.push('c ' + c + ': under only ' + u1.max + '/' + u1.big + ' | ' + u0.max + '/' + u0.big + ' ; under+rim ' + b1.max + '/' + b1.big + ' | ' + b0.max + '/' + b0.big);
+    });
     /* (round 3) presses while the pulse plays: the copy's scale y refresh by refresh at 60Hz with further
        presses, against the plain pulse; the biggest change from one refresh to the next, and when it ends */
     H('round 3: further presses during the pulse (60Hz refreshes, clock ms)');
@@ -422,7 +976,7 @@
       L.kicks(ks); var f = 1000 / 60, prev = null, maxStep = 0, minSy = 9, dip = 0, e = L.end(), trs = [];
       for (var t = f / 2; t < e + f; t += f) {
         var bx = L.look(t), tr = bx.querySelector('.v3cur__mark').style.transform, m2 = /scale\(([\d.]+),\s*([\d.]+)\)/.exec(tr), sy = m2 ? +m2[2] : 1;
-        var base = L.CURVE(Math.min(1, t / MS), 2); dip = Math.max(dip, base - sy);
+        var base = L.CURVE(Math.min(MS, t) / L.BASE_MS, 2); dip = Math.max(dip, base - sy);
         if (prev != null) maxStep = Math.max(maxStep, Math.abs(sy - prev)); prev = sy; minSy = Math.min(minSy, sy);
       }
       var lastT = L.look(e - .01).querySelector('.v3cur__mark').style.transform, atEnd = L.look(e).querySelector('.v3cur__mark').style.transform;
@@ -431,7 +985,7 @@
     L.kicks([]); L.look(0);
     var firstMove = rows.filter(function (r) { return r[3] !== '-' && r[1].indexOf('pulse') === 0 })[0];
     report.push('strip: first refresh with a transform: ' + (firstMove ? firstMove[0] + ' ms (' + firstMove[2] + 'ms in) ' + firstMove[3] : 'none') + '; script measured: ' + JSON.stringify(L.lag()));
-    var C = L.CURVE; report.push('press: scale y at 6.9/16.7/33.3ms ' + [6.9, 16.7, 33.3].map(function (t) { return C(t / MS, 2).toFixed(4) }).join(' ') + ', lowest ' + (function () { var mn = 9; for (var u = 0; u < .3; u += .0005) mn = Math.min(mn, C(u, 2)); return mn.toFixed(4) })());
+    var C = L.CURVE; report.push('press: scale y at 6.9/16.7/33.3ms ' + [6.9, 16.7, 33.3].map(function (t) { return C(t / L.BASE_MS, 2).toFixed(4) }).join(' ') + ', lowest ' + (function () { var mn = 9; for (var u = 0; u < .3; u += .0005) mn = Math.min(mn, C(u, 2)); return mn.toFixed(4) })());
     me.innerHTML = report.map(function (r) { return '<p>' + r + '</p>' }).join('');
     me.setAttribute('data-swap', report.join('\n').replace(/<\/?b>/g, ''));
   } catch (e) { me.setAttribute('data-swap', 'error ' + e + ' ' + e.stack); me.textContent = 'error ' + e }

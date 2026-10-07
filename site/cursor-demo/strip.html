@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>Cursor strip</title>
+<!-- The lean cursor's click, frozen every 1/60 s (2026-10-07). Open as strip.html?cursorlab&v=lean . Local only. -->
+<link rel="stylesheet" href="/assets/v3.css">
+<style>
+  body{margin:0;padding:16px;background:#fff;font:12px system-ui}
+  #s{display:flex;flex-wrap:wrap;gap:6px}
+  .c{position:relative;width:144px;height:144px;background:#ECE6DD;border-radius:6px;overflow:hidden}
+  .c .in{position:absolute;left:24px;top:30px;width:96px;height:96px;transform:scale(2.4);transform-origin:48px 48px}
+  .c .v3cur{position:absolute!important;left:0!important;top:0!important;transform:none!important;visibility:visible!important}
+  .c b{position:absolute;left:4px;bottom:3px;font:600 11px system-ui;background:rgba(255,255,255,.85);padding:2px 4px;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="s"></div>
+<script>document.write('<script src="/cursor-demo/v-' + ((new URLSearchParams(location.search).get('v') || 'lean').replace(/[^a-z]/g, '')) + '.js?t=' + Date.now() + '"><\/script>')</script>
+<script>
+(async function () {
+  var L = window.__v3cur; if (!L) { document.body.textContent = 'add ?cursorlab'; return }
+  L.build();
+  for (var w = 0; w < 150 && !document.querySelector('.v3cur__mark canvas'); w++) await new Promise(function (r) { setTimeout(r, 30) });
+  var s = document.getElementById('s'), end = L.MS + (L.FADE_MS || 0);
+  for (var t = 0; t <= end + 1; t += 1000 / 60) {
+    var box = L.look(t), cl = box.cloneNode(true);
+    /* a cloned canvas comes out blank: copy its pixels */
+    var src = box.querySelector('canvas'), dst = cl.querySelector('canvas');
+    if (src && dst) dst.getContext('2d').drawImage(src, 0, 0);
+    var c = document.createElement('div'); c.className = 'c'; var inn = document.createElement('div'); inn.className = 'in';
+    inn.appendChild(cl); c.appendChild(inn); var b = document.createElement('b'); b.textContent = Math.round(t) + 'ms'; c.appendChild(b); s.appendChild(c);
+  }
+  L.look(0);
+  document.body.setAttribute('data-done', s.children.length);
+})();
+</script>
+</body>
+</html>

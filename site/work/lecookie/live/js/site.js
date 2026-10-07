@@ -55,7 +55,7 @@ const INQUIRY_ENDPOINT = '';
         if (link) { link.setAttribute('aria-current', 'true'); }
       });
     }, { rootMargin: '-45% 0px -50% 0px' });
-    ['hero', 'story', 'signature', 'boxed', 'gallery', 'collections', 'cart', 'testimonials', 'faq', 'order'].forEach(function (id) {
+    ['hero', 'process', 'signature', 'boxed', 'gallery', 'collections', 'cookie-cart', 'testimonials', 'faq', 'inquiry'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) { spy.observe(el); }
     });
@@ -100,6 +100,14 @@ const INQUIRY_ENDPOINT = '';
     }
   });
   syncAddress();
+
+  // "Ask about the Cookie Cart" and the cart's own inquiry button tick that collection on the way to the form.
+  [].slice.call(document.querySelectorAll('[data-pick-collection]')).forEach(function (a) {
+    a.addEventListener('click', function () {
+      var want = a.getAttribute('data-pick-collection');
+      controlsOf('collection').forEach(function (c) { if (c.value === want) { c.checked = true; } });
+    });
+  });
 
   var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   var RULES = {
@@ -236,7 +244,7 @@ const INQUIRY_ENDPOINT = '';
 
   function collect() {
     var data = {};
-    ['firstName', 'lastName', 'email', 'fulfilment', 'date', 'address', 'quantity', 'vision', 'notes'].forEach(function (name) {
+    ['firstName', 'lastName', 'email', 'fulfilment', 'date', 'occasion', 'address', 'quantity', 'vision'].forEach(function (name) {
       data[name] = name === 'fulfilment' ? radioValue(name) : (els.namedItem(name).value || '').trim();
     });
     if (!isLocal()) { delete data.address; }

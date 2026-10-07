@@ -21,7 +21,9 @@
   function describe(d) {
     return find(ICINGS, d.icing).say + ' ' + find(SHAPES, d.shape).say + ' with ' + find(TOPS, d.top).say;
   }
-  function thumb(kind, d) {
+  var IMGV = '?v=54';     // as story.js
+  function thumb(kind, d) { return thumbPath(kind, d) + IMGV; }
+  function thumbPath(kind, d) {
     if (kind === 'base') return 'img/cookie/thumb/base_' + d.shape + '.webp';
     if (kind === 'iced') return 'img/cookie/thumb/iced_' + d.shape + '_' + d.icing + '.webp';
     if (kind === 'decor') return 'img/cookie/thumb/decor_' + d.shape + '_' + d.icing + '_' + d.top + '.webp';
@@ -52,7 +54,7 @@
     if (ans.top) return thumb('signed', ans);
     if (ans.icing) return thumb('iced', ans);
     if (ans.shape) return thumb('base', ans);
-    return 'img/cookie/thumb/dough.webp';
+    return 'img/cookie/thumb/dough.webp' + IMGV;
   }
   function cookieAlt() {
     if (ans.top) return 'Your cookie: ' + describe(ans) + ', piped JW.';
@@ -96,7 +98,7 @@
   function render() {
     var head = dialog.querySelector('.quiz__head'), body = dialog.querySelector('.quiz__step'), t = '', h = '';
     if (step === 0) {
-      t = '<p class="quiz__count">Question 1 of 3</p><h2 class="quiz__title" id="quiz-title" tabindex="-1">Pick your favourite.</h2>';
+      t = '<p class="quiz__count">Question 1 of 3</p><h2 class="quiz__title" id="quiz-title" tabindex="-1">Pick a favourite</h2><p class="quiz__sub">Or skip and explore the menu.</p>';
       h = '<ul class="quiz__opts quiz__opts--4">' + SHAPES.map(function (s) { return opt('shape', s.id, s.name, thumb('base', { shape: s.id })); }).join('') + '</ul>';
     } else if (step === 1) {
       t = '<p class="quiz__count">Question 2 of 3</p><h2 class="quiz__title" id="quiz-title" tabindex="-1">Now choose your icing.</h2>';
@@ -106,7 +108,7 @@
       h = '<ul class="quiz__opts quiz__opts--3">' + TOPS.map(function (p) { return opt('top', p.id, p.name, thumb('decor', { shape: ans.shape, icing: ans.icing, top: p.id })); }).join('') + '</ul>';
     } else {
       t = '<p class="quiz__count">Your order</p><h2 class="quiz__title" id="quiz-title" tabindex="-1">One ' + describe(ans) + '.</h2>';
-      h = '<p class="quiz__because">Then that’s the one we’ll bake, because that’s what we do. Nothing at Lecookie is made ahead: every cookie is designed and baked for the person who ordered it.</p>' +
+      h = '<p class="quiz__because">That’s the one we’ll bake for you. Scroll to watch it come together.</p>' +
         '<div class="quiz__actions"><button type="button" class="btn btn--primary btn--big quiz__go">Watch it bake</button>' +
         '<button type="button" class="btn btn--clay quiz__again">Start again</button></div>';
     }
@@ -134,7 +136,7 @@
         '<p class="quiz__name"></p></div></div>' +
       '<div class="quiz__step"></div>' +
       '<div class="quiz__foot"><button type="button" class="quiz__back" hidden>Back</button>' +
-      '<button type="button" class="quiz__skip">' + (chosen ? 'Keep my cookie' : 'Skip, surprise me') + '</button></div>' +
+      '<button type="button" class="btn btn--clay quiz__skip">' + (chosen ? 'Keep my cookie' : 'Skip to homepage') + '</button></div>' +
     '</div>';
     d.addEventListener('click', function (e) {
       var t = e.target && e.target.closest ? e.target : null; if (!t) return;
@@ -185,7 +187,7 @@
   function close() {
     if (!dialog) return;
     var d = dialog; dialog = null;
-    try { sessionStorage.setItem(KEY + '.seen', '1'); } catch (e) {}
+    try { localStorage.setItem(KEY + '.seen', '1'); } catch (e) {}
     root.classList.remove('pick-open');
     d.classList.remove('is-in'); d.classList.add('is-out');
     var done = function () { if (d.parentNode) d.parentNode.removeChild(d); };
@@ -195,8 +197,8 @@
     else { var h = doc.getElementById('hero-title'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } }
   }
 
-  // Ask once a visit, and only at the top of the page: a visitor who arrives by a link to a section is left alone.
+  // Ask on the first visit only, and only at the top of the page: a visitor who arrives by a link to a section is left alone.
   var seen = false;
-  try { seen = sessionStorage.getItem(KEY + '.seen') === '1'; } catch (e) {}
+  try { seen = localStorage.getItem(KEY + '.seen') === '1'; } catch (e) {}
   if (!chosen && !seen && !location.hash && window.scrollY < 40) open();
 })();

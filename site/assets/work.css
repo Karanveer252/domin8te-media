@@ -192,6 +192,10 @@ html[data-v="editorial"] .cs-pics .is-wide{grid-column:1 / -1}
 html[data-v="editorial"] .cs-pics .is-wide .cs-shot{aspect-ratio:16 / 8}
 html[data-v="editorial"] .cs-pics .is-tall .cs-shot{aspect-ratio:3 / 4}
 html[data-v="editorial"] .cs-shot--contain img{object-fit:contain;padding:clamp(12px,2vw,28px)}
+/* a clip of the real site moving: wide clips keep their own 16:10 frame */
+html[data-v="editorial"] .cs-pics.cs-pics--wide .is-wide .cs-shot{aspect-ratio:16 / 10}
+html[data-v="editorial"] .cs-shot--clip{background:#F4EFE8}
+html[data-v="editorial"] .cs-pics figcaption.cs-cap{margin:12px 2px 0}
 /* a slot waiting for its screenshot: the homepage's open card, dashed */
 html[data-v="editorial"] .cs-shot--slot{
   display:grid;place-items:center;align-content:center;gap:10px;padding:24px;text-align:center;

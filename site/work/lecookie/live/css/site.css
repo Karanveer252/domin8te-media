@@ -18,7 +18,7 @@
   --tan-2: #BE936A;
   --tan-ink: #86603E;        /* tan for text and small marks: 5:1 on cream */
   --cocoa: #3B2C23;          /* text */
-  --cocoa-2: #66503F;        /* quieter text: 6:1 on cream */
+  --cocoa-2: #4F3C2F;        /* quieter text: 9:1 on cream (darkened for reading on the beige) */
   --glass: #2A221E;          /* the window's smoked glass */
   --glass-2: #3A302A;
   --glow: #F2B26C;           /* the warm light inside the oven */
@@ -174,8 +174,9 @@ strong { font-weight: 700; color: var(--cocoa); }
   box-shadow: inset 0 2px 0 rgba(255, 240, 222, 0.65), inset 0 -3px 0 rgba(110, 75, 45, 0.2), 0 12px 22px -12px rgba(110, 75, 45, 0.7);
 }
 .btn--primary:hover { box-shadow: inset 0 2px 0 rgba(255, 240, 222, 0.65), inset 0 -3px 0 rgba(110, 75, 45, 0.2), 0 16px 28px -12px rgba(110, 75, 45, 0.75); }
-.btn--clay { background: linear-gradient(172deg, var(--clay), var(--clay-2)); box-shadow: var(--clay-shadow); }
-.btn--clay:hover { box-shadow: var(--clay-shadow-lift); }
+/* the secondary button: clay with a tan rim, so it reads against the cream page */
+.btn--clay { background: linear-gradient(172deg, var(--clay), var(--clay-2)); box-shadow: inset 0 0 0 2px var(--tan-2), var(--clay-shadow); }
+.btn--clay:hover { box-shadow: inset 0 0 0 2px var(--tan-ink), var(--clay-shadow-lift); }
 .btn--big { min-height: 58px; padding-inline: 2em; font-size: 1.0625rem; }
 .chip {
   display: inline-flex; align-items: center;
@@ -340,15 +341,15 @@ strong { font-weight: 700; color: var(--cocoa); }
 .facts li { display: flex; gap: var(--space-3); align-items: baseline; color: var(--cocoa-2); }
 .facts .emblem { transform: translateY(3px); }
 
-.signature { display: grid; align-items: center; min-height: var(--beat-h); padding-block: var(--space-7); overflow-x: clip; }
+.signature { display: grid; align-items: center; min-height: var(--beat-h); padding-block: var(--space-6) 0; overflow-x: clip; }
 .signature__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-8); align-items: center; }
 .signature__board { display: grid; justify-items: center; }
-.signature__body { display: grid; grid-template-columns: minmax(0, 1fr) 210px; gap: var(--space-6); align-items: start; }
+.signature__body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: var(--space-6); align-items: start; }
 .signature__text p { color: var(--cocoa-2); }
 .signature__text q { color: var(--cocoa); font-weight: 700; }
 .portrait { transform: rotate(2deg); }
 
-.boxed { display: grid; align-items: center; min-height: var(--beat-h); padding-block: var(--space-7) var(--space-8); overflow-x: clip; }
+.boxed { display: grid; align-items: center; min-height: calc(var(--beat-h) * 0.85); padding-block: var(--space-5) var(--space-8); overflow-x: clip; }
 .boxed__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-8); align-items: center; }
 .boxed__copy { max-width: 34rem; }
 .boxed__copy > p { color: var(--cocoa-2); font-size: var(--t-lede); line-height: 1.6; }
@@ -359,12 +360,12 @@ strong { font-weight: 700; color: var(--cocoa); }
 /* The scroll story's holds (travel mode only): the plate and the board are sticky, so each holds its
    cookie still while the copy beside it scrolls past; that is the room the icing and the JW need. */
 @media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
-  #beat-ice .beat__grid { min-height: calc(var(--beat-h) * 1.25); align-items: start; }
+  #beat-ice .beat__grid { min-height: calc(var(--beat-h) * 1.15); align-items: start; }
   #beat-ice .beat__copy { align-self: center; }
   #beat-ice .beat__stage { position: sticky; top: max(calc(var(--header-h) + var(--space-4)), calc(54vh - 240px)); align-self: start; }
-  .signature__grid { min-height: calc(var(--beat-h) * 1.35); align-items: start; }
+  .signature__grid { min-height: calc(var(--beat-h) * 1.15); align-items: start; }
   .signature__board { position: sticky; top: calc(var(--header-h) + var(--space-4)); align-self: start; }
-  .signature__story { align-self: start; padding-top: var(--space-8); }
+  .signature__story { align-self: start; padding-top: var(--space-7); }
 }
 
 /* ------------------------------------------------------------ sections -- */
@@ -378,7 +379,6 @@ strong { font-weight: 700; color: var(--cocoa); }
 .gallery { background: var(--cream-deep); border-radius: var(--r-xl) var(--r-xl) 0 0; }
 .gallery__grid { columns: 3 280px; column-gap: var(--space-5); }
 .gallery__grid .g { break-inside: avoid; margin-bottom: var(--space-5); }
-.gallery__grid .g:nth-child(3n + 2) { transform: translateY(var(--space-6)); }
 .gallery__note {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4) var(--space-6);
   margin-top: var(--space-8); padding: var(--space-6) var(--space-7);
@@ -404,6 +404,7 @@ strong { font-weight: 700; color: var(--cocoa); }
   font-size: 0.875rem; font-weight: 700; color: var(--cocoa);
 }
 .badge .emblem { color: #FFF6EC; width: 14px; height: 14px; filter: none; }
+.cart__foot { display: flex; justify-content: center; margin-top: var(--space-7); }
 .collections__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); margin-top: var(--space-7); }
 .terms { margin: 0; color: var(--cocoa-2); font-weight: 700; }
 
@@ -445,6 +446,10 @@ strong { font-weight: 700; color: var(--cocoa); }
 /* order */
 .order { padding-bottom: var(--space-9); }
 .order-panel { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: var(--space-8); padding: clamp(24px, 5vw, 64px); border-radius: var(--r-xl); }
+.order-panel__side { align-self: start; }
+@media (min-width: 1024px) { .order-panel__side { position: sticky; top: calc(var(--header-h) + var(--space-5)); } }
+.order-panel__side .order-note { margin-top: var(--space-6); }
+.order-panel__side .order-ig { margin-top: var(--space-4); font-weight: 700; }
 .order-steps__title { margin: var(--space-6) 0 var(--space-4); font-size: 1.1rem; font-weight: 700; }
 .order-steps { display: grid; gap: var(--space-5); margin: 0; padding: 0; list-style: none; }
 .order-steps li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: var(--space-4); color: var(--cocoa-2); }
@@ -614,15 +619,18 @@ html.pick-open { overflow: hidden; }
 @keyframes quiz-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .quiz__because { margin: var(--space-5) auto 0; max-width: 54ch; font-size: 1.125rem; line-height: 1.6; color: var(--cocoa-2); }
 .quiz__actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--space-4); margin-top: var(--space-6); }
-.quiz__foot { grid-area: foot; display: flex; justify-content: center; gap: var(--space-5); min-height: 44px; margin-top: var(--space-5); }
-.quiz__back, .quiz__skip, .pick-note__btn {
+.quiz__foot { grid-area: foot; display: flex; justify-content: center; align-items: center; gap: var(--space-5); min-height: 44px; margin-top: var(--space-5); }
+.quiz__back, .pick-note__btn {
   font: inherit; font-size: var(--t-small); font-weight: 700; color: var(--tan-ink);
   background: none; border: 0; padding: 8px 6px; cursor: pointer;
   text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px;
 }
-.quiz__back, .quiz__skip { font-size: 1.05rem; font-weight: 500; text-decoration-thickness: 1px; text-underline-offset: 5px; }
+.quiz__back { font-size: 1.05rem; font-weight: 500; text-decoration-thickness: 1px; text-underline-offset: 5px; }
+/* Skip is always in view: pinned to the quiz's top right corner, not below the answers */
+.quiz__skip { position: fixed; top: var(--space-5); right: var(--space-5); z-index: 2; min-height: 52px; padding-inline: 1.8em; font-size: 1.05rem; }
+.quiz__sub { margin: var(--space-2) 0 0; font-size: 1.1rem; color: var(--cocoa-2); }
 .quiz__back[hidden], .quiz__skip[hidden] { display: none; }
-.quiz__back:hover, .quiz__skip:hover, .pick-note__btn:hover { color: var(--cocoa); }
+.quiz__back:hover, .pick-note__btn:hover { color: var(--cocoa); }
 
 /* wide screens: the box on the left, the question and its answers beside it */
 @media (min-width: 960px) and (min-height: 640px) {
@@ -645,7 +653,7 @@ html.no-sprinkles .ck-sprinkles { display: none; }
 @media (max-width: 1023.98px) {
   .hero__grid, .beat__grid, .signature__grid, .boxed__grid { gap: var(--space-6); }
   .signature__body { grid-template-columns: minmax(0, 1fr); }
-  .portrait { width: min(240px, 70%); }
+  .portrait { width: min(340px, 80%); }
   .cart__spread { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .cart__intro { grid-column: 1 / -1; max-width: 40rem; }
   .tiles, .tiers, .quotes, .faq__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
@@ -670,14 +678,14 @@ html.no-sprinkles .ck-sprinkles { display: none; }
   .stage--box { --stage-w: 360px; }
   .section { padding-block: var(--space-8); }
   .section__head--split { grid-template-columns: minmax(0, 1fr); }
-  .gallery__grid .g:nth-child(3n + 2) { transform: none; }
   .gallery__note { padding: var(--space-5); }
   .cart__spread { grid-template-columns: minmax(0, 1fr); }
   .cart__photo--b { transform: rotate(2deg); }
   .tiles, .tiers, .quotes, .faq__grid { grid-template-columns: minmax(0, 1fr); }
   .order-form { grid-template-columns: minmax(0, 1fr); }
   .footer__grid { grid-template-columns: minmax(0, 1fr); }
-  .quiz { padding: var(--space-4) var(--space-4) var(--space-5); place-items: start center; }
+  .quiz { padding: 84px var(--space-4) var(--space-5); place-items: start center; }
+  .quiz__skip { top: var(--space-4); right: var(--space-4); min-height: 48px; }
   .quiz__tabs { gap: var(--space-2); margin-bottom: var(--space-4); }
   .quiz__tab { min-height: 44px; font-size: 1rem; padding: 0 var(--space-2); }
   .quiz__eyebrow { font-size: 0.95rem; margin-bottom: var(--space-1); }
@@ -713,6 +721,9 @@ html.no-sprinkles .ck-sprinkles { display: none; }
 html.has-cookie-cursor, html.has-cookie-cursor * { cursor: none !important; }
 html.has-cookie-cursor :is(select, [contenteditable="true"]) { cursor: auto !important; }
 html.has-cookie-cursor :is(input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]), textarea) { cursor: text !important; }
+/* reading text keeps the normal pointer (cursor.js hides the cookie there); links and buttons inside it keep the cookie */
+html.has-cookie-cursor :is(p, li, h1, h2, h3, blockquote, figcaption), html.has-cookie-cursor :is(p, li, h1, h2, h3, blockquote, figcaption) * { cursor: auto !important; }
+html.has-cookie-cursor :is(p, li, h1, h2, h3, blockquote, figcaption) :is(a, button, label, summary, a *, button *, label *, summary *) { cursor: none !important; }
 .cookie-cursor, .cookie-crumbs { position: fixed; left: 0; top: 0; pointer-events: none; }
 .cookie-cursor {
   z-index: 2147483001; width: 28px; height: 28px; opacity: 0;

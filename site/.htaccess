@@ -39,3 +39,6 @@
 
 # no directory listings anywhere
 Options -Indexes
+
+# a missing page gets the site's own 404 (noindex), with the way back to the main pages
+ErrorDocument 404 /404/index.html

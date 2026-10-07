@@ -11,11 +11,12 @@
   var DPR = Math.min(2, window.devicePixelRatio || 1);
   var PX = Math.round(SIZE * DPR);
   var TEXT = 'input:not([type="radio"]):not([type="checkbox"]):not([type="submit"]):not([type="button"]), textarea, select, [contenteditable="true"]';
+  var READ = 'p, li, h1, h2, h3, blockquote, figcaption', ACT = 'a, button, label, summary';
   var CRUMB = ['#C99A60', '#B7864D', '#DDB27A', '#A06D3C', '#C99A60', '#3E2519'];
 
   var img = new Image(), ready = false;
   img.onload = function () { ready = true; draw(); };
-  img.src = 'img/cursor-cookie.webp';
+  img.src = 'img/cursor-cookie.webp?v=54';
 
   // the cookie, and a layer over the page for its crumbs
   var cv = doc.createElement('canvas'); cv.className = 'cookie-cursor'; cv.width = cv.height = PX;
@@ -210,7 +211,8 @@
   doc.addEventListener('pointermove', function (e) {
     if (e.pointerType && e.pointerType !== 'mouse') return;
     x = e.clientX; y = e.clientY;
-    var t = e.target, txt = !!(t && t.closest && t.closest(TEXT));
+    // over fields and over reading text the normal pointer comes back, so the cookie never sits on the words
+    var t = e.target, txt = !!(t && t.closest && (t.closest(TEXT) || (t.closest(READ) && !t.closest(ACT))));
     var h = !!(t && t.closest && t.closest('a, button, [role="button"], label, summary, .quiz__opt'));
     if (txt !== overText) { overText = txt; cv.classList.toggle('is-away', txt); }
     if (h !== hover) hover = h;

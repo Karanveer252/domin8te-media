@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Cursor comparison</title>
+<!-- The three cursor versions side by side (2026-10-07). Local only. Each panel is try.html with one version. -->
+<style>
+  body{margin:0;padding:18px;background:#fff;font:14px/1.45 system-ui,sans-serif;color:#0E1420}
+  h1{margin:0 0 4px;font-size:18px}
+  p{margin:0 0 14px;color:#566074;max-width:900px}
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  figure{margin:0;display:flex;flex-direction:column;gap:8px}
+  figcaption{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-weight:600}
+  figcaption a{font-weight:500;color:#AE3A0B}
+  figcaption small{font-weight:400;color:#566074}
+  iframe{width:100%;height:calc(100vh - 150px);min-height:460px;border:0;border-radius:14px;box-shadow:0 0 0 1px rgba(14,20,32,.12);background:#ECE6DD}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}iframe{height:520px}}
+</style>
+</head>
+<body>
+<h1>Cursor comparison</h1>
+<p>Move your mouse into each panel and click. Watch the moment you press, the animation, and the moment it settles back. "Open alone" gives that version the whole window, which is the truest feel.</p>
+<div class="grid">
+  <figure><figcaption><span>1 · Live today <small>12 KB</small></span><a href="try.html?v=live" target="_blank">Open alone</a></figcaption><iframe src="try.html?v=live" title="Live cursor"></iframe></figure>
+  <figure><figcaption><span>2 · Lean, live colours <small>20 KB</small></span><a href="try.html?v=lean" target="_blank">Open alone</a></figcaption><iframe src="try.html?v=lean" title="Lean cursor"></iframe></figure>
+  <figure><figcaption><span>3 · The loop’s version <small>126 KB</small></span><a href="try.html?v=loop" target="_blank">Open alone</a></figcaption><iframe src="try.html?v=loop" title="Loop cursor"></iframe></figure>
+</div>
+</body>
+</html>

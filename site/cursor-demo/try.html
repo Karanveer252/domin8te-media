@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en" data-v="editorial" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Cursor try-out</title>
+<!-- One cursor version on the site's own ground, for the comparison in compare.html (2026-10-07, Karan: "can i
+     see it on local host and compare them"). ?v=live|lean|loop picks the script from this folder. Local only:
+     the packer never ships cursor-demo/. -->
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/v-editorial.css">
+<link rel="stylesheet" href="/assets/light.css">
+<link rel="stylesheet" href="/assets/v3.css">
+<style>
+  /* the old live script's speed panel shows on localhost only; hidden so the three are compared as visitors see them */
+  .v3tune{display:none!important}
+  html,body{min-height:100%}
+  body{margin:0;padding:28px 22px;display:flex;flex-direction:column;gap:18px;font:400 16px/1.5 var(--f-text)}
+  .tag{align-self:flex-start;padding:7px 14px;border-radius:999px;background:#0E1420;color:#fff;font:600 13px/1 var(--f-text)}
+  h1{margin:0;font:200 34px/1 var(--f-display);text-transform:uppercase;color:var(--ink)}
+  h1 em{font-weight:800;font-style:italic;color:var(--acc-display,#E8530E)}
+  .card{padding:22px;background:#FBF9F5;border-radius:20px;box-shadow:0 0 0 1px rgba(14,20,32,.06),var(--card-shadow)}
+  .card p{margin:0 0 14px;color:var(--ink-2)}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .pill{padding:12px 18px;border-radius:999px;background:var(--v3-cta,#CA4A14);color:#fff;font:600 14px/1 var(--f-text);border:0}
+  .ghost{padding:12px 18px;border-radius:999px;border:1.5px solid #0E1420;background:transparent;font:600 14px/1 var(--f-text)}
+  .field{height:120px;border-radius:16px;border:1.5px dashed rgba(94,72,50,.34);display:grid;place-items:center;color:var(--ink-3);font-size:14px}
+</style>
+</head>
+<body>
+<span class="tag" id="tag">Cursor</span>
+<h1>Click <em>anywhere.</em></h1>
+<div class="card">
+  <p>Click on the sand, on this card, on the buttons. Try a single click, a fast double click, and a click while moving.</p>
+  <div class="row"><button class="pill" type="button">A button</button><button class="ghost" type="button">Another</button></div>
+</div>
+<div class="field">Open space</div>
+<script>
+(function () {
+  var v = (new URLSearchParams(location.search).get('v') || 'lean').replace(/[^a-z]/g, '');
+  var names = { live: '1 · Live today', lean: '2 · Lean, live colours', loop: '3 · The loop’s version' };
+  document.getElementById('tag').textContent = names[v] || v;
+  document.write('<script src="/cursor-demo/v-' + v + '.js?t=' + Date.now() + '"><\/script>');
+})();
+</script>
+</body>
+</html>

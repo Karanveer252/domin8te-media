@@ -55,7 +55,10 @@
   function drift(t) { return p1io(t) + 0.2 * Math.pow(t, 4) * Math.sin(Math.PI * t); }
   function smooth(t) { return t * t * (3 - 2 * t); }
 
-  function src(part, d, k) {
+  // the pictures' version: bumped whenever renders change, so no browser keeps an old picture
+  var IMGV = '?v=54';
+  function src(part, d, k) { var u = srcPath(part, d, k); return u ? u + IMGV : u; }
+  function srcPath(part, d, k) {
     d = d || D;
     switch (part) {
       case 'base': return 'img/cookie/base_' + d.shape + '.webp';
@@ -84,7 +87,10 @@
   // The roll-out. The cookie waits a little way inside the oven (KIN along the belt, before its start at the window's
   // lip) and is seen there only through the window's dark inner opening (WIN_IN, measured from img/oven/body.webp, in
   // the oven picture's pixels); as it comes forward through the opening that view widens to the window's outer frame.
-  var KIN = -0.08, KOUT = 0.08, ROLL_S = 2.9;
+  var KIN = -0.3, KOUT = 0.08, ROLL_S = 3.4;
+  // where it waits, in the oven picture's pixels: standing on the oven's floor well back from the window (so a
+  // little smaller and higher than at the lip), all of it inside the window's dark opening
+  var WAIT = { x: 971, y: 918, s: 0.78 };
   // A conveyor carries what stands on it: the cookie rides out upright (no rolling), with the belt's small wobble,
   // turned a little toward the belt's own angle so its baked edge shows like a solid thing's.
   function ride(k) { return 2.2 * Math.sin(k * 23) * Math.sin(Math.PI * clamp((k - KIN) / (1 - KIN))); }
@@ -123,8 +129,8 @@
   }
   var FIT = glyphFit();
   function jwScale() { return CFG.jw[D.shape] || 1; }
-  // the JW's centre, as cookie6.py pipes it: a little lower on the heart and the star
-  function jwY() { return { heart: 208, star: 214 }[D.shape] || CK.jwY; }
+  // the JW's centre, as cookie6.py pipes it: higher on the heart (lower under the heart's bow), lower on the star
+  function jwY() { return D.shape === 'heart' ? (D.top === 'bow' ? 208 : 188) : D.shape === 'star' ? 214 : CK.jwY; }
 
   function cookieArt(uid) {
     var c = CK.c, i, js = jwScale();
@@ -256,12 +262,14 @@
   }
   // base: the cookie's drawing size in its own pixels. Inside the oven a little dimmer, coming up to the room's light;
   // always a sliver of its golden baked edge showing on the oven side, so it reads as a cookie, not a cut-out
-  function beltLook(k, base) {
-    var lit = clamp((k - KIN) / (0.45 - KIN)), t = base * 0.0045, edge = '';
+  function beltLook(k, base, amt) {
+    if (amt == null) amt = 1;
+    var lit = clamp((k - KIN) / (0.45 - KIN)), t = base * 0.0045 * amt, edge = '';
     ['#B57E46', '#AA7440', '#9F6A3A', '#946134', '#8A592F'].forEach(function (c) {
       edge += 'drop-shadow(' + f(t) + 'px 0 0 ' + c + ') ';
     });
-    return edge + ' saturate(0.9) contrast(0.95) blur(' + f(base * 0.0012) + 'px)' + (lit < 1 ? ' brightness(' + (0.86 + 0.14 * lit).toFixed(3) + ')' : '');
+    return edge + ' saturate(' + (1 - 0.1 * amt).toFixed(3) + ') contrast(' + (1 - 0.05 * amt).toFixed(3) + ') blur(' + f(base * 0.0012 * amt) + 'px)' +
+      (lit < 1 ? ' brightness(' + (0.86 + 0.14 * lit).toFixed(3) + ')' : '');
   }
   function roundQuad(Q, r) {
     var pts = [];
@@ -343,12 +351,12 @@
         '<clipPath id="ov-out-clip"><polygon points="' + outPoly(w, W, H) + '"/></clipPath>' +
         '<radialGradient id="ov-bshadow-g"><stop offset="0" stop-color="#261E1C" stop-opacity="0.55"/><stop offset="0.5" stop-color="#261E1C" stop-opacity="0.2"/><stop offset="1" stop-color="#261E1C" stop-opacity="0"/></radialGradient>' +
       '</defs>' +
-      '<image href="img/oven/body.webp" x="0" y="0" width="' + W + '" height="' + H + '"/>' +
+      '<image href="img/oven/body.webp' + IMGV + '" x="0" y="0" width="' + W + '" height="' + H + '"/>' +
       // the warm light inside, laid exactly over the window's opening (seen at an angle, so a four-cornered shape)
       '<polygon class="ov-glow" points="' + w.map(function (p) { return p.join(','); }).join(' ') + '" fill="url(#ov-glow-g)"/>' +
       // the belt's marks, which run while the belt does
       '<line class="ov-belt-marks" x1="' + r[0][0] + '" y1="' + r[0][1] + '" x2="' + r[1][0] + '" y2="' + r[1][1] + '"/>' +
-      '<g class="ov-cookie-pop" clip-path="url(#ov-win-clip)"><image data-part="oven" href="' + src('oven') + '" x="0" y="0" width="' + W + '" height="' + H + '"/></g>' +
+      '<g class="ov-cookie-pop" style="opacity:0" clip-path="url(#ov-win-clip)"><image data-part="oven" href="' + src('oven') + '" x="0" y="0" width="' + W + '" height="' + H + '"/></g>' +
       '<g class="ov-steam" filter="url(#ov-blur)">' + steam + '</g>' +
       // the phone's cookie on the belt (the travelling cookie does this on larger screens)
       // (the clip sits on a still wrapper: on the moving group it would turn and shrink with the cookie)
@@ -378,6 +386,10 @@
   // the belt in the oven picture's own pixels: where the cookie stands at progress k, and its size there
   function beltAt(k) {
     var B = CFG.oven.belt;
+    if (k < 0) {                        // inside: from its waiting spot forward to the window's lip
+      var t = clamp(k / KIN);
+      return { x: lerp(B.start[0], WAIT.x, t), y: lerp(B.start[1], WAIT.y, t), dia: CFG.oven.beltCookieCm * B.ppcStart * lerp(1, WAIT.s, t) };
+    }
     var ppc = lerp(B.ppcStart, B.ppcEnd, k);
     return { x: lerp(B.start[0], B.end[0], k), y: lerp(B.start[1], B.end[1], k), dia: CFG.oven.beltCookieCm * ppc };
   }
@@ -545,17 +557,17 @@
     var box = boxTimeline();
     var G = { dirty: true };
     var stages = [null, slots[1].closest('.beat__stage'), slots[2].closest('.signature__board'), null];
-    var anchors = { story: doc.getElementById('story'), signature: doc.getElementById('signature'), boxed: doc.getElementById('boxed') };
+    var anchors = { story: doc.getElementById('process'), signature: doc.getElementById('signature'), boxed: doc.getElementById('boxed') };
 
     // the roll-out: k runs 0 -> 1 along the belt, once, in time
     var intro = { k: KIN, rock: 0, door: 0, started: false, done: false };
-    var OPEN = 0.5;                       // the glass is up before the belt starts
+    var OPEN = 0.65;                      // the glass is all the way up before the cookie moves
     var introTl = gsap.timeline({ paused: true, onUpdate: render, onComplete: function () { intro.done = true; rolledOut = true; render(); } });
     introTl.to(OV.pop, { opacity: 0, duration: 0.3, ease: 'power1.in' }, 0)
       .to(OV.steamG, { opacity: 0, duration: 1.4, ease: 'sine.in' }, 0.2)
       .to(intro, { door: 1, duration: 0.6, ease: 'power2.inOut' }, 0)
       .fromTo(intro, { k: KIN }, { k: 1, duration: ROLL_S, ease: 'power2.inOut' }, OPEN)
-      .to(intro, { door: 0, duration: 0.8, ease: 'power2.inOut' }, OPEN + ROLL_S * 0.5)
+      .to(intro, { door: 0, duration: 0.8, ease: 'power2.inOut' }, OPEN + ROLL_S * 0.62)
       .to(intro, { rock: 7, duration: 0.2, ease: 'power1.out' }, OPEN + ROLL_S - 0.12)
       .to(intro, { rock: -2.5, duration: 0.26, ease: 'sine.inOut' }, '>')
       .to(intro, { rock: 0, duration: 0.3, ease: 'sine.out' }, '>');
@@ -618,7 +630,7 @@
     function onRefreshInit() { G.dirty = true; }
     ST.addEventListener('refreshInit', onRefreshInit);
 
-    var restIn = null, onBelt = false;
+    var restIn = null, onBelt = false, turnA = 0, doorFront = true;
     function place(slot, x, y, w, rot) {
       var g = G, s = w / g.base;
       if (slot !== restIn) {
@@ -627,13 +639,19 @@
         if (arriving) settle(P);
       }
       wrap.classList.toggle('is-moving', !slot);
+      // the belt's look (its turn toward the belt, its baked edge, its light) eases off as it leaves the belt, and
+      // the floating shadow eases in: never a sudden change
+      var a = slot ? 0 : turnA;
       wrap.classList.toggle('on-belt', !slot && onBelt);
-      if (P.beltLight) P.beltLight.style.opacity = !slot && onBelt ? '1' : '0';
+      if (P.beltLight) P.beltLight.style.opacity = a.toFixed(3);
+      // (while the belt's look fades, the floating shadow is drawn in that same filter, after the baked edge: a
+      // shadow on the cookie's own picture under the edge's drop-shadows would be copied by them into a halo)
+      P.svg.style.filter = !slot && a > 0 ? 'none' : '';
       if (slot) {
         var sw = slot.getBoundingClientRect().width, off = f(sw / 2 - g.base / 2);
         wrap.style.transform = 'translate3d(' + off + 'px,' + off + 'px,0) scale(' + (sw / g.base).toFixed(4) + ')';
       } else {
-        wrap.style.transform = 'translate3d(' + f(x - g.base / 2) + 'px,' + f(y - g.base / 2) + 'px,0) scale(' + s.toFixed(4) + ')' + (onBelt ? ' ' + TURN : '');
+        wrap.style.transform = 'translate3d(' + f(x - g.base / 2) + 'px,' + f(y - g.base / 2) + 'px,0) scale(' + s.toFixed(4) + ')' + (turnA > 0.001 ? ' perspective(900px) rotateY(' + (-17 * turnA).toFixed(2) + 'deg)' : '');
       }
       turn(P, rot);
     }
@@ -650,26 +668,33 @@
       // every state here is worked out from the scroll position and the layout as they are now, never
       // remembered from an earlier layout, so a resize or a switch between phone and desktop cannot leave it stale
       var g = measure(), u = proxy.u, past = window.scrollY > g.PAST, show = !past, steam = 1, rest = null, o, a, b, shade = '', belt = null;
-      onBelt = false;
+      onBelt = false; turnA = 0;
+      var shadowB = null;
       if (u > 2 && !intro.done) finishIntro();
       if (u < g.S1) {
         var p = u / g.S1;
         if (p <= 0.001 || !intro.done) {
           // on the belt: standing on its edge, rolling out of the window toward the belt's end
-          var k = intro.k, bp = { x: lerp(g.B0.x, g.B1.x, k), y: lerp(g.B0.y, g.B1.y, k) };
-          var w = lerp(g.wBelt0, g.wBelt1, k), rot = ride(k) + intro.rock;
+          var k = intro.k, bp = beltPage(k);
+          var w = bp.dia / CK.edge, rot = ride(k) + intro.rock;
           var rad = w * CK.edge / 2;
           // the rock pivots on the touch point, so the point stays put on the belt while the cookie tips
           o = { x: bp.x - Math.sin(rot * Math.PI / 180) * rad * 0.9, y: bp.y - support(rot) * rad, w: w, rot: rot };
           shade = beltLook(k, g.base);
-          belt = { x: bp.x, y: bp.y, d: rad * 2, k: k };
-          onBelt = true;
+          belt = { x: bp.x, y: bp.y, d: rad * 2, k: k }; shadowB = belt;
+          onBelt = true; turnA = 1;
           steam = 0;
         } else {
           // off the end of the belt: a little hop, then down to the rack, rolling
           var bEnd = { x: g.B1.x, y: g.B1.y - support(0) * g.wBelt1 * CK.edge / 2 };
           o = leg(bEnd, g.A, p, g.wBelt1, g.A.w, g.rIntro, g.R1);
           o.y -= Math.sin(Math.PI * Math.min(1, p * 2.2)) * 40 * (1 - p);
+          turnA = 1 - smooth(clamp(p / 0.35));
+          if (turnA > 0) {
+            var fl = 1 - turnA;
+            shade = beltLook(1, g.base, turnA) + ' drop-shadow(0 ' + f(18 * fl) + 'px ' + f(14 * fl) + 'px rgba(80, 55, 35, ' + (0.2 * fl).toFixed(3) + '))';
+            shadowB = { x: g.B1.x, y: g.B1.y, d: g.wBelt1 * CK.edge, k: 1, fade: 1 - clamp(p / 0.12) };
+          }
           steam = clamp((p - 0.6) / 0.4);
         }
       } else if (u < g.H1) { rest = slots[0]; o = { w: g.A.w, rot: 0 }; }
@@ -682,8 +707,11 @@
       place(rest, o.x || 0, o.y || 0, o.w, o.rot);
       windowClip(belt && show ? o : null, belt ? belt.k : 1);
       placeDoor(intro.door);
+      // the glass is in front of the cookie while it is inside, behind it once it is out on the belt
+      var front = !belt || belt.k < KOUT;
+      if (front !== doorFront) { doorFront = front; layer.insertBefore(doorSvg, front ? clipBox.nextSibling : clipBox); }
       if (wrap.style.filter !== shade) wrap.style.filter = shade;
-      beltShadow(show ? belt : null);
+      beltShadow(show ? shadowB : null);
       wrap.style.visibility = show ? 'visible' : 'hidden';
       P.steam.style.opacity = steam;
       var inBox = u >= g.S4 - 2;
@@ -705,14 +733,14 @@
         var w = b.d * t[1], h = b.d * 0.05, x = b.x + t[0] * b.d / 2;
         el.style.width = f(w) + 'px'; el.style.height = f(h) + 'px';
         el.style.transform = 'translate3d(' + f(x - w / 2) + 'px,' + f(b.y - h * 0.5) + 'px,0)';
-        el.style.opacity = (clamp((b.k - KOUT) / 0.06) * (0.6 + 0.4 * clamp((b.k - KIN) / (0.4 - KIN)))).toFixed(3);
+        el.style.opacity = ((b.fade == null ? 1 : b.fade) * clamp((b.k - KOUT) / 0.06) * (0.6 + 0.4 * clamp((b.k - KIN) / (0.4 - KIN)))).toFixed(3);
       });
       if (!b) { if (cast.style.opacity !== '0') cast.style.opacity = '0'; return; }
       var cw = b.d / CK.edge;
       cast.style.width = f(cw) + 'px'; cast.style.height = f(cw) + 'px';
       // anchored at its base on the belt, leaning back and right, flattened onto the belt
       cast.style.transform = 'translate3d(' + f(b.x - cw / 2) + 'px,' + f(b.y - cw * (0.5 + 0.5 * CK.edge)) + 'px,0) skewX(-48deg) scaleY(0.3)';
-      cast.style.opacity = (0.28 * clamp((b.k - KOUT) / 0.15)).toFixed(3);    // none inside: it would fall on the frame
+      cast.style.opacity = ((b.fade == null ? 1 : b.fade) * 0.28 * clamp((b.k - KOUT) / 0.15)).toFixed(3);    // none inside: it would fall on the frame
     }
     function windowClip(o, k) {
       var layer = clipBox;
@@ -794,7 +822,11 @@
       var y = b.y - support(rot) * b.dia / 2;
       bc.setAttribute('transform', 'translate(' + f(b.x) + ' ' + f(y) + ') scale(' + sc.toFixed(4) + ') rotate(' + f(rot) + ')');
       bc.style.filter = beltLook(st.k, 400);
-      if (OV.door) OV.door.setAttribute('transform', doorShift(st.door));
+      if (OV.door) {
+        OV.door.setAttribute('transform', doorShift(st.door));
+        var dw = OV.door.parentNode, bg = bc.parentNode, inFront = st.k < KOUT;
+        if ((dw.compareDocumentPosition(bg) & 2) !== (inFront ? 2 : 0)) bg.parentNode.insertBefore(dw, inFront ? bg.nextSibling : bg);
+      }
       var seen = st.k >= KOUT ? 'out' : st.k >= 0 ? 'sill' : st.k.toFixed(3);
       if (seen !== lastSeen) {
         lastSeen = seen;
@@ -820,12 +852,12 @@
     introTl.to(OV.pop, { opacity: 0, duration: 0.3 }, 0).to(OV.steamG, { opacity: 0, duration: 0.5 }, 0)
       .to(bc, { opacity: 1, duration: 0.3 }, 0.1)
       .to(st, { door: 1, duration: 0.6, ease: 'power2.inOut', onUpdate: drawBelt }, 0)
-      .to(st, { k: 1, duration: ROLL_S, ease: 'power2.inOut', onUpdate: drawBelt }, 0.5)
-      .to(st, { door: 0, duration: 0.8, ease: 'power2.inOut', onUpdate: drawBelt }, 0.5 + ROLL_S * 0.5)
-      .to(st, { rock: 7, duration: 0.2, ease: 'power1.out', onUpdate: drawBelt }, 0.5 + ROLL_S - 0.12)
+      .to(st, { k: 1, duration: ROLL_S, ease: 'power2.inOut', onUpdate: drawBelt }, 0.65)
+      .to(st, { door: 0, duration: 0.8, ease: 'power2.inOut', onUpdate: drawBelt }, 0.65 + ROLL_S * 0.62)
+      .to(st, { rock: 7, duration: 0.2, ease: 'power1.out', onUpdate: drawBelt }, 0.65 + ROLL_S - 0.12)
       .to(st, { rock: -2.5, duration: 0.26, ease: 'sine.inOut', onUpdate: drawBelt }, '>')
       .to(st, { rock: 0, duration: 0.3, ease: 'sine.out', onUpdate: drawBelt }, '>');
-    beltRun(introTl, 0.5, ROLL_S);
+    beltRun(introTl, 0.65, ROLL_S);
     var unwait = function () {};
     if (rolledOut) introTl.progress(1);
     else unwait = whenStageIsClear(function () { introTl.play(); });

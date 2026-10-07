@@ -14,6 +14,19 @@ var fill = document.querySelector('.hdr__fill');
 var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 root.classList.add('ready');
 
+/* the clips: play only while on screen; still (poster only) for anyone who asks for less motion */
+var clips = document.querySelectorAll('.cs-shot--clip video');
+if (clips.length && !reduced && 'IntersectionObserver' in window) {
+  var vio = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      var v = e.target;
+      if (e.isIntersecting) { v.preload = 'auto'; var p = v.play(); if (p && p.catch) p.catch(function () {}) }
+      else v.pause();
+    });
+  }, { rootMargin: '120px 0px' });
+  clips.forEach(function (v) { vio.observe(v) });
+}
+
 /* entrances: the homepage's .rv, the same timing */
 var els = document.querySelectorAll('.rv');
 if (!('IntersectionObserver' in window) || reduced) {
