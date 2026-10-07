@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow"><!-- Domin8te Media: the Lecookie build, hosted for the live window on /work/lecookie/ -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecookie · Iced sugar cookies, baked to order</title>
+<meta name="description" content="Iced sugar cookies baked to order by Jaelyn Wiebe, from $70 a dozen, and the Cookie Cart: cookies lettered live at weddings and events. Send an inquiry.">
+<meta name="theme-color" content="#F7EFE6">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="css/site.css?v=9">
+<link rel="preload" as="image" href="img/oven/body.webp">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to the page</a>
+
+<header class="site-header">
+  <div class="site-header__row wrap">
+    <a class="wordmark" href="#hero"><img src="img/logo.webp" width="300" height="160" alt="Lecookie"></a>
+    <nav class="site-nav" aria-label="Main">
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="nav-panel"><span class="menu-toggle__bars" aria-hidden="true"><span></span><span></span></span><span class="menu-toggle__label">Menu</span></button>
+      <div class="site-nav__panel" id="nav-panel">
+        <ul class="site-nav__list">
+          <li><a class="site-nav__link" href="#story">How it's made</a></li>
+          <li><a class="site-nav__link" href="#signature">Jaelyn</a></li>
+          <li><a class="site-nav__link" href="#gallery">Gallery</a></li>
+          <li><a class="site-nav__link" href="#collections">Collections</a></li>
+          <li><a class="site-nav__link" href="#cart">Cookie Cart</a></li>
+          <li><a class="site-nav__link" href="#faq">Questions</a></li>
+        </ul>
+      </div>
+    </nav>
+    <a class="btn btn--primary header-cta" href="#order"><span class="cta-long">Send an inquiry</span><span class="cta-short">Inquire</span></a>
+  </div>
+</header>
+
+<!-- The travelling cookie's layer: absolute over the whole page (page coordinates), above the content and below the header. story.js fills it. -->
+<div id="cookie-layer" class="cookie-layer" aria-hidden="true"></div>
+
+<main id="main">
+
+  <!-- 1 · Hero: copy left, the little oven right (story state 0) -->
+  <section id="hero" class="hero" aria-labelledby="hero-title">
+    <div class="wrap hero__grid">
+      <div class="hero__copy">
+        <p class="kicker"><svg class="emblem emblem--heart" viewBox="0 0 24 22" aria-hidden="true" focusable="false"><use href="#i-heart"/></svg>Baked to order by Jaelyn Wiebe</p>
+        <h1 class="display" id="hero-title">Iced sugar cookies, baked to order for your occasion</h1>
+        <svg class="wave" viewBox="0 0 240 20" aria-hidden="true" focusable="false"><use href="#i-wave"/></svg>
+        <p class="hero__lede">Nothing is baked ahead: every cookie is made to order, and Jaelyn reads each inquiry herself and replies within one to two business days.</p>
+        <div class="hero__actions">
+          <a class="btn btn--primary" href="#order">Send an inquiry</a>
+          <a class="btn btn--clay" href="#collections">See the prices</a>
+        </div>
+        <p class="hero__fine">From $70 a dozen, with twelve cookies at the least. Pickup or local delivery.</p>
+      </div>
+      <div class="hero__oven oven-stage">
+        <div class="oven-slot" data-story-slot="0"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · The story: the cookie lands on the rack (left), then on the plate (right) -->
+  <section id="story" class="story" aria-label="How a cookie is made">
+
+    <div id="beat-bake" class="beat beat--slot-left">
+      <div class="wrap beat__grid">
+        <div class="beat__stage stage stage--rack">
+          <img class="stage__prop" src="img/props/rack.webp" width="1100" height="1100" alt="" aria-hidden="true">
+          <div class="cookie-slot" data-story-slot="1"></div>
+        </div>
+        <div class="beat__copy">
+          <p class="step"><span class="step__no">1</span>Fresh from the oven</p>
+          <h2 class="title">Baked for your date, never from stock</h2>
+          <svg class="wave" viewBox="0 0 240 20" aria-hidden="true" focusable="false"><use href="#i-wave"/></svg>
+          <p>There is no stock, and nothing waits on a shelf. Every cookie is made for the person it is going to and finished for your date.</p>
+          <ul class="facts">
+            <li><svg class="emblem" viewBox="0 0 24 22" aria-hidden="true" focusable="false"><use href="#i-heart"/></svg><span><strong>The crumb.</strong> Soft and delicate, with a vanilla bean finish.</span></li>
+            <li><svg class="emblem" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-star"/></svg><span><strong>The size.</strong> Three to four inches across, typically; the design sets the final size.</span></li>
+            <li><svg class="emblem" viewBox="0 0 24 22" aria-hidden="true" focusable="false"><use href="#i-heart"/></svg><span><strong>The flavour.</strong> Bespoke flavours are made on request for custom commissions.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div id="beat-ice" class="beat beat--slot-right">
+      <div class="wrap beat__grid">
+        <div class="beat__copy">
+          <p class="step"><span class="step__no">2</span>Iced and decorated</p>
+          <h2 class="title">Iced to suit the occasion</h2>
+          <svg class="wave" viewBox="0 0 240 20" aria-hidden="true" focusable="false"><use href="#i-wave"/></svg>
+          <p>The icing is where your occasion comes in: your colours, your theme, the names to letter. How much detail a set carries depends on the collection you choose.</p>
+          <ul class="facts">
+            <li><svg class="emblem" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-star"/></svg><span><strong>Signature.</strong> Up to three colours, with limited 3D detail.</span></li>
+            <li><svg class="emblem" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-star"/></svg><span><strong>Elevated.</strong> Four to six colours, with metallic detail and 3D detailing.</span></li>
+            <li><svg class="emblem" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-star"/></svg><span><strong>Reserve.</strong> A custom palette of four to seven colours, intricate 3D structural detailing and premium metallic finishes throughout.</span></li>
+          </ul>
+        </div>
+        <div class="beat__stage stage stage--plate">
+          <img class="stage__prop" src="img/props/plate.webp" width="1200" height="1200" alt="" aria-hidden="true">
+          <div class="cookie-slot" data-story-slot="2"></div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- 3 · Signature: the cookie moves onto the clay board and is piped JW; Jaelyn on the right -->
+  <section id="signature" class="signature" aria-labelledby="signature-title">
+    <div class="wrap signature__grid">
+      <div class="signature__board">
+        <div class="stage stage--board">
+          <img class="stage__prop" src="img/props/board.webp" width="1600" height="1600" alt="" aria-hidden="true">
+          <div class="cookie-slot" data-story-slot="3"></div>
+        </div>
+      </div>
+      <div class="signature__story">
+        <p class="step"><span class="step__no">3</span>Signed by hand</p>
+        <h2 class="title" id="signature-title">Jaelyn Wiebe, founder of Lecookie</h2>
+        <svg class="wave" viewBox="0 0 240 20" aria-hidden="true" focusable="false"><use href="#i-wave"/></svg>
+        <div class="signature__body">
+          <div class="signature__text">
+            <p>Jaelyn founded Lecookie, and it runs on an obsession with the architectural detail of a cookie: clean, minimal lines, dimensional 3D icing, metallic finishes and luxury packaging.</p>
+            <p>She reads every inquiry herself. At weddings and events she brings the Cookie Cart and letters guests' cookies live.</p>
+            <p>Lecookie's own line for it is <q>redefining the art of baking</q>.</p>
+          </div>
+          <figure class="window-frame portrait">
+            <img src="img/jaelyn-portrait-800.webp" srcset="img/jaelyn-portrait-800.webp 800w, img/jaelyn-portrait.webp 832w" sizes="(max-width: 767px) 70vw, 240px" width="832" height="1248" alt="Portrait of Jaelyn Wiebe standing full length in a beige suit against a plain grey studio backdrop." loading="lazy" decoding="async">
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · Boxed: the finished cookie drops into a white box, the lid closes, the seal is pressed -->
+  <section id="boxed" class="boxed" aria-labelledby="boxed-title">
+    <div class="wrap boxed__grid">
+      <div class="boxed__copy">
+        <p class="step"><span class="step__no">4</span>Boxed and sealed</p>
+        <h2 class="title" id="boxed-title">Packed like a gift, because it is one</h2>
+        <svg class="wave" viewBox="0 0 240 20" aria-hidden="true" focusable="false"><use href="#i-wave"/></svg>
+        <p>Luxury packaging is part of the design, not an afterthought. At the Cookie Cart every favour goes home in luxury favour packaging, and the Elevated and Reserve carts add custom wax seal details.</p>
+        <p class="boxed__mine" data-your-cookie hidden></p>
+        <a class="btn btn--primary" href="#order">Order yours</a>
+      </div>
+      <div class="boxed__stage">
+        <div class="stage stage--box">
+          <img class="stage__prop" src="img/props/box.webp" width="1300" height="1300" alt="" aria-hidden="true">
+          <div class="cookie-slot" data-story-slot="4"></div>
+          <img class="stage__lid" src="img/props/lid.webp" width="1300" height="1300" alt="" aria-hidden="true" data-lid>
+          <img class="stage__seal" src="img/props/seal.webp" width="1300" height="1300" alt="" aria-hidden="true" data-seal>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · Gallery: past sets, each in a soft window frame like the oven's -->
+  <section id="gallery" class="section gallery" aria-labelledby="gallery-title">
+    <div class="wrap">
+      <div class="section__head">
+        <h2 class="title" id="gallery-title">A page of past sets</h2>
+        <svg class="wave" viewBox="0 0 240 20" aria-hidden="true" focusable="false"><use href="#i-wave"/></svg>
+        <p>Each set here was made for one occasion and one date, from a first birthday to a housewarming. Two of the prints come from the Cookie Cart, where cookies are lettered live.</p>
+      </div>
+      <div class="gallery__grid">
+        <figure class="window-frame g g--tall">
+          <img src="img/cookies-1-800.webp" srcset="img/cookies-1-800.webp 800w, img/cookies-1.webp 1400w" sizes="(max-width: 767px) 92vw, (max-width: 1023px) 46vw, 31vw" width="1400" height="1866" alt="Iced floral cookies: bouquet rounds, an arched cookie lettered with a name, and white dimensional flowers, laid out on a pale tabletop." loading="lazy" decoding="async">
+          <figcaption><span class="chip">Florals</span>Bouquets, a lettered arch and white 3D blooms</figcaption>
+        </figure>
+        <figure class="window-frame g">
+          <img src="img/cart-2-800.webp" srcset="img/cart-2-800.webp 800w, img/cart-2.webp 1400w" sizes="(max-width: 767px) 92vw, (max-width: 1023px) 46vw, 31vw" width="1400" height="1400" alt="White-gloved hands holding a freshly lettered cookie at the Cookie Cart, a lettering tool beside it." loading="lazy" decoding="async">
+          <figcaption><span class="chip chip--tan">Cookie Cart</span>Lettered live at the Cookie Cart</figcaption>
+        </figure>
+        <figure class="window-frame g">
+          <img src="img/cookies-15th-800.webp" srcset="img/cookies-15th-800.webp 736w" sizes="(max-width: 767px) 92vw, (max-width: 1023px) 46vw, 31vw" width="735" height="819" alt="Iced cookies for a fifteenth birthday, in cream and gold: a gold 15, a monogram round, a piped 3D cupcake and striped candle cookies among loose pearls." loading="lazy" decoding="async">
+          <figcaption><span class="chip">Birthday</span>A gold 15, a monogram and a piped cupcake</figcaption>
+        </figure>
+        <figure class="window-frame g g--tall">
+          <img src="img/cookies-denehope-800.webp" srcset="img/cookies-denehope-800.webp 736w" sizes="(max-width: 767px) 92vw, (max-width: 1023px) 46vw, 31vw" width="735" height="952" alt="Iced cookies for a first birthday, in blush and white: number-one cookies lettered with a name and oval cookies piped with pink flowers, beside a pink ribbon." loading="lazy" decoding="async">
+          <figcaption><span class="chip">First birthday</span>Blush number ones and piped pink flowers</figcaption>
+        </figure>
+        <figure class="window-frame g">
+          <img src="img/cart-4-800.webp" srcset="img/cart-4-800.webp 800w, img/cart-4.webp 1400w" sizes="(max-width: 767px) 92vw, (max-width: 1023px) 46vw, 31vw" width="1400" height="1400" alt="White-gloved hands pressing a gold wax seal onto a white favour box tied with baby's breath." loading="lazy" decoding="async">
+          <figcaption><span class="chip chip--tan">Cookie Cart</span>A gold wax seal on a favour box</figcaption>
+        </figure>
+        <figure class="window-frame g">
+          <img src="img/cookies-home-800.webp" sizes="(max-width: 767px) 92vw, (max-width: 1023px) 46vw, 31vw" width="512" height="640" alt="Iced cookies for a housewarming: a Home Sweet Home cookie trimmed with green leaves, beside a door cookie and a key cookie." loading="lazy" decoding="async">
+          <figcaption><span class="chip">Housewarming</span>Home Sweet Home, with a door and a key</figcaption>
+        </figure>
+      </div>
+      <div class="gallery__note clay">
+        <p>Seen something close to what you have in mind? Mention it in your inquiry, and Jaelyn will design your set from there.</p>
+        <a class="btn btn--clay" href="#order">Send an inquiry</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · Collections: three clay tiles, priced by the dozen -->
+  <section id="collections" class="section collections" aria-labelledby="collections-title">
+    <div class="wrap">
+      <div class="section__head section__head--split">
+        <div>
+          <h2 class="title" id="collections-title">Three collections, priced by the dozen</h2>
+          <svg class="wave" viewBox="0 0 240 20" aria-hidden="true" focusable="false"><use href="#i-wave"/></svg>
+        </div>
+        <div>
+          <p>Every set is designed for its occasion. The collection decides how many designs and colours it carries, and how much dimensional detail goes into the icing.</p>
+          <p>Prices are where a set starts. Each quote reflects the size and complexity of your design.</p>
+        </div>
+      </div>
+      <ul class="tiles">
+        <li class="tile clay">
+          <h3 class="tile__name">The Signature Collection</h3>
+          <p class="tile__price"><span>from</span> <strong>$70</strong> <span>a dozen</span></p>
+          <p class="tile__specs">3–4 designs, up to 3 colours, limited 3D detail</p>
+          <p class="tile__line">Clean, timeless designs created with a refined and minimal approach.</p>
+        </li>
+        <li class="tile clay tile--popular">
+          <span class="badge"><svg class="emblem" viewBox="0 0 24 22" aria-hidden="true" focusable="false"><use href="#i-heart"/></svg>Most popular</span>
+          <h3 class="tile__name">The Elevated Collection</h3>
+          <p class="tile__price"><span>from</span> <strong>$75</strong> <span>a dozen</span></p>
+          <p class="tile__specs">4–6 designs, 4–6 colours, metallic detail and 3D detailing</p>
+          <p class="tile__line">Thoughtful detailing, dimensional textures and elevated finishing touches.</p>
+        </li>
+        <li class="tile clay">
+          <h3 class="tile__name">The Reserve Collection</h3>
+          <p class="tile__price"><span>from</span> <strong>$80</strong> <span>a dozen</span></p>
+          <p class="tile__specs">4–8 intricate designs, a custom 4–7 colour palette</p>
+          <p class="tile__line">Intricate 3D structural detailing and premium metallic finishes throughout.</p>
+        </li>
+      </ul>
+      <div class="collections__foot">
+        <p class="terms">Minimum order twelve cookies. 10% off orders of 150 cookies or more.</p>
+        <a class="btn btn--primary" href="#order">Start an inquiry</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · The Cookie Cart: two photos, then the three tiers -->
+  <section id="cart" class="section cart" aria-labelledby="cart-title">
+    <div class="wrap">
+      <div class="cart__spread">
+        <div class="cart__intro">
+          <h2 class="title" id="cart-title">The Cookie Cart</h2>
+          <svg class="wave" viewBox="0 0 240 20" aria-hidden="true" focusable="false"><use href="#i-wave"/></svg>
+          <p>At your wedding or event, Jaelyn sets up the Cookie Cart and letters your guests' cookies live, on site. Each one goes home in luxury favour packaging.</p>
+          <a class="btn btn--clay" href="#order">Ask about the cart</a>
+        </div>
+        <figure class="window-frame cart__photo cart__photo--a">
+          <img src="img/cart-1-800.webp" srcset="img/cart-1-800.webp 800w, img/cart-1.webp 1100w" sizes="(max-width: 767px) 92vw, (max-width: 1023px) 46vw, 26vw" width="1100" height="1733" alt="Jaelyn in a black blazer standing behind the white Lecookie cookie cart, with white flowers and a lamp on the counter." loading="lazy" decoding="async">
+          <figcaption>Jaelyn at the Cookie Cart</figcaption>
+        </figure>
+        <figure class="window-frame cart__photo cart__photo--b">
+          <img src="img/cart-3-800.webp" srcset="img/cart-3-800.webp 800w, img/cart-3.webp 1400w" sizes="(max-width: 767px) 92vw, (max-width: 1023px) 46vw, 26vw" width="1400" height="1400" alt="Jaelyn in white gloves lettering cookies at the cart, beside a sign with QR codes." loading="lazy" decoding="async">
+          <figcaption>Lettering, on the day</figcaption>
+        </figure>
+      </div>
+      <ul class="tiers">
+        <li class="tier clay">
+          <h3 class="tier__name">Signature</h3>
+          <p class="tier__guests">Up to 75 guests</p>
+          <ul class="tier__includes">
+            <li>Luxury favour packaging</li>
+            <li>Tailored cookie designs</li>
+            <li>Elegant event presentation</li>
+          </ul>
+          <p class="tier__price"><span>from</span> <strong>$750</strong></p>
+        </li>
+        <li class="tier clay">
+          <h3 class="tier__name">Elevated</h3>
+          <p class="tier__guests">Up to 125 guests</p>
+          <ul class="tier__includes">
+            <li>Refined packaging</li>
+            <li>Elevated event styling</li>
+            <li>Custom wax seal details</li>
+          </ul>
+          <p class="tier__price"><span>from</span> <strong>$1,000</strong></p>
+        </li>
+        <li class="tier clay">
+          <h3 class="tier__name">Reserve</h3>
+          <p class="tier__guests">Up to 200 guests</p>
+          <ul class="tier__includes">
+            <li>Full-service luxury</li>
+            <li>White-glove guest experience</li>
+            <li>Custom wax seal details</li>
+          </ul>
+          <p class="tier__price"><span>from</span> <strong>$1,500</strong></p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 8 · Testimonials -->
+  <section id="testimonials" class="section testimonials" aria-labelledby="testimonials-title">
+    <div class="wrap">
+      <div class="section__head">
+        <h2 class="title" id="testimonials-title">In their own words</h2>
+        <svg class="wave" viewBox="0 0 240 20" aria-hidden="true" focusable="false"><use href="#i-wave"/></svg>
+      </div>
+      <div class="quotes">
+        <figure class="quote clay">
+          <svg class="emblem emblem--big" viewBox="0 0 24 22" aria-hidden="true" focusable="false"><use href="#i-heart"/></svg>
+          <blockquote>Jaelyn's attention to detail and commitment to quality truly stood out. We've already recommended lecookie to others.</blockquote>
+          <figcaption>Barbara</figcaption>
+        </figure>
+        <figure class="quote clay">
+          <svg class="emblem emblem--big" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-star"/></svg>
+          <blockquote>WOW. The attention to detail is amazing. I had a great experience through and through.</blockquote>
+          <figcaption>Sabrina</figcaption>
+        </figure>
+        <figure class="quote clay">
+          <svg class="emblem emblem--big" viewBox="0 0 24 22" aria-hidden="true" focusable="false"><use href="#i-heart"/></svg>
+          <blockquote>Communication was top notch, Jaelyn was a blessing to work with. The amount of detail and precision was mind blowing. The final outcome was even better than we imagined. A great experience all around.</blockquote>
+          <figcaption>Jackie</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · Questions -->
+  <section id="faq" class="section faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="section__head">
+        <h2 class="title" id="faq-title">Questions before you order</h2>
+        <svg class="wave" viewBox="0 0 240 20" aria-hidden="true" focusable="false"><use href="#i-wave"/></svg>
+      </div>
+      <div class="faq__grid">
+        <article class="qa clay"><h3>How fresh are they?</h3><p>There is no stock. Every cookie is made for the person receiving it and finished for your date.</p></article>
+        <article class="qa clay"><h3>How do I store them?</h3><p>Airtight, at room temperature. They are best within seven days, stay fresh for up to six weeks, and can be frozen for six months.</p></article>
+        <article class="qa clay"><h3>What do they taste like?</h3><p>A soft, delicate crumb with a vanilla bean finish. Bespoke flavours are available for custom commissions.</p></article>
+        <article class="qa clay"><h3>How big are they?</h3><p>Usually three to four inches across. The final size varies with the design, and your quote reflects its size and complexity.</p></article>
+        <article class="qa clay"><h3>How do I secure a date?</h3><p>A 30% retainer confirms every order. The balance is settled before your order is released for pickup or delivery.</p></article>
+        <article class="qa clay"><h3>How far ahead should I book?</h3><p>Two weeks at the least. Wedding season and brand activations fill earlier, so send an inquiry as soon as you have a date.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · Order: what happens next, and the inquiry form, on one clay panel -->
+  <section id="order" class="section order" aria-labelledby="order-title">
+    <div class="wrap">
+      <div class="order-panel clay">
+        <div class="order-panel__side">
+          <h2 class="title" id="order-title">Tell Jaelyn about your occasion</h2>
+          <svg class="wave" viewBox="0 0 240 20" aria-hidden="true" focusable="false"><use href="#i-wave"/></svg>
+          <h3 class="order-steps__title" id="order-steps-title">What happens next</h3>
+          <ol class="order-steps" aria-labelledby="order-steps-title">
+            <li><span class="order-steps__no" aria-hidden="true">1</span><p><strong>You send the inquiry.</strong> Your date, your occasion and what you have in mind.</p></li>
+            <li><span class="order-steps__no" aria-hidden="true">2</span><p><strong>Jaelyn replies.</strong> She reads every inquiry herself and answers within one to two business days.</p></li>
+            <li><span class="order-steps__no" aria-hidden="true">3</span><p><strong>A 30% retainer secures the date.</strong> The balance is due before your order is released.</p></li>
+            <li><span class="order-steps__no" aria-hidden="true">4</span><p><strong>Pickup or local delivery.</strong> Two weeks' notice at the least is recommended; wedding season and brand activations book out earlier.</p></li>
+          </ol>
+        </div>
+
+        <div class="order-panel__form">
+          <p class="order-lede">This sends an inquiry. Nothing is booked until Jaelyn has read it and confirmed the details with you.</p>
+          <form id="inquiry-form" class="order-form" method="post" action="#order">
+
+            <div class="field" data-field="firstName">
+              <label class="field__label" for="f-firstName">First name <span class="field__req">required</span></label>
+              <input class="field__control" id="f-firstName" name="firstName" type="text" autocomplete="given-name" required>
+            </div>
+
+            <div class="field" data-field="lastName">
+              <label class="field__label" for="f-lastName">Last name <span class="field__req">required</span></label>
+              <input class="field__control" id="f-lastName" name="lastName" type="text" autocomplete="family-name" required>
+            </div>
+
+            <div class="field span-2" data-field="email">
+              <label class="field__label" for="f-email">Email <span class="field__req">required</span></label>
+              <input class="field__control" id="f-email" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false" required>
+            </div>
+
+            <fieldset class="field choice span-2" data-field="fulfilment">
+              <legend class="field__label">Pickup or local delivery <span class="field__req">required</span></legend>
+              <div class="choice__options">
+                <label class="choice__option"><input type="radio" name="fulfilment" value="Pickup" required><span>Pickup</span></label>
+                <label class="choice__option"><input type="radio" name="fulfilment" value="Local delivery"><span>Local delivery</span></label>
+              </div>
+            </fieldset>
+
+            <div class="field span-2" data-field="date">
+              <label class="field__label" for="f-date">Date needed <span class="field__req">required</span></label>
+              <input class="field__control" id="f-date" name="date" type="date" required aria-describedby="f-date-hint">
+              <span class="field__hint" id="f-date-hint">Two weeks' notice at the least is recommended.</span>
+            </div>
+
+            <div class="field span-2" data-field="address" hidden>
+              <label class="field__label" for="f-address">Delivery address <span class="field__req">required</span></label>
+              <input class="field__control" id="f-address" name="address" type="text" autocomplete="street-address">
+            </div>
+
+            <fieldset class="field choice span-2" data-field="collection" aria-describedby="f-collection-hint">
+              <legend class="field__label">Collection</legend>
+              <div class="choice__options choice__options--grid">
+                <label class="choice__option"><input type="checkbox" name="collection" value="Signature ($70 / dozen)"><span>Signature <span class="tnum">($70 / dozen)</span></span></label>
+                <label class="choice__option"><input type="checkbox" name="collection" value="Elevated ($75 / dozen)"><span>Elevated <span class="tnum">($75 / dozen)</span></span></label>
+                <label class="choice__option"><input type="checkbox" name="collection" value="Reserve ($80 / dozen)"><span>Reserve <span class="tnum">($80 / dozen)</span></span></label>
+                <label class="choice__option"><input type="checkbox" name="collection" value="Cookie Cart experience"><span>Cookie Cart experience</span></label>
+                <label class="choice__option"><input type="checkbox" name="collection" value="Other"><span>Other</span></label>
+              </div>
+              <span class="field__hint" id="f-collection-hint">Choose any that apply. The minimum order is twelve cookies.</span>
+            </fieldset>
+
+            <div class="field" data-field="quantity">
+              <label class="field__label" for="f-quantity">Total quantity</label>
+              <input class="field__control tnum" id="f-quantity" name="quantity" type="number" min="12" step="1" inputmode="numeric" placeholder="e.g. 24">
+            </div>
+
+            <div class="field span-2" data-field="vision">
+              <label class="field__label" for="f-vision">Share your vision</label>
+              <textarea class="field__control" id="f-vision" name="vision" rows="4" aria-describedby="f-vision-hint"></textarea>
+              <span class="field__hint" id="f-vision-hint">Colours, theme, names to letter, the occasion.</span>
+            </div>
+
+            <div class="field span-2" data-field="notes">
+              <label class="field__label" for="f-notes">Additional specifications</label>
+              <textarea class="field__control" id="f-notes" name="notes" rows="3"></textarea>
+            </div>
+
+            <p class="order-note span-2"><svg class="emblem" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-star"/></svg><span><strong>Inspiration photos.</strong> Mention them in your message and Jaelyn will reply with where to send them.</span></p>
+
+            <label class="choice__option order-newsletter span-2"><input type="checkbox" name="newsletter" value="yes"><span>Send me news and seasonal sets</span></label>
+
+            <div class="order-submit span-2">
+              <button class="btn btn--primary btn--big" type="submit">Send the inquiry</button>
+              <p class="order-submit__note">Sending this is an inquiry, not a booking. Jaelyn confirms every order with you herself before anything is booked.</p>
+            </div>
+
+            <p class="order-ig span-2">Or message <a href="https://instagram.com/lecookiebyj" target="_blank" rel="noopener">@lecookiebyj on Instagram<span class="visually-hidden"> (opens in a new tab)</span></a>.</p>
+
+            <div class="order-status span-2" id="order-status" role="status" aria-live="polite"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer__grid">
+    <div class="footer__brand">
+      <img class="footer__logo" src="img/logo-cream.webp" width="300" height="160" alt="Lecookie">
+      <p>Iced sugar cookies baked to order by Jaelyn Wiebe, and lettered live at the Cookie Cart.</p>
+    </div>
+    <ul class="footer__contact">
+      <li><a href="https://instagram.com/lecookiebyj" target="_blank" rel="noopener">@lecookiebyj on Instagram<span class="visually-hidden"> (opens in a new tab)</span></a></li>
+      <li>Pickup or local delivery</li>
+    </ul>
+    <nav class="footer__nav" aria-label="Footer">
+      <ul>
+        <li><a href="#story">How it's made</a></li>
+        <li><a href="#signature">Jaelyn</a></li>
+        <li><a href="#gallery">Gallery</a></li>
+        <li><a href="#collections">Collections</a></li>
+        <li><a href="#cart">Cookie Cart</a></li>
+        <li><a href="#testimonials">Kind words</a></li>
+        <li><a href="#faq">Questions</a></li>
+        <li><a href="#order">Send an inquiry</a></li>
+      </ul>
+    </nav>
+  </div>
+  <svg class="footer__wave" viewBox="0 0 1200 24" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M0 12 Q 50 0 100 12 T 200 12 T 300 12 T 400 12 T 500 12 T 600 12 T 700 12 T 800 12 T 900 12 T 1000 12 T 1100 12 T 1200 12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+</footer>
+
+<!-- The little icons, drawn once: the oven's heart, its star, and its wavy band. -->
+<svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-heart" viewBox="0 0 24 22"><path d="M12 21C9.6 19.2 1.5 13.6 1.5 7.2 1.5 3.9 4 1.5 7 1.5c2.1 0 3.9 1.1 5 2.8 1.1-1.7 2.9-2.8 5-2.8 3 0 5.5 2.4 5.5 5.7 0 6.4-8.1 12-10.5 13.8Z" fill="currentColor"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.2c.8 0 1.3.6 1.8 1.6l1.9 3.9 4.2.6c1.2.2 1.9.6 2.1 1.3.2.8-.2 1.4-1 2.2l-3 3 .7 4.2c.2 1.2 0 1.9-.6 2.4-.7.5-1.4.3-2.4-.2L12 19.2l-3.8 2c-1 .5-1.7.7-2.4.2-.6-.5-.8-1.2-.6-2.4l.7-4.2-3-3c-.8-.8-1.2-1.4-1-2.2.2-.7.9-1.1 2.1-1.3l4.2-.6 1.9-3.9c.5-1 1-1.6 1.9-1.6Z" fill="currentColor"/></symbol>
+    <symbol id="i-wave" viewBox="0 0 240 20"><path d="M3 10 C 13 2, 23 2, 33 10 S 53 18, 63 10 S 83 2, 93 10 S 113 18, 123 10 S 143 2, 153 10 S 173 18, 183 10 S 203 2, 213 10 S 233 18, 237 12" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/ScrollTrigger.min.js"></script>
+<script src="vendor/DrawSVGPlugin.min.js"></script>
+<script src="js/jw-glyph.js?v=2"></script>
+<script src="js/config.js"></script>
+<script src="js/site.js"></script>
+<script src="js/story.js?v=22"></script>
+<script src="js/quiz.js?v=3"></script>
+<script src="js/cursor.js?v=6"></script>
+</body>
+</html>

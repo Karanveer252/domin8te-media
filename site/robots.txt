@@ -4,5 +4,6 @@ Disallow: /send.php
 Disallow: /dashboard
 Disallow: /console
 Disallow: /onboarding
+Disallow: /work/lecookie/live
 
 Sitemap: https://domin8temedia.com/sitemap.xml
