@@ -5561,7 +5561,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
           () => ({ title: "We couldn't work out what changed just now.", retry: 'insight' })),
         update: () => section(el, '#home-update', () => ctx.client.getUpdates(), (list) => list.length
           ? UI.UpdateCard(list[0], { compact: true, lead: UI.SectionHead('h-latest', 'Latest update') })
-          : `<div class="card">${UI.SectionHead('h-latest', 'Latest update')}${UI.EmptyState({ icon: 'updates', title: 'No updates yet.', text: 'Your first update arrives when we finish something.' })}</div>`,
+          // the same padding as the filled card (UpdateCard's .update): the empty one sat flush with its edge (2026-10-08)
+          : `<div class="card update">${UI.SectionHead('h-latest', 'Latest update')}${UI.EmptyState({ icon: 'updates', title: 'No updates yet.', text: 'Your first update arrives when we finish something.' })}</div>`,
           () => ({ title: "We couldn't load the latest update.", retry: 'update' })),
         account: () => section(el, '#home-account', () => ctx.client.getAccount(), (a) => accountBand(a, now()),
           () => ({ title: "We couldn't load your account details.", retry: 'account' }))
