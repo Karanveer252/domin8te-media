@@ -2464,7 +2464,7 @@
         <div class="grid-3"><div class="field"><label for="g-gate">Gate</label><select id="g-gate" name="gate">${GATES.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</select></div>
           <div class="field"><label for="g-ev">Evidence</label><input id="g-ev" name="evidence" maxlength="1000" required></div></div>
         <div class="actions"><button class="btn" type="submit">Record the gate</button></div></form>
-      <h3 class="panel-sub">Automatic publishing, per client <span class="meta">${allPassed ? 'Only items the sender asked to publish, and only when the database\'s evidence rules pass. Everything else still waits here.' : 'Switches unlock once all four gates are recorded.'}</span></h3>
+      <h3 class="panel-sub">Automatic publishing, per client <span class="meta">${allPassed ? 'Only items the sender asked to publish, and only when the database\'s evidence rules pass. Everything else still waits here.' : 'The switches stay off until all four gates are recorded.'}</span></h3>
       ${all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived').map((/** @type {any} */ t) => `<label class="switch-row"><input type="checkbox" role="switch" data-dm-auto="${esc(t.id)}"${on[t.id] ? ' checked' : ''}${allPassed || on[t.id] ? '' : ' disabled'}><span><span class="pick-t">${esc(t.name)}</span><span class="pick-d">${on[t.id] ? 'On here; also needs AUTO_PUBLISH_ENABLED on the server' : 'Off: everything waits for approval'}</span></span></label>`).join('')}`;
     const f = /** @type {HTMLFormElement} */ ($('#gate-form', box));
     f.addEventListener('submit', async (e) => {

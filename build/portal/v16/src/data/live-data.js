@@ -21,7 +21,7 @@
   const cfg = /** @type {any} */ (root).D8CONFIG;
   if (!cfg || cfg.mode !== 'live' || !D8.data) return;
   const T = D8.time;
-  const { makeClient, normalize, apply, fail } = D8.data;
+  const { makeClient, normalize, mergeProjections, apply, fail } = D8.data;
 
   // A local preview (console/preview-stub.js, never deployed) supplies in-memory stand-ins for
   // Clerk and Supabase through window.D8PREVIEW, so the screens can be tried without the services.
@@ -257,11 +257,15 @@
       if (t.error) throw dbFail(t.error);
       const row = t.data && t.data[0];
       if (!row) { tenant = null; return; }
-      const [d, m, r, p] = await Promise.all([
+      const [d, m, r, p, items, inv] = await Promise.all([
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
         sb.from('requests').select('id, service, body, status, by_name, at').eq('tenant_id', row.id).order('at'),
-        sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').maybeSingle()
+        sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').maybeSingle(),
+        // What staff approved for this client. The database returns a client only client_visible rows; asking
+        // for them here as well keeps a staff session previewing the portal to the same rows.
+        sb.from('client_dashboard_items').select('id, item_kind, external_id, content, source_observed_at, reporting_period_start, reporting_period_end, verification_status, published_at').eq('tenant_id', row.id).eq('client_visible', true),
+        sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url').eq('tenant_id', row.id).eq('client_visible', true)
       ]);
       for (const x of [d, m, r, p]) if (x.error) throw dbFail(x.error);
       /** @type {any} */ const next = {};
@@ -272,7 +276,9 @@
       if (p.data && p.data.appearance) apply(next, 'appearance', { look: p.data.appearance });
       st = next;
       rowId = row.id;
-      tenant = { ...normalize(row.doc, now), tenantId: row.id, name: row.name };
+      // A projection that cannot be read (tables not there yet) leaves the record as it is.
+      const merged = mergeProjections(normalize(row.doc, now), items.error ? [] : items.data || [], inv.error ? [] : inv.data || []);
+      tenant = { ...merged, tenantId: row.id, name: row.name };
     }
 
     let ready = load();

@@ -128,6 +128,54 @@ const withBayleaf = () => ({
   requests: [], user_prefs: []
 });
 
+/** Approved projection rows for Bayleaf, and one not approved that must never show. */
+const withProjections = () => ({
+  ...withBayleaf(),
+  client_dashboard_items: [
+    { id: 'i1', tenant_id: 'tnt_row_1', item_kind: 'update', external_id: 'upd_0923', client_visible: true, verification_status: 'verified', published_at: '2026-10-01T10:00:00Z', content: { title: 'Approved wording', service: 'social', date: '2026-09-23', completed: 'Drafted next week\'s posts.' } },
+    { id: 'i2', tenant_id: 'tnt_row_1', item_kind: 'update', external_id: 'upd_new', client_visible: true, verification_status: 'verified', published_at: '2026-10-02T10:00:00Z', content: { title: 'A new update', service: 'website', date: '2026-10-02' } },
+    { id: 'i3', tenant_id: 'tnt_row_1', item_kind: 'work', external_id: 'task-1', client_visible: true, verification_status: 'verified', published_at: '2026-10-03T10:00:00Z', content: { title: 'Fixing the booking button', status: 'in_progress', service: 'website' } },
+    { id: 'i4', tenant_id: 'tnt_row_1', item_kind: 'work', external_id: 'task-2', client_visible: true, verification_status: 'verified', published_at: '2026-10-03T11:00:00Z', content: { title: 'Uploaded the brunch menu', status: 'done', service: 'website' } },
+    { id: 'i5', tenant_id: 'tnt_row_1', item_kind: 'result', external_id: 'r1', client_visible: true, verification_status: 'stale', published_at: '2026-09-20T10:00:00Z', source_observed_at: '2026-09-20T09:00:00Z', reporting_period_start: '2026-08-21', reporting_period_end: '2026-09-19', content: { metric: 'bookings', value: 212, unit: 'bookings' } },
+    { id: 'i6', tenant_id: 'tnt_row_1', item_kind: 'update', external_id: 'upd_pending', client_visible: false, verification_status: 'pending', published_at: null, content: { title: 'NOT APPROVED', service: 'social' } }
+  ],
+  client_billing_invoices: [
+    { tenant_id: 'tnt_row_1', client_visible: true, invoice_number: 'BAY-0010', amount_minor: 79900, currency: 'USD', status: 'open', issued_at: '2026-10-01', due_at: '2026-10-15', paid_at: null, hosted_payment_url: 'https://invoice.stripe.com/i/x' }
+  ]
+});
+
+test('approved projections show on the portal; the record is the fallback; nothing unapproved leaks', async () => {
+  const { D8 } = live({ tables: withProjections(), clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  const ups = plain(await c.getUpdates());
+  const byId = Object.fromEntries(ups.map((u) => [u.id, u]));
+  assert.equal(byId.upd_0923.title, 'Approved wording', 'an approved update replaces the record\'s entry with the same id');
+  assert.ok(byId.upd_new, 'a new approved update is added');
+  assert.ok(!ups.some((u) => u.title === 'NOT APPROVED'), 'a pending row never reaches the portal');
+  assert.equal(ups.filter((u) => u.id === 'upd_0923').length, 1, 'no duplicates');
+  const work = plain(await c.getWorkSummary());
+  const site = work.find((s) => s.id === 'website');
+  assert.equal(site.now, 'Fixing the booking button');
+  assert.ok(site.completed.some((x) => x.text === 'Uploaded the brunch menu'));
+  const res = plain(await c.getResults(30));
+  const bookings = res.groups.flatMap((g) => g.metrics).find((m) => m.id === 'bookings');
+  assert.equal(bookings.verified.value, 212);
+  assert.equal(bookings.verified.periodEnd, '2026-09-19');
+  assert.equal(bookings.verified.health.label, 'Delayed', 'a stale result keeps showing, as Delayed');
+  const bill = plain(await c.getBilling());
+  assert.equal(bill.invoices[0].number, 'BAY-0010');
+  assert.ok(bill.invoices.some((x) => x.number === 'BAY-0009'), 'the record\'s own invoices stay');
+});
+
+test('without projection rows, or when the tables cannot be read, the record shows as before', async () => {
+  const plainRun = live({ tables: withBayleaf(), clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const a = plain(await plainRun.D8.data.connect(await plainRun.D8.auth.getSession()).getUpdates());
+  const broken = live({ tables: withProjections(), errors: { 'select:client_dashboard_items': { code: '42P01', message: 'relation does not exist' }, 'select:client_billing_invoices': { code: '42P01', message: 'relation does not exist' } }, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const b = plain(await broken.D8.data.connect(await broken.D8.auth.getSession()).getUpdates());
+  assert.deepEqual(b, a);
+  assert.equal(a.find((u) => u.id === 'upd_0923').title, BAYLEAF().updates[0].title);
+});
+
 test('live mode is on only with the live settings, and nothing loads in the demo', () => {
   const { D8, head } = live({ tables: withBayleaf(), clerk: { signedIn: false } });
   assert.equal(D8.data.MODE, 'live');

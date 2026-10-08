@@ -300,3 +300,28 @@ test('dates in the fixture carry the right weekday', () => {
   }
   assert.ok(checked >= 5, `checked ${checked} written dates`);
 });
+
+test('approved projection rows lay over the record; no rows leaves it untouched', () => {
+  const D8 = load();
+  const doc = JSON.parse(JSON.stringify(require('./fixture-bayleaf.json')));
+  const now = () => Date.parse('2026-09-24T12:00:00Z');
+  const base = JSON.parse(JSON.stringify(D8.data.normalize(doc, now)));
+  const untouched = JSON.parse(JSON.stringify(D8.data.mergeProjections(D8.data.normalize(doc, now), [], [])));
+  assert.deepEqual(untouched, base, 'no rows: the record stands');
+  const t = D8.data.mergeProjections(D8.data.normalize(doc, now), [
+    { item_kind: 'update', external_id: 'upd_0923', published_at: '2026-10-01T10:00:00Z', content: { title: 'Approved', service: 'social' } },
+    { item_kind: 'work', external_id: 'w1', published_at: '2026-10-01T10:00:00Z', content: { title: 'Older card', status: 'in_progress', service: 'website' } },
+    { item_kind: 'work', external_id: 'w2', published_at: '2026-10-02T10:00:00Z', content: { title: 'Newer card', status: 'in_progress', service: 'website' } },
+    { item_kind: 'work', external_id: 'w3', published_at: '2026-10-02T10:00:00Z', content: { title: 'Card for a service they do not have', status: 'done', service: 'nope' } },
+    { item_kind: 'result', external_id: 'r1', verification_status: 'verified', reporting_period_start: '2026-08-25', reporting_period_end: '2026-09-23', content: { metric: 'calls', value: 148 } },
+    { item_kind: 'result', external_id: 'r2', verification_status: 'verified', content: { metric: 'not-a-metric', value: 1 } }
+  ], [{ invoice_number: 'BAY-0009', amount_minor: 100, currency: 'USD', status: 'paid', issued_at: '2026-09-22', paid_at: '2026-09-25T10:00:00Z' }]);
+  assert.equal(t.updates.find((u) => u.id === 'upd_0923').title, 'Approved');
+  assert.equal(t.updates.filter((u) => u.id === 'upd_0923').length, 1);
+  assert.equal(t.services.website.now, 'Newer card', 'the latest approved card wins');
+  assert.equal(t.metrics.calls.verified.value, 148);
+  assert.equal(t.metrics.calls.verified.state, 'fresh');
+  assert.ok(!t.metrics['not-a-metric'], 'a result for an unknown metric is not invented');
+  assert.equal(t.billing.invoices.filter((x) => x.number === 'BAY-0009').length, 1, 'the approved invoice replaces the record\'s');
+  assert.equal(t.billing.invoices.find((x) => x.number === 'BAY-0009').status, 'paid');
+});
