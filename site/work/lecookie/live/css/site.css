@@ -327,7 +327,7 @@ strong { font-weight: 700; color: var(--cocoa); }
 .stage--rack { --stage-w: 420px; --sw: 89.9%; --sx: 5.05%; --sy: 5.05%; }
 .stage--plate { --stage-w: 480px; --sw: 82.4%; --sx: 8.8%; --sy: 8.8%; }
 .stage--board { --stage-w: 580px; --ar: 1; --sw: 61.81%; --sx: 19.09%; --sy: 22.84%; }   /* a 16 cm square frame, the cookie 0.6 cm below its centre */
-.stage--box { --stage-w: 470px; --sw: 76.1%; --sx: 11.96%; --sy: 11.96%; }
+.stage--box { --stage-w: 687px; --sw: 52.07%; --sx: 23.97%; --sy: 22.83%; }   /* a 19 cm frame; the closed lid is Karan's own photo (tools/photo_lid.py) */
 
 .story { overflow-x: clip; }
 .beat { display: grid; align-items: center; min-height: var(--beat-h); padding-block: var(--space-7); }
@@ -431,7 +431,9 @@ strong { font-weight: 700; color: var(--cocoa); }
 /* testimonials */
 .quotes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); align-items: start; }
 .quote { margin: 0; padding: var(--space-6); }
-.quote:nth-child(2) { transform: translateY(var(--space-6)); }
+/* five hearts or five stars on each card, all three cards top-aligned (Karan, 2026-10-07) */
+.quote__marks { display: flex; gap: 6px; }
+.quote__marks .emblem { width: 22px; height: 22px; }
 .quote blockquote { margin: var(--space-4) 0 var(--space-5); font-size: 1.125rem; line-height: 1.6; color: var(--cocoa); }
 .quote figcaption { font-weight: 700; color: var(--tan-ink); }
 .quote figcaption::before { content: "— "; }
@@ -515,6 +517,10 @@ textarea.field__control { min-height: 110px; resize: vertical; }
 .footer__contact, .footer__nav ul { display: grid; align-content: start; gap: var(--space-2); margin: 0; padding: 0; list-style: none; color: #D9CBBC; }
 .site-footer a { color: var(--on-glass); text-decoration: none; font-weight: 700; }
 .site-footer a:hover { color: var(--tan); }
+/* the Instagram link at the very end of the page, with its icon (Karan, 2026-10-08) */
+.footer__ig { display: flex; justify-content: center; margin: var(--space-7) auto 0; padding-top: var(--space-5); border-top: 1px solid rgba(217, 203, 188, 0.22); }
+.footer__ig a { display: inline-flex; align-items: center; gap: 0.6em; min-height: 44px; font-size: 1.05rem; }
+.footer__ig svg { width: 26px; height: 26px; flex: none; }
 .footer__wave { position: absolute; left: 0; right: 0; bottom: 22px; width: 100%; height: 14px; color: var(--tan); opacity: 0.7; }
 
 /* ------------------------------------------------------------ the opening questions -- */
@@ -653,12 +659,11 @@ html.no-sprinkles .ck-sprinkles { display: none; }
 @media (max-width: 1023.98px) {
   .hero__grid, .beat__grid, .signature__grid, .boxed__grid { gap: var(--space-6); }
   .signature__body { grid-template-columns: minmax(0, 1fr); }
-  .portrait { width: min(340px, 80%); }
+  .portrait { width: min(340px, 80%); margin-inline: auto; justify-self: center; }
   .cart__spread { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .cart__intro { grid-column: 1 / -1; max-width: 40rem; }
   .tiles, .tiers, .quotes, .faq__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .tile--popular { transform: none; }
-  .quote:nth-child(2) { transform: none; }
   .order-panel { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
   .footer__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .footer__brand { grid-column: 1 / -1; }
@@ -675,7 +680,7 @@ html.no-sprinkles .ck-sprinkles { display: none; }
   .stage--rack { --stage-w: 360px; }
   .stage--plate { --stage-w: 380px; }
   .stage--board { --stage-w: 380px; }
-  .stage--box { --stage-w: 360px; }
+  .stage--box { --stage-w: 380px; }
   .section { padding-block: var(--space-8); }
   .section__head--split { grid-template-columns: minmax(0, 1fr); }
   .gallery__note { padding: var(--space-5); }

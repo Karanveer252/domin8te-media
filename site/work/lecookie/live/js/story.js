@@ -56,7 +56,7 @@
   function smooth(t) { return t * t * (3 - 2 * t); }
 
   // the pictures' version: bumped whenever renders change, so no browser keeps an old picture
-  var IMGV = '?v=54';
+  var IMGV = '?v=57';
   function src(part, d, k) { var u = srcPath(part, d, k); return u ? u + IMGV : u; }
   function srcPath(part, d, k) {
     d = d || D;
@@ -188,7 +188,7 @@
     var q = function (s) { return svg.querySelector(s); };
     var qa = function (s) { return Array.prototype.slice.call(svg.querySelectorAll(s)); };
     return {
-      svg: svg, body: q('.ck-body'), beltLight: q('.ck-belt-light'),
+      svg: svg, body: q('.ck-body'), shadowG: q('.ck-shadow'), beltLight: q('.ck-belt-light'),
       steam: q('.ck-steam'), steamDrift: q('.ck-steam-drift'), steamLines: qa('.ck-steam-line'),
       flood: q('.ck-flood'), floodClip: q('.ck-flood-clip'),
       toppings: q('.ck-toppings'), ring: q('.ck-mask-ring'),
@@ -489,10 +489,12 @@
     var tl = gsap.timeline({ paused: true });
     if (!lid) return tl;
     gsap.set(lid, { opacity: 0, yPercent: -28, scale: 1.06, transformOrigin: '50% 60%' });
-    if (seal) gsap.set(seal, { opacity: 0, scale: 1.6, rotation: -18, transformOrigin: '47% 48%' });
+    // the seal turns about its own centre in the picture (the photo lid's seal, 2026-10-08), and comes in solid: a
+    // half-faded seal still scaled up read as a ghost over the lid before it landed
+    if (seal) gsap.set(seal, { opacity: 0, scale: 1.35, rotation: -12, transformOrigin: '49.63% 68.07%' });
     tl.to(lid, { opacity: 1, duration: 0.25, ease: 'power1.out' }, 0)
       .to(lid, { yPercent: 0, scale: 1, duration: 0.7, ease: 'back.out(1.6)' }, 0);
-    if (seal) tl.to(seal, { opacity: 1, duration: 0.15 }, 0.75).to(seal, { scale: 1, rotation: 0, duration: 0.45, ease: 'back.out(2.2)' }, 0.75);
+    if (seal) tl.set(seal, { opacity: 1 }, 0.62).to(seal, { scale: 1, rotation: 0, duration: 0.32, ease: 'back.out(1.8)' }, 0.62);
     return tl;
   }
 
@@ -872,7 +874,12 @@
 
     function rollIn(P, slot, fromX, startPos, endPos) {
       gsap.fromTo(P.svg, { xPercent: fromX, opacity: 0 }, { xPercent: 0, opacity: 1, ease: drift,
-        onUpdate: function () { turn(P, (gsap.getProperty(P.svg, 'xPercent') / 100) * 360 * -1.1); },
+        onUpdate: function () {
+          var xp = gsap.getProperty(P.svg, 'xPercent');
+          turn(P, (xp / 100) * 360 * -1.1);
+          // its shadow lies still while the cookie turns: shown only as the cookie settles, never as a ghost beside it
+          if (P.shadowG) P.shadowG.style.opacity = Math.max(0, 1 - Math.abs(xp) / 6).toFixed(3);
+        },
         scrollTrigger: { trigger: slot, start: startPos, end: endPos, scrub: 1 } });
     }
     var A = made[0];

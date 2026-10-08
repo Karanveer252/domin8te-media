@@ -49,8 +49,8 @@ if (LIVE) {
   once('live config', '<meta charset="utf-8">', `<meta charset="utf-8">
 <script>window.D8CONFIG = ${JSON.stringify({ ...cfg, app: 'portal', demoUrl: arg('--demo-url') || undefined })};</script>`);
 }
-// the demo wears the website's growth cursor (growth-cursor.js); the real portal does not, yet
-if (!LIVE) once('growth cursor', '</body>', require('./growth-cursor')() + '</body>');
+// the real portal and the demo both wear the website's growth cursor (growth-cursor.js)
+once('growth cursor', '</body>', require('./growth-cursor')() + '</body>');
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, html);
 console.log(`wrote ${OUT} (${(fs.statSync(OUT).size / 1024).toFixed(1)} KB)`);

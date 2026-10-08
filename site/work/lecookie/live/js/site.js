@@ -111,10 +111,10 @@ const INQUIRY_ENDPOINT = '';
 
   var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   var RULES = {
-    firstName: function (v) { return v.trim() ? '' : 'Add your first name, so Jaelyn knows who she is writing to.'; },
+    firstName: function (v) { return v.trim() ? '' : 'Add your first name, so we know who we are writing to.'; },
     lastName: function (v) { return v.trim() ? '' : 'Add your last name.'; },
     email: function (v) {
-      if (!v.trim()) { return 'Add your email address. It is where Jaelyn will reply.'; }
+      if (!v.trim()) { return 'Add your email address. It is where we will reply.'; }
       return EMAIL.test(v.trim()) ? '' : 'That email address looks incomplete. Check that it reads like name@example.com.';
     },
     fulfilment: function () { return radioValue('fulfilment') ? '' : 'Choose pickup or local delivery.'; },
@@ -227,14 +227,14 @@ const INQUIRY_ENDPOINT = '';
     var mark = alertMark;
     var html = '';
     if (state === 'offline') {
-      html = '<div><p><strong>Your inquiry has not been sent.</strong> This preview of the site is not connected to Jaelyn\'s inbox yet, so nothing left this page.</p>' +
-        '<p>To reach her today, send your date and your idea to ' + igLink('@lecookiebyj on Instagram') + '.</p></div>';
+      html = '<div><p><strong>Your inquiry has not been sent.</strong> This preview of the site is not connected to our inbox yet, so nothing left this page.</p>' +
+        '<p>To reach us today, send your date and your idea to ' + igLink('@lecookiebyj on Instagram') + '.</p></div>';
     } else if (state === 'sending') {
       mark = '';
-      html = '<p>Sending your inquiry to Jaelyn…</p>';
+      html = '<p>Sending your inquiry to us…</p>';
     } else if (state === 'sent') {
       mark = '';
-      html = '<p><strong>Your inquiry is with Jaelyn.</strong> She replies within one to two business days.</p>';
+      html = '<p><strong>Your inquiry is with us.</strong> We reply within one to two business days.</p>';
     } else if (state === 'failed') {
       html = '<div><p><strong>Your inquiry did not go through.</strong> Nothing was sent. Please try again in a moment.</p>' +
         '<p>Or message ' + igLink('@lecookiebyj on Instagram') + ' with your date and idea.</p></div>';

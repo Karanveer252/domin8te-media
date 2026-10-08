@@ -16,7 +16,7 @@
 
   var img = new Image(), ready = false;
   img.onload = function () { ready = true; draw(); };
-  img.src = 'img/cursor-cookie.webp?v=54';
+  img.src = 'img/cursor-cookie.webp?v=57';
 
   // the cookie, and a layer over the page for its crumbs
   var cv = doc.createElement('canvas'); cv.className = 'cookie-cursor'; cv.width = cv.height = PX;

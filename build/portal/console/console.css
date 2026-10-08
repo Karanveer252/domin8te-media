@@ -574,6 +574,10 @@ dialog::backdrop { background: rgba(29, 26, 22, 0.28); -webkit-backdrop-filter: 
 @media (max-width: 900px) {
   .shell { padding-left: 0; }
   .side { top: 0; bottom: 0; left: 0; width: min(320px, 88vw); border-radius: 0 30px 30px 0; }
+  /* the drawer stands above its dimming layer (the floating sidebar's z-index 30 above had put it under the
+     scrim's 44, so the open menu was dimmed with the page), on the more solid glass so the darkened page
+     behind does not show through it (2026-10-08, Karan: "does the screen get dimmer if I use it like this?") */
+  .side { z-index: 45; background-color: var(--glass-strong); }
   .topbar { border-radius: 0; border-width: 0 0 0.67px; }
   main { padding: 20px 16px 110px; }
   .save-bar { border-radius: 22px; }

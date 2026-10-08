@@ -21,7 +21,7 @@
   function describe(d) {
     return find(ICINGS, d.icing).say + ' ' + find(SHAPES, d.shape).say + ' with ' + find(TOPS, d.top).say;
   }
-  var IMGV = '?v=54';     // as story.js
+  var IMGV = '?v=57';     // as story.js
   function thumb(kind, d) { return thumbPath(kind, d) + IMGV; }
   function thumbPath(kind, d) {
     if (kind === 'base') return 'img/cookie/thumb/base_' + d.shape + '.webp';
@@ -187,8 +187,8 @@
   function close() {
     if (!dialog) return;
     var d = dialog; dialog = null;
-    try { localStorage.setItem(KEY + '.seen', '1'); } catch (e) {}
     root.classList.remove('pick-open');
+    if (target) { var t = target; target = null; setTimeout(function () { t.scrollIntoView({ behavior: 'smooth' }); }, 650); }
     d.classList.remove('is-in'); d.classList.add('is-out');
     var done = function () { if (d.parentNode) d.parentNode.removeChild(d); };
     d.addEventListener('transitionend', function (e) { if (e.target === d) done(); });
@@ -197,8 +197,10 @@
     else { var h = doc.getElementById('hero-title'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } }
   }
 
-  // Ask on the first visit only, and only at the top of the page: a visitor who arrives by a link to a section is left alone.
-  var seen = false;
-  try { seen = localStorage.getItem(KEY + '.seen') === '1'; } catch (e) {}
-  if (!chosen && !seen && !location.hash && window.scrollY < 40) open();
+  // The questions come first, on every visit (Karan, 2026-10-08): the page always opens at the top with them showing.
+  // A link to a section still lands there once the questions are answered or skipped.
+  var target = location.hash ? doc.getElementById(location.hash.slice(1)) : null;
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
+  window.scrollTo(0, 0);
+  open();
 })();
