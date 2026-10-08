@@ -749,6 +749,13 @@ td { font-variant-numeric: tabular-nums; }
 .plan-name { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .plan-list { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .plan-list li { display: inline-flex; align-items: center; gap: 6px; color: var(--p-ink-2); }
+/* the services the client does not have: quiet, below their plan (2026-10-08) */
+.plan-off { align-self: stretch; width: 100%; margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--p-line-2); }
+.plan-off-h { margin: 0 0 8px; font-size: 14px; font-weight: 650; color: var(--p-ink-3); }
+.plan-list.is-off li { color: var(--p-ink-3); }
+.plan-list.is-off li .icon, .plan-list.is-off li svg { opacity: 0.6; }
+.plan-off-ask { margin: 10px 0 0; font-size: 14px; color: var(--p-ink-3); }
+.plan-off-ask a { color: var(--p-accent-ink); font-weight: 600; }
 .card-line { display: inline-flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 650; }
 .invoice { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px 20px; padding: 16px 22px; }
 .invoice + .invoice { border-top: 1px solid var(--p-line); }

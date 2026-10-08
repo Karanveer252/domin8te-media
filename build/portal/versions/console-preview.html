@@ -1160,6 +1160,81 @@ html[data-scene="scenes"] .col { background: var(--glass); }
   html[data-theme="dark"] option:hover, html[data-theme="dark"] option:focus-visible { background: rgba(255, 255, 255, 0.07); }
   @media (prefers-reduced-motion: reduce) { ::picker(select) { transition: none; } select::picker-icon { transition: none; } }
 }
+
+
+/* ==== Services after onboarding (2026-10-08): the Overview's Services panel shows every service, provided or
+   not, and Change services opens one window of switches. A service that is off is shown, never hidden, in the
+   console: dashed and quiet, "Not provided". ============================================================== */
+.svc-panel .panel-head > div:first-child { min-width: 0; }
+.svc-panel .panel-head h2 + p { margin-top: 2px; }
+.svc-list .s-name { display: flex; align-items: center; gap: 8px; }
+.svc-list .s-name .ic { width: 17px; height: 17px; color: var(--accent-ink); }
+.chip.off { background: transparent; color: var(--ink-3); box-shadow: inset 0 0 0 1px var(--line-2); }
+.chip.off::before { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; opacity: 0.8; }
+.svc-off-wrap { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.svc-off-h { margin: 0 0 10px; font-size: 14px; font-weight: 650; color: var(--ink-3); }
+.svc-off { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.svc-off li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 12px 14px; padding: 12px 14px; border: 1.5px dashed var(--line-2); border-radius: 18px; }
+.svc-off__ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--surface-2); color: var(--ink-3); }
+.svc-off__ic .ic { width: 17px; height: 17px; }
+.svc-off__txt { display: grid; gap: 2px; min-width: 0; }
+.svc-off__txt .s-name { font-weight: 650; color: var(--ink-2); }
+.svc-off__txt .meta { font-size: 13px; }
+.svc-last { display: flex; align-items: center; gap: 7px; margin-top: 16px; font-size: 13px; }
+.svc-last .ic { width: 14px; height: 14px; }
+.svc-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+@media (max-width: 640px) {
+  .svc-off li { grid-template-columns: auto minmax(0, 1fr); }
+  .svc-off li .chip, .svc-off li .btn { grid-column: 2; justify-self: start; }
+}
+
+/* the Change services window */
+.svc-dlg { width: min(560px, calc(100vw - 32px)); margin: auto; padding: 0; }
+.sd-form { display: grid; gap: 16px; padding: 24px; }
+.sd-head h2 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+.sd-head p { margin-top: 6px; color: var(--ink-2); }
+.sd-list { display: grid; gap: 8px; }
+.sd-opt { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 14px; padding: 12px 14px; border: 1.5px dashed var(--line-2); border-radius: 18px; cursor: pointer; transition: border-color 160ms var(--ease), background-color 160ms var(--ease), box-shadow 160ms var(--ease); }
+.sd-opt:hover { border-color: rgba(94, 72, 50, 0.4); }
+.sd-opt.is-on { border-style: solid; border-color: var(--line-2); background: rgba(255, 255, 255, 0.55); box-shadow: 0 1px 2px rgba(60, 42, 24, 0.06); }
+.sd-opt.is-adding { border-color: rgba(31, 122, 76, 0.55); background: var(--good-bg); }
+.sd-opt.is-removing { border-color: rgba(179, 38, 30, 0.45); background: var(--bad-bg); }
+.sd-opt:has(.sd-sw:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sd-ic { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--surface-2); color: var(--ink-3); transition: background-color 160ms var(--ease), color 160ms var(--ease); }
+.sd-ic .ic { width: 18px; height: 18px; }
+.sd-opt.is-on .sd-ic { background: rgba(255, 91, 31, 0.12); color: var(--accent-ink); }
+.sd-txt { display: grid; gap: 2px; min-width: 0; }
+.sd-name { font-weight: 650; color: var(--ink); }
+.sd-opt:not(.is-on) .sd-name { color: var(--ink-2); }
+.sd-what { font-size: 13px; color: var(--ink-3); }
+.sd-state { font-size: 12.5px; font-weight: 650; color: var(--ink-3); white-space: nowrap; }
+.sd-opt.is-adding .sd-state { color: var(--good); }
+.sd-opt.is-removing .sd-state { color: var(--bad); }
+/* the switch: the real checkbox, drawn as a pill */
+.sd-sw { appearance: none; -webkit-appearance: none; position: relative; flex: none; width: 44px; height: 26px; margin: 0; border-radius: 999px; background: rgba(94, 72, 50, 0.22); cursor: pointer; transition: background-color 180ms var(--ease); }
+.sd-sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.sd-sw:checked { background: var(--accent); }
+.sd-sw:checked::after { transform: translateX(18px); }
+.sd-sw:focus-visible { outline: none; }
+.sd-note { display: grid; gap: 8px; min-height: 22px; }
+.sd-line { margin: 0; padding: 10px 12px; border-radius: 14px; background: var(--surface-2); color: var(--ink-2); font-size: 14px; line-height: 1.45; }
+.sd-line b { color: var(--ink); font-weight: 650; }
+.sd-line.is-off { background: var(--bad-bg); }
+.sd-line.is-on { background: var(--good-bg); }
+.sd-line.is-warn { background: var(--warn-bg); color: var(--warn); }
+.svc-dlg .actions { justify-content: flex-end; margin-top: 0; }
+.sd-pkg { margin: 0; }
+.sd-pkg .hint { margin-top: 4px; }
+@media (max-width: 520px) {
+  .sd-opt { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .sd-state { grid-column: 2; grid-row: 2; }
+  .sd-sw { grid-column: 3; grid-row: 1 / span 2; }
+}
+@media (prefers-reduced-motion: reduce) { .sd-sw, .sd-sw::after, .sd-opt, .sd-ic { transition: none; } }
+html[data-theme="dark"] .sd-opt.is-on { background: rgba(255, 255, 255, 0.04); }
+html[data-theme="dark"] .sd-sw { background: rgba(255, 255, 255, 0.18); }
+html[data-theme="dark"] .sd-opt.is-on .sd-ic { background: rgba(255, 91, 31, 0.18); color: #FFB08E; }
+html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
 </style>
 </head>
 <body>
@@ -1182,6 +1257,10 @@ html[data-scene="scenes"] .col { background: var(--glass); }
   <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2.8 12h2.4M18.8 12h2.4M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"/></symbol>
   <symbol id="i-board" viewBox="0 0 24 24"><rect x="3.5" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="11" rx="1.5"/><rect x="15.5" y="4" width="5" height="7" rx="1.5"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.6"/><path d="m8.2 13.2 7.6 4.6"/></symbol>
+  <symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M4 10v4h3l7 4V6l-7 4z"/><path d="M18 9a4 4 0 0 1 0 6"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></symbol>
   <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 10 5.5 4h13L20 10"/><path d="M4 10a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5.5 12v8h13v-8"/><path d="M10 20v-5h4v5"/></symbol>
 </svg>
 <div class="shell">
@@ -2067,7 +2146,11 @@ html[data-scene="scenes"] .col { background: var(--glass); }
 
     function billing() {
       if (failing.has('stripe')) throw fail('source-error', 'We could not reach Stripe just now.');
-      return { ...clone(tenant.billing), stripeConnected: integrations.stripe.connected };
+      const b = clone(tenant.billing);
+      // the plan lists the services the client actually has: the package is the one list the team changes
+      // (Change services in the console), so a client who drops two services sees two here, as everywhere else
+      if (b.plan) b.plan = { ...b.plan, services: tenant.package.services.filter((s) => SERVICES[s]) };
+      return { ...b, stripeConnected: integrations.stripe.connected };
     }
 
     function settings() {
@@ -3532,6 +3615,143 @@ html[data-scene="scenes"] .col { background: var(--glass); }
   /* ---- Overview ---------------------------------------------------------------------------------- */
 
   /** @param {HTMLElement} box @param {string} part @param {{needs: any[], waiting: any[], soon: any[]}} got */
+  /* ---- services after onboarding (2026-10-08, Karan: a client who downgrades from four services to two must see
+     only two on their dashboard, and the console must show the others as not provided). The client's services are
+     doc.package.services; their dashboard already shows nothing of a service outside it (Work, updates, approvals,
+     results). Taking one away deletes nothing: doc.services keeps its history, and adding it back brings it back.
+     Every change is noted in doc.package.changes (newest first, the last twenty). ---- */
+  /** @type {Record<string, string>} */
+  const SVC_ICON = { website: 'globe', social: 'share', advertising: 'megaphone', local: 'pin' };
+  /** @type {Record<string, string>} */
+  const SVC_WHAT = {
+    website: 'Their site: menu, hours, booking and pages',
+    social: 'Posts on their Instagram and Facebook',
+    advertising: 'Paid ads on Meta and Google',
+    local: 'Their Google listing, reviews and local search'
+  };
+  /** @param {string[]} list */
+  const andList = (list) => list.length < 2 ? list.join('') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
+  /** Whether a service the client no longer has still holds work worth keeping. @param {any} w */
+  const hasHistory = (w) => !!(w && (w.now || (w.milestones && w.milestones.length) || (w.completed && w.completed.length) || (w.files && w.files.length)));
+  /** @param {string[]} now @param {string[]} had */
+  const svcDiff = (now, had) => ({
+    added: SERVICE_ORDER.filter((/** @type {string} */ s) => now.includes(s) && !had.includes(s)),
+    removed: SERVICE_ORDER.filter((/** @type {string} */ s) => had.includes(s) && !now.includes(s))
+  });
+
+  /** @param {any} d @param {string[]} services */
+  function servicesPanel(d, services) {
+    const off = SERVICE_ORDER.filter((/** @type {string} */ s) => !services.includes(s));
+    const last = (d.package.changes || [])[0];
+    const lastLine = last ? [
+      last.removed && last.removed.length ? `${andList(last.removed.map(svcLabel))} taken off` : '',
+      last.added && last.added.length ? `${andList(last.added.map(svcLabel))} added` : ''
+    ].filter(Boolean).join(', ') : '';
+    return `<section class="panel svc-panel" aria-labelledby="g-svc">
+      <div class="panel-head"><div><h2 id="g-svc">Services</h2><p>${services.length} of ${SERVICE_ORDER.length} provided. Their dashboard shows only these.</p></div>
+        <div class="btns"><button class="btn btn-sm" type="button" data-svc-change>Change services</button></div></div>
+      ${services.length ? `<ul class="svc-list">${services.map((/** @type {string} */ s) => {
+        const w = d.services[s] || {};
+        const st = STATUS[w.status] || STATUS.planned;
+        const tone = { success: 'good', info: 'info', attention: 'them', neutral: '' }[st.tone] || '';
+        return `<li><span><span class="s-name"><svg class="ic" aria-hidden="true"><use href="#i-${SVC_ICON[s] || 'page'}"/></svg>${esc(SERVICES[s].label)}</span><span class="chip ${tone}">${esc(st.label)}</span></span>
+          <span><span class="s-now">${esc(w.now || 'Nothing written yet')}</span>
+          ${w.next && w.next.text ? `<span class="s-next"><b>Next step${w.next.who === 'client' ? ', theirs' : ', ours'}:</b> ${esc(w.next.text)}</span>` : ''}
+          ${w.expected && w.expected.date ? `<span class="s-next"><b>Expected ${esc(when(w.expected.date))}:</b> ${esc(w.expected.text || 'expected')}</span>` : ''}</span>
+          <a class="s-edit" href="#/client/${esc(current.id)}/work/${s}">Edit</a></li>`;
+      }).join('')}</ul>` : '<p class="meta">They have no services right now, so their dashboard has no Work pages.</p>'}
+      ${off.length ? `<div class="svc-off-wrap"><h3 class="svc-off-h">Not provided</h3><ul class="svc-off">${off.map((/** @type {string} */ s) => `<li>
+          <span class="svc-off__ic"><svg class="ic" aria-hidden="true"><use href="#i-${SVC_ICON[s] || 'page'}"/></svg></span>
+          <span class="svc-off__txt"><span class="s-name">${esc(SERVICES[s].label)}</span><span class="meta">${hasHistory(d.services[s]) ? 'Hidden from their dashboard. Its history is kept and comes back if you add it again.' : 'Not part of their plan, so it does not appear on their dashboard.'}</span></span>
+          <span class="chip off">Not provided</span>
+          <button class="btn btn-quiet btn-sm" type="button" data-svc-change>Add back</button></li>`).join('')}</ul></div>` : ''}
+      ${last ? `<p class="svc-last meta">${icon('clock')}Last change ${esc(ago(last.at))}${last.by ? ` by ${esc(last.by)}` : ''}: ${esc(lastLine)}.</p>` : ''}
+    </section>`;
+  }
+
+  /** The Change services window: one switch per service, what the change means, then one save. */
+  function changeServices() {
+    if (!current) return;
+    const d = current.doc;
+    const had = (d.package.services || []).filter((/** @type {string} */ s) => SERVICES[s]);
+    let dlg = /** @type {HTMLDialogElement|null} */ ($('#svc-dlg'));
+    if (!dlg) {
+      const made = /** @type {HTMLDialogElement} */ (document.createElement('dialog'));
+      made.id = 'svc-dlg';
+      made.className = 'svc-dlg';
+      made.setAttribute('aria-labelledby', 'svc-dlg-h');
+      document.body.appendChild(made);
+      made.addEventListener('click', (e) => { if (e.target === made) made.close(); });
+      dlg = made;
+    }
+    const box = dlg;
+    const name = current.name;
+    box.innerHTML = `<form method="dialog" class="sd-form" novalidate>
+      <div class="sd-head"><h2 id="svc-dlg-h">Change services</h2><p>What ${esc(name)} gets from you. Their dashboard shows only the services that are on.</p></div>
+      <div class="sd-list" role="group" aria-label="Services for ${esc(name)}">${SERVICE_ORDER.map((/** @type {string} */ s) => `
+        <label class="sd-opt" data-svc="${s}">
+          <span class="sd-ic"><svg class="ic" aria-hidden="true"><use href="#i-${SVC_ICON[s]}"/></svg></span>
+          <span class="sd-txt"><span class="sd-name">${esc(SERVICES[s].label)}</span><span class="sd-what">${esc(SVC_WHAT[s] || '')}</span></span>
+          <span class="sd-state" aria-hidden="true"></span>
+          <input class="sd-sw" type="checkbox" role="switch" name="svc" value="${s}"${had.includes(s) ? ' checked' : ''} aria-label="${esc(SERVICES[s].label)}">
+        </label>`).join('')}
+      </div>
+      <div class="sd-note" aria-live="polite"></div>
+      <div class="field sd-pkg"><label for="sd-pkg">Package name</label><input id="sd-pkg" name="pkg" type="text" value="${esc(d.package.name || '')}" placeholder="Website and social" maxlength="80"><p class="hint">Shown on their Billing page. Rename it if the old name no longer fits.</p></div>
+      <div class="actions"><button class="btn btn-quiet" type="button" data-sd="cancel">Cancel</button><button class="btn" type="submit" data-sd="save">Save changes</button></div>
+    </form>`;
+    const form = /** @type {HTMLFormElement} */ ($('form', box));
+    const chosen = () => $$('input[name="svc"]:checked', form).map((i) => i.value);
+    const paint = () => {
+      const now = chosen();
+      const { added, removed } = svcDiff(now, had);
+      for (const opt of $$('.sd-opt', form)) {
+        const s = opt.dataset.svc, on = now.includes(s);
+        opt.classList.toggle('is-on', on);
+        opt.classList.toggle('is-adding', added.includes(s));
+        opt.classList.toggle('is-removing', removed.includes(s));
+        $('.sd-state', opt).textContent = added.includes(s) ? 'Adding' : removed.includes(s) ? 'Taking off' : on ? 'Provided' : 'Not provided';
+      }
+      const waiting = (d.actions || []).filter((/** @type {any} */ a) => a && removed.includes(a.service)).length;
+      const many = removed.length > 1;
+      const lines = [];
+      if (removed.length) lines.push(`<p class="sd-line is-off"><b>${esc(andList(removed.map(svcLabel)))}</b> ${many ? 'come' : 'comes'} off ${esc(name)}'s dashboard: ${many ? 'their Work pages' : 'its Work page'}, updates and results${waiting ? `, and ${waiting} item${waiting > 1 ? 's' : ''} waiting on them` : ''}. Nothing is deleted. Add ${many ? 'them' : 'it'} back any time and the history returns.</p>`);
+      if (added.length) lines.push(`<p class="sd-line is-on"><b>${esc(andList(added.map(svcLabel)))}</b> ${added.length > 1 ? 'get their own Work pages' : 'gets its own Work page'} on their dashboard${added.some((/** @type {string} */ s) => hasHistory(d.services[s])) ? ', with the history from before' : ', starting as Planned'}.</p>`);
+      if (!now.length) lines.push('<p class="sd-line is-warn">With no services their dashboard has no Work pages. If they are taking a break, pausing the client may fit better.</p>');
+      if (!lines.length) lines.push('<p class="sd-line">Switch a service on or off to see what changes for them.</p>');
+      $('.sd-note', form).innerHTML = lines.join('');
+      /** @type {HTMLButtonElement} */ ($('[data-sd="save"]', form)).disabled = !added.length && !removed.length && val(form, 'pkg') === (d.package.name || '');
+    };
+    form.addEventListener('change', paint);
+    form.addEventListener('input', paint);
+    $('[data-sd="cancel"]', form).addEventListener('click', () => box.close());
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const now = chosen();
+      const { added, removed } = svcDiff(now, had);
+      const pkgName = val(form, 'pkg');
+      const renamed = pkgName !== (d.package.name || '');
+      if (!added.length && !removed.length && !renamed) { box.close(); return; }
+      const done = busy(/** @type {HTMLButtonElement} */ ($('[data-sd="save"]', form)), 'Saving');
+      try {
+        await saveDoc((doc) => {
+          doc.package = { ...doc.package, name: pkgName, services: SERVICE_ORDER.filter((/** @type {string} */ s) => now.includes(s)) };
+          for (const s of added) if (!doc.services[s]) doc.services[s] = blankService();
+          // the Billing page shows the plan's own name: keep it with the package, as Save details does
+          if (renamed && pkgName) doc.billing = { ...(doc.billing || {}), plan: { ...((doc.billing && doc.billing.plan) || {}), name: pkgName } };
+          if (added.length || removed.length) doc.package.changes = [{ at: new Date().toISOString(), by: (me && me.name) || '', added, removed }, ...(doc.package.changes || [])].slice(0, 20);
+        });
+        box.close();
+        toast(`${added.length || removed.length ? `${name} now has ${now.length ? andList(now.map(svcLabel)) : 'no services'}.` : `Package renamed to ${pkgName || 'nothing'}.`}${current && current.clerk_org_id ? ' Their dashboard shows this the next time it loads.' : ''}`);
+        route();
+      } catch (x) { done(); toast(message(x), true); }
+    });
+    paint();
+    box.showModal();
+    const first = /** @type {HTMLElement|null} */ ($('.sd-sw', form));
+    if (first) first.focus();
+  }
+
   function overview(box, part, got) {
     const d = current.doc;
     const mt = d.meeting || {};
@@ -3549,18 +3769,7 @@ html[data-scene="scenes"] .col { background: var(--glass); }
         <section class="panel" aria-labelledby="g-soon"><div class="panel-head"><h2 id="g-soon">Coming up</h2></div>${glanceList(got.soon, 'No dates in the next week.')}</section>
       </div>
       ${dmBlock(current.id)}
-      <section class="panel" aria-labelledby="g-svc"><div class="panel-head"><h2 id="g-svc">Services</h2><p>What their Home page says right now.</p></div>
-        ${services.length ? `<ul class="svc-list">${services.map((/** @type {string} */ s) => {
-          const w = d.services[s] || {};
-          const st = STATUS[w.status] || STATUS.planned;
-          const tone = { success: 'good', info: 'info', attention: 'them', neutral: '' }[st.tone] || '';
-          return `<li><span><span class="s-name">${esc(SERVICES[s].label)}</span><span class="chip ${tone}">${esc(st.label)}</span></span>
-            <span><span class="s-now">${esc(w.now || 'Nothing written yet')}</span>
-            ${w.next && w.next.text ? `<span class="s-next"><b>Next step${w.next.who === 'client' ? ', theirs' : ', ours'}:</b> ${esc(w.next.text)}</span>` : ''}
-            ${w.expected && w.expected.date ? `<span class="s-next"><b>Expected ${esc(when(w.expected.date))}:</b> ${esc(w.expected.text || 'expected')}</span>` : ''}</span>
-            <a class="s-edit" href="#/client/${esc(current.id)}/work/${s}">Edit</a></li>`;
-        }).join('')}</ul>` : '<p class="meta">No services chosen yet. Tick them under Package below.</p>'}
-      </section>
+      ${servicesPanel(d, services)}
       </div>
       <div class="ov-edit"${part === 'edit' ? '' : ' hidden'}>
       <section class="panel" aria-labelledby="login-h">
@@ -3594,11 +3803,11 @@ html[data-scene="scenes"] .col { background: var(--glass); }
           <div class="field"><label for="o-email">Main contact's email</label><input id="o-email" name="email" type="email" value="${esc(d.user.email)}" maxlength="200"><p class="hint">For contact only. To let them sign in, use Portal login above.</p></div>
           <div class="field"><label for="o-role">Their role</label><input id="o-role" name="role" type="text" value="${esc(d.user.role)}" maxlength="60" placeholder="Owner"></div>
         </div>
-        <h3 class="panel-sub">Package <span class="meta">What they pay for. The services ticked here get their own Work page.</span></h3>
+        <h3 class="panel-sub">Package <span class="meta">What they pay for. Each service they have gets its own Work page.</span></h3>
         <div class="grid-3">
           <div class="field"><label for="o-pkg">Package name</label><input id="o-pkg" name="pkg" type="text" value="${esc(d.package.name)}" placeholder="Full service" maxlength="80"></div>
           <div class="field span-2"><label for="o-billing">Billing line</label><input id="o-billing" name="billing" type="text" value="${esc(d.package.billing)}" placeholder="Billed monthly on the 22nd" maxlength="120"></div>
-          <div class="field span-all"><span class="label">Services</span>${servicesChecks(d.package.services || [])}</div>
+          <div class="field span-all"><span class="label">Services</span><div class="svc-sum">${SERVICE_ORDER.map((/** @type {string} */ s) => `<span class="chip ${services.includes(s) ? 'good' : 'off'}">${esc(SERVICES[s].label)}${services.includes(s) ? '' : ': not provided'}</span>`).join('')}<button class="btn btn-quiet btn-sm" type="button" data-svc-change>Change services</button></div></div>
         </div>
         <h3 class="panel-sub" id="billing">Billing <span class="meta">For the Billing page. Entered here until Stripe is connected, then filled in automatically.</span></h3>
         <div class="grid-4">
@@ -3619,6 +3828,7 @@ html[data-scene="scenes"] .col { background: var(--glass); }
         <div class="actions"><button class="btn" type="submit">Save details</button></div>
       </form>
       </div>`;
+    for (const b of $$('[data-svc-change]', box)) b.addEventListener('click', () => changeServices());
     if (part === 'edit') {
       const pf = /** @type {HTMLFormElement} */ ($('#profile-form', box));
       track(pf, 'Plan and approvals');
@@ -3644,9 +3854,8 @@ html[data-scene="scenes"] .col { background: var(--glass); }
         const doc = clone(current.doc);
         doc.business = { ...doc.business, name, kind: val(f, 'kind') };
         doc.user = { ...doc.user, firstName: val(f, 'first'), email: val(f, 'email'), role: val(f, 'role') };
-        const services = $$('input[name="svc"]:checked', f).map((i) => i.value);
-        doc.package = { ...doc.package, name: val(f, 'pkg'), billing: val(f, 'billing'), services };
-        for (const s of services) if (!doc.services[s]) doc.services[s] = blankService();
+        // the services themselves change only through Change services (changeServices), never here
+        doc.package = { ...doc.package, name: val(f, 'pkg'), billing: val(f, 'billing') };
         doc.team = { name: val(f, 'team') || 'Your account team', reply: val(f, 'reply') };
         const md = val(f, 'mdate');
         const sub = { ...((doc.billing && doc.billing.subscription) || {}) };
@@ -4436,7 +4645,7 @@ html[data-scene="scenes"] .col { background: var(--glass); }
     const d = current.doc;
     const services = (d.package.services || []).filter((/** @type {string} */ s) => SERVICES[s]);
     if (!services.length) {
-      box.innerHTML = `<div class="empty"><p><strong>No services in this client's package.</strong></p><p>Tick them under Package on the Overview tab.</p><a class="btn" href="#/client/${esc(current.id)}/overview">Go to Overview</a></div>`;
+      box.innerHTML = `<div class="empty"><p><strong>No services in this client's package.</strong></p><p>Use Change services on the Overview tab to give them one.</p><a class="btn" href="#/client/${esc(current.id)}/overview">Go to Overview</a></div>`;
       return;
     }
     const s = services.includes(part) ? part : services[0];

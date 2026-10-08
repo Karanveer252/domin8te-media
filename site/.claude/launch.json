@@ -47,15 +47,6 @@
       "autoPort": true
     },
     {
-      "name": "dm-prod-portal",
-      "runtimeExecutable": "node",
-      "runtimeArgs": [
-        "C:/Work/domin8te-dm-prod/build/portal/serve.js"
-      ],
-      "port": 4183,
-      "autoPort": true
-    },
-    {
       "name": "working-copies",
       "runtimeExecutable": "node",
       "runtimeArgs": [

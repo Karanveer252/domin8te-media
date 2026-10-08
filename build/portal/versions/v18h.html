@@ -762,6 +762,13 @@ td { font-variant-numeric: tabular-nums; }
 .plan-name { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .plan-list { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .plan-list li { display: inline-flex; align-items: center; gap: 6px; color: var(--p-ink-2); }
+/* the services the client does not have: quiet, below their plan (2026-10-08) */
+.plan-off { align-self: stretch; width: 100%; margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--p-line-2); }
+.plan-off-h { margin: 0 0 8px; font-size: 14px; font-weight: 650; color: var(--p-ink-3); }
+.plan-list.is-off li { color: var(--p-ink-3); }
+.plan-list.is-off li .icon, .plan-list.is-off li svg { opacity: 0.6; }
+.plan-off-ask { margin: 10px 0 0; font-size: 14px; color: var(--p-ink-3); }
+.plan-off-ask a { color: var(--p-accent-ink); font-weight: 600; }
 .card-line { display: inline-flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 650; }
 .invoice { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px 20px; padding: 16px 22px; }
 .invoice + .invoice { border-top: 1px solid var(--p-line); }
@@ -3963,7 +3970,11 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
     function billing() {
       if (failing.has('stripe')) throw fail('source-error', 'We could not reach Stripe just now.');
-      return { ...clone(tenant.billing), stripeConnected: integrations.stripe.connected };
+      const b = clone(tenant.billing);
+      // the plan lists the services the client actually has: the package is the one list the team changes
+      // (Change services in the console), so a client who drops two services sees two here, as everywhere else
+      if (b.plan) b.plan = { ...b.plan, services: tenant.package.services.filter((s) => SERVICES[s]) };
+      return { ...b, stripeConnected: integrations.stripe.connected };
     }
 
     function settings() {
@@ -5293,6 +5304,14 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   const esc = F.esc;
   const icon = UI.icon;
   const SVC = () => D8.data.SERVICES;
+  /** The services a client does not have, quietly, under their plan (2026-10-08: plans can now shrink or grow).
+   * @param {string[]} has */
+  const planOff = (has) => {
+    const off = (D8.data.SERVICE_ORDER || Object.keys(SVC())).filter((/** @type {string} */ s) => !has.includes(s) && SVC()[s]);
+    return off.length ? `<div class="plan-off"><p class="plan-off-h">Not in your plan</p>
+      <ul class="plan-list is-off">${off.map((/** @type {string} */ x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
+      <p class="plan-off-ask">Want one of these added? <a href="#/help">Send us a note</a>.</p></div>` : '';
+  };
   // Design variants can ask for a Home order, a Coming up section and a Basic / Advanced switch
   // on Results (D8VARIANT.home, .reportModes). Without them, every page renders as in 16.
   /** @type {any} */
@@ -5765,6 +5784,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
           <div class="sec-head"><h2 id="h-plan">Your plan</h2>${status}</div>
           <p class="plan-name">${esc(b.plan.name)}</p>
           <ul class="plan-list">${b.plan.services.map((x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
+          ${planOff(b.plan.services)}
           <dl class="facts"><div><dt>Billing</dt><dd>${esc(b.plan.interval)}</dd></div><div><dt>Next payment</dt><dd>${esc(F.date(s.nextBilling, { year: true }))}</dd></div></dl>
         </section>
         <section class="card bill-card" aria-labelledby="h-pay">

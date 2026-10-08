@@ -14,6 +14,14 @@
   const esc = F.esc;
   const icon = UI.icon;
   const SVC = () => D8.data.SERVICES;
+  /** The services a client does not have, quietly, under their plan (2026-10-08: plans can now shrink or grow).
+   * @param {string[]} has */
+  const planOff = (has) => {
+    const off = (D8.data.SERVICE_ORDER || Object.keys(SVC())).filter((/** @type {string} */ s) => !has.includes(s) && SVC()[s]);
+    return off.length ? `<div class="plan-off"><p class="plan-off-h">Not in your plan</p>
+      <ul class="plan-list is-off">${off.map((/** @type {string} */ x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
+      <p class="plan-off-ask">Want one of these added? <a href="#/help">Send us a note</a>.</p></div>` : '';
+  };
   // Design variants can ask for a Home order, a Coming up section and a Basic / Advanced switch
   // on Results (D8VARIANT.home, .reportModes). Without them, every page renders as in 16.
   /** @type {any} */
@@ -486,6 +494,7 @@
           <div class="sec-head"><h2 id="h-plan">Your plan</h2>${status}</div>
           <p class="plan-name">${esc(b.plan.name)}</p>
           <ul class="plan-list">${b.plan.services.map((x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
+          ${planOff(b.plan.services)}
           <dl class="facts"><div><dt>Billing</dt><dd>${esc(b.plan.interval)}</dd></div><div><dt>Next payment</dt><dd>${esc(F.date(s.nextBilling, { year: true }))}</dd></div></dl>
         </section>
         <section class="card bill-card" aria-labelledby="h-pay">
