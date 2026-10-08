@@ -209,8 +209,10 @@
       profiles: Object.fromEntries((check(pf) || []).map((/** @type {any} */ x) => [x.tenant_id, x])),
       // A table added later: if it is not there yet, the console carries on without it.
       loginAsks: la && !la.error ? la.data || [] : [],
+      reviews: all && all.reviews,
       at: Date.now()
     };
+    try { await loadReviews(); } catch (e) { /* the approvals block shows nothing rather than stopping the console */ }
     if (current) {
       const fresh = all.tenants.find((/** @type {any} */ x) => x.id === current.id);
       if (fresh) current = { ...fresh, decisions: current.decisions, messages: current.messages, requests: current.requests };
@@ -729,6 +731,7 @@
       <p class="summary"><span><b>${needs.length}</b> ${needs.length === 1 ? 'thing needs' : 'things need'} you</span><span><b>${waiting.length}</b> waiting on clients</span><span><b>${soon.length}</b> coming up this week</span><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span></p>
       ${all.tenants.length ? '' : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p><a class="btn" href="#/new">Add a client</a></div>`}
       ${needs.length ? group('Needs you', 'Requests, messages and answers from clients, and dates that have passed. Open one to deal with it.', needs, '') : `<div class="empty"><p><strong>Nothing needs you right now.</strong></p><p>New requests, messages, changes and passed dates will appear here.</p></div>`}
+      ${dmBlock(null)}
       ${group('Waiting on clients', 'Approvals they have not answered and next steps that are theirs. Overdue ones are marked.', waiting, 'Nothing is waiting on a client.')}
       ${group('Coming up in the next 7 days', 'Dates you have promised and meetings in the diary.', soon, 'No dates or meetings in the next week.')}`;
   }
@@ -1000,6 +1003,7 @@
         <section class="panel" aria-labelledby="g-them"><div class="panel-head"><h2 id="g-them">Waiting on them</h2></div>${glanceList(got.waiting, 'Nothing is waiting on the client.')}</section>
         <section class="panel" aria-labelledby="g-soon"><div class="panel-head"><h2 id="g-soon">Coming up</h2></div>${glanceList(got.soon, 'No dates in the next week.')}</section>
       </div>
+      ${dmBlock(current.id)}
       <section class="panel" aria-labelledby="g-svc"><div class="panel-head"><h2 id="g-svc">Services</h2><p>What their Home page says right now.</p></div>
         ${services.length ? `<ul class="svc-list">${services.map((/** @type {string} */ s) => {
           const w = d.services[s] || {};
@@ -1750,11 +1754,13 @@
         <div class="actions"><button class="btn btn-quiet" type="button" data-action="sign-out">Sign out</button></div>
       </section>
       <section class="panel" aria-labelledby="s-team" id="team-box"></section>
+      ${me.role === 'super_admin' ? '<section class="panel" aria-labelledby="s-gates" id="gates-box"></section>' : ''}
       <section class="panel" aria-labelledby="s-keys"><div class="panel-head"><h2 id="s-keys">Keyboard shortcuts</h2></div>
         <dl class="facts keys"><dt><kbd>Ctrl</kbd> <kbd>K</kbd> or <kbd>/</kbd></dt><dd>Jump to a client, page or tab</dd><dt><kbd>Alt</kbd> <kbd>1</kbd> to <kbd>8</kbd></dt><dd>Switch tabs on a client's page</dd><dt><kbd>Enter</kbd> on a card</dt><dd>Edit the card</dd><dt><kbd>Esc</kbd></dt><dd>Close the search or a dialog</dd></dl>
       </section>`;
     window.scrollTo(0, y);
     teamPanel(/** @type {HTMLElement} */ ($('#team-box')));
+    if ($('#gates-box')) gatesPanel(/** @type {HTMLElement} */ ($('#gates-box')));
     main.onclick = async (e) => {
       const b = /** @type {HTMLElement} */ (e.target).closest('[data-pref]');
       if (!b) return;
@@ -2257,6 +2263,227 @@
         toast(message(x), true);
       }
     });
+  }
+
+  /* ---- Dashboard approvals: what the dashboard manager queued for client portals -------------------------- */
+
+  // Nothing reaches a client's portal until someone approves it here. Items and invoices arrive pending (new) or as a
+  // pending revision of something already showing, which keeps showing until approved. Exceptions are the manager's
+  // questions: a card moved in both places, a card gone from Multica, a data source gone quiet.
+
+  const DM_KIND = { work: 'Work', update: 'Update', result: 'Result' };
+  const DM_EXCEPTION = { multica_conflict: 'Moved in both places', multica_missing: 'Gone from Multica', source_stale: 'Data source quiet', event_reaped_failed: 'Event failed', invalid_event: 'Event rejected', invalid_billing_invoice: 'Invoice rejected', projection_write_failed: 'Write failed', billing_projection_write_failed: 'Write failed', client_item_hidden: 'Hidden from client', client_invoice_hidden: 'Invoice hidden' };
+
+  /** The queue for every client. Tables added later: if they are not there yet, the console carries on without them. */
+  async function loadReviews() {
+    const client = await db();
+    const [i, v, x, s] = await Promise.all([
+      client.from('client_dashboard_items').select('*').or('verification_status.eq.pending,pending_at.not.is.null').order('updated_at'),
+      client.from('client_billing_invoices').select('*').or('verification_status.eq.pending,pending_at.not.is.null').order('updated_at'),
+      client.from('dashboard_exceptions').select('*').eq('status', 'open').order('detected_at'),
+      client.from('tenant_multica_sync').select('*')
+    ]);
+    const ok = (/** @type {any} */ r) => (r && !r.error ? r.data || [] : []);
+    if (all) all.reviews = { items: ok(i), invoices: ok(v), exceptions: ok(x), sync: Object.fromEntries(ok(s).map((/** @type {any} */ r) => [r.tenant_id, r])) };
+  }
+  /** @param {string|null} tenantId */
+  function reviewsFor(tenantId) {
+    const r = (all && all.reviews) || { items: [], invoices: [], exceptions: [] };
+    const mine = (/** @type {any[]} */ list) => tenantId ? list.filter((x) => x.tenant_id === tenantId) : list;
+    return { items: mine(r.items), invoices: mine(r.invoices), exceptions: mine(r.exceptions) };
+  }
+  /** @param {any} v */
+  const dmText = (v) => v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+  /** Field by field: what the client sees now, and what they would see. @param {any} before @param {any} after */
+  function dmDiff(before, after) {
+    const keys = Array.from(new Set([...Object.keys(before || {}), ...Object.keys(after || {})]));
+    return `<dl class="facts dm-diff">${keys.map((k) => {
+      const was = dmText(before && before[k]);
+      const now = dmText(after && after[k]);
+      return `<dt>${esc(k)}</dt><dd>${before && was !== now ? `<del>${esc(was || '(empty)')}</del> ` : ''}<ins>${esc(now || '(empty)')}</ins></dd>`;
+    }).join('')}</dl>`;
+  }
+  /** @param {string} id */
+  const clientName = (id) => { const t = tenant(id); return t ? t.name : 'A client'; };
+
+  /** @param {any} it @param {boolean} showClient */
+  function dmItemCard(it, showClient) {
+    const revision = !!it.pending_at;
+    const proposed = revision ? it.pending_content : it.content;
+    const source = revision ? it.pending_source_ref : it.source_ref;
+    const fields = Object.entries(proposed || {}).map(([k, v]) => `<div class="field"><label for="dm-${esc(it.id)}-${esc(k)}">${esc(k)}</label><input id="dm-${esc(it.id)}-${esc(k)}" name="${esc(k)}" data-type="${typeof v}" value="${esc(dmText(v))}" maxlength="2000"></div>`).join('');
+    return `<li class="dm-card" data-dm-item="${esc(it.id)}">
+      <p class="g-top">${showClient ? `<span class="client">${esc(clientName(it.tenant_id))}</span>` : ''}<span class="chip you">${esc(DM_KIND[it.item_kind] || it.item_kind)}</span>${revision ? '<span class="chip info">Change to something they see</span>' : ''}${it.hidden_at ? '<span class="chip">Hidden</span>' : ''}${it.publish_requested ? '<span class="chip plain">Sender asked to publish</span>' : ''}<span class="meta">${esc(it.source_kind)} · ${esc(source || '')} · ${esc(ago(it.pending_at || it.updated_at))}</span></p>
+      ${dmDiff(revision ? it.content : null, proposed)}
+      <form class="dm-edit" hidden novalidate><div class="grid-3">${fields}</div>
+        <div class="actions"><button class="btn btn-sm" type="submit">Save and approve</button><button class="btn btn-quiet btn-sm" type="button" data-dm="edit-cancel">Cancel</button></div></form>
+      <form class="dm-hide" hidden novalidate><div class="field"><label for="dm-why-${esc(it.id)}">Why hide it? (kept in the history)</label><input id="dm-why-${esc(it.id)}" name="reason" maxlength="1000" required></div>
+        <div class="actions"><button class="btn btn-danger btn-sm" type="submit">Hide from the client</button><button class="btn btn-quiet btn-sm" type="button" data-dm="hide-cancel">Cancel</button></div></form>
+      <div class="actions dm-buttons">${it.hidden_at ? '' : '<button class="btn btn-sm" type="button" data-dm="approve">Approve</button><button class="btn btn-quiet btn-sm" type="button" data-dm="edit">Edit, then approve</button>'}
+        <button class="btn btn-quiet btn-sm" type="button" data-dm="reject">Reject</button>${it.client_visible ? '<button class="btn btn-quiet btn-sm" type="button" data-dm="hide">Hide what they see</button>' : ''}</div></li>`;
+  }
+  /** Invoices: approve or reject only. They are never published automatically. @param {any} inv @param {boolean} showClient */
+  function dmInvoiceCard(inv, showClient) {
+    const p = inv.pending_at ? inv.pending_row || {} : null;
+    const view = (/** @type {any} */ r) => ({ number: r.invoice_number, amount: r.amount_minor === undefined || r.amount_minor === null ? '' : `${(Number(r.amount_minor) / 100).toFixed(2)} ${r.currency || ''}`, status: r.status, issued: r.issued_at, due: r.due_at, paid: r.paid_at, link: r.hosted_payment_url });
+    return `<li class="dm-card" data-dm-invoice="${esc(inv.id)}">
+      <p class="g-top">${showClient ? `<span class="client">${esc(clientName(inv.tenant_id))}</span>` : ''}<span class="chip you">Invoice</span>${p ? '<span class="chip info">Change to something they see</span>' : ''}<span class="meta">${esc(inv.source_ref)} · ${esc(ago(inv.pending_at || inv.updated_at))}</span></p>
+      ${dmDiff(p ? view(inv) : null, view(p ? { ...inv, ...p } : inv))}
+      <div class="actions dm-buttons"><button class="btn btn-sm" type="button" data-dm="inv-approve">Approve</button><button class="btn btn-quiet btn-sm" type="button" data-dm="inv-reject">Reject</button></div></li>`;
+  }
+  /** @param {any} x @param {boolean} showClient */
+  function dmExceptionCard(x, showClient) {
+    const v = x.last_verified_value || {};
+    const buttons = x.reason_code === 'multica_conflict' && v.taskId
+      ? `<button class="btn btn-sm" type="button" data-dm="keep-ours">Keep ours (${esc(TASK_STATUS_LABEL[v.local] || v.local)}), push to Multica</button><button class="btn btn-quiet btn-sm" type="button" data-dm="take-theirs">Take Multica's (${esc(TASK_STATUS_LABEL[v.remote] || v.remote)})</button>`
+      : '<button class="btn btn-quiet btn-sm" type="button" data-dm="resolve">Resolve</button>';
+    return `<li class="dm-card" data-dm-exception="${esc(x.id)}" data-task="${esc(v.taskId || '')}" data-local="${esc(v.local || '')}" data-remote="${esc(v.remote || '')}">
+      <p class="g-top">${showClient ? `<span class="client">${esc(clientName(x.tenant_id))}</span>` : ''}<span class="chip ${x.severity === 'critical' ? 'bad' : 'warn'}">${esc(DM_EXCEPTION[x.reason_code] || x.reason_code)}</span><span class="meta">${esc(ago(x.detected_at))}</span></p>
+      <p>${esc(x.message)}</p>
+      <div class="actions dm-buttons">${buttons}</div></li>`;
+  }
+  /** "Multica synced 40 s ago", from presence only: no secret is ever read. @param {string} tenantId */
+  function dmSyncLine(tenantId) {
+    const t = tenant(tenantId);
+    if (!t) return '';
+    const st = multicaState;
+    if (st && !st.pending && !st.configured) return '<p class="meta dm-sync">Multica not configured, so nothing syncs from it yet.</p>';
+    const s = all && all.reviews && all.reviews.sync ? all.reviews.sync[tenantId] : null;
+    if (!s) return '<p class="meta dm-sync">Multica: not synced yet. Clients sync once their Multica project is linked.</p>';
+    const okAt = s.last_ok_at ? Math.round((Date.now() - new Date(s.last_ok_at).getTime()) / 1000) : null;
+    const when = okAt === null ? 'never' : okAt < 90 ? `${okAt} s ago` : ago(s.last_ok_at);
+    return `<p class="meta dm-sync">Multica synced ${esc(when)}${s.last_total !== null && s.last_total !== undefined ? `, ${plural(s.last_total, 'card')} in their project` : ''}${s.last_error ? `. <span class="late">Last try failed (${esc(s.last_error)}).</span>` : '.'}</p>`;
+  }
+  /** The approvals block: on the queue (every client) and on a client's Overview (that client). @param {string|null} tenantId */
+  function dmBlock(tenantId) {
+    const r = reviewsFor(tenantId);
+    const count = r.items.length + r.invoices.length + r.exceptions.length;
+    const showClient = !tenantId;
+    const lede = 'Nothing here reaches a client\'s portal until you approve it. A change to something they already see keeps showing the old version until then.';
+    const body = count
+      ? `<ul class="q dm-list">${r.exceptions.map((x) => dmExceptionCard(x, showClient)).join('')}${r.items.map((x) => dmItemCard(x, showClient)).join('')}${r.invoices.map((x) => dmInvoiceCard(x, showClient)).join('')}</ul>`
+      : `<p class="meta">Nothing waiting for approval.</p>`;
+    if (tenantId) return `<section class="panel" aria-labelledby="g-dm"><div class="panel-head"><h2 id="g-dm">Dashboard updates to approve <span class="meta">${count}</span></h2><p>${esc(lede)}</p></div>${dmSyncLine(tenantId)}${body}</section>`;
+    return count ? `<section class="q-group"><h2>Dashboard updates to approve <span class="meta">${count}</span></h2><p class="lede">${esc(lede)}</p>${body}</section>` : '';
+  }
+
+  /** Approve, reject, edit, hide and resolve, wherever the block is shown. */
+  async function dmAct(/** @type {HTMLButtonElement} */ b, /** @type {string} */ act) {
+    const card = /** @type {HTMLElement} */ (b.closest('.dm-card'));
+    const client = await db();
+    const itemId = card.getAttribute('data-dm-item');
+    const invId = card.getAttribute('data-dm-invoice');
+    const excId = card.getAttribute('data-dm-exception');
+    if (act === 'edit' || act === 'hide') {
+      const f = /** @type {HTMLFormElement} */ ($(act === 'edit' ? '.dm-edit' : '.dm-hide', card));
+      f.hidden = false;
+      $('.dm-buttons', card).hidden = true;
+      const first = $('input', f);
+      if (first) first.focus();
+      return;
+    }
+    if (act === 'edit-cancel' || act === 'hide-cancel') {
+      for (const f of $$('form', card)) { f.hidden = true; f.reset(); }
+      $('.dm-buttons', card).hidden = false;
+      return;
+    }
+    const done = busy(b, 'Saving');
+    try {
+      if (itemId && (act === 'approve' || act === 'reject')) {
+        check(await client.rpc('review_dashboard_item', { p_item_id: itemId, p_decision: act, p_note: null }));
+        toast(act === 'approve' ? 'Approved. It is on their portal now.' : 'Rejected. Nothing changed on their portal.');
+      } else if (invId && (act === 'inv-approve' || act === 'inv-reject')) {
+        check(await client.rpc('review_billing_invoice', { p_invoice_id: invId, p_decision: act === 'inv-approve' ? 'approve' : 'reject', p_note: null }));
+        toast(act === 'inv-approve' ? 'Invoice approved. It is on their portal now.' : 'Invoice rejected.');
+      } else if (excId && act === 'resolve') {
+        check(await client.rpc('resolve_dashboard_exception', { p_id: excId, p_status: 'resolved', p_note: null }));
+        toast('Resolved.');
+      } else if (excId && (act === 'keep-ours' || act === 'take-theirs')) {
+        const taskId = card.getAttribute('data-task') || '';
+        if (act === 'keep-ours') {
+          await multica({ action: 'push', taskId });
+          toast('Pushed. Multica has the card as it is here.');
+        } else {
+          const remote = card.getAttribute('data-remote') || '';
+          const row = check(await client.from('tasks').update({ status: remote, multica_status: remote }).eq('id', taskId).select('*').single());
+          const k = all.tasks.find((/** @type {any} */ x) => x.id === taskId);
+          if (k) { Object.assign(k, row); requestFollows(k); }
+          toast(`Moved to ${TASK_STATUS_LABEL[remote] || remote}, as in Multica.`);
+        }
+        check(await client.rpc('resolve_dashboard_exception', { p_id: excId, p_status: 'resolved', p_note: act === 'keep-ours' ? 'kept ours, pushed' : 'took Multica\'s' }));
+      }
+      await loadReviews();
+      route();
+    } catch (x) { done(); toast(message(x), true); }
+  }
+  document.addEventListener('click', (e) => {
+    const b = /** @type {HTMLButtonElement} */ (/** @type {HTMLElement} */ (e.target).closest('[data-dm]'));
+    if (b && b.closest('.dm-card')) dmAct(b, b.getAttribute('data-dm') || '');
+  });
+  document.addEventListener('submit', async (e) => {
+    const f = /** @type {HTMLFormElement} */ (e.target);
+    if (!f.classList || !(f.classList.contains('dm-edit') || f.classList.contains('dm-hide'))) return;
+    e.preventDefault();
+    const card = /** @type {HTMLElement} */ (f.closest('.dm-card'));
+    const itemId = card.getAttribute('data-dm-item') || '';
+    const done = busy(/** @type {HTMLButtonElement} */ ($('button[type=submit]', f)), 'Saving');
+    try {
+      if (f.classList.contains('dm-edit')) {
+        /** @type {any} */ const content = {};
+        for (const el of $$('input', f)) {
+          const type = el.getAttribute('data-type');
+          content[el.name] = type === 'number' && el.value.trim() !== '' && !isNaN(Number(el.value)) ? Number(el.value) : type === 'boolean' ? el.value === 'true' : el.value;
+        }
+        check(await (await db()).rpc('review_dashboard_item', { p_item_id: itemId, p_decision: 'approve', p_note: 'edited before approval', p_content: content }));
+        toast('Edited and approved. It is on their portal now.');
+      } else {
+        const reason = val(f, 'reason');
+        if (!reason) { done(); toast('Say why it is being hidden.', true); return; }
+        await callFn('dashboard-recovery', { action: 'hide', targetType: 'dashboard-item', itemId, reason });
+        toast('Hidden from the client. The history keeps it.');
+      }
+      await loadReviews();
+      route();
+    } catch (x) { done(); toast(message(x), true); }
+  });
+
+  /** Settings, super admins only: the four rollout gates and the per-client auto-publish switch. @param {HTMLElement} box */
+  async function gatesPanel(box) {
+    const GATES = [['a_test_project_tests', 'Test-project tests pass'], ['b_field_evidence_checks', 'Field-level evidence checks pass'], ['c_tenant_authorization', 'Tenant authorization checks pass'], ['d_test_client_backfill', 'One test client backfilled and approved']];
+    const head = `<div class="panel-head"><h2 id="s-gates">Publishing gates</h2><p>Automatic publishing stays off until all four gates are recorded. Even then it needs the client switched on here <strong>and</strong> AUTO_PUBLISH_ENABLED set on the server by Karan. Invoices are never published automatically.</p></div>`;
+    box.innerHTML = head + skeleton(1);
+    const client = await db();
+    const [g, a] = await Promise.all([client.from('dashboard_publish_gates').select('*'), client.from('tenant_auto_publish').select('*')]);
+    if (g.error) { box.innerHTML = head + '<p class="meta">The publishing tables are not on this database yet.</p>'; return; }
+    const passed = Object.fromEntries((g.data || []).map((/** @type {any} */ x) => [x.gate, x]));
+    const allPassed = GATES.every(([k]) => passed[k]);
+    const on = Object.fromEntries(((a && a.data) || []).map((/** @type {any} */ x) => [x.tenant_id, x.enabled]));
+    box.innerHTML = `${head}
+      <dl class="facts">${GATES.map(([k, l]) => `<dt>${esc(l)}</dt><dd>${passed[k] ? `<span class="chip good">Passed</span> <span class="meta">${esc(ago(passed[k].passed_at))}: ${esc(passed[k].evidence_ref)}</span>` : '<span class="chip warn">Not yet</span>'}</dd>`).join('')}</dl>
+      <form id="gate-form" novalidate><h3 class="panel-sub">Record a gate <span class="meta">With a link to the evidence: the CI run, the test report, the sign-off.</span></h3>
+        <div class="grid-3"><div class="field"><label for="g-gate">Gate</label><select id="g-gate" name="gate">${GATES.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</select></div>
+          <div class="field"><label for="g-ev">Evidence</label><input id="g-ev" name="evidence" maxlength="1000" required></div></div>
+        <div class="actions"><button class="btn" type="submit">Record the gate</button></div></form>
+      <h3 class="panel-sub">Automatic publishing, per client <span class="meta">${allPassed ? 'Only items the sender asked to publish, and only when the database\'s evidence rules pass. Everything else still waits here.' : 'Switches unlock once all four gates are recorded.'}</span></h3>
+      ${all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived').map((/** @type {any} */ t) => `<label class="switch-row"><input type="checkbox" role="switch" data-dm-auto="${esc(t.id)}"${on[t.id] ? ' checked' : ''}${allPassed || on[t.id] ? '' : ' disabled'}><span><span class="pick-t">${esc(t.name)}</span><span class="pick-d">${on[t.id] ? 'On here; also needs AUTO_PUBLISH_ENABLED on the server' : 'Off: everything waits for approval'}</span></span></label>`).join('')}`;
+    const f = /** @type {HTMLFormElement} */ ($('#gate-form', box));
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const evidence = val(f, 'evidence');
+      if (!evidence) { toast('Add the evidence: a link or reference.', true); return; }
+      const done = busy($('button[type=submit]', f), 'Recording');
+      try { check(await client.rpc('record_publish_gate', { p_gate: val(f, 'gate'), p_evidence_ref: evidence })); toast('Gate recorded.'); gatesPanel(box); } catch (x) { done(); toast(message(x), true); }
+    });
+    // onchange, not addEventListener: the panel redraws itself after each change and must not stack handlers.
+    box.onchange = async (e) => {
+      const t = /** @type {HTMLInputElement} */ (e.target);
+      const id = t.getAttribute('data-dm-auto');
+      if (!id) return;
+      e.stopPropagation();
+      t.disabled = true;
+      try { check(await client.rpc('set_tenant_auto_publish', { p_tenant: id, p_enabled: t.checked })); toast(t.checked ? 'On for this client. AUTO_PUBLISH_ENABLED must also be set on the server.' : 'Off for this client.'); } catch (x) { t.checked = !t.checked; toast(message(x), true); }
+      gatesPanel(box);
+    };
   }
 
   /* ---- global actions -------------------------------------------------------------------------------- */
