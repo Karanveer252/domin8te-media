@@ -2843,7 +2843,9 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     try { await loadReviews(); } catch (e) { /* the approvals block shows nothing rather than stopping the console */ }
     if (current) {
       const fresh = all.tenants.find((/** @type {any} */ x) => x.id === current.id);
-      if (fresh) current = { ...fresh, decisions: current.decisions, messages: current.messages, requests: current.requests };
+      // the board's cards come along too, fresh (Hermes may have moved some); leaving them out made the next "Add the card"
+      // fail with "Cannot read properties of undefined (reading 'push')" after the card was already saved (2026-10-08)
+      if (fresh) current = { ...fresh, decisions: current.decisions, messages: current.messages, requests: current.requests, tasks: all.tasks.filter((/** @type {any} */ x) => x.tenant_id === fresh.id) };
     }
     renderSide();
   }
@@ -4087,8 +4089,8 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       try {
         const client = await db();
         const row = check(await client.from('tasks').insert({ tenant_id: current.id, kind: 'task', title, detail: val(f, 'detail'), status: val(f, 'status') || 'todo', service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, position: (current.tasks || []).length }).select('*').single());
-        current.tasks.push(row);
-        all.tasks.push(row);
+        (current.tasks = current.tasks || []).push(row);
+        (all.tasks = all.tasks || []).push(row);
         clean(f);
         toast('Card added.');
         location.hash = `#/client/${current.id}/board`;
@@ -4100,19 +4102,19 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       }
     });
 
-    wireBoard(box, (id) => current.tasks.find((/** @type {any} */ x) => x.id === id), () => route());
+    wireBoard(box, (id) => (current.tasks || []).find((/** @type {any} */ x) => x.id === id), () => route());
     box.addEventListener('click', async (e) => {
       const target = /** @type {HTMLElement} */ (e.target);
       const send = target.closest('[data-send]');
       if (send) {
-        const t = current.tasks.find((/** @type {any} */ x) => x.id === send.getAttribute('data-send'));
+        const t = (current.tasks || []).find((/** @type {any} */ x) => x.id === send.getAttribute('data-send'));
         if (!t) return;
         const done = busy(/** @type {HTMLButtonElement} */ (send), 'Sending');
         try { await mirror(t); } finally { if (!t.multica_identifier) done(); }
         return;
       }
       const edit = target.closest('[data-edit]');
-      if (edit) { editCard(/** @type {HTMLElement} */ (edit.closest('.card')), current.tasks.find((/** @type {any} */ x) => x.id === edit.getAttribute('data-edit'))); return; }
+      if (edit) { editCard(/** @type {HTMLElement} */ (edit.closest('.card')), (current.tasks || []).find((/** @type {any} */ x) => x.id === edit.getAttribute('data-edit'))); return; }
       if (target.closest('[data-action="board-sync"]')) {
         const b = /** @type {HTMLButtonElement} */ (target.closest('[data-action="board-sync"]'));
         const done = busy(b, 'Checking');
