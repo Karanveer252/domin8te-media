@@ -1,0 +1,21 @@
+-- Snapshot of pg_indexes, test project leuvzsouqsdpdpyjspjr, 2026-10-08.
+CREATE UNIQUE INDEX client_billing_invoices_pkey ON public.client_billing_invoices USING btree (id);
+CREATE INDEX client_billing_invoices_portal_read ON public.client_billing_invoices USING btree (tenant_id, issued_at DESC) WHERE client_visible;
+CREATE UNIQUE INDEX client_billing_invoices_tenant_id_invoice_number_key ON public.client_billing_invoices USING btree (tenant_id, invoice_number);
+CREATE UNIQUE INDEX client_billing_invoices_tenant_id_provider_provider_invoice_key ON public.client_billing_invoices USING btree (tenant_id, provider, provider_invoice_id);
+CREATE INDEX client_dashboard_items_manager_queue ON public.client_dashboard_items USING btree (verification_status, updated_at) WHERE (verification_status = ANY (ARRAY['pending'::text, 'stale'::text]));
+CREATE UNIQUE INDEX client_dashboard_items_pkey ON public.client_dashboard_items USING btree (id);
+CREATE INDEX client_dashboard_items_portal_read ON public.client_dashboard_items USING btree (tenant_id, item_kind, published_at DESC) WHERE client_visible;
+CREATE UNIQUE INDEX client_dashboard_items_tenant_id_item_kind_external_id_key ON public.client_dashboard_items USING btree (tenant_id, item_kind, external_id);
+CREATE UNIQUE INDEX dashboard_events_idempotency_key ON public.dashboard_events USING btree (idempotency_key);
+CREATE INDEX dashboard_events_pending ON public.dashboard_events USING btree (created_at) WHERE (status = 'pending'::text);
+CREATE UNIQUE INDEX dashboard_events_pkey ON public.dashboard_events USING btree (id);
+CREATE INDEX dashboard_events_tenant_created ON public.dashboard_events USING btree (tenant_id, created_at DESC);
+CREATE INDEX dashboard_exceptions_open ON public.dashboard_exceptions USING btree (severity, detected_at DESC) WHERE (status = 'open'::text);
+CREATE UNIQUE INDEX dashboard_exceptions_pkey ON public.dashboard_exceptions USING btree (id);
+CREATE INDEX dashboard_exceptions_tenant_detected ON public.dashboard_exceptions USING btree (tenant_id, detected_at DESC);
+CREATE INDEX dashboard_recoveries_item_time ON public.dashboard_recoveries USING btree (item_id, performed_at DESC);
+CREATE UNIQUE INDEX dashboard_recoveries_pkey ON public.dashboard_recoveries USING btree (id);
+CREATE INDEX dashboard_recoveries_tenant_time ON public.dashboard_recoveries USING btree (tenant_id, performed_at DESC);
+CREATE INDEX tenant_manager_assignments_manager ON public.tenant_manager_assignments USING btree (manager_user_id);
+CREATE UNIQUE INDEX tenant_manager_assignments_pkey ON public.tenant_manager_assignments USING btree (tenant_id);

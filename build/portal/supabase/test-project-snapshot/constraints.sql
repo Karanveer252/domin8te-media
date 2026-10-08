@@ -1,0 +1,66 @@
+-- Snapshot of pg_constraint (pg_get_constraintdef), test project leuvzsouqsdpdpyjspjr, 2026-10-08.
+-- table | constraint | definition
+
+-- client_billing_invoices | client_billing_invoices_amount_minor_check | CHECK ((amount_minor >= 0))
+-- client_billing_invoices | client_billing_invoices_check | CHECK (((due_at IS NULL) OR (due_at >= issued_at)))
+-- client_billing_invoices | client_billing_invoices_check1 | CHECK (((status <> 'paid'::text) OR (paid_at IS NOT NULL)))
+-- client_billing_invoices | client_billing_invoices_check2 | CHECK (((NOT client_visible) OR ((verification_status = 'verified'::text) AND (verified_at IS NOT NULL) AND (verified_by IS NOT NULL) AND (published_at IS NOT NULL) AND (published_by IS NOT NULL))))
+-- client_billing_invoices | client_billing_invoices_check3 | CHECK (((hidden_at IS NULL) OR ((hidden_by IS NOT NULL) AND ((char_length(hidden_by) >= 1) AND (char_length(hidden_by) <= 200)) AND (hidden_reason IS NOT NULL) AND ((char_length(hidden_reason) >= 1) AND (char_length(hidden_reason) <= 1000)))))
+-- client_billing_invoices | client_billing_invoices_currency_check | CHECK ((currency ~ '^[A-Z]{3}$'::text))
+-- client_billing_invoices | client_billing_invoices_hosted_payment_url_check | CHECK (((hosted_payment_url IS NULL) OR (hosted_payment_url ~ '^https://(invoice|billing)\.stripe\.com/'::text)))
+-- client_billing_invoices | client_billing_invoices_invoice_number_check | CHECK (((char_length(invoice_number) >= 1) AND (char_length(invoice_number) <= 100)))
+-- client_billing_invoices | client_billing_invoices_pkey | PRIMARY KEY (id)
+-- client_billing_invoices | client_billing_invoices_provider_check | CHECK ((provider = 'stripe'::text))
+-- client_billing_invoices | client_billing_invoices_provider_invoice_id_check | CHECK (((char_length(provider_invoice_id) >= 1) AND (char_length(provider_invoice_id) <= 200)))
+-- client_billing_invoices | client_billing_invoices_source_ref_check | CHECK (((char_length(source_ref) >= 1) AND (char_length(source_ref) <= 500)))
+-- client_billing_invoices | client_billing_invoices_status_check | CHECK ((status = ANY (ARRAY['open'::text, 'paid'::text, 'overdue'::text, 'failed'::text, 'void'::text])))
+-- client_billing_invoices | client_billing_invoices_tenant_id_fkey | FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+-- client_billing_invoices | client_billing_invoices_tenant_id_invoice_number_key | UNIQUE (tenant_id, invoice_number)
+-- client_billing_invoices | client_billing_invoices_tenant_id_provider_provider_invoice_key | UNIQUE (tenant_id, provider, provider_invoice_id)
+-- client_billing_invoices | client_billing_invoices_verification_status_check | CHECK ((verification_status = ANY (ARRAY['pending'::text, 'verified'::text, 'rejected'::text, 'stale'::text])))
+-- client_dashboard_items | client_dashboard_items_check | CHECK (((reporting_period_start IS NULL) OR (reporting_period_end IS NULL) OR (reporting_period_start <= reporting_period_end)))
+-- client_dashboard_items | client_dashboard_items_check1 | CHECK (((NOT client_visible) OR ((verification_status = 'verified'::text) AND (verified_at IS NOT NULL) AND (verified_by IS NOT NULL) AND (published_at IS NOT NULL) AND (published_by IS NOT NULL))))
+-- client_dashboard_items | client_dashboard_items_check2 | CHECK (((item_kind <> 'result'::text) OR (NOT client_visible) OR ((reporting_period_start IS NOT NULL) AND (reporting_period_end IS NOT NULL) AND (source_observed_at IS NOT NULL))))
+-- client_dashboard_items | client_dashboard_items_content_check | CHECK ((jsonb_typeof(content) = 'object'::text))
+-- client_dashboard_items | client_dashboard_items_external_id_check | CHECK (((length(TRIM(BOTH FROM external_id)) >= 1) AND (length(TRIM(BOTH FROM external_id)) <= 200)))
+-- client_dashboard_items | client_dashboard_items_hidden_metadata | CHECK (((hidden_at IS NULL) OR ((hidden_by IS NOT NULL) AND ((char_length(hidden_by) >= 1) AND (char_length(hidden_by) <= 200)) AND (hidden_reason IS NOT NULL) AND ((char_length(hidden_reason) >= 1) AND (char_length(hidden_reason) <= 1000)))))
+-- client_dashboard_items | client_dashboard_items_item_kind_check | CHECK ((item_kind = ANY (ARRAY['work'::text, 'result'::text, 'update'::text])))
+-- client_dashboard_items | client_dashboard_items_pkey | PRIMARY KEY (id)
+-- client_dashboard_items | client_dashboard_items_source_kind_check | CHECK ((source_kind = ANY (ARRAY['console'::text, 'integration'::text, 'webhook'::text, 'manager'::text])))
+-- client_dashboard_items | client_dashboard_items_source_ref_check | CHECK (((length(TRIM(BOTH FROM source_ref)) >= 1) AND (length(TRIM(BOTH FROM source_ref)) <= 500)))
+-- client_dashboard_items | client_dashboard_items_tenant_id_fkey | FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+-- client_dashboard_items | client_dashboard_items_tenant_id_item_kind_external_id_key | UNIQUE (tenant_id, item_kind, external_id)
+-- client_dashboard_items | client_dashboard_items_verification_status_check | CHECK ((verification_status = ANY (ARRAY['pending'::text, 'verified'::text, 'rejected'::text, 'stale'::text])))
+-- dashboard_events | dashboard_events_attempts_check | CHECK ((attempts >= 0))
+-- dashboard_events | dashboard_events_entity_type_check | CHECK (((length(TRIM(BOTH FROM entity_type)) >= 1) AND (length(TRIM(BOTH FROM entity_type)) <= 80)))
+-- dashboard_events | dashboard_events_event_type_check | CHECK ((event_type = ANY (ARRAY['tenant.changed'::text, 'work.changed'::text, 'results.changed'::text, 'updates.changed'::text, 'billing.changed'::text, 'visibility.changed'::text])))
+-- dashboard_events | dashboard_events_idempotency_key_check | CHECK (((length(TRIM(BOTH FROM idempotency_key)) >= 1) AND (length(TRIM(BOTH FROM idempotency_key)) <= 200)))
+-- dashboard_events | dashboard_events_last_error_check | CHECK (((last_error IS NULL) OR (length(last_error) <= 2000)))
+-- dashboard_events | dashboard_events_payload_check | CHECK ((jsonb_typeof(payload) = 'object'::text))
+-- dashboard_events | dashboard_events_pkey | PRIMARY KEY (id)
+-- dashboard_events | dashboard_events_source_check | CHECK ((source = ANY (ARRAY['console'::text, 'integration'::text, 'webhook'::text, 'manager'::text])))
+-- dashboard_events | dashboard_events_status_check | CHECK ((status = ANY (ARRAY['pending'::text, 'processing'::text, 'processed'::text, 'failed'::text, 'discarded'::text])))
+-- dashboard_events | dashboard_events_tenant_id_fkey | FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+-- dashboard_exceptions | dashboard_exceptions_check | CHECK ((((status = 'open'::text) AND (resolved_at IS NULL) AND (resolved_by IS NULL)) OR ((status = ANY (ARRAY['resolved'::text, 'ignored'::text])) AND (resolved_at IS NOT NULL) AND (resolved_by IS NOT NULL))))
+-- dashboard_exceptions | dashboard_exceptions_entity_type_check | CHECK (((length(TRIM(BOTH FROM entity_type)) >= 1) AND (length(TRIM(BOTH FROM entity_type)) <= 80)))
+-- dashboard_exceptions | dashboard_exceptions_event_id_fkey | FOREIGN KEY (event_id) REFERENCES dashboard_events(id) ON DELETE SET NULL
+-- dashboard_exceptions | dashboard_exceptions_message_check | CHECK (((length(TRIM(BOTH FROM message)) >= 1) AND (length(TRIM(BOTH FROM message)) <= 2000)))
+-- dashboard_exceptions | dashboard_exceptions_pkey | PRIMARY KEY (id)
+-- dashboard_exceptions | dashboard_exceptions_reason_code_check | CHECK (((length(TRIM(BOTH FROM reason_code)) >= 1) AND (length(TRIM(BOTH FROM reason_code)) <= 100)))
+-- dashboard_exceptions | dashboard_exceptions_resolution_note_check | CHECK (((resolution_note IS NULL) OR (length(resolution_note) <= 2000)))
+-- dashboard_exceptions | dashboard_exceptions_severity_check | CHECK ((severity = ANY (ARRAY['info'::text, 'warning'::text, 'critical'::text])))
+-- dashboard_exceptions | dashboard_exceptions_status_check | CHECK ((status = ANY (ARRAY['open'::text, 'resolved'::text, 'ignored'::text])))
+-- dashboard_exceptions | dashboard_exceptions_tenant_id_fkey | FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+-- dashboard_recoveries | dashboard_recoveries_action_check | CHECK ((action = 'hide'::text))
+-- dashboard_recoveries | dashboard_recoveries_invoice_id_fkey | FOREIGN KEY (invoice_id) REFERENCES client_billing_invoices(id) ON DELETE RESTRICT
+-- dashboard_recoveries | dashboard_recoveries_item_id_fkey | FOREIGN KEY (item_id) REFERENCES client_dashboard_items(id) ON DELETE RESTRICT
+-- dashboard_recoveries | dashboard_recoveries_one_target | CHECK (((item_id IS NULL) <> (invoice_id IS NULL)))
+-- dashboard_recoveries | dashboard_recoveries_performed_by_check | CHECK (((char_length(performed_by) >= 1) AND (char_length(performed_by) <= 200)))
+-- dashboard_recoveries | dashboard_recoveries_pkey | PRIMARY KEY (id)
+-- dashboard_recoveries | dashboard_recoveries_reason_check | CHECK (((char_length(reason) >= 1) AND (char_length(reason) <= 1000)))
+-- dashboard_recoveries | dashboard_recoveries_replacement_note_check | CHECK (((replacement_note IS NULL) OR (char_length(replacement_note) <= 4000)))
+-- dashboard_recoveries | dashboard_recoveries_tenant_id_fkey | FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+-- tenant_manager_assignments | tenant_manager_assignments_assigned_by_check | CHECK (((char_length(assigned_by) >= 1) AND (char_length(assigned_by) <= 200)))
+-- tenant_manager_assignments | tenant_manager_assignments_manager_user_id_check | CHECK (((char_length(manager_user_id) >= 1) AND (char_length(manager_user_id) <= 200)))
+-- tenant_manager_assignments | tenant_manager_assignments_pkey | PRIMARY KEY (tenant_id)
+-- tenant_manager_assignments | tenant_manager_assignments_tenant_id_fkey | FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
