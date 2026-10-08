@@ -257,7 +257,7 @@
       if (t.error) throw dbFail(t.error);
       const row = t.data && t.data[0];
       if (!row) { tenant = null; return; }
-      const [d, m, r, p, items, inv] = await Promise.all([
+      const [d, m, r, p, items, inv, cards] = await Promise.all([
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
         sb.from('requests').select('id, service, body, status, by_name, at').eq('tenant_id', row.id).order('at'),
@@ -265,7 +265,9 @@
         // What staff approved for this client. The database returns a client only client_visible rows; asking
         // for them here as well keeps a staff session previewing the portal to the same rows.
         sb.from('client_dashboard_items').select('id, item_kind, external_id, content, source_observed_at, reporting_period_start, reporting_period_end, verification_status, published_at').eq('tenant_id', row.id).eq('client_visible', true),
-        sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url').eq('tenant_id', row.id).eq('client_visible', true)
+        sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url').eq('tenant_id', row.id).eq('client_visible', true),
+        // The team's board cards for this client (2026-10-08): only their visible cards with a service, safe fields only
+        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve({ data: null, error: { message: 'no rpc' } })
       ]);
       for (const x of [d, m, r, p]) if (x.error) throw dbFail(x.error);
       /** @type {any} */ const next = {};
@@ -279,6 +281,8 @@
       // A projection that cannot be read (tables not there yet) leaves the record as it is.
       const merged = mergeProjections(normalize(row.doc, now), items.error ? [] : items.data || [], inv.error ? [] : inv.data || []);
       tenant = { ...merged, tenantId: row.id, name: row.name };
+      // A function that is not there yet (before its migration) leaves the cards out and the record as it is.
+      if (!cards.error && Array.isArray(cards.data)) tenant.cards = cards.data.map((/** @type {any} */ c) => ({ id: c.id, service: c.service, title: c.title, status: c.status, due: c.due, updatedAt: c.updated_at, createdAt: c.created_at }));
     }
 
     let ready = load();

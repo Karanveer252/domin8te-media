@@ -286,6 +286,8 @@
         milestones: [], completed: [], files: [], ...(/** @type {any} */ (s) || {})
       }])),
       updates: t.updates || [],
+      // the team's board cards for this client (live: from client_work_cards(); the demo: the fixture's own)
+      cards: t.cards || [],
       billing: { plan: null, subscription: null, paymentMethod: null, invoices: [], ...(t.billing || {}) },
       dataThrough: t.dataThrough || yesterday
     };
@@ -546,7 +548,34 @@
         if (out[apv.service]) out[apv.service].decisions.push({ approvalId: apvId, title: apv.title, ...dec });
       }
       for (const r of state().requests || []) if (out[r.service]) out[r.service].requests.push(r);
+      applyCards(out);
       return out;
+    }
+
+    /* The team's board cards on each service (2026-10-08, Karan: one card should be the single place the work is
+       recorded, and the client's Work page should follow it). A service with cards takes its status from them: waiting
+       on the client first, then in progress, planned, on hold, complete. Where the team has not written its own
+       "now", "next step" or "expected by", the cards fill them in; what the team wrote always wins. */
+    const CARD_ORDER = { in_review: 0, in_progress: 1, blocked: 2, todo: 3, done: 4 };
+    /** @param {Record<string, any>} out */
+    function applyCards(out) {
+      for (const s of Object.values(out)) {
+        const cards = (tenant.cards || [])
+          .filter((/** @type {any} */ c) => c.service === s.id && c.status !== 'cancelled' && c.status in CARD_ORDER)
+          .map((/** @type {any} */ c) => clone(c))
+          .sort((/** @type {any} */ a, /** @type {any} */ b) => CARD_ORDER[a.status] - CARD_ORDER[b.status]
+            || (a.status === 'done' ? String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')) : String(a.due || '9999').localeCompare(String(b.due || '9999'))));
+        s.cards = cards;
+        if (!cards.length) continue;
+        const has = (/** @type {string} */ st) => cards.some((/** @type {any} */ c) => c.status === st);
+        s.status = has('in_review') ? 'waiting' : has('in_progress') ? 'in_progress' : has('todo') ? 'planned' : has('blocked') ? 'paused' : 'complete';
+        const doing = cards.find((/** @type {any} */ c) => c.status === 'in_progress');
+        if (!s.now && doing) s.now = doing.title;
+        const upNext = cards.find((/** @type {any} */ c) => c.status === 'todo');
+        if ((!s.next || !s.next.text) && upNext) s.next = { text: upNext.title, who: 'domin8te' };
+        const dated = cards.filter((/** @type {any} */ c) => c.status !== 'done' && c.due).sort((/** @type {any} */ a, /** @type {any} */ b) => String(a.due).localeCompare(String(b.due)))[0];
+        if ((!s.expected || !s.expected.date) && dated) s.expected = { date: dated.due, text: dated.title };
+      }
     }
 
     function rank(a) {

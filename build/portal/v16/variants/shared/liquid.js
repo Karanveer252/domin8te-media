@@ -215,9 +215,46 @@
   }
 
   const CORNERS = ['borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomRightRadius', 'borderBottomLeftRadius'];
+  /* Lighter glass (2026-10-08, Karan: "whenever I switch through pages it lags a lot ... make the code as light as
+     possible"). Measured at 4x CPU: with Scenes the frames ran at 50 ms and page switches froze up to 0.8 s.
+     (1) Under the moving Scenes sky every bent card was re-filtered on every frame of the sky, so with Scenes the
+     cards keep the plain frosted blur (heavy.css's fallback) and no map is drawn at all.
+     (2) A new size of card drew its map pixel by pixel before the page could appear (the freeze on every switch),
+     so the page now appears at once with the plain blur and each map is drawn a moment later, one per idle slot. */
+  const scenes = () => html.getAttribute('data-scene') === 'scenes';
+  /** @type {Map<HTMLElement, {key: string, w: number, h: number, r: number, si: number}>} */
+  const pending = new Map();
+  let pumping = false;
+  const idle = (/** @type {() => void} */ fn) => ((/** @type {any} */ (window)).requestIdleCallback ? (/** @type {any} */ (window)).requestIdleCallback(fn, { timeout: 500 }) : setTimeout(fn, 50));
+  /** @param {HTMLElement} el @param {any} lens @param {string} key */
+  const wear = (el, lens, key) => { el.style.setProperty('--lg-lens', `url(#${lens.id})`); el.setAttribute('data-lens', key); };
+  /** @param {HTMLElement} el */
+  const plain = (el) => { if (el.hasAttribute('data-lens')) { el.style.removeProperty('--lg-lens'); el.removeAttribute('data-lens'); } };
+  function pump() {
+    if (pumping) return;
+    pumping = true;
+    idle(function next() {
+      const first = pending.entries().next();
+      if (!first.done) {
+        const [el, job] = first.value;
+        pending.delete(el);
+        if (el.isConnected && !scenes()) {
+          let lens = lenses.get(job.key);
+          if (!lens) {
+            if (lenses.size > 90) sweep();
+            lens = makeLens(job.w, job.h, job.r, SPECS[job.si]);
+            lenses.set(job.key, lens);
+          }
+          wear(el, lens, job.key);
+        }
+      }
+      if (pending.size) idle(next); else pumping = false;
+    });
+  }
   /** @param {HTMLElement} el */
   function assign(el) {
-    if (!el.isConnected) { unwatch(el); return; }
+    if (!el.isConnected) { unwatch(el); pending.delete(el); return; }
+    if (scenes()) { pending.delete(el); plain(el); return; }
     const w = el.offsetWidth, h = el.offsetHeight;
     if (!w || !h) return;
     const si = SPECS.findIndex((s) => el.matches(s.sel));
@@ -225,15 +262,14 @@
     const cs = getComputedStyle(el);
     const r = Math.min(Math.max(...CORNERS.map((c) => parseFloat(cs[c]) || 0)), w / 2, h / 2);
     const key = `${si}:${w}x${h}:${Math.round(r)}`;
-    let lens = lenses.get(key);
-    if (!lens) {
-      if (lenses.size > 90) sweep();
-      lens = makeLens(w, h, r, SPECS[si]);
-      lenses.set(key, lens);
-    }
-    el.style.setProperty('--lg-lens', `url(#${lens.id})`);
-    el.setAttribute('data-lens', key);
+    const lens = lenses.get(key);
+    if (lens) { pending.delete(el); wear(el, lens, key); return; }
+    plain(el);                                         // the plain blur until its own map is drawn
+    pending.set(el, { key, w, h, r, si });
+    pump();
   }
+  // Switching Scenes on or off in Settings re-dresses every card that is on the page.
+  new MutationObserver(() => watched.forEach((el) => assign(el))).observe(html, { attributes: true, attributeFilter: ['data-scene'] });
   /** Drops the filters no element uses any more. */
   function sweep() {
     const used = new Set();

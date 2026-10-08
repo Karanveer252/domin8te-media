@@ -673,6 +673,24 @@ html[data-theme="dark"] .orb { background: radial-gradient(circle at 32% 28%, rg
 .ms.is-current .ms-dot { background: var(--p-info-bg); border-color: var(--p-info); color: var(--p-info); }
 .ms-title { padding-top: 3px; font-weight: 600; line-height: 1.35; }
 .ms-needs { font-weight: 650; color: var(--p-accent-ink); }
+/* The team's board cards on a service (2026-10-08): one row per piece of work, its stage as a small pill. */
+.work-cards { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.wc { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-top: 1px solid var(--p-line); }
+.wc:first-child { border-top: 0; padding-top: 2px; }
+.wc-dot { display: grid; place-items: center; width: 30px; height: 30px; border: 2px solid var(--p-line-2); border-radius: 50%; background: var(--p-surface); color: var(--p-ink-3); }
+.wc-dot .i { width: 16px; height: 16px; }
+.wc.is-in_progress .wc-dot { border-color: var(--p-info); color: var(--p-info); }
+.wc.is-in_review .wc-dot { border-color: var(--p-attn); color: var(--p-attn); }
+.wc.is-done .wc-dot { border-color: var(--p-success); background: var(--p-success); color: #fff; }
+.wc-title { padding-top: 3px; font-weight: 600; line-height: 1.35; }
+.wc.is-done .wc-title { color: var(--p-ink-2); font-weight: 500; }
+.wc-stage { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+.wc-stage[data-tone="info"] { background: var(--p-info-bg); color: var(--p-info); }
+.wc-stage[data-tone="attention"] { background: var(--p-attn-bg); color: var(--p-attn); }
+.wc-stage[data-tone="success"] { background: var(--p-success-bg); color: var(--p-success); }
+.wc-stage[data-tone="neutral"] { background: var(--p-neutral-bg); color: var(--p-neutral); }
+.wc-more { margin-top: 6px; }
+.col-head-after { margin-top: 22px; }
 .done-list li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: baseline; gap: 10px; padding: 8px 0; border-top: 1px solid var(--p-line); }
 .done-list li:first-child { border-top: 0; }
 .done-list .i { align-self: center; width: 18px; height: 18px; color: var(--p-success); }
@@ -2841,6 +2859,13 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     business: { name: 'Bayleaf Kitchen', kind: 'Restaurant' },
     user: { firstName: 'Dani', email: 'dani@bayleaf-kitchen.example', role: 'Owner' },
     package: { name: 'Full service', services: ['website', 'social', 'advertising', 'local'], billing: 'Billed monthly on the 22nd' },
+    // the team's board cards for the website, as the console's board holds them (2026-10-08: cards show on the Work page)
+    cards: [
+      { id: 'card_hours', service: 'website', title: 'Update the autumn opening hours across the site', status: 'in_review', due: '2026-10-01', updatedAt: '2026-09-23T16:20' },
+      { id: 'card_booking', service: 'website', title: 'Test the booking button on phones', status: 'in_progress', due: '2026-09-25', updatedAt: '2026-09-22T10:05' },
+      { id: 'card_menu_page', service: 'website', title: 'Publish the autumn menu page', status: 'done', due: null, updatedAt: '2026-09-18T14:00' },
+      { id: 'card_booking_buttons', service: 'website', title: 'Add a booking button under each menu section', status: 'done', due: null, updatedAt: '2026-09-11T11:30' }
+    ],
     team: { name: 'Your account team', reply: 'Usually replies within one working day' },
     meeting: { at: '2026-10-06T10:00', title: 'Monthly results call', length: '20 minutes', status: 'confirmed' },
     sources: [
@@ -3548,6 +3573,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         milestones: [], completed: [], files: [], ...(/** @type {any} */ (s) || {})
       }])),
       updates: t.updates || [],
+      // the team's board cards for this client (live: from client_work_cards(); the demo: the fixture's own)
+      cards: t.cards || [],
       billing: { plan: null, subscription: null, paymentMethod: null, invoices: [], ...(t.billing || {}) },
       dataThrough: t.dataThrough || yesterday
     };
@@ -3808,7 +3835,34 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         if (out[apv.service]) out[apv.service].decisions.push({ approvalId: apvId, title: apv.title, ...dec });
       }
       for (const r of state().requests || []) if (out[r.service]) out[r.service].requests.push(r);
+      applyCards(out);
       return out;
+    }
+
+    /* The team's board cards on each service (2026-10-08, Karan: one card should be the single place the work is
+       recorded, and the client's Work page should follow it). A service with cards takes its status from them: waiting
+       on the client first, then in progress, planned, on hold, complete. Where the team has not written its own
+       "now", "next step" or "expected by", the cards fill them in; what the team wrote always wins. */
+    const CARD_ORDER = { in_review: 0, in_progress: 1, blocked: 2, todo: 3, done: 4 };
+    /** @param {Record<string, any>} out */
+    function applyCards(out) {
+      for (const s of Object.values(out)) {
+        const cards = (tenant.cards || [])
+          .filter((/** @type {any} */ c) => c.service === s.id && c.status !== 'cancelled' && c.status in CARD_ORDER)
+          .map((/** @type {any} */ c) => clone(c))
+          .sort((/** @type {any} */ a, /** @type {any} */ b) => CARD_ORDER[a.status] - CARD_ORDER[b.status]
+            || (a.status === 'done' ? String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')) : String(a.due || '9999').localeCompare(String(b.due || '9999'))));
+        s.cards = cards;
+        if (!cards.length) continue;
+        const has = (/** @type {string} */ st) => cards.some((/** @type {any} */ c) => c.status === st);
+        s.status = has('in_review') ? 'waiting' : has('in_progress') ? 'in_progress' : has('todo') ? 'planned' : has('blocked') ? 'paused' : 'complete';
+        const doing = cards.find((/** @type {any} */ c) => c.status === 'in_progress');
+        if (!s.now && doing) s.now = doing.title;
+        const upNext = cards.find((/** @type {any} */ c) => c.status === 'todo');
+        if ((!s.next || !s.next.text) && upNext) s.next = { text: upNext.title, who: 'domin8te' };
+        const dated = cards.filter((/** @type {any} */ c) => c.status !== 'done' && c.due).sort((/** @type {any} */ a, /** @type {any} */ b) => String(a.due).localeCompare(String(b.due)))[0];
+        if ((!s.expected || !s.expected.date) && dated) s.expected = { date: dated.due, text: dated.title };
+      }
     }
 
     function rank(a) {
@@ -4381,7 +4435,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       if (t.error) throw dbFail(t.error);
       const row = t.data && t.data[0];
       if (!row) { tenant = null; return; }
-      const [d, m, r, p, items, inv] = await Promise.all([
+      const [d, m, r, p, items, inv, cards] = await Promise.all([
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
         sb.from('requests').select('id, service, body, status, by_name, at').eq('tenant_id', row.id).order('at'),
@@ -4389,7 +4443,9 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         // What staff approved for this client. The database returns a client only client_visible rows; asking
         // for them here as well keeps a staff session previewing the portal to the same rows.
         sb.from('client_dashboard_items').select('id, item_kind, external_id, content, source_observed_at, reporting_period_start, reporting_period_end, verification_status, published_at').eq('tenant_id', row.id).eq('client_visible', true),
-        sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url').eq('tenant_id', row.id).eq('client_visible', true)
+        sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url').eq('tenant_id', row.id).eq('client_visible', true),
+        // The team's board cards for this client (2026-10-08): only their visible cards with a service, safe fields only
+        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve({ data: null, error: { message: 'no rpc' } })
       ]);
       for (const x of [d, m, r, p]) if (x.error) throw dbFail(x.error);
       /** @type {any} */ const next = {};
@@ -4403,6 +4459,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       // A projection that cannot be read (tables not there yet) leaves the record as it is.
       const merged = mergeProjections(normalize(row.doc, now), items.error ? [] : items.data || [], inv.error ? [] : inv.data || []);
       tenant = { ...merged, tenantId: row.id, name: row.name };
+      // A function that is not there yet (before its migration) leaves the cards out and the record as it is.
+      if (!cards.error && Array.isArray(cards.data)) tenant.cards = cards.data.map((/** @type {any} */ c) => ({ id: c.id, service: c.service, title: c.title, status: c.status, due: c.due, updatedAt: c.updated_at, createdAt: c.created_at }));
     }
 
     let ready = load();
@@ -5552,6 +5610,33 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     return `<li><div><p class="blocker-title">${esc(a.title)}</p>${when}</div>${actionButton(a, style + ' btn-sm')}</li>`;
   }
 
+  /* The team's board cards for a service (2026-10-08): where each piece of work is, in the client's words. */
+  const CARD_STAGE = {
+    in_review: ['Waiting for you', 'alert', 'attention'],
+    in_progress: ['In progress', 'progress', 'info'],
+    blocked: ['On hold', 'pause', 'neutral'],
+    todo: ['Up next', 'clock', 'neutral'],
+    done: ['Done', 'check', 'success']
+  };
+  const DONE_SHOWN = 5;
+  /** @param {any[]} cards */
+  function workCards(cards) {
+    if (!cards || !cards.length) return '';
+    const open = cards.filter((c) => c.status !== 'done');
+    const done = cards.filter((c) => c.status === 'done');
+    const row = (/** @type {any} */ c) => {
+      const st = /** @type {any} */ (CARD_STAGE)[c.status] || CARD_STAGE.todo;
+      const when = c.status === 'done'
+        ? (c.updatedAt ? ` · ${esc(F.date(String(c.updatedAt).slice(0, 10), { weekday: false }))}` : '')
+        : c.due ? ` · Expected ${esc(F.date(c.due))}` : '';
+      return `<li class="wc is-${esc(c.status)}"><span class="wc-dot">${icon(st[1])}</span><div><p class="wc-title">${esc(c.title)}</p><p class="meta"><span class="wc-stage" data-tone="${st[2]}">${st[0]}</span>${when}</p></div></li>`;
+    };
+    return `<div class="col-head"><h3>What we're working on</h3><p class="meta">${done.length} of ${cards.length} done</p></div>
+      <div class="ms-progress" aria-hidden="true">${cards.map((c) => `<span class="${c.status === 'done' ? 'is-on' : c.status === 'in_progress' || c.status === 'in_review' ? 'is-now' : ''}"></span>`).join('')}</div>
+      <ul class="work-cards">${open.map(row).join('')}${done.slice(0, DONE_SHOWN).map(row).join('')}</ul>
+      ${done.length > DONE_SHOWN ? `<p class="meta wc-more">And ${done.length - DONE_SHOWN} finished earlier</p>` : ''}`;
+  }
+
   function serviceSection(s, actions, now) {
     const svc = SVC()[s.id];
     const needs = actions.filter((a) => a.service === s.id || (s.next && a.id === s.next.actionId));
@@ -5581,9 +5666,10 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
           ${s.files.length ? `<div class="sub-list"><h3>Files</h3><ul class="files">${s.files.map((f) => `<li>${icon('file')}<span>${esc(f.name)}</span><span class="meta">${esc(f.note)}</span></li>`).join('')}</ul></div>` : ''}
         </div>
         <div class="svc-col">
-          <div class="col-head"><h3>Milestones</h3><p class="meta">${n ? `${done} of ${n} done` : 'None set yet'}</p></div>
+          ${workCards(s.cards)}
+          ${n || !(s.cards && s.cards.length) ? `<div class="col-head${s.cards && s.cards.length ? ' col-head-after' : ''}"><h3>Milestones</h3><p class="meta">${n ? `${done} of ${n} done` : 'None set yet'}</p></div>
           <div class="ms-progress" aria-hidden="true">${s.milestones.map((m) => `<span class="${m.state === 'done' ? 'is-on' : m.state === 'current' ? 'is-now' : ''}"></span>`).join('')}</div>
-          <ol class="timeline">${s.milestones.map(milestone).join('')}</ol>
+          <ol class="timeline">${s.milestones.map(milestone).join('')}</ol>` : ''}
           ${s.completed.length ? '<h3 class="col-title">Completed recently</h3>' : ''}
           <ul class="done-list">${s.completed.map((c) => `<li>${icon('check')}<span>${esc(c.text)}</span><span class="meta">${esc(F.date(c.date, { weekday: false }))}</span></li>`).join('')}</ul>
         </div>
@@ -6884,9 +6970,46 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   }
 
   const CORNERS = ['borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomRightRadius', 'borderBottomLeftRadius'];
+  /* Lighter glass (2026-10-08, Karan: "whenever I switch through pages it lags a lot ... make the code as light as
+     possible"). Measured at 4x CPU: with Scenes the frames ran at 50 ms and page switches froze up to 0.8 s.
+     (1) Under the moving Scenes sky every bent card was re-filtered on every frame of the sky, so with Scenes the
+     cards keep the plain frosted blur (heavy.css's fallback) and no map is drawn at all.
+     (2) A new size of card drew its map pixel by pixel before the page could appear (the freeze on every switch),
+     so the page now appears at once with the plain blur and each map is drawn a moment later, one per idle slot. */
+  const scenes = () => html.getAttribute('data-scene') === 'scenes';
+  /** @type {Map<HTMLElement, {key: string, w: number, h: number, r: number, si: number}>} */
+  const pending = new Map();
+  let pumping = false;
+  const idle = (/** @type {() => void} */ fn) => ((/** @type {any} */ (window)).requestIdleCallback ? (/** @type {any} */ (window)).requestIdleCallback(fn, { timeout: 500 }) : setTimeout(fn, 50));
+  /** @param {HTMLElement} el @param {any} lens @param {string} key */
+  const wear = (el, lens, key) => { el.style.setProperty('--lg-lens', `url(#${lens.id})`); el.setAttribute('data-lens', key); };
+  /** @param {HTMLElement} el */
+  const plain = (el) => { if (el.hasAttribute('data-lens')) { el.style.removeProperty('--lg-lens'); el.removeAttribute('data-lens'); } };
+  function pump() {
+    if (pumping) return;
+    pumping = true;
+    idle(function next() {
+      const first = pending.entries().next();
+      if (!first.done) {
+        const [el, job] = first.value;
+        pending.delete(el);
+        if (el.isConnected && !scenes()) {
+          let lens = lenses.get(job.key);
+          if (!lens) {
+            if (lenses.size > 90) sweep();
+            lens = makeLens(job.w, job.h, job.r, SPECS[job.si]);
+            lenses.set(job.key, lens);
+          }
+          wear(el, lens, job.key);
+        }
+      }
+      if (pending.size) idle(next); else pumping = false;
+    });
+  }
   /** @param {HTMLElement} el */
   function assign(el) {
-    if (!el.isConnected) { unwatch(el); return; }
+    if (!el.isConnected) { unwatch(el); pending.delete(el); return; }
+    if (scenes()) { pending.delete(el); plain(el); return; }
     const w = el.offsetWidth, h = el.offsetHeight;
     if (!w || !h) return;
     const si = SPECS.findIndex((s) => el.matches(s.sel));
@@ -6894,15 +7017,14 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const cs = getComputedStyle(el);
     const r = Math.min(Math.max(...CORNERS.map((c) => parseFloat(cs[c]) || 0)), w / 2, h / 2);
     const key = `${si}:${w}x${h}:${Math.round(r)}`;
-    let lens = lenses.get(key);
-    if (!lens) {
-      if (lenses.size > 90) sweep();
-      lens = makeLens(w, h, r, SPECS[si]);
-      lenses.set(key, lens);
-    }
-    el.style.setProperty('--lg-lens', `url(#${lens.id})`);
-    el.setAttribute('data-lens', key);
+    const lens = lenses.get(key);
+    if (lens) { pending.delete(el); wear(el, lens, key); return; }
+    plain(el);                                         // the plain blur until its own map is drawn
+    pending.set(el, { key, w, h, r, si });
+    pump();
   }
+  // Switching Scenes on or off in Settings re-dresses every card that is on the page.
+  new MutationObserver(() => watched.forEach((el) => assign(el))).observe(html, { attributes: true, attributeFilter: ['data-scene'] });
   /** Drops the filters no element uses any more. */
   function sweep() {
     const used = new Set();

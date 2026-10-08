@@ -1278,9 +1278,28 @@
         ? `<ul class="item-list">${list.map((p) => `<li><div><p><strong>${esc(p.name || p.email)}</strong>${p.name ? ` <span class="meta">${esc(p.email)}</span>` : ''}</p>${p.since ? `<p class="meta">Can sign in since ${esc(when(p.since))}</p>` : ''}</div><button class="btn btn-quiet btn-sm card-del" type="button" data-login-remove="${esc(p.userId)}" data-login-name="${esc(p.name || p.email)}">Remove</button></li>`).join('')}</ul>`
         : '<p class="meta">Nobody can sign in at the moment. Add a login below.</p>';
     };
+    /* The main contact (the name and email in the client's header, their Help page and the Details form) follows the
+       logins (2026-10-08, Karan: "I changed the portal login but on the top bar it still says derek"): when the
+       contact no longer has a login, the most recent person who can sign in becomes the contact. Checked on every
+       list, so adding or removing a login, or a contact left behind earlier, puts it right. */
+    /** @param {any[]} list */
+    const followLogins = async (list) => {
+      if (!current || current.id !== id || !list.length) return;
+      const u = current.doc.user || {};
+      const emails = list.map((p) => String(p.email || '').toLowerCase());
+      if (u.email && emails.includes(String(u.email).toLowerCase())) return;
+      const p = list.slice().sort((a, b) => String(b.since || '').localeCompare(String(a.since || '')))[0];
+      if (!p || !p.email) return;
+      const first = String(p.name || '').trim().split(/\s+/)[0] || u.firstName || '';
+      try {
+        await saveDoc((doc) => { doc.user = { ...(doc.user || {}), firstName: first, email: p.email }; });
+        toast(`The main contact is now ${first || p.email} (${p.email}), who can sign in.`);
+        if (!dirty.size) route();
+      } catch (x) { toast(`Could not update the main contact: ${message(x)}`, true); }
+    };
     if (people) {
       callFn('client-login', { action: 'list', tenantId: id })
-        .then((r) => { if (current && current.id === id) drawPeople(r.people || []); })
+        .then((r) => { if (current && current.id === id) { drawPeople(r.people || []); followLogins(r.people || []); } })
         .catch((x) => { if (people) people.innerHTML = `<p class="meta">Could not check who can sign in: ${esc(message(x))}</p>`; });
     }
     box.addEventListener('click', async (e) => {
@@ -1293,6 +1312,7 @@
         try {
           const r = await callFn('client-login', { action: 'remove', tenantId: id, userId: rm.getAttribute('data-login-remove') });
           drawPeople(r.people || []);
+          followLogins(r.people || []);
           toast(`${name} can no longer sign in.`);
         } catch (x) { done(); toast(message(x), true); }
         return;
@@ -1408,7 +1428,7 @@
     const open = t.status !== 'done' && t.status !== 'cancelled';
     return `<li class="card${t.status === 'cancelled' ? ' cancelled' : ''}" draggable="true" data-task="${esc(t.id)}" tabindex="0" aria-label="${esc(t.title)}, ${esc(TASK_STATUS_LABEL[t.status])}">
       ${client ? `<p class="card-client">${esc(client)}</p>` : ''}<p class="card-title">${esc(t.title)}</p>
-      <p class="card-meta">${t.kind === 'request' ? '<span class="chip you plain">Client request</span>' : ''}${t.status === 'cancelled' ? '<span class="chip plain">Cancelled</span>' : ''}${t.service ? `<span>${esc(svcLabel(t.service))}</span>` : ''}${t.priority && t.priority !== 'none' ? `<span class="chip ${t.priority === 'urgent' ? 'bad' : t.priority === 'high' ? 'warn' : 'plain'}">${esc(PRIORITIES.find(([k]) => k === t.priority)[1])}</span>` : ''}${d ? `<span class="${d.late && open ? 'late' : ''}">${esc(open && d.late ? d.text : 'due ' + when(t.due))}</span>` : ''}${t.assignee ? `<span>${esc(t.assignee)}</span>` : ''}</p>
+      <p class="card-meta">${t.kind === 'request' ? '<span class="chip you plain">Client request</span>' : ''}${t.status === 'cancelled' ? '<span class="chip plain">Cancelled</span>' : ''}${t.service ? `<span>${esc(svcLabel(t.service))}</span>` : ''}${t.client_visible === false ? '<span class="chip plain card-vis is-internal" title="The client does not see this card">Internal</span>' : t.service && t.status !== 'cancelled' ? '<span class="chip plain card-vis" title="Shown on the client&#39;s Work page: title, stage and due date">Client sees this</span>' : ''}${t.priority && t.priority !== 'none' ? `<span class="chip ${t.priority === 'urgent' ? 'bad' : t.priority === 'high' ? 'warn' : 'plain'}">${esc(PRIORITIES.find(([k]) => k === t.priority)[1])}</span>` : ''}${d ? `<span class="${d.late && open ? 'late' : ''}">${esc(open && d.late ? d.text : 'due ' + when(t.due))}</span>` : ''}${t.assignee ? `<span>${esc(t.assignee)}</span>` : ''}</p>
       <p class="card-sync meta">${syncLine(t)}</p>
       <p class="card-tools"><label class="sr-only" for="st-${esc(t.id)}">Move to</label><select id="st-${esc(t.id)}" data-move="${esc(t.id)}" aria-label="Move this card">${Object.entries(TASK_STATUS_LABEL).map(([k, l]) => `<option value="${k}"${t.status === k ? ' selected' : ''}>${l}</option>`).join('')}</select><button class="btn btn-quiet btn-sm" type="button" data-edit="${esc(t.id)}">Edit</button><button class="btn btn-quiet btn-sm card-del" type="button" data-delete="${esc(t.id)}" aria-label="Delete ${esc(t.title)}">Delete</button></p>
     </li>`;
@@ -1442,6 +1462,7 @@
           <div class="field"><label for="c-service">Service</label><select id="c-service" name="service"><option value="">General</option>${services.map((/** @type {string} */ s) => `<option value="${s}">${esc(SERVICES[s].label)}</option>`).join('')}</select></div>
           <div class="field"><label for="c-due">Due</label><input id="c-due" name="due" type="date"></div>
           <div class="field"><label for="c-priority">Priority</label><select id="c-priority" name="priority">${PRIORITIES.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
+          <div class="field span-all card-vis-field"><label class="check-inline"><input type="checkbox" name="internal" id="c-internal"> Keep internal</label><p class="hint">Cards with a service show on the client's Work page straight away: the title, where it is and the due date. Details, priority and who is on it stay with the team. Tick this for a card the client should not see.</p></div>
           <div class="field span-all"><label for="c-assignee">Who is on it (optional)</label><input id="c-assignee" name="assignee" type="text" maxlength="60" placeholder="Hermes, Karan"></div>
         </div>
         <div class="actions"><button class="btn" type="submit">Add the card</button><button class="btn btn-quiet" type="button" data-action="reveal-close">Cancel</button></div>
@@ -1460,7 +1481,7 @@
       const done = busy($('button[type=submit]', f), 'Adding');
       try {
         const client = await db();
-        const row = check(await client.from('tasks').insert({ tenant_id: current.id, kind: 'task', title, detail: val(f, 'detail'), status: val(f, 'status') || 'todo', service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, position: (current.tasks || []).length }).select('*').single());
+        const row = check(await client.from('tasks').insert({ tenant_id: current.id, kind: 'task', title, detail: val(f, 'detail'), status: val(f, 'status') || 'todo', client_visible: !(/** @type {HTMLInputElement} */ (f.elements.namedItem('internal'))).checked, service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, position: (current.tasks || []).length }).select('*').single());
         (current.tasks = current.tasks || []).push(row);
         (all.tasks = all.tasks || []).push(row);
         clean(f);
@@ -1515,6 +1536,7 @@
         <div class="field"><label for="e-priority-${esc(t.id)}">Priority</label><select id="e-priority-${esc(t.id)}" name="priority">${PRIORITIES.map(([k, l]) => `<option value="${k}"${t.priority === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
         <div class="field"><label for="e-assignee-${esc(t.id)}">Who is on it</label><input id="e-assignee-${esc(t.id)}" name="assignee" type="text" value="${esc(t.assignee || '')}" maxlength="60"></div>
       </div>
+      <div class="field card-vis-field"><label class="check-inline"><input type="checkbox" name="internal"${t.client_visible === false ? ' checked' : ''}> Keep internal</label><p class="hint">With a service and this off, the client sees the title, where it is and the due date on their Work page.</p></div>
       <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-danger btn-sm" type="button" data-remove-card style="margin-left:auto">Delete</button></div>
       ${t.multica_issue_id ? `<div class="card-note"><div class="field"><label for="e-note-${esc(t.id)}">Note on ${esc(t.multica_identifier || 'the issue')} in Multica</label><textarea id="e-note-${esc(t.id)}" name="note" maxlength="4000" placeholder="Hermes and the team see this in the issue's thread."></textarea></div><button class="btn btn-quiet btn-sm" type="button" data-note>Add the note</button></div>` : ''}
     </form>`;
@@ -1528,7 +1550,7 @@
       const done = busy($('button[type=submit]', f), 'Saving');
       try {
         const client = await db();
-        const row = check(await client.from('tasks').update({ title, detail: val(f, 'detail'), service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null }).eq('id', t.id).select('*').single());
+        const row = check(await client.from('tasks').update({ title, detail: val(f, 'detail'), service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, client_visible: !(/** @type {HTMLInputElement} */ (f.elements.namedItem('internal'))).checked }).eq('id', t.id).select('*').single());
         Object.assign(t, row);
         clean(f);
         toast('Card saved.');

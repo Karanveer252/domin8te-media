@@ -58,6 +58,11 @@ function fakeSupabase(tables, errors) {
             then(res, rej) { return Promise.resolve(run()).then(res, rej); }
           };
           return chain;
+        },
+        // the database's functions: rows kept as tables['rpc:<name>'], errors planted as errors['rpc:<name>']
+        rpc(name) {
+          const planted = errors[`rpc:${name}`];
+          return Promise.resolve(planted ? { data: null, error: planted } : { data: tables[`rpc:${name}`] || [], error: null });
         }
       };
     }
@@ -357,4 +362,42 @@ test('two people on one browser: the console keeps Karan and the portal keeps th
   const out = twoPeople('portal', 'sess_karan');
   await out.D8.auth.signOut();
   assert.deepEqual(plain(out.calls.find((c) => c[0] === 'signOut')), ['signOut', { sessionId: 'sess_dani' }], 'signing out of the portal signs out only the restaurant');
+});
+
+test("the team's board cards show on the Work page and steer the service (2026-10-08)", async () => {
+  const doc = { business: { name: 'Cards Cafe' }, package: { services: ['website', 'social'] }, services: { website: { status: 'planned' }, social: { status: 'planned', now: 'Written by the team' } } };
+  const tables = {
+    tenants: [{ id: 't9', name: 'Cards Cafe', clerk_org_id: 'org_cards', doc }], decisions: [], messages: [], requests: [], user_prefs: [],
+    'rpc:client_work_cards': [
+      { id: 'k1', service: 'website', title: 'Build the brunch page', status: 'in_progress', due: '2026-10-20', updated_at: '2026-10-08T10:00:00Z' },
+      { id: 'k2', service: 'website', title: 'Add the gift card page', status: 'todo', due: null, updated_at: '2026-10-08T10:00:00Z' },
+      { id: 'k3', service: 'website', title: 'Publish the menu', status: 'done', due: null, updated_at: '2026-10-01T10:00:00Z' },
+      { id: 'k4', service: 'social', title: 'Draft three posts', status: 'in_review', due: null, updated_at: '2026-10-08T10:00:00Z' },
+      { id: 'k5', service: 'advertising', title: 'Not in their plan', status: 'in_progress', due: null, updated_at: '2026-10-08T10:00:00Z' }
+    ]
+  };
+  const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_cards'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  const work = plain(await c.getWork());
+  const web = work.services.find((s) => s.id === 'website');
+  const soc = work.services.find((s) => s.id === 'social');
+  assert.deepEqual(web.cards.map((k) => k.title), ['Build the brunch page', 'Add the gift card page', 'Publish the menu'], 'open cards first, finished last');
+  assert.equal(web.status, 'in_progress', 'a card in progress puts the service in progress');
+  assert.equal(web.now, 'Build the brunch page', 'with no now of its own, the card in progress fills it');
+  assert.equal(web.next.text, 'Add the gift card page');
+  assert.equal(web.expected.date, '2026-10-20');
+  assert.equal(soc.status, 'waiting', 'a card waiting on the client puts the service waiting for them');
+  assert.equal(soc.now, 'Written by the team', 'what the team wrote wins over the cards');
+  assert.ok(!work.services.some((s) => s.id === 'advertising'), 'a card for a service outside the plan never shows');
+});
+
+test('without the cards function the Work page keeps the record as it is', async () => {
+  const doc = { business: { name: 'Old Cafe' }, package: { services: ['website'] }, services: { website: { status: 'planned', now: 'Record only' } } };
+  const tables = { tenants: [{ id: 't10', name: 'Old Cafe', clerk_org_id: 'org_old', doc }], decisions: [], messages: [], requests: [], user_prefs: [] };
+  const { D8 } = live({ tables, errors: { 'rpc:client_work_cards': { message: 'function does not exist' } }, clerk: { signedIn: true, orgs: ['org_old'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  const web = plain(await c.getWork()).services[0];
+  assert.deepEqual(web.cards, []);
+  assert.equal(web.status, 'planned');
+  assert.equal(web.now, 'Record only');
 });

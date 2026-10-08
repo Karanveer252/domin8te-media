@@ -92,6 +92,13 @@
     business: { name: 'Bayleaf Kitchen', kind: 'Restaurant' },
     user: { firstName: 'Dani', email: 'dani@bayleaf-kitchen.example', role: 'Owner' },
     package: { name: 'Full service', services: ['website', 'social', 'advertising', 'local'], billing: 'Billed monthly on the 22nd' },
+    // the team's board cards for the website, as the console's board holds them (2026-10-08: cards show on the Work page)
+    cards: [
+      { id: 'card_hours', service: 'website', title: 'Update the autumn opening hours across the site', status: 'in_review', due: '2026-10-01', updatedAt: '2026-09-23T16:20' },
+      { id: 'card_booking', service: 'website', title: 'Test the booking button on phones', status: 'in_progress', due: '2026-09-25', updatedAt: '2026-09-22T10:05' },
+      { id: 'card_menu_page', service: 'website', title: 'Publish the autumn menu page', status: 'done', due: null, updatedAt: '2026-09-18T14:00' },
+      { id: 'card_booking_buttons', service: 'website', title: 'Add a booking button under each menu section', status: 'done', due: null, updatedAt: '2026-09-11T11:30' }
+    ],
     team: { name: 'Your account team', reply: 'Usually replies within one working day' },
     meeting: { at: '2026-10-06T10:00', title: 'Monthly results call', length: '20 minutes', status: 'confirmed' },
     sources: [

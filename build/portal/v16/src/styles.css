@@ -660,6 +660,24 @@ html[data-theme="dark"] .orb { background: radial-gradient(circle at 32% 28%, rg
 .ms.is-current .ms-dot { background: var(--p-info-bg); border-color: var(--p-info); color: var(--p-info); }
 .ms-title { padding-top: 3px; font-weight: 600; line-height: 1.35; }
 .ms-needs { font-weight: 650; color: var(--p-accent-ink); }
+/* The team's board cards on a service (2026-10-08): one row per piece of work, its stage as a small pill. */
+.work-cards { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.wc { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-top: 1px solid var(--p-line); }
+.wc:first-child { border-top: 0; padding-top: 2px; }
+.wc-dot { display: grid; place-items: center; width: 30px; height: 30px; border: 2px solid var(--p-line-2); border-radius: 50%; background: var(--p-surface); color: var(--p-ink-3); }
+.wc-dot .i { width: 16px; height: 16px; }
+.wc.is-in_progress .wc-dot { border-color: var(--p-info); color: var(--p-info); }
+.wc.is-in_review .wc-dot { border-color: var(--p-attn); color: var(--p-attn); }
+.wc.is-done .wc-dot { border-color: var(--p-success); background: var(--p-success); color: #fff; }
+.wc-title { padding-top: 3px; font-weight: 600; line-height: 1.35; }
+.wc.is-done .wc-title { color: var(--p-ink-2); font-weight: 500; }
+.wc-stage { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+.wc-stage[data-tone="info"] { background: var(--p-info-bg); color: var(--p-info); }
+.wc-stage[data-tone="attention"] { background: var(--p-attn-bg); color: var(--p-attn); }
+.wc-stage[data-tone="success"] { background: var(--p-success-bg); color: var(--p-success); }
+.wc-stage[data-tone="neutral"] { background: var(--p-neutral-bg); color: var(--p-neutral); }
+.wc-more { margin-top: 6px; }
+.col-head-after { margin-top: 22px; }
 .done-list li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: baseline; gap: 10px; padding: 8px 0; border-top: 1px solid var(--p-line); }
 .done-list li:first-child { border-top: 0; }
 .done-list .i { align-self: center; width: 18px; height: 18px; color: var(--p-success); }

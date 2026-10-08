@@ -909,3 +909,12 @@ html[data-theme="dark"] .sd-opt.is-on { background: rgba(255, 255, 255, 0.04); }
 html[data-theme="dark"] .sd-sw { background: rgba(255, 255, 255, 0.18); }
 html[data-theme="dark"] .sd-opt.is-on .sd-ic { background: rgba(255, 91, 31, 0.18); color: #FFB08E; }
 html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
+
+
+/* ==== Board cards on the client's Work page (2026-10-08): each card says whether the client sees it ==== */
+.card-vis { font-size: 12px; padding: 2px 8px; }
+.card-vis:not(.is-internal) { background: var(--good-bg); color: var(--good); }
+.card-vis.is-internal { background: var(--surface-2); color: var(--ink-3); }
+.check-inline { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.check-inline input { width: 17px; height: 17px; margin: 0; accent-color: var(--accent); }
+.card-vis-field .hint { margin-top: 4px; }

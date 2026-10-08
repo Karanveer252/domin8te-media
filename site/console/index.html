@@ -928,6 +928,15 @@ html[data-theme="dark"] .sd-opt.is-on { background: rgba(255, 255, 255, 0.04); }
 html[data-theme="dark"] .sd-sw { background: rgba(255, 255, 255, 0.18); }
 html[data-theme="dark"] .sd-opt.is-on .sd-ic { background: rgba(255, 91, 31, 0.18); color: #FFB08E; }
 html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
+
+
+/* ==== Board cards on the client's Work page (2026-10-08): each card says whether the client sees it ==== */
+.card-vis { font-size: 12px; padding: 2px 8px; }
+.card-vis:not(.is-internal) { background: var(--good-bg); color: var(--good); }
+.card-vis.is-internal { background: var(--surface-2); color: var(--ink-3); }
+.check-inline { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.check-inline input { width: 17px; height: 17px; margin: 0; accent-color: var(--accent); }
+.card-vis-field .hint { margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -1417,6 +1426,8 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
         milestones: [], completed: [], files: [], ...(/** @type {any} */ (s) || {})
       }])),
       updates: t.updates || [],
+      // the team's board cards for this client (live: from client_work_cards(); the demo: the fixture's own)
+      cards: t.cards || [],
       billing: { plan: null, subscription: null, paymentMethod: null, invoices: [], ...(t.billing || {}) },
       dataThrough: t.dataThrough || yesterday
     };
@@ -1677,7 +1688,34 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
         if (out[apv.service]) out[apv.service].decisions.push({ approvalId: apvId, title: apv.title, ...dec });
       }
       for (const r of state().requests || []) if (out[r.service]) out[r.service].requests.push(r);
+      applyCards(out);
       return out;
+    }
+
+    /* The team's board cards on each service (2026-10-08, Karan: one card should be the single place the work is
+       recorded, and the client's Work page should follow it). A service with cards takes its status from them: waiting
+       on the client first, then in progress, planned, on hold, complete. Where the team has not written its own
+       "now", "next step" or "expected by", the cards fill them in; what the team wrote always wins. */
+    const CARD_ORDER = { in_review: 0, in_progress: 1, blocked: 2, todo: 3, done: 4 };
+    /** @param {Record<string, any>} out */
+    function applyCards(out) {
+      for (const s of Object.values(out)) {
+        const cards = (tenant.cards || [])
+          .filter((/** @type {any} */ c) => c.service === s.id && c.status !== 'cancelled' && c.status in CARD_ORDER)
+          .map((/** @type {any} */ c) => clone(c))
+          .sort((/** @type {any} */ a, /** @type {any} */ b) => CARD_ORDER[a.status] - CARD_ORDER[b.status]
+            || (a.status === 'done' ? String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')) : String(a.due || '9999').localeCompare(String(b.due || '9999'))));
+        s.cards = cards;
+        if (!cards.length) continue;
+        const has = (/** @type {string} */ st) => cards.some((/** @type {any} */ c) => c.status === st);
+        s.status = has('in_review') ? 'waiting' : has('in_progress') ? 'in_progress' : has('todo') ? 'planned' : has('blocked') ? 'paused' : 'complete';
+        const doing = cards.find((/** @type {any} */ c) => c.status === 'in_progress');
+        if (!s.now && doing) s.now = doing.title;
+        const upNext = cards.find((/** @type {any} */ c) => c.status === 'todo');
+        if ((!s.next || !s.next.text) && upNext) s.next = { text: upNext.title, who: 'domin8te' };
+        const dated = cards.filter((/** @type {any} */ c) => c.status !== 'done' && c.due).sort((/** @type {any} */ a, /** @type {any} */ b) => String(a.due).localeCompare(String(b.due)))[0];
+        if ((!s.expected || !s.expected.date) && dated) s.expected = { date: dated.due, text: dated.title };
+      }
     }
 
     function rank(a) {
@@ -2250,7 +2288,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       if (t.error) throw dbFail(t.error);
       const row = t.data && t.data[0];
       if (!row) { tenant = null; return; }
-      const [d, m, r, p, items, inv] = await Promise.all([
+      const [d, m, r, p, items, inv, cards] = await Promise.all([
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
         sb.from('requests').select('id, service, body, status, by_name, at').eq('tenant_id', row.id).order('at'),
@@ -2258,7 +2296,9 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
         // What staff approved for this client. The database returns a client only client_visible rows; asking
         // for them here as well keeps a staff session previewing the portal to the same rows.
         sb.from('client_dashboard_items').select('id, item_kind, external_id, content, source_observed_at, reporting_period_start, reporting_period_end, verification_status, published_at').eq('tenant_id', row.id).eq('client_visible', true),
-        sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url').eq('tenant_id', row.id).eq('client_visible', true)
+        sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url').eq('tenant_id', row.id).eq('client_visible', true),
+        // The team's board cards for this client (2026-10-08): only their visible cards with a service, safe fields only
+        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve({ data: null, error: { message: 'no rpc' } })
       ]);
       for (const x of [d, m, r, p]) if (x.error) throw dbFail(x.error);
       /** @type {any} */ const next = {};
@@ -2272,6 +2312,8 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       // A projection that cannot be read (tables not there yet) leaves the record as it is.
       const merged = mergeProjections(normalize(row.doc, now), items.error ? [] : items.data || [], inv.error ? [] : inv.data || []);
       tenant = { ...merged, tenantId: row.id, name: row.name };
+      // A function that is not there yet (before its migration) leaves the cards out and the record as it is.
+      if (!cards.error && Array.isArray(cards.data)) tenant.cards = cards.data.map((/** @type {any} */ c) => ({ id: c.id, service: c.service, title: c.title, status: c.status, due: c.due, updatedAt: c.updated_at, createdAt: c.created_at }));
     }
 
     let ready = load();
@@ -3599,9 +3641,28 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
         ? `<ul class="item-list">${list.map((p) => `<li><div><p><strong>${esc(p.name || p.email)}</strong>${p.name ? ` <span class="meta">${esc(p.email)}</span>` : ''}</p>${p.since ? `<p class="meta">Can sign in since ${esc(when(p.since))}</p>` : ''}</div><button class="btn btn-quiet btn-sm card-del" type="button" data-login-remove="${esc(p.userId)}" data-login-name="${esc(p.name || p.email)}">Remove</button></li>`).join('')}</ul>`
         : '<p class="meta">Nobody can sign in at the moment. Add a login below.</p>';
     };
+    /* The main contact (the name and email in the client's header, their Help page and the Details form) follows the
+       logins (2026-10-08, Karan: "I changed the portal login but on the top bar it still says derek"): when the
+       contact no longer has a login, the most recent person who can sign in becomes the contact. Checked on every
+       list, so adding or removing a login, or a contact left behind earlier, puts it right. */
+    /** @param {any[]} list */
+    const followLogins = async (list) => {
+      if (!current || current.id !== id || !list.length) return;
+      const u = current.doc.user || {};
+      const emails = list.map((p) => String(p.email || '').toLowerCase());
+      if (u.email && emails.includes(String(u.email).toLowerCase())) return;
+      const p = list.slice().sort((a, b) => String(b.since || '').localeCompare(String(a.since || '')))[0];
+      if (!p || !p.email) return;
+      const first = String(p.name || '').trim().split(/\s+/)[0] || u.firstName || '';
+      try {
+        await saveDoc((doc) => { doc.user = { ...(doc.user || {}), firstName: first, email: p.email }; });
+        toast(`The main contact is now ${first || p.email} (${p.email}), who can sign in.`);
+        if (!dirty.size) route();
+      } catch (x) { toast(`Could not update the main contact: ${message(x)}`, true); }
+    };
     if (people) {
       callFn('client-login', { action: 'list', tenantId: id })
-        .then((r) => { if (current && current.id === id) drawPeople(r.people || []); })
+        .then((r) => { if (current && current.id === id) { drawPeople(r.people || []); followLogins(r.people || []); } })
         .catch((x) => { if (people) people.innerHTML = `<p class="meta">Could not check who can sign in: ${esc(message(x))}</p>`; });
     }
     box.addEventListener('click', async (e) => {
@@ -3614,6 +3675,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
         try {
           const r = await callFn('client-login', { action: 'remove', tenantId: id, userId: rm.getAttribute('data-login-remove') });
           drawPeople(r.people || []);
+          followLogins(r.people || []);
           toast(`${name} can no longer sign in.`);
         } catch (x) { done(); toast(message(x), true); }
         return;
@@ -3729,7 +3791,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const open = t.status !== 'done' && t.status !== 'cancelled';
     return `<li class="card${t.status === 'cancelled' ? ' cancelled' : ''}" draggable="true" data-task="${esc(t.id)}" tabindex="0" aria-label="${esc(t.title)}, ${esc(TASK_STATUS_LABEL[t.status])}">
       ${client ? `<p class="card-client">${esc(client)}</p>` : ''}<p class="card-title">${esc(t.title)}</p>
-      <p class="card-meta">${t.kind === 'request' ? '<span class="chip you plain">Client request</span>' : ''}${t.status === 'cancelled' ? '<span class="chip plain">Cancelled</span>' : ''}${t.service ? `<span>${esc(svcLabel(t.service))}</span>` : ''}${t.priority && t.priority !== 'none' ? `<span class="chip ${t.priority === 'urgent' ? 'bad' : t.priority === 'high' ? 'warn' : 'plain'}">${esc(PRIORITIES.find(([k]) => k === t.priority)[1])}</span>` : ''}${d ? `<span class="${d.late && open ? 'late' : ''}">${esc(open && d.late ? d.text : 'due ' + when(t.due))}</span>` : ''}${t.assignee ? `<span>${esc(t.assignee)}</span>` : ''}</p>
+      <p class="card-meta">${t.kind === 'request' ? '<span class="chip you plain">Client request</span>' : ''}${t.status === 'cancelled' ? '<span class="chip plain">Cancelled</span>' : ''}${t.service ? `<span>${esc(svcLabel(t.service))}</span>` : ''}${t.client_visible === false ? '<span class="chip plain card-vis is-internal" title="The client does not see this card">Internal</span>' : t.service && t.status !== 'cancelled' ? '<span class="chip plain card-vis" title="Shown on the client&#39;s Work page: title, stage and due date">Client sees this</span>' : ''}${t.priority && t.priority !== 'none' ? `<span class="chip ${t.priority === 'urgent' ? 'bad' : t.priority === 'high' ? 'warn' : 'plain'}">${esc(PRIORITIES.find(([k]) => k === t.priority)[1])}</span>` : ''}${d ? `<span class="${d.late && open ? 'late' : ''}">${esc(open && d.late ? d.text : 'due ' + when(t.due))}</span>` : ''}${t.assignee ? `<span>${esc(t.assignee)}</span>` : ''}</p>
       <p class="card-sync meta">${syncLine(t)}</p>
       <p class="card-tools"><label class="sr-only" for="st-${esc(t.id)}">Move to</label><select id="st-${esc(t.id)}" data-move="${esc(t.id)}" aria-label="Move this card">${Object.entries(TASK_STATUS_LABEL).map(([k, l]) => `<option value="${k}"${t.status === k ? ' selected' : ''}>${l}</option>`).join('')}</select><button class="btn btn-quiet btn-sm" type="button" data-edit="${esc(t.id)}">Edit</button><button class="btn btn-quiet btn-sm card-del" type="button" data-delete="${esc(t.id)}" aria-label="Delete ${esc(t.title)}">Delete</button></p>
     </li>`;
@@ -3763,6 +3825,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
           <div class="field"><label for="c-service">Service</label><select id="c-service" name="service"><option value="">General</option>${services.map((/** @type {string} */ s) => `<option value="${s}">${esc(SERVICES[s].label)}</option>`).join('')}</select></div>
           <div class="field"><label for="c-due">Due</label><input id="c-due" name="due" type="date"></div>
           <div class="field"><label for="c-priority">Priority</label><select id="c-priority" name="priority">${PRIORITIES.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
+          <div class="field span-all card-vis-field"><label class="check-inline"><input type="checkbox" name="internal" id="c-internal"> Keep internal</label><p class="hint">Cards with a service show on the client's Work page straight away: the title, where it is and the due date. Details, priority and who is on it stay with the team. Tick this for a card the client should not see.</p></div>
           <div class="field span-all"><label for="c-assignee">Who is on it (optional)</label><input id="c-assignee" name="assignee" type="text" maxlength="60" placeholder="Hermes, Karan"></div>
         </div>
         <div class="actions"><button class="btn" type="submit">Add the card</button><button class="btn btn-quiet" type="button" data-action="reveal-close">Cancel</button></div>
@@ -3781,7 +3844,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       const done = busy($('button[type=submit]', f), 'Adding');
       try {
         const client = await db();
-        const row = check(await client.from('tasks').insert({ tenant_id: current.id, kind: 'task', title, detail: val(f, 'detail'), status: val(f, 'status') || 'todo', service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, position: (current.tasks || []).length }).select('*').single());
+        const row = check(await client.from('tasks').insert({ tenant_id: current.id, kind: 'task', title, detail: val(f, 'detail'), status: val(f, 'status') || 'todo', client_visible: !(/** @type {HTMLInputElement} */ (f.elements.namedItem('internal'))).checked, service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, position: (current.tasks || []).length }).select('*').single());
         (current.tasks = current.tasks || []).push(row);
         (all.tasks = all.tasks || []).push(row);
         clean(f);
@@ -3836,6 +3899,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
         <div class="field"><label for="e-priority-${esc(t.id)}">Priority</label><select id="e-priority-${esc(t.id)}" name="priority">${PRIORITIES.map(([k, l]) => `<option value="${k}"${t.priority === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
         <div class="field"><label for="e-assignee-${esc(t.id)}">Who is on it</label><input id="e-assignee-${esc(t.id)}" name="assignee" type="text" value="${esc(t.assignee || '')}" maxlength="60"></div>
       </div>
+      <div class="field card-vis-field"><label class="check-inline"><input type="checkbox" name="internal"${t.client_visible === false ? ' checked' : ''}> Keep internal</label><p class="hint">With a service and this off, the client sees the title, where it is and the due date on their Work page.</p></div>
       <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-danger btn-sm" type="button" data-remove-card style="margin-left:auto">Delete</button></div>
       ${t.multica_issue_id ? `<div class="card-note"><div class="field"><label for="e-note-${esc(t.id)}">Note on ${esc(t.multica_identifier || 'the issue')} in Multica</label><textarea id="e-note-${esc(t.id)}" name="note" maxlength="4000" placeholder="Hermes and the team see this in the issue's thread."></textarea></div><button class="btn btn-quiet btn-sm" type="button" data-note>Add the note</button></div>` : ''}
     </form>`;
@@ -3849,7 +3913,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       const done = busy($('button[type=submit]', f), 'Saving');
       try {
         const client = await db();
-        const row = check(await client.from('tasks').update({ title, detail: val(f, 'detail'), service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null }).eq('id', t.id).select('*').single());
+        const row = check(await client.from('tasks').update({ title, detail: val(f, 'detail'), service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, client_visible: !(/** @type {HTMLInputElement} */ (f.elements.namedItem('internal'))).checked }).eq('id', t.id).select('*').single());
         Object.assign(t, row);
         clean(f);
         toast('Card saved.');

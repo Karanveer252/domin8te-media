@@ -262,6 +262,33 @@
     return `<li><div><p class="blocker-title">${esc(a.title)}</p>${when}</div>${actionButton(a, style + ' btn-sm')}</li>`;
   }
 
+  /* The team's board cards for a service (2026-10-08): where each piece of work is, in the client's words. */
+  const CARD_STAGE = {
+    in_review: ['Waiting for you', 'alert', 'attention'],
+    in_progress: ['In progress', 'progress', 'info'],
+    blocked: ['On hold', 'pause', 'neutral'],
+    todo: ['Up next', 'clock', 'neutral'],
+    done: ['Done', 'check', 'success']
+  };
+  const DONE_SHOWN = 5;
+  /** @param {any[]} cards */
+  function workCards(cards) {
+    if (!cards || !cards.length) return '';
+    const open = cards.filter((c) => c.status !== 'done');
+    const done = cards.filter((c) => c.status === 'done');
+    const row = (/** @type {any} */ c) => {
+      const st = /** @type {any} */ (CARD_STAGE)[c.status] || CARD_STAGE.todo;
+      const when = c.status === 'done'
+        ? (c.updatedAt ? ` · ${esc(F.date(String(c.updatedAt).slice(0, 10), { weekday: false }))}` : '')
+        : c.due ? ` · Expected ${esc(F.date(c.due))}` : '';
+      return `<li class="wc is-${esc(c.status)}"><span class="wc-dot">${icon(st[1])}</span><div><p class="wc-title">${esc(c.title)}</p><p class="meta"><span class="wc-stage" data-tone="${st[2]}">${st[0]}</span>${when}</p></div></li>`;
+    };
+    return `<div class="col-head"><h3>What we're working on</h3><p class="meta">${done.length} of ${cards.length} done</p></div>
+      <div class="ms-progress" aria-hidden="true">${cards.map((c) => `<span class="${c.status === 'done' ? 'is-on' : c.status === 'in_progress' || c.status === 'in_review' ? 'is-now' : ''}"></span>`).join('')}</div>
+      <ul class="work-cards">${open.map(row).join('')}${done.slice(0, DONE_SHOWN).map(row).join('')}</ul>
+      ${done.length > DONE_SHOWN ? `<p class="meta wc-more">And ${done.length - DONE_SHOWN} finished earlier</p>` : ''}`;
+  }
+
   function serviceSection(s, actions, now) {
     const svc = SVC()[s.id];
     const needs = actions.filter((a) => a.service === s.id || (s.next && a.id === s.next.actionId));
@@ -291,9 +318,10 @@
           ${s.files.length ? `<div class="sub-list"><h3>Files</h3><ul class="files">${s.files.map((f) => `<li>${icon('file')}<span>${esc(f.name)}</span><span class="meta">${esc(f.note)}</span></li>`).join('')}</ul></div>` : ''}
         </div>
         <div class="svc-col">
-          <div class="col-head"><h3>Milestones</h3><p class="meta">${n ? `${done} of ${n} done` : 'None set yet'}</p></div>
+          ${workCards(s.cards)}
+          ${n || !(s.cards && s.cards.length) ? `<div class="col-head${s.cards && s.cards.length ? ' col-head-after' : ''}"><h3>Milestones</h3><p class="meta">${n ? `${done} of ${n} done` : 'None set yet'}</p></div>
           <div class="ms-progress" aria-hidden="true">${s.milestones.map((m) => `<span class="${m.state === 'done' ? 'is-on' : m.state === 'current' ? 'is-now' : ''}"></span>`).join('')}</div>
-          <ol class="timeline">${s.milestones.map(milestone).join('')}</ol>
+          <ol class="timeline">${s.milestones.map(milestone).join('')}</ol>` : ''}
           ${s.completed.length ? '<h3 class="col-title">Completed recently</h3>' : ''}
           <ul class="done-list">${s.completed.map((c) => `<li>${icon('check')}<span>${esc(c.text)}</span><span class="meta">${esc(F.date(c.date, { weekday: false }))}</span></li>`).join('')}</ul>
         </div>
