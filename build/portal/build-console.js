@@ -51,6 +51,9 @@ html = html.replace('<!--PRECONNECT-->', () => hosts.filter(Boolean).map((h) => 
 html = html.replace('<link rel="stylesheet" href="console.css">', () => `<style>\n${fs.readFileSync(path.join(DIR, 'console.css'), 'utf8')}</style>`);
 html = html.replace(/<script src="([^"]+)"><\/script>/g, (m, src) => `<script>\n/* ${src} */\n${safe(fs.readFileSync(path.join(DIR, src), 'utf8'))}</script>`);
 if (/src="\.\.\//.test(html) || /href="console\.css"/.test(html)) throw new Error('something was not inlined');
+// the website's icons, as on the homepage (site-icons.js)
+if (html.split('<meta charset="utf-8">').length !== 2) throw new Error('site icons: expected one <meta charset="utf-8">');
+html = html.replace('<meta charset="utf-8">', () => '<meta charset="utf-8">\n' + require('./site-icons')());
 // the website's growth cursor (growth-cursor.js); its script is the site's own /assets/v3-cursor.js
 if (html.split('</body>').length !== 2) throw new Error('growth cursor: expected one </body>');
 html = html.replace('</body>', () => require('./growth-cursor')() + '</body>');

@@ -49,6 +49,8 @@ if (LIVE) {
   once('live config', '<meta charset="utf-8">', `<meta charset="utf-8">
 <script>window.D8CONFIG = ${JSON.stringify({ ...cfg, app: 'portal', demoUrl: arg('--demo-url') || undefined })};</script>`);
 }
+// the website's icons, as on the homepage (site-icons.js)
+once('site icons', '<meta charset="utf-8">', '<meta charset="utf-8">\n' + require('./site-icons')());
 // the real portal and the demo both wear the website's growth cursor (growth-cursor.js)
 once('growth cursor', '</body>', require('./growth-cursor')() + '</body>');
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
