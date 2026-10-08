@@ -19,7 +19,7 @@ Branch `feat/dashboard-manager-prod`. Migrations, in order:
 - [x] Unit tests `node --test build/portal/supabase/functions/_shared/multica.test.mjs`: 23/23 (pull guard, list pagination, client-project filter, diff, backlog).
 - [x] Portal `npm run check` in `build/portal/v16`: passes.
 - [ ] Karan sets `DASHBOARD_BOT_SECRET` and `DASHBOARD_BOT_ALLOWLIST` in the test project, so the runner also checks the bot path (until then it says so in `notes`).
-- [ ] The extended runner passes through the GitHub workflow (`Dashboard Manager test`, 15 checks).
+- [x] The extended runner passes through the GitHub workflow (`Dashboard Manager test`, 15 checks): run 37836416215, 2026-10-08; bot-path checks reduced until the bot secrets are set.
 
 ## 2. Production: migration and deploy (Karan approves each)
 
