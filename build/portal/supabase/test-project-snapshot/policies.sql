@@ -1,0 +1,19 @@
+-- Snapshot of pg_policies + relrowsecurity, test project leuvzsouqsdpdpyjspjr, 2026-10-08.
+-- RLS is enabled on all six tables.
+
+-- client_billing_invoices | "client reads visible invoices; staff read all" | PERMISSIVE | {authenticated} | SELECT
+--   using: (( SELECT app.is_staff() AS is_staff) OR ((tenant_id = ( SELECT app.my_tenant() AS my_tenant)) AND client_visible))
+-- client_dashboard_items | "client reads visible dashboard items; staff read all" | PERMISSIVE | {authenticated} | SELECT
+--   using: (( SELECT app.is_staff() AS is_staff) OR ((tenant_id = ( SELECT app.my_tenant() AS my_tenant)) AND client_visible))
+-- dashboard_events | "staff read dashboard events" | PERMISSIVE | {authenticated} | SELECT
+--   using: ( SELECT app.is_staff() AS is_staff)
+-- dashboard_events | "staff update dashboard events" | PERMISSIVE | {authenticated} | UPDATE
+--   using: ( SELECT app.is_staff() AS is_staff)   with check: ( SELECT app.is_staff() AS is_staff)
+-- dashboard_exceptions | "staff read dashboard exceptions" | PERMISSIVE | {authenticated} | SELECT
+--   using: ( SELECT app.is_staff() AS is_staff)
+-- dashboard_exceptions | "staff resolve dashboard exceptions" | PERMISSIVE | {authenticated} | UPDATE
+--   using: ( SELECT app.is_staff() AS is_staff)   with check: ( SELECT app.is_staff() AS is_staff)
+-- dashboard_recoveries | "staff reads dashboard recoveries" | PERMISSIVE | {authenticated} | SELECT
+--   using: ( SELECT app.is_staff() AS is_staff)
+-- tenant_manager_assignments | "staff reads tenant manager assignments" | PERMISSIVE | {authenticated} | SELECT
+--   using: ( SELECT app.is_staff() AS is_staff)

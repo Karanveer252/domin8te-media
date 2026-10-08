@@ -1,0 +1,5 @@
+-- Snapshot of information_schema.role_table_grants, test project leuvzsouqsdpdpyjspjr, 2026-10-08.
+-- Every one of the six tables has the Supabase default: anon, authenticated, postgres and service_role
+-- each hold DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE. RLS policies are the only guard.
+-- tables: client_billing_invoices, client_dashboard_items, dashboard_events, dashboard_exceptions,
+--         dashboard_recoveries, tenant_manager_assignments

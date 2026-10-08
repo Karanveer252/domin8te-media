@@ -292,6 +292,56 @@
   }
 
   /**
+   * Lays the approved projection rows (client_dashboard_items, client_billing_invoices: the database only
+   * returns a client the rows staff have approved) over a normalized record. Where a section has no rows
+   * the record's own values stand, so nothing changes until approvals start.
+   *   update  -> updates[] (same id replaces the record's entry)
+   *   work    -> its service's now (not done) or completed[] (done)
+   *   result  -> metrics[metric].verified, with its period; a stale one keeps showing as Delayed
+   *   invoice -> billing.invoices[] (same number replaces the record's entry)
+   * @param {any} t a normalize()d record @param {any[]} items @param {any[]} invoices
+   */
+  function mergeProjections(t, items, invoices) {
+    const day = (/** @type {any} */ iso) => (iso ? String(iso).slice(0, 10) : '');
+    const rows = (items || []).filter((r) => r && r.content && typeof r.content === 'object');
+    const ups = rows.filter((r) => r.item_kind === 'update').map((r) => ({
+      ...r.content, id: r.external_id, date: r.content.date || day(r.published_at), author: r.content.author || 'team'
+    }));
+    if (ups.length) {
+      const ids = new Set(ups.map((u) => u.id));
+      t.updates = [...ups, ...t.updates.filter((/** @type {any} */ u) => !ids.has(u.id))];
+    }
+    const work = rows.filter((r) => r.item_kind === 'work' && r.content.service && t.services[r.content.service])
+      .sort((a, b) => String(a.published_at || '').localeCompare(String(b.published_at || '')));
+    for (const r of work) {
+      const s = t.services[r.content.service];
+      const title = String(r.content.title || '');
+      if (!title) continue;
+      if (r.content.status === 'done') {
+        const date = day(r.published_at);
+        if (!s.completed.some((/** @type {any} */ c) => c.text === title)) s.completed = [{ date, text: title }, ...s.completed];
+      } else if (r.content.status !== 'cancelled') s.now = title;  // the latest approved card wins
+    }
+    for (const r of rows.filter((x) => x.item_kind === 'result' && t.metrics[x.content.metric])) {
+      t.metrics[r.content.metric] = { ...t.metrics[r.content.metric], verified: {
+        value: r.content.value, unit: r.content.unit || t.metrics[r.content.metric].unit, label: r.content.label || t.metrics[r.content.metric].label,
+        comparison: r.content.comparison || null, periodStart: r.reporting_period_start, periodEnd: r.reporting_period_end,
+        observedAt: r.source_observed_at, state: r.verification_status === 'stale' ? 'stale' : 'fresh'
+      } };
+    }
+    const inv = (invoices || []).map((r) => ({
+      id: r.invoice_number, number: r.invoice_number, issued: r.issued_at, due: r.due_at || null, paidAt: r.paid_at || null,
+      status: r.status, amountMinor: r.amount_minor, currency: r.currency, url: r.hosted_payment_url || null
+    }));
+    if (inv.length) {
+      const nums = new Set(inv.map((x) => x.number));
+      t.billing.invoices = [...inv, ...t.billing.invoices.filter((/** @type {any} */ x) => !nums.has(x.number))]
+        .sort((a, b) => String(b.issued || '').localeCompare(String(a.issued || '')));
+    }
+    return t;
+  }
+
+  /**
    * Puts one client action into a state object: the demo keeps that object in this browser, the
    * live source keeps it as its copy of the rows it has read and written.
    * @param {any} st @param {string} kind @param {any} rec
@@ -442,7 +492,9 @@
       if (!inPackage(m.service)) return null;
       const srcs = m.sources.map(sourceState);
       const bad = srcs.find((s) => s.state === 'error');
-      const base = { id, label: m.label, unit: m.unit, group: m.group, service: m.service, chart: !!m.chart, sources: srcs };
+      const base = { id, label: m.label, unit: m.unit, group: m.group, service: m.service, chart: !!m.chart, sources: srcs,
+        // The latest figure staff approved for this metric, with its period; state 'stale' reads as Delayed.
+        verified: m.verified ? { ...clone(m.verified), health: HEALTH[m.verified.state] || null } : null };
       if (bad) return { ...base, state: 'error', text: `We couldn't load this from ${bad.name} just now.` };
       const t = totals(m, days);
       const partial = t.note && (t.note.kind === 'ends' || t.note.kind === 'starts');
@@ -796,7 +848,7 @@
     MODE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, SEVERITY, HEALTH,
     connect, scenarios, currentScenario, switchScenario,
     // For live-data.js: build a client on another source, and the shared helpers it needs.
-    makeClient, normalize, apply, fail,
+    makeClient, normalize, mergeProjections, apply, fail,
     /** Tests only: pick a scenario without a URL. */
     useScenario: (id) => { scenarioOverride = id; }
   };

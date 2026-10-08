@@ -99,6 +99,41 @@
     { tenant_id: 'tnt_preview_bayleaf', actor: 'user_preview_dani', action: 'requests.created', detail: {}, at: stamp(0, 3) },
     { tenant_id: 'tnt_preview_bayleaf', actor: 'user_preview_dani', action: 'messages.created', detail: {}, at: stamp(0, 3) }
   ];
+  // What the dashboard manager queues for approval: a new work item, a change to an update the client already sees,
+  // an invoice, a card moved in both places, and a data source gone quiet.
+  db.client_dashboard_items = [
+    { id: 'cdi_preview_1', tenant_id: 'tnt_preview_bayleaf', item_kind: 'work', external_id: 'k3', content: { title: 'Upload 12 photos to the Google profile', status: 'in_review', service: 'local' }, source_kind: 'manager', source_ref: 'multica:MUL-38', source_observed_at: stamp(0, 1), verification_status: 'pending', client_visible: false, publish_requested: false, pending_at: null, updated_at: stamp(0, 1) },
+    { id: 'cdi_preview_2', tenant_id: 'tnt_preview_marlow', item_kind: 'update', external_id: 'upd_mf1', content: { title: "This week's posts are out", completed: 'Published 3 posts on Instagram and Facebook.' }, pending_content: { title: "This week's posts are out", completed: 'Published 3 posts on Instagram, Facebook and Threads.' }, source_kind: 'console', source_ref: 'console:upd_mf1', pending_source_ref: 'console:upd_mf1', verification_status: 'verified', client_visible: true, publish_requested: true, pending_at: stamp(0, 2), updated_at: stamp(0, 2) }
+  ];
+  db.client_billing_invoices = [
+    { id: 'cbi_preview_1', tenant_id: 'tnt_preview_osteria', provider: 'stripe', provider_invoice_id: 'in_preview_1', invoice_number: 'D8-0142', amount_minor: 39900, currency: 'USD', status: 'open', issued_at: day(-1), due_at: day(13), paid_at: null, hosted_payment_url: 'https://invoice.stripe.com/i/preview', source_ref: 'stripe:in_preview_1', verification_status: 'pending', client_visible: false, pending_at: null, updated_at: stamp(-1, 0) }
+  ];
+  db.dashboard_exceptions = [
+    { id: 'dex_preview_1', tenant_id: 'tnt_preview_bayleaf', entity_type: 'task', entity_id: 'k2', severity: 'warning', reason_code: 'multica_conflict', message: 'MUL-41 was moved both here (in_progress) and in Multica (in_review).', last_verified_value: { local: 'in_progress', remote: 'in_review', identifier: 'MUL-41', taskId: 'k2' }, status: 'open', detected_at: stamp(0, 1) },
+    { id: 'dex_preview_2', tenant_id: 'tnt_preview_marlow', entity_type: 'source', entity_id: 'meta', severity: 'warning', reason_code: 'source_stale', message: 'Meta Ads has not updated for more than 26 hours.', status: 'open', detected_at: stamp(0, 6) }
+  ];
+  db.tenant_multica_sync = [
+    { tenant_id: 'tnt_preview_bayleaf', last_run_at: now(), last_ok_at: new Date(Date.now() - 40000).toISOString(), last_total: 5, last_changed: 0, last_error: null },
+    { tenant_id: 'tnt_preview_marlow', last_run_at: now(), last_ok_at: new Date(Date.now() - 40000).toISOString(), last_total: 2, last_changed: 0, last_error: null }
+  ];
+  db.dashboard_publish_gates = [{ gate: 'a_test_project_tests', passed_at: stamp(-1, 0), passed_by: 'user_preview_karan', evidence_ref: 'CI run (preview)' }];
+  db.tenant_auto_publish = [];
+  /** The review and resolve RPCs, as the database would answer them for staff. */
+  function rpcPreview(name, a) {
+    const item = (db.client_dashboard_items || []).find((x) => x.id === a.p_item_id);
+    if (name === 'review_dashboard_item' && item) {
+      if (a.p_decision === 'approve') Object.assign(item, { content: a.p_content || item.pending_content || item.content, pending_content: null, pending_at: null, verification_status: 'verified', client_visible: true, publish_requested: false });
+      else Object.assign(item, { pending_content: null, pending_at: null, publish_requested: false, verification_status: item.client_visible ? item.verification_status : 'rejected' });
+      return item;
+    }
+    const inv = (db.client_billing_invoices || []).find((x) => x.id === a.p_invoice_id);
+    if (name === 'review_billing_invoice' && inv) { Object.assign(inv, a.p_decision === 'approve' ? { verification_status: 'verified', client_visible: true } : { verification_status: 'rejected' }, { pending_at: null }); return inv; }
+    const exc = (db.dashboard_exceptions || []).find((x) => x.id === a.p_id);
+    if (name === 'resolve_dashboard_exception' && exc) { exc.status = a.p_status; return exc; }
+    if (name === 'record_publish_gate') { db.dashboard_publish_gates = db.dashboard_publish_gates.filter((g) => g.gate !== a.p_gate).concat({ gate: a.p_gate, passed_at: now(), passed_by: 'user_preview_karan', evidence_ref: a.p_evidence_ref }); return null; }
+    if (name === 'set_tenant_auto_publish') { db.tenant_auto_publish = db.tenant_auto_publish.filter((x) => x.tenant_id !== a.p_tenant).concat({ tenant_id: a.p_tenant, enabled: a.p_enabled }); return null; }
+    return null;
+  }
   function log(table, rec, before) {
     const tenant = table === 'tenants' ? rec.id : rec.tenant_id;
     if (!tenant) return;
@@ -135,7 +170,8 @@
     };
     const run = () => {
       const rows = db[name] = db[name] || [];
-      const match = (r) => q.filters.every(([k, v]) => Array.isArray(v) ? v.includes(r[k]) : r[k] === v);
+      // '__or' stands for the approvals queue's filter: still waiting (pending, or a pending revision).
+      const match = (r) => q.filters.every(([k, v]) => k === '__or' ? (r.verification_status === 'pending' || !!r.pending_at) : Array.isArray(v) ? v.includes(r[k]) : r[k] === v);
       if (q.op === 'upsert' && name === 'user_prefs') {
         const had = rows.find((r) => r.clerk_user_id === q.payload.clerk_user_id);
         const rec = had ? Object.assign(had, JSON.parse(JSON.stringify(q.payload)), { updated_at: now() }) : { ...q.payload, updated_at: now() };
@@ -177,6 +213,8 @@
       upsert(p) { q.op = 'upsert'; q.payload = p; return chain; },
       delete() { q.op = 'delete'; return chain; },
       not() { return chain; },
+      or() { q.filters.push(['__or', true]); return chain; },
+      is() { return chain; },
       in(k, vs) { q.filters.push([k, vs]); return chain; },
       then(res, rej) { return new Promise((r) => setTimeout(r, 30)).then(run).then(res, rej); }
     };
@@ -262,5 +300,5 @@
     return realFetch(url, init);
   };
 
-  /** @type {any} */ (window).D8PREVIEW = { clerk, supabase: { createClient: () => ({ from, rpc: async (name) => (name === 'console_me' ? { data: { staff: true, role: 'super_admin', team: 'org_preview_team', name: 'Karan' }, error: null } : { data: null, error: null }) }) } };
+  /** @type {any} */ (window).D8PREVIEW = { clerk, supabase: { createClient: () => ({ from, rpc: async (name, args) => (name === 'console_me' ? { data: { staff: true, role: 'super_admin', team: 'org_preview_team', name: 'Karan' }, error: null } : { data: rpcPreview(name, args || {}), error: null }) }) } };
 })();

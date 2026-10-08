@@ -63,9 +63,21 @@ jobs:
               "billing-event-processed",
               "invoice-recovery",
               "invalid-event-opened-exception",
+              "sender-cannot-self-verify",
+              "guard-blocks-direct-publish",
+              "auto-publish-flag-alone-blocked",
+              "multica-unset-noop",
+              "cross-tenant-rejected",
+              "drain-processes-many",
+              "reaper-recovers-stuck",
+              "sync-overlap-busy",
           ]
           payload = json.loads(os.environ["RUNNER_JSON"])
+          notes = payload.pop("notes", {})
           if payload != {"ok": True, "checks": expected}:
               raise SystemExit("Dashboard Manager test runner returned an unexpected result")
-          print("PASS: all seven isolated Dashboard Manager checks succeeded")
+          # Notes name checks that ran in a reduced form because a secret is not set (presence only, never a value).
+          for name, note in notes.items():
+              print(f"NOTE {name}: {note}")
+          print(f"PASS: all {len(expected)} isolated Dashboard Manager checks succeeded")
           PY

@@ -55,7 +55,40 @@ In Clerk: Organizations, the "Domin8te team" organisation, Members, add the pers
 Both run with `verify_jwt` off because the caller's token is Clerk's; each starts by asking the database whether the caller is staff (`public.console_me` with that token: a member of the Clerk team organisation) and refuses otherwise. Their secrets live in Supabase (Edge Functions > Secrets) and never reach a browser.
 
 - `client-login` (`functions/client-login`): gives a client a portal login (Clerk organisation, user without a password, membership). Needs `CLERK_SECRET_KEY`; answers 503 `not-configured` until it is set.
-- `multica-sync` (`functions/multica-sync`): keeps the task board and Multica in step. `status` says whether Multica is set up; `push` creates or updates the card's issue in the client's Multica project (created on first use); `pull` reads the client's issues back and moves cards that Hermes or a person moved in Multica; `comment` adds a note to the issue. Needs `MULTICA_TOKEN` (a personal access token from Multica, Settings > API Token) and `MULTICA_WORKSPACE` (the workspace slug); optional `MULTICA_API_URL` and `MULTICA_APP_URL` for a self-hosted Multica, `MULTICA_WORKSPACE_ID`, and `MULTICA_AGENT_ID` (new issues are assigned to that agent, for example Hermes). Answers 503 `not-configured` until the token and workspace are set; the console then keeps cards locally and says so. Multica's statuses (`todo`, `in_progress`, `in_review`, `blocked`, `done`, `cancelled`) are the board's columns, so nothing is translated.
+- `multica-sync` (`functions/multica-sync`): keeps the task board and Multica in step. `status` says whether Multica is set up; `push` creates or updates the card's issue in the client's Multica project (created on first use); `pull` reads the client's issues back and moves cards that were moved in Multica, unless the card was also moved here and not pushed yet (then it comes back in `conflicts` and is left alone); `comment` adds a note to the issue. Needs `MULTICA_TOKEN` (a personal access token from Multica, Settings > API Token) and `MULTICA_WORKSPACE` (the workspace slug); optional `MULTICA_API_URL` and `MULTICA_APP_URL` for a self-hosted Multica, `MULTICA_WORKSPACE_ID`, and `MULTICA_AGENT_ID` (new issues are assigned to that agent). Multica's `backlog` counts as `todo`. Answers 503 `not-configured` until the token and workspace are set; the console then keeps cards locally and says so. Multica's statuses (`todo`, `in_progress`, `in_review`, `blocked`, `done`, `cancelled`) are the board's columns, so nothing is translated.
+
+## Dashboard Manager: keeping every client's /dashboard current
+
+Server-side only: `dashboard-event` (the one way in) -> the outbox `dashboard_events` -> `dashboard-manager` (the scheduled worker). Nothing a sender says can make anything client-visible: every item is stored pending, and only staff approving it in the console's "Needs you" (or, after four recorded gates, the database's own evidence-checked auto path) publishes it. Invoices are never published automatically. Migrations: `20261008120000_dashboard_manager_schema`, `20261008120100_dashboard_manager_hardening`, `20261008120200_dashboard_cron`. Rollout: `DASHBOARD_MANAGER_ROLLOUT.md`.
+
+| Table | Holds | Who can read | Who can write |
+|---|---|---|---|
+| `dashboard_events` | The outbox: one row per change to project (claim time, retry time, attempts) | Staff | `enqueue_dashboard_event` (service role); staff may update |
+| `client_dashboard_items` | Work, update and result items for a client's portal; `pending_*` holds a revision of a live row | The client, only `client_visible` rows; staff | The manager (pending only); `review_dashboard_item` publishes |
+| `client_billing_invoices` | Invoices for the portal; `pending_row` holds a revision | The client, only `client_visible` rows; staff | The manager (pending only); `review_billing_invoice` publishes |
+| `dashboard_exceptions` | The manager's questions: `multica_conflict`, `multica_missing`, `source_stale`, failed events | Staff | The manager; staff resolve (`resolve_dashboard_exception`) |
+| `dashboard_recoveries`, `tenant_manager_assignments` | Hides and who manages each client | Staff | `dashboard-recovery` |
+| `tenant_multica_sync` | Per client: last sync, issues seen, cards moved, last error | Staff | The manager |
+| `dashboard_sync_lease` | The minute sync's overlap lease and resume cursor | Nobody | The manager |
+| `dashboard_publish_gates`, `tenant_auto_publish` | The four rollout gates and the per-client auto-publish switch | Staff | Super admins, through `record_publish_gate` / `set_tenant_auto_publish` |
+
+A trigger (`app.guard_dashboard_publication`) refuses any write that makes a row verified or visible, or changes a live row's content, unless it comes from `review_*` (the verifier is the calling staff member's token `sub`) or `auto_publish_dashboard_item` (all four gates, the client's switch and `app.dashboard_evidence_ok`).
+
+- `dashboard-event`: staff (Clerk token, `console_me`) or an approved bot (`x-dashboard-bot-secret` = `DASHBOARD_BOT_SECRET`, `x-dashboard-bot-name` on `DASHBOARD_BOT_ALLOWLIST`). Events: `work.changed/work` (entity = the card's id, must be the client's), `updates.changed/update`, `results.changed/result`, `billing.changed/invoice` (staff only; item kind `billing`), and `work.changed/multica_issue`, a sync request for one card (`{ sync: { identifier } }`, one per card per minute). Needs `DASHBOARD_MANAGER_ENABLED=true`; 64 KB at most.
+- `dashboard-manager`: called only by the scheduler (`x-dashboard-manager-secret` = `DASHBOARD_MANAGER_CRON_SECRET`, compared in constant time). `{}` drains the outbox (50 events or 20 s); `sync_multica` pulls each client project's issues (`GET /api/issues?project_id=…&limit=100&offset=…`), skips issues whose status, `updated_at` and `revision` match the card's stamp, moves cards Multica moved (unless moved here too: then one `multica_conflict` exception), and queues a pending work item for each move; `daily` (06:00 Chicago) reaps stuck events, re-pulls everything, flags sources quiet for 26 h and marks results older than 8 days stale. Missing secrets, a disabled manager or a busy lease are all 200 `skipped`, opening nothing.
+- `dashboard-recovery`: hides a live item or invoice (super admin, or the client's assigned manager).
+- `dashboard-manager-test-runner`: the test project only; never deployed to production.
+
+Scheduler (`20261008120200_dashboard_cron`, pg_cron + pg_net): `dm-sync` and `dm-drain` every minute, `dm-daily` at 11:00 and 12:00 UTC (the function keeps the one that is 06:00 in Chicago, so daylight saving needs nothing), and two trim jobs. The URL and secret come from Vault (`dm_project_url`, `dm_cron_secret`); without them nothing is called.
+
+Expected Multica calls per minute: one list call per client project per 100 issues on its board, plus at most 10 single-issue checks for cards that left their project. With N linked clients of under 100 issues each, that is about N calls a minute; the 40-call budget per run covers about 40 clients, and beyond that the run stops and the next minute carries on from where it stopped.
+
+Approved bots (for example Grok) use `scripts/dashboard-event.sh` with `DASHBOARD_EVENT_URL`, `DASHBOARD_BOT_SECRET` and `DASHBOARD_BOT_NAME` in their environment:
+
+| To | Send |
+|---|---|
+| Sync one card now (optional; the minute sync gets there anyway) | `{"tenantId":"…","eventType":"work.changed","entityType":"multica_issue","entityId":"DOM-42","payload":{"sync":{"identifier":"DOM-42"}}}` |
+| Propose client-facing text | `{"tenantId":"…","eventType":"updates.changed","entityType":"update","entityId":"upd-…","idempotencyKey":"…","payload":{"item":{"kind":"update","externalId":"upd-…","sourceKind":"manager","sourceRef":"console:upd-…","content":{"title":"…"},"clientVisible":true}}}`: it always waits for approval in the console |
 
 ## Testing the rules
 

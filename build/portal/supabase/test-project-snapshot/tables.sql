@@ -1,0 +1,102 @@
+-- Snapshot of information_schema.columns, test project leuvzsouqsdpdpyjspjr, 2026-10-08.
+-- Column order, types, nullability and defaults as reported. Constraints are in constraints.sql.
+
+-- dashboard_events
+--   id uuid not null default gen_random_uuid()
+--   tenant_id uuid not null
+--   event_type text not null
+--   entity_type text not null
+--   entity_id text null
+--   source text not null
+--   payload jsonb not null default '{}'::jsonb
+--   idempotency_key text not null
+--   status text not null default 'pending'::text
+--   attempts integer not null default 0
+--   last_error text null
+--   created_at timestamptz not null default now()
+--   processed_at timestamptz null
+--   created_by text null
+
+-- client_dashboard_items
+--   id uuid not null default gen_random_uuid()
+--   tenant_id uuid not null
+--   item_kind text not null
+--   external_id text not null
+--   content jsonb not null default '{}'::jsonb
+--   source_kind text not null
+--   source_ref text not null
+--   source_observed_at timestamptz null
+--   verification_status text not null default 'pending'::text
+--   verified_at timestamptz null
+--   verified_by text null
+--   client_visible boolean not null default false
+--   reporting_period_start date null
+--   reporting_period_end date null
+--   created_at timestamptz not null default now()
+--   updated_at timestamptz not null default now()
+--   published_at timestamptz null
+--   published_by text null
+--   hidden_at timestamptz null
+--   hidden_by text null
+--   hidden_reason text null
+
+-- client_billing_invoices
+--   id uuid not null default gen_random_uuid()
+--   tenant_id uuid not null
+--   provider text not null default 'stripe'::text
+--   provider_invoice_id text not null
+--   invoice_number text not null
+--   amount_minor bigint not null
+--   currency character not null          (char(3))
+--   status text not null
+--   issued_at date not null
+--   due_at date null
+--   paid_at timestamptz null
+--   hosted_payment_url text null
+--   source_ref text not null
+--   source_observed_at timestamptz not null
+--   verification_status text not null default 'pending'::text
+--   verified_at timestamptz null
+--   verified_by text null
+--   client_visible boolean not null default false
+--   published_at timestamptz null
+--   published_by text null
+--   hidden_at timestamptz null
+--   hidden_by text null
+--   hidden_reason text null
+--   created_at timestamptz not null default now()
+--   updated_at timestamptz not null default now()
+
+-- dashboard_exceptions
+--   id uuid not null default gen_random_uuid()
+--   tenant_id uuid not null
+--   event_id uuid null
+--   entity_type text not null
+--   entity_id text null
+--   severity text not null
+--   reason_code text not null
+--   message text not null
+--   last_verified_value jsonb null
+--   status text not null default 'open'::text
+--   detected_at timestamptz not null default now()
+--   resolved_at timestamptz null
+--   resolved_by text null
+--   resolution_note text null
+
+-- dashboard_recoveries
+--   id uuid not null default gen_random_uuid()
+--   tenant_id uuid not null
+--   item_id uuid null
+--   action text not null
+--   reason text not null
+--   replacement_note text null
+--   performed_by text not null
+--   performed_at timestamptz not null default now()
+--   invoice_id uuid null
+
+-- tenant_manager_assignments
+--   tenant_id uuid not null
+--   manager_user_id text not null
+--   assigned_by text not null
+--   assigned_at timestamptz not null default now()
+--   updated_at timestamptz not null default now()
