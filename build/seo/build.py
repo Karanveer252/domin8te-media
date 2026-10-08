@@ -330,6 +330,8 @@ def render(p, pages):
 <meta name="description" content="{desc}">
 <meta name="theme-color" content="#F4F1EC">
 {robots}
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="icon" href="{icon}">
 <meta property="og:type" content="{og_type}">
 <meta property="og:site_name" content="Domin8te Media">
