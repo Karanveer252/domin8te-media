@@ -23,26 +23,27 @@ Branch `feat/dashboard-manager-prod`. Migrations, in order:
 
 ## 2. Production: migration and deploy (Karan approves each)
 
-- [ ] Apply migrations 1 and 2 to `cxnohsykstdudsrummzs`. Prod's base (tasks, audit_log, `app.is_staff()`, `app.is_super_admin()`) is already there.
-- [ ] Run `tests/dashboard_manager.sql` on prod right after (it rolls itself back): every line PASS.
-- [ ] Deploy `dashboard-event`, `dashboard-manager`, `dashboard-recovery` and `multica-sync` (each with `../_shared/`). verify_jwt off, as today.
-- [ ] Do **not** deploy `dashboard-manager-test-runner` and do **not** set `DASHBOARD_TEST_RUNNER_ENABLED` in prod.
-- [ ] Karan sets the prod function secrets (names only): `DASHBOARD_MANAGER_CRON_SECRET`, `DASHBOARD_BOT_SECRET`, `DASHBOARD_BOT_ALLOWLIST`, `DASHBOARD_MANAGER_ENABLED=true`.
-- [ ] Leave `AUTO_PUBLISH_ENABLED` **unset**.
+- [x] (2026-10-08) Apply migrations 1 and 2 to `cxnohsykstdudsrummzs`. Prod's base (tasks, audit_log, `app.is_staff()`, `app.is_super_admin()`) is already there.
+- [x] Run `tests/dashboard_manager.sql` on prod right after (it rolls itself back): every line PASS. (37/37; cron line skipped before migration 3.)
+- [x] Deploy `dashboard-event`, `dashboard-manager`, `dashboard-recovery` and `multica-sync` (each with `../_shared/`). verify_jwt off, as today.
+- [x] Do **not** deploy `dashboard-manager-test-runner` and do **not** set `DASHBOARD_TEST_RUNNER_ENABLED` in prod.
+- [x] Karan sets the prod function secrets (names only): `DASHBOARD_MANAGER_CRON_SECRET`, `DASHBOARD_BOT_SECRET`, `DASHBOARD_BOT_ALLOWLIST`, `DASHBOARD_MANAGER_ENABLED=true`.
+- [x] Leave `AUTO_PUBLISH_ENABLED` **unset**.
 - [ ] Rebuild and deploy the console (`node build-console.js --site`, then pack and deploy as usual) and the portal, on Karan's word.
 
 ## 3. Multica stays off until Karan checks it
 
-- [ ] Karan checks `MULTICA_TOKEN` / `MULTICA_WORKSPACE` privately (Supabase Dashboard > Production > Edge Function Secrets). Until both are set, every Multica step answers 200 `skipped: "multica-not-configured"`, logs `multica not configured` once per call, and opens nothing.
+- [x] Karan checks `MULTICA_TOKEN` / `MULTICA_WORKSPACE` privately (Supabase Dashboard > Production > Edge Function Secrets). Until both are set, every Multica step answers 200 `skipped: "multica-not-configured"`, logs `multica not configured` once per call, and opens nothing.
 - [ ] Karan links each client to its Multica project (`tenants.multica_project_id`, the console's `project` action). Unlinked clients are never polled.
 
 ## 4. The 1-minute scheduler (each line a separate approval)
 
-- [ ] Karan enables `pg_cron` and `pg_net` in prod (Database > Extensions, or migration 3, which also creates them).
-- [ ] Karan creates the Vault entries `dm_project_url` (the project URL) and `dm_cron_secret` (the same value as `DASHBOARD_MANAGER_CRON_SECRET`).
-- [ ] Karan approves applying migration 3: `dm-sync` and `dm-drain` every minute, `dm-daily` + `dm-daily-cst` at 11:00 and 12:00 UTC, `dm-net-trim`, `dm-cron-trim`.
+- [x] Karan enables `pg_cron` and `pg_net` in prod (Database > Extensions, or migration 3, which also creates them).
+- [x] Karan creates the Vault entries `dm_project_url` (the project URL) and `dm_cron_secret` (the same value as `DASHBOARD_MANAGER_CRON_SECRET`).
+- [x] Karan approves applying migration 3: `dm-sync` and `dm-drain` every minute, `dm-daily` + `dm-daily-cst` at 11:00 and 12:00 UTC, `dm-net-trim`, `dm-cron-trim`.
+- [x] (20:33 UTC, first runs) dm-sync and dm-drain succeed every minute; dashboard-manager answers 200 (secret matches, Multica configured, 0 linked clients yet, queue empty); no exceptions.
 - [ ] After 10 minutes: `select jobname, status, count(*) from cron.job_run_details join cron.job using (jobid) where jobname like 'dm-%' group by 1, 2;` shows a run every minute; `tenant_multica_sync` shows recent `last_ok_at`; no new exceptions from skips.
-- [ ] DST: nothing to do on Nov 1, 2026. Both 11:00 and 12:00 UTC are scheduled, and `daily` runs only when it is 06:00 in Chicago (it answers `skipped: "not-6am-chicago"` to the other).
+- [x] DST: nothing to do on Nov 1, 2026. Both 11:00 and 12:00 UTC are scheduled, and `daily` runs only when it is 06:00 in Chicago (it answers `skipped: "not-6am-chicago"` to the other).
 - Rollback, either stops it: `select cron.unschedule(jobname) from cron.job where jobname like 'dm-%';`, or unset `DASHBOARD_MANAGER_ENABLED` (every call then answers `skipped: "disabled"`).
 
 ## 5. Production with approvals only
