@@ -29,7 +29,7 @@ Branch `feat/dashboard-manager-prod`. Migrations, in order:
 - [x] Do **not** deploy `dashboard-manager-test-runner` and do **not** set `DASHBOARD_TEST_RUNNER_ENABLED` in prod.
 - [x] Karan sets the prod function secrets (names only): `DASHBOARD_MANAGER_CRON_SECRET`, `DASHBOARD_BOT_SECRET`, `DASHBOARD_BOT_ALLOWLIST`, `DASHBOARD_MANAGER_ENABLED=true`.
 - [x] Leave `AUTO_PUBLISH_ENABLED` **unset**.
-- [ ] Rebuild and deploy the console (`node build-console.js --site`, then pack and deploy as usual) and the portal, on Karan's word.
+- [x] (v60, 2026-10-08) Rebuild and deploy the console (`node build-console.js --site`, then pack and deploy as usual) and the portal, on Karan's word.
 
 ## 3. Multica stays off until Karan checks it
 
