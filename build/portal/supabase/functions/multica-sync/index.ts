@@ -4,7 +4,8 @@
 //   POST { action: "push", taskId }            the card becomes, or updates, an issue in the client's
 //                                              Multica project (the project is created on first use)
 //   POST { action: "pull", tenantId }          reads the client's issues back; a card whose issue moved in
-//                                              Multica (by Hermes or a person) moves here too
+//                                              Multica moves here too, unless it was also moved here and not
+//                                              pushed yet: then it is listed in conflicts and left alone
 //   POST { action: "comment", taskId, text }   adds a note to the issue's thread
 //   POST { action: "project", tenantId }       makes sure the client has its own Multica project (board)
 //
@@ -15,14 +16,14 @@
 // Needs the secrets MULTICA_TOKEN (a Multica personal access token, Settings > API Token) and
 // MULTICA_WORKSPACE (the workspace slug). Optional: MULTICA_API_URL (default https://api.multica.ai;
 // a self-hosted server's address otherwise), MULTICA_APP_URL (for links, default https://app.multica.ai),
-// MULTICA_WORKSPACE_ID (sent as X-Workspace-ID as well), MULTICA_AGENT_ID (the agent, such as Hermes,
-// that new issues are assigned to). They never leave the server. verify_jwt is off because the token
+// MULTICA_WORKSPACE_ID (sent as X-Workspace-ID as well), MULTICA_AGENT_ID (the agent that new issues
+// are assigned to). They never leave the server. verify_jwt is off because the token
 // is Clerk's, not Supabase's; the staff check is the guard.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { multica, multicaError, multicaConfigured, pullTask, TASK_COLUMNS, apiUrl, type TaskRow } from "../_shared/multica.ts";
 
 const ALLOWED = ["https://domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
-const STATUSES = ["todo", "in_progress", "in_review", "blocked", "done", "cancelled"];
 
 function cors(origin: string | null) {
   const allow = origin && ALLOWED.includes(origin) ? origin : ALLOWED[0];
@@ -39,28 +40,9 @@ function reply(origin: string | null, status: number, body: unknown) {
 }
 
 const env = (k: string, d = "") => (Deno.env.get(k) || d).trim();
-const configured = () => !!(env("MULTICA_TOKEN") && env("MULTICA_WORKSPACE"));
-const apiUrl = () => env("MULTICA_API_URL", "https://api.multica.ai").replace(/\/+$/, "");
+const configured = multicaConfigured;
 const appUrl = () => env("MULTICA_APP_URL", "https://app.multica.ai").replace(/\/+$/, "");
 const issueLink = (identifier: string) => `${appUrl()}/${env("MULTICA_WORKSPACE")}/issues/${encodeURIComponent(identifier)}`;
-
-/** One call to Multica. Answers { ok, status, data }; never throws on a bad answer. */
-async function multica(path: string, init: RequestInit = {}) {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${env("MULTICA_TOKEN")}`,
-    "Content-Type": "application/json",
-    "X-Workspace-Slug": env("MULTICA_WORKSPACE"),
-  };
-  if (env("MULTICA_WORKSPACE_ID")) headers["X-Workspace-ID"] = env("MULTICA_WORKSPACE_ID");
-  const res = await fetch(apiUrl() + path, { ...init, headers: { ...headers, ...(init.headers || {}) } });
-  const text = await res.text();
-  let data: any = null;
-  try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text.slice(0, 300) }; }
-  return { ok: res.ok, status: res.status, data };
-}
-
-const multicaError = (r: { status: number; data: any }, doing: string) =>
-  `Multica would not ${doing} (${r.status}${r.data?.error || r.data?.message ? ": " + (r.data.error || r.data.message) : ""}).`;
 
 
 const SERVICE_LABEL: Record<string, string> = { website: "Website", social: "Social media", advertising: "Advertising", local: "Local search" };
@@ -127,7 +109,7 @@ Deno.serve(async (req) => {
         issue = c.data;
       }
       const now = new Date().toISOString();
-      const saved = await db.from("tasks").update({ multica_issue_id: issue.id, multica_identifier: issue.identifier || null, multica_status: issue.status || task.status, multica_synced_at: now, multica_updated_at: issue.updated_at || now }).eq("id", task.id).select("id").maybeSingle();
+      const saved = await db.from("tasks").update({ multica_issue_id: issue.id, multica_identifier: issue.identifier || null, multica_status: issue.status || task.status, multica_synced_at: now, multica_updated_at: issue.updated_at || now, multica_revision: issue.revision ?? null }).eq("id", task.id).select("id").maybeSingle();
       if (saved.error) throw new Error("The issue was saved in Multica but the link could not be recorded here. Try again.");
       return reply(origin, 200, { ok: true, issue: { id: issue.id, identifier: issue.identifier, status: issue.status, url: issue.identifier ? issueLink(issue.identifier) : null } });
     }
@@ -142,24 +124,18 @@ Deno.serve(async (req) => {
 
     if (action === "pull") {
       const tenantId = String(body.tenantId || "");
-      const rows = await db.from("tasks").select("id, status, multica_issue_id, multica_identifier, multica_synced_at").eq("tenant_id", tenantId).not("multica_issue_id", "is", null);
+      const rows = await db.from("tasks").select(TASK_COLUMNS).eq("tenant_id", tenantId).not("multica_issue_id", "is", null);
       if (rows.error) throw new Error("Could not read the board.");
       const changed: any[] = [];
+      const conflicts: any[] = [];
       const now = new Date().toISOString();
-      for (const task of rows.data || []) {
-        const g = await multica(`/api/issues/${encodeURIComponent(task.multica_issue_id)}`);
-        if (!g.ok || !g.data) continue;
-        const remote = String(g.data.status || "");
-        const stamp = { multica_status: remote, multica_synced_at: now, multica_updated_at: g.data.updated_at || now, multica_identifier: g.data.identifier || task.multica_identifier };
-        // Multica moved it (and to a status the board knows): the card follows.
-        if (remote && remote !== task.status && STATUSES.includes(remote)) {
-          const u = await db.from("tasks").update({ ...stamp, status: remote }).eq("id", task.id);
-          if (!u.error) changed.push({ taskId: task.id, identifier: g.data.identifier, from: task.status, to: remote });
-        } else {
-          await db.from("tasks").update(stamp).eq("id", task.id);
-        }
+      // Multica wins only when the card has no unpushed move here; moved on both sides = a conflict for a person.
+      for (const task of (rows.data || []) as TaskRow[]) {
+        const o = await pullTask(db, task, now);
+        if (o.result === "moved") changed.push({ taskId: o.taskId, identifier: o.identifier, from: o.from, to: o.to });
+        if (o.result === "conflict") conflicts.push({ taskId: o.taskId, identifier: o.identifier, local: o.from, remote: o.to });
       }
-      return reply(origin, 200, { ok: true, checked: (rows.data || []).length, changed });
+      return reply(origin, 200, { ok: true, checked: (rows.data || []).length, changed, conflicts });
     }
 
     if (action === "comment") {
