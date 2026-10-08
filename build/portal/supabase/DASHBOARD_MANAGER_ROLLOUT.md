@@ -42,7 +42,7 @@ Branch `feat/dashboard-manager-prod`. Migrations, in order:
 - [x] Karan creates the Vault entries `dm_project_url` (the project URL) and `dm_cron_secret` (the same value as `DASHBOARD_MANAGER_CRON_SECRET`).
 - [x] Karan approves applying migration 3: `dm-sync` and `dm-drain` every minute, `dm-daily` + `dm-daily-cst` at 11:00 and 12:00 UTC, `dm-net-trim`, `dm-cron-trim`.
 - [x] (20:33 UTC, first runs) dm-sync and dm-drain succeed every minute; dashboard-manager answers 200 (secret matches, Multica configured, 0 linked clients yet, queue empty); no exceptions.
-- [ ] After 10 minutes: `select jobname, status, count(*) from cron.job_run_details join cron.job using (jobid) where jobname like 'dm-%' group by 1, 2;` shows a run every minute; `tenant_multica_sync` shows recent `last_ok_at`; no new exceptions from skips.
+- [x] (21:38 UTC: 66 runs each of dm-sync and dm-drain, all succeeded; 132 calls all 200; 0 exceptions) After 10 minutes: `select jobname, status, count(*) from cron.job_run_details join cron.job using (jobid) where jobname like 'dm-%' group by 1, 2;` shows a run every minute; `tenant_multica_sync` shows recent `last_ok_at`; no new exceptions from skips.
 - [x] DST: nothing to do on Nov 1, 2026. Both 11:00 and 12:00 UTC are scheduled, and `daily` runs only when it is 06:00 in Chicago (it answers `skipped: "not-6am-chicago"` to the other).
 - Rollback, either stops it: `select cron.unschedule(jobname) from cron.job where jobname like 'dm-%';`, or unset `DASHBOARD_MANAGER_ENABLED` (every call then answers `skipped: "disabled"`).
 
