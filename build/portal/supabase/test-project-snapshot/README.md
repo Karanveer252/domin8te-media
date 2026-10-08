@@ -14,3 +14,12 @@ What the test project does **not** have (prod does): `tasks`, `requests`, `audit
 `tenants.multica_project_id`, `app.jwt_sub()`, `app.team_org()`, `app.settings`. No triggers on the six tables.
 Extensions: plpgsql, pg_stat_statements, uuid-ossp, pgcrypto, supabase_vault (no pg_cron, no pg_net).
 See `../test-project-fixtures/` for the test-only base that mirrors prod's shapes.
+
+## Diff check for Migration 1 (2026-10-08)
+
+No Docker or Supabase CLI on the build machine, so `supabase start` was not available. Instead Migration 1 was
+applied to the test project through the Supabase MCP and the catalog re-read. Result, unchanged from the snapshot:
+88 columns, 63 constraints, 20 indexes, 8 policies, RLS on for all six, the three RPCs executable by
+postgres and service_role only. Fingerprints after apply (md5 of the ordered catalog text):
+columns `f2f00d64d6e15e1d013a70337852ef6a`, constraints `9273c3811c88109693d5ff88e123ab9f`,
+indexes `f5b4788cde2d09755da00f6fa8d6639a`, policies `657b123444803167b9e2ce97477332ef`.
