@@ -68,3 +68,25 @@ go.addEventListener('click', function () {
 
 update();
 })();
+
+/* the booking calendar: a Google appointment schedule, loaded only when the section is close */
+(function () {
+'use strict';
+var cal = document.getElementById('bookCal');
+var src = cal && cal.getAttribute('data-src');
+if (!src) return;
+function load() {
+  var f = document.createElement('iframe');
+  f.src = src + (src.indexOf('?') < 0 ? '?gv=true' : '&gv=true');
+  f.title = 'Book a discovery call';
+  f.loading = 'lazy';
+  cal.innerHTML = '';
+  cal.appendChild(f);
+  cal.classList.add('is-on');
+}
+if (!('IntersectionObserver' in window)) { load(); return }
+var io = new IntersectionObserver(function (es) {
+  if (es.some(function (e) { return e.isIntersecting })) { io.disconnect(); load() }
+}, { rootMargin: '600px 0px' });
+io.observe(cal);
+})();

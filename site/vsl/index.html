@@ -30,7 +30,7 @@
     </a>
     <nav class="nav" aria-label="Main">
       <a class="nav__link nav__link--dash" href="/dashboard/"><svg class="nav__ico" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="6" height="6" rx="1.6"/><rect x="11.5" y="2.5" width="6" height="6" rx="1.6"/><rect x="2.5" y="11.5" width="6" height="6" rx="1.6"/><rect x="11.5" y="11.5" width="6" height="6" rx="1.6"/></svg><span class="nav__txt">Dashboard</span></a>
-      <a class="btn btn--primary btn--sm nav__cta" href="#contact">Get your plan</a>
+      <a class="btn btn--primary btn--sm nav__cta" href="#book">Book a call</a>
     </nav>
   </div>
 </header>
@@ -54,7 +54,7 @@
         </div>
       </div>
     </div>
-    <p class="vsl-cta rv"><a class="btn btn--primary btn--lg" href="#contact">Get your plan</a></p>
+    <p class="vsl-cta rv"><a class="btn btn--primary btn--lg" href="#book">Book a discovery call</a></p>
   </div>
 </section>
 
@@ -95,7 +95,7 @@
         <img class="cl__mark" src="/assets/mark-720.webp" width="720" height="397" alt="" loading="lazy" decoding="async">
         <h3 id="proof-next-h" class="cl__next"><span>Your place,</span> <em>next.</em></h3>
         <p class="cl__line">Tell us what’s slipping. You’ll get a plain English plan back within one business day.</p>
-        <a class="btn btn--primary cl__cta" href="#contact">Get your plan</a>
+        <a class="btn btn--primary cl__cta" href="#book">Book a discovery call</a>
       </aside>
     </div>
   </div>
@@ -319,29 +319,60 @@
         <h3 class="vsl-tier__name">Starter</h3>
         <p class="vsl-tier__price"><b>$___</b><span>/month</span></p>
         <ul class="vsl-tier__list"><li>To be decided</li><li>Your private dashboard</li></ul>
-        <a class="btn btn--ghost vsl-tier__cta" href="#contact">Get your plan</a>
+        <a class="btn btn--ghost vsl-tier__cta" href="#book">Book a discovery call</a>
       </article>
       <article class="vsl-tier vsl-tier--main rv">
         <h3 class="vsl-tier__name">Growth</h3>
         <p class="vsl-tier__price"><b>$___</b><span>/month</span></p>
         <ul class="vsl-tier__list"><li>To be decided</li><li>Your private dashboard</li></ul>
-        <a class="btn btn--primary vsl-tier__cta" href="#contact">Get your plan</a>
+        <a class="btn btn--primary vsl-tier__cta" href="#book">Book a discovery call</a>
       </article>
       <article class="vsl-tier rv">
         <h3 class="vsl-tier__name">Dominate</h3>
         <p class="vsl-tier__price"><b>$___</b><span>/month</span></p>
         <ul class="vsl-tier__list"><li>To be decided</li><li>Your private dashboard</li></ul>
-        <a class="btn btn--ghost vsl-tier__cta" href="#contact">Get your plan</a>
+        <a class="btn btn--ghost vsl-tier__cta" href="#book">Book a discovery call</a>
       </article>
     </div>
   </div>
 </section>
 
-<!-- ============ 7. THE FORM (same as the homepage) ============ -->
+<!-- ============ 7. BOOK A DISCOVERY CALL ============
+     The booking calendar is a Google Calendar appointment schedule. Paste its booking page link into
+     data-src (https://calendar.google.com/calendar/appointments/schedules/...); assets/vsl.js loads it
+     when the section is near. Empty data-src = the fallback card that sends people to the form. -->
+<section class="vsl-book" id="book" aria-labelledby="book-h">
+  <div class="wrap">
+    <header class="sec-head rv">
+      <h2 id="book-h" class="hl hl--sec"><span class="ln">Book a discovery call.</span> <span class="ln ln--2">Pick a time that suits you.</span></h2>
+    </header>
+
+    <div class="vsl-book__grid">
+      <div class="vsl-book__side rv">
+        <h3 class="vsl-book__ttl">What happens next</h3>
+        <ol class="vsl-steps">
+          <li><b>Pick a time.</b> Times show in your own time zone. You get a calendar invite straight away.</li>
+          <li><b>We look before we talk.</b> Your website, your Google listing and your socials, so the call isn’t spent on basics.</li>
+          <li><b>You leave with a plan.</b> What needs fixing first and why, in plain English. No pitch deck.</li>
+        </ol>
+        <p class="vsl-book__small">No contract to sign on the call. If we’re not the right fit, we’ll tell you.</p>
+      </div>
+
+      <div class="vsl-cal rv" id="bookCal" data-src="">
+        <div class="vsl-cal__wait">
+          <p class="vsl-cal__lbl">The booking calendar goes here</p>
+          <a class="btn btn--primary" href="#contact">Ask for a call instead</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8. THE FORM (same as the homepage), for anyone not ready to book ============ -->
 <section class="contact" id="contact" aria-labelledby="contact-h">
   <div class="wrap contact__in">
     <header class="sec-head rv">
-      <h2 id="contact-h" class="hl hl--sec"><span class="ln">Two names and a number.</span> <span class="ln ln--2">Yours and the one on the door.</span></h2>
+      <h2 id="contact-h" class="hl hl--sec"><span class="ln">Not ready for a call?</span> <span class="ln ln--2">Two names and a number will do.</span></h2>
       <p class="lede">Within one business day you get a plan back: what needs fixing first, and why. Not a pitch deck with your logo on the cover.</p>
     </header>
 
