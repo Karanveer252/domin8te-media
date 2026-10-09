@@ -3679,7 +3679,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-
         business: { name, kind: val(f, 'kind') },
         user: { firstName: val(f, 'first'), email: val(f, 'email'), role: 'Owner' },
         package: { name: '', services, billing: '' },
-        team: { name: 'Your account team', reply: 'Usually replies within one working day' },
+        team: { name: 'Your account team', reply: 'Usually replies within one working day', ...agencyAccess() },
         meeting: null, services: svcDocs, actions: [], approvals: {}, updates: [], sources: [], metrics: {}, strip: [], pending: [], campaigns: [], summaries: []
       };
       const done = busy($('button[type=submit]', f), 'Adding');
@@ -4056,7 +4056,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-
         doc.user = { ...doc.user, firstName: val(f, 'first'), email: val(f, 'email'), role: val(f, 'role') };
         // the services themselves change only through Change services (changeServices), never here
         doc.package = { ...doc.package, name: val(f, 'pkg'), billing: val(f, 'billing') };
-        doc.team = { ...(doc.team || {}), name: val(f, 'team') || 'Your account team', reply: val(f, 'reply'), metaBusinessId: val(f, 'metaid') || undefined, accessEmail: val(f, 'accessemail') || undefined };
+        doc.team = { ...(doc.team || {}), name: val(f, 'team') || 'Your account team', reply: val(f, 'reply') };
         // connected accounts: Connected, Needs reconnecting or Not connected (taken off the record)
         if ($('#sec-accounts', box)) {
           const stamp = new Date().toISOString().slice(0, 16);
@@ -4748,6 +4748,12 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-
       <section class="panel" aria-labelledby="s-multica"><div class="panel-head"><h2 id="s-multica">Task boards and Multica</h2><p>${MULTICA_HINT} ${st.pending ? 'Checking the connection to Multica.' : st.configured ? `Connected to the <strong>${esc(st.workspace)}</strong> workspace.` : 'Multica isn\'t linked yet. Cards save here as normal until it is.'}</p></div>
         <label class="switch-row"><input type="checkbox" role="switch" data-pref-toggle="autoPull"${prefs.autoPull ? ' checked' : ''}><span><span class="pick-t">Keep boards in step with Multica</span><span class="pick-d">Checks every 90 seconds while a board is open, when it opens, and when you come back to the tab. Off: press Check now yourself.</span></span></label>
       </section>
+      <section class="panel" aria-labelledby="s-access" id="sec-access"><div class="panel-head"><h2 id="s-access">Access details for clients</h2><p>Clients see these in their steps when they connect Instagram, Facebook, Meta ads or Google. Saving copies them to every client, and new clients get them too.</p></div>
+        <form id="access-form" novalidate><div class="grid-3">
+          <div class="field"><label for="s-metaid">Our Meta business ID</label><input id="s-metaid" name="metaid" type="text" value="${esc(agencyAccess().metaBusinessId || '')}" maxlength="40" inputmode="numeric" autocomplete="off"><p class="hint">In Meta Business settings, under Business info. Used for Instagram, Facebook and Meta ads.</p></div>
+          <div class="field span-2"><label for="s-accessemail">Our email for Google access</label><input id="s-accessemail" name="accessemail" type="email" value="${esc(agencyAccess().accessEmail || '')}" maxlength="120" autocomplete="off"><p class="hint">The Google account clients add as a manager. Used for Google Business Profile and Google Analytics.</p></div>
+        </div><div class="actions"><button class="btn" type="submit">Save for all clients</button></div></form>
+      </section>
       <section class="panel" aria-labelledby="s-me"><div class="panel-head"><h2 id="s-me">Your account</h2></div>
         <dl class="facts"><dt>Name</dt><dd>${esc(me.name)}</dd><dt>Email</dt><dd>${esc(me.email || 'Not shown')}</dd><dt>Role</dt><dd>${me.role === 'super_admin' ? 'Owner: uses the console and manages the team' : 'Team member: uses the console'}</dd><dt>Sign-in</dt><dd>With a 6-digit code we email you, no password. You get in because you are on the Domin8te team in our sign-in service.</dd></dl>
         <div class="actions"><button class="btn btn-quiet" type="button" data-action="sign-out">Sign out</button></div>
@@ -4760,6 +4766,30 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-
     window.scrollTo(0, y);
     if (jumpAfter) { const to = document.getElementById(jumpAfter); jumpAfter = ''; if (to) setTimeout(() => to.scrollIntoView({ block: 'start' }), 0); }
     teamPanel(/** @type {HTMLElement} */ ($('#team-box')));
+    const af = /** @type {HTMLFormElement|null} */ ($('#access-form'));
+    if (af) {
+      track(af, 'Access details');
+      af.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const metaId = val(af, 'metaid').replace(/\s+/g, ''), mail = val(af, 'accessemail');
+        if (metaId && !/^\d{5,20}$/.test(metaId)) { toast('A Meta business ID is only numbers.', true); $('#s-metaid').focus(); return; }
+        if (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) { toast('That email does not look right.', true); $('#s-accessemail').focus(); return; }
+        const done = busy($('button[type=submit]', af), 'Saving');
+        try {
+          /** @type {{metaBusinessId?: string, accessEmail?: string}} */ const acc = {};
+          if (metaId) acc.metaBusinessId = metaId;
+          if (mail) acc.accessEmail = mail;
+          const r = await applyAccessToAll(acc);
+          clean(af);
+          if (r.failed.length) toast(`Saved for most clients. Not saved for ${r.failed.join(', ')}, because someone was changing them. Save again.`, true);
+          else toast(r.changed ? `Saved. ${r.changed === 1 ? 'One client' : `${r.changed} clients`} now show these in their steps.` : 'Nothing changed. Every client already has these.');
+          settingsPage();
+        } catch (x) {
+          done();
+          toast(message(x), true);
+        }
+      });
+    }
     if ($('#gates-box')) gatesPanel(/** @type {HTMLElement} */ ($('#gates-box')));
     main.onclick = async (e) => {
       const b = /** @type {HTMLElement} */ (e.target).closest('[data-pref]');
@@ -4829,21 +4859,60 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-
   }
   /** @param {any} d */
   function accountsSection(d) {
-    const t = d.team || {};
     const rows = accountRows(d);
-    return `<h3 class="panel-sub" id="sec-accounts">Connected accounts <span class="meta">The apps their services need. They connect them from Settings on their portal; you confirm here.</span></h3>
-        <div class="grid-3">
-          <div class="field"><label for="o-metaid">Our Meta business ID</label><input id="o-metaid" name="metaid" type="text" value="${esc(t.metaBusinessId || '')}" maxlength="40" inputmode="numeric"><p class="hint">Shown in their steps for Instagram, Facebook and Meta ads.</p></div>
-          <div class="field span-2"><label for="o-accessemail">Our email for Google access</label><input id="o-accessemail" name="accessemail" type="email" value="${esc(t.accessEmail || '')}" maxlength="120"><p class="hint">Shown in their steps for Google Business Profile and Google Analytics.</p></div>
-        </div>
+    return `<h3 class="panel-sub" id="sec-accounts">Connected accounts <span class="meta">The apps their services need. They connect them from Settings on their portal; you confirm here. Our Meta business ID and Google email are in <a href="#/settings" data-jump-access>Settings</a>.</span></h3>
         ${rows.length ? `<ul class="acct-rows">${rows.map((x) => `<li><span class="acct-name">${esc(x.name)}${x.told ? `<span class="chip them">${esc(x.told)}</span>` : ''}</span>
           <label class="sr-only" for="acct-${esc(x.id)}">${esc(x.name)}</label><select id="acct-${esc(x.id)}" name="acct-${esc(x.id)}">${[['connected', 'Connected'], ['disconnected', 'Needs reconnecting'], ['none', 'Not connected']].map(([v, l]) => `<option value="${v}"${(x.status === 'disconnected' ? 'disconnected' : x.status === 'none' || x.status === 'not_connected' ? 'none' : 'connected') === v ? ' selected' : ''}>${l}</option>`).join('')}</select></li>`).join('')}</ul>
         <p class="hint">When they tell us, the request also lands on their board. Set the account here, then move that card to Done.</p>` : '<p class="hint">Their services need no accounts.</p>'}`;
   }
 
+  /* Our access details for clients' connect steps (2026-10-09, Karan: "move the business ID and email to Settings").
+     A client's dashboard reads only its own record, so Settings writes them into every client's record (team), and a new
+     client starts with them. The value shown is the one most clients hold. */
+  function agencyAccess() {
+    /** @param {string} k */
+    const pick = (k) => {
+      /** @type {Record<string, number>} */ const n = {};
+      for (const t of all.tenants || []) { const v = t.doc && t.doc.team && t.doc.team[k]; if (v) n[v] = (n[v] || 0) + 1; }
+      const top = Object.entries(n).sort((a, b) => b[1] - a[1])[0];
+      return top ? top[0] : '';
+    };
+    /** @type {{metaBusinessId?: string, accessEmail?: string}} */ const out = {};
+    const m = pick('metaBusinessId'), e = pick('accessEmail');
+    if (m) out.metaBusinessId = m;
+    if (e) out.accessEmail = e;
+    return out;
+  }
+  /** @param {{metaBusinessId?: string, accessEmail?: string}} acc @returns {Promise<{changed: number, failed: string[]}>} */
+  async function applyAccessToAll(acc) {
+    const client = await db();
+    let changed = 0;
+    /** @type {string[]} */ const failed = [];
+    for (const t of all.tenants || []) {
+      let ok = false;
+      for (let tries = 0; tries < 2 && !ok; tries++) {
+        const got = check(await client.from('tenants').select('updated_at, doc').eq('id', t.id).single());
+        const doc = clone(got.doc || {});
+        const team = { ...(doc.team || {}) };
+        if ((team.metaBusinessId || '') === (acc.metaBusinessId || '') && (team.accessEmail || '') === (acc.accessEmail || '')) { ok = true; break; }
+        delete team.metaBusinessId; delete team.accessEmail;
+        doc.team = { ...team, ...acc };
+        const rows = check(await client.from('tenants').update({ doc }).eq('id', t.id).eq('updated_at', got.updated_at).select('updated_at, doc')) || [];
+        if (rows.length) {
+          ok = true; changed++;
+          t.updated_at = rows[0].updated_at; t.doc = D8.data.normalize(rows[0].doc, () => Date.now());
+          if (current && current.id === t.id) { current.updated_at = t.updated_at; current.doc = t.doc; }
+        }
+      }
+      if (!ok) failed.push(t.name);
+    }
+    return { changed, failed };
+  }
+
   function editTab(box, part, got) {
     overview(box, 'edit', got);
     // #/client/<id>/edit/<section> opens the tab at that section (billing, meeting, login, plan).
+    for (const a of $$('[data-jump-access]', box)) a.addEventListener('click', () => { jumpAfter = 'sec-access'; });
     const to = ({ billing: 'billing', meeting: 'sec-meeting', login: 'sec-login', plan: 'sec-plan', accounts: 'sec-accounts' })[/** @type {'billing'} */ (part)];
     if (to) setTimeout(() => { const el = document.getElementById(to); if (el) el.scrollIntoView({ block: 'start' }); }, 0);
   }
