@@ -49,7 +49,7 @@
 
   /** Where a number comes from, in plain words, and what each connected app does for the client. */
   const SOURCE_FROM = { booking: 'your booking system', gbp: 'your Google listing', analytics: 'your website visitor counter', 'meta-ads': 'your Facebook and Instagram ads', facebook: 'your Facebook page', instagram: 'your Instagram account', stripe: 'Stripe, our payment service' };
-  const SOURCE_ABOUT = { gbp: 'Your listing on Google and Maps', analytics: 'Counts visits to your website', booking: 'Takes bookings on your website', 'meta-ads': 'Your Facebook and Instagram ads', facebook: 'Your Facebook page', instagram: 'Your Instagram account', stripe: 'Takes your payments' };
+  const SOURCE_ABOUT = { gbp: 'Your listing on Google and Maps', analytics: 'Counts visits to your website', booking: 'How guests book a table on your website', 'meta-ads': 'Your Facebook and Instagram ads', facebook: 'Your Facebook page', instagram: 'Your Instagram account', stripe: 'Takes your payments' };
   /** @param {any} src */
   const fromSource = (src) => 'From ' + (/** @type {any} */ (SOURCE_FROM)[src.id] || src.name);
   /** @param {any} src */

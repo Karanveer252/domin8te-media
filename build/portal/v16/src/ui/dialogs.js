@@ -265,64 +265,116 @@
 
   /* ---- connected accounts: connect, reconnect, disconnect (2026-10-09) ---------------------- */
 
-  // The steps on each app's own site. Our business ID and access email come from the client record (team) when set.
-  const ASK = 'no ID yet? Press Message us and we send it';
+  /* The steps on each app's own site, each with where to find the setting (Karan: "instructions to find the specific
+     setting ... visible and easy to read"). **Words** are the buttons and menus to press, shown bold. Our business ID and
+     access email come from the client record (team, set in the console's Settings) when there.
+     Meta: Instagram, the Facebook page and the ad account are all shared from one screen, so one trip covers every
+     Meta account they still need ("one Meta connection for all three"). */
+  const askId = (/** @type {any} */ t) => t.metaBusinessId ? `**${t.metaBusinessId}**` : '(no ID yet? Press Message us and we send it)';
+  // Our Google access email (2026-10-09, Karan: "add our email right here, don't ask them to message us"). The console's
+  // Settings value wins when set; this is the default.
+  const ACCESS_EMAIL = 'karanhelps@domin8temedia.com';
+  const askMail = (/** @type {any} */ t) => `**${t.accessEmail || ACCESS_EMAIL}**`;
+  const META_LIST = { instagram: ['Instagram accounts', 'your Instagram account'], facebook: ['Pages', 'your Facebook page'], 'meta-ads': ['Ad accounts', 'your ad account'] };
   const GUIDE = {
     meta: {
       where: "Meta's", link: 'https://business.facebook.com/settings/partners', button: 'Open Meta Business settings',
-      on: (/** @type {any} */ a, /** @type {any} */ t) => ['Press Open Meta Business settings below and sign in to Facebook.', 'Go to Users, then Partners, then press Add.',
-        `Choose Give a partner access to your assets and type Domin8te's business ID${t.metaBusinessId ? `: ${t.metaBusinessId}` : ` (${ASK})`}.`,
-        `Tick your ${a.asset}, give Domin8te full access, then press Save.`],
-      off: (/** @type {any} */ a) => ['Press Open Meta Business settings below and sign in to Facebook.', 'Go to Users, then Partners, then choose Domin8te.', `Press Remove next to your ${a.asset}.`]
+      on: (/** @type {string[]} */ ids, /** @type {any} */ t) => [
+        { do: 'Press **Open Meta Business settings** below and sign in with the Facebook account that runs your restaurant.', where: 'It opens business.facebook.com. If you have more than one business, choose the restaurant at the top left.' },
+        { do: 'In the menu on the left, press **Users**, then **Partners**.', where: 'No menu? Press **Settings**, the gear at the bottom left, first.' },
+        { do: 'Press **Add**, then **Give a partner access to your business assets**.' },
+        { do: `Type Domin8te's business ID ${askId(t)}, then press **Next**.` },
+        { do: `On the left, open ${ids.length > 1 ? 'each of these' : 'this'} and tick yours. Switch on **Full control** for ${ids.length > 1 ? 'each one' : 'it'}.`, list: ids.map((id) => `**${META_LIST[/** @type {'instagram'} */ (id)][0]}**: tick ${META_LIST[/** @type {'instagram'} */ (id)][1]}`), where: 'Some screens say **Everything** instead of Full control.' },
+        { do: 'Press **Save changes**.' }
+      ],
+      off: (/** @type {string[]} */ ids) => [
+        { do: 'Press **Open Meta Business settings** below and sign in.' },
+        { do: 'In the menu on the left, press **Users**, then **Partners**, then **Domin8te**.' },
+        { do: `Find ${META_LIST[/** @type {'instagram'} */ (ids[0])][1]} under **${META_LIST[/** @type {'instagram'} */ (ids[0])][0]}** and press **Remove** next to it.` }
+      ],
+      tip: "Instagram not in the list? It has to join your business first: press **Accounts**, then **Instagram accounts**, then **Add**."
     },
     gbp: {
       where: "Google's", link: 'https://business.google.com/', button: 'Open Google Business Profile',
-      on: (/** @type {any} */ a, /** @type {any} */ t) => ['Press Open Google Business Profile below and sign in with the Google account that owns your listing.',
-        'Open your business, then the menu with three dots, then Business Profile settings.', 'Press People and access (it may say Managers), then Add.',
-        `Type Domin8te's email${t.accessEmail ? `: ${t.accessEmail}` : ' (no email yet? Press Message us and we send it)'}, choose Manager, then press Invite.`],
-      off: () => ['Press Open Google Business Profile below and sign in.', 'Open your business, then the menu with three dots, then Business Profile settings.',
-        'Press People and access (it may say Managers), choose Domin8te, then press Remove.']
+      on: (/** @type {string[]} */ ids, /** @type {any} */ t) => [
+        { do: 'Press **Open Google Business Profile** below and sign in with the Google account that owns your listing.', where: 'Quickest way: search Google for **my business** while signed in. Your profile opens at the top.' },
+        { do: 'Press the menu with **three dots**, then **Business Profile settings**.' },
+        { do: 'Press **People and access**, then **Add**.', where: 'Older screens say **Managers** instead of People and access.' },
+        { do: `Type Domin8te's email ${askMail(t)}, choose **Manager**, then press **Invite**.` }
+      ],
+      off: () => [
+        { do: 'Press **Open Google Business Profile** below and sign in.' },
+        { do: 'Press the menu with **three dots**, then **Business Profile settings**, then **People and access**.' },
+        { do: 'Press **Domin8te**, then **Remove access**.' }
+      ],
+      tip: 'No Business Profile settings? Your Google account may not own the listing. Ask whoever set it up, or press Message us.'
     },
     analytics: {
       where: "Google's", link: 'https://analytics.google.com/', button: 'Open Google Analytics',
-      on: (/** @type {any} */ a, /** @type {any} */ t) => ['Press Open Google Analytics below and sign in.', 'Press Admin, the gear at the bottom left.',
-        'Under Property, press Property access management, then the plus button, then Add users.',
-        `Type Domin8te's email${t.accessEmail ? `: ${t.accessEmail}` : ' (no email yet? Press Message us and we send it)'}, choose Viewer, then press Add.`],
-      off: () => ['Press Open Google Analytics below and sign in.', 'Press Admin, then Property access management.', 'Choose Domin8te, then press Remove access.']
+      on: (/** @type {string[]} */ ids, /** @type {any} */ t) => [
+        { do: 'Press **Open Google Analytics** below and sign in.', where: "Check your restaurant's website is the one chosen at the top left." },
+        { do: 'Press **Admin**, the gear at the bottom left.' },
+        { do: 'In the **Property** column, press **Property access management**.' },
+        { do: 'Press the blue **+** at the top right, then **Add users**.' },
+        { do: `Type Domin8te's email ${askMail(t)}, tick **Viewer**, then press **Add**.` }
+      ],
+      off: () => [
+        { do: 'Press **Open Google Analytics** below and sign in.' },
+        { do: 'Press **Admin**, then **Property access management**.' },
+        { do: 'Press the **three dots** on the Domin8te row, then **Remove access**.' }
+      ],
+      tip: 'No Admin gear? Your login can only look, not change. Ask whoever set up Analytics, or press Message us.'
     },
     other: {
       where: '', link: '', button: '',
-      on: () => ['Every booking system works a little differently.', 'Press Tell us below. We send you the exact steps, or set it up with you.'],
-      off: () => ['Press Tell us below.', 'We stop using it and help you remove our access.']
+      on: () => [
+        { do: 'Every booking system (OpenTable, Resy, SevenRooms and others) works a little differently.' },
+        { do: 'Press **Tell us** below. We reply with the exact steps for yours, or set it up with you.' }
+      ],
+      off: () => [{ do: 'Press **Tell us** below.' }, { do: 'We stop using it and help you remove our access.' }],
+      tip: ''
     }
   };
+  /** Escapes, then turns **words** into bold. @param {string} x */
+  const rich = (x) => esc(x).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  const WORKING = ['fresh', 'stale'];
 
   /** @param {string} id @param {string} mode connect, reconnect or disconnect @param {HTMLElement|null} trigger @param {any} ctx */
   function account(id, mode, trigger, ctx) {
-    const s = (ctx.account.sources || []).find((/** @type {any} */ x) => x.id === id) || { id, name: id };
+    const srcs = ctx.account.sources || [];
+    const s = srcs.find((/** @type {any} */ x) => x.id === id) || { id, name: id };
     const a = D8.data.ACCOUNTS[id] || { name: s.name, guide: 'other', asset: 'account', stops: 'use it' };
     const g = /** @type {any} */ (GUIDE)[a.guide] || GUIDE.other;
     const off = mode === 'disconnect';
+    // One Meta trip: this account plus every other Meta account they need that isn't working or waiting yet.
+    const ids = !off && a.guide === 'meta'
+      ? [id, ...srcs.filter((/** @type {any} */ x) => x.id !== id && D8.data.ACCOUNTS[x.id] && D8.data.ACCOUNTS[x.id].guide === 'meta' && !x.pending && !WORKING.includes(x.state)).map((/** @type {any} */ x) => x.id)]
+        .sort((p, q) => Object.keys(META_LIST).indexOf(p) - Object.keys(META_LIST).indexOf(q))
+      : [id];
+    const names = ids.map((x) => (srcs.find((/** @type {any} */ y) => y.id === x) || { name: (D8.data.ACCOUNTS[x] || {}).name || x }).name);
     const verb = off ? 'Disconnect' : mode === 'reconnect' ? 'Reconnect' : 'Connect';
-    const steps = (off ? g.off : g.on)(a, ctx.account.team || {});
+    const title = ids.length > 1 ? `${verb} ${F.list(names)}` : `${verb} ${s.name}`;
+    const steps = (off ? g.off : g.on)(ids, ctx.account.team || {});
     const intro = off
       ? `${g.where ? `You remove Domin8te on ${g.where} own page.` : 'We stop using it.'} While it is off, we can't ${a.stops}.`
-      : g.where ? `About two minutes. You let Domin8te in on ${g.where} own page. We never see your password.` : 'We set this one up with you. We never see your password.';
+      : g.where ? `About two minutes. You let Domin8te in on ${g.where} own page.${ids.length > 1 ? ` One trip connects all ${ids.length}.` : ''} We never see your password.` : 'We set this one up with you. We never see your password.';
     let sent = false;
-    open(head(`${verb} ${s.name}`, '') + `<div class="dlg-body">
+    open(head(title, '') + `<div class="dlg-body">
       <p class="dlg-intro">${esc(intro)}</p>
-      <ol class="guide-steps">${steps.map((/** @type {string} */ x) => `<li>${esc(x)}</li>`).join('')}</ol>
-      ${g.link ? '<p class="meta">Menus move now and then. Stuck? Press Message us and we help.</p>' : ''}
+      <ol class="guide-steps">${steps.map((/** @type {any} */ x) => `<li><p class="guide-do">${rich(x.do)}</p>${x.list ? `<ul class="guide-list">${x.list.map((/** @type {string} */ y) => `<li>${rich(y)}</li>`).join('')}</ul>` : ''}${x.where ? `<p class="guide-where">${icon('info')}<span>${rich(x.where)}</span></p>` : ''}</li>`).join('')}</ol>
+      ${g.tip && !off ? `<p class="guide-tip">${icon('help')}<span><strong>Stuck?</strong> ${rich(g.tip)}</span></p>` : ''}
+      ${g.link ? '<p class="meta">Menus move now and then. If yours looks different, press Message us and we help.</p>' : ''}
       <p class="form-error" role="alert" hidden></p>
       <div class="dlg-actions">${g.link ? `<a class="btn btn-glass" href="${g.link}" target="_blank" rel="noopener noreferrer">${esc(g.button)}${icon('external')}<span class="sr-only"> (opens in a new tab)</span></a>` : ''}<button class="btn btn-solid" type="button" data-account-done>${g.link ? "I've done it" : 'Tell us'}</button><button class="btn btn-glass" type="button" data-dlg-close>Cancel</button></div></div>`, trigger, () => { if (sent) ctx.afterChange(); });
     const done = /** @type {HTMLButtonElement} */ (inner().querySelector('[data-account-done]'));
     done.addEventListener('click', () => {
       formError('');
       setBusy(true, done, 'Sending');
-      ctx.client.accountRequest(id, mode).then(() => {
+      ctx.client.accountRequest(ids, mode).then(() => {
         sent = true;
         setBusy(false);
-        inner().innerHTML = head(`Thanks, ${ctx.session.firstName}`, '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>We got it.</h3><p>${off ? `We stop using ${esc(s.name)} and confirm it` : `We check ${esc(s.name)} works and confirm it`}, usually within one working day. Until then it says Waiting for us to confirm.</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
+        const what = F.list(names);
+        inner().innerHTML = head(`Thanks, ${ctx.session.firstName}`, '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>We got it.</h3><p>${off ? `We stop using ${esc(what)} and confirm it` : `We check ${esc(what)} ${ids.length > 1 ? 'work' : 'works'} and confirm it`}, usually within one working day. Until then ${ids.length > 1 ? 'they say' : 'it says'} Waiting for us to confirm.</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
         focusTitle();
         toast('Sent. We will confirm soon.');
       }).catch((/** @type {any} */ err) => {

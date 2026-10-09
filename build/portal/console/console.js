@@ -2141,11 +2141,11 @@
     const A = D8.data.ACCOUNTS || {};
     const pkg = (d.package && d.package.services) || [];
     const needed = (/** @type {string} */ id) => !A[id] || pkg.includes(A[id].service);
-    const have = (d.sources || []).filter((/** @type {any} */ x) => needed(x.id));
+    const have = (d.sources || []).filter((/** @type {any} */ x) => needed(x.id)).map((/** @type {any} */ x) => (A[x.id] ? { ...x, name: A[x.id].name } : x));
     const missing = Object.keys(A).filter((id) => needed(id) && !(d.sources || []).some((/** @type {any} */ x) => x.id === id)).map((id) => ({ id, name: A[id].name, status: 'none' }));
     const open = (current.requests || []).filter((/** @type {any} */ r) => r.status !== 'done' && r.status !== 'declined');
     return [...have, ...missing].map((/** @type {any} */ x) => {
-      const r = open.find((/** @type {any} */ q) => String(q.body || '').startsWith(`Check ${x.name} access:`) || String(q.body || '').startsWith(`Stop using ${x.name}:`));
+      const r = open.find((/** @type {any} */ q) => { const b = String(q.body || ''); const m = b.match(/^Check Meta access \(([^)]*)\):/); return b.startsWith(`Check ${x.name} access:`) || b.startsWith(`Stop using ${x.name}:`) || !!(m && m[1].split(', ').includes(x.name)); });
       return { ...x, told: r ? (String(r.body).startsWith('Stop using') ? 'They say they removed our access' : 'They say they gave us access') : '' };
     });
   }
@@ -2175,7 +2175,7 @@
       return top ? top[0] : '';
     };
     /** @type {{metaBusinessId?: string, accessEmail?: string}} */ const out = {};
-    const m = pick('metaBusinessId'), e = pick('accessEmail');
+    const m = pick('metaBusinessId'), e = pick('accessEmail') || 'karanhelps@domin8temedia.com'; // the default the client portal also shows
     if (m) out.metaBusinessId = m;
     if (e) out.accessEmail = e;
     return out;

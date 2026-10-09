@@ -1169,11 +1169,6 @@ td { font-variant-numeric: tabular-nums; }
 /* The sidebar: Sign out last, on its own. */
 .nav-signout { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--p-line); }
 
-/* Connected accounts (2026-10-09): the step-by-step guide, and a quiet Disconnect. */
-.guide-steps { display: grid; gap: 10px; margin: 16px 0 12px; padding-left: 24px; list-style: decimal outside; }
-.guide-steps li { display: list-item; }
-.guide-steps li { padding-left: 4px; line-height: 1.5; }
-.guide-steps li::marker { font-family: inherit; font-weight: 700; color: var(--p-ink-2); }
 .src-off { color: var(--p-ink-2); }
 .src-off:hover { color: var(--p-error, #b42318); }
 
@@ -1307,3 +1302,18 @@ html[data-theme="dark"] .filter-select:focus-visible { box-shadow: 0 0 0 3px rgb
 .help-contact .sub-h { margin-top: 20px; }
 .faq .promise-list { padding-bottom: 12px; }
 .sec-work .sec-head > .sec-meta { flex-basis: auto; }
+
+/* The connect guide (2026-10-09, Karan: "visible and easy to read"): numbered step cards, the buttons to press in bold,
+   where to find the setting under each step, and a Stuck? box. */
+.guide-steps { counter-reset: step; display: grid; gap: 10px; margin: 18px 0 14px; padding: 0; list-style: none; }
+.guide-steps li { counter-increment: step; position: relative; padding: 12px 14px 12px 52px; border: 1px solid var(--p-line); border-radius: 14px; background: var(--p-surface); }
+.guide-steps li::before { content: counter(step); position: absolute; left: 14px; top: 12px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--p-ink); color: var(--p-surface); font-size: 14px; font-weight: 700; line-height: 1; }
+.guide-do { margin: 0; font-size: 16.5px; line-height: 1.55; color: var(--p-ink); }
+.guide-do strong, .guide-where strong, .guide-tip strong { font-weight: 700; color: var(--p-ink); }
+.guide-where { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0 0; font-size: 15px; line-height: 1.5; color: var(--p-ink-2); }
+.guide-where .i { flex: none; width: 16px; height: 16px; margin-top: 3px; color: var(--p-info); }
+.guide-tip { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: var(--p-info-bg); color: var(--p-ink); font-size: 15.5px; line-height: 1.5; }
+.guide-tip .i { flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--p-info); }
+.guide-list { display: grid; gap: 4px; margin: 8px 0 0; padding: 0; list-style: none; }
+.guide-steps .guide-list li { counter-increment: none; position: static; padding: 0 0 0 18px; border: 0; border-radius: 0; background: none; font-size: 16px; line-height: 1.5; color: var(--p-ink); }
+.guide-steps .guide-list li::before { content: ""; position: absolute; left: auto; top: auto; width: 6px; height: 6px; margin: 9px 0 0 -14px; border-radius: 50%; background: var(--p-ink-2); }

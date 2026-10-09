@@ -104,7 +104,7 @@
     sources: [
       { id: 'gbp', name: 'Google Business Profile', status: 'connected', updatedAt: '2026-09-24T13:10' },
       { id: 'analytics', name: 'Website analytics', status: 'connected', updatedAt: '2026-09-24T06:00' },
-      { id: 'booking', name: 'Booking widget', status: 'connected', updatedAt: '2026-09-24T13:10' },
+      { id: 'booking', name: 'Booking system', status: 'connected', updatedAt: '2026-09-24T13:10' },
       { id: 'meta-ads', name: 'Meta ads', status: 'connected', updatedAt: '2026-09-24T14:05' },
       { id: 'facebook', name: 'Facebook page', status: 'connected', updatedAt: '2026-09-24T12:10' },
       { id: 'instagram', name: 'Instagram', status: 'disconnected', updatedAt: '2026-09-21T09:40', since: '2026-09-21T09:40' }
