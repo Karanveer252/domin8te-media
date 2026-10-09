@@ -53,9 +53,10 @@ go.addEventListener('click', function () {
     sessionStorage.setItem('lecookie.v6.quiz', 'chosen');
   } catch (e) {}
   var frame = live.querySelector('iframe');
-  if (frame && frame.contentWindow && frame.contentWindow.LECookieStory) {
-    frame.contentWindow.LECookieStory.setDesign(d);      /* already open: bake the new one in place */
-    try { frame.contentWindow.scrollTo(0, 0) } catch (e) {}
+  if (frame) {
+    /* already open: reload it so the oven and the line under it both show the new cookie */
+    frame.addEventListener('load', function () { skipQuestions(frame) }, { once: true });
+    try { frame.contentWindow.location.reload() } catch (e) { frame.src = frame.src }
   } else {
     var start = live.querySelector('.live__go');
     if (start) start.click();
