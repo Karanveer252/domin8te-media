@@ -90,23 +90,32 @@ html[data-v="editorial"] .vsl-hero .lede::before{display:none}
   .vsl-bake__pic{width:150px;margin:0 auto}
 }
 
-/* book a discovery call */
+/* book a discovery call: the three steps in a row, the calendar full width under them */
 .vsl-book{padding:clamp(64px,12vh,140px) 0 clamp(24px,4vh,48px)}
-.vsl-book__grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(24px,4vw,64px);align-items:start}
+.vsl-book__grid{display:grid;gap:clamp(28px,4vh,44px)}
 .vsl-book__ttl{margin:0 0 18px;font-size:22px;font-weight:600}
-.vsl-steps{margin:0;padding:0;list-style:none;counter-reset:st;display:grid;gap:18px}
+.vsl-steps{margin:0;padding:0;list-style:none;counter-reset:st;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(18px,2.4vw,36px)}
 .vsl-steps li{counter-increment:st;position:relative;padding-left:52px;line-height:1.5;color:var(--ink-2)}
 .vsl-steps li b{color:#0E1420}
 .vsl-steps li::before{content:counter(st);position:absolute;left:0;top:-2px;width:36px;height:36px;border-radius:50%;
   display:grid;place-items:center;background:#FF5B1F;color:#0E1420;font-weight:800}
-.vsl-book__small{margin:24px 0 0;font-size:15px;color:#3A4E7A}
-.vsl-cal{background:#fff;border-radius:var(--r-card,20px);box-shadow:var(--card-shadow);overflow:hidden;min-height:620px;display:grid}
-.vsl-cal iframe{width:100%;height:100%;min-height:680px;border:0}
+.vsl-book__small{margin:20px 0 0;font-size:15px;color:#3A4E7A}
+.vsl-cal{background:#fff;border-radius:var(--r-card,20px);box-shadow:var(--card-shadow);overflow:hidden;display:grid;min-height:420px;
+  max-width:1120px;width:100%;margin:0 auto}
+/* tall enough that Google's page never scrolls inside its own box. It can't report its height (another
+   site), so these follow its own layouts, measured 2026-10-09: about 1120px tall from 640px wide,
+   1285px from 600, and 1810px below that (the month above the times) */
+.vsl-cal{container-type:inline-size}
+.vsl-cal iframe{display:block;width:100%;height:1160px;border:0}
+@container (max-width:639px){.vsl-cal iframe{height:1320px}}
+@container (max-width:599px){.vsl-cal iframe{height:1850px}}
 .vsl-cal__wait{display:grid;place-content:center;justify-items:center;gap:16px;padding:32px;text-align:center;
   background:repeating-linear-gradient(0deg,transparent 0 47px,rgba(14,20,32,.05) 47px 48px),
              repeating-linear-gradient(90deg,transparent 0 47px,rgba(14,20,32,.05) 47px 48px)}
 .vsl-cal__lbl{margin:0;color:#3A4E7A}
 @media (max-width:900px){
-  .vsl-book__grid{grid-template-columns:1fr}
-  .vsl-cal{min-height:420px}
+  .vsl-steps{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .vsl-cal{border-radius:16px}
 }
