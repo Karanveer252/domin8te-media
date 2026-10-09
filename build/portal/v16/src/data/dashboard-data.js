@@ -64,7 +64,7 @@
   const NOTIFICATIONS = [
     { id: 'weekly', label: 'Your weekly update is ready', text: 'A short email each Monday with what we did and what is next.' },
     { id: 'approvals', label: 'Something is waiting for your approval', text: 'When posts, pages or ads need your OK.' },
-    { id: 'invoices', label: 'A new invoice is available', text: 'When Stripe issues an invoice.' },
+    { id: 'invoices', label: 'A new invoice is available', text: 'When Stripe (our payment service) sends an invoice.' },
     { id: 'website', label: 'A website update is published', text: 'When a change goes live on your website.' },
     { id: 'account', label: 'Important account actions', text: 'Payment problems and anything that could pause a service.', required: true }
   ];

@@ -18,13 +18,13 @@ const BUILD = process.argv[2] || 'v18h';
 const FILE = path.join(__dirname, '..', '..', 'versions', BUILD + '.html').split(path.sep).join('/');
 
 const FULL = [
-  { route: 'home', title: 'Home', has: ['id="h-attention">Waiting for you', 'What we are working on', 'What changed', 'Latest update', 'Your account', 'Last 30 days', 'Review and approve', 'Numbers checked', 'See details', 'Instagram disconnected', 'Preview mode'] },
+  { route: 'home', title: 'Home', has: ['id="h-attention">Waiting for you', 'What we are working on', 'Biggest change this month', 'Latest update', 'Your account', 'More about your account', 'Last 30 days', 'Review and approve', 'Checked for new numbers', 'Check for new numbers', 'See details', 'Instagram disconnected', 'Preview mode'] },
   { route: 'work', title: 'Work', has: ['Right now', 'Steps', 'Waiting for you', 'Ask for a change'] },
   { route: 'work/social', title: 'Work', has: ['Instagram posts are paused'] },
   { route: 'results', title: 'Results', has: ['id="h-summary"', 'Bookings and calls', 'Show these numbers as a table', 'No ads ran in the previous 30 days'] },
   { route: 'results?days=7', title: 'Results', has: ['Last 7 days'], not: ['id="h-summary"'] },
   { route: 'results?days=90', title: 'Results', has: ['No ads ran in the previous 90 days'] },
-  { route: 'updates', title: 'Updates', has: ['September 2026', 'July 2026', 'Automatic notice'] },
+  { route: 'updates', title: 'Updates', has: ['September 2026', 'July 2026', 'Sent automatically when an app stopped working', 'Written by your account team unless marked'] },
   { route: 'updates?service=advertising', title: 'Updates', has: ['Sunday roast campaign results'], not: ['Autumn menu page is live'] },
   { route: 'billing', title: 'Billing', has: ['Your payment did not go through', 'BAY-0009', 'See invoice'] },
   { route: 'settings', title: 'Settings', has: ['Email notifications', 'Always on', 'Connected accounts'] },
@@ -61,7 +61,7 @@ const VARIANT = [
 // the glass slider and Scenes / Static.
 const FINAL = [
   ...VARIANT.filter((c) => /glass=/.test(c.query || '')),
-  { route: 'settings', title: 'Settings', has: ['class="theme-pick scene-pick"', '<strong>Scenes</strong>', '<strong>Static</strong>', 'The dot grid from our website'] },
+  { route: 'settings', title: 'Settings', has: ['class="theme-pick scene-pick"', '<strong>Moving sky</strong>', '<strong>Plain dots</strong>', 'The dot grid from our website', '>Background</legend>', '>Colours</legend>'] },
   { query: 'scene=scenes', route: 'home', title: 'Home', has: ['data-scene="scenes"'] },
   { query: 'scene=static', route: 'results', title: 'Results', has: ['data-scene="static"'] }
 ];

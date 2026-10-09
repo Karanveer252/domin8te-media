@@ -55,7 +55,7 @@
     const grid = [0, max / 2, max].map((t) =>
       `<line class="c-grid" x1="${P.l}" x2="${W - P.r}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}"/><text class="c-y" x="${W - P.r + 8}" y="${(y(t) + 4).toFixed(1)}">${F.num(Math.round(t * 10) / 10)}</text>`).join('');
     const marks = [0, Math.floor((data.length - 1) / 2), data.length - 1];
-    const xl = marks.map((i, k) => `<text class="c-x" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="${k === 0 ? 'start' : k === 2 ? 'end' : 'middle'}">${F.date(data[i].d, { weekday: false })}</text>`).join('');
+    const xl = marks.map((i, k) => `<text class="c-x" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="${k === 0 ? 'start' : k === 2 ? 'end' : 'middle'}">${F.date(data[i].d)}</text>`).join('');
     const last = idx.length ? idx[idx.length - 1] : -1;
     const end = last >= 0 ? `<circle class="c-end" cx="${x(last).toFixed(1)}" cy="${y(data[last].v).toFixed(1)}" r="4.5"/>` : '';
     host.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true" focusable="false">${grid}<path class="c-area" d="${area}"/><path class="c-prev" d="${path('p')}"/><path class="c-cur" d="${path('v')}"/>${end}<line class="c-cross" x1="0" x2="0" y1="${P.t}" y2="${P.t + ih}" visibility="hidden"/><circle class="c-dot-prev" r="3.5" visibility="hidden"/><circle class="c-dot" r="5" visibility="hidden"/>${xl}</svg><div class="chart-tip" aria-hidden="true" hidden></div>`;
@@ -74,7 +74,7 @@
       if (p.v !== null) { dot.setAttribute('cx', px.toFixed(1)); dot.setAttribute('cy', y(p.v).toFixed(1)); dot.setAttribute('visibility', 'visible'); } else dot.setAttribute('visibility', 'hidden');
       if (p.p !== null) { dotPrev.setAttribute('cx', px.toFixed(1)); dotPrev.setAttribute('cy', y(p.p).toFixed(1)); dotPrev.setAttribute('visibility', 'visible'); } else dotPrev.setAttribute('visibility', 'hidden');
       const prevDay = T.isoDay(T.dayNum(p.d) - days);
-      tip.innerHTML = `<strong>${F.date(p.d)}</strong><span>${p.v === null ? 'No numbers' : F.num(p.v) + ' ' + F.esc(unit)}</span><span class="tip-prev">${F.date(prevDay, { weekday: false })}: ${p.p === null ? 'no numbers' : F.num(p.p)}</span>`;
+      tip.innerHTML = `<strong>${F.date(p.d)}</strong><span>${p.v === null ? 'No numbers' : F.num(p.v) + ' ' + F.esc(unit)}</span><span class="tip-prev">${F.date(prevDay)}: ${p.p === null ? 'no numbers' : F.num(p.p)}</span>`;
       tip.hidden = false;
       const tw = tip.offsetWidth;
       tip.style.left = Math.max(0, Math.min(W - tw, px - tw / 2)) + 'px';

@@ -235,9 +235,9 @@
 
   const OUTSIDE = {
     'billing-portal': { title: 'Update your payment method', where: 'Stripe', text: 'Stripe, our payment service, looks after your card on its own safe page. We never see the full card number.' },
-    invoice: { title: 'Invoice', where: 'Stripe', text: 'Invoices open on Stripe, with the amount and a PDF to download.' },
+    invoice: { title: 'Invoice', where: 'Stripe', text: 'Invoices open on Stripe, our payment service, with the amount and a PDF to download.' },
     'connect-instagram': { title: 'Reconnect Instagram', where: 'Instagram', text: "You sign in on Instagram's own page and pick the account we can post to. We never see your password." },
-    'clerk-account': { title: 'Sign-in and security', where: 'Clerk', text: 'Clerk, our sign-in service, looks after your email address, how you sign in, and where you are signed in.' }
+    'clerk-account': { title: 'Sign-in and security', where: 'our sign-in service', text: 'Our sign-in service looks after your email address, how you sign in, and where you are signed in.' }
   };
 
   function external(kind, id, trigger) {
@@ -268,7 +268,7 @@
     const title = isRequest ? `Ask for a change: ${svc ? svc.label : ''}` : 'Message us';
     const about = isRequest ? '' : `<div class="field"><label for="msg-about">What is it about?</label><select id="msg-about" name="about"><option value="general">Something else</option>${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>`;
     let sent = false;
-    open(head(title, esc(ctx.account.team.reply || '')) + `<div class="dlg-body">
+    open(head(title, esc(D8.ui.replyLine(ctx.account.team.reply || ''))) + `<div class="dlg-body">
       <form class="dlg-form" novalidate>
         ${about}
         <div class="field">
@@ -294,7 +294,7 @@
       p.then((rec) => {
         sent = true;
         setBusy(false);
-        inner().innerHTML = head(isRequest ? 'Request sent' : 'Message sent', '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>Thanks, ${esc(ctx.session.firstName)}.</h3><p>${ctx.account.team.reply ? esc(ctx.account.team.reply) + '. ' : ''}We'll answer here and by email.</p><p class="audit">${icon('clock')}Sent on ${esc(F.date(rec.at))} at ${esc(F.time(rec.at))}</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
+        inner().innerHTML = head(isRequest ? 'Request sent' : 'Message sent', '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>Thanks, ${esc(ctx.session.firstName)}.</h3><p>${ctx.account.team.reply ? esc(D8.ui.replyLine(ctx.account.team.reply)) + ' ' : ''}We'll answer here and by email.</p><p class="audit">${icon('clock')}Sent on ${esc(F.date(rec.at))} at ${esc(F.time(rec.at))}</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
         focusTitle();
         toast(isRequest ? 'Request sent.' : 'Message sent.');
       }).catch((err) => {
@@ -314,7 +314,7 @@
   function demo(trigger, ctx) {
     const cur = D8.data.currentScenario();
     open(head('Preview mode', 'Demo data only. Not a client account.') + `<div class="dlg-body">
-      <p class="dlg-intro">Everything here is made up. ${esc(ctx.account.business.name)} is not a real ${esc(ctx.account.business.kind.toLowerCase())}, and nothing is live. Stripe, Clerk and the connected accounts are not hooked up, so their buttons tell you what would happen instead.</p>
+      <p class="dlg-intro">Everything here is made up. ${esc(ctx.account.business.name)} is not a real ${esc(ctx.account.business.kind.toLowerCase())}, and nothing is live. Stripe (our payment service), our sign-in service and the connected accounts are not hooked up, so their buttons tell you what would happen instead.</p>
       <h3 class="dlg-h3" id="scn-title">Try another situation</h3>
       <ul class="scenarios" aria-labelledby="scn-title">${D8.data.scenarios().map((s) => `<li><button class="scenario${s.id === cur.id ? ' is-current' : ''}" type="button" data-scenario="${esc(s.id)}"${s.id === cur.id ? ' aria-current="true"' : ''}><strong>${esc(s.label)}${s.id === cur.id ? '<span class="scn-now">Showing now</span>' : ''}</strong><span>${esc(s.about)}</span></button></li>`).join('')}</ul>
       <p class="meta">Tip: press Alt, Shift and P together to open this panel from any page.</p>

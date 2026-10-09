@@ -16,10 +16,44 @@
 
   /* ---- small pieces ----------------------------------------------------------------- */
 
+  /** One date format everywhere for the client: 'Tue 22 Sep' (the year only on invoices). */
+  const day = (x) => F.date(x);
+  /** 'Tue 25 Aug to Wed 23 Sep' */
+  const span = (a, b) => `${F.date(a)} to ${F.date(b)}`;
+
+  /* One fixed set of stage names for the client, everywhere (2026-10-08 usability review): Waiting for you,
+     Doing now, Coming up, Done. Other states keep their plain words. The console keeps its own staff words
+     (D8.data.STATUS), so the client's names live here. */
+  const CLIENT_STATUS = {
+    planned: { label: 'Coming up', icon: 'calendar', tone: 'neutral' },
+    in_progress: { label: 'Doing now', icon: 'progress', tone: 'info' },
+    waiting: { label: 'Waiting for you', icon: 'alert', tone: 'attention' },
+    complete: { label: 'Done', icon: 'check', tone: 'success' }
+  };
   function StatusBadge(status) {
-    const s = D8.data.STATUS[status] || D8.data.STATUS.planned;
+    const s = /** @type {any} */ (CLIENT_STATUS)[status] || D8.data.STATUS[status] || CLIENT_STATUS.planned;
     return `<span class="badge tone-${s.tone}">${icon(s.icon)}${esc(s.label)}</span>`;
   }
+
+  /** The team's reply time in the team's voice: "Usually replies within one working day" reads "We usually reply within one working day." @param {string} r */
+  const replyLine = (r) => { const m = /^usually replies (.+?)\.?$/i.exec(String(r || '').trim()); return m ? `We usually reply ${m[1]}.` : String(r || ''); };
+
+  /** A metric's name in the client's words. The data keeps its own label; only the words shown change. @param {string} l */
+  function metricLabel(l) {
+    const s = String(l || '');
+    if (s === 'Direction requests on Google') return 'People who asked Google for directions to you';
+    const m = /^Post views on (.+)$/.exec(s);
+    if (m) return 'Times people saw your posts on ' + m[1];
+    return s;
+  }
+
+  /** Where a number comes from, in plain words, and what each connected app does for the client. */
+  const SOURCE_FROM = { booking: 'your booking system', gbp: 'your Google listing', analytics: 'your website visitor counter', 'meta-ads': 'your Facebook and Instagram ads', facebook: 'your Facebook page', instagram: 'your Instagram account', stripe: 'Stripe, our payment service' };
+  const SOURCE_ABOUT = { gbp: 'Your listing on Google and Maps', analytics: 'Counts visits to your website', booking: 'Takes bookings on your website', 'meta-ads': 'Your Facebook and Instagram ads', facebook: 'Your Facebook page', instagram: 'Your Instagram account', stripe: 'Takes your payments' };
+  /** @param {any} src */
+  const fromSource = (src) => 'From ' + (/** @type {any} */ (SOURCE_FROM)[src.id] || src.name);
+  /** @param {any} src */
+  const sourceAbout = (src) => /** @type {any} */ (SOURCE_ABOUT)[src.id] || '';
 
   function ServiceTag(service) {
     const s = D8.data.SERVICES[service];
@@ -37,34 +71,41 @@
 
   /** Where a figure comes from and how fresh it is, in words, with an icon for problems. */
   function FreshnessIndicator(src, now) {
-    if (src.state === 'error') return `<span class="fresh is-error">${icon('alert')}${esc(src.name)}: not loading just now</span>`;
-    if (src.state === 'disconnected') return `<span class="fresh is-off">${icon('linkoff')}${esc(src.name)}: needs reconnecting since ${esc(F.date(src.since))}</span>`;
-    if (src.state === 'stale') return `<span class="fresh is-stale">${icon('clock')}${esc(src.name)}: delayed, last updated ${esc(F.ago(src.updatedAt, now))}</span>`;
+    if (src.state === 'error') return `<span class="fresh is-error">${icon('alert')}${esc(fromSource(src))}: not loading just now</span>`;
+    if (src.state === 'disconnected') return `<span class="fresh is-off">${icon('linkoff')}${esc(fromSource(src))}: needs reconnecting since ${esc(day(src.since))}</span>`;
+    if (src.state === 'stale') return `<span class="fresh is-stale">${icon('clock')}${esc(fromSource(src))}: delayed, last updated ${esc(F.ago(src.updatedAt, now))}</span>`;
     if (src.state === 'missing') return '';
-    return `<span class="fresh">${esc(src.name)}, updated ${esc(F.ago(src.updatedAt, now))}</span>`;
+    return `<span class="fresh">${esc(fromSource(src))}, <span title="When this number last changed">updated ${esc(F.ago(src.updatedAt, now))}</span></span>`;
   }
 
-  /** A compact source chip: the source's icon and name, then how fresh it is, quieter. */
+  /** Where a figure comes from, as plain words ("From your booking system"), then how fresh it is, quieter. */
   function SourceChip(src, now) {
     const h = src.state === 'fresh' ? '' : (D8.data.HEALTH[src.state] || D8.data.HEALTH.missing).label;
     const when = src.state === 'fresh' || src.state === 'stale' ? `updated ${F.ago(src.updatedAt, now)}` : '';
-    return `<span class="src-line"><span class="src-chip${src.state === 'fresh' ? '' : ' is-' + esc(src.state)}">${icon(SOURCE_ICON[src.id] || 'layers')}${esc(src.name)}</span>${h ? `<span class="src-health is-${esc(src.state)}">${esc(h)}</span>` : ''}${when ? `<span class="src-when">${esc(when)}</span>` : ''}</span>`;
+    return `<span class="src-line"><span class="src-from${src.state === 'fresh' ? '' : ' is-' + esc(src.state)}">${esc(fromSource(src))}</span>${h ? `<span class="src-health is-${esc(src.state)}">${esc(h)}</span>` : ''}${when ? `<span class="src-when" title="When this number last changed">${esc(when)}</span>` : ''}</span>`;
   }
 
-  /** Direction of change as an arrow and words, never colour alone. */
-  function Delta(m) {
+  /** Direction of change as an arrow and words, never colour alone. @param {any} m @param {number} [days] */
+  function Delta(m, days) {
+    const why = `Compared with the ${days || 30} days before this.`;
     if (!m.change) return '';
-    if (m.change.dir === 'flat') return `<span class="delta is-flat">${icon('minus')}About the same</span>`;
+    if (m.change.dir === 'flat') return `<span class="delta is-flat" title="${esc(why)}">${icon('minus')}About the same</span>`;
     const up = m.change.dir === 'up';
-    return `<span class="delta ${up ? 'is-up' : 'is-down'}">${icon(up ? 'up' : 'down')}${up ? 'Up' : 'Down'} ${Math.round(Math.abs(m.change.pct))}%</span>`;
+    return `<span class="delta ${up ? 'is-up' : 'is-down'}" title="${esc(why)}">${icon(up ? 'up' : 'down')}${up ? 'Up' : 'Down'} ${Math.round(Math.abs(m.change.pct))}%</span>`;
+  }
+
+  /** A quiet pill where a metric has no change to show because there were no ads before. @param {any} m @param {number} days */
+  function NewBadge(m, days) {
+    return !m.change && m.note && m.note.kind === 'zero-before' && m.group === 'advertising'
+      ? `<span class="delta is-new">First ads in ${days} days</span>` : '';
   }
 
   /** Why a figure has no comparison, in plain words. */
   function ComparisonNote(m, days) {
     const n = m.note;
     if (!n) return '';
-    if (n.kind === 'ends') return `Numbers stop on ${esc(F.date(n.date, { weekday: false }))}, so we can't compare.`;
-    if (n.kind === 'starts') return `Numbers start on ${esc(F.date(n.date, { weekday: false }))}, so we can't compare yet.`;
+    if (n.kind === 'ends') return `No numbers after ${esc(day(n.date))}, so we can't compare.`;
+    if (n.kind === 'starts') return `Numbers start on ${esc(day(n.date))}, so we can't compare yet.`;
     if (n.kind === 'no-history') return `Too new to compare with the ${days} days before.`;
     if (n.kind === 'zero-before') return m.group === 'advertising' ? `No ads ran in the previous ${days} days.` : `None in the ${days} days before.`;
     return '';
@@ -144,17 +185,18 @@
   }
 
   function MetricCard(m, now, days) {
-    const link = `<a class="card-link" href="#/results"><span class="sr-only">${esc(m.label)}: see it in Results</span></a>`;
+    const label = metricLabel(m.label);
+    const link = `<a class="card-link" href="#/results"><span class="sr-only">${esc(label)}: see it in Results</span></a>`;
     if (m.state === 'pending') {
-      return `<article class="metric-card is-pending"><p class="metric-label">${esc(m.label)}</p><p class="metric-empty">${icon('linkoff')}Not connected yet</p><p class="metric-meta">${esc(m.text)}</p></article>`;
+      return `<article class="metric-card is-pending"><p class="metric-label">${esc(label)}</p><p class="metric-empty">${icon('linkoff')}Not connected yet</p><p class="metric-meta">${esc(m.text)}</p></article>`;
     }
     if (m.state === 'error') {
-      return `<article class="metric-card is-error"><p class="metric-label">${esc(m.label)}</p><p class="metric-empty">${icon('alert')}Couldn't load just now</p><p class="metric-meta">${esc(m.text)} The other numbers are fine.</p><button class="btn-text" type="button" data-action="retry" data-section="strip">${icon('refresh')}Try again</button></article>`;
+      return `<article class="metric-card is-error"><p class="metric-label">${esc(label)}</p><p class="metric-empty">${icon('alert')}Couldn't load just now</p><p class="metric-meta">${esc(m.text)} The other numbers are fine.</p><button class="btn-text" type="button" data-action="retry" data-section="strip">${icon('refresh')}Try again</button></article>`;
     }
     const note = ComparisonNote(m, days);
     return `<article class="metric-card is-link">
-      <p class="metric-label">${esc(m.label)}</p>
-      <p class="metric-value"><span class="fig">${m.value === null ? 'None' : F.num(m.value)}</span>${Delta(m)}</p>
+      <p class="metric-label">${esc(label)}</p>
+      <p class="metric-value"><span class="fig">${m.value === null ? 'None' : F.num(m.value)}</span>${Delta(m, days)}${NewBadge(m, days)}</p>
       ${m.spark ? Sparkline(m.spark) : ''}
       ${note ? `<p class="metric-note">${note}</p>` : ''}
       <p class="metric-src">${m.sources.map((s) => SourceChip(s, now)).join('')}</p>
@@ -176,7 +218,7 @@
 
   function actionPrimary(a, cls) {
     return a.primary.does === 'approval'
-      ? `<button class="${cls}" type="button" data-action="approve" data-id="${esc(a.approvalId)}">${esc(a.primary.label)}</button>`
+      ? `<button class="${cls}" type="button" data-action="approve" data-id="${esc(a.approvalId)}" title="Opens it so you can look, then say yes or ask for changes.">${esc(a.primary.label)}</button>`
       : `<button class="${cls}" type="button" data-action="external" data-kind="${esc(a.primary.does)}">${esc(a.primary.label)}</button>`;
   }
 
@@ -226,7 +268,7 @@
     const svc = (id) => (D8.data.SERVICES[id] ? D8.data.SERVICES[id].label : '');
     const facts = [];
     if (h && h.next) facts.push(`<div><dt>Next planned</dt><dd>${esc(h.next.title)}, ${esc(F.date(h.next.date))}<span class="cu-svc">${esc(svc(h.next.service))}</span></dd></div>`);
-    if (h && h.win) facts.push(`<div><dt>Latest win</dt><dd>${esc(h.win.text)}, ${esc(F.date(h.win.date, { weekday: false }))}<span class="cu-svc">${esc(svc(h.win.service))}</span></dd></div>`);
+    if (h && h.win) facts.push(`<div><dt>Latest win</dt><dd>${esc(h.win.text)}, ${esc(day(h.win.date))}<span class="cu-svc">${esc(svc(h.win.service))}</span></dd></div>`);
     return `<div class="caught-up">
       <span class="orb" aria-hidden="true">${icon('check')}</span>
       <div class="cu-body">
@@ -261,21 +303,34 @@
 
   /* ---- current work --------------------------------------------------------------------- */
 
-  function nextStep(next) {
-    const who = next.who === 'client' ? 'You' : 'Domin8te';
-    return `<strong>${who}:</strong> ${esc(F.lcFirst(next.text))}`;
+  /**
+   * "You: confirm your autumn opening hours by Tue 29 Sep" or "Us: final check of both ad versions". When the next
+   * step is the client's and linked to something waiting for them, it carries that thing's due date.
+   * @param {any} next @param {any} [action] the linked Waiting for you item, when there is one
+   */
+  function nextStep(next, action) {
+    const mine = next.who === 'client';
+    const by = mine && action && action.deadline && action.deadline.kind === 'due' ? ` by ${day(action.deadline.date)}` : '';
+    return `<strong>${mine ? 'You' : 'Us'}:</strong> ${esc(F.lcFirst(next.text))}${esc(by)}`;
   }
+  /** The go-live line: "Opening hours updated across the site, Thu 1 Oct". @param {any} s */
+  const comingLine = (s) => `${esc(s.expected.text || 'Ready')}, ${esc(day(s.expected.date))}`;
 
-  /** A concise service card: status, what is happening now, when, what is next, one proof. */
-  function ServiceWorkCard(s) {
+  /**
+   * A concise service card in the same four lines as the Work page: Right now, Next, Coming, Last done.
+   * @param {any} s @param {any[]} [actions] what is waiting for the client, to date their next step
+   */
+  function ServiceWorkCard(s, actions) {
     const svc = D8.data.SERVICES[s.id];
+    const act = s.next && s.next.actionId ? (actions || []).find((a) => a.id === s.next.actionId) : null;
+    const waiting = act && s.next.who === 'client' ? `<a class="in-wait" href="#h-attention">${icon('alert')}This is in Waiting for you</a>` : '';
     return `<article class="card work-card is-link" aria-labelledby="wc-${esc(s.id)}">
       <header class="work-head"><h3 id="wc-${esc(s.id)}">${icon(svc.icon)}${esc(svc.label)}</h3>${StatusBadge(s.status)}</header>
-      <p class="work-now">${esc(s.now || 'Getting started')}</p>
-      <dl class="facts">
-        ${s.expected && s.expected.date ? `<div><dt>Ready by</dt><dd>${esc(F.date(s.expected.date))}: ${esc(F.lcFirst(s.expected.text))}</dd></div>` : ''}
-        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${nextStep(s.next)}</dd></div>` : ''}
-        ${s.proof && s.proof.text ? `<div><dt>Last done</dt><dd>${esc(s.proof.text)}, ${esc(F.date(s.proof.date, { weekday: false }))}</dd></div>` : ''}
+      <dl class="facts work-facts">
+        <div><dt>Right now</dt><dd>${esc(s.now || 'Getting started')}</dd></div>
+        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${nextStep(s.next, act)}${waiting}</dd></div>` : ''}
+        ${s.expected && s.expected.date ? `<div><dt>Coming</dt><dd>${comingLine(s)}</dd></div>` : ''}
+        ${s.proof && s.proof.text ? `<div><dt>Last done</dt><dd>${esc(s.proof.text)}, ${esc(day(s.proof.date))}</dd></div>` : ''}
       </dl>
       <a class="link link-more card-link-text" href="#/work/${esc(s.id)}">See details<span class="sr-only"> for ${esc(svc.label)}</span>${icon('arrow-right')}</a>
     </article>`;
@@ -284,36 +339,42 @@
   /* ---- insight and updates --------------------------------------------------------------- */
 
   function InsightCard(ins, now) {
-    if (ins.state === 'error') return `<div class="card insight">${SectionHead('h-insight', 'What changed')}${ErrorState({ title: 'Nothing to compare right now.', text: ins.text, retry: 'insight' })}</div>`;
-    if (ins.state === 'none') return `<div class="card insight">${SectionHead('h-insight', 'What changed')}<p class="insight-detail">${esc(ins.text)}</p><a class="link link-more" href="#/results">See all results${icon('arrow-right')}</a></div>`;
+    const head = SectionHead('h-insight', 'Biggest change this month');
+    if (ins.state === 'error') return `<div class="card insight">${head}${ErrorState({ title: 'Nothing to compare right now.', text: ins.text, retry: 'insight' })}</div>`;
+    if (ins.state === 'none') return `<div class="card insight">${head}<p class="insight-detail">${esc(ins.text)}</p><a class="link link-more" href="#/results">See all results${icon('arrow-right')}</a></div>`;
     return `<article class="card insight" aria-labelledby="h-insight">
-      ${SectionHead('h-insight', 'What changed')}
+      ${head}
       <p class="insight-lead">${esc(ins.headline)}</p>
       <p class="insight-detail">${esc(ins.detail)}</p>
-      <p class="meta insight-src">${icon('shield')}Based on ${sourceLine(ins.sources, now)}</p>
+      <p class="meta insight-src">${icon('shield')}${sourceLine(ins.sources, now)}</p>
       <a class="link link-more" href="#/results">See all results${icon('arrow-right')}</a>
     </article>`;
   }
 
+  /** Updates are written by the account team unless marked; only the ones that are not say who. */
   function author(u) {
-    if (u.author === 'automatic') return `<span class="author">${icon('refresh', 'author-icon')}Automatic notice from your connected accounts</span>`;
-    return `<span class="author"><span class="team-mark" aria-hidden="true"></span>Your account team</span>`;
+    if (u.author === 'automatic') return `<span class="author">${icon('refresh', 'author-icon')}Sent automatically when an app stopped working</span>`;
+    return '';
   }
 
   /**
-   * One agency update in the fixed structure: completed, changed, result, why, next.
-   * Compact (Home) shows why it matters instead of the result.
+   * One agency update: the title, what we did and what comes next. Anything different, the result and why it
+   * matters sit behind "See details". Compact (Home) shows the title and Next, with the rest behind See details.
    */
   function UpdateCard(u, o = {}) {
-    const rows = o.compact
-      ? [['What we did', u.completed], ['What changed', u.changed], ['Why it matters', u.why || u.result], ['Next', u.next]]
-      : [['What we did', u.completed], ['What changed', u.changed], ['Result', u.result], ['Why it matters', u.why], ['Next', u.next]];
+    const main = o.compact ? [['Next', u.next]] : [['What we did', u.completed], ['Next', u.next]];
+    const extra = (o.compact ? [['What we did', u.completed]] : []).concat([['Anything different', u.changed], ['Result', u.result], ['Why it matters', u.why]]);
+    const dl = (/** @type {any[]} */ rows) => `<dl class="facts facts-wide">${rows.filter((r) => r[1]).map((r) => `<div><dt>${r[0]}</dt><dd>${esc(r[1])}</dd></div>`).join('')}</dl>`;
+    const more = extra.filter((r) => r[1]);
     const tag = o.headingLevel || 'h3';
+    const by = author(u);
+    const foot = by || o.compact ? `<footer class="update-foot">${by}${o.compact ? `<a class="link link-more" href="#/updates">See all updates${icon('arrow-right')}</a>` : ''}</footer>` : '';
     return `<article class="card update${o.compact ? ' is-compact' : ''}"${o.id ? ` id="${esc(o.id)}"` : ''}>${o.lead || ''}
-      <header class="update-head"><p class="update-date"><time datetime="${esc(u.date)}">${esc(F.date(u.date))}</time></p>${ServiceTag(u.service)}</header>
+      <header class="update-head"><p class="update-date"><time datetime="${esc(u.date)}">${esc(day(u.date))}</time></p>${ServiceTag(u.service)}</header>
       <${tag} class="update-title">${esc(u.title)}</${tag}>
-      <dl class="facts facts-wide">${rows.filter((r) => r[1]).map((r) => `<div><dt>${r[0]}</dt><dd>${esc(r[1])}</dd></div>`).join('')}</dl>
-      <footer class="update-foot">${author(u)}${o.compact ? `<a class="link link-more" href="#/updates">See all updates${icon('arrow-right')}</a>` : ''}</footer>
+      ${main.some((r) => r[1]) ? dl(main) : ''}
+      ${more.length ? `<details class="update-more"><summary>See details${icon('chevron-down')}</summary>${dl(more)}</details>` : ''}
+      ${foot}
     </article>`;
   }
 
@@ -331,15 +392,26 @@
       `<label class="seg"><input type="radio" name="${esc(name)}" value="${esc(v)}"${v === value ? ' checked' : ''} data-change="${esc(name)}"><span>${esc(l)}</span></label>`).join('')}</fieldset>`;
   }
 
-  function InvoiceRow(inv) {
+  /** @param {any} inv @param {{problemShown?: boolean}} [o] */
+  function InvoiceRow(inv, o = {}) {
     const st = {
       paid: ['Paid', 'success', 'check'],
       failed: ['Payment failed', 'error', 'alert'],
       open: ['Due', 'attention', 'clock']
     }[inv.status] || ['Unknown', 'neutral', 'info'];
-    const period = F.range(inv.period[0], inv.period[1]);
+    // Invoices are the one place with the year. They lead with their month; the number is small.
+    const yr = (/** @type {any} */ x) => F.date(x, { year: true });
+    const period = inv.period && inv.period[0] && inv.period[1] ? `${yr(inv.period[0])} to ${yr(inv.period[1])}` : '';
+    const month = inv.issued ? F.monthYear(inv.issued).split(' ')[0] + ' invoice' : 'Invoice';
+    // The amount only when the record has one (live invoices carry it; the demo's do not).
+    let amount = '';
+    if (inv.amountMinor !== undefined && inv.amountMinor !== null && inv.currency) {
+      try { amount = new Intl.NumberFormat('en-GB', { style: 'currency', currency: String(inv.currency).toUpperCase() }).format(Number(inv.amountMinor) / 100); } catch (e) { amount = ''; }
+    }
+    // A failed invoice's note repeats the payment problem shown at the top of Billing, so it points there instead.
+    const note = inv.status === 'failed' && o.problemShown ? '<p class="meta">See the payment problem above.</p>' : inv.note ? `<p class="meta">${esc(inv.note)}</p>` : '';
     return `<li class="invoice">
-      <div class="inv-main"><p class="inv-num">${esc(inv.number)}</p><p class="meta">Sent ${esc(F.date(inv.issued, { year: true }))}, for ${esc(period)}</p>${inv.note ? `<p class="inv-note">${esc(inv.note)}</p>` : ''}</div>
+      <div class="inv-main"><p class="inv-num">${esc(month)}${amount ? `, ${esc(amount)}` : ''}</p><p class="meta">${esc(inv.number)}${inv.issued ? `, sent ${esc(yr(inv.issued))}` : ''}${period ? `, for ${esc(period)}` : ''}</p>${note}</div>
       <span class="badge tone-${st[1]}">${icon(st[2])}${st[0]}</span>
       <button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="invoice" data-id="${esc(inv.id)}" data-number="${esc(inv.number)}">See invoice<span class="sr-only"> ${esc(inv.number)} on Stripe</span>${icon('external')}</button>
     </li>`;
@@ -358,7 +430,8 @@
 
   D8.ui = {
     replaceHash,
-    icon, StatusBadge, ServiceTag, HealthBadge, FreshnessIndicator, SourceChip, StatusChip, Delta, ComparisonNote, sourceLine,
+    icon, day, span, metricLabel, replyLine, fromSource, sourceAbout, comingLine,
+    StatusBadge, ServiceTag, HealthBadge, FreshnessIndicator, SourceChip, StatusChip, Delta, NewBadge, ComparisonNote, sourceLine,
     EmptyState, ErrorState, Skeleton, PageHeader, SectionHead,
     Sparkline, MetricCard, MetricStrip, ActionNeededItem, ActionNeededList, CaughtUp, UpcomingList, ServiceWorkCard, nextStep,
     InsightCard, UpdateCard, DateRangeSelector, FilterChips, InvoiceRow

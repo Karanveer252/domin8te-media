@@ -919,3 +919,61 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
 .check-inline { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink); cursor: pointer; }
 .check-inline input { width: 17px; height: 17px; margin: 0; accent-color: var(--accent); }
 .card-vis-field .hint { margin-top: 4px; }
+
+
+/* ==== Plain words for a new teammate (2026-10-08, round 3): hint lines, folds, quiet removes ============== */
+/* One grey line under the client tabs, saying what the open tab is for. */
+.tab-hint { margin: -12px 0 18px 4px; color: var(--ink-3); font-size: 13.5px; }
+.tabs-div { flex: none; align-self: center; width: 1px; height: 22px; margin: 0 4px; background: var(--line-2); }
+.tabs a.tab-raw { font-weight: 550; }
+/* Quick actions: a small word before the buttons, so they read as one group. */
+.qa-label { align-self: center; color: var(--ink-3); font-size: 12.5px; font-weight: 600; }
+/* Remove and Delete are quiet until pointed at. */
+.btn-remove, .card-tools .btn-remove, .item-list .btn-remove { color: var(--ink-3); }
+.btn-remove:hover, .btn-remove:focus-visible { color: var(--bad); }
+/* Needs you, grouped by client. */
+.q-client + .q-client { margin-top: 14px; }
+.q-client-h { margin: 0 0 6px 2px; font-size: 14.5px; font-weight: 650; }
+.q-more { margin-top: 8px; }
+.q-more > summary, .fold-more > summary, .fold-raw > summary, .fold-details > summary, .dm-ids > summary { width: max-content; max-width: 100%; color: var(--accent-ink); font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.q-more[open] > summary { margin-bottom: 8px; }
+.summary-jump { color: inherit; font-weight: inherit; text-decoration: none; }
+.summary-jump:hover { text-decoration: underline; }
+/* Logins and details: a small index that stays in view. */
+.mini-index { position: sticky; top: 8px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 16px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); font-size: 13.5px; }
+.mini-index > span[aria-hidden] { color: var(--line-2); }
+[id^="sec-"], #billing { scroll-margin-top: 72px; }
+/* The board: the Move to word, the Multica note, and folded details. */
+.card-move-l { flex: none; color: var(--ink-3); font-size: 12.5px; font-weight: 600; }
+.board-strip .strip-note { flex-basis: 100%; color: var(--ink-3); font-size: 13px; }
+.fold-details { flex-basis: 100%; }
+.fold-details p, .dm-ids .meta { display: block; margin-top: 4px; color: var(--ink-3); font-size: 13px; overflow-wrap: anywhere; }
+.dm-ids { margin-top: 6px; }
+.form-hint { margin: -6px 0 14px; color: var(--ink-3); font-size: 13.5px; }
+.legend-hint { margin: 0 0 8px; }
+/* The Work tab: dates in words, and steps greyed while cards stand in for them. */
+.ms-date { display: grid; gap: 2px; }
+.date-say { color: var(--ink-3); font-size: 12px; line-height: 1.3; }
+.date-say:empty { display: none; }
+.steps-wrap.is-muted { opacity: 0.55; }
+.steps-wrap.is-muted:focus-within { opacity: 1; }
+.steps-off { margin: 0 0 12px; }
+.fold-more { margin: 4px 0 0; }
+.fold-more[open] > summary { margin-bottom: 12px; }
+.fold-raw[open] > summary { margin-bottom: 10px; }
+/* Settings: automatic publishing, folded shut. */
+.fold-panel > summary { display: grid; gap: 4px; cursor: pointer; list-style: none; }
+.fold-panel > summary::-webkit-details-marker { display: none; }
+.fold-panel > summary h2::after { content: " +"; color: var(--ink-3); font-weight: 500; }
+.fold-panel[open] > summary h2::after { content: " \2212"; }
+.fold-panel[open] > summary { margin-bottom: 12px; }
+.gate-tech { display: block; color: var(--ink-3); font-size: 12px; }
+/* The "?" next to Ctrl K: the keyboard shortcuts. */
+.side-hint .side-help { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-left: 4px; border: 1px solid var(--line-2); border-radius: 50%; font-size: 12px; font-weight: 650; }
+/* On the moving sky, the new words that sit straight on it turn light too. */
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] :is(main > .q-group .q-client-h, main > .q-group > .q-client > .q-more > summary) { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+html[data-theme="dark"] .mini-index { background: var(--surface); }
+/* On the client page's pale sky, the grey words go one step darker so they stay readable. */
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-hint, .qa-label) { color: var(--ink-2); }
+/* Nine tabs with plain names: on a wide screen they wrap to a second row instead of hiding Raw data off the edge. */
+@media (min-width: 760px) { .tabs { flex-wrap: wrap; overflow-x: visible; gap: 6px; } .tabs a { padding-left: 13px; padding-right: 13px; } }

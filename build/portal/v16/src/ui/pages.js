@@ -103,7 +103,11 @@
     box.insertAdjacentHTML('afterbegin', `<p class="stale-note" role="status">${icon('clock')}<span>${esc(text)}</span>${retry ? `<button class="btn-text" type="button" data-action="retry" data-section="${esc(retry)}">${icon('refresh')}Try again</button>` : ''}</p>`);
   }
   const markSrc = () => { const m = document.getElementById('brand-mark'); return m ? m.getAttribute('src') || '' : ''; };
-  const refreshButton = () => `<button class="btn btn-glass btn-sm" type="button" data-action="refresh">${icon('refresh')}Refresh</button>`;
+  const refreshButton = () => `<button class="btn btn-glass btn-sm" type="button" data-action="refresh" title="Asks your connected apps for their newest numbers.">${icon('refresh')}Check for new numbers</button>`;
+  const day = UI.day;
+  const span = UI.span;
+  const label = UI.metricLabel;
+  const replyLine = UI.replyLine;
   const setText = (scope, sel, text) => { const el = scope.querySelector(sel); if (el) el.textContent = text; };
 
   /* ================================================================ HOME */
@@ -113,27 +117,30 @@
    * then one clickable chip per source problem.
    */
   function freshLine(a, now) {
-    const bits = [`<span class="verified">${icon('shield')}${a.updatedAt ? `Numbers checked ${esc(F.when(a.updatedAt, now))}` : 'Not checked yet'}</span>`];
+    const bits = [`<span class="verified">${icon('shield')}${a.updatedAt ? `Checked for new numbers ${esc(F.when(a.updatedAt, now))}` : 'Not checked yet'}</span>`];
     for (const s of a.problems) bits.push(UI.StatusChip(s, now));
     return `<div class="fresh-line" id="fresh-line">${bits.join('')}</div>`;
   }
 
   function accountBand(a, now) {
     const sub = a.subscription;
-    const bill = sub.status === 'past_due'
-      ? `<span class="badge tone-error">${icon('alert')}Payment problem</span><span class="acct-meta">Everything keeps running until ${esc(F.date(sub.graceUntil))}</span>`
-      : `<span class="badge tone-success">${icon('check')}Paid up</span><span class="acct-meta">Next payment ${esc(F.date(sub.nextBilling))}</span>`;
+    // The payment problem is told once on Home, under Waiting for you; here it only points there.
+    const bill = sub && sub.status === 'past_due'
+      ? `<span class="acct-meta">See the payment problem in Waiting for you, at the top of this page.</span>`
+      : sub ? `<span class="badge tone-success">${icon('check')}Paid up</span><span class="acct-meta">Next payment ${esc(day(sub.nextBilling))}</span>` : '';
     const meet = a.meeting
-      ? `<span class="acct-value">${esc(F.date(a.meeting.at))} at ${esc(F.time(a.meeting.at))}</span><span class="acct-meta">${esc(a.meeting.title)}, ${esc(a.meeting.length)}</span>`
+      ? `<span class="acct-value">${esc(day(a.meeting.at))} at ${esc(F.time(a.meeting.at))}</span><span class="acct-meta">${esc(a.meeting.title)}, ${esc(a.meeting.length)}</span>`
       : '<span class="acct-value">None booked</span>';
-    const off = a.problems.filter((s) => s.state === 'disconnected' || s.state === 'error');
+    const off = a.problems.filter((s) => s.state === 'disconnected').map((s) => s.name);
+    const err = a.problems.filter((s) => s.state === 'error').map((s) => s.name);
+    const which = [off.length ? `${F.list(off)} ${off.length === 1 ? 'needs' : 'need'} reconnecting.` : '', err.length ? `${F.list(err)} ${err.length === 1 ? 'is' : 'are'} not loading just now.` : ''].filter(Boolean).join(' ') || 'All working';
     const services = F.list(a.package.services.map((s, i) => { const l = SVC()[s].label; return i ? l.toLowerCase() : l; }));
     return `<dl class="acct-grid">
       <div class="acct-item"><dt>Your plan</dt><dd><span class="acct-value">${esc(a.package.name)}</span>${services.toLowerCase() === a.package.name.toLowerCase() ? '' : `<span class="acct-meta">${esc(services)}</span>`}</dd></div>
       <div class="acct-item"><dt>Next meeting</dt><dd>${meet}</dd></div>
       <div class="acct-item"><dt>Billing</dt><dd>${bill}<a class="link" href="#/billing">See billing</a></dd></div>
-      <div class="acct-item"><dt>Talk to us</dt><dd>${a.team.reply ? `<span class="acct-meta">${esc(a.team.reply)}</span>` : ''}<button class="link-btn" type="button" data-action="compose" data-mode="message">Message us</button></dd></div>
-      <div class="acct-item"><dt>Connected accounts</dt><dd><span class="acct-value">${a.connected} of ${a.sources.length} working</span><span class="acct-meta">${off.length ? `${esc(F.list(off.map((s) => s.name)))} ${off.length === 1 ? 'has a problem' : 'have a problem'}` : 'All working'}</span><a class="link" href="#/settings/sources">See connections</a></dd></div>
+      <div class="acct-item"><dt>Talk to us</dt><dd>${a.team.reply ? `<span class="acct-meta">${esc(replyLine(a.team.reply))}</span>` : ''}<button class="link-btn" type="button" data-action="compose" data-mode="message">Message us</button></dd></div>
+      <div class="acct-item"><dt>Connected accounts</dt><dd><span class="acct-meta">These are the apps we take your numbers from.</span><span class="acct-value">${a.connected} of ${a.sources.length} working</span><span class="acct-meta">${esc(which)}</span><a class="link" href="#/settings/sources">See connections</a></dd></div>
     </dl>`;
   }
 
@@ -168,10 +175,16 @@
           <div id="home-account">${UI.Skeleton('text', 2)}</div>
         </section>`
       };
-      const order = HOME.order || ['strip', 'attention', 'work', 'upcoming', 'duo', 'account'];
+      // Home in the order a client needs it (2026-10-08 usability review): what is waiting for them, the last 30 days,
+      // what we are working on. The biggest change, the latest update and the account details fold away underneath.
+      const order = HOME.order || ['attention', 'strip', 'work', 'upcoming'];
+      const folded = HOME.order ? [] : ['duo', 'account'];
       return `<div class="page page-home">
         ${UI.PageHeader({ cls: 'is-home', title: `${F.greeting(now)}, ${a.user.firstName}.`, intro: '<span id="home-summary">Checking your account.</span>', introHtml: true, after: freshLine(a, now), aside: refreshButton() })}
         ${order.map((k) => parts[k] || '').join('\n        ')}
+        ${folded.length ? `<details class="home-more"><summary class="card home-more-sum"><span class="home-more-title">More about your account</span><span class="meta">The biggest change this month, the latest update, your plan, billing and meetings.</span>${icon('chevron-down')}</summary>
+          ${folded.map((k) => parts[k] || '').join('\n          ')}
+        </details>` : ''}
       </div>`;
     },
     mount(ctx, r, el) {
@@ -182,15 +195,16 @@
         if (count === null || strip === null) return;
         const lead = count ? `${count} ${F.plural(count, 'thing is', 'things are')} waiting for you` : 'Nothing is waiting for you right now';
         const m = strip && strip.metrics.find((x) => x.state === 'ok' && x.change);
+        const what = m ? F.lcFirst(label(m.label)) : '';
         const perf = !m ? '' : m.change.dir === 'flat'
-          ? `${F.lcFirst(m.label)} are about the same as the 30 days before`
-          : `${F.lcFirst(m.label)} are ${m.change.dir} ${Math.round(Math.abs(m.change.pct))}% on the 30 days before`;
+          ? `${what} were about the same as the month before`
+          : `you got ${Math.round(Math.abs(m.change.pct))}% ${m.change.dir === 'up' ? 'more' : 'fewer'} ${what} than the month before`;
         setText(el, '#home-summary', lead + (perf ? ', and ' + perf : '') + '.');
       };
       const loaders = {
         strip: () => section(el, '#home-strip', () => ctx.client.getStrip(30), (d) => {
           strip = d;
-          setText(el, '#strip-range', `${F.range(d.window.from, d.window.to)}, compared with the 30 days before.`);
+          setText(el, '#strip-range', `${span(d.window.from, d.window.to)}, compared with the 30 days before.`);
           summary();
           return UI.MetricStrip(d, now());
         }, () => { strip = false; summary(); return { title: "We couldn't load your numbers.", text: 'The rest of this page works.', retry: 'strip' }; }),
@@ -203,10 +217,14 @@
           if (badge) { badge.innerHTML = `<span class="sr-only">: </span>${count}<span class="sr-only"> ${F.plural(count, 'item', 'items')}</span>`; badge.hidden = count === 0; }
           summary();
           ctx.setBadges(count);
-          return count ? UI.ActionNeededList(d.items, now()) : UI.CaughtUp(d.highlights);
+          if (!count) return UI.CaughtUp(d.highlights);
+          const red = d.items.some((/** @type {any} */ x) => x.severity === 'critical');
+          const ask = count === 1 ? 'Do this one thing and we can keep going.' : `Do these ${count} things and we can keep going.`;
+          return `<p class="sec-note">${ask}${red ? ' The red one matters most.' : ''}</p>${UI.ActionNeededList(d.items, now())}`;
         }, () => ({ title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' })),
-        work: () => section(el, '#home-work', () => ctx.client.getWorkSummary(), (list) => list.length
-          ? list.map((s) => UI.ServiceWorkCard(s)).join('')
+        // The cards need what is waiting for the client too, to date a next step that is theirs.
+        work: () => section(el, '#home-work', () => Promise.all([ctx.client.getWorkSummary(), ctx.client.getAttention().catch(() => [])]), ([list, acts]) => list.length
+          ? list.map((s) => UI.ServiceWorkCard(s, acts)).join('')
           : UI.EmptyState({ icon: 'work', title: 'No work started yet.', text: 'Your services show here once we start.' }),
           () => ({ title: "We couldn't load our work for you.", text: 'The rest of this page works.', retry: 'work' })),
         insight: () => section(el, '#home-insight', () => ctx.client.getInsight(), (ins) => UI.InsightCard(ins, now()),
@@ -246,15 +264,15 @@
 
   function actionButton(a, cls) {
     return a.primary.does === 'approval'
-      ? `<button class="${cls}" type="button" data-action="approve" data-id="${esc(a.approvalId)}">${esc(a.primary.label)}</button>`
+      ? `<button class="${cls}" type="button" data-action="approve" data-id="${esc(a.approvalId)}" title="Opens it so you can look, then say yes or ask for changes.">${esc(a.primary.label)}</button>`
       : `<button class="${cls}" type="button" data-action="external" data-kind="${esc(a.primary.does)}">${esc(a.primary.label)}</button>`;
   }
 
-  function blocker(a, now) {
+  function blocker(a, now, same) {
     const d = a.deadline && a.deadline.kind === 'due' ? F.due(a.deadline.date, now) : null;
-    const when = d ? `<p class="due tone-${d.tone}">${icon('calendar')}${esc(d.text)}</p>` : a.since ? `<p class="due tone-later">${icon('pause')}Paused since ${esc(F.date(a.since))}</p>` : '';
+    const when = d ? `<p class="due tone-${d.tone}">${icon('calendar')}${esc(d.text)}</p>` : a.since ? `<p class="due tone-later">${icon('pause')}Paused since ${esc(day(a.since))}</p>` : '';
     const style = { critical: 'btn btn-primary', approval: 'btn btn-tint' }[a.severity] || 'btn btn-glass';
-    return `<li><div><p class="blocker-title">${esc(a.title)}</p>${when}</div>${actionButton(a, style + ' btn-sm')}</li>`;
+    return `<li><div><p class="blocker-title">${esc(a.title)}</p>${when}${same || ''}</div>${actionButton(a, style + ' btn-sm')}</li>`;
   }
 
   /* The Work page, made simple (2026-10-08, Karan: "make it as simple as possible so that even a five year old can
@@ -265,7 +283,7 @@
   const STEP = {
     you: ['Waiting for you', 'alert', 'attention'],
     now: ['Doing now', 'progress', 'info'],
-    later: ['Later', 'clock', 'neutral'],
+    later: ['Coming up', 'clock', 'neutral'],
     hold: ['On hold', 'pause', 'neutral'],
     done: ['Done', 'check', 'success']
   };
@@ -294,38 +312,54 @@
     const done = out.filter((x) => x.kind === 'done').sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
     return { open, done };
   }
-  /** @param {any} s */
-  function stepList(s) {
+  /** @param {any} s @param {boolean} [key] whether this is the first bar on the page, which carries the colour key */
+  function stepList(s, key) {
     const { open, done } = steps(s);
     const all = open.length + done.length;
     if (!all) return '';
     const row = (/** @type {any} */ x) => {
       const st = /** @type {any} */ (STEP)[x.kind];
-      const when = x.date ? (x.kind === 'done' ? F.date(x.date, { weekday: false }) : `by ${F.date(x.date, { weekday: false })}`) : '';
-      return `<li class="step is-${x.kind}"><span class="step-dot">${icon(st[1])}</span><p class="step-title">${esc(x.title)}</p><p class="step-tag"><span data-tone="${st[2]}">${st[0]}</span>${when ? `<span class="meta">${esc(when)}</span>` : ''}</p></li>`;
+      // The stage and its date on one line, in one pill: "Done, Fri 18 Sep", "Coming up, by Thu 1 Oct".
+      const when = x.date ? (x.kind === 'done' ? day(x.date) : `by ${day(x.date)}`) : '';
+      return `<li class="step is-${x.kind}"><span class="step-dot">${icon(st[1])}</span><p class="step-title">${esc(x.title)}</p><p class="step-tag"><span data-tone="${st[2]}">${st[0]}${when ? `, ${esc(when)}` : ''}</span></p></li>`;
     };
+    const earlier = done.slice(DONE_SHOWN);
     return `<div class="steps-head"><h3>Steps</h3><p class="meta">${done.length} of ${all} done</p></div>
-      <div class="ms-progress" aria-hidden="true">${[...done.map(() => 'is-on'), ...open.map((x) => x.kind === 'now' ? 'is-now' : '')].map((c) => `<span class="${c}"></span>`).join('')}</div>
+      ${key ? '<p class="meta steps-key">Green is done, blue is doing now, red is waiting for you, grey is coming up.</p>' : ''}
+      <div class="ms-progress" aria-hidden="true" title="Each piece is one step.">${[...done.map(() => 'is-on'), ...open.map((x) => x.kind === 'now' ? 'is-now' : x.kind === 'you' ? 'is-you' : '')].map((c) => `<span class="${c}"></span>`).join('')}</div>
       <ol class="steps">${open.map(row).join('')}${done.slice(0, DONE_SHOWN).map(row).join('')}</ol>
-      ${done.length > DONE_SHOWN ? `<p class="meta steps-more">And ${done.length - DONE_SHOWN} more done before that</p>` : ''}`;
+      ${earlier.length ? `<details class="steps-earlier"><summary class="btn-text">Show ${earlier.length} earlier ${F.plural(earlier.length, 'step', 'steps')}${icon('chevron-down')}</summary><ol class="steps">${earlier.map(row).join('')}</ol></details>` : ''}`;
   }
 
-  function serviceSection(s, actions, now) {
+  /** @param {any} s @param {any[]} actions @param {number} now @param {any[]} all every service, to spot a task shared with another @param {number} i */
+  function serviceSection(s, actions, now, all, i) {
     const svc = SVC()[s.id];
     const needs = actions.filter((a) => a.service === s.id || (s.next && a.id === s.next.actionId));
-    const by = s.expected && s.expected.date ? ` <span class="say-when">by ${esc(F.date(s.expected.date, { weekday: false }))}</span>` : '';
+    const act = s.next && s.next.actionId ? actions.find((a) => a.id === s.next.actionId) : null;
+    // A task that shows in more than one service's box says so, so one answer is not mistaken for two.
+    const shared = (/** @type {any} */ a) => {
+      const others = all.filter((o) => o.id !== s.id && (a.service === o.id || (o.next && o.next.actionId === a.id)));
+      if (!others.length) return '';
+      const d = String(a.detail || '') + ' ' + (a.more || []).join(' ');
+      const text = /website/i.test(d) && /google/i.test(d) && /apple maps/i.test(d)
+        ? 'One answer updates your website, Google and Apple Maps.'
+        : `This is the same task as in ${F.list(others.map((o) => SVC()[o.id].label))}.`;
+      return `<p class="meta blocker-same">${esc(text)}</p>`;
+    };
     return `<section class="card svc-section svc-simple" id="svc-${esc(s.id)}" tabindex="-1" aria-labelledby="h-svc-${esc(s.id)}">
       <header class="svc-head">
         <h2 id="h-svc-${esc(s.id)}">${icon(svc.icon)}${esc(svc.label)}</h2>${UI.StatusBadge(s.status)}
-        <button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="request" data-service="${esc(s.id)}">${icon('edit')}Ask for a change</button>
+        <button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="request" data-service="${esc(s.id)}" title="Tell us anything you want different. We usually reply within one working day.">${icon('edit')}Ask for a change</button>
       </header>
-      ${s.now || (s.next && s.next.text) ? `<dl class="say">
-        ${s.now ? `<div><dt>Right now</dt><dd>${esc(s.now)}</dd></div>` : ''}
-        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${UI.nextStep(s.next)}${by}</dd></div>` : ''}
-      </dl>` : ''}
-      ${needs.length ? `<div class="blocker"><h3>Waiting for you</h3><ul>${needs.map((a) => blocker(a, now)).join('')}</ul></div>` : ''}
+      <dl class="say">
+        <div><dt>Right now</dt><dd>${esc(s.now || 'Getting started')}</dd></div>
+        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${UI.nextStep(s.next, act)}</dd></div>` : ''}
+        ${s.expected && s.expected.date ? `<div><dt>Coming</dt><dd>${UI.comingLine(s)}</dd></div>` : ''}
+        ${s.proof && s.proof.text ? `<div><dt>Last done</dt><dd>${esc(s.proof.text)}, ${esc(day(s.proof.date))}</dd></div>` : ''}
+      </dl>
+      ${needs.length ? `<div class="blocker"><h3>Waiting for you</h3><ul>${needs.map((a) => blocker(a, now, shared(a))).join('')}</ul></div>` : ''}
       ${s.note ? `<p class="notice">${icon('info')}<span>${esc(s.note)}</span></p>` : ''}
-      ${stepList(s)}
+      ${stepList(s, i === 0)}
     </section>`;
   }
 
@@ -334,14 +368,14 @@
     render(ctx) {
       const pkg = ctx.account.package.services;
       return `<div class="page page-work">
-        ${UI.PageHeader({ title: 'Work', intro: 'What we are doing, what comes next, and what we need from you.' })}
-        <nav class="jump" aria-label="Services on this page">${pkg.map((s) => `<a class="jump-link" href="#/work/${esc(s)}">${icon(SVC()[s].icon)}${esc(SVC()[s].label)}</a>`).join('')}</nav>
+        ${UI.PageHeader({ title: 'Work', intro: 'What we are doing for you now, step by step. For what we already did, see Updates.' })}
+        <nav class="jump" aria-label="Services on this page"><span class="jump-label">Jump to:</span>${pkg.map((s) => `<a class="jump-link" href="#/work/${esc(s)}">${icon(SVC()[s].icon)}${esc(SVC()[s].label)}</a>`).join('')}</nav>
         <div id="work-body">${UI.Skeleton('block', 2)}</div>
       </div>`;
     },
     mount(ctx, r, el) {
       const load = () => section(el, '#work-body', () => ctx.client.getWork(), (w) => w.services.length
-        ? w.services.map((s) => serviceSection(s, w.actions, ctx.client.now())).join('')
+        ? w.services.map((s, i) => serviceSection(s, w.actions, ctx.client.now(), w.services, i)).join('')
         : UI.EmptyState({ icon: 'work', title: 'No work started yet.', text: 'Your services show here once we start.' }),
       () => ({ title: "We couldn't load your work.", text: 'Your other pages still work. Try again soon.', retry: 'work' }))
         .then(() => {
@@ -359,37 +393,65 @@
   const pickDays = (v) => ([7, 30, 90].includes(Number(v)) ? Number(v) : 30);
 
   function resultTile(m, w, now) {
+    const name = label(m.label);
     if (m.state === 'error') {
-      return `<div class="card mtile is-error"><p class="metric-label">${esc(m.label)}</p><p class="metric-empty">${icon('alert')}Couldn't load just now</p><p class="metric-meta">${esc(m.text)}</p><button class="link-btn" type="button" data-action="retry" data-section="results">Try again</button></div>`;
+      return `<div class="card mtile is-error"><p class="metric-label">${esc(name)}</p><p class="metric-empty">${icon('alert')}Couldn't load just now</p><p class="metric-meta">${esc(m.text)}</p><button class="link-btn" type="button" data-action="retry" data-section="results">Try again</button></div>`;
     }
     const note = UI.ComparisonNote(m, w.days);
     const prev = m.change && m.previous !== null ? `<p class="metric-prev">${F.num(m.previous)} in the ${w.days} days before</p>` : '';
-    return `<div class="card mtile"><p class="metric-label">${esc(m.label)}</p><p class="metric-value"><span class="fig">${m.value === null ? 'None' : F.num(m.value)}</span>${UI.Delta(m)}</p>${prev}${note ? `<p class="metric-note">${note}</p>` : ''}<p class="metric-meta">${UI.sourceLine(m.sources, now)}</p></div>`;
+    // A disconnected account is explained once, in the notice under the tiles, so its tile does not repeat it in red.
+    const src = UI.sourceLine(m.sources.filter((/** @type {any} */ s) => s.state !== 'disconnected'), now);
+    return `<div class="card mtile"><p class="metric-label">${esc(name)}</p><p class="metric-value"><span class="fig">${m.value === null ? 'None' : F.num(m.value)}</span>${UI.Delta(m, w.days)}${UI.NewBadge(m, w.days)}</p>${prev}${note ? `<p class="metric-note">${note}</p>` : ''}${src ? `<p class="metric-meta">${src}</p>` : ''}</div>`;
   }
 
   function chartBlock(c, w) {
-    const aria = `${c.label} per day, ${F.range(w.from, w.to)}. ${F.num(c.value)} in total${c.previous !== null ? `, compared with ${F.num(c.previous)} in the ${w.days} days before` : ''}. The same numbers are in the table below.`;
-    const rows = c.points.map((p) => `<tr><th scope="row">${esc(F.date(p.d))}</th><td>${p.v === null ? 'No numbers' : F.num(p.v)}</td><td>${p.p === null ? 'No numbers' : F.num(p.p)}</td></tr>`).join('');
+    const name = label(c.label);
+    const cur = `These ${w.days} days`;
+    const before = `The ${w.days} days before`;
+    const aria = `${name} per day, ${span(w.from, w.to)}. ${F.num(c.value)} in total${c.previous !== null ? `, compared with ${F.num(c.previous)} in the ${w.days} days before` : ''}. The same numbers are in the table below.`;
+    const rows = c.points.map((p) => `<tr><th scope="row">${esc(day(p.d))}</th><td>${p.v === null ? 'No numbers' : F.num(p.v)}</td><td>${p.p === null ? 'No numbers' : F.num(p.p)}</td></tr>`).join('');
     return `<figure class="card chart-fig">
-      <figcaption class="chart-cap"><span class="chart-title">${esc(c.label)} per day</span><span class="legend"><span class="lg lg-cur">${esc(F.range(w.from, w.to))}</span><span class="lg lg-prev">${esc(F.range(w.pFrom, w.pTo))}</span></span></figcaption>
+      <figcaption class="chart-cap"><span class="chart-title">${esc(name)} per day</span><span class="legend"><span class="lg lg-cur" title="${esc(span(w.from, w.to))}">${esc(cur)}</span><span class="lg lg-prev" title="${esc(span(w.pFrom, w.pTo))}">${esc(before)}</span></span></figcaption>
+      <p class="meta chart-help">The solid line is ${esc(cur.toLowerCase())}. The dashed line is the ${w.days} days before, so you can compare. The numbers on the right are ${esc(c.unit)} a day.</p>
       <div class="chart" role="img" aria-label="${esc(aria)}" data-points="${esc(JSON.stringify(c.points))}" data-days="${w.days}" data-unit="${esc(c.unit)}"></div>
-      <details class="chart-table"><summary>Show these numbers as a table</summary><div class="table-wrap" tabindex="0" role="region" aria-label="${esc(c.label)} per day, as a table"><table><caption class="sr-only">${esc(c.label)} per day</caption><thead><tr><th scope="col">Day</th><th scope="col">${esc(F.range(w.from, w.to))}</th><th scope="col">Same day, ${w.days} days earlier</th></tr></thead><tbody>${rows}</tbody></table></div></details>
+      <details class="chart-table"><summary title="Every day's number, written out">Show these numbers as a table</summary><div class="table-wrap" tabindex="0" role="region" aria-label="${esc(name)} per day, as a table"><table><caption class="sr-only">${esc(name)} per day</caption><thead><tr><th scope="col">Day</th><th scope="col">${esc(cur)}</th><th scope="col">Same day, ${w.days} days earlier</th></tr></thead><tbody>${rows}</tbody></table></div></details>
     </figure>`;
   }
 
+  /** A channel name with what it means the first time it shows: "Meta" is "Meta (Facebook and Instagram ads)". */
+  function glossOnce() {
+    const done = new Set();
+    return (/** @type {string} */ text) => String(text || '').replace(/\bMeta\b/, (m) => {
+      if (done.has('meta')) return m;
+      done.add('meta');
+      return 'Meta (Facebook and Instagram ads)';
+    });
+  }
+
   function campaigns(list) {
-    return `<div class="card campaigns"><h3>Campaigns</h3><ul>${list.map((c) => `<li><div><p class="camp-name">${esc(c.name)}</p><p class="meta">${c.to ? esc(F.range(c.from, c.to)) : 'From ' + esc(F.date(c.from))} on ${esc(c.channel)}</p></div>${UI.StatusBadge(c.status === 'complete' ? 'complete' : c.status === 'planned' ? 'planned' : 'in_progress')}</li>`).join('')}</ul></div>`;
+    const gloss = glossOnce();
+    return `<div class="card campaigns"><h3>Your ads</h3><ul>${list.map((c) => `<li><div><p class="camp-name">${esc(c.name)}</p><p class="meta">${c.to ? esc(span(c.from, c.to)) : 'From ' + esc(day(c.from))} on ${esc(gloss(c.channel))}</p></div>${UI.StatusBadge(c.status === 'complete' ? 'complete' : c.status === 'planned' ? 'planned' : 'in_progress')}</li>`).join('')}</ul></div>`;
+  }
+
+  /** The group's one-line description, from what is in it: "People who booked online or called you from Google." */
+  function groupIntro(g) {
+    if (g.id !== 'leads') return g.intro;
+    const ms = g.metrics || [];
+    const booked = ms.some((/** @type {any} */ m) => (m.sources || []).some((/** @type {any} */ s) => s.id === 'booking'));
+    const called = ms.some((/** @type {any} */ m) => m.id === 'calls' && (m.sources || []).some((/** @type {any} */ s) => s.id === 'gbp'));
+    if (booked && called) return 'People who booked online or called you from Google.';
+    return g.intro;
   }
 
   function group(g, w, now) {
-    const head = UI.SectionHead('h-g-' + g.id, esc(g.title), `<p class="sec-meta">${esc(g.intro)}</p>`);
+    const head = UI.SectionHead('h-g-' + g.id, esc(g.title), `<p class="sec-meta">${esc(groupIntro(g))}</p>`);
     if (g.state === 'error') {
       const who = F.list(g.sources.filter((s) => s.state === 'error').map((s) => s.name)) || 'The source';
       return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head}${UI.ErrorState({ title: `We couldn't load your ${g.title.toLowerCase()} numbers.`, text: `${who} is not answering. The rest of this page works.`, retry: 'results' })}</section>`;
     }
     const tiles = g.metrics.map((m) => resultTile(m, w, now)).join('') + g.pending.map((p) =>
-      `<div class="card mtile is-pending"><p class="metric-label">${esc(p.label)}</p><p class="metric-empty">${icon('linkoff')}Not connected yet</p><p class="metric-meta">${esc(p.text)}</p></div>`).join('');
-    const notes = g.notes.map((n) => `<div class="notice is-off">${icon('linkoff')}<p>${esc(n.name)} has been disconnected since ${esc(F.date(n.since))}${n.lastDay ? `, so its numbers stop on ${esc(F.date(n.lastDay, { weekday: false }))}` : ''}. The gap means missing numbers, not a drop.</p><button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="connect-${esc(n.source)}">Reconnect ${esc(n.name)}</button></div>`).join('');
+      `<div class="card mtile is-pending"><p class="metric-label">${esc(label(p.label))}</p><p class="metric-empty">${icon('linkoff')}Not connected yet</p><p class="metric-meta">${esc(p.text)}</p></div>`).join('');
+    const notes = g.notes.map((n) => `<div class="notice is-off">${icon('linkoff')}<p>${esc(n.name)} has been disconnected since ${esc(day(n.since))}${n.lastDay ? `, so its numbers stop on ${esc(day(n.lastDay))}` : ''}. The gap means missing numbers, not a drop.</p><button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="connect-${esc(n.source)}" title="Opens ${esc(n.name)}'s own page so you can let us in again. We never see your password.">Reconnect ${esc(n.name)}</button></div>`).join('');
     return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head}<div class="mtiles">${tiles}</div>${notes}${g.chart ? chartBlock(g.chart, w) : ''}${g.campaigns.length ? campaigns(g.campaigns) : ''}</section>`;
   }
 
@@ -397,9 +459,9 @@
     const out = [];
     if (res.summary) {
       out.push(`<section class="ai-summary" aria-labelledby="h-summary">
-        <div class="sec-head"><h2 id="h-summary">Summary</h2><span class="ai-label">${icon('spark')}Written by the Domin8te assistant</span></div>
+        <div class="sec-head"><h2 id="h-summary">Summary</h2><span class="ai-label">${icon('spark')}Written by our AI assistant, checked against the numbers below.</span></div>
         <p class="ai-text">${esc(res.summary.text)}</p>
-        <p class="meta">Written ${esc(F.when(res.summary.writtenAt, now))} from the numbers on this page. Every number below comes straight from your connected accounts.</p>
+        <p class="meta">Written ${esc(F.when(res.summary.writtenAt, now))}. Every number below comes straight from your connected accounts.</p>
       </section>`);
     }
     if (!res.groups.length) out.push(UI.EmptyState({ icon: 'results', title: 'No results yet.', text: 'Numbers show here once your accounts are connected.' }));
@@ -427,7 +489,7 @@
         if (!body.hasAttribute('data-loaded')) body.innerHTML = UI.Skeleton('block', 3);
         return section(el, '#results-body', () => ctx.client.getResults(days), (res) => {
           const w = res.window;
-          setText(el, '#range-text', `Showing ${F.range(w.from, w.to)}, compared with ${F.range(w.pFrom, w.pTo)}.`);
+          setText(el, '#range-text', `Showing ${span(w.from, w.to)}, compared with ${span(w.pFrom, w.pTo)}.`);
           return resultsBody(res, ctx.client.now());
         }, () => ({ title: "We couldn't load your results.", text: 'Your other pages still work. Try again soon.', retry: 'results' }))
           .then(() => D8.charts.mountAll(el));
@@ -473,7 +535,7 @@
       const v = pkg.includes(r.params.service) ? r.params.service : 'all';
       const opts = [['all', 'All updates'], ...pkg.map((s) => [s, SVC()[s].label])];
       return `<div class="page page-updates">
-        ${UI.PageHeader({ title: 'Updates', intro: 'What we did and what comes next. Newest first.', after: `<div class="filter-bar">${UI.FilterChips(opts, v, 'service', 'Show updates for')}</div>` })}
+        ${UI.PageHeader({ title: 'Updates', intro: 'A diary of everything we did for you. Newest at the top.', after: `<p class="meta updates-by"><span class="team-mark" aria-hidden="true"></span>Written by your account team unless marked.</p><div class="filter-bar">${UI.FilterChips(opts, v, 'service', 'Show updates for')}</div>` })}
         <p class="sr-only" id="updates-status" aria-live="polite"></p>
         <div id="updates-body">${UI.Skeleton('card', 3)}</div>
       </div>`;
@@ -512,30 +574,34 @@
     const problem = s.status === 'past_due';
     const banner = problem ? `<section class="banner tone-error" aria-labelledby="h-bill-problem">
         ${icon('alert', 'banner-icon')}
-        <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>Your card ending ${esc(b.paymentMethod.last4)} was declined on ${esc(F.date(b.paymentMethod.problem.date))}. Everything keeps running until ${esc(F.longDate(s.graceUntil))}. Update your payment method so nothing stops.</p>${s.retryOn ? `<p class="meta">Stripe will try the card again on ${esc(F.date(s.retryOn))}.</p>` : ''}</div>
+        <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>Your card ending ${esc(b.paymentMethod.last4)} was declined on ${esc(day(b.paymentMethod.problem.date))}. Everything keeps running until ${esc(day(s.graceUntil))}. If the payment still fails, services pause after that. Update your payment method so nothing stops.</p>${s.retryOn ? `<p class="meta">Stripe, our payment service, will try your card again on ${esc(day(s.retryOn))}.</p>` : ''}</div>
         <button class="btn btn-primary" type="button" data-action="external" data-kind="billing-portal">Update payment method</button>
       </section>` : '';
-    const status = problem ? `<span class="badge tone-error">${icon('alert')}Payment problem</span>` : `<span class="badge tone-success">${icon('check')}Active</span>`;
+    // The payment problem is told once, in the banner above; the cards below only point to it.
+    const status = problem ? '' : `<span class="badge tone-success">${icon('check')}Active</span>`;
+    const seeAbove = '<p class="meta">See the payment problem above.</p>';
+    const noAmount = b.invoices.some((/** @type {any} */ i) => i.amountMinor === undefined || i.amountMinor === null);
     return `${banner}
       <div class="bill-grid">
         <section class="card bill-card" aria-labelledby="h-plan">
           <div class="sec-head"><h2 id="h-plan">Your plan</h2>${status}</div>
+          ${problem ? seeAbove : ''}
           <p class="plan-name">${esc(b.plan.name)}</p>
           <ul class="plan-list">${b.plan.services.map((x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
           ${planOff(b.plan.services)}
-          <dl class="facts"><div><dt>How you pay</dt><dd>${esc(b.plan.interval)}</dd></div><div><dt>Next payment</dt><dd>${esc(F.date(s.nextBilling, { year: true }))}</dd></div></dl>
+          <dl class="facts"><div><dt>How you pay</dt><dd>${esc(b.plan.interval)}</dd></div><div><dt>Next payment</dt><dd>${esc(day(s.nextBilling))}</dd></div></dl>
         </section>
         <section class="card bill-card" aria-labelledby="h-pay">
           <div class="sec-head"><h2 id="h-pay">Payment method</h2></div>
           <p class="card-line">${icon('card')}${esc(b.paymentMethod.brand)} ending ${esc(b.paymentMethod.last4)}</p>
-          ${b.paymentMethod.problem ? `<p class="due tone-overdue">${icon('alert')}${esc(b.paymentMethod.problem.text)}</p>` : ''}
-          <p class="meta">Stripe keeps your card safe. We never see the full number.</p>
-          <button class="btn btn-glass" type="button" data-action="external" data-kind="billing-portal">Change payment method${icon('external')}</button>
+          ${b.paymentMethod.problem ? (problem ? seeAbove : `<p class="due tone-overdue">${icon('alert')}${esc(b.paymentMethod.problem.text)}</p>`) : ''}
+          <p class="meta">${problem ? 'Stripe' : 'Stripe (our payment service)'} keeps your card safe. We never see the full number.</p>
+          <button class="btn btn-glass" type="button" data-action="external" data-kind="billing-portal">Update payment method${icon('external')}</button>
         </section>
       </div>
       <section class="sec" aria-labelledby="h-invoices">
-        <div class="sec-head"><h2 id="h-invoices">Invoices</h2><p class="sec-meta">Each one opens on Stripe, with the amount and a PDF.</p></div>
-        ${b.invoices.length ? `<div class="card"><ul class="invoices">${b.invoices.map((i) => UI.InvoiceRow(i)).join('')}</ul></div>` : UI.EmptyState({ icon: 'file', title: 'No invoices yet.', text: 'Your first one shows here when Stripe sends it.' })}
+        <div class="sec-head"><h2 id="h-invoices">Invoices</h2>${noAmount ? '<p class="sec-meta">Press See invoice to see how much and download a PDF.</p>' : ''}</div>
+        ${b.invoices.length ? `<div class="card"><ul class="invoices">${b.invoices.map((i) => UI.InvoiceRow(i, { problemShown: problem })).join('')}</ul></div>` : UI.EmptyState({ icon: 'file', title: 'No invoices yet.', text: 'Your first one shows here when Stripe sends it.' })}
       </section>
       <p class="bill-help">Question about a charge? <button class="link-btn" type="button" data-action="compose" data-mode="message">Message us</button></p>`;
   }
@@ -561,41 +627,42 @@
     const rows = s.categories.map((c) => `<div class="toggle-row">
         <input class="switch" type="checkbox" id="n-${esc(c.id)}" name="${esc(c.id)}"${s.prefs[c.id] ? ' checked' : ''}${c.required ? ' disabled' : ''} aria-describedby="n-${esc(c.id)}-text">
         <label for="n-${esc(c.id)}"><span class="toggle-label">${esc(c.label)}</span><span class="toggle-text" id="n-${esc(c.id)}-text">${esc(c.text)}</span></label>
-        ${c.required ? `<span class="badge tone-neutral">${icon('lock')}Always on</span>` : ''}
+        ${c.required ? `<span class="badge tone-neutral" title="We always email you about payments and anything that could pause a service.">${icon('lock')}Always on</span>` : ''}
       </div>`).join('');
     const sources = s.sources.map((src) => {
-      const when = src.state === 'disconnected' ? `Disconnected since ${F.date(src.since)}. Numbers after that are missing, not zero.`
+      const when = src.state === 'disconnected' ? `Disconnected since ${day(src.since)}. Numbers after that are missing, not zero.`
         : src.state === 'error' ? 'Not answering right now. We keep trying on our own.'
           : src.state === 'stale' ? `Last updated ${F.ago(src.updatedAt, now)}. It usually updates several times a day.`
             : `Updated ${F.ago(src.updatedAt, now)}`;
-      const act = src.state === 'disconnected' ? `<button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="connect-${esc(src.id)}">Reconnect<span class="sr-only"> ${esc(src.name)}</span></button>` : '';
-      return `<li class="src-row"><div><p class="src-name">${esc(src.name)}</p><p class="meta">${esc(when)}</p></div>${UI.HealthBadge(src)}${act}</li>`;
+      const act = src.state === 'disconnected' ? `<button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="connect-${esc(src.id)}" title="Opens ${esc(src.name)}'s own page so you can let us in again. We never see your password.">Reconnect<span class="sr-only"> ${esc(src.name)}</span></button>` : '';
+      const about = UI.sourceAbout(src);
+      return `<li class="src-row"><div><p class="src-name">${esc(src.name)}</p>${about ? `<p class="src-about">${esc(about)}</p>` : ''}<p class="meta">${esc(when)}</p></div>${UI.HealthBadge(src)}${act}</li>`;
     }).join('');
     return `<section class="card set-card" aria-labelledby="h-email">
         <h2 id="h-email">Email notifications</h2>
-        <p class="meta">We send these to ${esc(s.email)}. Sign-in emails come from Clerk, our sign-in service, and always arrive.</p>
+        <p class="meta">We send these to ${esc(s.email)}. Sign-in emails are always sent, whatever you switch off here.</p>
         <form id="notify-form" novalidate>
           <fieldset class="toggles"><legend class="sr-only">Emails you get</legend>${rows}</fieldset>
           <p class="form-error" role="alert" hidden></p>
-          <div class="form-foot"><button class="btn btn-solid" type="submit" disabled>Save email choices</button><p class="meta" id="notify-status" aria-live="polite">${s.savedAt ? `Saved ${esc(F.when(s.savedAt, now))}.` : 'No changes yet.'}</p></div>
+          <div class="form-foot"><button class="btn btn-solid" type="submit" disabled>Save changes</button><p class="meta" id="notify-status" aria-live="polite">${s.savedAt ? `Saved ${esc(F.when(s.savedAt, now))}.` : 'No changes yet.'}</p></div>
         </form>
       </section>
       <section class="card set-card" aria-labelledby="h-look">
         <h2 id="h-look">How it looks</h2>
-        <fieldset class="theme-pick"><legend class="sr-only">Theme</legend>
+        <fieldset class="theme-pick"><legend class="pick-legend">Colours</legend>
           <label class="theme-opt"><input type="radio" name="theme" value="light" data-change="theme"${theme === 'light' ? ' checked' : ''}><span class="theme-swatch is-light" aria-hidden="true"></span><span><strong>Light</strong><span class="meta">The usual look</span></span></label>
           <label class="theme-opt"><input type="radio" name="theme" value="dark" data-change="theme"${theme === 'dark' ? ' checked' : ''}><span class="theme-swatch is-dark" aria-hidden="true"></span><span><strong>Dark</strong><span class="meta">Easier on the eyes at night</span></span></label>
         </fieldset>
       </section>
       <section class="card set-card" id="sources" tabindex="-1" aria-labelledby="h-sources">
         <h2 id="h-sources">Connected accounts</h2>
-        <p class="meta">Where your numbers come from. We check each one several times a day.</p>
+        <p class="meta">These are the apps we take your numbers from. We check each one several times a day. If one says Needs reconnecting, press Reconnect and sign in to it again.</p>
         <ul class="sources">${sources}</ul>
       </section>
       <section class="card set-card" aria-labelledby="h-security">
         <h2 id="h-security">Sign-in and security</h2>
         <p>You sign in with ${isLive() ? 'a 6-digit code' : 'a sign-in link'} we email to ${esc(s.email)}. No password to remember.</p>
-        <p class="meta">Clerk, our sign-in service, looks after this.</p>
+        <p class="meta">Our sign-in service looks after this.</p>
         <button class="btn btn-glass" type="button" data-action="external" data-kind="clerk-account">Manage sign-in and security${icon('external')}</button>
       </section>
       <section class="card set-card" aria-labelledby="h-people">
@@ -682,7 +749,7 @@
       return p;
     };
     const dirty = () => s.categories.some((c) => current()[c.id] !== saved[c.id]);
-    form.addEventListener('change', () => { btn.disabled = !dirty(); if (dirty()) status.textContent = 'You have changes to save.'; });
+    form.addEventListener('change', () => { btn.disabled = !dirty(); status.textContent = dirty() ? 'You have unsaved changes. Press Save changes to keep them.' : 'No unsaved changes.'; });
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (!dirty()) return;
@@ -691,11 +758,11 @@
       err.hidden = true;
       ctx.client.saveNotifications(current()).then((res) => {
         saved = { ...res.prefs };
-        btn.innerHTML = 'Save email choices';
+        btn.innerHTML = 'Save changes';
         status.textContent = `Saved ${F.when(res.at, ctx.client.now())}.`;
         D8.dialogs.toast('Email choices saved.');
       }).catch((e2) => {
-        btn.innerHTML = 'Save email choices';
+        btn.innerHTML = 'Save changes';
         btn.disabled = false;
         err.innerHTML = `${icon('alert')}<span>We couldn't save, so nothing changed. ${esc(e2.message || '')} Try again.</span>`;
         err.hidden = false;
@@ -726,11 +793,12 @@
   /* ================================================================ HELP */
 
   const FAQ = [
+    ['What is on each page?', 'Home shows what is waiting for you, your last 30 days and what we are working on. Work shows each service step by step. Results shows your numbers and where they come from. Updates is a diary of what we did. Billing has your plan, payments and invoices. Settings has your emails, how the portal looks and your connected accounts.'],
     ['How fast do you make changes?', 'Small changes, like new opening hours or a menu price, usually go live within one working day. Bigger jobs, like a new page or an ad campaign, follow the dates on your Work page.'],
     ['How do approvals work?', 'When we need your OK, it shows under Waiting for you on your Home page, with a date. Approve it, or ask for changes with a short note. Nothing goes out until you approve it.'],
-    ['Where do the numbers come from?', 'Straight from your connected accounts, like Google Business Profile and your booking system. Each number shows where it came from and when it was last updated. If an account disconnects, we tell you instead of guessing.'],
+    ['Where do the numbers come from?', 'Straight from your connected accounts, like Google Business Profile (your listing on Google and Maps) and your booking system. Each number shows where it came from and when it was last updated. If an account disconnects, we tell you instead of guessing.'],
     ['What does "Waiting for you" mean?', 'We can\'t move that job forward until you answer something. The button next to it tells you what we need.'],
-    ['How do I change my card or my plan?', 'Change your payment details on Stripe, from your Billing page. To change your plan, message us.'],
+    ['How do I change my card or my plan?', 'Change your payment details on Stripe (our payment service), from your Billing page. To change your plan, message us.'],
     ['Who can see my account?', 'You, the people at your restaurant we have given a login (ask for one in Settings), and the Domin8te team working for you. Other clients never see your numbers.']
   ];
 
@@ -742,9 +810,10 @@
         <div class="help-grid">
           <section class="card" aria-labelledby="h-contact">
             <h2 id="h-contact">Talk to us</h2>
-            <p>${ctx.account.team.reply ? esc(ctx.account.team.reply) + '. ' : ''}Messages go straight to the people who work on your account.</p>
+            <p>${ctx.account.team.reply ? esc(replyLine(ctx.account.team.reply)) + ' ' : ''}Messages go straight to the people who work on your account.</p>
             <button class="btn btn-solid" type="button" data-action="compose" data-mode="message">${icon('message')}Message us</button>
             <h3 class="sub-h">Your messages</h3>
+            <p class="meta">Messages you send us, and our replies, show up here.</p>
             <div id="help-messages">${UI.Skeleton('text', 2)}</div>
           </section>
           <section class="card" aria-labelledby="h-promises">
@@ -795,7 +864,7 @@
           <button class="btn btn-solid btn-block" type="submit">${sendLabel()}</button>
         </form>
         <div id="signin-sent" hidden></div>
-        <p class="meta signin-foot">${icon('lock')}<span>Only invited people can sign in. Clerk handles sign-in, and we never email passwords.</span></p>
+        <p class="meta signin-foot">${icon('lock')}<span>Only invited people can sign in. Our sign-in service handles this, and we never email passwords.</span></p>
         ${isLive() && demoUrl() ? `<p class="signin-demo">Not a client yet? <a href="${esc(demoUrl())}">See a demo of the portal</a></p>` : ''}
       </div></div>`;
     },

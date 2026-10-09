@@ -86,14 +86,16 @@
       <ul class="nav-list nav-secondary">
         <li><a class="nav-link" href="#/settings" data-nav="settings"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-settings"/></svg><span class="nav-label">Settings</span></a></li>
         <li><a class="nav-link" href="#/help" data-nav="help"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-help"/></svg><span class="nav-label">Help</span></a></li>
+      </ul>
+      <button class="nav-link side-toggle" type="button" data-action="toggle-side" aria-expanded="true" aria-label="Collapse sidebar" title="Make menu smaller"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevron-left"/></svg><span class="nav-label">Collapse</span></button>
+      <ul class="nav-list nav-signout">
         <li><button class="nav-link" type="button" data-action="sign-out"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-logout"/></svg><span class="nav-label">Sign out</span></button></li>
       </ul>
-      <button class="nav-link side-toggle" type="button" data-action="toggle-side" aria-expanded="true" aria-label="Collapse sidebar"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevron-left"/></svg><span class="nav-label">Collapse</span></button>
     </div>
   </aside>
   <header class="topbar">
     <a class="topbar-brand" href="#/home"><img class="topbar-mark" src="assets/mark.webp" alt=""><span class="topbar-name" id="topbar-name">Domin8te</span><span class="sr-only">, go to Home</span></a>
-    <button class="preview-chip is-bar" type="button" data-action="demo" data-preview hidden><svg class="i" aria-hidden="true" focusable="false"><use href="#i-eye"/></svg><span>Preview</span><span class="sr-only"> mode: demo data</span></button>
+    <button class="preview-chip is-bar" type="button" data-action="demo" data-preview hidden title="Sample restaurant. Nothing you click here is real."><svg class="i" aria-hidden="true" focusable="false"><use href="#i-eye"/></svg><span>Preview</span><span class="sr-only"> mode: demo data</span></button>
     <div class="account">
       <button class="account-btn" id="account-btn" type="button" data-action="account-menu" aria-expanded="false" aria-controls="account-menu"><span class="avatar" id="avatar" aria-hidden="true"></span><span class="sr-only">Account menu</span></button>
       <div class="account-menu" id="account-menu" hidden>
@@ -115,7 +117,7 @@
   </nav>
 </div>
 <div class="rail-tip" id="rail-tip" aria-hidden="true" hidden></div>
-<button class="preview-chip is-float" type="button" data-action="demo" data-preview hidden><svg class="i" aria-hidden="true" focusable="false"><use href="#i-eye"/></svg><span class="pc-text"><span class="pc-title">Preview mode</span><span class="pc-sub">Demo data</span></span></button>
+<button class="preview-chip is-float" type="button" data-action="demo" data-preview hidden title="Sample restaurant. Nothing you click here is real."><svg class="i" aria-hidden="true" focusable="false"><use href="#i-eye"/></svg><span class="pc-text"><span class="pc-title">Preview mode</span><span class="pc-sub">Sample restaurant, nothing is real</span></span></button>
 <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
 <dialog class="dlg" id="dlg" aria-labelledby="dlg-title"><div class="dlg-inner" id="dlg-inner"></div></dialog>
 <noscript><p class="noscript">The Domin8te portal needs JavaScript switched on to load your account.</p></noscript>

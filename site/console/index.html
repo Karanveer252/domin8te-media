@@ -941,6 +941,64 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
 .check-inline { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink); cursor: pointer; }
 .check-inline input { width: 17px; height: 17px; margin: 0; accent-color: var(--accent); }
 .card-vis-field .hint { margin-top: 4px; }
+
+
+/* ==== Plain words for a new teammate (2026-10-08, round 3): hint lines, folds, quiet removes ============== */
+/* One grey line under the client tabs, saying what the open tab is for. */
+.tab-hint { margin: -12px 0 18px 4px; color: var(--ink-3); font-size: 13.5px; }
+.tabs-div { flex: none; align-self: center; width: 1px; height: 22px; margin: 0 4px; background: var(--line-2); }
+.tabs a.tab-raw { font-weight: 550; }
+/* Quick actions: a small word before the buttons, so they read as one group. */
+.qa-label { align-self: center; color: var(--ink-3); font-size: 12.5px; font-weight: 600; }
+/* Remove and Delete are quiet until pointed at. */
+.btn-remove, .card-tools .btn-remove, .item-list .btn-remove { color: var(--ink-3); }
+.btn-remove:hover, .btn-remove:focus-visible { color: var(--bad); }
+/* Needs you, grouped by client. */
+.q-client + .q-client { margin-top: 14px; }
+.q-client-h { margin: 0 0 6px 2px; font-size: 14.5px; font-weight: 650; }
+.q-more { margin-top: 8px; }
+.q-more > summary, .fold-more > summary, .fold-raw > summary, .fold-details > summary, .dm-ids > summary { width: max-content; max-width: 100%; color: var(--accent-ink); font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.q-more[open] > summary { margin-bottom: 8px; }
+.summary-jump { color: inherit; font-weight: inherit; text-decoration: none; }
+.summary-jump:hover { text-decoration: underline; }
+/* Logins and details: a small index that stays in view. */
+.mini-index { position: sticky; top: 8px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 16px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); font-size: 13.5px; }
+.mini-index > span[aria-hidden] { color: var(--line-2); }
+[id^="sec-"], #billing { scroll-margin-top: 72px; }
+/* The board: the Move to word, the Multica note, and folded details. */
+.card-move-l { flex: none; color: var(--ink-3); font-size: 12.5px; font-weight: 600; }
+.board-strip .strip-note { flex-basis: 100%; color: var(--ink-3); font-size: 13px; }
+.fold-details { flex-basis: 100%; }
+.fold-details p, .dm-ids .meta { display: block; margin-top: 4px; color: var(--ink-3); font-size: 13px; overflow-wrap: anywhere; }
+.dm-ids { margin-top: 6px; }
+.form-hint { margin: -6px 0 14px; color: var(--ink-3); font-size: 13.5px; }
+.legend-hint { margin: 0 0 8px; }
+/* The Work tab: dates in words, and steps greyed while cards stand in for them. */
+.ms-date { display: grid; gap: 2px; }
+.date-say { color: var(--ink-3); font-size: 12px; line-height: 1.3; }
+.date-say:empty { display: none; }
+.steps-wrap.is-muted { opacity: 0.55; }
+.steps-wrap.is-muted:focus-within { opacity: 1; }
+.steps-off { margin: 0 0 12px; }
+.fold-more { margin: 4px 0 0; }
+.fold-more[open] > summary { margin-bottom: 12px; }
+.fold-raw[open] > summary { margin-bottom: 10px; }
+/* Settings: automatic publishing, folded shut. */
+.fold-panel > summary { display: grid; gap: 4px; cursor: pointer; list-style: none; }
+.fold-panel > summary::-webkit-details-marker { display: none; }
+.fold-panel > summary h2::after { content: " +"; color: var(--ink-3); font-weight: 500; }
+.fold-panel[open] > summary h2::after { content: " \2212"; }
+.fold-panel[open] > summary { margin-bottom: 12px; }
+.gate-tech { display: block; color: var(--ink-3); font-size: 12px; }
+/* The "?" next to Ctrl K: the keyboard shortcuts. */
+.side-hint .side-help { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-left: 4px; border: 1px solid var(--line-2); border-radius: 50%; font-size: 12px; font-weight: 650; }
+/* On the moving sky, the new words that sit straight on it turn light too. */
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] :is(main > .q-group .q-client-h, main > .q-group > .q-client > .q-more > summary) { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+html[data-theme="dark"] .mini-index { background: var(--surface); }
+/* On the client page's pale sky, the grey words go one step darker so they stay readable. */
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-hint, .qa-label) { color: var(--ink-2); }
+/* Nine tabs with plain names: on a wide screen they wrap to a second row instead of hiding Raw data off the edge. */
+@media (min-width: 760px) { .tabs { flex-wrap: wrap; overflow-x: visible; gap: 6px; } .tabs a { padding-left: 13px; padding-right: 13px; } }
 </style>
 </head>
 <body>
@@ -978,7 +1036,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     <ul class="nav">
       <li><a href="#/queue" data-nav="queue"><svg class="ic"><use href="#i-inbox"/></svg>Needs you<span class="badge" id="queue-badge" hidden></span></a></li>
       <li><a href="#/clients" data-nav="clients"><svg class="ic"><use href="#i-users"/></svg>Clients<span class="badge quiet" id="clients-badge" hidden></span></a></li>
-      <li><a href="#/board" data-nav="board"><svg class="ic"><use href="#i-board"/></svg>All work<span class="badge quiet" id="board-badge" hidden></span></a></li>
+      <li><a href="#/board" data-nav="board" title="Every client's team cards on one board"><svg class="ic"><use href="#i-board"/></svg>All work<span class="badge quiet" id="board-badge" hidden></span></a></li>
       <li><a href="#/billing" data-nav="billing"><svg class="ic"><use href="#i-card"/></svg>Billing<span class="badge" id="billing-badge" hidden></span></a></li>
       <li><a href="#/new" data-nav="new"><svg class="ic"><use href="#i-plus"/></svg>Add a client</a></li>
       <li><a href="#/settings" data-nav="settings"><svg class="ic"><use href="#i-gear"/></svg>Settings</a></li>
@@ -988,7 +1046,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     <ul class="side-list" id="side-list"></ul>
     <div class="side-foot">
       <div class="side-me"><span class="who"><span class="avatar" id="me-avatar"></span><span id="me-name"></span></span><button class="btn btn-quiet btn-sm" type="button" data-action="sign-out">Sign out</button></div>
-      <p class="side-hint"><button type="button" data-action="palette"><kbd>Ctrl</kbd><kbd>K</kbd> jump anywhere</button></p>
+      <p class="side-hint"><button type="button" data-action="palette" title="Search any client, page or tab"><kbd>Ctrl</kbd><kbd>K</kbd> jump anywhere</button><button class="side-help" type="button" data-action="shortcuts" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">?</button></p>
     </div>
   </aside>
   <div class="scrim" id="scrim" data-action="close-side"></div>
@@ -1208,7 +1266,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
   const NOTIFICATIONS = [
     { id: 'weekly', label: 'Your weekly update is ready', text: 'A short email each Monday with what we did and what is next.' },
     { id: 'approvals', label: 'Something is waiting for your approval', text: 'When posts, pages or ads need your OK.' },
-    { id: 'invoices', label: 'A new invoice is available', text: 'When Stripe issues an invoice.' },
+    { id: 'invoices', label: 'A new invoice is available', text: 'When Stripe (our payment service) sends an invoice.' },
     { id: 'website', label: 'A website update is published', text: 'When a change goes live on your website.' },
     { id: 'account', label: 'Important account actions', text: 'Payment problems and anything that could pause a service.', required: true }
   ];
@@ -2412,6 +2470,11 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
   const svcLabel = (s) => (SERVICES[s] ? SERVICES[s].label : s || 'General');
   /** @param {number} n @param {string} one @param {string} [many] */
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many || one + 's'}`;
+  const PAUSED_HINT = 'Paused: work and billing are on hold. They keep their login.';
+  const MULTICA_HINT = 'Multica is our task tool where Hermes and the team pick up work.';
+  const HERMES_HINT = 'Hermes is our AI assistant. It works on cards in Multica.';
+  /** A date in words, as elsewhere in the console: "3 Sept 2026". @param {string} iso */
+  const longDate = (iso) => { if (!iso) return ''; const d = new Date(String(iso).slice(0, 10) + 'T00:00'); return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); };
 
   /** "30 Sep" or "30 Sep, 14:05". @param {string} iso */
   function when(iso) {
@@ -2489,6 +2552,8 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
   /** The client whose page is open. @type {any} */
   let current = null;
   let sideQuery = '';
+  /** A section to scroll to once the next page is drawn (the "?" next to Ctrl K opens the shortcuts). */
+  let jumpAfter = '';
 
   /* ---- settings: how the console looks and works for this person --------------------------------------- */
 
@@ -2633,12 +2698,12 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       const label = SERVICES[s].label;
       if (w.expected && w.expected.date && w.status !== 'complete' && w.status !== 'paused') {
         const d = due(w.expected.date);
-        if (d.late) needs.push({ kind: 'late', label: 'Date passed', text: `${label}: ${w.expected.text || 'expected date'}`, dueDate: w.expected.date, late: true, href: go('work', [s]), rank: 0 });
+        if (d.late) needs.push({ kind: 'late', label: 'Promised date passed', hint: 'An Expected date we gave them has passed', text: `${label}: ${w.expected.text || 'expected date'}`, dueDate: w.expected.date, late: true, href: go('work', [s]), rank: 0 });
         else if (d.days <= 7) soon.push({ kind: 'expected', label, text: w.expected.text || 'Expected', dueDate: w.expected.date, href: go('work', [s]) });
       }
       if (w.next && w.next.who === 'client' && w.next.text) waiting.push({ kind: 'next', label: 'Their next step', text: `${label}: ${w.next.text}`, href: go('work', [s]) });
       for (const m of w.milestones || []) {
-        if (m.state === 'current' && m.date && m.date < now) needs.push({ kind: 'late', label: 'Step overdue', text: `${label}: ${m.title}`, dueDate: m.date, late: true, href: go('work', [s]), rank: 0 });
+        if (m.state === 'current' && m.date && m.date < now) needs.push({ kind: 'late', label: 'Step late', hint: 'A step on their Work page is past its date', text: `${label}: ${m.title}`, dueDate: m.date, late: true, href: go('work', [s]), rank: 0 });
       }
     }
     for (const k of all.tasks || []) {
@@ -2649,11 +2714,11 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const bill = billingOf(t);
     if (bill.status === 'past_due') needs.push({ kind: 'billing', label: 'Payment past due', text: `${bill.plan || 'Plan'}${bill.grace ? `: services pause after ${when(bill.grace)}` : ''}`, dueDate: bill.grace || undefined, href: '#/billing', rank: 1 });
     else if (bill.renews && bill.status !== 'canceled') { const rd = due(bill.renews); if (rd.days >= 0 && rd.days <= 7) soon.push({ kind: 'renewal', label: 'Renews', text: `${bill.plan || 'Plan'}${bill.amount ? `, ${bill.amount}` : ''}`, dueDate: bill.renews, href: '#/billing' }); }
-    if (!t.clerk_org_id && t.status === 'active') needs.push({ kind: 'login', label: 'No login yet', text: 'They can\'t open their portal until you give them a login', href: go('edit'), rank: 2 });
-    for (const a of asksFor(id)) needs.push({ kind: 'login-ask', label: 'Login request', text: `${a.first_name}${a.role ? ', ' + a.role : ''} (${a.email})`, at: a.at, href: go('edit'), rank: 1 });
+    if (!t.clerk_org_id && t.status === 'active') needs.push({ kind: 'login', label: 'No login yet', text: 'They can\'t open their portal yet. Add a login on the Logins and details tab.', href: go('edit', ['login']), rank: 2 });
+    for (const a of asksFor(id)) needs.push({ kind: 'login-ask', label: 'Login request', hint: 'The client asked us to give someone a login. Answer it on Logins and details.', text: `${a.first_name}${a.role ? ', ' + a.role : ''} (${a.email})`, at: a.at, href: go('edit'), rank: 1 });
     if (doc.meeting && doc.meeting.at) {
       const d = due(doc.meeting.at);
-      if (d.late) needs.push({ kind: 'meeting', label: 'Meeting passed', text: `${doc.meeting.title || 'Meeting'} was ${when(doc.meeting.at)}. Set the next one or clear it.`, dueDate: doc.meeting.at.slice(0, 10), href: go('overview'), rank: 2 });
+      if (d.late) needs.push({ kind: 'meeting', label: 'Meeting passed', text: `${doc.meeting.title || 'Meeting'} was ${when(doc.meeting.at)}. Set the next one or clear it (Logins and details tab).`, dueDate: doc.meeting.at.slice(0, 10), href: go('edit', ['meeting']), rank: 2 });
       else if (d.days <= 7) soon.push({ kind: 'meeting', label: 'Meeting', text: `${doc.meeting.title || 'Meeting'}, ${when(doc.meeting.at)}`, dueDate: doc.meeting.at.slice(0, 10), href: go('overview') });
     }
     const stamp = (/** @type {any} */ x) => x.dueDate || (x.at ? String(x.at).slice(0, 10) : '9999');
@@ -2681,7 +2746,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const openId = current ? current.id : '';
     list.innerHTML = rows.length ? rows.map(({ t, d }) => {
       const dot = d.needs.length ? 'you' : d.waiting.length ? 'them' : t.status === 'active' ? 'ok' : '';
-      const title = d.needs.length ? plural(d.needs.length, 'thing needs', 'things need') + ' you' : d.waiting.length ? plural(d.waiting.length, 'thing') + ' waiting on them' : t.status === 'active' ? 'Nothing waiting' : t.status;
+      const title = d.needs.length ? plural(d.needs.length, 'thing needs', 'things need') + ' you' : d.waiting.length ? plural(d.waiting.length, 'thing') + ' waiting on client' : t.status === 'active' ? 'Nothing waiting' : t.status;
       return `<li><a class="side-client${t.status !== 'active' ? ' paused' : ''}" href="#/client/${esc(t.id)}"${t.id === openId ? ' aria-current="page"' : ''} title="${esc(title)}">
         <span class="dot ${dot}" aria-hidden="true"></span><span class="name">${esc(t.name)}</span>${d.needs.length ? `<span class="badge">${d.needs.length}</span>` : ''}</a></li>`;
     }).join('') : `<li class="side-none">${q ? 'No client matches.' : 'No clients yet.'}</li>`;
@@ -2758,7 +2823,20 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     });
   }
 
-  const TABS = [['overview', 'Overview'], ['board', 'Board'], ['work', 'Work'], ['approvals', 'Approvals'], ['updates', 'Updates'], ['inbox', 'Inbox'], ['history', 'History'], ['record', 'Record'], ['edit', 'Edit']];
+  // The keys are the routes (#/client/<id>/<key>) and never change; only the words do. Raw data sits last, after a divider.
+  const TABS = [['overview', 'Overview'], ['board', 'Team cards'], ['work', 'Their Work page'], ['approvals', 'Approvals'], ['updates', 'Updates'], ['inbox', 'Messages'], ['history', 'History'], ['edit', 'Logins and details'], ['record', 'Raw data']];
+  /** One grey line under the tabs: what the open tab is for. @type {Record<string, string>} */
+  const TAB_HINTS = {
+    overview: 'A quick look: what needs you, what waits on the client, what is coming up, and their services.',
+    board: 'Team cards are our to-do list for this client. A card with a service also shows on their Work page.',
+    work: 'What the client reads on their Work page, one service at a time.',
+    approvals: 'Things we ask the client to say yes to. They answer at the top of their Home page.',
+    updates: 'News we post for the client. They read it on their Updates page.',
+    inbox: 'Their messages and change requests. They read your replies on their Help page.',
+    history: 'Everything done for this client, newest first. Saved automatically. Nobody can edit or delete it.',
+    edit: 'Who can sign in, their plan and sign-off level, contact details, billing and the next meeting.',
+    record: 'Everything their portal reads, in code form. Only for when an owner asks. Use the other tabs instead.'
+  };
   const palette = {
     dlg: /** @type {HTMLDialogElement} */ ($('#palette')),
     input: /** @type {HTMLInputElement} */ ($('#palette-in')),
@@ -2770,7 +2848,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       const out = [
         { name: 'Needs you', hint: 'Page', href: '#/queue', icon: 'inbox' },
         { name: 'Clients', hint: 'Page', href: '#/clients', icon: 'users' },
-        { name: 'All work', hint: 'Page', href: '#/board', icon: 'board' },
+        { name: 'All work (every client\'s team cards)', hint: 'Page', href: '#/board', icon: 'board' },
         { name: 'Billing', hint: 'Page', href: '#/billing', icon: 'card' },
         { name: 'Settings', hint: 'Page', href: '#/settings', icon: 'gear' },
         { name: 'Team', hint: 'Settings', href: '#/settings', icon: 'users' },
@@ -3071,7 +3149,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const whenText = d ? (it.kind === 'late' || it.late ? d.text : d.days === 0 ? 'today' : d.text) : it.at ? ago(it.at) : '';
     return `<li><a class="q-row" href="${esc(it.href)}">
       <span class="client">${esc(client || '')}</span>
-      <span><span class="chip ${tone}">${esc(it.label)}</span></span>
+      <span><span class="chip ${tone}"${it.hint ? ` title="${esc(it.hint)}"` : ''}>${esc(it.label)}</span></span>
       <span class="text">${it.kind === 'request' || it.kind === 'message' ? `<q>${esc(it.text)}</q>` : esc(it.text)}</span>
       <span class="when${d && d.late ? ' late' : ''}">${esc(whenText)}</span>
       <span class="go">${icon('arrow')}</span></a></li>`;
@@ -3093,16 +3171,25 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     needs.sort((a, b) => a.rank - b.rank || stamp(a).localeCompare(stamp(b)));
     waiting.sort((a, b) => Number(b.late) - Number(a.late) || String(a.dueDate || '9999').localeCompare(String(b.dueDate || '9999')));
     soon.sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
-    const group = (/** @type {string} */ title, /** @type {string} */ lede, /** @type {any[]} */ items, /** @type {string} */ empty) => `<section class="q-group"><h2>${esc(title)} <span class="meta">${items.length}</span></h2><p class="lede">${esc(lede)}</p>
+    const group = (/** @type {string} */ id, /** @type {string} */ title, /** @type {string} */ lede, /** @type {any[]} */ items, /** @type {string} */ empty) => `<section class="q-group" id="${id}"><h2>${esc(title)} <span class="meta">${items.length}</span></h2><p class="lede">${esc(lede)}</p>
       ${items.length ? `<ul class="q">${items.map((x) => qRow(x, x.client)).join('')}</ul>` : `<p class="meta">${esc(empty)}</p>`}</section>`;
+    // Needs you, one client at a time (their most urgent first): the first 3 open, the rest behind "Show N more".
+    /** @type {Map<string, any[]>} */ const byClient = new Map();
+    for (const x of needs) { if (!byClient.has(x.client)) byClient.set(x.client, []); /** @type {any[]} */ (byClient.get(x.client)).push(x); }
+    const needsHtml = `<section class="q-group" id="q-needs"><h2>Needs you <span class="meta">${needs.length}</span></h2><p class="lede">Client requests, messages and answers, late dates and stuck work, grouped by client. Click one to deal with it.</p>
+      ${Array.from(byClient.entries()).map(([name, items]) => `<div class="q-client"><h3 class="q-client-h">${esc(name)} · ${items.length}</h3>
+        <ul class="q">${items.slice(0, 3).map((x) => qRow(x, x.client)).join('')}</ul>
+        ${items.length > 3 ? `<details class="reveal q-more"><summary>Show ${items.length - 3} more</summary><ul class="q">${items.slice(3).map((x) => qRow(x, x.client)).join('')}</ul></details>` : ''}</div>`).join('')}</section>`;
+    const dm = dmBlock(null);
+    const jump = (/** @type {string} */ to, /** @type {string} */ html) => `<button class="linkish summary-jump" type="button" data-action="jump" data-to="${to}">${html}</button>`;
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Needs you</h1><p>What the team has to do, for every client. Most urgent first.</p></div>
-      <div class="btns"><button class="btn btn-quiet btn-sm" type="button" data-action="refresh">${icon('refresh')}Refresh</button></div></div>
-      <p class="summary"><span><b>${needs.length}</b> ${needs.length === 1 ? 'thing needs' : 'things need'} you</span><span><b>${waiting.length}</b> waiting on clients</span><span><b>${soon.length}</b> coming up this week</span><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span></p>
+      <div class="btns"><button class="btn btn-quiet btn-sm" type="button" data-action="refresh">${icon('refresh')}Reload</button></div></div>
+      <p class="summary">${dm ? `<span>${jump('q-dm', `<b>${reviewCount(null)}</b> to check before it goes live`)}</span>` : ''}<span>${jump('q-needs', `<b>${needs.length}</b> ${needs.length === 1 ? 'thing needs' : 'things need'} you`)}</span><span>${jump('q-waiting', `<b>${waiting.length}</b> waiting on client`)}</span><span>${jump('q-soon', `<b>${soon.length}</b> coming up this week`)}</span><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span></p>
       ${all.tenants.length ? '' : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p><a class="btn" href="#/new">Add a client</a></div>`}
-      ${needs.length ? group('Needs you', 'Client requests, messages and answers, late dates and stuck work. Click one to deal with it.', needs, '') : `<div class="empty"><p><strong>Nothing needs you right now.</strong></p><p>New requests, messages, change requests and late dates show up here.</p></div>`}
-      ${dmBlock(null)}
-      ${group('Waiting on clients', 'Approvals they have not answered, and next steps that are theirs. Late ones are marked.', waiting, 'Nothing is waiting on a client.')}
-      ${group('Coming up in the next 7 days', 'Dates we promised, renewals and meetings.', soon, 'Nothing in the next 7 days.')}`;
+      ${dm}
+      ${needs.length ? needsHtml : `<div class="empty" id="q-needs"><p><strong>Nothing needs you right now.</strong></p><p>New requests, messages, change requests and late dates show up here.</p></div>`}
+      ${group('q-waiting', 'Waiting on client', 'Approvals they have not answered, and next steps that are theirs. Late ones are marked.', waiting, 'Nothing is waiting on a client.')}
+      ${group('q-soon', 'Coming up in the next 7 days', 'Dates we promised, renewals and meetings.', soon, 'Nothing in the next 7 days.')}`;
   }
 
   /* ---- the client list ------------------------------------------------------------------------------ */
@@ -3112,9 +3199,9 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
   function clientsPage() {
     document.title = 'Clients · Domin8te console';
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Clients</h1><p>Every restaurant, what is waiting, and who can sign in.</p></div>
-      <div class="btns"><button class="btn btn-quiet btn-sm" type="button" data-action="refresh">${icon('refresh')}Refresh</button><a class="btn" href="#/new">${icon('plus')}Add a client</a></div></div>
+      <div class="btns"><button class="btn btn-quiet btn-sm" type="button" data-action="refresh">${icon('refresh')}Reload</button><a class="btn" href="#/new">${icon('plus')}Add a client</a></div></div>
       <div class="toolbar"><input id="list-q" type="search" placeholder="Search by name, kind or package" aria-label="Search clients" value="${esc(listState.q)}" autocomplete="off">
-        <div class="seg" id="list-filter" role="group" aria-label="Show">${[['all', 'All'], ['needs', 'Needs you'], ['waiting', 'Waiting on them'], ['nologin', 'No login'], ['inactive', 'Paused or archived']].map(([k, l]) => `<button type="button" data-filter="${k}" aria-pressed="${listState.filter === k}">${l}</button>`).join('')}</div></div>
+        <div class="seg" id="list-filter" role="group" aria-label="Show">${[['all', 'All'], ['needs', 'Needs you'], ['waiting', 'Waiting on client'], ['nologin', 'No login yet'], ['inactive', 'Paused or archived']].map(([k, l]) => `<button type="button" data-filter="${k}" aria-pressed="${listState.filter === k}">${l}</button>`).join('')}</div></div>
       <div id="list"></div>`;
     renderClients();
     $('#list-q').addEventListener('input', (/** @type {any} */ e) => { listState.q = e.target.value; renderClients(); });
@@ -3163,17 +3250,17 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     });
     const th = (/** @type {string} */ k, /** @type {string} */ label) => `<th scope="col"${listState.sort === k ? ` aria-sort="${listState.dir === 'asc' ? 'ascending' : 'descending'}"` : ''}><button type="button" data-sort="${k}">${label}${listState.sort === k ? icon('sort') : ''}</button></th>`;
     $('#list').innerHTML = rows.length ? `<div class="table-wrap"><table class="grid"><thead><tr>
-        ${th('name', 'Client')}<th scope="col">Services</th><th scope="col">Status</th>${th('needs', 'Needs you')}${th('waiting', 'Waiting on them')}<th scope="col">Login</th>${th('saved', 'Last saved')}
+        ${th('name', 'Client')}<th scope="col">Services</th><th scope="col">Status</th>${th('needs', 'Needs you')}${th('waiting', 'Waiting on client')}<th scope="col">Login</th>${th('saved', 'Last changed')}
       </tr></thead><tbody>${rows.map(({ t, d }) => {
         const services = (t.doc.package.services || []).map(svcLabel).join(', ');
-        const status = t.status === 'active' ? '<span class="chip good">Active</span>' : t.status === 'paused' ? '<span class="chip warn">Paused</span>' : '<span class="chip">Archived</span>';
+        const status = t.status === 'active' ? '<span class="chip good">Active</span>' : t.status === 'paused' ? `<span class="chip warn" title="${PAUSED_HINT}">Paused</span>` : '<span class="chip">Archived</span>';
         return `<tr data-href="#/client/${esc(t.id)}/overview"${t.status !== 'active' ? ' class="paused"' : ''}>
           <td><a class="row-link" href="#/client/${esc(t.id)}/overview">${esc(t.name)}</a>${profileOf(t.id).tier || profileOf(t.id).approval_level ? `<span class="row-chips">${tierChip(profileOf(t.id).tier)}${approvalChip(profileOf(t.id).approval_level)}</span>` : ''}<span class="sub">${esc([t.doc.business.kind, t.doc.package.name].filter(Boolean).join(' · ') || 'Kind of place not set')}</span></td>
           <td>${services ? esc(services) : '<span class="none">None</span>'}</td>
           <td>${status}</td>
-          <td>${d.needs.length ? `<span class="with"><span class="chip you">${d.needs.length}</span><span class="sub">${esc(d.needs[0].label)}${d.needs.length > 1 ? ', more' : ''}</span></span>` : '<span class="none">Nothing</span>'}</td>
-          <td>${d.waiting.length ? `<span class="with"><span class="chip them">${d.waiting.length}</span><span class="sub">${esc(d.waiting[0].kind === 'approval' ? (d.waiting[0].late ? 'Approval overdue' : 'Approval') : 'Their next step')}</span></span>` : '<span class="none">Nothing</span>'}</td>
-          <td>${t.clerk_org_id ? '<span class="chip good">Can sign in</span>' : '<span class="chip warn">No login</span>'}</td>
+          <td>${d.needs.length ? `<span class="with"><span class="chip you">${d.needs.length}</span><span class="sub">${esc(d.needs[0].label)}${d.needs.length > 1 ? ` + ${d.needs.length - 1} more` : ''}</span></span>` : '<span class="none">Nothing</span>'}</td>
+          <td>${d.waiting.length ? `<span class="with"><span class="chip them">${d.waiting.length}</span><span class="sub">${esc(d.waiting[0].kind === 'approval' ? (d.waiting[0].late ? 'Approval late' : 'Approval') : 'Their next step')}</span></span>` : '<span class="none">Nothing</span>'}</td>
+          <td>${t.clerk_org_id ? '<span class="chip good">Can sign in</span>' : '<span class="chip warn">No login yet</span>'}</td>
           <td class="when"><time datetime="${esc(t.updated_at)}" title="${esc(when(t.updated_at))}">${esc(ago(t.updated_at))}</time></td></tr>`;
       }).join('')}</tbody></table></div><p class="meta" style="margin-top:8px">${plural(rows.length, 'client')}${rows.length !== all.tenants.length ? ` of ${all.tenants.length}` : ''}. Click a column name to sort.</p>`
       : all.tenants.length ? `<div class="empty"><p><strong>No client matches.</strong></p><p>Try another name or a different filter.</p></div>`
@@ -3192,7 +3279,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     document.title = 'Add a client · Domin8te console';
     if (me.role !== 'super_admin') {
       main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a>
-        <div class="empty"><p><strong>Only a super admin can add a client.</strong></p><p>Members work on existing clients. Ask a super admin to add this one.</p><a class="btn btn-quiet" href="#/clients">See all clients</a></div>`;
+        <div class="empty"><p><strong>Only an owner can add a client.</strong></p><p>Team members work on existing clients. Ask an owner to add this one.</p><a class="btn btn-quiet" href="#/clients">See all clients</a></div>`;
       return;
     }
     main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a>
@@ -3202,9 +3289,9 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
           <div class="field"><label for="n-name">Restaurant name</label><input id="n-name" name="name" type="text" required maxlength="200" autocomplete="off"></div>
           <div class="field"><label for="n-kind">Kind of place</label><input id="n-kind" name="kind" type="text" placeholder="Restaurant, cafe, bar, bakery" maxlength="60"></div>
           <div class="field"><label for="n-first">Contact's first name</label><input id="n-first" name="first" type="text" maxlength="100"></div>
-          <div class="field"><label for="n-email">Contact's email</label><input id="n-email" name="email" type="email" maxlength="200"></div>
+          <div class="field"><label for="n-email">Contact's email (you can give them a login later)</label><input id="n-email" name="email" type="email" maxlength="200"></div>
           <div class="field span-all"><span class="label">Services</span>${servicesChecks(['website', 'social', 'advertising', 'local'])}</div>
-          <div class="span-all">${profilePickers({})}<p class="hint">Only the team sees the plan and approvals. The client never does.</p></div>
+          <div class="span-all">${profilePickers({})}<p class="hint">Only the team sees the plan and sign-off level. The client never does.</p></div>
         </div>
         <p class="field-error" id="n-err" hidden></p>
         <div class="actions"><button class="btn" type="submit">Add the client</button><a class="btn btn-quiet" href="#/clients">Cancel</a></div>
@@ -3234,7 +3321,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
         const client = await db();
         const row = check(await client.from('tenants').insert({ name, doc }).select('id').single());
         if (val(f, 'tier') || val(f, 'approval')) {
-          try { await saveProfile(row.id, val(f, 'tier'), val(f, 'approval')); } catch (x) { toast(`${name} was added, but the plan and approvals were not saved: ${message(x)}`, true); }
+          try { await saveProfile(row.id, val(f, 'tier'), val(f, 'approval')); } catch (x) { toast(`${name} was added, but the plan and sign-off level were not saved: ${message(x)}`, true); }
         }
         // The client's own board in Multica, made now so it is ready for the team (and Hermes).
         multicaStatus().then((st) => { if (st.configured) multica({ action: 'project', tenantId: row.id }).catch((x) => toast(`The Multica board for ${name} could not be made yet: ${message(x)}`, true)); });
@@ -3336,16 +3423,17 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const contact = [d.user.firstName, d.user.email ? `<a href="mailto:${esc(d.user.email)}">${esc(d.user.email)}</a>` : ''].filter(Boolean);
     main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a>
       <div class="client-head"><div><h1 id="page-title" tabindex="-1">${esc(current.name)}</h1>
-        <p class="who">${current.status === 'active' ? '<span class="chip good">Active</span>' : current.status === 'paused' ? '<span class="chip warn">Paused</span>' : '<span class="chip">Archived</span>'}
+        <p class="who">${current.status === 'active' ? '<span class="chip good">Active</span>' : current.status === 'paused' ? `<span class="chip warn" title="${PAUSED_HINT}">Paused</span>` : '<span class="chip">Archived</span>'}
           ${current.clerk_org_id ? '<span class="chip good">Can sign in</span>' : '<span class="chip warn">No login yet</span>'}
           ${tierChip(profileOf(current.id).tier)}${approvalChip(profileOf(current.id).approval_level, true)}
           ${d.business.kind ? `<span class="t">${esc(d.business.kind)}</span>` : ''}${contact.length ? `<span class="t">${esc(d.user.firstName || '')} ${contact[1] || ''}</span>` : ''}${d.package.name ? `<span class="t">${esc(d.package.name)}</span>` : ''}
-          <span class="t">Saved <time datetime="${esc(current.updated_at)}" title="${esc(when(current.updated_at))}">${esc(ago(current.updated_at))}</time></span></p></div>
-        <div class="btns"><a class="btn btn-quiet btn-sm" href="#/client/${esc(id)}/inbox/reply">Reply</a><a class="btn btn-quiet btn-sm" href="#/client/${esc(id)}/approvals/new">Ask for approval</a><a class="btn btn-quiet btn-sm" href="#/client/${esc(id)}/updates/new">Post an update</a><button class="icon-btn" type="button" data-action="reload" aria-label="Reload this client" title="Reload this client">${icon('refresh')}</button></div></div>
+          <span class="t">Changed <time datetime="${esc(current.updated_at)}" title="${esc(when(current.updated_at))}">${esc(ago(current.updated_at))}</time></span></p></div>
+        <div class="btns"><span class="qa-label">Quick actions</span><a class="btn btn-quiet btn-sm" href="#/client/${esc(id)}/inbox/reply">Reply to a message</a><a class="btn btn-quiet btn-sm" href="#/client/${esc(id)}/approvals/new">Ask for an approval</a><a class="btn btn-quiet btn-sm" href="#/client/${esc(id)}/updates/new">Post an update</a><button class="btn btn-quiet btn-sm" type="button" data-action="reload" title="Load this client again, with anything changed since">${icon('refresh')}Reload</button></div></div>
       <nav class="tabs" aria-label="Client sections">${TABS.map(([k, label]) => {
-        const count = k === 'inbox' && inboxCount ? `<span class="count">${inboxCount}</span>` : k === 'board' && openCards ? `<span class="count quiet">${openCards}</span>` : k === 'approvals' && (apvYou || apvThem) ? (apvYou ? `<span class="count">${apvYou}</span>` : `<span class="count them">${apvThem}</span>`) : '';
-        return `<a href="#/client/${esc(id)}/${k}"${k === t ? ' aria-current="page"' : ''}>${label}${count}</a>`;
+        const count = k === 'inbox' && inboxCount ? `<span class="count" title="Waiting for a reply">${inboxCount}</span>` : k === 'board' && openCards ? `<span class="count quiet" title="Open cards">${openCards}</span>` : k === 'approvals' && (apvYou || apvThem) ? (apvYou ? `<span class="count" title="Sent back with changes">${apvYou}</span>` : `<span class="count them" title="Waiting on client">${apvThem}</span>`) : '';
+        return `${k === 'record' ? '<span class="tabs-div" aria-hidden="true"></span>' : ''}<a href="#/client/${esc(id)}/${k}"${k === t ? ' aria-current="page"' : ''}${k === 'record' ? ' class="tab-raw"' : ''}>${label}${count}</a>`;
       }).join('')}</nav>
+      <p class="tab-hint">${esc(TAB_HINTS[t] || '')}</p>
       <div id="tab"></div>`;
     const box = /** @type {HTMLElement} */ ($('#tab'));
     try { localStorage.setItem('d8c.tab.' + id, t); } catch (e) { /* remembering the tab is a nicety */ }
@@ -3370,6 +3458,9 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     advertising: 'Paid ads on Meta and Google',
     local: 'Their Google listing, reviews and local search'
   };
+  /** A work status as the team reads it: "waiting" is "Waiting on client" here (the client sees "Waiting for you"). @param {string} k */
+  const teamStatus = (k) => (k === 'waiting' ? 'Waiting on client' : (STATUS[k] || STATUS.planned).label);
+  const CHANGE_SVC_HINT = 'Turn services on or off for this client. Nothing is deleted.';
   /** @param {string[]} list */
   const andList = (list) => list.length < 2 ? list.join('') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
   /** Whether a service the client no longer has still holds work worth keeping. @param {any} w */
@@ -3390,22 +3481,22 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     ].filter(Boolean).join(', ') : '';
     return `<section class="panel svc-panel" aria-labelledby="g-svc">
       <div class="panel-head"><div><h2 id="g-svc">Services</h2><p>${services.length} of ${SERVICE_ORDER.length} provided. Their dashboard shows only these.</p></div>
-        <div class="btns"><button class="btn btn-sm" type="button" data-svc-change>Change services</button></div></div>
+        <div class="btns"><button class="btn btn-sm" type="button" data-svc-change title="${CHANGE_SVC_HINT}">Change services</button></div></div>
       ${services.length ? `<ul class="svc-list">${services.map((/** @type {string} */ s) => {
         const w = d.services[s] || {};
         const st = STATUS[w.status] || STATUS.planned;
         const tone = { success: 'good', info: 'info', attention: 'them', neutral: '' }[st.tone] || '';
-        return `<li><span><span class="s-name"><svg class="ic" aria-hidden="true"><use href="#i-${SVC_ICON[s] || 'page'}"/></svg>${esc(SERVICES[s].label)}</span><span class="chip ${tone}">${esc(st.label)}</span></span>
+        return `<li><span><span class="s-name"><svg class="ic" aria-hidden="true"><use href="#i-${SVC_ICON[s] || 'page'}"/></svg>${esc(SERVICES[s].label)}</span><span class="chip ${tone}">${esc(teamStatus(w.status))}</span></span>
           <span><span class="s-now">${esc(w.now || 'Nothing written yet')}</span>
           ${w.next && w.next.text ? `<span class="s-next"><b>Next step${w.next.who === 'client' ? ', theirs' : ', ours'}:</b> ${esc(w.next.text)}</span>` : ''}
           ${w.expected && w.expected.date ? `<span class="s-next"><b>Expected ${esc(when(w.expected.date))}:</b> ${esc(w.expected.text || 'expected')}</span>` : ''}</span>
-          <a class="s-edit" href="#/client/${esc(current.id)}/work/${s}">Edit</a></li>`;
+          <a class="s-edit" href="#/client/${esc(current.id)}/work/${s}">Edit on Their Work page</a></li>`;
       }).join('')}</ul>` : '<p class="meta">They have no services right now, so their dashboard has no Work pages.</p>'}
       ${off.length ? `<div class="svc-off-wrap"><h3 class="svc-off-h">Not provided</h3><ul class="svc-off">${off.map((/** @type {string} */ s) => `<li>
           <span class="svc-off__ic"><svg class="ic" aria-hidden="true"><use href="#i-${SVC_ICON[s] || 'page'}"/></svg></span>
           <span class="svc-off__txt"><span class="s-name">${esc(SERVICES[s].label)}</span><span class="meta">${hasHistory(d.services[s]) ? 'Hidden from their dashboard. Its history is saved and comes back if you add it again.' : 'Not in their plan, so it is not on their dashboard.'}</span></span>
           <span class="chip off">Not provided</span>
-          <button class="btn btn-quiet btn-sm" type="button" data-svc-change>Add back</button></li>`).join('')}</ul></div>` : ''}
+          <button class="btn btn-quiet btn-sm" type="button" data-svc-change title="${CHANGE_SVC_HINT}">Add back</button></li>`).join('')}</ul></div>` : ''}
       ${last ? `<p class="svc-last meta">${icon('clock')}Last change ${esc(ago(last.at))}${last.by ? ` by ${esc(last.by)}` : ''}: ${esc(lastLine)}.</p>` : ''}
     </section>`;
   }
@@ -3456,7 +3547,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       const waiting = (d.actions || []).filter((/** @type {any} */ a) => a && removed.includes(a.service)).length;
       const many = removed.length > 1;
       const lines = [];
-      if (removed.length) lines.push(`<p class="sd-line is-off"><b>${esc(andList(removed.map(svcLabel)))}</b> ${many ? 'come' : 'comes'} off ${esc(name)}'s dashboard: ${many ? 'their Work pages' : 'its Work page'}, updates and results${waiting ? `, and ${waiting} item${waiting > 1 ? 's' : ''} waiting on them` : ''}. Nothing is deleted. Add ${many ? 'them' : 'it'} back any time and the history returns.</p>`);
+      if (removed.length) lines.push(`<p class="sd-line is-off"><b>${esc(andList(removed.map(svcLabel)))}</b> ${many ? 'come' : 'comes'} off ${esc(name)}'s dashboard: ${many ? 'their Work pages' : 'its Work page'}, updates and results${waiting ? `, and ${waiting} item${waiting > 1 ? 's' : ''} waiting on the client` : ''}. Nothing is deleted. Add ${many ? 'them' : 'it'} back any time and the history returns.</p>`);
       if (added.length) lines.push(`<p class="sd-line is-on"><b>${esc(andList(added.map(svcLabel)))}</b> ${added.length > 1 ? 'get their own Work pages' : 'gets its own Work page'} on their dashboard${added.some((/** @type {string} */ s) => hasHistory(d.services[s])) ? ', with the history from before' : ', starting as Planned'}.</p>`);
       if (!now.length) lines.push('<p class="sd-line is-warn">With no services, their dashboard has no Work pages. If they are taking a break, pause the client instead.</p>');
       if (!lines.length) lines.push('<p class="sd-line">Switch a service on or off to see what changes for them.</p>');
@@ -3500,20 +3591,21 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const glanceList = (/** @type {any[]} */ items, /** @type {string} */ empty) => items.length ? `<ul>${items.map((x) => {
       const dd = x.dueDate ? due(x.dueDate) : null;
       const tone = x.kind === 'approval' || x.kind === 'next' ? 'them' : x.late ? 'bad' : x.kind === 'expected' || x.kind === 'meeting' || x.kind === 'renewal' ? 'info' : x.kind === 'login' ? 'warn' : 'you';
-      return `<li><p class="g-top"><span class="chip ${tone}">${esc(x.label)}</span><span class="meta${dd && dd.late ? ' late' : ''}">${esc(dd ? dd.text : x.at ? ago(x.at) : '')}</span></p><a href="${esc(x.href)}">${esc(x.text)}</a></li>`;
+      return `<li><p class="g-top"><span class="chip ${tone}"${x.hint ? ` title="${esc(x.hint)}"` : ''}>${esc(x.label)}</span><span class="meta${dd && dd.late ? ' late' : ''}">${esc(dd ? dd.text : x.at ? ago(x.at) : '')}</span></p><a href="${esc(x.href)}">${esc(x.text)}</a></li>`;
     }).join('')}</ul>` : `<p class="meta">${esc(empty)}</p>`;
     box.innerHTML = `
       <div class="ov-read"${part === 'edit' ? ' hidden' : ''}>
       <div class="glance">
         <section class="panel" aria-labelledby="g-you"><div class="panel-head"><h2 id="g-you">Needs you</h2></div>${glanceList(got.needs, 'Nothing is waiting on you.')}</section>
-        <section class="panel" aria-labelledby="g-them"><div class="panel-head"><h2 id="g-them">Waiting on them</h2></div>${glanceList(got.waiting, 'Nothing is waiting on them.')}</section>
+        <section class="panel" aria-labelledby="g-them"><div class="panel-head"><h2 id="g-them">Waiting on client</h2></div>${glanceList(got.waiting, 'Nothing is waiting on the client.')}</section>
         <section class="panel" aria-labelledby="g-soon"><div class="panel-head"><h2 id="g-soon">Coming up</h2></div>${glanceList(got.soon, 'Nothing in the next 7 days.')}</section>
       </div>
       ${dmBlock(current.id)}
       ${servicesPanel(d, services)}
       </div>
       <div class="ov-edit"${part === 'edit' ? '' : ' hidden'}>
-      <section class="panel" aria-labelledby="login-h">
+      <nav class="mini-index" aria-label="On this page"><span class="meta">Jump to</span>${[['sec-login', 'Logins'], ['sec-plan', 'Plan and sign-off'], ['sec-details', 'Details'], ['billing', 'Billing'], ['sec-meeting', 'Meeting']].map(([to, l]) => `<button class="linkish" type="button" data-action="jump" data-to="${to}">${l}</button>`).join('<span aria-hidden="true">·</span>')}</nav>
+      <section class="panel" aria-labelledby="login-h" id="sec-login">
         <div class="panel-head"><h2 id="login-h">Portal login</h2><p>${current.clerk_org_id ? 'These people can sign in to their portal. Add someone, or remove a login.' : '<strong>Nobody can sign in yet.</strong> An email in Details below does not let anyone in. Only this button does.'}</p></div>
         ${current.clerk_org_id ? '<div id="login-people" class="login-people"><p class="meta">Checking who can sign in.</p></div>' : ''}
         ${asksFor(current.id).length ? `<div class="login-asks"><h3 class="panel-sub">They asked for a login</h3><ul class="item-list">${asksFor(current.id).map((/** @type {any} */ a) => `<li class="login-ask" data-ask="${esc(a.id)}"><div><p><strong>${esc(a.first_name)}</strong>${a.role ? `, ${esc(a.role)}` : ''} <span class="meta">${esc(a.email)}</span></p><p class="meta">Asked by ${esc(a.by_name || 'the client')}, ${esc(ago(a.at))}</p></div><div class="btns"><button class="btn btn-sm" type="button" data-ask-grant="${esc(a.id)}">Give them a login</button><button class="btn btn-quiet btn-sm" type="button" data-ask-decline="${esc(a.id)}">Decline</button></div></li>`).join('')}</ul></div>` : ''}
@@ -3521,43 +3613,43 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
           ${current.clerk_org_id ? '<h3 class="panel-sub span-all">Add another login</h3>' : ''}
           <div class="field"><label for="l-first">First name</label><input id="l-first" name="first" type="text" value="${current.clerk_org_id ? '' : esc(d.user.firstName)}" maxlength="100"></div>
           <div class="field span-2"><label for="l-email">Email</label><input id="l-email" name="email" type="email" value="${current.clerk_org_id ? '' : esc(d.user.email)}" maxlength="200"></div>
-          <div class="span-all"><p class="hint meta">They sign in at ${esc(PORTAL_URL)} with this email. Each time, Clerk emails them a 6-digit code. There is no password. Nothing is emailed until they ask for a code.</p></div>
+          <div class="span-all"><p class="hint meta">They sign in at domin8temedia.com/dashboard with this email. We email them a 6-digit code each time, no password. Nothing is sent until they ask for a code.</p></div>
           <div class="actions span-all" style="margin-top:0"><button class="btn" type="submit">${current.clerk_org_id ? 'Add this login' : 'Give them a login'}</button><span id="login-out" class="meta"></span></div>
         </form>
       </section>
       <form class="panel" id="profile-form" novalidate>
-        <div class="panel-head"><h2>Plan and approvals</h2><p>For the team only. The client never sees these.</p></div>
+        <div class="panel-head"><h2 id="sec-plan">Plan and sign-off</h2><p>For the team only. The client never sees these.</p></div>
         ${profilePickers(profileOf(current.id))}
-        <div class="actions"><button class="btn" type="submit">Save plan and approvals</button></div>
+        <div class="actions"><button class="btn" type="submit">Save plan and sign-off</button></div>
       </form>
       <form class="panel" id="ov-form" novalidate>
-        <div class="panel-head"><h2>Details</h2><p>What the client sees across their portal.</p></div>
+        <div class="panel-head"><h2 id="sec-details">Details</h2><p>What the client sees across their portal.</p></div>
         <div class="grid-3">
           <div class="field"><label for="o-name">Restaurant name</label><input id="o-name" name="name" type="text" value="${esc(current.name)}" maxlength="200"></div>
           <div class="field"><label for="o-kind">Kind of place</label><input id="o-kind" name="kind" type="text" value="${esc(d.business.kind)}" maxlength="60" placeholder="Restaurant, cafe, bar"></div>
           <div class="field"><label for="o-status">Status</label>${me.role === 'super_admin'
-            ? `<select id="o-status" name="status">${[['active', 'Active'], ['paused', 'Paused'], ['archived', 'Archived (hidden from them)']].map(([v, l]) => `<option value="${v}"${current.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`
+            ? `<select id="o-status" name="status">${[['active', 'Active'], ['paused', 'Paused'], ['archived', 'Archived (hidden from them)']].map(([v, l]) => `<option value="${v}"${current.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select><p class="hint">${PAUSED_HINT}</p>`
             : current.status === 'archived'
-              ? `<select id="o-status" name="status" disabled><option value="archived" selected>Archived (hidden from them)</option></select><p class="hint">Only a super admin can bring a client back.</p>`
-              : `<select id="o-status" name="status">${[['active', 'Active'], ['paused', 'Paused']].map(([v, l]) => `<option value="${v}"${current.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select><p class="hint">Only a super admin can archive a client.</p>`}</div>
+              ? `<select id="o-status" name="status" disabled><option value="archived" selected>Archived (hidden from them)</option></select><p class="hint">Only an owner can bring a client back.</p>`
+              : `<select id="o-status" name="status">${[['active', 'Active'], ['paused', 'Paused']].map(([v, l]) => `<option value="${v}"${current.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select><p class="hint">${PAUSED_HINT} Only an owner can archive a client.</p>`}</div>
           <div class="field"><label for="o-first">Main contact's first name</label><input id="o-first" name="first" type="text" value="${esc(d.user.firstName)}" maxlength="100"></div>
-          <div class="field"><label for="o-email">Main contact's email</label><input id="o-email" name="email" type="email" value="${esc(d.user.email)}" maxlength="200"><p class="hint">For contact only. To let them sign in, use Portal login above.</p></div>
+          <div class="field"><label for="o-email">Main contact's email (not a login)</label><input id="o-email" name="email" type="email" value="${esc(d.user.email)}" maxlength="200"><p class="hint">For contact only. To let them sign in, use Portal login above.</p></div>
           <div class="field"><label for="o-role">Their role</label><input id="o-role" name="role" type="text" value="${esc(d.user.role)}" maxlength="60" placeholder="Owner"></div>
         </div>
         <h3 class="panel-sub">Package <span class="meta">What they pay for. Each service they have gets its own Work page.</span></h3>
         <div class="grid-3">
           <div class="field"><label for="o-pkg">Package name</label><input id="o-pkg" name="pkg" type="text" value="${esc(d.package.name)}" placeholder="Full service" maxlength="80"></div>
-          <div class="field span-2"><label for="o-billing">Billing line</label><input id="o-billing" name="billing" type="text" value="${esc(d.package.billing)}" placeholder="Billed monthly on the 22nd" maxlength="120"></div>
-          <div class="field span-all"><span class="label">Services</span><div class="svc-sum">${SERVICE_ORDER.map((/** @type {string} */ s) => `<span class="chip ${services.includes(s) ? 'good' : 'off'}">${esc(SERVICES[s].label)}${services.includes(s) ? '' : ': not provided'}</span>`).join('')}<button class="btn btn-quiet btn-sm" type="button" data-svc-change>Change services</button></div></div>
+          <div class="field span-2"><label for="o-billing">Billing note they see (for example: Billed monthly on the 22nd)</label><input id="o-billing" name="billing" type="text" value="${esc(d.package.billing)}" placeholder="Billed monthly on the 22nd" maxlength="120"></div>
+          <div class="field span-all"><span class="label">Services</span><div class="svc-sum">${SERVICE_ORDER.map((/** @type {string} */ s) => `<span class="chip ${services.includes(s) ? 'good' : 'off'}">${esc(SERVICES[s].label)}${services.includes(s) ? '' : ': not provided'}</span>`).join('')}<button class="btn btn-quiet btn-sm" type="button" data-svc-change title="${CHANGE_SVC_HINT}">Change services</button></div></div>
         </div>
-        <h3 class="panel-sub" id="billing">Billing <span class="meta">Shown on their Billing page. Type it here until Stripe is connected. Then it fills in by itself.</span></h3>
+        <h3 class="panel-sub" id="billing">Billing <span class="meta">Shown on their Billing page. Type these for now. Later they fill in from our payment system (Stripe).</span></h3>
         <div class="grid-4">
           <div class="field"><label for="o-bstart">Started</label><input id="o-bstart" name="bstart" type="date" value="${esc(billingOf(current).startedAt.slice(0, 10))}"></div>
           <div class="field"><label for="o-brenew">Renews</label><input id="o-brenew" name="brenew" type="date" value="${esc(billingOf(current).renews.slice(0, 10))}"></div>
           <div class="field"><label for="o-bamount">Amount</label><input id="o-bamount" name="bamount" type="text" value="${esc(billingOf(current).amount)}" placeholder="$499 a month" maxlength="40"></div>
           <div class="field"><label for="o-bstatus">Payment status</label><select id="o-bstatus" name="bstatus"><option value="">Not set</option>${Object.entries(SUB_STATUS).map(([k, v]) => `<option value="${k}"${billingOf(current).status === k ? ' selected' : ''}>${v[0]}</option>`).join('')}</select></div>
         </div>
-        <h3 class="panel-sub">Account team and next meeting <span class="meta">Shown on their Help page and Home page.</span></h3>
+        <h3 class="panel-sub" id="sec-meeting">Account team and next meeting <span class="meta">Shown on their Help page and Home page.</span></h3>
         <div class="grid-3">
           <div class="field"><label for="o-team">Team name</label><input id="o-team" name="team" type="text" value="${esc(d.team.name)}" maxlength="80"></div>
           <div class="field span-2"><label for="o-reply">Reply time</label><input id="o-reply" name="reply" type="text" value="${esc(d.team.reply)}" maxlength="120" placeholder="Usually replies within one working day"></div>
@@ -3572,14 +3664,14 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     for (const b of $$('[data-svc-change]', box)) b.addEventListener('click', () => changeServices());
     if (part === 'edit') {
       const pf = /** @type {HTMLFormElement} */ ($('#profile-form', box));
-      track(pf, 'Plan and approvals');
+      track(pf, 'Plan and sign-off');
       pf.addEventListener('submit', async (e) => {
         e.preventDefault();
         const done = busy($('button[type=submit]', pf), 'Saving');
         try {
           await saveProfile(current.id, val(pf, 'tier'), val(pf, 'approval'));
           clean(pf);
-          toast('Plan and approvals saved.');
+          toast('Plan and sign-off saved.');
           route();
         } catch (x) { done(); toast(message(x), true); }
       });
@@ -3642,7 +3734,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const drawPeople = (list) => {
       if (!people) return;
       people.innerHTML = list.length
-        ? `<ul class="item-list">${list.map((p) => `<li><div><p><strong>${esc(p.name || p.email)}</strong>${p.name ? ` <span class="meta">${esc(p.email)}</span>` : ''}</p>${p.since ? `<p class="meta">Can sign in since ${esc(when(p.since))}</p>` : ''}</div><button class="btn btn-quiet btn-sm card-del" type="button" data-login-remove="${esc(p.userId)}" data-login-name="${esc(p.name || p.email)}">Remove</button></li>`).join('')}</ul>`
+        ? `<ul class="item-list">${list.map((p) => `<li><div><p><strong>${esc(p.name || p.email)}</strong>${p.name ? ` <span class="meta">${esc(p.email)}</span>` : ''}</p>${p.since ? `<p class="meta">Can sign in since ${esc(when(p.since))}</p>` : ''}</div><button class="btn btn-quiet btn-sm btn-remove" type="button" data-login-remove="${esc(p.userId)}" data-login-name="${esc(p.name || p.email)}">Remove</button></li>`).join('')}</ul>`
         : '<p class="meta">Nobody can sign in right now. Add a login below.</p>';
     };
     /* The main contact (the name and email in the client's header, their Help page and the Details form) follows the
@@ -3781,11 +3873,13 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     }
   }
 
-  /** @param {any} t */
+  /** The card's one grey line: who is on it, then its Multica link ("Hermes · Open in Multica (MUL-41)"). @param {any} t */
   function syncLine(t) {
-    if (!multicaState || !multicaState.configured) return '';
-    if (t.multica_identifier) return `<a href="${esc(multicaState.appUrl || 'https://app.multica.ai')}/${esc(multicaState.workspace)}/issues/${esc(t.multica_identifier)}" target="_blank" rel="noopener">${esc(t.multica_identifier)} in Multica</a>${t.multica_status && t.multica_status !== t.status ? ` <span class="chip warn">Multica says ${esc(TASK_STATUS_LABEL[t.multica_status] || t.multica_status)}</span>` : ''}`;
-    return `<button class="linkish" type="button" data-send="${esc(t.id)}">Send to Multica</button>`;
+    const who = t.assignee ? `<span title="Who is on it">${esc(t.assignee)}</span>` : '';
+    if (!multicaState || !multicaState.configured) return who;
+    const sep = who ? ' · ' : '';
+    if (t.multica_identifier) return `${who}${sep}<a href="${esc(multicaState.appUrl || 'https://app.multica.ai')}/${esc(multicaState.workspace)}/issues/${esc(t.multica_identifier)}" target="_blank" rel="noopener" title="${MULTICA_HINT}">Open in Multica (${esc(t.multica_identifier)})</a>${t.multica_status && t.multica_status !== t.status ? ` <span class="chip warn">Multica says ${esc(TASK_STATUS_LABEL[t.multica_status] || t.multica_status)}</span>` : ''}`;
+    return `${who}${sep}<button class="linkish" type="button" data-send="${esc(t.id)}" title="${MULTICA_HINT}">Add to Multica</button>`;
   }
 
   /** @param {any} t */
@@ -3795,9 +3889,9 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const open = t.status !== 'done' && t.status !== 'cancelled';
     return `<li class="card${t.status === 'cancelled' ? ' cancelled' : ''}" draggable="true" data-task="${esc(t.id)}" tabindex="0" aria-label="${esc(t.title)}, ${esc(TASK_STATUS_LABEL[t.status])}">
       ${client ? `<p class="card-client">${esc(client)}</p>` : ''}<p class="card-title">${esc(t.title)}</p>
-      <p class="card-meta">${t.kind === 'request' ? '<span class="chip you plain">Client request</span>' : ''}${t.status === 'cancelled' ? '<span class="chip plain">Cancelled</span>' : ''}${t.service ? `<span>${esc(svcLabel(t.service))}</span>` : ''}${t.client_visible === false ? '<span class="chip plain card-vis is-internal" title="The client does not see this card">Internal</span>' : t.service && t.status !== 'cancelled' ? '<span class="chip plain card-vis" title="Shown on the client&#39;s Work page: title, stage and due date">Client sees this</span>' : ''}${t.priority && t.priority !== 'none' ? `<span class="chip ${t.priority === 'urgent' ? 'bad' : t.priority === 'high' ? 'warn' : 'plain'}">${esc(PRIORITIES.find(([k]) => k === t.priority)[1])}</span>` : ''}${d ? `<span class="${d.late && open ? 'late' : ''}">${esc(open && d.late ? d.text : 'due ' + when(t.due))}</span>` : ''}${t.assignee ? `<span>${esc(t.assignee)}</span>` : ''}</p>
+      <p class="card-meta">${t.kind === 'request' ? '<span class="chip you plain">Client request</span>' : ''}${t.status === 'cancelled' ? '<span class="chip plain">Cancelled</span>' : ''}${t.service ? `<span>${esc(svcLabel(t.service))}</span>` : ''}${t.client_visible === false ? '<span class="chip plain card-vis is-internal" title="Only the team sees this card. The client does not.">Team only</span>' : t.service && t.status !== 'cancelled' ? '<span class="chip plain card-vis" title="Shown on the client&#39;s Work page: title, stage and due date">Client can see</span>' : ''}${t.priority && t.priority !== 'none' ? `<span class="chip ${t.priority === 'urgent' ? 'bad' : t.priority === 'high' ? 'warn' : 'plain'}">${esc(PRIORITIES.find(([k]) => k === t.priority)[1])}</span>` : ''}${d ? `<span class="${d.late && open ? 'late' : ''}">${esc(open && d.late ? d.text : 'due ' + when(t.due))}</span>` : ''}</p>
       <p class="card-sync meta">${syncLine(t)}</p>
-      <p class="card-tools"><label class="sr-only" for="st-${esc(t.id)}">Move to</label><select id="st-${esc(t.id)}" data-move="${esc(t.id)}" aria-label="Move this card">${Object.entries(TASK_STATUS_LABEL).map(([k, l]) => `<option value="${k}"${t.status === k ? ' selected' : ''}>${l}</option>`).join('')}</select><button class="btn btn-quiet btn-sm" type="button" data-edit="${esc(t.id)}">Edit</button><button class="btn btn-quiet btn-sm card-del" type="button" data-delete="${esc(t.id)}" aria-label="Delete ${esc(t.title)}">Delete</button></p>
+      <p class="card-tools"><label class="card-move-l" for="st-${esc(t.id)}">Move to</label><select id="st-${esc(t.id)}" data-move="${esc(t.id)}">${Object.entries(TASK_STATUS_LABEL).map(([k, l]) => `<option value="${k}"${t.status === k ? ' selected' : ''}>${l}</option>`).join('')}</select><button class="btn btn-quiet btn-sm" type="button" data-edit="${esc(t.id)}">Edit</button></p>
     </li>`;
   }
 
@@ -3814,14 +3908,17 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     }
     const openCount = tasks().filter((t) => t.status !== 'done' && t.status !== 'cancelled').length;
     const strip = st.pending
-      ? `<p class="board-strip"><span class="chip plain">Checking Multica</span> <span>Cards still save here as normal.</span></p>`
+      ? `<p class="board-strip"><span class="chip plain" title="${MULTICA_HINT}">Checking Multica</span> <span>Cards still save here as normal.</span></p>`
       : st.configured
-      ? `<p class="board-strip"><span class="chip good">Multica connected</span> <span>Workspace <strong>${esc(st.workspace)}</strong>${st.agent ? '. New cards go to your agent' : ''}. Move a card here and it moves in Multica too. ${prefs.autoPull ? 'Changes Hermes makes show up every 90 seconds while this board is open, or' : 'Automatic checks are off in Settings, so'} <button class="linkish" type="button" data-action="board-sync">check Multica now</button>.</span></p>`
-      : `<p class="board-strip"><span class="chip warn">Multica not set up yet</span> <span>Cards are kept here for now. ${st.failed ? esc(st.failed) : 'Once MULTICA_TOKEN and MULTICA_WORKSPACE are in the Supabase secrets, each card also becomes an issue in this client\'s Multica project, and moves stay in step both ways.'}</span></p>`;
+      ? `<div class="board-strip"><span class="chip good" title="${MULTICA_HINT}">Linked to Multica</span> <span>Moves here copy there, and Hermes's moves appear here ${prefs.autoPull ? 'within 90 seconds' : 'when you press Check now (automatic checks are off in Settings)'}. <button class="linkish" type="button" data-action="board-sync">Check now</button></span>
+        <span class="strip-note">${HERMES_HINT} ${MULTICA_HINT} Workspace: ${esc(st.workspace)}${st.agent ? '. New cards go to your agent' : ''}.</span></div>`
+      : `<div class="board-strip"><span class="chip warn" title="${MULTICA_HINT}">Multica not linked</span> <span>Multica isn't linked yet. Cards save here as normal. Ask an owner to link it.</span>
+        <details class="fold-details"><summary>Details</summary><p>${st.failed ? esc(st.failed) : 'Once MULTICA_TOKEN and MULTICA_WORKSPACE are in the Supabase secrets, each card also becomes an issue in this client\'s Multica project, and moves stay in step both ways.'}</p></details></div>`;
     box.innerHTML = `${strip}
-      <div class="toolbar"><span class="meta">${openCount ? plural(openCount, 'open card') : 'No open cards'}. Drag a card to another column, or use its Move list.</span><span class="grow"></span><button class="btn btn-sm" type="button" data-action="reveal" aria-expanded="${part === 'new'}" aria-controls="card-form">${icon('plus')}Add a card</button></div>
+      <div class="toolbar"><span class="meta">${openCount ? plural(openCount, 'open card') : 'No open cards'}. Drag a card to another column, or use its Move to list.</span><span class="grow"></span><button class="btn btn-sm" type="button" data-action="reveal" aria-expanded="${part === 'new'}" aria-controls="card-form">${icon('plus')}Add a card</button></div>
       <form class="panel" id="card-form" novalidate${part === 'new' ? '' : ' hidden'}>
         <div class="panel-head"><h2 id="card-form-h">Add a card</h2><p>One job for this client. Client requests show up here by themselves.</p></div>
+        <p class="hint form-hint">Cards with a service show on their Work page (title, stage, due date). Tick Team only to hide it from them. Details, priority and who is on it always stay with the team.</p>
         <div class="grid-3">
           <div class="field span-2"><label for="c-title">What needs doing</label><input id="c-title" name="title" type="text" maxlength="200" required placeholder="Write the October newsletter"></div>
           <div class="field"><label for="c-status">Column</label><select id="c-status" name="status">${COLUMNS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
@@ -3829,8 +3926,8 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
           <div class="field"><label for="c-service">Service</label><select id="c-service" name="service"><option value="">General</option>${services.map((/** @type {string} */ s) => `<option value="${s}">${esc(SERVICES[s].label)}</option>`).join('')}</select></div>
           <div class="field"><label for="c-due">Due</label><input id="c-due" name="due" type="date"></div>
           <div class="field"><label for="c-priority">Priority</label><select id="c-priority" name="priority">${PRIORITIES.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
-          <div class="field span-all card-vis-field"><label class="check-inline"><input type="checkbox" name="internal" id="c-internal"> Keep internal</label><p class="hint">A card with a service shows on the client's Work page right away: its title, stage and due date. Details, priority and who is on it stay with the team. Tick this to hide the card from the client.</p></div>
-          <div class="field span-all"><label for="c-assignee">Who is on it (optional)</label><input id="c-assignee" name="assignee" type="text" maxlength="60" placeholder="Hermes, Karan"></div>
+          <div class="field span-all card-vis-field"><label class="check-inline"><input type="checkbox" name="internal" id="c-internal"> Team only (hide from client)</label><p class="hint">A card with a service shows on the client's Work page right away. Tick this to hide it from them.</p></div>
+          <div class="field span-all"><label for="c-assignee">Who is on it (optional)</label><input id="c-assignee" name="assignee" type="text" maxlength="60" placeholder="Hermes, Karan"><p class="hint">${HERMES_HINT}</p></div>
         </div>
         <div class="actions"><button class="btn" type="submit">Add the card</button><button class="btn btn-quiet" type="button" data-action="reveal-close">Cancel</button></div>
       </form>
@@ -3869,7 +3966,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       if (send) {
         const t = (current.tasks || []).find((/** @type {any} */ x) => x.id === send.getAttribute('data-send'));
         if (!t) return;
-        const done = busy(/** @type {HTMLButtonElement} */ (send), 'Sending');
+        const done = busy(/** @type {HTMLButtonElement} */ (send), 'Adding');
         try { await mirror(t); } finally { if (!t.multica_identifier) done(); }
         return;
       }
@@ -3903,8 +4000,8 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
         <div class="field"><label for="e-priority-${esc(t.id)}">Priority</label><select id="e-priority-${esc(t.id)}" name="priority">${PRIORITIES.map(([k, l]) => `<option value="${k}"${t.priority === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
         <div class="field"><label for="e-assignee-${esc(t.id)}">Who is on it</label><input id="e-assignee-${esc(t.id)}" name="assignee" type="text" value="${esc(t.assignee || '')}" maxlength="60"></div>
       </div>
-      <div class="field card-vis-field"><label class="check-inline"><input type="checkbox" name="internal"${t.client_visible === false ? ' checked' : ''}> Keep internal</label><p class="hint">If it has a service and this is off, the client sees its title, stage and due date on their Work page.</p></div>
-      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-danger btn-sm" type="button" data-remove-card style="margin-left:auto">Delete</button></div>
+      <div class="field card-vis-field"><label class="check-inline"><input type="checkbox" name="internal"${t.client_visible === false ? ' checked' : ''}> Team only (hide from client)</label><p class="hint">If it has a service and this is off, the client sees its title, stage and due date on their Work page.</p></div>
+      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-quiet btn-sm btn-remove" type="button" data-remove-card style="margin-left:auto">Delete card</button></div>
       ${t.multica_issue_id ? `<div class="card-note"><div class="field"><label for="e-note-${esc(t.id)}">Note on ${esc(t.multica_identifier || 'the issue')} in Multica</label><textarea id="e-note-${esc(t.id)}" name="note" maxlength="4000" placeholder="Hermes and the team see this in the issue's thread."></textarea></div><button class="btn btn-quiet btn-sm" type="button" data-note>Add the note</button></div>` : ''}
     </form>`;
     const f = /** @type {HTMLFormElement} */ ($('form', li));
@@ -3959,10 +4056,10 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const cards = (all.tasks || []).filter((/** @type {any} */ k) => names[k.tenant_id] && (!allBoardState.client || k.tenant_id === allBoardState.client))
       .sort((/** @type {any} */ a, /** @type {any} */ b) => String(a.due || '9999').localeCompare(String(b.due || '9999')) || String(a.created_at).localeCompare(String(b.created_at)));
     const open = cards.filter((/** @type {any} */ k) => k.status !== 'done' && k.status !== 'cancelled').length;
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">All work</h1><p>Every client's cards on one board. Move them the same way as on a client's own board.</p></div>
-      <div class="btns"><button class="btn btn-quiet btn-sm" type="button" data-action="refresh">${icon('refresh')}Refresh</button></div></div>
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">All work</h1><p>Every client's team cards on one board. Move them the same way as on a client's Team cards tab.</p></div>
+      <div class="btns"><button class="btn btn-quiet btn-sm" type="button" data-action="refresh">${icon('refresh')}Reload</button></div></div>
       <div class="toolbar"><label class="sr-only" for="ab-client">Show</label><select id="ab-client" style="width:auto;min-width:220px"><option value="">Every client</option>${active.map((/** @type {any} */ t) => `<option value="${esc(t.id)}"${allBoardState.client === t.id ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select>
-        <span class="meta">${open ? plural(open, 'open card') : 'No open cards'}. To add a card, open the client's own board.</span></div>
+        <span class="meta">${open ? plural(open, 'open card') : 'No open cards'}. To add a card, open ${allBoardState.client ? `<a href="#/client/${esc(allBoardState.client)}/board">the client's own board</a>` : 'a client, then its Team cards tab'}.</span></div>
       <div class="board" id="board">${COLUMNS.map(([k, l]) => {
         const items = cards.filter((/** @type {any} */ t) => t.status === k || (k === 'done' && t.status === 'cancelled'));
         return `<section class="col" data-col="${k}" aria-label="${l}"><h2 class="col-h">${l} <span class="meta">${items.length}</span></h2><ul class="cards">${items.map((/** @type {any} */ t) => card(t, names[t.tenant_id])).join('')}</ul></section>`;
@@ -3981,7 +4078,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
   /** Deletes a card after asking. Returns whether it was deleted. @param {any} t */
   async function deleteCard(t) {
     if (!t) return false;
-    if (!await ask(`Delete "${t.title}"?`, t.kind === 'request' ? 'Only the card goes. The request stays in the Inbox, and the client keeps seeing its last status.' : 'The card is gone for good. If it has a Multica issue, that issue stays as it is.', 'Delete')) return false;
+    if (!await ask(`Delete "${t.title}"?`, t.kind === 'request' ? 'Only the card goes. The request stays on the Messages tab, and the client keeps seeing its last status.' : 'The card is gone for good. If it has a Multica issue, that issue stays as it is.', 'Delete')) return false;
     try {
       const client = await db();
       check(await client.from('tasks').delete().eq('id', t.id).select('id'));
@@ -4075,7 +4172,10 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
         if (t) { t.status = c.to; t.multica_status = c.to; requestFollows(t); }
       }
     }
-    if (r.changed && r.changed.length) toast(`${plural(r.changed.length, 'card')} moved in Multica: ${r.changed.map((/** @type {any} */ c) => `${c.identifier || 'card'} to ${TASK_STATUS_LABEL[c.to] || c.to}`).join(', ')}.`);
+    if (r.changed && r.changed.length) {
+      const titleOf = (/** @type {any} */ c) => { const t = (all.tasks || []).find((/** @type {any} */ x) => x.id === c.taskId); return t ? t.title : c.identifier || 'a card'; };
+      toast(r.changed.map((/** @type {any} */ c) => `Multica moved “${titleOf(c)}” to ${TASK_STATUS_LABEL[c.to] || c.to}.`).join(' '));
+    }
     else if (loud) toast(`Checked ${plural(r.checked || 0, 'card')}: nothing moved in Multica.`);
     return r;
   }
@@ -4099,7 +4199,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
 
   const HISTORY_WORDS = {
     'tenant.created': () => 'added the client',
-    'tenant.updated': () => 'saved changes to the record',
+    'tenant.updated': () => 'saved client info',
     'requests.created': () => 'sent a change request',
     'messages.created': () => 'sent a message',
     'decisions.created': () => 'answered an approval',
@@ -4109,7 +4209,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
 
   /** @param {HTMLElement} box */
   async function history(box) {
-    box.innerHTML = `<section class="panel" aria-labelledby="hist-h"><div class="panel-head"><h2 id="hist-h">History</h2><p>Who did what for this client, newest first. The database writes this list, so nothing can be skipped or changed.</p></div><div id="hist">${skeleton(2)}</div></section>`;
+    box.innerHTML = `<section class="panel" aria-labelledby="hist-h"><div class="panel-head"><h2 id="hist-h">History</h2><p>Who did what for this client, newest first. Saved automatically. Nobody can edit or delete it.</p></div><div id="hist">${skeleton(2)}</div></section>`;
     try {
       const client = await db();
       const [a, s] = await Promise.all([
@@ -4154,7 +4254,8 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     if (!res.ok) { const e = new Error(body.message || `The server answered ${res.status}.`); /** @type {any} */ (e).code = body.error || res.status; throw e; }
     return body;
   }
-  const ROLE_LABEL = { super_admin: 'Super admin', member: 'Member' };
+  // Display only: the stored roles stay super_admin and member.
+  const ROLE_LABEL = { super_admin: 'Owner (can manage the team)', member: 'Team member' };
 
   /** @param {any[]} members @param {string} myId */
   function teamRows(members, myId) {
@@ -4164,7 +4265,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
         <span class="team-who"><span class="pick-t">${esc(m.name || m.email)}${m.userId === myId ? ' <span class="meta">(you)</span>' : ''}</span><span class="pick-d">${esc(m.email)}</span></span>
         ${admin && m.userId !== myId
           ? `<span class="team-actions"><span class="seg role-seg" role="group" aria-label="Role for ${esc(m.name || m.email)}">${Object.entries(ROLE_LABEL).map(([k, l]) => `<button type="button" data-team-role="${esc(m.userId)}" data-val="${k}" aria-pressed="${m.role === k}">${l}</button>`).join('')}</span>
-             <button class="btn btn-danger btn-sm" type="button" data-team-remove="${esc(m.userId)}" data-name="${esc(m.name || m.email)}">Remove</button></span>`
+             <button class="btn btn-quiet btn-sm btn-remove" type="button" data-team-remove="${esc(m.userId)}" data-name="${esc(m.name || m.email)}">Remove</button></span>`
           : `<span class="chip ${m.role === 'super_admin' ? 'you' : 'plain'}">${ROLE_LABEL[m.role] || m.role}</span>`}
       </li>`).join('')}</ul>`;
   }
@@ -4172,14 +4273,14 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
   /** Fills the Team panel and wires its controls. @param {HTMLElement} box */
   async function teamPanel(box) {
     const admin = me.role === 'super_admin';
-    box.innerHTML = `<div class="panel-head"><h2 id="s-team">Team</h2><p>${admin ? 'Who can use this console. Changes go to Clerk (our sign-in service) and work within a minute.' : 'Who can use this console. Only a super admin can change it.'}</p></div>
+    box.innerHTML = `<div class="panel-head"><h2 id="s-team">Team</h2><p>${admin ? 'Who can use this console. Changes go to our sign-in service and work within a minute.' : 'Who can use this console. Only an owner can change it.'}</p></div>
       <div id="team-list">${skeleton(1)}</div>
       ${admin ? `<form class="team-add" id="team-add" novalidate>
-        <h3 class="panel-sub">Add a teammate <span class="meta">No password. Clerk emails them a code each time they sign in.</span></h3>
+        <h3 class="panel-sub">Add a teammate <span class="meta">No password. We email them a 6-digit code each time they sign in.</span></h3>
         <div class="grid-3">
           <div class="field"><label for="t-first">First name</label><input id="t-first" name="first" type="text" maxlength="100" autocomplete="off"></div>
           <div class="field"><label for="t-email">Email</label><input id="t-email" name="email" type="email" maxlength="200" autocomplete="off" required></div>
-          <div class="field"><label for="t-role">Role</label><select id="t-role" name="role"><option value="member">Member</option><option value="super_admin">Super admin</option></select><p class="hint">Members use the console. Super admins also manage the team.</p></div>
+          <div class="field"><label for="t-role">Role</label><select id="t-role" name="role"><option value="member">${ROLE_LABEL.member}</option><option value="super_admin">${ROLE_LABEL.super_admin}</option></select><p class="hint">Team members use the console. Owners also manage the team.</p></div>
         </div>
         <div class="actions"><button class="btn" type="submit">Add to the team</button></div>
       </form>` : ''}`;
@@ -4253,7 +4354,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Settings</h1><p>How the console looks and works for you. Changes apply at once. They save to your account, so they follow you to any computer.</p></div></div>
       <p class="meta set-note" id="set-note" role="status">${note ? esc(note) : ''}</p>
       <section class="panel" aria-labelledby="s-look"><div class="panel-head"><h2 id="s-look">Appearance</h2><p>The same choices as the client dashboard.</p></div>
-        <div class="pick-grid" role="group" aria-label="Background">${pick('scene', 'scenes', 'Scenes', 'A sky that changes with each page', 'scenes')}${pick('scene', 'static', 'Static', 'The dot grid from our website', 'static')}</div>
+        <div class="pick-grid" role="group" aria-label="Background">${pick('scene', 'scenes', 'Moving sky', 'A sky that changes with each page', 'scenes')}${pick('scene', 'static', 'Dotted grid', 'The dot grid from our website', 'static')}</div>
         <div class="pick-grid" role="group" aria-label="Theme">${pick('theme', 'light', 'Light', 'The standard look', 'light')}${pick('theme', 'dark', 'Dark', 'Easier on the eyes late at night', 'dark')}</div>
       </section>
       <section class="panel" aria-labelledby="s-read"><div class="panel-head"><h2 id="s-read">Reading and spacing</h2></div>
@@ -4263,19 +4364,20 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       <section class="panel" aria-labelledby="s-start"><div class="panel-head"><h2 id="s-start">Opening page</h2><p>The page you see first.</p></div>
         <div class="seg" role="group" aria-label="Opening page">${[['queue', 'Needs you'], ['board', 'All work'], ['clients', 'Clients']].map(([k, l]) => `<button type="button" data-pref="start" data-val="${k}" aria-pressed="${prefs.start === k}">${l}</button>`).join('')}</div>
       </section>
-      <section class="panel" aria-labelledby="s-multica"><div class="panel-head"><h2 id="s-multica">Task boards and Multica</h2><p>${st.pending ? 'Checking the connection to Multica.' : st.configured ? `Connected to the <strong>${esc(st.workspace)}</strong> workspace.` : 'Multica is not set up on the server yet. Cards are kept here until it is.'}</p></div>
-        <label class="switch-row"><input type="checkbox" role="switch" data-pref-toggle="autoPull"${prefs.autoPull ? ' checked' : ''}><span><span class="pick-t">Check Multica automatically</span><span class="pick-d">While a board is open: when it opens, every 90 seconds, and when you come back to the tab. When off, it checks only when you press "check Multica now".</span></span></label>
+      <section class="panel" aria-labelledby="s-multica"><div class="panel-head"><h2 id="s-multica">Task boards and Multica</h2><p>${MULTICA_HINT} ${st.pending ? 'Checking the connection to Multica.' : st.configured ? `Connected to the <strong>${esc(st.workspace)}</strong> workspace.` : 'Multica isn\'t linked yet. Cards save here as normal until it is.'}</p></div>
+        <label class="switch-row"><input type="checkbox" role="switch" data-pref-toggle="autoPull"${prefs.autoPull ? ' checked' : ''}><span><span class="pick-t">Keep boards in step with Multica</span><span class="pick-d">Checks every 90 seconds while a board is open, when it opens, and when you come back to the tab. Off: press Check now yourself.</span></span></label>
       </section>
       <section class="panel" aria-labelledby="s-me"><div class="panel-head"><h2 id="s-me">Your account</h2></div>
-        <dl class="facts"><dt>Name</dt><dd>${esc(me.name)}</dd><dt>Email</dt><dd>${esc(me.email || 'Not shown')}</dd><dt>Role</dt><dd>${me.role === 'super_admin' ? 'Super admin: uses the console and manages the team' : 'Member: uses the console'}</dd><dt>Sign-in</dt><dd>With a code Clerk emails you. You get in because you are on the Domin8te team in Clerk.</dd></dl>
+        <dl class="facts"><dt>Name</dt><dd>${esc(me.name)}</dd><dt>Email</dt><dd>${esc(me.email || 'Not shown')}</dd><dt>Role</dt><dd>${me.role === 'super_admin' ? 'Owner: uses the console and manages the team' : 'Team member: uses the console'}</dd><dt>Sign-in</dt><dd>With a 6-digit code we email you, no password. You get in because you are on the Domin8te team in our sign-in service.</dd></dl>
         <div class="actions"><button class="btn btn-quiet" type="button" data-action="sign-out">Sign out</button></div>
       </section>
       <section class="panel" aria-labelledby="s-team" id="team-box"></section>
       ${me.role === 'super_admin' ? '<section class="panel" aria-labelledby="s-gates" id="gates-box"></section>' : ''}
-      <section class="panel" aria-labelledby="s-keys"><div class="panel-head"><h2 id="s-keys">Keyboard shortcuts</h2></div>
-        <dl class="facts keys"><dt><kbd>Ctrl</kbd> <kbd>K</kbd> or <kbd>/</kbd></dt><dd>Jump to a client, page or tab</dd><dt><kbd>Alt</kbd> <kbd>1</kbd> to <kbd>8</kbd></dt><dd>Switch tabs on a client's page</dd><dt><kbd>Enter</kbd> on a card</dt><dd>Edit the card</dd><dt><kbd>Esc</kbd></dt><dd>Close the search or a dialog</dd></dl>
+      <section class="panel" aria-labelledby="s-keys" id="sec-keys"><div class="panel-head"><h2 id="s-keys">Keyboard shortcuts</h2></div>
+        <dl class="facts keys"><dt><kbd>Ctrl</kbd> <kbd>K</kbd> or <kbd>/</kbd></dt><dd>Search any client, page or tab, and jump there</dd><dt><kbd>Alt</kbd> <kbd>1</kbd> to <kbd>8</kbd></dt><dd>Switch tabs on a client's page</dd><dt><kbd>Enter</kbd> on a card</dt><dd>Edit the card</dd><dt><kbd>Esc</kbd></dt><dd>Close the search or a dialog</dd></dl>
       </section>`;
     window.scrollTo(0, y);
+    if (jumpAfter) { const to = document.getElementById(jumpAfter); jumpAfter = ''; if (to) setTimeout(() => to.scrollIntoView({ block: 'start' }), 0); }
     teamPanel(/** @type {HTMLElement} */ ($('#team-box')));
     if ($('#gates-box')) gatesPanel(/** @type {HTMLElement} */ ($('#gates-box')));
     main.onclick = async (e) => {
@@ -4311,13 +4413,14 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
   /** @param {string} id */
   const profileOf = (id) => (all && all.profiles && all.profiles[id]) || {};
   /** @param {string} [tier] */
-  const tierChip = (tier) => (tier && TIERS[tier] ? `<span class="tier tier-${tier}" title="${esc(TIERS[tier][1])}">${TIERS[tier][0]}</span>` : '');
+  const TIER_HINT = 'Gold, Silver or Bronze: our price tier. The client never sees it.';
+  const tierChip = (tier) => (tier && TIERS[tier] ? `<span class="tier tier-${tier}" title="${esc(TIERS[tier][1])}. ${TIER_HINT}">${TIERS[tier][0]}</span>` : '');
   /** @param {string} [level] @param {boolean} [long] */
-  const approvalChip = (level, long) => (level && APPROVAL_LEVELS[level] ? `<span class="chip ${APPROVAL_LEVELS[level][3]}" title="${esc(APPROVAL_LEVELS[level][2])}">${APPROVAL_LEVELS[level][0]}${long ? ': ' + esc(APPROVAL_LEVELS[level][1].toLowerCase()) : ''}</span>` : '');
+  const approvalChip = (level, long) => (level && APPROVAL_LEVELS[level] ? `<span class="chip ${APPROVAL_LEVELS[level][3]}" title="Sign-off level: how often we ask them. ${esc(APPROVAL_LEVELS[level][2])}">${APPROVAL_LEVELS[level][0]}${long ? ': ' + esc(APPROVAL_LEVELS[level][1].toLowerCase()) : ''}</span>` : '');
   /** Two rows of choice cards: the plan tier and the approval level. @param {any} p */
   function profilePickers(p) {
-    return `<fieldset class="pick-set"><legend>Plan</legend><div class="pick-grid three">${Object.entries(TIERS).map(([k, v]) => `<label class="pick"><input type="radio" name="tier" value="${k}"${p.tier === k ? ' checked' : ''}><span class="swatch tier-swatch tier-${k}" aria-hidden="true"></span><span><span class="pick-t">${v[0]}</span><span class="pick-d">${esc(v[1])}</span></span></label>`).join('')}</div></fieldset>
-      <fieldset class="pick-set"><legend>Approvals they want</legend><div class="pick-grid three">${Object.entries(APPROVAL_LEVELS).map(([k, v]) => `<label class="pick"><input type="radio" name="approval" value="${k}"${p.approval_level === k ? ' checked' : ''}><span class="swatch appr-swatch appr-${k}" aria-hidden="true"></span><span><span class="pick-t">${v[0]}: ${esc(v[1].toLowerCase())}</span><span class="pick-d">${esc(v[2])}</span></span></label>`).join('')}</div></fieldset>`;
+    return `<fieldset class="pick-set"><legend>Plan</legend><p class="hint legend-hint">Our price tier for this client. The client never sees it.</p><div class="pick-grid three">${Object.entries(TIERS).map(([k, v]) => `<label class="pick"><input type="radio" name="tier" value="${k}"${p.tier === k ? ' checked' : ''}><span class="swatch tier-swatch tier-${k}" aria-hidden="true"></span><span><span class="pick-t">${v[0]}</span><span class="pick-d">${esc(v[1])}</span></span></label>`).join('')}</div></fieldset>
+      <fieldset class="pick-set"><legend>How much they want to sign off</legend><p class="hint legend-hint">Their sign-off level: how often we ask them before work goes out.</p><div class="pick-grid three">${Object.entries(APPROVAL_LEVELS).map(([k, v]) => `<label class="pick"><input type="radio" name="approval" value="${k}"${p.approval_level === k ? ' checked' : ''}><span class="swatch appr-swatch appr-${k}" aria-hidden="true"></span><span><span class="pick-t">${v[0]}: ${esc(v[1].toLowerCase())}</span><span class="pick-d">${esc(v[2])}</span></span></label>`).join('')}</div></fieldset>`;
   }
   /** Saves the tier and approval level for one client. @param {string} id @param {string} tier @param {string} level */
   async function saveProfile(id, tier, level) {
@@ -4330,6 +4433,9 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
   /** The Edit tab: the client's details, login, plan and approvals, on their own page. @param {HTMLElement} box @param {string} part @param {any} got */
   function editTab(box, part, got) {
     overview(box, 'edit', got);
+    // #/client/<id>/edit/<section> opens the tab at that section (billing, meeting, login, plan).
+    const to = ({ billing: 'billing', meeting: 'sec-meeting', login: 'sec-login', plan: 'sec-plan' })[/** @type {'billing'} */ (part)];
+    if (to) setTimeout(() => { const el = document.getElementById(to); if (el) el.scrollIntoView({ block: 'start' }); }, 0);
   }
 
   /* ---- Billing: every client's plan, start date and renewal ---------------------------------------------- */
@@ -4361,25 +4467,25 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     if (billingState.filter === 'late') shown = late;
     if (billingState.filter === 'unset') shown = unset;
     shown = shown.slice().sort((x, y) => String(x.b.renews || '9999').localeCompare(String(y.b.renews || '9999')) || x.t.name.localeCompare(y.t.name));
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Billing</h1><p>Every client's plan, when they started and when they renew. Next renewal first.</p></div></div>
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Billing</h1><p>Every client's package, when they started and when they renew. Next renewal first.</p></div></div>
       <p class="summary"><span><b>${soon.length}</b> renew${soon.length === 1 ? 's' : ''} in the next 7 days</span><span><b>${late.length}</b> past due</span><span><b>${unset.length}</b> without dates</span></p>
       <div class="toolbar"><div class="seg" role="group" aria-label="Show">${[['all', 'All'], ['soon', 'Renewing this week'], ['late', 'Past due'], ['unset', 'No dates yet']].map(([k, l]) => `<button type="button" data-bfilter="${k}" aria-pressed="${billingState.filter === k}">${l}</button>`).join('')}</div>
-        <span class="meta">Until Stripe is connected, type the dates on each client's Edit tab, under Billing.</span></div>
-      ${shown.length ? `<div class="table-wrap"><table class="grid"><thead><tr><th scope="col">Client</th><th scope="col">Plan</th><th scope="col">Started</th><th scope="col">Renews</th><th scope="col">Status</th></tr></thead><tbody>
+        <span class="meta">To change dates, open the client, then Logins and details, then Billing. Until our payment system (Stripe) is connected, the dates are typed there.</span></div>
+      ${shown.length ? `<div class="table-wrap"><table class="grid"><thead><tr><th scope="col">Client</th><th scope="col">Package</th><th scope="col">Started</th><th scope="col">Renews</th><th scope="col">Status</th></tr></thead><tbody>
         ${shown.map(({ t, b }) => {
           const d = b.renews ? due(b.renews) : null;
           const st = SUB_STATUS[b.status];
           const renewText = !d ? '<span class="none">Not set</span>'
             : d.days < 0 ? `${esc(when(b.renews))}<span class="sub late-text">${esc(d.text)}</span>`
             : `${esc(when(b.renews))}<span class="sub">${d.days === 0 ? 'today' : d.days === 1 ? 'tomorrow' : `in ${d.days} days`}</span>`;
-          return `<tr data-href="#/client/${esc(t.id)}/overview">
-            <td><a class="row-link" href="#/client/${esc(t.id)}/overview">${esc(t.name)}</a>${t.status === 'paused' ? '<span class="sub">Client paused</span>' : ''}</td>
+          return `<tr data-href="#/client/${esc(t.id)}/edit/billing">
+            <td><a class="row-link" href="#/client/${esc(t.id)}/edit/billing" title="Open their billing dates">${esc(t.name)}</a>${profileOf(t.id).tier ? `<span class="row-chips">${tierChip(profileOf(t.id).tier)}</span>` : ''}${t.status === 'paused' ? `<span class="sub" title="${PAUSED_HINT}">Client paused</span>` : ''}</td>
             <td>${b.plan ? esc(b.plan) : '<span class="none">Not set</span>'}${b.amount ? `<span class="sub">${esc(b.amount)}</span>` : ''}</td>
             <td class="when">${b.startedAt ? esc(when(b.startedAt)) : '<span class="none">Not set</span>'}</td>
             <td class="when">${renewText}</td>
             <td>${st ? `<span class="chip ${st[1]}">${st[0]}</span>` : '<span class="none">Not set</span>'}${b.status === 'past_due' && b.grace ? `<span class="sub">Services pause after ${esc(when(b.grace))}</span>` : ''}</td></tr>`;
         }).join('')}</tbody></table></div>`
-        : `<div class="empty"><p><strong>${billingState.filter === 'all' ? 'No clients yet.' : 'Nothing here.'}</strong></p><p>${billingState.filter === 'all' ? 'Add a client, then type their plan and dates on their Edit tab.' : 'Try another filter.'}</p></div>`}`;
+        : `<div class="empty"><p><strong>${billingState.filter === 'all' ? 'No clients yet.' : 'Nothing here.'}</strong></p><p>${billingState.filter === 'all' ? 'Add a client, then type their package and dates on their Logins and details tab.' : 'Try another filter.'}</p></div>`}`;
     main.onclick = (e) => {
       const target = /** @type {HTMLElement} */ (e.target);
       const f = target.closest('[data-bfilter]');
@@ -4399,8 +4505,8 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
   /** @param {any} m */
   const msRow = (m) => `<li class="row ms">
       <input type="text" name="ms-title" value="${esc(m.title)}" aria-label="Step" placeholder="What gets done" maxlength="160">
-      <input type="date" name="ms-date" value="${esc(m.date)}" aria-label="Date">
-      <select name="ms-state" aria-label="Where it is">${STEP_STATES.map(([v, l]) => `<option value="${v}"${m.state === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
+      <span class="ms-date"><input type="date" name="ms-date" value="${esc(m.date)}" aria-label="Date"><span class="date-say" aria-hidden="true">${esc(longDate(m.date))}</span></span>
+      <select name="ms-state" aria-label="Status">${STEP_STATES.map(([v, l]) => `<option value="${v}"${m.state === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
       <button class="icon-btn" type="button" data-remove aria-label="Remove this step">${icon('x')}</button></li>`;
 
   /** @param {HTMLElement} box @param {string} part */
@@ -4408,36 +4514,46 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const d = current.doc;
     const services = (d.package.services || []).filter((/** @type {string} */ s) => SERVICES[s]);
     if (!services.length) {
-      box.innerHTML = `<div class="empty"><p><strong>No services in this client's package.</strong></p><p>Use Change services on the Overview tab to give them one.</p><a class="btn" href="#/client/${esc(current.id)}/overview">Go to Overview</a></div>`;
+      box.innerHTML = `<div class="empty"><p><strong>No services in this client's package.</strong></p><p>Press Change services to give them one.</p><button class="btn" type="button" data-svc-change title="${CHANGE_SVC_HINT}">Change services</button></div>`;
+      for (const b of $$('[data-svc-change]', box)) b.addEventListener('click', () => changeServices());
       return;
     }
     const s = services.includes(part) ? part : services[0];
     const w = d.services[s] || blankService();
     const next = w.next || {};
     const exp = w.expected || {};
-    const stOf = (/** @type {string} */ k) => (STATUS[(d.services[k] || {}).status] || STATUS.planned).label;
+    const stOf = (/** @type {string} */ k) => teamStatus((d.services[k] || {}).status);
     // Old "Completed recently" lines join the steps as done ones, unless a step already says the same.
     const titles = new Set((w.milestones || []).map((/** @type {any} */ m) => String(m.title).trim().toLowerCase()));
     const rows = [...(w.milestones || []), ...(w.completed || []).filter((/** @type {any} */ c) => !titles.has(String(c.text).trim().toLowerCase())).map((/** @type {any} */ c) => ({ title: c.text, date: c.date, state: 'done' }))];
     const cards = (current.tasks || []).filter((/** @type {any} */ t) => t.service === s && t.status !== 'cancelled' && t.client_visible !== false).length;
-    box.innerHTML = `<div class="toolbar"><nav class="seg" aria-label="Service">${services.map((/** @type {string} */ k) => `<a href="#/client/${esc(current.id)}/work/${k}"${k === s ? ' aria-current="page"' : ''} title="${esc(stOf(k))}">${esc(SERVICES[k].label)}</a>`).join('')}</nav><span class="meta">One service at a time. Each is saved on its own.</span></div>
+    box.innerHTML = `<div class="toolbar"><nav class="seg" aria-label="Service">${services.map((/** @type {string} */ k) => `<a href="#/client/${esc(current.id)}/work/${k}"${k === s ? ' aria-current="page"' : ''} title="${esc(stOf(k))}">${esc(SERVICES[k].label)}</a>`).join('')}</nav><span class="meta">Pick a service. Press Save before you switch.</span></div>
       <form class="panel" data-svc="${s}" novalidate>
         <div class="panel-head"><h2>${esc(SERVICES[s].label)}</h2><p>What the client reads on their Work page, in plain words.</p></div>
         <div class="grid-3">
-          <div class="field"><label for="w-status">How is it going?</label><select id="w-status" name="status">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}"${w.status === k ? ' selected' : ''}>${esc(/** @type {any} */ (v).label)}</option>`).join('')}</select></div>
+          <div class="field"><label for="w-status">Status they see</label><select id="w-status" name="status">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}"${w.status === k ? ' selected' : ''}>${esc(k === 'waiting' ? `Waiting on client (they see: ${/** @type {any} */ (v).label})` : /** @type {any} */ (v).label)}</option>`).join('')}</select></div>
           <div class="field span-2"><label for="w-now">What are we doing right now?</label><input id="w-now" type="text" name="now" value="${esc(w.now)}" placeholder="Testing the booking button on phones" maxlength="200"></div>
           <div class="field span-all"><label for="w-next">What happens next?</label><input id="w-next" type="text" name="nextText" value="${esc(next.text)}" placeholder="Confirm your autumn opening hours" maxlength="200"></div>
           <div class="field"><label for="w-who">Who does it?</label><select id="w-who" name="who"><option value="domin8te"${next.who !== 'client' ? ' selected' : ''}>Us</option><option value="client"${next.who === 'client' ? ' selected' : ''}>The client</option></select></div>
-          <div class="field"><label for="w-expdate">By when? (optional)</label><input id="w-expdate" type="date" name="expDate" value="${esc(exp.date)}"></div>
+          <div class="field"><label for="w-expdate">By when? (optional)</label><input id="w-expdate" type="date" name="expDate" value="${esc(exp.date)}"><p class="hint date-say" aria-hidden="true">${esc(longDate(exp.date))}</p></div>
           <div class="field span-all"><label for="w-note">A note for them (optional)</label><input id="w-note" type="text" name="note" value="${esc(w.note)}" maxlength="240" placeholder="Instagram posts are paused until Instagram is reconnected."></div>
         </div>
-        <div class="sub-head"><div><h3>Steps</h3><p>${cards ? 'This service has cards on its board, so their page shows those cards as its steps. The steps below show again once it has none.' : 'The list they see. Only steps with a name and a date are kept.'}</p></div><button class="btn btn-quiet btn-sm" type="button" data-add="ms">${icon('plus')}Add a step</button></div>
-        <div class="rows-head ms" aria-hidden="true"><span>Step</span><span>Date</span><span>Where it is</span><span></span></div>
-        <ol class="rows" data-list="ms">${rows.map(msRow).join('')}</ol>
+        <div class="sub-head"><div><h3>Steps</h3><p>${cards ? 'Only steps with a name and a date are kept.' : 'The list they see. Only steps with a name and a date are kept.'}</p></div><button class="btn btn-quiet btn-sm" type="button" data-add="ms">${icon('plus')}Add a step</button></div>
+        ${cards ? `<p class="board-strip steps-off"><span class="chip warn">Hidden from the client right now</span> <span>Their Work page shows your ${esc(SERVICES[s].label)} cards instead. These steps come back when there are no ${esc(SERVICES[s].label)} cards.</span></p>` : ''}
+        <div class="steps-wrap${cards ? ' is-muted' : ''}">
+        <div class="rows-head ms" aria-hidden="true"><span>Step</span><span>Date</span><span>Status</span><span></span></div>
+        <ol class="rows" data-list="ms">${rows.map(msRow).join('')}</ol></div>
         <div class="actions"><button class="btn" type="submit">Save ${esc(SERVICES[s].label.toLowerCase())}</button></div>
       </form>`;
     const f = /** @type {HTMLFormElement} */ ($('form[data-svc]', box));
     track(f, SERVICES[s].label);
+    // Each date also reads in words ("3 Sept 2026"), as dates do elsewhere in the console.
+    f.addEventListener('input', (e) => {
+      const el = /** @type {HTMLInputElement} */ (e.target);
+      if (!el || el.type !== 'date') return;
+      const say = el.parentElement && $('.date-say', el.parentElement);
+      if (say) say.textContent = longDate(el.value);
+    });
     box.addEventListener('click', (e) => {
       const t = /** @type {HTMLElement} */ (e.target);
       if (t.closest('[data-add]')) {
@@ -4493,14 +4609,14 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const services = (d.package.services || []).filter((/** @type {string} */ s) => SERVICES[s]);
     const open = list.filter((x) => !x.ans).length;
     const listHtml = `
-      ${level ? `<p class="board-strip">${approvalChip(level, true)} <span>${esc(APPROVAL_LEVELS[level][2])}</span></p>` : ''}
+      ${level ? `<p class="board-strip"><span class="meta">Sign-off level</span> ${approvalChip(level, true)} <span>${esc(APPROVAL_LEVELS[level][2])}</span></p>` : `<p class="board-strip"><span>No sign-off level set. Choose one on <a href="#/client/${esc(current.id)}/edit/plan">Logins and details</a>.</span></p>`}
       <section class="panel" aria-labelledby="apv-list-h">
-        <div class="panel-head"><h2 id="apv-list-h">Approvals</h2><p>${open ? `${open} waiting on them` : list.length ? 'All answered' : 'None yet'}</p>
+        <div class="panel-head"><h2 id="apv-list-h">Approvals</h2><p>${open ? `${open} waiting on client` : list.length ? 'All answered' : 'None yet'}</p>
           <div class="btns"><button class="btn btn-sm" type="button" data-action="reveal" aria-expanded="${part === 'new'}" aria-controls="apv-form">${icon('plus')}Ask for an approval</button></div></div>
         ${list.length ? `<ul class="items">${list.map(({ a, ans, d: dd }) => `<li class="item-card${!ans && dd && dd.late ? ' late' : ''}"><div class="item-top"><span class="item-title">${esc(a.title)}</span>
-            <span class="r">${ans ? `<span class="chip ${ans.decision === 'approved' ? 'good' : 'you'}">${ans.decision === 'approved' ? 'Approved' : 'Changes requested'}</span>` : `<span class="chip ${dd && dd.late ? 'bad' : 'them'}">Waiting on them${dd ? `, ${esc(dd.text)}` : ''}</span>`}
-            <button class="btn btn-danger btn-sm" type="button" data-remove-apv="${esc(a.id)}">Remove</button></span></div>
-            <p class="meta">${esc(svcLabel(a.service))}${a.due ? ` · answer needed by ${esc(when(a.due))}` : ''}${a.preview ? ` · shows ${a.preview.type === 'list' ? 'a list' : a.preview.type === 'link' ? 'a link' : 'a preview'}` : ''}</p>
+            <span class="r">${ans ? `<span class="chip ${ans.decision === 'approved' ? 'good' : 'you'}">${ans.decision === 'approved' ? 'Approved' : 'Changes requested'}</span>` : `<span class="chip ${dd && dd.late ? 'bad' : 'them'}">Waiting on client${dd ? `, ${esc(dd.text)}` : ''}</span>`}
+            <button class="btn btn-quiet btn-sm btn-remove" type="button" data-remove-apv="${esc(a.id)}">Remove</button></span></div>
+            <p class="meta">${esc(svcLabel(a.service))}${a.due ? ` · answer needed by ${esc(when(a.due))}` : ''}${a.preview ? ` · ${a.preview.type === 'list' ? 'includes a list to check' : a.preview.type === 'link' ? 'includes a link to the draft' : 'includes a draft to look at'}` : ''}</p>
             ${ans ? `<p class="meta">${esc(ans.by_name || 'They')} answered ${esc(when(ans.at))}</p>${ans.comment ? `<blockquote>${esc(ans.comment)}</blockquote>` : ''}` : ''}</li>`).join('')}</ul>`
           : `<div class="empty"><p><strong>Nothing has been sent for approval.</strong></p><p>An approval sits at the top of their Home page until they answer it.</p></div>`}
       </section>`;
@@ -4518,12 +4634,13 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
           <div class="field" data-kind="link" hidden><label for="a-url">Link to the draft (https)</label><input id="a-url" type="url" name="url" placeholder="https://" maxlength="500"></div>
           <div class="field" data-kind="link" hidden><label for="a-urllabel">Button text</label><input id="a-urllabel" type="text" name="urlLabel" value="Open the draft" maxlength="60"></div>
         </div>
-        <div class="actions"><button class="btn" type="submit"${services.length ? '' : ' disabled'}>Send for approval</button><button class="btn btn-quiet" type="button" data-action="reveal-close">Cancel</button>${services.length ? '' : '<span class="meta">Choose the client\'s services on the Overview tab first.</span>'}</div>
+        <div class="actions"><button class="btn" type="submit"${services.length ? '' : ' disabled'}>Send for approval</button><button class="btn btn-quiet" type="button" data-action="reveal-close">Cancel</button>${services.length ? '' : `<span class="meta">Add a service first: <button class="linkish" type="button" data-svc-change title="${CHANGE_SVC_HINT}">Change services</button></span>`}</div>
       </form>`;
     // Opened from a quick action, the form comes first; otherwise the list does and the form drops in below.
     box.innerHTML = part === 'new' ? formHtml + listHtml : listHtml + formHtml;
     const f = /** @type {HTMLFormElement} */ ($('#apv-form', box));
     track(f, 'New approval');
+    for (const b of $$('[data-svc-change]', box)) b.addEventListener('click', () => changeServices());
     if (part === 'new') $('#a-title', box).focus();
     $('[name="kind"]', f).addEventListener('change', (/** @type {any} */ e) => {
       for (const el of $$('[data-kind]', f)) el.hidden = el.getAttribute('data-kind') !== e.target.value;
@@ -4600,8 +4717,8 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       <section class="panel" aria-labelledby="upd-h"><div class="panel-head"><h2 id="upd-h">Updates</h2><p>${list.length ? `${plural(list.length, 'update')} on their Updates page, newest first` : 'Nothing posted yet'}</p>
           <div class="btns"><button class="btn btn-sm" type="button" data-action="reveal" aria-expanded="${part === 'new'}" aria-controls="upd-form">${icon('plus')}Post an update</button></div></div>
         ${list.length ? `<ul class="items">${list.map((/** @type {any} */ u) => `<li class="item-card"><div class="item-top"><span class="item-title">${esc(u.title)}</span>
-          <span class="r"><span class="meta">${esc(when(u.date))} · ${esc(svcLabel(u.service))}${u.author === 'automatic' ? ' · automatic' : ''}</span>
-          <button class="btn btn-danger btn-sm" type="button" data-remove-upd="${esc(u.id)}">Remove</button></span></div>
+          <span class="r"><span class="meta">${esc(when(u.date))} · ${esc(svcLabel(u.service))}${u.author === 'automatic' ? ' · posted by the system' : ''}</span>
+          <button class="btn btn-quiet btn-sm btn-remove" type="button" data-remove-upd="${esc(u.id)}">Remove</button></span></div>
           ${u.completed ? `<p>${esc(u.completed)}</p>` : u.changed ? `<p>${esc(u.changed)}</p>` : ''}${u.next ? `<p class="meta">Next: ${esc(u.next)}</p>` : ''}</li>`).join('')}</ul>`
           : `<div class="empty"><p><strong>No updates yet.</strong></p><p>Post one when something is finished, changed or measured. Short and real beats long.</p></div>`}
       </section>`;
@@ -4613,11 +4730,14 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
           <div class="field"><label for="u-date">Date</label><input id="u-date" type="date" name="date" value="${today()}"></div>
           <div class="field"><label for="u-service">Service</label><select id="u-service" name="service"><option value="">General</option>${services.map((/** @type {string} */ s) => `<option value="${s}">${esc(SERVICES[s].label)}</option>`).join('')}</select></div>
           <div class="field span-2"><label for="u-completed">What we completed</label><input id="u-completed" type="text" name="completed" maxlength="300"></div>
+        </div>
+        <details class="reveal fold-more"><summary>More (optional): what changed, result, why it matters, next step</summary>
+        <div class="grid-3">
           <div class="field span-all"><label for="u-changed">What changed</label><input id="u-changed" type="text" name="changed" maxlength="300"></div>
           <div class="field span-all"><label for="u-result">Result (real numbers only)</label><input id="u-result" type="text" name="result" maxlength="300"></div>
           <div class="field span-all"><label for="u-why">Why it matters</label><input id="u-why" type="text" name="why" maxlength="300"></div>
           <div class="field span-all"><label for="u-next">Next step</label><input id="u-next" type="text" name="next" maxlength="300"></div>
-        </div>
+        </div></details>
         <div class="actions"><button class="btn" type="submit">Post the update</button><button class="btn btn-quiet" type="button" data-action="reveal-close">Cancel</button></div>
       </form>`;
     box.innerHTML = part === 'new' ? formHtml + listHtml : listHtml + formHtml;
@@ -4673,16 +4793,16 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
           <span class="r"><span class="req-status" role="group" aria-label="Status" data-req="${esc(r.id)}">${REQ_STATUS.map(([v, l]) => `<button type="button" data-status="${v}" aria-pressed="${r.status === v}">${l}</button>`).join('')}</span></span></div>
           <p>${esc(r.body)}</p><p class="meta">${esc(r.by_name || 'Client')}, ${esc(when(r.at))}</p></li>`;
     box.innerHTML = `
-      <section class="panel" aria-labelledby="msg-h"><div class="panel-head"><h2 id="msg-h">Messages</h2><p>They see your replies on their Help page.</p></div>
+      <section class="panel" aria-labelledby="msg-h"><div class="panel-head"><h2 id="msg-h">Messages</h2><p>They read your replies on their Help page.</p></div>
         ${current.messages.length ? `<ul class="thread">${current.messages.map((/** @type {any} */ m) => `<li class="msg${m.from_staff ? ' team' : ''}"><p>${esc(m.body)}</p><p class="meta">${esc(m.by_name || (m.from_staff ? 'Domin8te' : 'Client'))}, ${esc(when(m.at))}</p></li>`).join('')}</ul>` : '<p class="meta" style="margin-bottom:14px">No messages yet.</p>'}
         <form id="reply-form" novalidate><div class="field"><label for="reply">Reply as ${esc(me.name)}</label><textarea id="reply" name="body" maxlength="2000" placeholder="Thanks ${esc(current.doc.user.firstName || '')}${current.doc.user.firstName ? ',' : ''} we can do that this week."></textarea></div>
-          <div class="actions"><button class="btn" type="submit">Send reply</button><span class="meta">Shows in their portal. No email is sent yet.</span></div></form>
+          <div class="actions"><button class="btn" type="submit">Send reply</button><span class="meta">They see it next time they open their portal. We don't email them.</span></div></form>
       </section>
       <section class="panel" aria-labelledby="req-h"><div class="panel-head"><h2 id="req-h">Change requests</h2><p>They see the status on their Work page.</p></div>
         ${openReqs.length ? `<ul class="items">${openReqs.map(reqCard).join('')}</ul>` : '<p class="meta">No open requests.</p>'}
         ${closedReqs.length ? `<details class="reveal"><summary class="meta">${plural(closedReqs.length, 'finished or declined request')}</summary><ul class="items" style="margin-top:10px">${closedReqs.map(reqCard).join('')}</ul></details>` : ''}
       </section>
-      <section class="panel" aria-labelledby="dec-h"><div class="panel-head"><h2 id="dec-h">Answers to approvals</h2></div>
+      <section class="panel" aria-labelledby="dec-h"><div class="panel-head"><h2 id="dec-h">Approvals they sent back</h2><p>Their answers to what we asked them to approve.</p></div>
         ${current.decisions.length ? `<ul class="items">${current.decisions.slice().reverse().map((/** @type {any} */ x) => `<li class="item-card"><div class="item-top"><span class="item-title">${esc(titles[x.approval_id] || x.approval_id)}</span><span class="chip ${x.decision === 'approved' ? 'good' : 'you'}">${x.decision === 'approved' ? 'Approved' : 'Changes requested'}</span></div>
           ${x.comment ? `<blockquote>${esc(x.comment)}</blockquote>` : ''}<p class="meta">${esc(x.by_name || 'Client')}, ${esc(when(x.at))}</p></li>`).join('')}</ul>` : '<p class="meta">No answers yet.</p>'}
       </section>`;
@@ -4738,13 +4858,14 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
   /** @param {HTMLElement} box */
   function record(box) {
     box.innerHTML = `<form class="panel" id="rec-form" novalidate>
-      <div class="panel-head"><h2>The full record</h2><p>Everything their portal reads, including figures, connected accounts and billing. Edit with care.</p><div class="btns"><button class="btn btn-quiet btn-sm" type="button" data-action="copy-record">Copy</button></div></div>
-      <textarea class="code" name="doc" spellcheck="false" aria-label="Client record as JSON">${esc(JSON.stringify(current.doc, null, 2))}</textarea>
+      <div class="panel-head"><h2>Raw data (advanced)</h2><p>Everything their portal reads, in code form, including figures, connected accounts and billing. Only change this if an owner asks you to. Use the other tabs instead.</p><div class="btns"><button class="btn btn-quiet btn-sm" type="button" data-action="copy-record">Copy</button></div></div>
+      <details class="reveal fold-raw"><summary>Show raw data</summary>
+      <textarea class="code" name="doc" spellcheck="false" aria-label="Client record as JSON">${esc(JSON.stringify(current.doc, null, 2))}</textarea></details>
       <p class="field-error" id="rec-err" hidden></p>
-      <div class="actions"><button class="btn" type="submit">Save the record</button><span class="meta">Numbers must be real. Never type a number that did not come from a source.</span></div>
+      <div class="actions"><button class="btn" type="submit">Save raw data</button><span class="meta">Numbers must be real. Never type a number that did not come from a source.</span></div>
     </form>`;
     const f = /** @type {HTMLFormElement} */ ($('#rec-form', box));
-    track(f, 'Record');
+    track(f, 'Raw data');
     $('[data-action="copy-record"]', box).addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(/** @type {any} */ (f.elements.namedItem('doc')).value); toast('Copied.'); } catch (x) { toast('Could not copy. Select the text and copy it instead.', true); }
     });
@@ -4766,7 +4887,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       try {
         await save({ doc });
         clean(f);
-        toast('Record saved.');
+        toast('Raw data saved.');
         route();
       } catch (x) {
         done();
@@ -4782,7 +4903,14 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
   // questions: a card moved in both places, a card gone from Multica, a data source gone quiet.
 
   const DM_KIND = { work: 'Work', update: 'Update', result: 'Result' };
-  const DM_EXCEPTION = { multica_conflict: 'Moved in both places', multica_missing: 'Gone from Multica', source_stale: 'Data source quiet', event_reaped_failed: 'Event failed', invalid_event: 'Event rejected', invalid_billing_invoice: 'Invoice rejected', projection_write_failed: 'Save failed', billing_projection_write_failed: 'Save failed', client_item_hidden: 'Hidden from client', client_invoice_hidden: 'Invoice hidden' };
+  const DM_EXCEPTION = { multica_conflict: 'Moved in both places', multica_missing: 'Gone from Multica', source_stale: 'No new numbers', event_reaped_failed: 'Event failed', invalid_event: 'Event rejected', invalid_billing_invoice: 'Invoice rejected', projection_write_failed: 'Save failed', billing_projection_write_failed: 'Save failed', client_item_hidden: 'Hidden from client', client_invoice_hidden: 'Invoice hidden' };
+  /** One line on what each problem means, shown on hover. @type {Record<string, string>} */
+  const DM_EXCEPTION_HINT = {
+    multica_conflict: 'This card was moved here and in Multica at about the same time, to different places.',
+    multica_missing: 'This card has no issue in Multica any more.',
+    source_stale: 'A data source stopped sending new numbers.',
+    client_item_hidden: 'Someone hid this from the client.'
+  };
 
   /** The queue for every client. Tables added later: if they are not there yet, the console carries on without them. */
   async function loadReviews() {
@@ -4802,17 +4930,36 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const mine = (/** @type {any[]} */ list) => tenantId ? list.filter((x) => x.tenant_id === tenantId) : list;
     return { items: mine(r.items), invoices: mine(r.invoices), exceptions: mine(r.exceptions) };
   }
+  /** How many things wait in "Check before it goes live". @param {string|null} tenantId */
+  const reviewCount = (tenantId) => { const r = reviewsFor(tenantId); return r.items.length + r.invoices.length + r.exceptions.length; };
   /** @param {any} v */
   const dmText = (v) => v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+  /** The words the team reads for a field name (the stored names stay as they are). @type {Record<string, string>} */
+  const DM_FIELD = { title: 'Title', status: 'Status', service: 'Service', completed: 'What we completed', changed: 'What changed', result: 'Result', why: 'Why it matters', next: 'Next step', date: 'Date', due: 'Due', detail: 'Details', text: 'Text', number: 'Invoice number', amount: 'Amount', issued: 'Issued', paid: 'Paid', link: 'Payment link' };
+  /** @param {string} k */
+  const dmField = (k) => DM_FIELD[k] || (k.charAt(0).toUpperCase() + k.slice(1)).replace(/_/g, ' ');
+  /** A value in plain words: statuses and services by name, dates as dates, nothing as "nothing". @param {string} k @param {any} v */
+  function dmSay(k, v) {
+    const s = dmText(v);
+    if (!s) return 'nothing';
+    if (k === 'service' && SERVICES[s]) return SERVICES[s].label;
+    if (k === 'status') return TASK_STATUS_LABEL[s] || (STATUS[s] ? teamStatus(s) : (s.charAt(0).toUpperCase() + s.slice(1)).replace(/_/g, ' '));
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return longDate(s);
+    return s;
+  }
   /** Field by field: what the client sees now, and what they would see. @param {any} before @param {any} after */
   function dmDiff(before, after) {
     const keys = Array.from(new Set([...Object.keys(before || {}), ...Object.keys(after || {})]));
     return `<dl class="facts dm-diff">${keys.map((k) => {
       const was = dmText(before && before[k]);
       const now = dmText(after && after[k]);
-      return `<dt>${esc(k)}</dt><dd>${before && was !== now ? `<del>${esc(was || '(empty)')}</del> ` : ''}<ins>${esc(now || '(empty)')}</ins></dd>`;
+      return `<dt>${esc(dmField(k))}</dt><dd>${before && was !== now ? `<del>${esc(dmSay(k, before[k]))}</del> ` : ''}<ins>${esc(dmSay(k, after && after[k]))}</ins></dd>`;
     }).join('')}</dl>`;
   }
+  /** Who made an item, in words; the raw source names fold into Details. @param {string} kind */
+  const dmMadeBy = (kind) => ({ manager: 'Made by: Dashboard Manager', console: 'Made by: our console', stripe: 'From Stripe', multica: 'From Multica' })[kind] || (kind ? `Made by: ${kind}` : 'Made by: our system');
+  /** @param {string[]} ids */
+  const dmIds = (ids) => { const list = ids.filter(Boolean); return list.length ? `<details class="dm-ids"><summary>Details</summary><span class="meta">${list.map(esc).join(' · ')}</span></details>` : ''; };
   /** @param {string} id */
   const clientName = (id) => { const t = tenant(id); return t ? t.name : 'A client'; };
 
@@ -4821,35 +4968,46 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const revision = !!it.pending_at;
     const proposed = revision ? it.pending_content : it.content;
     const source = revision ? it.pending_source_ref : it.source_ref;
-    const fields = Object.entries(proposed || {}).map(([k, v]) => `<div class="field"><label for="dm-${esc(it.id)}-${esc(k)}">${esc(k)}</label><input id="dm-${esc(it.id)}-${esc(k)}" name="${esc(k)}" data-type="${typeof v}" value="${esc(dmText(v))}" maxlength="2000"></div>`).join('');
+    const fields = Object.entries(proposed || {}).map(([k, v]) => `<div class="field"><label for="dm-${esc(it.id)}-${esc(k)}">${esc(dmField(k))}</label><input id="dm-${esc(it.id)}-${esc(k)}" name="${esc(k)}" data-type="${typeof v}" value="${esc(dmText(v))}" maxlength="2000"></div>`).join('');
     return `<li class="dm-card" data-dm-item="${esc(it.id)}">
-      <p class="g-top">${showClient ? `<span class="client">${esc(clientName(it.tenant_id))}</span>` : ''}<span class="chip you">${esc(DM_KIND[it.item_kind] || it.item_kind)}</span>${revision ? '<span class="chip info">Changes what they see</span>' : ''}${it.hidden_at ? '<span class="chip">Hidden</span>' : ''}${it.publish_requested ? '<span class="chip plain">Sender asked to publish</span>' : ''}<span class="meta">${esc(it.source_kind)} · ${esc(source || '')} · ${esc(ago(it.pending_at || it.updated_at))}</span></p>
+      <p class="g-top">${showClient ? `<span class="client">${esc(clientName(it.tenant_id))}</span>` : ''}<span class="chip you">${esc(DM_KIND[it.item_kind] || it.item_kind)}</span>${revision ? '<span class="chip info" title="They keep seeing the old version until you approve">Replaces what they see now</span>' : ''}${it.hidden_at ? '<span class="chip">Hidden</span>' : ''}${it.publish_requested ? '<span class="chip plain">Team asked to publish</span>' : ''}<span class="meta">${esc(dmMadeBy(it.source_kind))} · ${esc(ago(it.pending_at || it.updated_at))}</span></p>
       ${dmDiff(revision ? it.content : null, proposed)}
+      ${dmIds([it.source_kind, source])}
       <form class="dm-edit" hidden novalidate><div class="grid-3">${fields}</div>
         <div class="actions"><button class="btn btn-sm" type="submit">Save and approve</button><button class="btn btn-quiet btn-sm" type="button" data-dm="edit-cancel">Cancel</button></div></form>
       <form class="dm-hide" hidden novalidate><div class="field"><label for="dm-why-${esc(it.id)}">Why hide it? (kept in History)</label><input id="dm-why-${esc(it.id)}" name="reason" maxlength="1000" required></div>
         <div class="actions"><button class="btn btn-danger btn-sm" type="submit">Hide from the client</button><button class="btn btn-quiet btn-sm" type="button" data-dm="hide-cancel">Cancel</button></div></form>
       <div class="actions dm-buttons">${it.hidden_at ? '' : '<button class="btn btn-sm" type="button" data-dm="approve">Approve</button><button class="btn btn-quiet btn-sm" type="button" data-dm="edit">Edit, then approve</button>'}
-        <button class="btn btn-quiet btn-sm" type="button" data-dm="reject">Reject</button>${it.client_visible ? '<button class="btn btn-quiet btn-sm" type="button" data-dm="hide">Hide it from them</button>' : ''}</div></li>`;
+        <button class="btn btn-quiet btn-sm" type="button" data-dm="reject">Reject</button>${it.client_visible ? '<button class="btn btn-quiet btn-sm" type="button" data-dm="hide">Hide from client</button>' : ''}</div></li>`;
   }
   /** Invoices: approve or reject only. They are never published automatically. @param {any} inv @param {boolean} showClient */
   function dmInvoiceCard(inv, showClient) {
     const p = inv.pending_at ? inv.pending_row || {} : null;
     const view = (/** @type {any} */ r) => ({ number: r.invoice_number, amount: r.amount_minor === undefined || r.amount_minor === null ? '' : `${(Number(r.amount_minor) / 100).toFixed(2)} ${r.currency || ''}`, status: r.status, issued: r.issued_at, due: r.due_at, paid: r.paid_at, link: r.hosted_payment_url });
     return `<li class="dm-card" data-dm-invoice="${esc(inv.id)}">
-      <p class="g-top">${showClient ? `<span class="client">${esc(clientName(inv.tenant_id))}</span>` : ''}<span class="chip you">Invoice</span>${p ? '<span class="chip info">Changes what they see</span>' : ''}<span class="meta">${esc(inv.source_ref)} · ${esc(ago(inv.pending_at || inv.updated_at))}</span></p>
+      <p class="g-top">${showClient ? `<span class="client">${esc(clientName(inv.tenant_id))}</span>` : ''}<span class="chip you">Invoice</span>${p ? '<span class="chip info" title="They keep seeing the old version until you approve">Replaces what they see now</span>' : ''}<span class="meta">${esc(dmMadeBy(inv.provider || String(inv.source_ref || '').split(':')[0]))} · ${esc(ago(inv.pending_at || inv.updated_at))}</span></p>
       ${dmDiff(p ? view(inv) : null, view(p ? { ...inv, ...p } : inv))}
+      ${dmIds([inv.source_ref])}
       <div class="actions dm-buttons"><button class="btn btn-sm" type="button" data-dm="inv-approve">Approve</button><button class="btn btn-quiet btn-sm" type="button" data-dm="inv-reject">Reject</button></div></li>`;
   }
   /** @param {any} x @param {boolean} showClient */
   function dmExceptionCard(x, showClient) {
     const v = x.last_verified_value || {};
-    const buttons = x.reason_code === 'multica_conflict' && v.taskId
-      ? `<button class="btn btn-sm" type="button" data-dm="keep-ours">Keep ours (${esc(TASK_STATUS_LABEL[v.local] || v.local)}) and send to Multica</button><button class="btn btn-quiet btn-sm" type="button" data-dm="take-theirs">Use Multica's (${esc(TASK_STATUS_LABEL[v.remote] || v.remote)})</button>`
+    const conflict = x.reason_code === 'multica_conflict' && v.taskId;
+    const ours = esc(TASK_STATUS_LABEL[v.local] || v.local);
+    const theirs = esc(TASK_STATUS_LABEL[v.remote] || v.remote);
+    const buttons = conflict
+      ? `<button class="btn btn-sm" type="button" data-dm="keep-ours" title="Keeps ours and copies it to Multica">${ours} (ours)</button><button class="btn btn-quiet btn-sm" type="button" data-dm="take-theirs" title="Moves the card here to match Multica">${theirs} (Multica's)</button>`
       : '<button class="btn btn-quiet btn-sm" type="button" data-dm="resolve">Mark as fixed</button>';
+    const task = conflict && all ? (all.tasks || []).find((/** @type {any} */ k) => k.id === v.taskId) : null;
+    const text = conflict
+      ? `Two different moves${task ? ` for “${esc(task.title)}”` : ''}. Here it says ${ours}, Multica says ${theirs}. Which is right?`
+      : `${esc(x.message)}${x.reason_code === 'source_stale' ? ' Check the connection, then press Mark as fixed.' : ''}`;
+    const hint = DM_EXCEPTION_HINT[x.reason_code];
     return `<li class="dm-card" data-dm-exception="${esc(x.id)}" data-task="${esc(v.taskId || '')}" data-local="${esc(v.local || '')}" data-remote="${esc(v.remote || '')}">
-      <p class="g-top">${showClient ? `<span class="client">${esc(clientName(x.tenant_id))}</span>` : ''}<span class="chip ${x.severity === 'critical' ? 'bad' : 'warn'}">${esc(DM_EXCEPTION[x.reason_code] || x.reason_code)}</span><span class="meta">${esc(ago(x.detected_at))}</span></p>
-      <p>${esc(x.message)}</p>
+      <p class="g-top">${showClient ? `<span class="client">${esc(clientName(x.tenant_id))}</span>` : ''}<span class="chip ${x.severity === 'critical' ? 'bad' : 'warn'}"${hint ? ` title="${esc(hint)}"` : ''}>${esc(DM_EXCEPTION[x.reason_code] || x.reason_code)}</span><span class="meta">${esc(ago(x.detected_at))}</span></p>
+      <p>${text}</p>
+      ${conflict ? dmIds([x.message]) : ''}
       <div class="actions dm-buttons">${buttons}</div></li>`;
   }
   /** "Multica synced 40 s ago", from presence only: no secret is ever read. @param {string} tenantId */
@@ -4857,7 +5015,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const t = tenant(tenantId);
     if (!t) return '';
     const st = multicaState;
-    if (st && !st.pending && !st.configured) return '<p class="meta dm-sync">Multica is not set up, so nothing comes in from it yet.</p>';
+    if (st && !st.pending && !st.configured) return '<p class="meta dm-sync">Multica is not linked yet, so nothing comes in from it.</p>';
     const s = all && all.reviews && all.reviews.sync ? all.reviews.sync[tenantId] : null;
     if (!s) return '<p class="meta dm-sync">Multica has not synced this client yet. It starts once their Multica project is linked.</p>';
     const okAt = s.last_ok_at ? Math.round((Date.now() - new Date(s.last_ok_at).getTime()) / 1000) : null;
@@ -4869,12 +5027,12 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
     const r = reviewsFor(tenantId);
     const count = r.items.length + r.invoices.length + r.exceptions.length;
     const showClient = !tenantId;
-    const lede = 'Work, updates, results and invoices our system made for client dashboards, and problems it found. Clients see none of it until you approve. If it changes something they already see, they keep the old version until then.';
+    const lede = 'Things our system made for client dashboards (work, updates, results and invoices), and problems it found. Clients see nothing new until you press Approve. If it replaces something they see now, they keep the old version until then.';
     const body = count
       ? `<ul class="q dm-list">${r.exceptions.map((x) => dmExceptionCard(x, showClient)).join('')}${r.items.map((x) => dmItemCard(x, showClient)).join('')}${r.invoices.map((x) => dmInvoiceCard(x, showClient)).join('')}</ul>`
-      : `<p class="meta">Nothing to approve.</p>`;
-    if (tenantId) return `<section class="panel" aria-labelledby="g-dm"><div class="panel-head"><h2 id="g-dm">Dashboard updates to approve <span class="meta">${count}</span></h2><p>${esc(lede)}</p></div>${dmSyncLine(tenantId)}${body}</section>`;
-    return count ? `<section class="q-group"><h2>Dashboard updates to approve <span class="meta">${count}</span></h2><p class="lede">${esc(lede)}</p>${body}</section>` : '';
+      : `<p class="meta">Nothing to check.</p>`;
+    if (tenantId) return `<section class="panel" aria-labelledby="g-dm"><div class="panel-head"><h2 id="g-dm">Check before it goes live <span class="meta">${count}</span></h2><p>${esc(lede)}</p></div>${dmSyncLine(tenantId)}${body}</section>`;
+    return count ? `<section class="q-group" id="q-dm"><h2>Check before it goes live <span class="meta">${count}</span></h2><p class="lede">${esc(lede)}</p>${body}</section>` : '';
   }
 
   /** Approve, reject, edit, hide and resolve, wherever the block is shown. */
@@ -4959,30 +5117,36 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
 
   /** Settings, super admins only: the four rollout gates and the per-client auto-publish switch. @param {HTMLElement} box */
   async function gatesPanel(box) {
-    const GATES = [['a_test_project_tests', 'Test-project tests pass'], ['b_field_evidence_checks', 'Field-level evidence checks pass'], ['c_tenant_authorization', 'Tenant authorization checks pass'], ['d_test_client_backfill', 'One test client backfilled and approved']];
-    const head = `<div class="panel-head"><h2 id="s-gates">Publishing gates</h2><p>Automatic publishing stays off until all four gates are recorded. Even then, the client's switch must be on here <strong>and</strong> Karan must set AUTO_PUBLISH_ENABLED on the server. Invoices never publish automatically.</p></div>`;
-    box.innerHTML = head + skeleton(1);
+    // [stored gate key, plain words, the technical name kept as small text]
+    const GATES = [['a_test_project_tests', 'Automated tests pass', 'Test-project tests pass'], ['b_field_evidence_checks', 'Every number traces to a source', 'Field-level evidence checks pass'], ['c_tenant_authorization', 'Each client sees only their own data', 'Tenant authorization checks pass'], ['d_test_client_backfill', 'One real client tested end to end', 'One test client backfilled and approved']];
+    // Folded shut by default; a redraw keeps it open if it was.
+    const wasOpen = !!$('details.fold-panel[open]', box);
+    const head = `<summary class="fold-sum"><h2 id="s-gates">Automatic publishing (owner only)</h2><span class="meta">Off for now. It turns on only after 4 safety checks pass, an owner switches it on, and the client's own switch is on. Invoices always wait for you.</span></summary>
+      <p class="hint">The owner's switch is AUTO_PUBLISH_ENABLED on the server. Until all three are on, everything waits in Check before it goes live.</p>`;
+    const wrap = (/** @type {string} */ inner) => `<details class="fold-panel"${wasOpen ? ' open' : ''}>${head}${inner}</details>`;
+    box.innerHTML = wrap(skeleton(1));
     const client = await db();
     const [g, a] = await Promise.all([client.from('dashboard_publish_gates').select('*'), client.from('tenant_auto_publish').select('*')]);
-    if (g.error) { box.innerHTML = head + '<p class="meta">The publishing tables are not on this database yet.</p>'; return; }
+    if (g.error) { box.innerHTML = wrap('<p class="meta">The publishing tables are not on this database yet.</p>'); return; }
     const passed = Object.fromEntries((g.data || []).map((/** @type {any} */ x) => [x.gate, x]));
     const allPassed = GATES.every(([k]) => passed[k]);
     const on = Object.fromEntries(((a && a.data) || []).map((/** @type {any} */ x) => [x.tenant_id, x.enabled]));
-    box.innerHTML = `${head}
-      <dl class="facts">${GATES.map(([k, l]) => `<dt>${esc(l)}</dt><dd>${passed[k] ? `<span class="chip good">Passed</span> <span class="meta">${esc(ago(passed[k].passed_at))}: ${esc(passed[k].evidence_ref)}</span>` : '<span class="chip warn">Not yet</span>'}</dd>`).join('')}</dl>
-      <form id="gate-form" novalidate><h3 class="panel-sub">Record a gate <span class="meta">Add a link to the evidence: the CI run, test report or sign-off.</span></h3>
-        <div class="grid-3"><div class="field"><label for="g-gate">Gate</label><select id="g-gate" name="gate">${GATES.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</select></div>
+    box.innerHTML = wrap(`
+      <h3 class="panel-sub">The 4 safety checks</h3>
+      <dl class="facts">${GATES.map(([k, l, tech]) => `<dt>${esc(l)}<span class="gate-tech">${esc(tech)}</span></dt><dd>${passed[k] ? `<span class="chip good">Passed</span> <span class="meta">${esc(ago(passed[k].passed_at))}: ${esc(passed[k].evidence_ref)}</span>` : '<span class="chip warn">Not yet</span>'}</dd>`).join('')}</dl>
+      <form id="gate-form" novalidate><h3 class="panel-sub">Record a safety check <span class="meta">Add a link to the evidence: the CI run, test report or sign-off.</span></h3>
+        <div class="grid-3"><div class="field"><label for="g-gate">Safety check</label><select id="g-gate" name="gate">${GATES.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</select></div>
           <div class="field"><label for="g-ev">Evidence</label><input id="g-ev" name="evidence" maxlength="1000" required></div></div>
-        <div class="actions"><button class="btn" type="submit">Record the gate</button></div></form>
-      <h3 class="panel-sub">Automatic publishing, per client <span class="meta">${allPassed ? 'Only items the sender asked to publish, and only when the database\'s evidence rules pass. Everything else still waits here.' : 'You can turn these on once all four gates are recorded.'}</span></h3>
-      ${all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived').map((/** @type {any} */ t) => `<label class="switch-row"><input type="checkbox" role="switch" data-dm-auto="${esc(t.id)}"${on[t.id] ? ' checked' : ''}${allPassed || on[t.id] ? '' : ' disabled'}><span><span class="pick-t">${esc(t.name)}</span><span class="pick-d">${on[t.id] ? 'On here. Also needs AUTO_PUBLISH_ENABLED on the server.' : 'Off. Everything waits for approval.'}</span></span></label>`).join('')}`;
+        <div class="actions"><button class="btn" type="submit">Record the check</button></div></form>
+      <h3 class="panel-sub">Each client's own switch <span class="meta">${allPassed ? 'Only items the team asked to publish, and only when the database\'s evidence rules pass. Everything else still waits for you.' : 'You can turn these on once all 4 safety checks are recorded.'}</span></h3>
+      ${all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived').map((/** @type {any} */ t) => `<label class="switch-row"><input type="checkbox" role="switch" data-dm-auto="${esc(t.id)}"${on[t.id] ? ' checked' : ''}${allPassed || on[t.id] ? '' : ' disabled'}><span><span class="pick-t">${esc(t.name)}</span><span class="pick-d">${on[t.id] ? 'On here. Also needs the owner\'s switch (AUTO_PUBLISH_ENABLED on the server).' : 'Off. Everything waits for approval.'}</span></span></label>`).join('')}`);
     const f = /** @type {HTMLFormElement} */ ($('#gate-form', box));
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
       const evidence = val(f, 'evidence');
       if (!evidence) { toast('Add the evidence: a link or reference.', true); return; }
       const done = busy($('button[type=submit]', f), 'Recording');
-      try { check(await client.rpc('record_publish_gate', { p_gate: val(f, 'gate'), p_evidence_ref: evidence })); toast('Gate recorded.'); gatesPanel(box); } catch (x) { done(); toast(message(x), true); }
+      try { check(await client.rpc('record_publish_gate', { p_gate: val(f, 'gate'), p_evidence_ref: evidence })); toast('Safety check recorded.'); gatesPanel(box); } catch (x) { done(); toast(message(x), true); }
     });
     // onchange, not addEventListener: the panel redraws itself after each change and must not stack handlers.
     box.onchange = async (e) => {
@@ -4991,7 +5155,7 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       if (!id) return;
       e.stopPropagation();
       t.disabled = true;
-      try { check(await client.rpc('set_tenant_auto_publish', { p_tenant: id, p_enabled: t.checked })); toast(t.checked ? 'On for this client. AUTO_PUBLISH_ENABLED must also be set on the server.' : 'Off for this client.'); } catch (x) { t.checked = !t.checked; toast(message(x), true); }
+      try { check(await client.rpc('set_tenant_auto_publish', { p_tenant: id, p_enabled: t.checked })); toast(t.checked ? 'On for this client. The owner\'s switch (AUTO_PUBLISH_ENABLED on the server) must also be on.' : 'Off for this client.'); } catch (x) { t.checked = !t.checked; toast(message(x), true); }
       gatesPanel(box);
     };
   }
@@ -5012,12 +5176,25 @@ html[data-theme="dark"] .svc-list .s-name .ic { color: #FFB08E; }
       try { await loadAll(); } catch (x) { toast(message(x), true); }
       route();
     } else if (action === 'refresh') {
-      const done = busy(/** @type {HTMLButtonElement} */ (b), 'Refreshing');
+      const done = busy(/** @type {HTMLButtonElement} */ (b), 'Reloading');
       try { await loadAll(); route(); } catch (x) { done(); toast(message(x), true); }
     } else if (action === 'reload-page') {
       location.reload();
     } else if (action === 'palette') {
       palette.open();
+    } else if (action === 'jump') {
+      // A link to a part of this page (the summary, the mini index). Not a hash link: the hash is the route.
+      const to = document.getElementById(b.getAttribute('data-to') || '');
+      if (to) {
+        if (to.tagName === 'DETAILS') /** @type {HTMLDetailsElement} */ (to).open = true;
+        to.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        const h = /** @type {HTMLElement|null} */ (to.matches('h2, h3') ? to : $('h2, h3', to));
+        if (h) { if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+      }
+    } else if (action === 'shortcuts') {
+      closeSide();
+      if (/^#\/settings/.test(location.hash)) { const k = $('#sec-keys'); if (k) k.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+      else { jumpAfter = 'sec-keys'; location.hash = '#/settings'; }
     } else if (action === 'open-side') {
       openSide();
       $('#side-find').focus();

@@ -345,7 +345,7 @@ img { display: block; max-width: 100%; }
 .preview-chip.is-float { position: fixed; right: 16px; bottom: 16px; z-index: 55; padding: 8px 16px 8px 12px; border-radius: 16px; text-align: left; }
 .preview-chip.is-float:hover { transform: translateY(-1px); box-shadow: var(--p-shadow-lift); }
 .pc-text { display: grid; line-height: 1.2; }
-.pc-sub { font-size: 12.5px; font-weight: 500; color: var(--p-ink-3); }
+.pc-sub { font-size: 13px; font-weight: 500; color: var(--p-ink-3); }
 .preview-chip.is-bar { min-height: 36px; padding: 4px 12px 4px 10px; border-radius: 999px; }
 .portal.is-auth ~ .preview-chip { display: none; }
 
@@ -649,6 +649,7 @@ html[data-theme="dark"] .orb { background: radial-gradient(circle at 32% 28%, rg
 .ms-progress span { flex: 1; height: 6px; border-radius: 3px; background: var(--p-well); box-shadow: inset 0 0 0 1px var(--p-line); }
 .ms-progress .is-on { background: var(--p-success); box-shadow: none; }
 .ms-progress .is-now { background: var(--p-info); box-shadow: none; opacity: 0.55; }
+.ms-progress .is-you { background: var(--p-attn); box-shadow: none; opacity: 0.75; }
 .svc-col > .ms-progress { margin-top: 10px; }
 .ms { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; padding-bottom: 18px; }
 .ms::before { content: ""; position: absolute; left: 14px; top: 30px; bottom: 0; width: 2px; background: var(--p-line); }
@@ -698,8 +699,8 @@ html[data-theme="dark"] .orb { background: radial-gradient(circle at 32% 28%, rg
 .step.is-done .step-dot { border-color: var(--p-success); background: var(--p-success); color: #fff; }
 .step-title { font-size: 16.5px; font-weight: 600; line-height: 1.35; }
 .step.is-done .step-title { color: var(--p-ink-2); font-weight: 500; }
-.step-tag { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
-.step-tag [data-tone] { padding: 1px 9px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.step-tag { display: flex; align-items: center; gap: 8px; text-align: right; }
+.step-tag [data-tone] { padding: 2px 10px; border-radius: 999px; font-size: 13.5px; font-weight: 600; white-space: nowrap; }
 .step-tag [data-tone="info"] { background: var(--p-info-bg); color: var(--p-info); }
 .step-tag [data-tone="attention"] { background: var(--p-attn-bg); color: var(--p-attn); }
 .step-tag [data-tone="success"] { background: var(--p-success-bg); color: var(--p-success); }
@@ -759,7 +760,7 @@ html[data-theme="dark"] .orb { background: radial-gradient(circle at 32% 28%, rg
 .chart { position: relative; height: 220px; touch-action: pan-y; }
 .chart svg { display: block; overflow: visible; }
 .c-grid { stroke: var(--p-grid); stroke-width: 1; }
-.c-y, .c-x { fill: var(--p-ink-3); font-family: var(--p-font); font-size: 12.5px; }
+.c-y, .c-x { fill: var(--p-ink-3); font-family: var(--p-font); font-size: 13px; }
 .c-cur { fill: none; stroke: var(--p-chart); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .c-prev { fill: none; stroke: var(--p-chart-prev); stroke-width: 1.5; stroke-dasharray: 5 4; }
 .c-area { fill: var(--p-chart-area); }
@@ -935,7 +936,7 @@ td { font-variant-numeric: tabular-nums; }
 .scenario span { font-size: 14.5px; color: var(--p-ink-2); }
 .scenario:hover { border-color: var(--p-control); background: var(--p-surface); }
 .scenario.is-current { border-color: var(--p-ink); box-shadow: 0 0 0 1px var(--p-ink); }
-.scn-now { padding: 1px 8px; border-radius: 999px; background: var(--p-neutral-bg); font-size: 12.5px; font-weight: 700; color: var(--p-ink); }
+.scn-now { padding: 1px 8px; border-radius: 999px; background: var(--p-neutral-bg); font-size: 13px; font-weight: 700; color: var(--p-ink); }
 
 /* ------------------------------------------------------------------ toasts */
 
@@ -955,7 +956,7 @@ td { font-variant-numeric: tabular-nums; }
 .account-who span { color: var(--p-ink-3); }
 .account-menu a, .account-menu button { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 10px; border: 0; border-radius: 10px; background: none; color: var(--p-ink); font-size: 15.5px; font-weight: 500; text-align: left; text-decoration: none; cursor: pointer; }
 .account-menu a:hover, .account-menu button:hover { background: var(--p-hover); }
-.tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 54px; border-radius: 16px; color: var(--p-ink-3); font-size: 12.5px; font-weight: 600; text-decoration: none; transition: background-color var(--m-fast) var(--ease), color var(--m-fast) var(--ease); }
+.tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 54px; border-radius: 16px; color: var(--p-ink-3); font-size: 13px; font-weight: 600; text-decoration: none; transition: background-color var(--m-fast) var(--ease), color var(--m-fast) var(--ease); }
 .tab .i { width: 23px; height: 23px; }
 .tab[aria-current="page"] { background: var(--p-active); color: var(--p-ink); box-shadow: inset 0 0 0 0.5px var(--p-line-2), inset 0 1px 0 var(--p-glass-hi); }
 .tab[aria-current="page"] .i { color: var(--p-accent-ink); }
@@ -1114,4 +1115,58 @@ td { font-variant-numeric: tabular-nums; }
     background: var(--p-active); border-color: transparent;
     box-shadow: 0 1px 2px rgba(34, 40, 70, 0.1), inset 0 0 0 1.5px var(--p-ink);
   }
+}
+
+/* ------------------------------------------------------------------ usability pass (2026-10-08) */
+
+/* Section notes sit under their heading, not far to the right. */
+.sec-head > .sec-meta { flex-basis: 100%; }
+.sec-note { max-width: 66ch; margin: -4px 0 14px; font-size: 15.5px; color: var(--p-ink-2); }
+/* Where a number comes from, as plain words. A problem keeps its colour. */
+.src-from { color: var(--p-ink-2); font-weight: 600; }
+.src-from.is-stale { color: var(--p-sched); }
+.src-from.is-disconnected, .src-from.is-error { color: var(--p-crit); }
+.delta.is-new { padding: 3px 10px; background: var(--p-neutral-bg); color: var(--p-neutral); }
+/* Home: the fold under What we are working on. */
+.home-more { margin-top: 40px; }
+.home-more > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 16px; padding: 16px 20px; list-style: none; cursor: pointer; }
+.home-more > summary::-webkit-details-marker { display: none; }
+.home-more > summary .i { grid-column: 2; grid-row: 1 / span 2; color: var(--p-ink-3); transition: transform var(--m) var(--ease); }
+.home-more[open] > summary .i { transform: rotate(180deg); }
+.home-more-title { font-size: 18px; font-weight: 650; }
+.home-more > .duo { margin-top: 20px; }
+.home-more > .account-band { margin-top: 28px; }
+/* Home service cards: a pill that points to the same task in Waiting for you. */
+.work-facts > div:first-child { border-top: 0; }
+.in-wait { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 2px 10px 2px 8px; border-radius: 999px; background: var(--p-attn-bg); color: var(--p-attn); font-size: 13.5px; font-weight: 650; text-decoration: none; }
+.in-wait .i { width: 14px; height: 14px; }
+.in-wait:hover { text-decoration: underline; }
+/* Updates: the rest of an update behind See details. */
+.update-more { margin-top: 4px; }
+.update-more > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; font-size: 14.5px; font-weight: 600; color: var(--p-ink-2); list-style: none; cursor: pointer; }
+.update-more > summary::-webkit-details-marker { display: none; }
+.update-more > summary .i { width: 16px; height: 16px; transition: transform var(--m) var(--ease); }
+.update-more[open] > summary .i { transform: rotate(180deg); }
+.update-more .facts > div:first-child { border-top: 0; }
+.updates-by { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 14.5px; color: var(--p-ink-2); }
+/* Work: the colour key, earlier steps, a task shared between services. */
+.steps-key { margin: 6px 0 0; font-size: 14px; }
+.steps-earlier { margin-top: 4px; }
+.steps-earlier > summary { margin: 0; list-style: none; }
+.steps-earlier > summary::-webkit-details-marker { display: none; }
+.steps-earlier[open] > summary .i { transform: rotate(180deg); }
+.steps-earlier > .steps { margin-top: 4px; }
+.blocker-same { margin-top: 4px; font-size: 14px; color: var(--p-ink-2); }
+.jump { align-items: center; }
+.jump-label { font-size: 14.5px; font-weight: 600; color: var(--p-ink-2); }
+/* Results: what the chart's lines mean. */
+.chart-help { margin: 0 0 8px; font-size: 14px; }
+/* Settings: what each connected app does, and the look in two plain choices. */
+.src-about { font-size: 14.5px; color: var(--p-ink-2); }
+.pick-legend { padding: 0; margin-bottom: 10px; font-size: 15px; font-weight: 650; color: var(--p-ink); }
+/* The sidebar: Sign out last, on its own. */
+.nav-signout { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--p-line); }
+/* The Preview mode pill floats over the bottom corner, so the page leaves room under its last line. */
+@media (min-width: 761px) {
+  .portal[data-demo] .main { padding-bottom: 132px; }
 }

@@ -88,6 +88,7 @@
     if (b) {
       b.setAttribute('aria-expanded', rail ? 'false' : 'true');
       b.setAttribute('aria-label', rail ? 'Expand sidebar' : 'Collapse sidebar');
+      b.setAttribute('title', rail ? 'Make menu bigger' : 'Make menu smaller');
       b.querySelector('.nav-label').textContent = rail ? 'Expand' : 'Collapse';
       b.querySelector('.i use').setAttribute('href', rail ? '#i-chevron-right' : '#i-chevron-left');
     }
@@ -162,6 +163,7 @@
       const b = /** @type {HTMLElement} */ (el);
       b.hidden = !n;
       b.innerHTML = n ? `${n}<span class="sr-only"> ${F.plural(n, 'thing', 'things')} waiting for you</span>` : '';
+      if (n) b.setAttribute('title', `${n} ${F.plural(n, 'thing', 'things')} waiting for you`); else b.removeAttribute('title');
     });
   }
 
@@ -172,12 +174,15 @@
     $('#avatar').textContent = a.user.firstName.charAt(0);
     $('#account-who').innerHTML = `<strong>${F.esc(a.user.firstName)}</strong><span>${F.esc(a.business.name)}</span>`;
     document.querySelectorAll('[data-preview]').forEach((el) => { /** @type {HTMLElement} */ (el).hidden = D8.data.MODE !== 'demo'; });
+    // The floating Preview mode pill sits over the page's bottom corner: the page gets room underneath it.
+    $('#app').toggleAttribute('data-demo', D8.data.MODE === 'demo');
     setBadges(a.openActions);
     const problem = a.subscription && a.subscription.status === 'past_due';
     document.querySelectorAll('[data-badge="billing"]').forEach((el) => {
       const b = /** @type {HTMLElement} */ (el);
       b.hidden = !problem;
       b.innerHTML = problem ? '1<span class="sr-only"> payment problem</span>' : '';
+      if (problem) b.setAttribute('title', '1 payment problem'); else b.removeAttribute('title');
     });
   }
 
@@ -317,18 +322,18 @@
 
   function doRefresh(btn) {
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner" aria-hidden="true"></span>Refreshing';
+    btn.innerHTML = '<span class="spinner" aria-hidden="true"></span>Checking';
     app.client.refresh()
       .then(() => refreshAccount())
       .then((a) => {
         if (app.page && app.page.refresh) app.page.refresh();
-        D8.dialogs.toast(`All up to date. Numbers checked ${a.updatedAt ? F.when(a.updatedAt, app.client.now()) : 'just now'}.`);
+        D8.dialogs.toast(`All up to date. Checked for new numbers ${a.updatedAt ? F.when(a.updatedAt, app.client.now()) : 'just now'}.`);
       })
-      .catch(() => D8.dialogs.toast("We couldn't refresh. What you see was right at the time shown.", { tone: 'error' }))
+      .catch(() => D8.dialogs.toast("We couldn't check for new numbers. What you see was right at the time shown.", { tone: 'error' }))
       .then(() => {
         if (!document.contains(btn)) return;
         btn.disabled = false;
-        btn.innerHTML = `${icon('refresh')}Refresh`;
+        btn.innerHTML = `${icon('refresh')}Check for new numbers`;
       });
   }
 
@@ -441,7 +446,7 @@
     $('#app').classList.add('is-auth');
     const notFound = e && e.code === 'tenant-not-found';
     $('#main').innerHTML = `<div class="signin"><div class="signin-card"><h1 id="page-title" tabindex="-1">We couldn't open your portal</h1>${UI.ErrorState({
-      title: notFound ? 'This email is not linked to a client portal.' : 'Something went wrong while loading your account.',
+      title: notFound ? "We don't have a portal for this email yet." : 'Something went wrong while loading your account.',
       text: notFound ? 'Only people we have added can open a portal. If you think you should have one, email us.' : 'Try again soon. Nothing is lost.'
     })}<button class="btn btn-glass" type="button" data-action="sign-out">Sign out</button></div></div>`;
   }

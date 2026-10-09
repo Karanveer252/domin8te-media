@@ -655,8 +655,8 @@
   /* ---- Scenes or Static, right above Light and Dark in Settings ---------------------------------- */
 
   const SCENES = [
-    ['scenes', 'Scenes', 'A sky that changes with each page', 'is-scenes'],
-    ['static', 'Static', 'The dot grid from our website', 'is-static']
+    ['scenes', 'Moving sky', 'A sky that changes with each page', 'is-scenes'],
+    ['static', 'Plain dots', 'The dot grid from our website', 'is-static']
   ];
   /** @param {string} v */
   function setScene(v) {
@@ -668,7 +668,7 @@
     scene = next;
     paintScene();
     mode();
-    if (D8 && D8.dialogs && D8.dialogs.toast) D8.dialogs.toast(next === 'scenes' ? 'Scenes on.' : 'Static on.');
+    if (D8 && D8.dialogs && D8.dialogs.toast) D8.dialogs.toast(next === 'scenes' ? 'Moving sky on.' : 'Plain dots on.');
   }
   /** Settings is drawn afresh on every visit, so the choice goes in whenever its card appears. */
   function mountPicker() {
@@ -677,7 +677,7 @@
     if (!card || !theme || card.querySelector('.scene-pick')) return;
     const pick = document.createElement('fieldset');
     pick.className = 'theme-pick scene-pick';
-    pick.innerHTML = '<legend class="sr-only">Background</legend>' + SCENES.map(([v, name, about, sw]) =>
+    pick.innerHTML = '<legend class="pick-legend">Background</legend>' + SCENES.map(([v, name, about, sw]) =>
       `<label class="theme-opt"><input type="radio" name="scene" value="${v}"${v === scene ? ' checked' : ''}><span class="theme-swatch ${sw}" aria-hidden="true"></span><span><strong>${name}</strong><span class="meta">${about}</span></span></label>`).join('');
     theme.before(pick);
     pick.addEventListener('change', (e) => {

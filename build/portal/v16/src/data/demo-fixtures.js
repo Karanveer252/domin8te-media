@@ -172,7 +172,7 @@
       {
         id: 'act_payment', kind: 'billing', priority: 'urgent', severity: 'critical', tag: 'Payment problem', service: null,
         title: 'Update your payment method',
-        detail: 'Your card ending 4412 was declined on 22 Sep. Update it to keep every service running.',
+        detail: 'Your card ending 4412 was declined on Tue 22 Sep. Update it to keep every service running.',
         deadline: { date: '2026-10-06', kind: 'grace' },
         primary: { label: 'Update payment method', does: 'billing-portal' },
         more: ['Stripe will try the card again on Fri 25 Sep.', 'If the payment still fails, services pause after Tue 6 Oct. Your invoices, reports and files stay available either way.'],
@@ -199,7 +199,7 @@
       {
         id: 'act_hours', kind: 'approval', approvalId: 'apv_hours', severity: 'scheduled', service: 'local', icon: 'clock',
         title: 'Confirm your autumn opening hours',
-        detail: "We'll update Google, Apple Maps and your website on 1 Oct.",
+        detail: "We'll update Google, Apple Maps and your website on Thu 1 Oct.",
         deadline: { date: '2026-09-29', kind: 'due' },
         primary: { label: 'Confirm hours', does: 'approval' },
         more: ['Monday closed. Tuesday and Wednesday 12:00 to 21:30. Thursday 12:00 to 22:00. Friday 12:00 to 23:00. Saturday 10:00 to 23:00. Sunday 10:00 to 17:00.', 'Once you confirm, we update Google, Apple Maps and your website on Thu 1 Oct.'],
@@ -227,13 +227,13 @@
       },
       apv_hours: {
         id: 'apv_hours', actionId: 'act_hours', service: 'local', title: 'Autumn opening hours', due: '2026-09-29',
-        intro: 'These go on Google, Apple Maps and your website on 1 Oct. Please check each day.',
+        intro: 'These go on Google, Apple Maps and your website on Thu 1 Oct. Please check each day.',
         preview: {
           type: 'hours',
           rows: [['Monday', 'Closed'], ['Tuesday', '12:00 to 21:30'], ['Wednesday', '12:00 to 21:30'], ['Thursday', '12:00 to 22:00'], ['Friday', '12:00 to 23:00'], ['Saturday', '10:00 to 23:00'], ['Sunday', '10:00 to 17:00']]
         },
-        approve: { label: 'Confirm these hours', done: "Confirmed. We'll update Google, Apple Maps and your website on 1 Oct." },
-        change: { label: 'Something is wrong', done: "Thanks. We'll correct the hours and check them with you before 1 Oct." },
+        approve: { label: 'Confirm these hours', done: "Confirmed. We'll update Google, Apple Maps and your website on Thu 1 Oct." },
+        change: { label: 'Something is wrong', done: "Thanks. We'll correct the hours and check them with you before Thu 1 Oct." },
         effects: {
           approved: [
             { service: 'local', next: { who: 'domin8te', text: 'Put your autumn hours on Google and Apple Maps' } },
@@ -292,19 +292,19 @@
         status: 'in_progress',
         objective: 'Bring new guests in to try the autumn menu, booked online.',
         now: 'Preparing two versions of the autumn menu ad',
-        expected: { date: '2026-10-02', text: 'Ad goes live on Meta' },
+        expected: { date: '2026-10-02', text: 'Ads start on Facebook and Instagram' },
         next: { who: 'domin8te', text: 'Final check of both ad versions' },
-        proof: { date: '2026-09-21', text: 'Sunday roast campaign finished: 186 clicks to your booking page' },
+        proof: { date: '2026-09-21', text: 'Sunday roast ads finished: 186 clicks to your booking page' },
         milestones: [
-          { title: 'Sunday roast campaign, 12 to 21 Sep', date: '2026-09-21', state: 'done' },
+          { title: 'Ran the Sunday roast ads, 12 to 21 Sep', date: '2026-09-21', state: 'done' },
           { title: 'Two autumn ad versions ready', date: '2026-09-28', state: 'current' },
-          { title: 'Live on Meta', date: '2026-10-02', state: 'next' },
-          { title: 'Live on Google', date: '2026-10-09', state: 'next' }
+          { title: 'Ads start on Facebook and Instagram', date: '2026-10-02', state: 'next' },
+          { title: 'Ads start on Google', date: '2026-10-09', state: 'next' }
         ],
         completed: [
-          { date: '2026-09-22', text: 'Shared the Sunday roast campaign results' },
-          { date: '2026-09-21', text: 'Sunday roast campaign finished' },
-          { date: '2026-09-12', text: 'Sunday roast campaign went live on Meta' }
+          { date: '2026-09-22', text: 'Sent you the Sunday roast results' },
+          { date: '2026-09-21', text: 'Sunday roast ads ended' },
+          { date: '2026-09-12', text: 'Sunday roast ads started on Facebook and Instagram' }
         ],
         files: []
       },
@@ -332,14 +332,14 @@
       {
         id: 'upd_0923', date: '2026-09-23', service: 'social', author: 'team', title: "Next week's posts are ready for you",
         completed: "Drafted next week's 3 posts: the autumn menu, Sunday roast and weekend brunch.",
-        changed: 'Instagram disconnected on 21 Sep, so Instagram posts are paused. Facebook posts continue as planned.',
+        changed: 'Instagram disconnected on Mon 21 Sep, so Instagram posts are paused. Facebook posts continue as planned.',
         result: 'Posts with your own food photos drew the most comments this month.',
         why: 'Nothing goes out on social until you approve it.',
         next: 'Your approval by Fri 25 Sep, then we schedule the posts for Mon, Wed and Fri.'
       },
       {
         id: 'upd_0922', date: '2026-09-22', service: 'advertising', author: 'team', title: 'Sunday roast campaign results',
-        completed: 'The Sunday roast campaign ran on Meta from 12 to 21 Sep.',
+        completed: 'The Sunday roast ads ran on Facebook and Instagram from Sat 12 to Mon 21 Sep.',
         changed: 'Nothing changed during the campaign; it ran as planned.',
         result: 'The ads brought 186 clicks to your booking page.',
         why: 'It shows the kind of dish people click through for, which shapes the autumn ad.',
@@ -349,13 +349,13 @@
         id: 'upd_0921', date: '2026-09-21', service: 'social', author: 'automatic', title: 'Instagram disconnected',
         changed: 'Instagram stopped accepting posts from Domin8te at 09:40. This usually means the password changed or access was removed.',
         why: 'Posts and figures for Instagram are paused until it is reconnected.',
-        next: 'Reconnect Instagram from Needs your attention on your Home page.'
+        next: 'Reconnect Instagram from Waiting for you on your Home page.'
       },
       {
         id: 'upd_0918', date: '2026-09-18', service: 'website', author: 'team', title: 'Autumn menu page is live',
         completed: 'Published the autumn menu page with the new dishes.',
         changed: 'Added a booking button under each section of the menu.',
-        result: 'It is too early to judge. We will report bookings from this page in your monthly report on 6 Oct.',
+        result: 'It is too early to judge. We will report bookings from this page in your monthly report on Tue 6 Oct.',
         why: 'People looking at the menu can book without scrolling back to the top.',
         next: 'Test the booking button on phones, then update your opening hours once you confirm them.'
       },
@@ -370,7 +370,7 @@
         id: 'upd_0908', date: '2026-09-08', service: null, author: 'team', title: 'Monthly results call',
         completed: 'Went through the August results with you and agreed the autumn plan.',
         changed: 'Agreed three posts a week, a Sunday roast campaign and a new autumn menu page.',
-        next: 'Publish the autumn menu page by 18 Sep.'
+        next: 'Publish the autumn menu page by Fri 18 Sep.'
       },
       {
         id: 'upd_0903', date: '2026-09-03', service: 'website', author: 'team', title: 'Homepage copy approved',
@@ -379,7 +379,7 @@
       },
       {
         id: 'upd_0717', date: '2026-07-17', service: 'advertising', author: 'team', title: 'Summer terrace campaign results',
-        completed: 'The summer terrace campaign ran on Meta from 3 to 16 Jul.',
+        completed: 'The summer terrace ads ran on Facebook and Instagram from Fri 3 to Thu 16 Jul.',
         result: 'The ads brought 140 clicks to your booking page.',
         next: 'Plan the autumn campaigns with you in September.'
       }
@@ -387,7 +387,7 @@
     billing: {
       plan: { name: 'Full service', services: ['website', 'social', 'advertising', 'local'], interval: 'Billed monthly on the 22nd' },
       subscription: { status: 'past_due', graceUntil: '2026-10-06', retryOn: '2026-09-25', nextBilling: '2026-10-22' },
-      paymentMethod: { brand: 'Visa', last4: '4412', problem: { date: '2026-09-22', text: 'Declined on 22 Sep' } },
+      paymentMethod: { brand: 'Visa', last4: '4412', problem: { date: '2026-09-22', text: 'Declined on Tue 22 Sep' } },
       invoices: [
         { id: 'in_bay_0009', number: 'BAY-0009', issued: '2026-09-22', period: ['2026-09-22', '2026-10-21'], status: 'failed', note: 'Stripe will try your card again on Fri 25 Sep.' },
         { id: 'in_bay_0008', number: 'BAY-0008', issued: '2026-08-22', period: ['2026-08-22', '2026-09-21'], status: 'paid', paidOn: '2026-08-22' },
