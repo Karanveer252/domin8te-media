@@ -90,3 +90,21 @@ var io = new IntersectionObserver(function (es) {
 }, { rootMargin: '600px 0px' });
 io.observe(cal);
 })();
+
+/* the phone's sticky bar (the homepage's .ctabar look): on once the heading is behind the reader,
+   off while the booking calendar or the form is on screen, since the button would only cover them */
+(function () {
+'use strict';
+var bar = document.getElementById('vslBar');
+var hero = document.querySelector('.vsl-hero');
+if (!bar || !hero || !('IntersectionObserver' in window)) return;
+var past = false, seen = new Set();
+function paint() { bar.classList.toggle('is-on', past && seen.size === 0) }
+new IntersectionObserver(function (es) { past = !es[0].isIntersecting && es[0].boundingClientRect.top < 0; paint() })
+  .observe(hero);
+var io = new IntersectionObserver(function (es) {
+  es.forEach(function (e) { if (e.isIntersecting) seen.add(e.target); else seen.delete(e.target) });
+  paint();
+}, { rootMargin: '0px 0px -20% 0px' });
+['book', 'contact'].forEach(function (id) { var el = document.getElementById(id); if (el) io.observe(el) });
+})();
