@@ -355,3 +355,27 @@ test('approved projection rows lay over the record; no rows leaves it untouched'
   assert.equal(t.billing.invoices.filter((x) => x.number === 'BAY-0009').length, 1, 'the approved invoice replaces the record\'s');
   assert.equal(t.billing.invoices.find((x) => x.number === 'BAY-0009').status, 'paid');
 });
+
+test('the public demo is view-only: every write is refused and nothing is stored', async () => {
+  const D8 = load('bayleaf', { readOnly: true });
+  const session = await D8.auth.getSession();
+  const c = D8.data.connect(session);
+  const refused = async (p) => assert.rejects(p, (e) => e.code === 'demo-readonly' && /This is a demo/.test(e.message));
+  await refused(c.decide('apv_posts', 'approved', ''));
+  await refused(c.sendMessage('general', 'Hello'));
+  await refused(c.sendRequest('website', 'Change the photo'));
+  await refused(c.saveNotifications({}));
+  await refused(c.saveAppearance({ theme: 'dark' }));
+  assert.equal(D8.data.READ_ONLY, true);
+  // Reading still works, and opening Messages clears the badge in memory without a write.
+  const seen = await c.markMessagesSeen();
+  assert.equal(seen.written, false);
+  assert.equal((await c.getThread()).unread, 0);
+  assert.ok((await c.getAttention()).length > 0, 'nothing got answered');
+});
+
+test('with the demo guard off (tests only), writes still work as before', async () => {
+  const { client: c } = await client('bayleaf');
+  const rec = await c.decide('apv_posts', 'approved', '');
+  assert.equal(rec.decision, 'approved');
+});

@@ -1,0 +1,363 @@
+/*
+ * Clear Glass Flow: the final direction (17A to 17E, variant.json "family": "clear").
+ * 16E Clear's structure (a floating glass sidebar, a calm central column on a warm light canvas)
+ * with 16J Flow as the atmosphere only: soft peach, rose, blush, apricot and a whisper of
+ * indigo, strongest at the edges and corners, never behind body copy (each variant composes
+ * its own .lg-world). Restrained clear glass separates the layers: translucent warm white at
+ * 0.58 to 0.76, an 18 to 24px blur, a white hairline edge, a soft low shadow and a faint lit
+ * top edge, 20 to 24px corners. No thick rims, no capsule for every control.
+ * Parts from the other versions: 16A's lens for the current page only, 16D's segmented
+ * controls for local filters, 16F's tiles for the four figures only.
+ * Text colours follow the brief's palette, darkened where the brief's own values would miss
+ * 4.5:1 over glass on the flow: muted ink #736E67 becomes #58534D for text; alert #B85B43 fills
+ * the urgent button (white text) and #93432F carries alert text; success #4D8A73 marks and
+ * #3B6D5B writes.
+ */
+
+html.lg-clear {
+  --p-bg: #F7F5F1;
+  --p-amb-warm: rgba(244, 174, 136, 0.5);
+  --p-amb-peach: rgba(236, 167, 185, 0.46);
+  --p-amb-cool: rgba(116, 133, 200, 0.16);
+
+  --p-glass: rgba(255, 252, 249, 0.66);
+  --p-glass-strong: rgba(255, 252, 249, 0.74);
+  --p-glass-soft: rgba(255, 252, 249, 0.58);
+  --p-glass-edge: rgba(255, 255, 255, 0.72);
+  --p-glass-hi: rgba(255, 255, 255, 0.85);
+  --p-glass-blur: saturate(140%) blur(20px);
+  --p-shadow: 0 1px 2px rgba(70, 45, 35, 0.04), 0 12px 30px -18px rgba(90, 55, 45, 0.22);
+  --p-shadow-lift: 0 2px 4px rgba(70, 45, 35, 0.05), 0 18px 36px -18px rgba(90, 55, 45, 0.28);
+  --p-shadow-pop: 0 1px 2px rgba(70, 45, 35, 0.05), 0 26px 60px -22px rgba(80, 50, 40, 0.32);
+
+  --p-surface: #FFFFFF;
+  --p-surface-2: #F3F0EB;
+  --p-surface-3: #E8E3DC;
+  --p-hover: rgba(90, 64, 50, 0.06);
+  --p-well: rgba(120, 88, 66, 0.06);
+  --p-active: rgba(255, 255, 255, 0.8);
+
+  --p-ink: #292724;
+  --p-ink-2: #4B4640;
+  --p-ink-3: #58534D;
+  --p-line: rgba(90, 64, 50, 0.12);
+  --p-line-2: rgba(90, 64, 50, 0.22);
+  --p-control: #7E776F;
+
+  --p-accent: #B85B43;
+  --p-accent-hover: #A64E38;
+  --p-on-accent: #FFFFFF;
+  --p-accent-ink: #93432F;
+
+  --p-crit: #93432F;
+  --p-crit-bg: rgba(232, 140, 105, 0.16);
+  --p-crit-line: rgba(196, 104, 72, 0.32);
+  --p-appr: #45518C;
+  --p-appr-bg: rgba(116, 133, 200, 0.15);
+  --p-appr-line: rgba(116, 133, 200, 0.36);
+  --p-conn: #445B6B;
+  --p-conn-bg: rgba(120, 152, 178, 0.15);
+  --p-conn-line: rgba(110, 142, 168, 0.34);
+  --p-sched: #775717;
+  --p-sched-bg: rgba(226, 176, 98, 0.18);
+  --p-sched-line: rgba(200, 152, 72, 0.34);
+
+  --p-success: #3B6D5B;
+  --p-success-bg: rgba(77, 138, 115, 0.14);
+  --p-warning: #775717;
+  --p-warning-bg: rgba(226, 176, 98, 0.18);
+  --p-error: #93432F;
+  --p-error-bg: rgba(232, 140, 105, 0.16);
+  --p-error-line: rgba(196, 104, 72, 0.32);
+  --p-info: #445B84;
+  --p-info-bg: rgba(116, 150, 200, 0.14);
+  --p-neutral: #4B4640;
+  --p-neutral-bg: rgba(90, 64, 50, 0.08);
+  --p-attn: #93432F;
+  --p-attn-bg: rgba(244, 174, 136, 0.22);
+
+  --p-focus: #292724;
+  --p-switch-on: #3B6D5B;
+  --p-chart: #B25A43;
+  --p-chart-prev: #857E76;
+  --p-chart-area: rgba(184, 91, 67, 0.08);
+  --p-grid: rgba(90, 64, 50, 0.1);
+  --p-backdrop: rgba(41, 39, 36, 0.28);
+
+  --p-r-sm: 10px;
+  --p-r: 14px;
+  --p-r-lg: 22px;
+  --p-r-xl: 26px;
+  --p-side-full: 248px;
+  --p-side-rail: 72px;
+
+  /* The Flow colours, as channels, so each variant can set its own strengths. */
+  --f-peach: 244, 174, 136;
+  --f-rose: 236, 167, 185;
+  --f-blush: 243, 197, 200;
+  --f-apricot: 242, 196, 150;
+  --f-indigo: 116, 133, 200;
+  --f-teal: 127, 174, 167;
+  --f-canvas: 247, 245, 241;
+}
+
+/* ------------------------------------------------------------------ dark, by the client's choice */
+
+html.lg-clear[data-theme="dark"] {
+  --p-bg: #161412;
+  --p-amb-warm: rgba(244, 174, 136, 0.16);
+  --p-amb-peach: rgba(236, 167, 185, 0.14);
+  --p-amb-cool: rgba(116, 133, 200, 0.14);
+
+  --p-glass: rgba(33, 30, 29, 0.66);
+  --p-glass-strong: rgba(30, 27, 26, 0.74);
+  --p-glass-soft: rgba(40, 36, 34, 0.58);
+  --p-glass-edge: rgba(255, 255, 255, 0.1);
+  --p-glass-hi: rgba(255, 255, 255, 0.08);
+  --p-glass-blur: saturate(130%) blur(20px);
+  --p-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 12px 32px -16px rgba(0, 0, 0, 0.7);
+  --p-shadow-lift: 0 0 0 0.5px rgba(0, 0, 0, 0.55), 0 20px 40px -18px rgba(0, 0, 0, 0.8);
+  --p-shadow-pop: 0 0 0 0.5px rgba(0, 0, 0, 0.6), 0 28px 64px -20px rgba(0, 0, 0, 0.85);
+
+  --p-surface: #211E1C;
+  --p-surface-2: #2A2624;
+  --p-surface-3: #35302D;
+  --p-hover: rgba(255, 255, 255, 0.06);
+  --p-well: rgba(255, 255, 255, 0.05);
+  --p-active: rgba(255, 255, 255, 0.11);
+
+  --p-ink: #F2EEE9;
+  --p-ink-2: #D0C9C0;
+  --p-ink-3: #AFA89E;
+  --p-line: rgba(255, 255, 255, 0.08);
+  --p-line-2: rgba(255, 255, 255, 0.15);
+  --p-control: #8C8580;
+
+  --p-accent: #E38168;
+  --p-accent-hover: #EC927B;
+  --p-on-accent: #1B1411;
+  --p-accent-ink: #F2A68F;
+
+  --p-crit: #F2A68F;
+  --p-crit-bg: rgba(232, 140, 105, 0.18);
+  --p-crit-line: rgba(232, 140, 105, 0.34);
+  --p-appr: #B3BDF0;
+  --p-appr-bg: rgba(116, 133, 200, 0.22);
+  --p-appr-line: rgba(140, 156, 220, 0.38);
+  --p-conn: #ADC4D4;
+  --p-conn-bg: rgba(120, 152, 178, 0.18);
+  --p-conn-line: rgba(140, 170, 196, 0.34);
+  --p-sched: #EBC47F;
+  --p-sched-bg: rgba(226, 176, 98, 0.16);
+  --p-sched-line: rgba(226, 176, 98, 0.32);
+
+  --p-success: #92CFB4;
+  --p-success-bg: rgba(77, 138, 115, 0.22);
+  --p-warning: #EBC47F;
+  --p-warning-bg: rgba(226, 176, 98, 0.16);
+  --p-error: #F2A68F;
+  --p-error-bg: rgba(232, 140, 105, 0.18);
+  --p-error-line: rgba(232, 140, 105, 0.34);
+  --p-info: #A9C0EA;
+  --p-info-bg: rgba(116, 150, 200, 0.18);
+  --p-neutral: #D0C9C0;
+  --p-neutral-bg: rgba(255, 255, 255, 0.08);
+  --p-attn: #F2A68F;
+  --p-attn-bg: rgba(244, 174, 136, 0.16);
+
+  --p-focus: #F2EEE9;
+  --p-switch-on: #92CFB4;
+  --p-chart: #EE9A82;
+  --p-chart-prev: #A29B93;
+  --p-chart-area: rgba(238, 154, 130, 0.1);
+  --p-grid: rgba(255, 255, 255, 0.07);
+  --p-backdrop: rgba(6, 5, 4, 0.55);
+
+  --f-canvas: 22, 20, 18;
+}
+
+/* ------------------------------------------------------------------ the atmosphere */
+
+/* Each variant paints .lg-world (injected at the start of the page body) with its own Flow composition. */
+html.lg-clear body::before { display: none; }
+.lg-world { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background-color: var(--p-bg); }
+.lg-world > i { position: absolute; display: block; }
+
+/* ------------------------------------------------------------------ the glass */
+
+html.lg-clear :is(.card, .metric-card, .act-card, .caught-up, .error-state, .empty, .skel-card, .banner, .signin-card, .dlg, .account-menu) {
+  border-color: var(--p-glass-edge);
+  box-shadow: var(--p-shadow), inset 0 1px 0 var(--p-glass-hi);
+}
+html.lg-clear :is(.card, .metric-card, .act-card, .caught-up, .skel-card) { border-radius: var(--p-r-lg); }
+html.lg-clear .banner { border-color: var(--p-crit-line); }
+html.lg-clear :is(.card, .caught-up) :is(.empty, .error-state) { box-shadow: none; }
+@media (hover: hover) {
+  html.lg-clear .is-link:hover,
+  html.lg-clear .act-card:hover { transform: translateY(-1px); box-shadow: var(--p-shadow-lift), inset 0 1px 0 var(--p-glass-hi); }
+}
+/* Pressing settles, it does not bounce. */
+html.lg-clear :is(.btn, .nav-link, .tab, .preview-chip):active:not(:disabled) { transform: scale(0.98); transition: transform var(--m-fast) var(--ease); }
+
+/* ------------------------------------------------------------------ the floating sidebar */
+
+html.lg-clear .side {
+  border-radius: 24px;
+  background-color: var(--p-glass-strong);
+  box-shadow: var(--p-shadow), inset 0 1px 0 var(--p-glass-hi);
+}
+html.lg-clear .identity { border-radius: 16px; background: rgba(255, 255, 255, 0.34); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5); }
+html.lg-clear[data-theme="dark"] .identity { background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
+html.lg-clear .identity-avatar { border-radius: 12px; background: rgba(255, 255, 255, 0.8); }
+html.lg-clear[data-theme="dark"] .identity-avatar { background: rgba(255, 255, 255, 0.1); }
+html.lg-clear .nav-link { border-radius: 14px; }
+html.lg-clear .nav-link:hover { background: rgba(255, 255, 255, 0.36); }
+html.lg-clear[data-theme="dark"] .nav-link:hover { background: rgba(255, 255, 255, 0.05); }
+/* 16A's lens, for the current page only: a frosted inner capsule with a soft highlight. */
+html.lg-clear .nav-list::before {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(255, 255, 255, 0.4), 0 0 0 0.5px rgba(90, 64, 50, 0.16), 0 6px 16px -10px rgba(90, 55, 45, 0.4);
+  -webkit-backdrop-filter: blur(10px) saturate(150%); backdrop-filter: blur(10px) saturate(150%);
+}
+html.lg-clear[data-theme="dark"] .nav-list::before { background: rgba(255, 255, 255, 0.12); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 0 0 0.5px rgba(255, 255, 255, 0.08), 0 6px 16px -10px rgba(0, 0, 0, 0.6); }
+html.lg-clear .portal[data-ind] .nav-list::before { transition: transform var(--m-slow) var(--ease), height var(--m) var(--ease), opacity var(--m-fast) var(--ease); }
+html.lg-clear .nav-link[aria-current="page"] { color: var(--p-ink); font-weight: 650; }
+html.lg-clear .nav-link[aria-current="page"] .i { color: var(--p-ink); }
+html.lg-clear .nav-pill { background: rgba(90, 64, 50, 0.1); }
+html.lg-clear[data-theme="dark"] .nav-pill { background: rgba(255, 255, 255, 0.1); }
+html.lg-clear .rail-tip { border-radius: 12px; background-color: var(--p-glass-strong); }
+
+/* ------------------------------------------------------------------ 16D's segmented controls, for local filters */
+
+html.lg-clear .segmented,
+html.lg-clear .jump {
+  display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 4px;
+  border: 1px solid var(--p-glass-edge); border-radius: 14px;
+  background: rgba(255, 255, 255, 0.42);
+  box-shadow: inset 0 1px 2px rgba(90, 64, 50, 0.08);
+  -webkit-backdrop-filter: var(--p-glass-blur); backdrop-filter: var(--p-glass-blur);
+}
+html.lg-clear[data-theme="dark"] .segmented,
+html.lg-clear[data-theme="dark"] .jump { background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3); }
+html.lg-clear .seg span { min-height: 36px; padding: 6px 14px; border-radius: 10px; font-size: 14.5px; font-weight: 600; color: var(--p-ink-2); }
+/* The chosen option: a tinted glass knob, not a dark block. */
+html.lg-clear .seg input:checked + span {
+  color: var(--p-ink); font-weight: 700;
+  background: linear-gradient(180deg, rgba(var(--f-peach), 0.2), rgba(var(--f-rose), 0.16)), rgba(255, 255, 255, 0.86);
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 0 0 1px rgba(41, 39, 36, 0.2), 0 2px 6px -2px rgba(90, 55, 45, 0.3);
+}
+html.lg-clear[data-theme="dark"] .seg input:checked + span { background: linear-gradient(180deg, rgba(var(--f-peach), 0.16), rgba(var(--f-rose), 0.12)), rgba(255, 255, 255, 0.1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.22); }
+html.lg-clear .seg:hover input:not(:checked) + span { background: rgba(255, 255, 255, 0.45); color: var(--p-ink); }
+html.lg-clear[data-theme="dark"] .seg:hover input:not(:checked) + span { background: rgba(255, 255, 255, 0.05); }
+html.lg-clear .range-bar { gap: 10px 12px; }
+/* Work's service links behave like one: a row of places on this page. */
+html.lg-clear .jump { margin: 24px 0 4px; }
+html.lg-clear .jump-link { min-height: 36px; padding: 6px 12px; border: 0; border-radius: 10px; background: none; box-shadow: none; font-size: 14.5px; }
+html.lg-clear .jump-link:hover { background: rgba(255, 255, 255, 0.6); }
+html.lg-clear[data-theme="dark"] .jump-link:hover { background: rgba(255, 255, 255, 0.06); }
+
+/* ------------------------------------------------------------------ buttons: rounded glass, not capsules */
+
+html.lg-clear .btn { border-radius: 12px; }
+html.lg-clear .btn-sm { border-radius: 10px; }
+html.lg-clear .btn-primary { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 6px 14px -8px rgba(184, 91, 67, 0.7); }
+html.lg-clear[data-theme="dark"] .btn-primary { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 6px 14px -8px rgba(0, 0, 0, 0.6); }
+html.lg-clear .btn-tint { box-shadow: inset 0 1px 0 var(--p-glass-hi); }
+html.lg-clear .btn-glass, html.lg-clear .btn-outline { background-color: rgba(255, 255, 255, 0.62); border-color: var(--p-glass-edge); box-shadow: 0 1px 2px rgba(90, 64, 50, 0.08), inset 0 1px 0 #FFFFFF; }
+html.lg-clear[data-theme="dark"] .btn-glass, html.lg-clear[data-theme="dark"] .btn-outline { background-color: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.12); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+html.lg-clear .btn-glass:hover:not(:disabled), html.lg-clear .btn-outline:hover:not(:disabled) { background-color: rgba(255, 255, 255, 0.86); border-color: var(--p-glass-edge); }
+html.lg-clear[data-theme="dark"] .btn-glass:hover:not(:disabled), html.lg-clear[data-theme="dark"] .btn-outline:hover:not(:disabled) { background-color: rgba(255, 255, 255, 0.12); }
+html.lg-clear .status-chip { border-radius: 10px; }
+
+/* ------------------------------------------------------------------ Home: the header */
+
+html.lg-clear .page-head h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.025em; }
+html.lg-clear .fresh-line .verified .i { color: #4D8A73; }
+html.lg-clear[data-theme="dark"] .fresh-line .verified .i { color: var(--p-success); }
+
+/* ------------------------------------------------------------------ Home: 16F's tiles, for the four figures only */
+
+html.lg-clear .metric-card {
+  padding: 18px 20px 16px;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 46%);
+  box-shadow: var(--p-shadow), inset 0 1px 0 #FFFFFF, inset 0 -1px 0 rgba(255, 255, 255, 0.36);
+}
+html.lg-clear[data-theme="dark"] .metric-card { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 46%); box-shadow: var(--p-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+html.lg-clear .fig { font-size: 38px; letter-spacing: -0.035em; }
+html.lg-clear .delta { font-weight: 650; }
+html.lg-clear .src-chip { border-radius: 8px; background: rgba(255, 255, 255, 0.5); }
+html.lg-clear[data-theme="dark"] .src-chip { background: rgba(255, 255, 255, 0.06); }
+html.lg-clear .spark path { stroke: var(--p-chart); opacity: 0.8; }
+
+/* ------------------------------------------------------------------ Home: needs your attention, the strongest section */
+
+html.lg-clear .sec-attention .sec-head h2 { font-size: 22px; }
+/* Every row carries its severity as a soft glass tint from the left, an icon, a word and one action. */
+html.lg-clear .act-card { background-image: linear-gradient(100deg, var(--sev-bg), rgba(255, 255, 255, 0) 62%); border-color: var(--p-glass-edge); }
+html.lg-clear .act-card.sev-critical { border-color: var(--p-crit-line); }
+html.lg-clear .act-icon { border-radius: 14px; background: var(--sev-bg); box-shadow: inset 0 0 0 1px var(--sev-line); }
+html.lg-clear .sev-chip { border-radius: 8px; }
+html.lg-clear .act-more { background: rgba(255, 255, 255, 0.42); border-radius: 14px; }
+html.lg-clear[data-theme="dark"] .act-more { background: rgba(255, 255, 255, 0.05); }
+/* All clear: a calm, muted green, never neon. */
+html.lg-clear .orb { color: #3B6D5B; background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 42%), radial-gradient(circle at 50% 60%, rgba(77, 138, 115, 0.28), rgba(77, 138, 115, 0.1) 70%); box-shadow: inset 0 0 0 1px rgba(77, 138, 115, 0.26), 0 10px 24px -14px rgba(77, 138, 115, 0.45); }
+html.lg-clear[data-theme="dark"] .orb { color: var(--p-success); }
+
+/* ------------------------------------------------------------------ Home: coming up */
+
+.upcoming { display: grid; }
+.up-item { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--p-line); }
+.up-item:first-child { border-top: 0; padding-top: 2px; }
+.up-date { display: grid; justify-items: center; align-content: center; width: 52px; height: 52px; border-radius: 14px; background: rgba(255, 255, 255, 0.62); box-shadow: inset 0 1px 0 #FFFFFF, 0 0 0 0.5px var(--p-line-2); line-height: 1.05; }
+html[data-theme="dark"] .up-date { background: rgba(255, 255, 255, 0.07); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 0 0.5px var(--p-line-2); }
+.up-day { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.up-mon { font-size: 12.5px; font-weight: 600; color: var(--p-ink-2); }
+.up-item.is-yours .up-date { background: var(--p-attn-bg); box-shadow: inset 0 0 0 1px rgba(196, 104, 72, 0.26); }
+.up-title { font-weight: 650; line-height: 1.35; }
+.up-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; margin-top: 2px; font-size: 14px; color: var(--p-ink-2); }
+.up-meta .svc-tag { font-size: 14px; }
+.up-who { font-weight: 600; color: var(--p-ink); }
+.up-item.is-yours .up-who { color: var(--p-accent-ink); }
+html.lg-clear .upcoming-box { padding: 16px 20px; border: 1px solid var(--p-glass-edge); border-radius: var(--p-r-lg); background: var(--p-glass); box-shadow: var(--p-shadow), inset 0 1px 0 var(--p-glass-hi); -webkit-backdrop-filter: var(--p-glass-blur); backdrop-filter: var(--p-glass-blur); }
+html.lg-clear .upcoming-box > .error-state, html.lg-clear .upcoming-box > .empty { padding: 4px 0; border: 0; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* While the account loads: the page's shape, shimmering. */
+html.lg-clear .page-booting { padding-top: 96px; }
+html.lg-clear .page-booting .skel-wrap ~ .skel-wrap { margin-top: 40px; }
+
+/* ------------------------------------------------------------------ Results: Basic or Advanced */
+
+/* Basic shows the figures, notes and the summary; Advanced adds the daily charts, their tables and campaigns. */
+html.lg-clear .page-results[data-detail="basic"] :is(.chart-fig, .campaigns) { display: none; }
+html.lg-clear .ai-summary { border-style: solid; border-color: var(--p-appr-line); background: var(--p-glass); }
+
+/* ------------------------------------------------------------------ the rest of the family */
+
+html.lg-clear .account-menu { border-radius: 18px; }
+html.lg-clear .dlg { border-radius: 26px; }
+html.lg-clear .toast { border-radius: 14px; }
+html.lg-clear .stale-note { border-radius: 12px; }
+html.lg-clear .preview-chip.is-float { border-radius: 14px; }
+html.lg-clear .acct-grid { border-radius: var(--p-r-lg); background: var(--p-glass-soft); box-shadow: inset 0 0 0 1px var(--p-glass-edge), var(--p-shadow); -webkit-backdrop-filter: var(--p-glass-blur); backdrop-filter: var(--p-glass-blur); }
+
+/* Phones: the bars are the same clear glass. */
+@media (max-width: 760px) {
+  html.lg-clear .topbar { border-radius: 0 0 22px 22px; }
+  html.lg-clear .tabbar { border-radius: 26px; }
+  html.lg-clear .fig { font-size: 30px; }
+  html.lg-clear .up-item { grid-template-columns: 46px minmax(0, 1fr); }
+  html.lg-clear .up-date { width: 46px; height: 46px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-world, .lg-world * { animation: none !important; }
+  html.lg-clear .is-link:hover, html.lg-clear .act-card:hover { transform: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  html.lg-clear :is(.side, .card, .metric-card, .act-card, .caught-up, .skel-card, .banner, .signin-card, .topbar, .tabbar, .dlg, .account-menu, .preview-chip, .upcoming-box, .segmented, .jump) { background-color: var(--p-surface); background-image: none; }
+}
+@media (forced-colors: active) {
+  .lg-world { display: none; }
+  .up-date { border: 1px solid CanvasText; }
+}

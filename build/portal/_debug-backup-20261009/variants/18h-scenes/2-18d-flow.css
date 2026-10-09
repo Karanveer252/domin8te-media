@@ -1,0 +1,154 @@
+/*
+ * 18D Flow. Built from 16J: the clearest glass of the series, and navigation that behaves like
+ * liquid. Two things change. The rail becomes a compact fixed panel with labels beside the
+ * icons, pinned to the top left, all eight items together, and the liquid layer still draws the
+ * capsule behind the current page and the drop that follows the pointer. And the world is no
+ * longer a set of pools that drift about: it is a current. Pools travel steadily in one
+ * direction and come round again, each page with its own palette and its own direction of flow:
+ * Home rises to the right, Work runs right, Results rises, Updates runs left, Billing sinks slowly
+ * to the right, Settings barely drifts, Help turns in a slow swirl. Dark: the same currents
+ * glowing in the dark.
+ */
+
+html[data-variant="18h"] {
+  --p-bg: #F7EFE7;
+  /* The cream between the pools, and the deepest pool (Results' indigo at full strength). */
+  --p-env-light: #FFF8F0;
+  --p-env-dark: #8F89EF;
+  --p-env-veil: rgba(250, 244, 238, 0.42);
+  --p-side-full: 236px;
+  --d-a: 0.9;
+  /* The palettes, one pair per page. */
+  --d-peach: 255, 170, 120;
+  --d-rose: 255, 128, 162;
+  --d-teal: 96, 172, 166;
+  --d-amber: 255, 178, 78;
+  --d-indigo: 132, 126, 240;
+  --d-sage: 156, 194, 148;
+  --d-apricot: 255, 168, 112;
+  --d-lavender: 180, 158, 242;
+  --d-gold: 240, 196, 92;
+  --d-stone: 198, 184, 166;
+  --d-blue: 156, 194, 236;
+  --d-blush: 255, 176, 194;
+  --d-peach-2: 255, 194, 148;
+}
+html[data-variant="18h"][data-theme="dark"] {
+  --p-bg: #120F16;
+  --p-env-light: #AE6D47;
+  --p-env-dark: #0E0B12;
+  --p-env-veil: rgba(10, 8, 12, 0.38);
+  --p-side-full: 236px;
+  --d-a: 0.72;
+  --d-peach: 235, 125, 70;
+  --d-rose: 225, 75, 130;
+  --d-teal: 45, 150, 145;
+  --d-amber: 220, 145, 40;
+  --d-indigo: 105, 90, 235;
+  --d-sage: 85, 150, 100;
+  --d-apricot: 230, 125, 70;
+  --d-lavender: 135, 105, 230;
+  --d-gold: 215, 155, 45;
+  --d-stone: 135, 120, 105;
+  --d-blue: 75, 125, 200;
+  --d-blush: 225, 105, 135;
+  --d-peach-2: 235, 145, 90;
+}
+
+/* ---- the current ---------------------------------------------------------------------------- */
+
+/* Each pool is a positioned box (its place, size and colour belong to one page) that carries two
+   copies of the same travelling pool, half a cycle apart, so one is always on screen while the
+   other fades out at the end of its path and comes round again. Pages crossfade their sets. */
+html[data-variant="18h"] .lg-world > i {
+  --play: paused; --wc: auto; --ph: 0; --dur: 50s; --tf: steps(600);
+  opacity: 0; visibility: hidden; border-radius: 0; animation: none; will-change: auto;
+  transition: opacity 1.4s var(--ease), left 1.4s var(--ease), top 1.4s var(--ease), right 1.4s var(--ease), bottom 1.4s var(--ease), width 1.4s var(--ease), height 1.4s var(--ease), background-color 1.4s var(--ease), filter 1.4s var(--ease), visibility 0s linear 1.4s;
+}
+html[data-variant="18h"] .lg-world > i::before,
+html[data-variant="18h"] .lg-world > i::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; will-change: var(--wc);
+  background: radial-gradient(closest-side, rgba(var(--c), var(--d-a)) 0 42%, rgba(var(--c), 0) 74%);
+  animation: var(--path) var(--dur) var(--tf) infinite;
+  animation-delay: calc(var(--dur) * var(--ph) * -1);
+  animation-play-state: var(--play);
+}
+html[data-variant="18h"] .lg-world > i::after { animation-delay: calc(var(--dur) * (var(--ph) + 0.5) * -1); }
+
+/* The paths: a straight run that fades at both ends (so the loop never jumps), and a swirl. */
+@keyframes d-up-right { 0% { transform: translate(-30vw, 34vh); opacity: 0; } 18% { opacity: 1; } 82% { opacity: 1; } 100% { transform: translate(30vw, -34vh); opacity: 0; } }
+@keyframes d-right { 0% { transform: translate(-58vw, 0); opacity: 0; } 18% { opacity: 1; } 82% { opacity: 1; } 100% { transform: translate(58vw, 0); opacity: 0; } }
+@keyframes d-up { 0% { transform: translate(0, 52vh); opacity: 0; } 18% { opacity: 1; } 82% { opacity: 1; } 100% { transform: translate(0, -52vh); opacity: 0; } }
+@keyframes d-left { 0% { transform: translate(58vw, 0); opacity: 0; } 18% { opacity: 1; } 82% { opacity: 1; } 100% { transform: translate(-58vw, 0); opacity: 0; } }
+@keyframes d-down-right { 0% { transform: translate(-26vw, -30vh); opacity: 0; } 18% { opacity: 1; } 82% { opacity: 1; } 100% { transform: translate(26vw, 30vh); opacity: 0; } }
+@keyframes d-drift { 0% { transform: translate(-12vw, -8vh) scale(0.88); opacity: 0; } 18% { opacity: 1; } 82% { opacity: 1; } 100% { transform: translate(12vw, 8vh) scale(1.12); opacity: 0; } }
+@keyframes d-swirl { from { transform: rotate(0turn) translate(var(--r, 14vmax)) rotate(0turn); } to { transform: rotate(1turn) translate(var(--r, 14vmax)) rotate(-1turn); } }
+
+/* Home (and sign-in, not found): warm peach and rose, rising to the right. */
+html[data-variant="18h"] .w-h1 { --c: var(--d-peach); left: -12vw; top: 28vh; width: 62vmax; height: 62vmax; --path: d-up-right; --dur: 50s; --tf: steps(600); }
+html[data-variant="18h"] .w-h2 { --c: var(--d-rose); left: 44vw; top: -28vh; width: 56vmax; height: 56vmax; --path: d-up-right; --dur: 56s; --tf: steps(672); --ph: 0.3; }
+html[data-variant="18h"] .w-h3 { --c: var(--d-peach); left: 26vw; top: 56vh; width: 38vmax; height: 38vmax; --path: d-up-right; --dur: 46s; --tf: steps(552); --ph: 0.65; }
+/* Work: teal and amber, running right. */
+html[data-variant="18h"] .w-k1 { --c: var(--d-teal); left: 4vw; top: -22vh; width: 60vmax; height: 60vmax; --path: d-right; --dur: 52s; --tf: steps(624); }
+html[data-variant="18h"] .w-k2 { --c: var(--d-amber); left: 38vw; top: 44vh; width: 52vmax; height: 52vmax; --path: d-right; --dur: 58s; --tf: steps(696); --ph: 0.35; }
+html[data-variant="18h"] .w-k3 { --c: var(--d-teal); left: 58vw; top: 12vh; width: 34vmax; height: 34vmax; --path: d-right; --dur: 46s; --tf: steps(552); --ph: 0.7; }
+/* Results: indigo and rose, rising. */
+html[data-variant="18h"] .w-r1 { --c: var(--d-indigo); left: -14vw; top: 16vh; width: 58vmax; height: 58vmax; --path: d-up; --dur: 54s; --tf: steps(648); }
+html[data-variant="18h"] .w-r2 { --c: var(--d-rose); left: 50vw; top: 2vh; width: 54vmax; height: 54vmax; --path: d-up; --dur: 48s; --tf: steps(576); --ph: 0.4; }
+html[data-variant="18h"] .w-r3 { --c: var(--d-indigo); left: 30vw; top: 46vh; width: 34vmax; height: 34vmax; --path: d-up; --dur: 60s; --tf: steps(720); --ph: 0.75; }
+/* Updates: sage and apricot, running left. */
+html[data-variant="18h"] .w-u1 { --c: var(--d-sage); left: 34vw; top: -26vh; width: 60vmax; height: 60vmax; --path: d-left; --dur: 52s; --tf: steps(624); }
+html[data-variant="18h"] .w-u2 { --c: var(--d-apricot); left: -4vw; top: 42vh; width: 50vmax; height: 50vmax; --path: d-left; --dur: 58s; --tf: steps(696); --ph: 0.3; }
+html[data-variant="18h"] .w-u3 { --c: var(--d-sage); left: 64vw; top: 52vh; width: 36vmax; height: 36vmax; --path: d-left; --dur: 46s; --tf: steps(552); --ph: 0.6; }
+/* Billing: lavender and gold, sinking slowly to the right. */
+html[data-variant="18h"] .w-g1 { --c: var(--d-lavender); left: -8vw; top: -32vh; width: 62vmax; height: 62vmax; --path: d-down-right; --dur: 58s; --tf: steps(696); }
+html[data-variant="18h"] .w-g2 { --c: var(--d-gold); left: 48vw; top: 26vh; width: 54vmax; height: 54vmax; --path: d-down-right; --dur: 60s; --tf: steps(720); --ph: 0.35; }
+html[data-variant="18h"] .w-g3 { --c: var(--d-lavender); left: 28vw; top: 58vh; width: 36vmax; height: 36vmax; --path: d-down-right; --dur: 54s; --tf: steps(648); --ph: 0.7; }
+/* Settings: stone and pale blue, a slow drift. */
+html[data-variant="18h"] .w-s1 { --c: var(--d-stone); left: -6vw; top: 8vh; width: 62vmax; height: 62vmax; --path: d-drift; --dur: 60s; --tf: steps(720); }
+html[data-variant="18h"] .w-s2 { --c: var(--d-blue); left: 54vw; top: -18vh; width: 52vmax; height: 52vmax; --path: d-drift; --dur: 56s; --tf: steps(672); --ph: 0.4; }
+html[data-variant="18h"] .w-s3 { --c: var(--d-blue); left: 22vw; top: 54vh; width: 40vmax; height: 40vmax; --path: d-drift; --dur: 60s; --tf: steps(720); --ph: 0.75; }
+/* Help: blush and peach in a slow swirl. */
+html[data-variant="18h"] .w-p1 { --c: var(--d-blush); left: 8vw; top: -14vh; width: 56vmax; height: 56vmax; --path: d-swirl; --dur: 60s; --tf: steps(720); --r: 12vmax; }
+html[data-variant="18h"] .w-p2 { --c: var(--d-peach-2); left: 42vw; top: 28vh; width: 50vmax; height: 50vmax; --path: d-swirl; --dur: 54s; --tf: steps(648); --r: 15vmax; --ph: 0.25; }
+html[data-variant="18h"] .w-p3 { --c: var(--d-blush); left: 18vw; top: 44vh; width: 32vmax; height: 32vmax; --path: d-swirl; --dur: 48s; --tf: steps(576); --r: 18vmax; --ph: 0.6; }
+
+/* The page's own set is on; the rest fade out and stop. */
+html[data-variant="18h"]:not([data-page]) .lg-world > .pg-home,
+html[data-variant="18h"][data-page="home"] .lg-world > .pg-home,
+html[data-variant="18h"][data-page="sign-in"] .lg-world > .pg-home,
+html[data-variant="18h"][data-page="notFound"] .lg-world > .pg-home,
+html[data-variant="18h"][data-page="work"] .lg-world > .pg-work,
+html[data-variant="18h"][data-page="results"] .lg-world > .pg-results,
+html[data-variant="18h"][data-page="updates"] .lg-world > .pg-updates,
+html[data-variant="18h"][data-page="billing"] .lg-world > .pg-billing,
+html[data-variant="18h"][data-page="settings"] .lg-world > .pg-settings,
+html[data-variant="18h"]:is([data-page="help"], [data-page="messages"]) .lg-world > .pg-help { --play: running; --wc: transform, opacity; opacity: 1; visibility: visible; transition-delay: 0s; }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-variant="18h"] .lg-world > i::before, html[data-variant="18h"] .lg-world > i::after { animation: none !important; }
+  html[data-variant="18h"] .lg-world > i::after { display: none; }
+}
+
+/* ---- the liquid panel: fixed, compact, labelled ----------------------------------------------- */
+
+@media (min-width: 761px) {
+  html[data-variant="18h"] .side {
+    top: 16px; left: 16px; bottom: auto; translate: none; transform: none;
+    max-height: calc(100vh - 32px); padding: 16px 12px 10px; border-radius: 30px;
+  }
+  html[data-variant="18h"] .side .side-toggle { display: flex; }
+  html[data-variant="18h"] .side-foot { margin-top: 8px; padding-top: 8px; }
+  html[data-variant="18h"] .identity { margin-bottom: 8px; }
+  html[data-variant="18h"] .brand { padding-bottom: 10px; }
+  html[data-variant="18h"] .main { padding-left: 36px; }
+  /* The pointer drop. The base draws it as a copy of the capsule, the full width of the list, which is
+     right for a rail of icons; beside labels the list is four times as wide, and over a neighbouring page
+     the two shapes merged into one two-row slab. Here the drop is round, a row tall, and follows the pointer
+     sideways as well as down the list (variant.js sets --hov-x), so it hangs off the capsule on a neck of
+     liquid and snaps free, as it does on the rail. */
+  html[data-variant="18h"] .lg-goo-layer > .goo-hov { right: auto; width: var(--hov-h, 44px); transform: translate(var(--hov-x, 0px), var(--hov-y, 0px)) scale(0.55); }
+  html[data-variant="18h"] .lg-goo-layer.is-hover > .goo-hov { transform: translate(var(--hov-x, 0px), var(--hov-y, 0px)) scale(0.9); }
+  /* The rail keeps its round shape when the panel is collapsed. */
+  html[data-variant="18h"] .portal[data-side="rail"] .side { padding: 16px 10px 10px; border-radius: 40px; }
+}

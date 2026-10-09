@@ -50,8 +50,8 @@
    * or Static) listens for "d8:look" and saves its part through D8.look.save.
    */
   function saveLook(part) {
-    if (!app.client || !app.client.saveAppearance || D8.data.READ_ONLY) return; // the demo keeps the look on this device only
-    app.client.saveAppearance(part).catch(() => D8.dialogs.toast('Your look is saved on this device only for now.', { tone: 'error' }));
+    if (!app.client || !app.client.saveAppearance) return;
+    app.client.saveAppearance(part).catch(() => { /* kept on this device; the account catches up next time */ });
   }
   function syncLook(look) {
     const l = look || {};
@@ -260,7 +260,7 @@
     const h = raw.startsWith('#/') ? raw : '#/home';
     const [path, qs] = h.slice(2).split('?');
     const parts = (path || '').split('/').filter(Boolean);
-    return { name: (parts[0] || 'home').toLowerCase(), sub: parts[1] || null, params: Object.fromEntries(new URLSearchParams(qs || '')) };
+    return { name: parts[0] || 'home', sub: parts[1] || null, params: Object.fromEntries(new URLSearchParams(qs || '')) };
   }
 
   function context() {
@@ -343,9 +343,7 @@
     const h = currentHash();
     if (h && !h.startsWith('#/')) {
       // An in-page anchor such as the skip link: focus it and keep the current route.
-      let id = h.slice(1);
-      try { id = decodeURIComponent(id); } catch (x) { /* a broken address: look for it as written */ }
-      const t = document.getElementById(id);
+      const t = document.getElementById(decodeURIComponent(h.slice(1)));
       D8.ui.replaceHash(app.lastRoute);
       if (t) { if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1'); t.focus(); }
       return;
@@ -393,7 +391,7 @@
     D8.dialogs.confirm({ title: 'Sign out?', text: `You can sign back in any time with ${D8.auth && D8.auth.live ? 'a code' : 'a link'} we email you.`, yes: 'Sign out', no: 'Stay signed in' }, trigger)
       .then((yes) => {
         if (!yes) return;
-        D8.auth.signOut().catch(() => { /* the sign-out service did not answer: this page still lets go */ }).then(() => {
+        D8.auth.signOut().then(() => {
           app.session = null;
           app.client = null;
           app.account = null;
@@ -446,7 +444,6 @@
     } else if (act === 'account-menu') toggleMenu();
     else if (act === 'demo') { if (menuOpen()) toggleMenu(false); if (app.account) D8.dialogs.demo(t, ctx); }
     else if (act === 'sign-out') signOut(t);
-    else if (act === 'retry-start') start(app.lastRoute);
     else if (act === 'demo-sign-in') D8.auth.demoSignIn().then(() => start('#/home'));
     else if (act === 'rerender') render(false);
   }
@@ -482,14 +479,12 @@
   /* ---- start -------------------------------------------------------------------------------- */
 
   function fatal(e) {
-    // The sign-in ended: back to the sign-in page, not "no portal for this email".
-    if (e && e.code === 'session-expired') { app.session = null; app.client = null; app.account = null; app.ready = true; root.location.hash = '#/sign-in'; return start(); }
     $('#app').classList.add('is-auth');
     const notFound = e && e.code === 'tenant-not-found';
     $('#main').innerHTML = `<div class="signin"><div class="signin-card"><h1 id="page-title" tabindex="-1">We couldn't open your portal</h1>${UI.ErrorState({
       title: notFound ? "We don't have a portal for this email yet." : 'Something went wrong while loading your account.',
       text: notFound ? 'Only people we have added can open a portal. If you think you should have one, email us.' : 'Try again soon. Nothing is lost.'
-    })}${notFound ? '' : '<button class="btn btn-solid" type="button" data-action="retry-start">Try again</button> '}<button class="btn btn-glass" type="button" data-action="sign-out">Sign out</button></div></div>`;
+    })}<button class="btn btn-glass" type="button" data-action="sign-out">Sign out</button></div></div>`;
   }
 
   /** @param {string} [target] a route to open once signed in */

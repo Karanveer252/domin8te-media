@@ -31,9 +31,6 @@
    * Clerk; see live-data.js), switched on by window.D8CONFIG = { mode: 'live', ... } in the live build.
    */
   const MODE = root.D8CONFIG && root.D8CONFIG.mode === 'live' ? 'live' : 'demo';
-  /** The public demo is view-only: browse everything, change nothing. Tests set D8_DEMO_WRITABLE. */
-  const READ_ONLY = MODE === 'demo' && !root.D8_DEMO_WRITABLE;
-  const DEMO_NOTE = 'This is a demo, so nothing is sent or saved. In your own portal this would go to the team.';
   /** Storage names: each design variant keeps its own, so nothing leaks between them. */
   const NS = (root.D8VARIANT && root.D8VARIANT.storage) || 'd8.v16';
 
@@ -385,12 +382,7 @@
     const sc = currentScenario();
     const raw = fixtures().tenants[session.tenantId];
     const key = NS + '.demo.' + session.tenantId;
-    const state = () => {
-      const s = readJSON(key) || {};
-      // View-only: answers kept by an earlier visit are not shown, so nothing looks already done.
-      if (READ_ONLY) { delete s.decisions; delete s.messages; delete s.requests; delete s.notifications; }
-      return s;
-    };
+    const state = () => readJSON(key) || {};
     const started = Date.now();
     const lastAt = state().lastAt;
     /**
@@ -413,7 +405,6 @@
       state,
       /** @param {string} kind @param {any} rec @returns {Promise<any>} */
       put(kind, rec) {
-        if (READ_ONLY) return Promise.reject(fail('demo-readonly', DEMO_NOTE));
         const st = state();
         if (kind === 'message') rec.id = 'msg_' + ((st.messages || []).length + 1);
         if (kind === 'request') rec.id = 'req_' + ((st.requests || []).length + 1);
@@ -827,7 +818,7 @@
         const text = String(comment || '').trim();
         if (decision === 'changes' && !text) throw fail('comment-required', 'Tell us what to change so we can fix it.', 'comment');
         if (text.length > 1000) throw fail('comment-too-long', 'Keep the note under 1,000 characters.', 'comment');
-        return src.put('decision', { approvalId: id, decision, comment: text, by: session.firstName || session.email || 'You' })
+        return src.put('decision', { approvalId: id, decision, comment: text, by: session.firstName })
           .then((/** @type {any} */ r) => ({ decision: r.decision, comment: r.comment, at: r.at, by: r.by }));
       }, 700);
     }
@@ -879,10 +870,8 @@
      * signed-in user (a personal choice, not the whole tenant's). Only known values are kept.
      * @param {{theme?: string, scene?: string, messagesSeenAt?: string}} look
      */
-    let appearanceQ = Promise.resolve();
     function saveAppearance(look) {
-      // One at a time: two quick saves (theme, then scene, or Messages seen) must not overwrite each other's field.
-      const run = () => call(() => {
+      return call(() => {
         const next = { ...(state().appearance || {}) };
         const l = look || {};
         if (l.theme !== undefined && l.theme !== 'light' && l.theme !== 'dark') throw fail('bad-theme', 'Choose light or dark.');
@@ -895,17 +884,12 @@
         next.savedAt = T.isoTime(now());
         return src.put('appearance', { look: next }).then(() => clone(next));
       }, 150);
-      const out = appearanceQ.catch(() => {}).then(run);
-      appearanceQ = out;
-      return out;
     }
 
     /* ---- messages (2026-10-09: their own page) ------------------------------------- */
 
     /** When the client last opened Messages, or null. */
-    /** Demo (view-only): when Messages was opened, kept in memory; nothing is written. */
-    let seenLocal = null;
-    const seenAt = () => { if (seenLocal) return seenLocal; const a = state().appearance; return a && a.messagesSeenAt ? String(a.messagesSeenAt) : null; };
+    const seenAt = () => { const a = state().appearance; return a && a.messagesSeenAt ? String(a.messagesSeenAt) : null; };
     /** Every message: the demo's starting thread (none live), then what was written since, oldest first. */
     function allMessages() {
       const seed = src.seed ? src.seed() : {};
@@ -929,7 +913,6 @@
     /** The client opened Messages: remember when, with their look. Nothing is written when nothing is new. */
     function markMessagesSeen() {
       return call(() => {
-        if (READ_ONLY) { seenLocal = T.isoTime(now()); return { messagesSeenAt: seenLocal, written: false }; }
         if (seenAt() && !unreadReplies()) return { messagesSeenAt: seenAt(), written: false };
         return saveAppearance({ messagesSeenAt: T.isoTime(now()) }).then((/** @type {any} */ l) => ({ messagesSeenAt: l.messagesSeenAt, written: true }));
       }, 0);
@@ -997,7 +980,7 @@
   D8.auth = auth;
   D8.integrations = integrations;
   D8.data = {
-    MODE, READ_ONLY, DEMO_NOTE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, SEVERITY, HEALTH, ACCOUNTS,
+    MODE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, SEVERITY, HEALTH, ACCOUNTS,
     connect, scenarios, currentScenario, switchScenario,
     // For live-data.js: build a client on another source, and the shared helpers it needs.
     makeClient, normalize, mergeProjections, apply, fail,

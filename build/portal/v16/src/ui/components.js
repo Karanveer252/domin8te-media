@@ -246,8 +246,8 @@
       when = `<span class="due tone-later">${icon('pause')}Paused since ${esc(F.date(a.since))}</span>`;
     }
     const moreId = 'more-' + esc(a.id);
-    const more = (a.more && a.more.length) || a.link
-      ? `<div class="act-more" id="${moreId}" hidden>${(a.more || []).map((p) => `<p>${esc(p)}</p>`).join('')}${a.link ? `<a class="link link-more" href="${esc(a.link.href)}">${esc(a.link.label)}${icon('arrow-right')}</a>` : ''}</div>`
+    const more = (a.more && a.more.length) || (a.link && /^(#\/|https:\/\/)/.test(String(a.link.href || '')))
+      ? `<div class="act-more" id="${moreId}" hidden>${(a.more || []).map((p) => `<p>${esc(p)}</p>`).join('')}${a.link && /^(#\/|https:\/\/)/.test(String(a.link.href || '')) ? `<a class="link link-more" href="${esc(a.link.href)}">${esc(a.link.label)}${icon('arrow-right')}</a>` : ''}</div>`
       : '';
     const toggle = more ? `<button class="link-btn act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span></button>` : '';
     // No severity chip (2026-10-09): the order (red first), the red tint and the icon carry it.
@@ -435,7 +435,7 @@
     return `<li class="invoice">
       <div class="inv-main"><p class="inv-num">${esc(month)}, ${esc(inv.number)}${amount ? `, ${esc(amount)}` : ''}</p>${note}</div>
       <span class="badge tone-${st[1]}">${icon(st[2])}${st[0]}</span>
-      <button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="invoice" data-id="${esc(inv.id)}" data-number="${esc(inv.number)}">See invoice<span class="sr-only"> ${esc(inv.number)} on Stripe</span>${icon('external')}</button>
+      <button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="invoice" data-id="${esc(inv.id)}" data-number="${esc(inv.number)}"${inv.url && /^https:\/\//.test(String(inv.url)) ? ` data-url="${esc(inv.url)}"` : ''}>See invoice<span class="sr-only"> ${esc(inv.number)} on Stripe</span>${icon('external')}</button>
     </li>`;
   }
 

@@ -1,0 +1,111 @@
+/*
+ * 16J Flow. Very clear glass over flowing colour, and controls that behave like liquid. Behind
+ * the portal, large pools of orange, rose, amber, lilac and peach drift and swell slowly; the
+ * glass is the clearest of the five (the least frost), so the colour moves through every pane
+ * and bends hard at the rims. Navigation: a floating capsule of icons on the left, centred in
+ * the window, with labels beside the icons on hover; the current page sits in a drop of glass
+ * that stretches toward a new page, and a second drop follows the pointer, pulling away from
+ * it on a thread of liquid before it snaps free. Dark: the same colours glowing in the dark.
+ */
+
+html[data-variant="18h"] {
+  --p-bg: #F6EEE6;
+  --p-amb-warm: rgba(255, 170, 110, 0.3);
+  --p-amb-cool: rgba(255, 255, 255, 0);
+  --p-amb-peach: rgba(255, 255, 255, 0);
+  --p-glass: rgba(255, 255, 255, 0.42);
+  --p-glass-strong: rgba(255, 255, 255, 0.52);
+  --p-glass-soft: rgba(255, 255, 255, 0.34);
+  --p-glass-edge: rgba(255, 255, 255, 0.76);
+  --p-active: rgba(255, 255, 255, 0.88);
+  --p-ink-2: #4A443D;
+  --p-ink-3: #4F4942;
+  --p-accent-ink: #9A3208;
+  /* The colour at its lightest (cream between the pools) and deepest (the rose pool). */
+  --p-env-light: #FFF7EE;
+  --p-env-dark: #FF78A0;
+  --p-env-veil: rgba(250, 244, 238, 0.4);
+  --p-r-lg: 28px;
+  --p-r-xl: 34px;
+  --j-1: 255, 122, 61;
+  --j-2: 255, 120, 160;
+  --j-3: 255, 194, 74;
+  --j-4: 168, 150, 255;
+  --j-5: 255, 170, 130;
+  --j-a: 0.9;
+}
+html[data-variant="18h"][data-theme="dark"] {
+  --p-bg: #120F16;
+  --p-amb-warm: rgba(255, 120, 60, 0.14);
+  --p-glass: rgba(18, 15, 24, 0.62);
+  --p-glass-strong: rgba(17, 14, 22, 0.7);
+  --p-glass-soft: rgba(28, 24, 36, 0.52);
+  --p-glass-edge: rgba(255, 255, 255, 0.14);
+  --p-active: rgba(255, 255, 255, 0.14);
+  --p-ink-2: #D3CEC6;
+  --p-ink-3: #C0BBB3;
+  --p-accent-ink: #FFA57F;
+  --p-env-light: #8D6122;
+  --p-env-dark: #0E0B12;
+  --p-env-veil: rgba(10, 8, 12, 0.38);
+  --j-1: 255, 110, 50;
+  --j-2: 220, 70, 130;
+  --j-3: 205, 140, 40;
+  --j-4: 110, 90, 230;
+  --j-5: 200, 110, 80;
+  --j-a: 0.66;
+}
+
+/* ---- the flowing colour ------------------------------------------------------------------------- */
+
+html[data-variant="18h"] .lg-world > i { border-radius: 50%; will-change: transform; animation-duration: 38s; animation-timing-function: steps(285); animation-iteration-count: infinite; animation-direction: alternate; }
+html[data-variant="18h"] .w-b1 { left: -14vmax; top: -20vmax; width: 64vmax; height: 64vmax; background: radial-gradient(closest-side, rgba(var(--j-1), var(--j-a)) 0 62%, rgba(var(--j-1), 0) 74%); animation-name: j-1; }
+html[data-variant="18h"] .w-b2 { right: -18vmax; top: -8vmax; width: 58vmax; height: 58vmax; background: radial-gradient(closest-side, rgba(var(--j-2), var(--j-a)) 0 62%, rgba(var(--j-2), 0) 74%); animation-name: j-2; animation-duration: 44s; }
+html[data-variant="18h"] .w-b3 { left: 18vw; bottom: -30vmax; width: 60vmax; height: 60vmax; background: radial-gradient(closest-side, rgba(var(--j-3), var(--j-a)) 0 62%, rgba(var(--j-3), 0) 74%); animation-name: j-3; animation-duration: 40s; }
+html[data-variant="18h"] .w-b4 { right: 4vw; bottom: -14vmax; width: 40vmax; height: 40vmax; background: radial-gradient(closest-side, rgba(var(--j-4), var(--j-a)) 0 62%, rgba(var(--j-4), 0) 74%); animation-name: j-4; animation-duration: 34s; }
+html[data-variant="18h"] .w-b5 { left: 34vw; top: 18vh; width: 30vmax; height: 30vmax; background: radial-gradient(closest-side, rgba(var(--j-5), var(--j-a)) 0 62%, rgba(var(--j-5), 0) 74%); animation-name: j-5; animation-duration: 30s; }
+@keyframes j-1 { 50% { transform: translate(10vw, 8vh) scale(1.08); } to { transform: translate(4vw, 22vh) scale(0.94); } }
+@keyframes j-2 { 50% { transform: translate(-12vw, 14vh) scale(0.92); } to { transform: translate(-4vw, 30vh) scale(1.06); } }
+@keyframes j-3 { 50% { transform: translate(16vw, -10vh) scale(1.1); } to { transform: translate(-8vw, -18vh) scale(0.96); } }
+@keyframes j-4 { 50% { transform: translate(-18vw, -8vh) scale(1.12); } to { transform: translate(-30vw, 4vh) scale(0.9); } }
+@keyframes j-5 { 50% { transform: translate(20vw, 20vh) scale(0.86); } to { transform: translate(-10vw, 34vh) scale(1.14); } }
+
+/* ---- the liquid rail ------------------------------------------------------------------------------ */
+
+@media (min-width: 761px) {
+  html[data-variant="18h"] .side {
+    position: fixed; left: 18px; top: 50%; translate: 0 -50%; z-index: 22;
+    height: auto; max-height: calc(100vh - 36px); margin: 0; padding: 18px 10px 12px;
+    border-radius: 46px;
+  }
+  html[data-variant="18h"] .side .side-toggle { display: none; }
+  html[data-variant="18h"] .side-foot { margin-top: 18px; }
+  html[data-variant="18h"] .identity { margin-bottom: 10px; }
+  html[data-variant="18h"] .main { padding-left: 40px; }
+  html[data-variant="18h"] .nav { position: relative; }
+  /* The main list's capsule is drawn by the liquid layer instead. */
+  html[data-variant="18h"] .side .nav > .nav-list::before { display: none; }
+  html[data-variant="18h"] .lg-goo-layer { position: absolute; inset: -16px; z-index: 0; pointer-events: none; filter: url(#lg-goo-l); }
+  html[data-variant="18h"][data-theme="dark"] .lg-goo-layer { filter: url(#lg-goo-d); }
+  html[data-variant="18h"] .lg-goo-layer > i { position: absolute; top: 16px; left: 16px; right: 16px; display: block; border-radius: 999px; background: #FFFFFF; }
+  html[data-variant="18h"] .goo-cur {
+    --lg-top: var(--ind-y, 0px);
+    --lg-bot: var(--ind-y, 0px);
+    height: calc(var(--ind-h, 44px) + max(var(--lg-top) - var(--lg-bot), var(--lg-bot) - var(--lg-top)));
+    transform: translateY(min(var(--lg-top), var(--lg-bot)));
+    opacity: var(--ind-o, 0);
+  }
+  html[data-variant="18h"] .portal[data-ind] .goo-cur { transition: --lg-top 320ms cubic-bezier(0.3, 0.7, 0.2, 1), --lg-bot 320ms cubic-bezier(0.3, 0.7, 0.2, 1), opacity var(--m-fast) var(--ease); }
+  html[data-variant="18h"] .portal[data-ind] .lg-goo-layer[data-dir="down"] .goo-cur { transition: --lg-bot 230ms cubic-bezier(0.3, 0.8, 0.2, 1), --lg-top 500ms cubic-bezier(0.55, 0, 0.2, 1), opacity var(--m-fast) var(--ease); }
+  html[data-variant="18h"] .portal[data-ind] .lg-goo-layer[data-dir="up"] .goo-cur { transition: --lg-top 230ms cubic-bezier(0.3, 0.8, 0.2, 1), --lg-bot 500ms cubic-bezier(0.55, 0, 0.2, 1), opacity var(--m-fast) var(--ease); }
+  html[data-variant="18h"] .goo-hov { height: var(--hov-h, 44px); transform: translateY(var(--hov-y, 0px)) scale(0.55); opacity: 0; transition: transform 460ms var(--lg-spring), opacity 260ms var(--ease); }
+  html[data-variant="18h"] .lg-goo-layer.is-hover .goo-hov { transform: translateY(var(--hov-y, 0px)) scale(0.9); opacity: 1; }
+  html[data-variant="18h"] .side .nav .nav-link:hover { background: none; }
+  html[data-variant="18h"] .side .nav-link[aria-current="page"] .i { color: var(--p-accent-ink); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-variant="18h"] .goo-hov { display: none; }
+}
+@media (forced-colors: active) {
+  html[data-variant="18h"] .lg-goo-layer { display: none; }
+}

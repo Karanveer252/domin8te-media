@@ -1,8 +1,11 @@
-<!-- @dsCard group="Living flow" width=1440 height=1000 subtitle="18H Scenes: 18G Dot Grid with a choice in Settings, right above Light and Dark: Static, the default, keeps the dot grid, and Scenes brings back 18F Skylight's skies. The choice and the theme are remembered for the next visit, and the dots start at 50% visibility and 20% animation" -->
 <!doctype html>
 <html lang="en-GB" data-theme="light" data-variant="18h" class="lg-heavy lg-flow">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='4%25' y1='0%25' x2='96%25' y2='100%25'%3E%3Cstop offset='0' stop-color='%23E5322B'/%3E%3Cstop offset='.26' stop-color='%23F3CB3C'/%3E%3Cstop offset='.55' stop-color='%230FA3C2'/%3E%3Cstop offset='1' stop-color='%23D51C73'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M100 60C100 32 78 16 52 16C26 16 8 36 8 60C8 84 26 104 52 104C78 104 100 88 100 60C100 32 122 16 148 16C174 16 192 36 192 60C192 84 174 104 148 104C122 104 100 88 100 60Z' fill='none' stroke='url(%23g)' stroke-width='25' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>/* domin8temedia.com/dashboard: the glass dock is a design tool, hidden in the demo */ .lg-dock { display: none !important; }</style><script>window.D8DOTS = 'fixed';</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>Domin8te portal</title>
@@ -1343,8 +1346,6 @@ html[data-theme="dark"] .filter-select:focus-visible { box-shadow: 0 0 0 3px rgb
 .msg.is-mine { align-self: flex-end; align-items: flex-end; }
 .msg-bubble { padding: 10px 14px; border-radius: 18px; font-size: 16px; line-height: 1.5; }
 .msg-text { white-space: pre-wrap; overflow-wrap: anywhere; }
-/* A long web address or name in any title, card or note wraps instead of widening the page. */
-.page, .dlg-inner { overflow-wrap: anywhere; }
 .msg.is-team .msg-bubble { border-bottom-left-radius: 6px; background: var(--p-surface); color: var(--p-ink); box-shadow: inset 0 0 0 1px var(--p-line); }
 .msg.is-mine .msg-bubble { border-bottom-right-radius: 6px; background: var(--p-ink); color: var(--p-bg); }
 .msg.is-sending { opacity: 0.62; }
@@ -3001,11 +3002,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] || c);
   }
-  /** A missing or unreadable date shows nothing, never "undefined NaN". */
-  const bad = (/** @type {any} */ x) => x == null || x === '' || !Number.isFinite(toMs(x));
   /** 'Wed 24 Sep', or '24 Sep' without the weekday, with ' 2026' when asked. */
   function date(x, o = {}) {
-    if (bad(x)) return '';
     const d = new Date(toMs(x));
     let s = (o.weekday === false ? '' : WD[d.getUTCDay()] + ' ') + d.getUTCDate() + ' ' + MON[d.getUTCMonth()];
     if (o.year) s += ' ' + d.getUTCFullYear();
@@ -3013,19 +3011,16 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   }
   /** 'Wednesday 24 September' */
   function longDate(x) {
-    if (bad(x)) return '';
     const d = new Date(toMs(x));
     return WEEKDAY[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MONTH[d.getUTCMonth()];
   }
   /** 'September 2026' */
   function monthYear(x) {
-    if (bad(x)) return '';
     const d = new Date(toMs(x));
     return MONTH[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
   }
   /** '15:10' */
   function time(x) {
-    if (bad(x)) return '';
     const d = new Date(toMs(x));
     return pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
   }
@@ -3051,7 +3046,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   }
   /** A due date as words, with a tone for styling: soon, later or overdue. */
   function due(iso, now) {
-    if (bad(iso)) return { text: '', tone: 'later' };
     const d = daysBetween(now, iso);
     if (d < 0) return { text: 'Overdue since ' + date(iso), tone: 'overdue' };
     if (d === 0) return { text: 'Due today', tone: 'soon' };
@@ -3644,9 +3638,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
    * Clerk; see live-data.js), switched on by window.D8CONFIG = { mode: 'live', ... } in the live build.
    */
   const MODE = root.D8CONFIG && root.D8CONFIG.mode === 'live' ? 'live' : 'demo';
-  /** The public demo is view-only: browse everything, change nothing. Tests set D8_DEMO_WRITABLE. */
-  const READ_ONLY = MODE === 'demo' && !root.D8_DEMO_WRITABLE;
-  const DEMO_NOTE = 'This is a demo, so nothing is sent or saved. In your own portal this would go to the team.';
   /** Storage names: each design variant keeps its own, so nothing leaks between them. */
   const NS = (root.D8VARIANT && root.D8VARIANT.storage) || 'd8.v16';
 
@@ -3998,12 +3989,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const sc = currentScenario();
     const raw = fixtures().tenants[session.tenantId];
     const key = NS + '.demo.' + session.tenantId;
-    const state = () => {
-      const s = readJSON(key) || {};
-      // View-only: answers kept by an earlier visit are not shown, so nothing looks already done.
-      if (READ_ONLY) { delete s.decisions; delete s.messages; delete s.requests; delete s.notifications; }
-      return s;
-    };
+    const state = () => readJSON(key) || {};
     const started = Date.now();
     const lastAt = state().lastAt;
     /**
@@ -4026,7 +4012,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       state,
       /** @param {string} kind @param {any} rec @returns {Promise<any>} */
       put(kind, rec) {
-        if (READ_ONLY) return Promise.reject(fail('demo-readonly', DEMO_NOTE));
         const st = state();
         if (kind === 'message') rec.id = 'msg_' + ((st.messages || []).length + 1);
         if (kind === 'request') rec.id = 'req_' + ((st.requests || []).length + 1);
@@ -4440,7 +4425,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         const text = String(comment || '').trim();
         if (decision === 'changes' && !text) throw fail('comment-required', 'Tell us what to change so we can fix it.', 'comment');
         if (text.length > 1000) throw fail('comment-too-long', 'Keep the note under 1,000 characters.', 'comment');
-        return src.put('decision', { approvalId: id, decision, comment: text, by: session.firstName || session.email || 'You' })
+        return src.put('decision', { approvalId: id, decision, comment: text, by: session.firstName })
           .then((/** @type {any} */ r) => ({ decision: r.decision, comment: r.comment, at: r.at, by: r.by }));
       }, 700);
     }
@@ -4492,10 +4477,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
      * signed-in user (a personal choice, not the whole tenant's). Only known values are kept.
      * @param {{theme?: string, scene?: string, messagesSeenAt?: string}} look
      */
-    let appearanceQ = Promise.resolve();
     function saveAppearance(look) {
-      // One at a time: two quick saves (theme, then scene, or Messages seen) must not overwrite each other's field.
-      const run = () => call(() => {
+      return call(() => {
         const next = { ...(state().appearance || {}) };
         const l = look || {};
         if (l.theme !== undefined && l.theme !== 'light' && l.theme !== 'dark') throw fail('bad-theme', 'Choose light or dark.');
@@ -4508,17 +4491,12 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         next.savedAt = T.isoTime(now());
         return src.put('appearance', { look: next }).then(() => clone(next));
       }, 150);
-      const out = appearanceQ.catch(() => {}).then(run);
-      appearanceQ = out;
-      return out;
     }
 
     /* ---- messages (2026-10-09: their own page) ------------------------------------- */
 
     /** When the client last opened Messages, or null. */
-    /** Demo (view-only): when Messages was opened, kept in memory; nothing is written. */
-    let seenLocal = null;
-    const seenAt = () => { if (seenLocal) return seenLocal; const a = state().appearance; return a && a.messagesSeenAt ? String(a.messagesSeenAt) : null; };
+    const seenAt = () => { const a = state().appearance; return a && a.messagesSeenAt ? String(a.messagesSeenAt) : null; };
     /** Every message: the demo's starting thread (none live), then what was written since, oldest first. */
     function allMessages() {
       const seed = src.seed ? src.seed() : {};
@@ -4542,7 +4520,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     /** The client opened Messages: remember when, with their look. Nothing is written when nothing is new. */
     function markMessagesSeen() {
       return call(() => {
-        if (READ_ONLY) { seenLocal = T.isoTime(now()); return { messagesSeenAt: seenLocal, written: false }; }
         if (seenAt() && !unreadReplies()) return { messagesSeenAt: seenAt(), written: false };
         return saveAppearance({ messagesSeenAt: T.isoTime(now()) }).then((/** @type {any} */ l) => ({ messagesSeenAt: l.messagesSeenAt, written: true }));
       }, 0);
@@ -4610,7 +4587,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   D8.auth = auth;
   D8.integrations = integrations;
   D8.data = {
-    MODE, READ_ONLY, DEMO_NOTE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, SEVERITY, HEALTH, ACCOUNTS,
+    MODE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, SEVERITY, HEALTH, ACCOUNTS,
     connect, scenarios, currentScenario, switchScenario,
     // For live-data.js: build a client on another source, and the shared helpers it needs.
     makeClient, normalize, mergeProjections, apply, fail,
@@ -4660,14 +4637,9 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       s.async = true;
       s.crossOrigin = 'anonymous';
       for (const [k, v] of Object.entries(attrs || {})) s.setAttribute(k, v);
-      // A service that never answers (not an error) must not leave the page blank for ever.
-      let settled = false;
-      let timer;
-      const gone = () => reject(fail('offline', "We couldn't reach the sign-in service. Check your connection and try again."));
-      s.onload = () => { settled = true; clearTimeout(timer); resolve(null); };
-      s.onerror = () => { if (settled) return; settled = true; clearTimeout(timer); gone(); };
+      s.onload = () => resolve(null);
+      s.onerror = () => reject(fail('offline', "We couldn't reach the sign-in service. Check your connection and try again."));
       document.head.appendChild(s);
-      timer = setTimeout(() => { if (settled) return; settled = true; if (s.remove) s.remove(); gone(); }, 15000);
     });
   }
 
@@ -4737,10 +4709,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   async function pickOrganisation(C) {
     if (C.organization) return;
     const memberships = (C.user && C.user.organizationMemberships) || [];
-    if (!memberships.length) return;
-    // This page's own organisation first (the restaurant, or for the console the team); a failure here must not fail the whole load.
-    const pick = (C.session && orgFor(C.session)) || memberships[0].organization.id;
-    try { await C.setActive({ organization: pick }); } catch (e) { /* the token still names the organisation (tokenFor) */ }
+    if (memberships.length) await C.setActive({ organization: memberships[0].organization.id });
   }
 
   /** Clerk's errors, in the portal's words. @param {any} err @param {string} [field] */
@@ -4887,30 +4856,20 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       const t = await sb.from('tenants').select('id, name, doc').eq('clerk_org_id', session.tenantId).limit(1);
       if (t.error) throw dbFail(t.error);
       const row = t.data && t.data[0];
-      if (!row) {
-        // No row can also mean the sign-in ended (the request then went out without a token): say so, not "no portal".
-        if (!PREVIEW && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
-        tenant = null; return;
-      }
+      if (!row) { tenant = null; return; }
       const [d, m, r, p, items, inv, cards] = await Promise.all([
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
         sb.from('requests').select('id, service, body, status, by_name, at').eq('tenant_id', row.id).order('at'),
-        sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').eq('clerk_user_id', session.userId).maybeSingle(),
+        sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').maybeSingle(),
         // What staff approved for this client. The database returns a client only client_visible rows; asking
         // for them here as well keeps a staff session previewing the portal to the same rows.
         sb.from('client_dashboard_items').select('id, item_kind, external_id, content, source_observed_at, reporting_period_start, reporting_period_end, verification_status, published_at').eq('tenant_id', row.id).eq('client_visible', true),
         sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url').eq('tenant_id', row.id).eq('client_visible', true),
         // The team's board cards for this client (2026-10-08): only their visible cards with a service, safe fields only
-        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve({ data: null, error: { code: 'PGRST202', message: 'no rpc' } })
+        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve({ data: null, error: { message: 'no rpc' } })
       ]);
       for (const x of [d, m, r, p]) if (x.error) throw dbFail(x.error);
-      // The three projections may be missing before their migration (table or function not there yet): that is fine.
-      // Any other error (access, token, network) must not read as "no invoices" or "nothing approved": fail, and the
-      // record already on screen stays as it was.
-      const MISSING = ['42P01', 'PGRST205', 'PGRST202', '42883'];
-      const missing = (/** @type {any} */ e) => MISSING.includes(e.code) || /does not exist|schema cache|no rpc/i.test(String(e.message || ''));
-      for (const x of [items, inv, cards]) if (x.error && !missing(x.error)) throw dbFail(x.error);
       /** @type {any} */ const next = {};
       for (const x of d.data || []) apply(next, 'decision', { approvalId: x.approval_id, decision: x.decision, comment: x.comment, at: x.at, by: x.by_name });
       for (const x of m.data || []) apply(next, 'message', { id: x.id, about: x.about, text: x.body, at: x.at, fromTeam: x.from_staff, by: x.by_name });
@@ -4927,7 +4886,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     }
 
     let ready = load();
-    /** @type {Promise<any>|null} */ let loading = null;
     return {
       get ready() { return ready; },
       tenant: () => tenant,
@@ -4952,31 +4910,14 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         } else {
           throw fail('bad-kind', 'Unknown action.');
         }
-        if (res.error) {
-          // Answered already (another tab or device): show what was saved, not "nothing changed".
-          if (kind === 'decision' && res.error.code === '23505') {
-            try { await this.reload(); } catch (e) { /* the answer below is still true */ }
-            throw Object.assign(dbFail(res.error), { previous: st.decisions && st.decisions[rec.approvalId] });
-          }
-          throw dbFail(res.error);
-        }
+        if (res.error) throw dbFail(res.error);
         const row = res.data || {};
         const stored = { ...rec, id: row.id || rec.id, at: row.at || row.notifications_saved_at || T.isoTime(now()) };
         if (row.status) stored.status = row.status;
         apply(st, kind, stored);
         return stored;
       },
-      reload() {
-        // One refresh at a time (a slow one must not finish after a newer one and overwrite it).
-        if (loading) return loading;
-        const p = load();
-        loading = p;
-        const done = () => { loading = null; };
-        p.then(done, done);
-        // A failed refresh leaves the record already loaded usable; the caller still sees the error.
-        ready = p.then(() => {}, () => {});
-        return p;
-      },
+      reload() { ready = load(); return ready; },
       reset: () => Promise.resolve()
     };
   }
@@ -4993,22 +4934,13 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   D8.integrations.resolve = async (/** @type {string} */ kind, /** @type {string} */ id, /** @type {string} */ number) => {
     if (kind !== 'billing-portal' && kind !== 'invoice') return outside(kind, id);
     if (PREVIEW) return null;
-    const notSet = () => {
-      const x = /** @type {any} */ (new Error('Online billing is not switched on yet. Press Message us and we sort it out.'));
-      x.code = 'not-configured';
-      return x;
-    };
-    let res, j;
-    try {
-      const token = await tokenFor(await clerk());
-      res = await fetch(cfg.supabaseUrl + '/functions/v1/stripe-billing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, apikey: cfg.supabaseKey },
-        body: JSON.stringify(kind === 'invoice' ? { action: 'invoice', number } : { action: 'portal' })
-      });
-      j = await res.json().catch(() => ({}));
-    } catch (e) { throw notSet(); } // the billing function is not there (or the browser was refused): retrying never helps
-    if (res.status === 404 || j.code === 'NOT_FOUND') throw notSet();
+    const token = await tokenFor(await clerk());
+    const res = await fetch(cfg.supabaseUrl + '/functions/v1/stripe-billing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, apikey: cfg.supabaseKey },
+      body: JSON.stringify(kind === 'invoice' ? { action: 'invoice', number } : { action: 'portal' })
+    });
+    const j = await res.json().catch(() => ({}));
     if (res.ok && j.url) return j.url;
     const e = /** @type {any} */ (new Error(j.error === 'not-configured' || j.error === 'no-customer' || j.error === 'live-key-refused'
       ? 'Online billing is not set up for your account yet. Press Message us and we sort it out.'
@@ -5268,8 +5200,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       when = `<span class="due tone-later">${icon('pause')}Paused since ${esc(F.date(a.since))}</span>`;
     }
     const moreId = 'more-' + esc(a.id);
-    const more = (a.more && a.more.length) || (a.link && /^(#\/|https:\/\/)/.test(String(a.link.href || '')))
-      ? `<div class="act-more" id="${moreId}" hidden>${(a.more || []).map((p) => `<p>${esc(p)}</p>`).join('')}${a.link && /^(#\/|https:\/\/)/.test(String(a.link.href || '')) ? `<a class="link link-more" href="${esc(a.link.href)}">${esc(a.link.label)}${icon('arrow-right')}</a>` : ''}</div>`
+    const more = (a.more && a.more.length) || a.link
+      ? `<div class="act-more" id="${moreId}" hidden>${(a.more || []).map((p) => `<p>${esc(p)}</p>`).join('')}${a.link ? `<a class="link link-more" href="${esc(a.link.href)}">${esc(a.link.label)}${icon('arrow-right')}</a>` : ''}</div>`
       : '';
     const toggle = more ? `<button class="link-btn act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span></button>` : '';
     // No severity chip (2026-10-09): the order (red first), the red tint and the icon carry it.
@@ -5457,7 +5389,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     return `<li class="invoice">
       <div class="inv-main"><p class="inv-num">${esc(month)}, ${esc(inv.number)}${amount ? `, ${esc(amount)}` : ''}</p>${note}</div>
       <span class="badge tone-${st[1]}">${icon(st[2])}${st[0]}</span>
-      <button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="invoice" data-id="${esc(inv.id)}" data-number="${esc(inv.number)}"${inv.url && /^https:\/\//.test(String(inv.url)) ? ` data-url="${esc(inv.url)}"` : ''}>See invoice<span class="sr-only"> ${esc(inv.number)} on Stripe</span>${icon('external')}</button>
+      <button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="invoice" data-id="${esc(inv.id)}" data-number="${esc(inv.number)}">See invoice<span class="sr-only"> ${esc(inv.number)} on Stripe</span>${icon('external')}</button>
     </li>`;
   }
 
@@ -5639,10 +5571,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   }
 
   /** Opens the dialog with `html` and moves focus to its title. */
-  /** Counts dialogs opened, so a slow answer for an old one cannot draw over a newer one. */
-  let gen = 0;
   function open(html, trigger, closed) {
-    gen++;
     const d = dlg();
     returnTo = trigger || /** @type {HTMLElement|null} */ (document.activeElement);
     onClosed = closed || null;
@@ -5684,15 +5613,10 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     d.addEventListener('cancel', (e) => { e.preventDefault(); close(); });
     // Safety net for any other way the dialog closes; finish() only acts once.
     d.addEventListener('close', finish);
-    // A click on the backdrop closes, but only when the press started there too: dragging a text selection out of
-    // the note box and letting go outside must not throw the note away.
-    let downOnBackdrop = false;
-    d.addEventListener('pointerdown', (e) => { downOnBackdrop = e.target === d; });
     d.addEventListener('click', (e) => {
       const t = /** @type {HTMLElement} */ (e.target);
       if (t.closest('[data-dlg-close]')) close();
-      else if (t === d && downOnBackdrop) close(); // a click on the backdrop
-      downOnBackdrop = false;
+      else if (t === d) close(); // a click on the backdrop
     });
   }
 
@@ -5716,16 +5640,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       }
     }
   }
-
-  /** A request that never answers must not lock the dialog for ever. @param {Promise<any>} p @param {number} [ms] */
-  function slow(p, ms) {
-    return new Promise((res, rej) => {
-      const t = setTimeout(() => rej(Object.assign(new Error('Still waiting for an answer. Check Home before trying again, in case it went through.'), { code: 'slow' })), ms || 25000);
-      p.then((v) => { clearTimeout(t); res(v); }, (e) => { clearTimeout(t); rej(e); });
-    });
-  }
-  /** In the view-only demo: a line up front, so nobody types a long note first. */
-  const demoLine = () => (D8.data.READ_ONLY ? `<div class="notice">${icon('info')}<p>${esc(D8.data.DEMO_NOTE)}</p></div>` : '');
 
   function fieldError(field, msg) {
     const input = /** @type {HTMLElement|null} */ (inner().querySelector(`[name="${field}"]`));
@@ -5755,10 +5669,10 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   function preview(p) {
     if (!p) return '';
     if (p.type === 'posts') {
-      return `<ol class="posts">${(p.items || []).map((it) => `<li class="post"><div class="post-img">${icon('image')}<span>${esc(it.image)}</span></div><div class="post-body"><p class="post-when">${esc(it.day)} <span class="meta">on ${esc(it.channels)}</span></p><p class="post-text">${esc(it.text)}</p></div></li>`).join('')}</ol>`;
+      return `<ol class="posts">${p.items.map((it) => `<li class="post"><div class="post-img">${icon('image')}<span>${esc(it.image)}</span></div><div class="post-body"><p class="post-when">${esc(it.day)} <span class="meta">on ${esc(it.channels)}</span></p><p class="post-text">${esc(it.text)}</p></div></li>`).join('')}</ol>`;
     }
     if (p.type === 'hours') {
-      return `<table class="hours"><caption class="sr-only">Proposed opening hours</caption><tbody>${(p.rows || []).map((r) => `<tr><th scope="row">${esc(r[0])}</th><td>${esc(r[1])}</td></tr>`).join('')}</tbody></table>`;
+      return `<table class="hours"><caption class="sr-only">Proposed opening hours</caption><tbody>${p.rows.map((r) => `<tr><th scope="row">${esc(r[0])}</th><td>${esc(r[1])}</td></tr>`).join('')}</tbody></table>`;
     }
     // Added for the agency console: a plain list, and a link to the draft (only https addresses).
     if (p.type === 'list') {
@@ -5786,17 +5700,13 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   function approval(id, trigger, ctx) {
     let changed = false;
     open(head('Loading', '') + `<div class="dlg-body">${D8.ui.Skeleton('text', 3)}</div>`, trigger, () => { if (changed) ctx.afterChange(); });
-    const my = gen;
     ctx.client.getApproval(id).then((a) => {
-      if (my !== gen) return; // another dialog opened while this one loaded
       const now = ctx.client.now();
       const svc = D8.data.SERVICES[a.service];
-      const due = a.due ? F.due(a.due, now) : null;
-      const label = esc(svc ? svc.label : '');
-      const sub = due ? `${label} · <span class="due tone-${due.tone}">${esc(due.text)}</span>` : label;
-      // Once answered, no "Due" or "Overdue" any more.
+      const due = F.due(a.due, now);
+      const sub = `${esc(svc ? svc.label : '')} · <span class="due tone-${due.tone}">${esc(due.text)}</span>`;
       if (a.decision) {
-        inner().innerHTML = head(a.title, label) + `<div class="dlg-body">${decided(a, a.decision, now)}</div>`;
+        inner().innerHTML = head(a.title, sub) + `<div class="dlg-body">${decided(a, a.decision, now)}</div>`;
         focusTitle();
         return;
       }
@@ -5809,7 +5719,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
             <textarea id="apv-comment" name="comment" rows="3" maxlength="1000" aria-describedby="err-comment"></textarea>
             <p class="field-error" id="err-comment" hidden></p>
           </div>
-          ${demoLine()}
           <p class="form-error" role="alert" hidden></p>
           <div class="dlg-actions">
             <button class="btn btn-tint" type="submit" value="approved">${esc(a.approve.label)}</button>
@@ -5818,48 +5727,35 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         </form></div>`;
       focusTitle();
       const form = /** @type {HTMLFormElement} */ (inner().querySelector('form'));
-      // Older Safari does not say which button sent the form; never guess "approved" from that.
-      /** @type {HTMLButtonElement|null} */ let clicked = null;
-      form.querySelectorAll('button[type=submit]').forEach((b) => b.addEventListener('click', () => { clicked = /** @type {HTMLButtonElement} */ (b); }));
       form.addEventListener('submit', (e) => {
         e.preventDefault();
-        const btn = /** @type {HTMLButtonElement} */ (/** @type {SubmitEvent} */ (e).submitter || clicked);
-        if (!btn) return;
-        const decision = btn.value === 'changes' ? 'changes' : 'approved';
+        const btn = /** @type {HTMLButtonElement} */ (/** @type {SubmitEvent} */ (e).submitter);
+        const decision = btn && btn.value === 'changes' ? 'changes' : 'approved';
         const comment = /** @type {HTMLTextAreaElement} */ (form.elements.namedItem('comment')).value;
         fieldError('comment', '');
         formError('');
         if (decision === 'changes' && !comment.trim()) { fieldError('comment', 'Tell us what to change so we can fix it.'); return; }
-        if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
         setBusy(true, btn, decision === 'approved' ? 'Saving' : 'Sending');
-        slow(ctx.client.decide(id, decision, comment)).then((rec) => {
+        ctx.client.decide(id, decision, comment).then((rec) => {
           changed = true;
           setBusy(false);
-          inner().innerHTML = head(a.title, label) + `<div class="dlg-body">${decided(a, rec, ctx.client.now())}</div>`;
+          inner().innerHTML = head(a.title, sub) + `<div class="dlg-body">${decided(a, rec, ctx.client.now())}</div>`;
           focusTitle();
           toast(decision === 'approved' ? `${a.title}: approved.` : `${a.title}: changes requested.`);
         }).catch((err) => {
           setBusy(false, btn);
           if (err.code === 'already-decided' && err.previous) {
             changed = true;
-            inner().innerHTML = head(a.title, label) + `<div class="dlg-body">${decided(a, err.previous, ctx.client.now())}</div>`;
-            focusTitle();
-          } else if (err.code === 'already-decided') {
-            // Answered already, but the saved answer could not be read back: say so, do not say "nothing changed".
-            changed = true;
-            inner().innerHTML = head(a.title, label) + `<div class="dlg-body"><div class="notice">${icon('info')}<p>${esc(err.message)}</p></div><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div>`;
+            inner().innerHTML = head(a.title, sub) + `<div class="dlg-body">${decided(a, err.previous, ctx.client.now())}</div>`;
             focusTitle();
           } else if (err.field && fieldError(err.field, err.message)) {
             /* shown next to the field */
-          } else if (err.code === 'slow') {
-            formError(err.message);
           } else {
             formError(`We couldn't save your answer, so nothing changed. ${err.message || ''} Try again.`);
           }
         });
       });
     }).catch((err) => {
-      if (my !== gen) return;
       inner().innerHTML = head('Something went wrong', '') + `<div class="dlg-body">${D8.ui.ErrorState({ title: "We couldn't open this.", text: err.message || 'Try again soon.' })}<div class="dlg-actions"><button class="btn btn-glass" type="button" data-dlg-close>Close</button></div></div>`;
       focusTitle();
     });
@@ -5884,25 +5780,12 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const b = /** @type {HTMLButtonElement|null} */ (trigger && trigger.tagName === 'BUTTON' ? trigger : null);
     if (b) b.disabled = true;
     const number = trigger && trigger.getAttribute('data-number');
-    // An invoice that already carries its own payment page opens straight away; no billing function needed.
-    const direct = trigger && trigger.getAttribute('data-url');
-    if (kind === 'invoice' && direct && /^https:\/\/[^/]*stripe\.com\//.test(direct)) { root.open(direct, '_blank', 'noopener'); return; }
-    // Live: sign-in and security is Clerk's own profile window.
-    if (kind === 'clerk-account' && D8.live) {
-      if (b) b.disabled = true;
-      D8.live.clerk().then((c) => { if (!c.openUserProfile) throw new Error('no profile'); c.openUserProfile(); })
-        .catch(() => toast('We could not open this. Press Message us and we change it for you.', { tone: 'error' }))
-        .then(() => { if (b) b.disabled = false; });
-      return;
-    }
     D8.integrations.resolve(kind, id, number || undefined).then((url) => {
       if (b) b.disabled = false;
-      if (url && /^https:\/\//.test(url)) { root.location.assign(url); return; }
+      if (url) { root.location.assign(url); return; }
       open(head(number ? `${o.title} ${number}` : o.title, '') + `<div class="dlg-body">
         <p class="dlg-intro">${esc(o.text)}</p>
-        ${D8.live
-          ? `<div class="notice">${icon('info')}<p>Online ${esc(o.where)} is not switched on for your account yet. Press <strong>Message us</strong> and we sort it out.</p></div>`
-          : `<div class="notice">${icon('info')}<p><strong>This is a demo</strong>, so ${esc(o.where)} does not open and nothing changes. In your real portal, this button takes you to ${esc(o.where)} and back.</p></div>`}
+        <div class="notice">${icon('info')}<p><strong>This is a demo</strong>, so ${esc(o.where)} does not open and nothing changes. In your real portal, this button takes you to ${esc(o.where)} and back.</p></div>
         <div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Close</button></div></div>`, trigger);
     }).catch((/** @type {any} */ err) => {
       if (b) b.disabled = false;
@@ -5949,10 +5832,10 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         { do: 'Press **People and access**, then **Add**.', where: 'Older screens say **Managers** instead of People and access.' },
         { do: `Type Domin8te's email ${askMail(t)}, choose **Manager**, then press **Invite**.` }
       ],
-      off: (/** @type {string[]} */ ids, /** @type {any} */ t) => [
+      off: () => [
         { do: 'Press **Open Google Business Profile** below and sign in.' },
         { do: 'Press the menu with **three dots**, then **Business Profile settings**, then **People and access**.' },
-        { do: `Find ${askMail(t)} in the list, then press **Remove access**.` }
+        { do: 'Press **Domin8te**, then **Remove access**.' }
       ],
       tip: 'No Business Profile settings? Your Google account may not own the listing. Ask whoever set it up, or press Message us.'
     },
@@ -5965,10 +5848,10 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         { do: 'Press the blue **+** at the top right, then **Add users**.' },
         { do: `Type Domin8te's email ${askMail(t)}, tick **Viewer**, then press **Add**.` }
       ],
-      off: (/** @type {string[]} */ ids, /** @type {any} */ t) => [
+      off: () => [
         { do: 'Press **Open Google Analytics** below and sign in.' },
         { do: 'Press **Admin**, then **Property access management**.' },
-        { do: `Press the **three dots** on the row for ${askMail(t)}, then **Remove access**.` }
+        { do: 'Press the **three dots** on the Domin8te row, then **Remove access**.' }
       ],
       tip: 'No Admin gear? Your login can only look, not change. Ask whoever set up Analytics, or press Message us.'
     },
@@ -5995,7 +5878,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const off = mode === 'disconnect';
     // One Meta trip: this account plus every other Meta account they need that isn't working or waiting yet.
     const ids = !off && a.guide === 'meta'
-      ? [id, ...srcs.filter((/** @type {any} */ x) => x.id !== id && D8.data.ACCOUNTS[x.id] && D8.data.ACCOUNTS[x.id].guide === 'meta' && !x.pending && x.state !== 'error' && !WORKING.includes(x.state)).map((/** @type {any} */ x) => x.id)]
+      ? [id, ...srcs.filter((/** @type {any} */ x) => x.id !== id && D8.data.ACCOUNTS[x.id] && D8.data.ACCOUNTS[x.id].guide === 'meta' && !x.pending && !WORKING.includes(x.state)).map((/** @type {any} */ x) => x.id)]
         .sort((p, q) => Object.keys(META_LIST).indexOf(p) - Object.keys(META_LIST).indexOf(q))
       : [id];
     const names = ids.map((x) => (srcs.find((/** @type {any} */ y) => y.id === x) || { name: (D8.data.ACCOUNTS[x] || {}).name || x }).name);
@@ -6011,19 +5894,17 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       <ol class="guide-steps">${steps.map((/** @type {any} */ x) => `<li><p class="guide-do">${rich(x.do)}</p>${x.list ? `<ul class="guide-list">${x.list.map((/** @type {string} */ y) => `<li>${rich(y)}</li>`).join('')}</ul>` : ''}${x.where ? `<p class="guide-where">${icon('info')}<span>${rich(x.where)}</span></p>` : ''}</li>`).join('')}</ol>
       ${g.tip && !off ? `<p class="guide-tip">${icon('help')}<span><strong>Stuck?</strong> ${rich(g.tip)}</span></p>` : ''}
       ${g.link ? '<p class="meta">Menus move now and then. If yours looks different, press Message us and we help.</p>' : ''}
-      ${demoLine()}
       <p class="form-error" role="alert" hidden></p>
       <div class="dlg-actions">${g.link ? `<a class="btn btn-glass" href="${g.link}" target="_blank" rel="noopener noreferrer">${esc(g.button)}${icon('external')}<span class="sr-only"> (opens in a new tab)</span></a>` : ''}<button class="btn btn-solid" type="button" data-account-done>${g.link ? "I've done it" : 'Tell us'}</button><button class="btn btn-glass" type="button" data-dlg-close>Cancel</button></div></div>`, trigger, () => { if (sent) ctx.afterChange(); });
     const done = /** @type {HTMLButtonElement} */ (inner().querySelector('[data-account-done]'));
     done.addEventListener('click', () => {
       formError('');
-      if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
       setBusy(true, done, 'Sending');
-      slow(ctx.client.accountRequest(ids, mode)).then(() => {
+      ctx.client.accountRequest(ids, mode).then(() => {
         sent = true;
         setBusy(false);
         const what = F.list(names);
-        inner().innerHTML = head(`Thanks${ctx.session.firstName ? ', ' + ctx.session.firstName : ''}`, '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>We got it.</h3><p>${off ? `We stop using ${esc(what)} and confirm it` : `We check ${esc(what)} ${ids.length > 1 ? 'work' : 'works'} and confirm it`}, usually within one working day. Until then ${ids.length > 1 ? 'they say' : 'it says'} Waiting for us to confirm.</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
+        inner().innerHTML = head(`Thanks, ${ctx.session.firstName}`, '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>We got it.</h3><p>${off ? `We stop using ${esc(what)} and confirm it` : `We check ${esc(what)} ${ids.length > 1 ? 'work' : 'works'} and confirm it`}, usually within one working day. Until then ${ids.length > 1 ? 'they say' : 'it says'} Waiting for us to confirm.</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
         focusTitle();
         toast('Sent. We will confirm soon.');
       }).catch((/** @type {any} */ err) => {
@@ -6038,7 +5919,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   function compose(o, trigger, ctx) {
     const isRequest = o.mode === 'request';
     const svc = isRequest ? D8.data.SERVICES[o.service] : null;
-    const pkg = ctx.account.package.services.filter((/** @type {string} */ x) => D8.data.SERVICES[x]);
+    const pkg = ctx.account.package.services;
     const title = isRequest ? (svc ? `Ask for a change: ${svc.label}` : 'Ask for a change') : 'Message us';
     // Opened from the top of Work (2026-10-09), a request first asks which service it is for.
     const pick = isRequest && !svc ? `<div class="field"><label for="msg-service">Which service?</label><select id="msg-service" name="service">${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}</select></div>` : '';
@@ -6053,7 +5934,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
           <p class="hint" id="msg-hint">${isRequest ? 'For example: swap the brunch photo for the one I sent on Monday.' : 'We read every message. If it is urgent, say so in the first line.'}</p>
           <p class="field-error" id="err-text" hidden></p>
         </div>
-        ${demoLine()}
         <p class="form-error" role="alert" hidden></p>
         <div class="dlg-actions"><button class="btn btn-solid" type="submit">${isRequest ? 'Send request' : 'Send message'}</button><button class="btn btn-glass" type="button" data-dlg-close>Cancel</button></div>
       </form></div>`, trigger, () => { if (sent) ctx.afterChange(); });
@@ -6066,14 +5946,13 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       formError('');
       if (!text.trim()) { fieldError('text', isRequest ? 'Tell us what you would like changed.' : 'Write your message first.'); return; }
       const btn = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
-      if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
       setBusy(true, btn, 'Sending');
       const svcEl = /** @type {HTMLSelectElement|null} */ (form.elements.namedItem('service'));
-      const p = slow(isRequest ? ctx.client.sendRequest(svcEl ? svcEl.value : o.service, text) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text));
+      const p = isRequest ? ctx.client.sendRequest(svcEl ? svcEl.value : o.service, text) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text);
       p.then((rec) => {
         sent = true;
         setBusy(false);
-        inner().innerHTML = head(isRequest ? 'Request sent' : 'Message sent', '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>Thanks${ctx.session.firstName ? ', ' + esc(ctx.session.firstName) : ''}.</h3><p>${ctx.account.team.reply ? esc(D8.ui.replyLine(ctx.account.team.reply)) + ' ' : ''}We'll answer here and by email.</p><p class="audit">${icon('clock')}Sent on ${esc(F.date(rec.at))} at ${esc(F.time(rec.at))}</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
+        inner().innerHTML = head(isRequest ? 'Request sent' : 'Message sent', '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>Thanks, ${esc(ctx.session.firstName)}.</h3><p>${ctx.account.team.reply ? esc(D8.ui.replyLine(ctx.account.team.reply)) + ' ' : ''}We'll answer here and by email.</p><p class="audit">${icon('clock')}Sent on ${esc(F.date(rec.at))} at ${esc(F.time(rec.at))}</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
         focusTitle();
         toast(isRequest ? 'Request sent.' : 'Message sent.');
       }).catch((err) => {
@@ -6262,12 +6141,9 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   }
 
   /** Next meeting and Message us, in one quiet strip at the bottom of Home. */
-  function contactStrip(a, now) {
+  function contactStrip(a) {
     const m = a.meeting;
-    // A cancelled or past meeting is "none booked"; a date without a time shows no "at 00:00".
-    const live = m && m.at && (!m.status || m.status === 'confirmed') && D8.time.dayNum(m.at) >= D8.time.dayNum(now);
-    const timed = live && /[T ]\d\d:\d\d/.test(String(m.at));
-    const when = live ? `${day(m.at)}${timed ? ` at ${F.time(m.at)}` : ''}` : 'none booked';
+    const when = m && m.at ? `${day(m.at)} at ${F.time(m.at)}` : 'none booked';
     return `<section class="card contact-strip" aria-label="Talk to us">
       <p class="contact-meet">${icon('calendar')}<span>Next meeting: ${esc(when)}</span></p>
       <a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a>
@@ -6302,7 +6178,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       return `<div class="page page-home">
         ${UI.PageHeader({ cls: 'is-home', title: `${F.greeting(now)}, ${a.user.firstName}.`, intro: '<span id="home-summary">Checking your account.</span>', introHtml: true })}
         ${order.map((k) => parts[k] || '').join('\n        ')}
-        ${contactStrip(a, now)}
+        ${contactStrip(a)}
       </div>`;
     },
     mount(ctx, r, el) {
@@ -6311,13 +6187,13 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       /** @type {any} */ let strip = null;
       const summary = () => {
         if (count === null || strip === null) return;
-        const lead = count < 0 ? '' : count ? `${count} ${F.plural(count, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.';
+        const lead = count ? `${count} ${F.plural(count, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.';
         const m = strip && strip.metrics.find((x) => x.state === 'ok' && x.change);
         const what = m ? F.lcFirst(label(m.label)) : '';
         const perf = !m ? '' : m.change.dir === 'flat'
           ? ` Your ${what} were about the same as the month before.`
           : ` You got ${Math.round(Math.abs(m.change.pct))}% ${m.change.dir === 'up' ? 'more' : 'fewer'} ${what} than the month before.`;
-        setText(el, '#home-summary', (lead + perf).trim() || 'We could not check what is waiting for you just now.');
+        setText(el, '#home-summary', lead + perf);
       };
       const loaders = {
         strip: () => section(el, '#home-strip', () => ctx.client.getStrip(30), (d) => {
@@ -6329,12 +6205,12 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         // When nothing needs the client, the section turns into the all-caught-up state, which
         // also needs the next planned milestone and the latest win.
         attention: () => section(el, '#home-attention', () => ctx.client.getAttention()
-          .then((items) => (items.length ? { items, highlights: null } : ctx.client.getHighlights().catch(() => null).then((h) => ({ items, highlights: h })))), (d) => {
+          .then((items) => (items.length ? { items, highlights: null } : ctx.client.getHighlights().then((h) => ({ items, highlights: h })))), (d) => {
           count = d.items.length;
           summary();
           ctx.setBadges(d.items);
           return count ? UI.ActionNeededList(d.items, now()) : UI.CaughtUp(d.highlights);
-        }, () => { count = -1; summary(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
+        }, () => ({ title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' })),
         // The rows need what is waiting for the client too, to say when a service's next step is theirs.
         work: () => section(el, '#home-work', () => Promise.all([ctx.client.getWorkSummary(), ctx.client.getAttention().catch(() => [])]), ([list, acts]) => list.length
           ? UI.ServiceRows(list, acts)
@@ -6456,16 +6332,14 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       </div>`;
     },
     mount(ctx, r, el) {
-      let jumped = false; // only the first draw jumps to the service named in the address, not every refresh
       const load = () => section(el, '#work-body', () => ctx.client.getWork(), (w) => w.services.length
         ? w.services.map((s) => serviceSection(s, w.actions)).join('')
         : UI.EmptyState({ icon: 'work', title: 'No work started yet.', text: 'Your services show here once we start.' }),
       () => ({ title: "We couldn't load your work.", text: 'Your other pages still work. Try again soon.', retry: 'work' }))
         .then(() => {
-          if (!r.sub || jumped) return;
-          jumped = true;
-          const t = /** @type {HTMLElement|null} */ (document.getElementById('svc-' + r.sub));
-          if (t && el.contains(t)) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); }
+          if (!r.sub) return;
+          const t = /** @type {HTMLElement|null} */ (el.querySelector('#svc-' + r.sub));
+          if (t) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); }
         });
       load();
       return { retry: load, refresh: load };
@@ -6641,14 +6515,14 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       if (!m) { m = { k, items: [] }; months.push(m); }
       m.items.push(u);
     }
-    return months.map((m) => `<section class="feed-month" aria-labelledby="m-${esc(m.k)}"><h2 id="m-${esc(m.k)}">${esc(F.monthYear(m.k + '-01'))}</h2><div class="feed">${m.items.map((u) => UI.UpdateCard(u, { id: 'u-' + u.id })).join('')}</div></section>`).join('');
+    return months.map((m) => `<section class="feed-month" aria-labelledby="m-${m.k}"><h2 id="m-${m.k}">${esc(F.monthYear(m.k + '-01'))}</h2><div class="feed">${m.items.map((u) => UI.UpdateCard(u, { id: 'u-' + u.id })).join('')}</div></section>`).join('');
   }
 
   /* The updates are the Done tab of Work (2026-10-09). #/updates still opens them, with ?service= kept. */
   const updates = {
     title: () => 'Work',
     render(ctx, r) {
-      const pkg = ctx.account.package.services.filter((/** @type {string} */ x) => SVC()[x]);
+      const pkg = ctx.account.package.services;
       const v = pkg.includes(r.params.service) ? r.params.service : 'all';
       const opts = [['all', 'All services'], ...pkg.map((s) => [s, SVC()[s].label])];
       return `<div class="page page-updates">
@@ -6659,7 +6533,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       </div>`;
     },
     mount(ctx, r, el) {
-      const pkg = ctx.account.package.services.filter((/** @type {string} */ x) => SVC()[x]);
+      const pkg = ctx.account.package.services;
       let filter = pkg.includes(r.params.service) ? r.params.service : 'all';
       /** @type {any[]|null} */ let all = null;
       const draw = () => {
@@ -6692,21 +6566,10 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   const INVOICES_SHOWN = 3;
   function billingBody(b) {
     const s = b.subscription;
-    const rowsOf = (/** @type {any[]} */ list) => list.map((i) => UI.InvoiceRow(i, { problemShown: false })).join('');
-    // A new client has no plan, card or subscription on file yet: say so, never a "could not load".
-    if (!s || !b.plan || !b.paymentMethod) {
-      const recentOnly = (b.invoices || []).slice(0, INVOICES_SHOWN);
-      return `${UI.EmptyState({ icon: 'card', title: 'Billing is not set up yet.', text: 'Message us and we will sort it out.' })}
-        ${recentOnly.length ? `<section class="sec" aria-labelledby="h-invoices"><div class="sec-head"><h2 id="h-invoices">Invoices</h2></div><div class="card"><ul class="invoices">${rowsOf(recentOnly)}</ul></div></section>` : ''}
-        <p class="bill-help">Question about a charge? <a class="link" href="#/messages">Message us</a></p>`;
-    }
     const problem = s.status === 'past_due';
-    const payProblem = b.paymentMethod.problem;
-    const okStatus = !s.status || ['active', 'trialing'].includes(s.status);
-    const statusText = s.status ? String(s.status).replace(/_/g, ' ').replace(/^./, (x) => x.toUpperCase()) : 'Active';
     const banner = problem ? `<section class="banner tone-error" aria-labelledby="h-bill-problem">
         ${icon('alert', 'banner-icon')}
-        <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>Your card ending ${esc(b.paymentMethod.last4)} was declined${payProblem && payProblem.date ? ` on ${esc(day(payProblem.date))}` : ''}. Everything keeps running until ${esc(day(s.graceUntil))}. If the payment still fails, services pause after that.</p>${s.retryOn ? `<details class="fold fold-quiet"><summary>See details${icon('chevron-down')}</summary><p class="meta">Stripe, our payment service, will try your card again on ${esc(day(s.retryOn))}.</p></details>` : ''}</div>
+        <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>Your card ending ${esc(b.paymentMethod.last4)} was declined on ${esc(day(b.paymentMethod.problem.date))}. Everything keeps running until ${esc(day(s.graceUntil))}. If the payment still fails, services pause after that.</p>${s.retryOn ? `<details class="fold fold-quiet"><summary>See details${icon('chevron-down')}</summary><p class="meta">Stripe, our payment service, will try your card again on ${esc(day(s.retryOn))}.</p></details>` : ''}</div>
         <button class="btn btn-primary" type="button" data-action="external" data-kind="billing-portal">Update payment method</button>
       </section>` : '';
     const rows = (/** @type {any[]} */ list) => list.map((i) => UI.InvoiceRow(i, { problemShown: problem })).join('');
@@ -6714,7 +6577,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const older = b.invoices.slice(INVOICES_SHOWN);
     return `${banner}
       <section class="card bill-card bill-one" aria-labelledby="h-plan">
-        <div class="sec-head"><h2 id="h-plan">Your plan</h2>${problem ? '' : okStatus ? `<span class="badge tone-success">${icon('check')}Active</span>` : `<span class="badge tone-info">${icon('clock')}${esc(statusText)}</span>`}</div>
+        <div class="sec-head"><h2 id="h-plan">Your plan</h2>${problem ? '' : `<span class="badge tone-success">${icon('check')}Active</span>`}</div>
         <p class="plan-name">${esc(b.plan.name)}</p>
         <ul class="plan-list">${b.plan.services.map((x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
         ${planOff(b.plan.services)}
@@ -6760,8 +6623,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const mode = src.state === 'missing' ? 'connect' : src.state === 'disconnected' || src.state === 'error' ? 'reconnect' : 'disconnect';
     const text = { connect: 'Connect', reconnect: 'Reconnect', disconnect: 'Disconnect' }[mode];
     const tip = mode === 'disconnect' ? `Shows how to remove our access to ${src.name}` : `Shows how to let us into ${src.name}. We never see your password.`;
-    // "Not answering right now" is on our side: no button sends the client through the steps for nothing.
-    const act = src.pending || src.state === 'error' ? '' : `<button class="btn ${mode === 'disconnect' ? 'btn-text src-off' : 'btn-glass'} btn-sm" type="button" data-action="account" data-source="${esc(src.id)}" data-mode="${mode}" title="${esc(tip)}">${text}<span class="sr-only"> ${esc(src.name)}</span></button>`;
+    const act = src.pending ? '' : `<button class="btn ${mode === 'disconnect' ? 'btn-text src-off' : 'btn-glass'} btn-sm" type="button" data-action="account" data-source="${esc(src.id)}" data-mode="${mode}" title="${esc(tip)}">${text}<span class="sr-only"> ${esc(src.name)}</span></button>`;
     const about = UI.sourceAbout(src);
     return `<li class="src-row"><div><p class="src-name">${esc(src.name)}</p>${about ? `<p class="src-about">${esc(about)}</p>` : ''}<p class="meta">${esc(when)}</p></div>${src.pending ? `<span class="badge tone-info">${icon('clock')}Waiting for us to confirm</span>` : UI.HealthBadge(src)}${act}</li>`;
   }
@@ -6792,7 +6654,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         </div>
         <form id="login-ask" class="ask-form" novalidate hidden>
           <p>Ask for a login for your manager or someone else at the restaurant. They sign in with their own email. Nobody shares a password.</p>
-          <p class="meta">Everyone you add can see and do what you can. The role is just a label for us.</p>
           <div class="ask-grid">
             <div class="field"><label for="la-first">Their first name</label><input id="la-first" name="first" type="text" maxlength="100" autocomplete="off" aria-describedby="la-err-first"><p class="field-error" id="la-err-first" hidden></p></div>
             <div class="field"><label for="la-email">Their email address</label><input id="la-email" name="email" type="email" maxlength="200" autocomplete="off" inputmode="email" spellcheck="false" aria-describedby="la-err-email"><p class="field-error" id="la-err-email" hidden></p></div>
@@ -6880,14 +6741,11 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         const r = await sb.from('login_requests').insert({ first_name: first, email, role: role || null, by_name: who }).select('id').single();
         if (r.error) throw r.error;
         form.reset();
-        status.textContent = `Sent. We will set up a login for ${first}. It shows below when it is ready.`;
+        status.textContent = `Sent. We will set up a login for ${first} and let you know.`;
         loadAsks(el);
       } catch (x) {
-        if (x && /** @type {any} */ (x).code === '23505') { status.textContent = 'You already asked for that email. We are on it.'; form.reset(); loadAsks(el); }
-        else {
-          err.innerHTML = icon('alert') + esc("We couldn't send that. Try again soon, or message us.");
-          err.hidden = false;
-        }
+        err.innerHTML = icon('alert') + esc("We couldn't send that. Try again soon, or message us.");
+        err.hidden = false;
       } finally { btn.disabled = false; }
     });
   }
@@ -6913,7 +6771,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (!dirty()) return;
-      if (D8.data.READ_ONLY) { status.textContent = D8.data.DEMO_NOTE; D8.dialogs.toast('This is a demo, so nothing is saved.'); return; }
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner" aria-hidden="true"></span>Saving';
       err.hidden = true;
@@ -7158,7 +7015,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
           text.focus();
           return;
         }
-        if (D8.data.READ_ONLY) { formErr.innerHTML = `${icon('alert')}<span>${esc(D8.data.DEMO_NOTE)} Your words are still here.</span>`; formErr.hidden = false; return; }
         const topic = aboutBox.hidden ? 'general' : about.value;
         // It shows in the thread at once, marked Sending, and is swapped for the saved one.
         const pending = { kind: 'message', id: 'sending', about: topic, text: body.trim(), at: D8.time.isoTime(ctx.client.now()), fromTeam: false, sending: true };
@@ -7166,7 +7022,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         send.disabled = true;
         send.innerHTML = '<span class="spinner" aria-hidden="true"></span>Sending';
         ctx.client.sendMessage(topic, body).then(() => {
-          if (text.value === body) text.value = ''; // anything typed while it sent stays
+          text.value = '';
           if (!aboutBox.hidden) toggle.click();
           return quiet(true);
         }).catch((/** @type {any} */ e2) => {
@@ -7354,8 +7210,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
    * or Static) listens for "d8:look" and saves its part through D8.look.save.
    */
   function saveLook(part) {
-    if (!app.client || !app.client.saveAppearance || D8.data.READ_ONLY) return; // the demo keeps the look on this device only
-    app.client.saveAppearance(part).catch(() => D8.dialogs.toast('Your look is saved on this device only for now.', { tone: 'error' }));
+    if (!app.client || !app.client.saveAppearance) return;
+    app.client.saveAppearance(part).catch(() => { /* kept on this device; the account catches up next time */ });
   }
   function syncLook(look) {
     const l = look || {};
@@ -7564,7 +7420,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const h = raw.startsWith('#/') ? raw : '#/home';
     const [path, qs] = h.slice(2).split('?');
     const parts = (path || '').split('/').filter(Boolean);
-    return { name: (parts[0] || 'home').toLowerCase(), sub: parts[1] || null, params: Object.fromEntries(new URLSearchParams(qs || '')) };
+    return { name: parts[0] || 'home', sub: parts[1] || null, params: Object.fromEntries(new URLSearchParams(qs || '')) };
   }
 
   function context() {
@@ -7647,9 +7503,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const h = currentHash();
     if (h && !h.startsWith('#/')) {
       // An in-page anchor such as the skip link: focus it and keep the current route.
-      let id = h.slice(1);
-      try { id = decodeURIComponent(id); } catch (x) { /* a broken address: look for it as written */ }
-      const t = document.getElementById(id);
+      const t = document.getElementById(decodeURIComponent(h.slice(1)));
       D8.ui.replaceHash(app.lastRoute);
       if (t) { if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1'); t.focus(); }
       return;
@@ -7697,7 +7551,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     D8.dialogs.confirm({ title: 'Sign out?', text: `You can sign back in any time with ${D8.auth && D8.auth.live ? 'a code' : 'a link'} we email you.`, yes: 'Sign out', no: 'Stay signed in' }, trigger)
       .then((yes) => {
         if (!yes) return;
-        D8.auth.signOut().catch(() => { /* the sign-out service did not answer: this page still lets go */ }).then(() => {
+        D8.auth.signOut().then(() => {
           app.session = null;
           app.client = null;
           app.account = null;
@@ -7750,7 +7604,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     } else if (act === 'account-menu') toggleMenu();
     else if (act === 'demo') { if (menuOpen()) toggleMenu(false); if (app.account) D8.dialogs.demo(t, ctx); }
     else if (act === 'sign-out') signOut(t);
-    else if (act === 'retry-start') start(app.lastRoute);
     else if (act === 'demo-sign-in') D8.auth.demoSignIn().then(() => start('#/home'));
     else if (act === 'rerender') render(false);
   }
@@ -7786,14 +7639,12 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   /* ---- start -------------------------------------------------------------------------------- */
 
   function fatal(e) {
-    // The sign-in ended: back to the sign-in page, not "no portal for this email".
-    if (e && e.code === 'session-expired') { app.session = null; app.client = null; app.account = null; app.ready = true; root.location.hash = '#/sign-in'; return start(); }
     $('#app').classList.add('is-auth');
     const notFound = e && e.code === 'tenant-not-found';
     $('#main').innerHTML = `<div class="signin"><div class="signin-card"><h1 id="page-title" tabindex="-1">We couldn't open your portal</h1>${UI.ErrorState({
       title: notFound ? "We don't have a portal for this email yet." : 'Something went wrong while loading your account.',
       text: notFound ? 'Only people we have added can open a portal. If you think you should have one, email us.' : 'Try again soon. Nothing is lost.'
-    })}${notFound ? '' : '<button class="btn btn-solid" type="button" data-action="retry-start">Try again</button> '}<button class="btn btn-glass" type="button" data-action="sign-out">Sign out</button></div></div>`;
+    })}<button class="btn btn-glass" type="button" data-action="sign-out">Sign out</button></div></div>`;
   }
 
   /** @param {string} [target] a route to open once signed in */
@@ -9359,5 +9210,15 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   mode();
 })();
 </script>
+<style>/* the growth cursor, as on the homepage */
+@media (hover:hover) and (pointer:fine){ html, html *{ cursor:url(/assets/v3-cursor-32.png?v=f911eff871) 2 1,auto!important; cursor:-webkit-image-set(url(/assets/v3-cursor-32.png?v=f911eff871) 1x,url(/assets/v3-cursor-64.png?v=2f417793af) 2x) 2 1,auto!important; } }
+.v3cur{position:fixed;left:0;top:0;z-index:2147483647;width:96px;height:96px;pointer-events:none;visibility:hidden;will-change:transform}
+.v3cur__mark{position:absolute;left:32px;top:32px;width:32px;height:32px}
+.v3cur svg{display:block;position:absolute;left:0;top:0;overflow:visible}
+.v3cur__spark{position:absolute;left:0;top:0;opacity:0}
+.v3cur__spark svg{width:100%;height:100%}
+.v3cur__spark--white{filter:drop-shadow(0 0 1px rgba(106,75,255,.6)) drop-shadow(0 0 3px rgba(47,140,255,.4))}
+</style>
+<script src="/assets/v3-cursor.js?v=136c753635" defer></script>
 </body>
 </html>

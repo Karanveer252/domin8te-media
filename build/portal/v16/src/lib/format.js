@@ -19,8 +19,11 @@
   function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] || c);
   }
+  /** A missing or unreadable date shows nothing, never "undefined NaN". */
+  const bad = (/** @type {any} */ x) => x == null || x === '' || !Number.isFinite(toMs(x));
   /** 'Wed 24 Sep', or '24 Sep' without the weekday, with ' 2026' when asked. */
   function date(x, o = {}) {
+    if (bad(x)) return '';
     const d = new Date(toMs(x));
     let s = (o.weekday === false ? '' : WD[d.getUTCDay()] + ' ') + d.getUTCDate() + ' ' + MON[d.getUTCMonth()];
     if (o.year) s += ' ' + d.getUTCFullYear();
@@ -28,16 +31,19 @@
   }
   /** 'Wednesday 24 September' */
   function longDate(x) {
+    if (bad(x)) return '';
     const d = new Date(toMs(x));
     return WEEKDAY[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MONTH[d.getUTCMonth()];
   }
   /** 'September 2026' */
   function monthYear(x) {
+    if (bad(x)) return '';
     const d = new Date(toMs(x));
     return MONTH[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
   }
   /** '15:10' */
   function time(x) {
+    if (bad(x)) return '';
     const d = new Date(toMs(x));
     return pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
   }
@@ -63,6 +69,7 @@
   }
   /** A due date as words, with a tone for styling: soon, later or overdue. */
   function due(iso, now) {
+    if (bad(iso)) return { text: '', tone: 'later' };
     const d = daysBetween(now, iso);
     if (d < 0) return { text: 'Overdue since ' + date(iso), tone: 'overdue' };
     if (d === 0) return { text: 'Due today', tone: 'soon' };

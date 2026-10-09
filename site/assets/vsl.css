@@ -1,0 +1,52 @@
+/* The VSL page (/vsl/). Everything else on the page comes from the homepage
+   and /work/ sheets; this file only adds what the page has that they don't:
+   the heading, the VSL window, the pricing cards. */
+
+.vsl-hero{padding:clamp(96px,13vh,140px) 0 clamp(48px,8vh,96px);text-align:center}
+.vsl-hero .hl{font-size:clamp(40px,5.4vw,84px);line-height:.98;letter-spacing:-.035em;margin:0 auto}
+.vsl-hero .hl .ln{display:block}
+.vsl-hero .hl em{font-style:italic;font-weight:800;color:#AE3A0B}
+.vsl-hero .lede{margin:clamp(18px,3vh,30px) auto 0;max-width:54ch;font-size:clamp(17px,1.4vw,20px)}
+html[data-v="editorial"] .vsl-hero .lede::before{display:none}
+
+.vsl-stage{margin-top:clamp(32px,6vh,64px)}
+.vsl-frame{transform:none}
+.vsl-slot{aspect-ratio:16/9;display:grid;place-content:center;justify-items:center;gap:14px;
+  background:linear-gradient(160deg,#F7F3EE,#E4DCD0);color:#0E1420}
+.vsl-slot__play{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;
+  background:#CA4A14;color:#fff;box-shadow:0 10px 30px -10px rgba(202,74,20,.6)}
+.vsl-slot__play svg{margin-left:4px}
+.vsl-slot__lbl{margin:0;font-size:15px;letter-spacing:.02em;color:#3A4E7A}
+.vsl-cta{margin:clamp(24px,4vh,40px) 0 0}
+
+.vsl-proof{padding-top:clamp(40px,8vh,96px)}
+
+/* pricing */
+.vsl-price{padding:clamp(64px,12vh,140px) 0}
+.vsl-draft{display:inline-block;margin:0 0 22px;padding:6px 14px;border-radius:999px;
+  border:1px dashed #AE3A0B;color:#AE3A0B;font-size:14px}
+.vsl-tiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(14px,2vw,24px);align-items:stretch}
+.vsl-tier{display:flex;flex-direction:column;gap:16px;padding:clamp(24px,2.6vw,36px);
+  background:#fff;border-radius:var(--r-card,20px);box-shadow:var(--card-shadow)}
+.vsl-tier--main{outline:2px solid #FF5B1F;outline-offset:-2px}
+.vsl-tier__name{margin:0;font-size:22px;font-weight:600}
+.vsl-tier__price{margin:0;display:flex;align-items:baseline;gap:6px}
+.vsl-tier__price b{font-size:clamp(40px,4vw,56px);font-weight:800;letter-spacing:-.03em}
+.vsl-tier__price span{color:#3A4E7A}
+.vsl-tier__list{margin:0;padding:0;list-style:none;display:grid;gap:10px;flex:1}
+.vsl-tier__list li{padding-left:24px;position:relative}
+.vsl-tier__list li::before{content:"";position:absolute;left:2px;top:.55em;width:10px;height:6px;
+  border-left:2px solid #CA4A14;border-bottom:2px solid #CA4A14;transform:rotate(-45deg)}
+.vsl-tier__cta{justify-content:center}
+
+@media (max-width:860px){
+  .vsl-tiers{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .vsl-hero{text-align:left;padding-top:110px}
+  .vsl-hero .lede{margin-left:0}
+}
+
+/* the live sites, under the client cards */
+.vsl-live{padding:clamp(56px,10vh,120px) 0 0}
+.vsl-live .live + .live{margin-top:clamp(28px,5vh,56px)}

@@ -126,9 +126,12 @@
   }
 
   /** Next meeting and Message us, in one quiet strip at the bottom of Home. */
-  function contactStrip(a) {
+  function contactStrip(a, now) {
     const m = a.meeting;
-    const when = m && m.at ? `${day(m.at)} at ${F.time(m.at)}` : 'none booked';
+    // A cancelled or past meeting is "none booked"; a date without a time shows no "at 00:00".
+    const live = m && m.at && (!m.status || m.status === 'confirmed') && D8.time.dayNum(m.at) >= D8.time.dayNum(now);
+    const timed = live && /[T ]\d\d:\d\d/.test(String(m.at));
+    const when = live ? `${day(m.at)}${timed ? ` at ${F.time(m.at)}` : ''}` : 'none booked';
     return `<section class="card contact-strip" aria-label="Talk to us">
       <p class="contact-meet">${icon('calendar')}<span>Next meeting: ${esc(when)}</span></p>
       <a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a>
@@ -163,7 +166,7 @@
       return `<div class="page page-home">
         ${UI.PageHeader({ cls: 'is-home', title: `${F.greeting(now)}, ${a.user.firstName}.`, intro: '<span id="home-summary">Checking your account.</span>', introHtml: true })}
         ${order.map((k) => parts[k] || '').join('\n        ')}
-        ${contactStrip(a)}
+        ${contactStrip(a, now)}
       </div>`;
     },
     mount(ctx, r, el) {
@@ -172,13 +175,13 @@
       /** @type {any} */ let strip = null;
       const summary = () => {
         if (count === null || strip === null) return;
-        const lead = count ? `${count} ${F.plural(count, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.';
+        const lead = count < 0 ? '' : count ? `${count} ${F.plural(count, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.';
         const m = strip && strip.metrics.find((x) => x.state === 'ok' && x.change);
         const what = m ? F.lcFirst(label(m.label)) : '';
         const perf = !m ? '' : m.change.dir === 'flat'
           ? ` Your ${what} were about the same as the month before.`
           : ` You got ${Math.round(Math.abs(m.change.pct))}% ${m.change.dir === 'up' ? 'more' : 'fewer'} ${what} than the month before.`;
-        setText(el, '#home-summary', lead + perf);
+        setText(el, '#home-summary', (lead + perf).trim() || 'We could not check what is waiting for you just now.');
       };
       const loaders = {
         strip: () => section(el, '#home-strip', () => ctx.client.getStrip(30), (d) => {
@@ -190,12 +193,12 @@
         // When nothing needs the client, the section turns into the all-caught-up state, which
         // also needs the next planned milestone and the latest win.
         attention: () => section(el, '#home-attention', () => ctx.client.getAttention()
-          .then((items) => (items.length ? { items, highlights: null } : ctx.client.getHighlights().then((h) => ({ items, highlights: h })))), (d) => {
+          .then((items) => (items.length ? { items, highlights: null } : ctx.client.getHighlights().catch(() => null).then((h) => ({ items, highlights: h })))), (d) => {
           count = d.items.length;
           summary();
           ctx.setBadges(d.items);
           return count ? UI.ActionNeededList(d.items, now()) : UI.CaughtUp(d.highlights);
-        }, () => ({ title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' })),
+        }, () => { count = -1; summary(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
         // The rows need what is waiting for the client too, to say when a service's next step is theirs.
         work: () => section(el, '#home-work', () => Promise.all([ctx.client.getWorkSummary(), ctx.client.getAttention().catch(() => [])]), ([list, acts]) => list.length
           ? UI.ServiceRows(list, acts)
@@ -317,14 +320,16 @@
       </div>`;
     },
     mount(ctx, r, el) {
+      let jumped = false; // only the first draw jumps to the service named in the address, not every refresh
       const load = () => section(el, '#work-body', () => ctx.client.getWork(), (w) => w.services.length
         ? w.services.map((s) => serviceSection(s, w.actions)).join('')
         : UI.EmptyState({ icon: 'work', title: 'No work started yet.', text: 'Your services show here once we start.' }),
       () => ({ title: "We couldn't load your work.", text: 'Your other pages still work. Try again soon.', retry: 'work' }))
         .then(() => {
-          if (!r.sub) return;
-          const t = /** @type {HTMLElement|null} */ (el.querySelector('#svc-' + r.sub));
-          if (t) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); }
+          if (!r.sub || jumped) return;
+          jumped = true;
+          const t = /** @type {HTMLElement|null} */ (document.getElementById('svc-' + r.sub));
+          if (t && el.contains(t)) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); }
         });
       load();
       return { retry: load, refresh: load };
@@ -500,14 +505,14 @@
       if (!m) { m = { k, items: [] }; months.push(m); }
       m.items.push(u);
     }
-    return months.map((m) => `<section class="feed-month" aria-labelledby="m-${m.k}"><h2 id="m-${m.k}">${esc(F.monthYear(m.k + '-01'))}</h2><div class="feed">${m.items.map((u) => UI.UpdateCard(u, { id: 'u-' + u.id })).join('')}</div></section>`).join('');
+    return months.map((m) => `<section class="feed-month" aria-labelledby="m-${esc(m.k)}"><h2 id="m-${esc(m.k)}">${esc(F.monthYear(m.k + '-01'))}</h2><div class="feed">${m.items.map((u) => UI.UpdateCard(u, { id: 'u-' + u.id })).join('')}</div></section>`).join('');
   }
 
   /* The updates are the Done tab of Work (2026-10-09). #/updates still opens them, with ?service= kept. */
   const updates = {
     title: () => 'Work',
     render(ctx, r) {
-      const pkg = ctx.account.package.services;
+      const pkg = ctx.account.package.services.filter((/** @type {string} */ x) => SVC()[x]);
       const v = pkg.includes(r.params.service) ? r.params.service : 'all';
       const opts = [['all', 'All services'], ...pkg.map((s) => [s, SVC()[s].label])];
       return `<div class="page page-updates">
@@ -518,7 +523,7 @@
       </div>`;
     },
     mount(ctx, r, el) {
-      const pkg = ctx.account.package.services;
+      const pkg = ctx.account.package.services.filter((/** @type {string} */ x) => SVC()[x]);
       let filter = pkg.includes(r.params.service) ? r.params.service : 'all';
       /** @type {any[]|null} */ let all = null;
       const draw = () => {
@@ -551,10 +556,21 @@
   const INVOICES_SHOWN = 3;
   function billingBody(b) {
     const s = b.subscription;
+    const rowsOf = (/** @type {any[]} */ list) => list.map((i) => UI.InvoiceRow(i, { problemShown: false })).join('');
+    // A new client has no plan, card or subscription on file yet: say so, never a "could not load".
+    if (!s || !b.plan || !b.paymentMethod) {
+      const recentOnly = (b.invoices || []).slice(0, INVOICES_SHOWN);
+      return `${UI.EmptyState({ icon: 'card', title: 'Billing is not set up yet.', text: 'Message us and we will sort it out.' })}
+        ${recentOnly.length ? `<section class="sec" aria-labelledby="h-invoices"><div class="sec-head"><h2 id="h-invoices">Invoices</h2></div><div class="card"><ul class="invoices">${rowsOf(recentOnly)}</ul></div></section>` : ''}
+        <p class="bill-help">Question about a charge? <a class="link" href="#/messages">Message us</a></p>`;
+    }
     const problem = s.status === 'past_due';
+    const payProblem = b.paymentMethod.problem;
+    const okStatus = !s.status || ['active', 'trialing'].includes(s.status);
+    const statusText = s.status ? String(s.status).replace(/_/g, ' ').replace(/^./, (x) => x.toUpperCase()) : 'Active';
     const banner = problem ? `<section class="banner tone-error" aria-labelledby="h-bill-problem">
         ${icon('alert', 'banner-icon')}
-        <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>Your card ending ${esc(b.paymentMethod.last4)} was declined on ${esc(day(b.paymentMethod.problem.date))}. Everything keeps running until ${esc(day(s.graceUntil))}. If the payment still fails, services pause after that.</p>${s.retryOn ? `<details class="fold fold-quiet"><summary>See details${icon('chevron-down')}</summary><p class="meta">Stripe, our payment service, will try your card again on ${esc(day(s.retryOn))}.</p></details>` : ''}</div>
+        <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>Your card ending ${esc(b.paymentMethod.last4)} was declined${payProblem && payProblem.date ? ` on ${esc(day(payProblem.date))}` : ''}. Everything keeps running until ${esc(day(s.graceUntil))}. If the payment still fails, services pause after that.</p>${s.retryOn ? `<details class="fold fold-quiet"><summary>See details${icon('chevron-down')}</summary><p class="meta">Stripe, our payment service, will try your card again on ${esc(day(s.retryOn))}.</p></details>` : ''}</div>
         <button class="btn btn-primary" type="button" data-action="external" data-kind="billing-portal">Update payment method</button>
       </section>` : '';
     const rows = (/** @type {any[]} */ list) => list.map((i) => UI.InvoiceRow(i, { problemShown: problem })).join('');
@@ -562,7 +578,7 @@
     const older = b.invoices.slice(INVOICES_SHOWN);
     return `${banner}
       <section class="card bill-card bill-one" aria-labelledby="h-plan">
-        <div class="sec-head"><h2 id="h-plan">Your plan</h2>${problem ? '' : `<span class="badge tone-success">${icon('check')}Active</span>`}</div>
+        <div class="sec-head"><h2 id="h-plan">Your plan</h2>${problem ? '' : okStatus ? `<span class="badge tone-success">${icon('check')}Active</span>` : `<span class="badge tone-info">${icon('clock')}${esc(statusText)}</span>`}</div>
         <p class="plan-name">${esc(b.plan.name)}</p>
         <ul class="plan-list">${b.plan.services.map((x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
         ${planOff(b.plan.services)}
@@ -608,7 +624,8 @@
     const mode = src.state === 'missing' ? 'connect' : src.state === 'disconnected' || src.state === 'error' ? 'reconnect' : 'disconnect';
     const text = { connect: 'Connect', reconnect: 'Reconnect', disconnect: 'Disconnect' }[mode];
     const tip = mode === 'disconnect' ? `Shows how to remove our access to ${src.name}` : `Shows how to let us into ${src.name}. We never see your password.`;
-    const act = src.pending ? '' : `<button class="btn ${mode === 'disconnect' ? 'btn-text src-off' : 'btn-glass'} btn-sm" type="button" data-action="account" data-source="${esc(src.id)}" data-mode="${mode}" title="${esc(tip)}">${text}<span class="sr-only"> ${esc(src.name)}</span></button>`;
+    // "Not answering right now" is on our side: no button sends the client through the steps for nothing.
+    const act = src.pending || src.state === 'error' ? '' : `<button class="btn ${mode === 'disconnect' ? 'btn-text src-off' : 'btn-glass'} btn-sm" type="button" data-action="account" data-source="${esc(src.id)}" data-mode="${mode}" title="${esc(tip)}">${text}<span class="sr-only"> ${esc(src.name)}</span></button>`;
     const about = UI.sourceAbout(src);
     return `<li class="src-row"><div><p class="src-name">${esc(src.name)}</p>${about ? `<p class="src-about">${esc(about)}</p>` : ''}<p class="meta">${esc(when)}</p></div>${src.pending ? `<span class="badge tone-info">${icon('clock')}Waiting for us to confirm</span>` : UI.HealthBadge(src)}${act}</li>`;
   }
@@ -639,6 +656,7 @@
         </div>
         <form id="login-ask" class="ask-form" novalidate hidden>
           <p>Ask for a login for your manager or someone else at the restaurant. They sign in with their own email. Nobody shares a password.</p>
+          <p class="meta">Everyone you add can see and do what you can. The role is just a label for us.</p>
           <div class="ask-grid">
             <div class="field"><label for="la-first">Their first name</label><input id="la-first" name="first" type="text" maxlength="100" autocomplete="off" aria-describedby="la-err-first"><p class="field-error" id="la-err-first" hidden></p></div>
             <div class="field"><label for="la-email">Their email address</label><input id="la-email" name="email" type="email" maxlength="200" autocomplete="off" inputmode="email" spellcheck="false" aria-describedby="la-err-email"><p class="field-error" id="la-err-email" hidden></p></div>
@@ -726,11 +744,14 @@
         const r = await sb.from('login_requests').insert({ first_name: first, email, role: role || null, by_name: who }).select('id').single();
         if (r.error) throw r.error;
         form.reset();
-        status.textContent = `Sent. We will set up a login for ${first} and let you know.`;
+        status.textContent = `Sent. We will set up a login for ${first}. It shows below when it is ready.`;
         loadAsks(el);
       } catch (x) {
-        err.innerHTML = icon('alert') + esc("We couldn't send that. Try again soon, or message us.");
-        err.hidden = false;
+        if (x && /** @type {any} */ (x).code === '23505') { status.textContent = 'You already asked for that email. We are on it.'; form.reset(); loadAsks(el); }
+        else {
+          err.innerHTML = icon('alert') + esc("We couldn't send that. Try again soon, or message us.");
+          err.hidden = false;
+        }
       } finally { btn.disabled = false; }
     });
   }
@@ -756,6 +777,7 @@
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (!dirty()) return;
+      if (D8.data.READ_ONLY) { status.textContent = D8.data.DEMO_NOTE; D8.dialogs.toast('This is a demo, so nothing is saved.'); return; }
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner" aria-hidden="true"></span>Saving';
       err.hidden = true;
@@ -1000,6 +1022,7 @@
           text.focus();
           return;
         }
+        if (D8.data.READ_ONLY) { formErr.innerHTML = `${icon('alert')}<span>${esc(D8.data.DEMO_NOTE)} Your words are still here.</span>`; formErr.hidden = false; return; }
         const topic = aboutBox.hidden ? 'general' : about.value;
         // It shows in the thread at once, marked Sending, and is swapped for the saved one.
         const pending = { kind: 'message', id: 'sending', about: topic, text: body.trim(), at: D8.time.isoTime(ctx.client.now()), fromTeam: false, sending: true };
@@ -1007,7 +1030,7 @@
         send.disabled = true;
         send.innerHTML = '<span class="spinner" aria-hidden="true"></span>Sending';
         ctx.client.sendMessage(topic, body).then(() => {
-          text.value = '';
+          if (text.value === body) text.value = ''; // anything typed while it sent stays
           if (!aboutBox.hidden) toggle.click();
           return quiet(true);
         }).catch((/** @type {any} */ e2) => {

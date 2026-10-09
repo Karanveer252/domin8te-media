@@ -50,7 +50,8 @@ function page(c, i) {
   const file = path.join(work, `${i}.html`);
   // Replacer functions, never replacement strings: a replacement string reads the dollar patterns
   // in the injected code ($$, $' and so on) as instructions.
-  const seed = c.seed ? `<script>try { ${c.seed} } catch (e) {}</script>` : '';
+  // The public demo is view-only; the flows that act on it switch that off here, and the read-only cases keep it on (readOnly: true).
+  const seed = `<script>try { window.D8_DEMO_WRITABLE = ${c.readOnly ? 'false' : 'true'}; ${c.seed || ''} } catch (e) {}</script>`;
   fs.writeFileSync(file, src.replace('<head>', () => '<head>' + seed + collect).replace('<body>', () => '<body>' + early).replace('</body>', () => late + '</body>'));
   return `${toUrl(file)}${c.query ? '?' + c.query : ''}#/${c.route || 'home'}`;
 }

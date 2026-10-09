@@ -16,8 +16,12 @@ function memoryStorage() {
   };
 }
 
-/** A fresh sandbox with instant timers and empty storage. @param {string} [scenario] */
-function load(scenario) {
+/**
+ * A fresh sandbox with instant timers and empty storage. The public demo is view-only, so tests that act on it
+ * (approve, message, save) switch the guard off, as the page's own test seed does; pass { readOnly: true } to keep it on.
+ * @param {string} [scenario] @param {{readOnly?: boolean}} [opts]
+ */
+function load(scenario, opts) {
   const ctx = {
     console,
     URLSearchParams,
@@ -26,6 +30,7 @@ function load(scenario) {
     localStorage: memoryStorage(),
     sessionStorage: memoryStorage()
   };
+  if (!(opts && opts.readOnly)) ctx.D8_DEMO_WRITABLE = true;
   ctx.globalThis = ctx;
   vm.createContext(ctx);
   for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(SRC, f), 'utf8'), ctx, { filename: f });

@@ -37,9 +37,14 @@
       s.async = true;
       s.crossOrigin = 'anonymous';
       for (const [k, v] of Object.entries(attrs || {})) s.setAttribute(k, v);
-      s.onload = () => resolve(null);
-      s.onerror = () => reject(fail('offline', "We couldn't reach the sign-in service. Check your connection and try again."));
+      // A service that never answers (not an error) must not leave the page blank for ever.
+      let settled = false;
+      let timer;
+      const gone = () => reject(fail('offline', "We couldn't reach the sign-in service. Check your connection and try again."));
+      s.onload = () => { settled = true; clearTimeout(timer); resolve(null); };
+      s.onerror = () => { if (settled) return; settled = true; clearTimeout(timer); gone(); };
       document.head.appendChild(s);
+      timer = setTimeout(() => { if (settled) return; settled = true; if (s.remove) s.remove(); gone(); }, 15000);
     });
   }
 
@@ -109,7 +114,10 @@
   async function pickOrganisation(C) {
     if (C.organization) return;
     const memberships = (C.user && C.user.organizationMemberships) || [];
-    if (memberships.length) await C.setActive({ organization: memberships[0].organization.id });
+    if (!memberships.length) return;
+    // This page's own organisation first (the restaurant, or for the console the team); a failure here must not fail the whole load.
+    const pick = (C.session && orgFor(C.session)) || memberships[0].organization.id;
+    try { await C.setActive({ organization: pick }); } catch (e) { /* the token still names the organisation (tokenFor) */ }
   }
 
   /** Clerk's errors, in the portal's words. @param {any} err @param {string} [field] */
@@ -256,20 +264,30 @@
       const t = await sb.from('tenants').select('id, name, doc').eq('clerk_org_id', session.tenantId).limit(1);
       if (t.error) throw dbFail(t.error);
       const row = t.data && t.data[0];
-      if (!row) { tenant = null; return; }
+      if (!row) {
+        // No row can also mean the sign-in ended (the request then went out without a token): say so, not "no portal".
+        if (!PREVIEW && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
+        tenant = null; return;
+      }
       const [d, m, r, p, items, inv, cards] = await Promise.all([
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
         sb.from('requests').select('id, service, body, status, by_name, at').eq('tenant_id', row.id).order('at'),
-        sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').maybeSingle(),
+        sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').eq('clerk_user_id', session.userId).maybeSingle(),
         // What staff approved for this client. The database returns a client only client_visible rows; asking
         // for them here as well keeps a staff session previewing the portal to the same rows.
         sb.from('client_dashboard_items').select('id, item_kind, external_id, content, source_observed_at, reporting_period_start, reporting_period_end, verification_status, published_at').eq('tenant_id', row.id).eq('client_visible', true),
         sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url').eq('tenant_id', row.id).eq('client_visible', true),
         // The team's board cards for this client (2026-10-08): only their visible cards with a service, safe fields only
-        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve({ data: null, error: { message: 'no rpc' } })
+        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve({ data: null, error: { code: 'PGRST202', message: 'no rpc' } })
       ]);
       for (const x of [d, m, r, p]) if (x.error) throw dbFail(x.error);
+      // The three projections may be missing before their migration (table or function not there yet): that is fine.
+      // Any other error (access, token, network) must not read as "no invoices" or "nothing approved": fail, and the
+      // record already on screen stays as it was.
+      const MISSING = ['42P01', 'PGRST205', 'PGRST202', '42883'];
+      const missing = (/** @type {any} */ e) => MISSING.includes(e.code) || /does not exist|schema cache|no rpc/i.test(String(e.message || ''));
+      for (const x of [items, inv, cards]) if (x.error && !missing(x.error)) throw dbFail(x.error);
       /** @type {any} */ const next = {};
       for (const x of d.data || []) apply(next, 'decision', { approvalId: x.approval_id, decision: x.decision, comment: x.comment, at: x.at, by: x.by_name });
       for (const x of m.data || []) apply(next, 'message', { id: x.id, about: x.about, text: x.body, at: x.at, fromTeam: x.from_staff, by: x.by_name });
@@ -286,6 +304,7 @@
     }
 
     let ready = load();
+    /** @type {Promise<any>|null} */ let loading = null;
     return {
       get ready() { return ready; },
       tenant: () => tenant,
@@ -310,14 +329,31 @@
         } else {
           throw fail('bad-kind', 'Unknown action.');
         }
-        if (res.error) throw dbFail(res.error);
+        if (res.error) {
+          // Answered already (another tab or device): show what was saved, not "nothing changed".
+          if (kind === 'decision' && res.error.code === '23505') {
+            try { await this.reload(); } catch (e) { /* the answer below is still true */ }
+            throw Object.assign(dbFail(res.error), { previous: st.decisions && st.decisions[rec.approvalId] });
+          }
+          throw dbFail(res.error);
+        }
         const row = res.data || {};
         const stored = { ...rec, id: row.id || rec.id, at: row.at || row.notifications_saved_at || T.isoTime(now()) };
         if (row.status) stored.status = row.status;
         apply(st, kind, stored);
         return stored;
       },
-      reload() { ready = load(); return ready; },
+      reload() {
+        // One refresh at a time (a slow one must not finish after a newer one and overwrite it).
+        if (loading) return loading;
+        const p = load();
+        loading = p;
+        const done = () => { loading = null; };
+        p.then(done, done);
+        // A failed refresh leaves the record already loaded usable; the caller still sees the error.
+        ready = p.then(() => {}, () => {});
+        return p;
+      },
       reset: () => Promise.resolve()
     };
   }
@@ -334,13 +370,22 @@
   D8.integrations.resolve = async (/** @type {string} */ kind, /** @type {string} */ id, /** @type {string} */ number) => {
     if (kind !== 'billing-portal' && kind !== 'invoice') return outside(kind, id);
     if (PREVIEW) return null;
-    const token = await tokenFor(await clerk());
-    const res = await fetch(cfg.supabaseUrl + '/functions/v1/stripe-billing', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, apikey: cfg.supabaseKey },
-      body: JSON.stringify(kind === 'invoice' ? { action: 'invoice', number } : { action: 'portal' })
-    });
-    const j = await res.json().catch(() => ({}));
+    const notSet = () => {
+      const x = /** @type {any} */ (new Error('Online billing is not switched on yet. Press Message us and we sort it out.'));
+      x.code = 'not-configured';
+      return x;
+    };
+    let res, j;
+    try {
+      const token = await tokenFor(await clerk());
+      res = await fetch(cfg.supabaseUrl + '/functions/v1/stripe-billing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, apikey: cfg.supabaseKey },
+        body: JSON.stringify(kind === 'invoice' ? { action: 'invoice', number } : { action: 'portal' })
+      });
+      j = await res.json().catch(() => ({}));
+    } catch (e) { throw notSet(); } // the billing function is not there (or the browser was refused): retrying never helps
+    if (res.status === 404 || j.code === 'NOT_FOUND') throw notSet();
     if (res.ok && j.url) return j.url;
     const e = /** @type {any} */ (new Error(j.error === 'not-configured' || j.error === 'no-customer' || j.error === 'live-key-refused'
       ? 'Online billing is not set up for your account yet. Press Message us and we sort it out.'

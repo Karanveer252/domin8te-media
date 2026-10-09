@@ -41,10 +41,7 @@
   }
 
   /** Opens the dialog with `html` and moves focus to its title. */
-  /** Counts dialogs opened, so a slow answer for an old one cannot draw over a newer one. */
-  let gen = 0;
   function open(html, trigger, closed) {
-    gen++;
     const d = dlg();
     returnTo = trigger || /** @type {HTMLElement|null} */ (document.activeElement);
     onClosed = closed || null;
@@ -86,15 +83,10 @@
     d.addEventListener('cancel', (e) => { e.preventDefault(); close(); });
     // Safety net for any other way the dialog closes; finish() only acts once.
     d.addEventListener('close', finish);
-    // A click on the backdrop closes, but only when the press started there too: dragging a text selection out of
-    // the note box and letting go outside must not throw the note away.
-    let downOnBackdrop = false;
-    d.addEventListener('pointerdown', (e) => { downOnBackdrop = e.target === d; });
     d.addEventListener('click', (e) => {
       const t = /** @type {HTMLElement} */ (e.target);
       if (t.closest('[data-dlg-close]')) close();
-      else if (t === d && downOnBackdrop) close(); // a click on the backdrop
-      downOnBackdrop = false;
+      else if (t === d) close(); // a click on the backdrop
     });
   }
 
@@ -118,16 +110,6 @@
       }
     }
   }
-
-  /** A request that never answers must not lock the dialog for ever. @param {Promise<any>} p @param {number} [ms] */
-  function slow(p, ms) {
-    return new Promise((res, rej) => {
-      const t = setTimeout(() => rej(Object.assign(new Error('Still waiting for an answer. Check Home before trying again, in case it went through.'), { code: 'slow' })), ms || 25000);
-      p.then((v) => { clearTimeout(t); res(v); }, (e) => { clearTimeout(t); rej(e); });
-    });
-  }
-  /** In the view-only demo: a line up front, so nobody types a long note first. */
-  const demoLine = () => (D8.data.READ_ONLY ? `<div class="notice">${icon('info')}<p>${esc(D8.data.DEMO_NOTE)}</p></div>` : '');
 
   function fieldError(field, msg) {
     const input = /** @type {HTMLElement|null} */ (inner().querySelector(`[name="${field}"]`));
@@ -157,10 +139,10 @@
   function preview(p) {
     if (!p) return '';
     if (p.type === 'posts') {
-      return `<ol class="posts">${(p.items || []).map((it) => `<li class="post"><div class="post-img">${icon('image')}<span>${esc(it.image)}</span></div><div class="post-body"><p class="post-when">${esc(it.day)} <span class="meta">on ${esc(it.channels)}</span></p><p class="post-text">${esc(it.text)}</p></div></li>`).join('')}</ol>`;
+      return `<ol class="posts">${p.items.map((it) => `<li class="post"><div class="post-img">${icon('image')}<span>${esc(it.image)}</span></div><div class="post-body"><p class="post-when">${esc(it.day)} <span class="meta">on ${esc(it.channels)}</span></p><p class="post-text">${esc(it.text)}</p></div></li>`).join('')}</ol>`;
     }
     if (p.type === 'hours') {
-      return `<table class="hours"><caption class="sr-only">Proposed opening hours</caption><tbody>${(p.rows || []).map((r) => `<tr><th scope="row">${esc(r[0])}</th><td>${esc(r[1])}</td></tr>`).join('')}</tbody></table>`;
+      return `<table class="hours"><caption class="sr-only">Proposed opening hours</caption><tbody>${p.rows.map((r) => `<tr><th scope="row">${esc(r[0])}</th><td>${esc(r[1])}</td></tr>`).join('')}</tbody></table>`;
     }
     // Added for the agency console: a plain list, and a link to the draft (only https addresses).
     if (p.type === 'list') {
@@ -188,17 +170,13 @@
   function approval(id, trigger, ctx) {
     let changed = false;
     open(head('Loading', '') + `<div class="dlg-body">${D8.ui.Skeleton('text', 3)}</div>`, trigger, () => { if (changed) ctx.afterChange(); });
-    const my = gen;
     ctx.client.getApproval(id).then((a) => {
-      if (my !== gen) return; // another dialog opened while this one loaded
       const now = ctx.client.now();
       const svc = D8.data.SERVICES[a.service];
-      const due = a.due ? F.due(a.due, now) : null;
-      const label = esc(svc ? svc.label : '');
-      const sub = due ? `${label} · <span class="due tone-${due.tone}">${esc(due.text)}</span>` : label;
-      // Once answered, no "Due" or "Overdue" any more.
+      const due = F.due(a.due, now);
+      const sub = `${esc(svc ? svc.label : '')} · <span class="due tone-${due.tone}">${esc(due.text)}</span>`;
       if (a.decision) {
-        inner().innerHTML = head(a.title, label) + `<div class="dlg-body">${decided(a, a.decision, now)}</div>`;
+        inner().innerHTML = head(a.title, sub) + `<div class="dlg-body">${decided(a, a.decision, now)}</div>`;
         focusTitle();
         return;
       }
@@ -211,7 +189,6 @@
             <textarea id="apv-comment" name="comment" rows="3" maxlength="1000" aria-describedby="err-comment"></textarea>
             <p class="field-error" id="err-comment" hidden></p>
           </div>
-          ${demoLine()}
           <p class="form-error" role="alert" hidden></p>
           <div class="dlg-actions">
             <button class="btn btn-tint" type="submit" value="approved">${esc(a.approve.label)}</button>
@@ -220,48 +197,35 @@
         </form></div>`;
       focusTitle();
       const form = /** @type {HTMLFormElement} */ (inner().querySelector('form'));
-      // Older Safari does not say which button sent the form; never guess "approved" from that.
-      /** @type {HTMLButtonElement|null} */ let clicked = null;
-      form.querySelectorAll('button[type=submit]').forEach((b) => b.addEventListener('click', () => { clicked = /** @type {HTMLButtonElement} */ (b); }));
       form.addEventListener('submit', (e) => {
         e.preventDefault();
-        const btn = /** @type {HTMLButtonElement} */ (/** @type {SubmitEvent} */ (e).submitter || clicked);
-        if (!btn) return;
-        const decision = btn.value === 'changes' ? 'changes' : 'approved';
+        const btn = /** @type {HTMLButtonElement} */ (/** @type {SubmitEvent} */ (e).submitter);
+        const decision = btn && btn.value === 'changes' ? 'changes' : 'approved';
         const comment = /** @type {HTMLTextAreaElement} */ (form.elements.namedItem('comment')).value;
         fieldError('comment', '');
         formError('');
         if (decision === 'changes' && !comment.trim()) { fieldError('comment', 'Tell us what to change so we can fix it.'); return; }
-        if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
         setBusy(true, btn, decision === 'approved' ? 'Saving' : 'Sending');
-        slow(ctx.client.decide(id, decision, comment)).then((rec) => {
+        ctx.client.decide(id, decision, comment).then((rec) => {
           changed = true;
           setBusy(false);
-          inner().innerHTML = head(a.title, label) + `<div class="dlg-body">${decided(a, rec, ctx.client.now())}</div>`;
+          inner().innerHTML = head(a.title, sub) + `<div class="dlg-body">${decided(a, rec, ctx.client.now())}</div>`;
           focusTitle();
           toast(decision === 'approved' ? `${a.title}: approved.` : `${a.title}: changes requested.`);
         }).catch((err) => {
           setBusy(false, btn);
           if (err.code === 'already-decided' && err.previous) {
             changed = true;
-            inner().innerHTML = head(a.title, label) + `<div class="dlg-body">${decided(a, err.previous, ctx.client.now())}</div>`;
-            focusTitle();
-          } else if (err.code === 'already-decided') {
-            // Answered already, but the saved answer could not be read back: say so, do not say "nothing changed".
-            changed = true;
-            inner().innerHTML = head(a.title, label) + `<div class="dlg-body"><div class="notice">${icon('info')}<p>${esc(err.message)}</p></div><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div>`;
+            inner().innerHTML = head(a.title, sub) + `<div class="dlg-body">${decided(a, err.previous, ctx.client.now())}</div>`;
             focusTitle();
           } else if (err.field && fieldError(err.field, err.message)) {
             /* shown next to the field */
-          } else if (err.code === 'slow') {
-            formError(err.message);
           } else {
             formError(`We couldn't save your answer, so nothing changed. ${err.message || ''} Try again.`);
           }
         });
       });
     }).catch((err) => {
-      if (my !== gen) return;
       inner().innerHTML = head('Something went wrong', '') + `<div class="dlg-body">${D8.ui.ErrorState({ title: "We couldn't open this.", text: err.message || 'Try again soon.' })}<div class="dlg-actions"><button class="btn btn-glass" type="button" data-dlg-close>Close</button></div></div>`;
       focusTitle();
     });
@@ -286,25 +250,12 @@
     const b = /** @type {HTMLButtonElement|null} */ (trigger && trigger.tagName === 'BUTTON' ? trigger : null);
     if (b) b.disabled = true;
     const number = trigger && trigger.getAttribute('data-number');
-    // An invoice that already carries its own payment page opens straight away; no billing function needed.
-    const direct = trigger && trigger.getAttribute('data-url');
-    if (kind === 'invoice' && direct && /^https:\/\/[^/]*stripe\.com\//.test(direct)) { root.open(direct, '_blank', 'noopener'); return; }
-    // Live: sign-in and security is Clerk's own profile window.
-    if (kind === 'clerk-account' && D8.live) {
-      if (b) b.disabled = true;
-      D8.live.clerk().then((c) => { if (!c.openUserProfile) throw new Error('no profile'); c.openUserProfile(); })
-        .catch(() => toast('We could not open this. Press Message us and we change it for you.', { tone: 'error' }))
-        .then(() => { if (b) b.disabled = false; });
-      return;
-    }
     D8.integrations.resolve(kind, id, number || undefined).then((url) => {
       if (b) b.disabled = false;
-      if (url && /^https:\/\//.test(url)) { root.location.assign(url); return; }
+      if (url) { root.location.assign(url); return; }
       open(head(number ? `${o.title} ${number}` : o.title, '') + `<div class="dlg-body">
         <p class="dlg-intro">${esc(o.text)}</p>
-        ${D8.live
-          ? `<div class="notice">${icon('info')}<p>Online ${esc(o.where)} is not switched on for your account yet. Press <strong>Message us</strong> and we sort it out.</p></div>`
-          : `<div class="notice">${icon('info')}<p><strong>This is a demo</strong>, so ${esc(o.where)} does not open and nothing changes. In your real portal, this button takes you to ${esc(o.where)} and back.</p></div>`}
+        <div class="notice">${icon('info')}<p><strong>This is a demo</strong>, so ${esc(o.where)} does not open and nothing changes. In your real portal, this button takes you to ${esc(o.where)} and back.</p></div>
         <div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Close</button></div></div>`, trigger);
     }).catch((/** @type {any} */ err) => {
       if (b) b.disabled = false;
@@ -351,10 +302,10 @@
         { do: 'Press **People and access**, then **Add**.', where: 'Older screens say **Managers** instead of People and access.' },
         { do: `Type Domin8te's email ${askMail(t)}, choose **Manager**, then press **Invite**.` }
       ],
-      off: (/** @type {string[]} */ ids, /** @type {any} */ t) => [
+      off: () => [
         { do: 'Press **Open Google Business Profile** below and sign in.' },
         { do: 'Press the menu with **three dots**, then **Business Profile settings**, then **People and access**.' },
-        { do: `Find ${askMail(t)} in the list, then press **Remove access**.` }
+        { do: 'Press **Domin8te**, then **Remove access**.' }
       ],
       tip: 'No Business Profile settings? Your Google account may not own the listing. Ask whoever set it up, or press Message us.'
     },
@@ -367,10 +318,10 @@
         { do: 'Press the blue **+** at the top right, then **Add users**.' },
         { do: `Type Domin8te's email ${askMail(t)}, tick **Viewer**, then press **Add**.` }
       ],
-      off: (/** @type {string[]} */ ids, /** @type {any} */ t) => [
+      off: () => [
         { do: 'Press **Open Google Analytics** below and sign in.' },
         { do: 'Press **Admin**, then **Property access management**.' },
-        { do: `Press the **three dots** on the row for ${askMail(t)}, then **Remove access**.` }
+        { do: 'Press the **three dots** on the Domin8te row, then **Remove access**.' }
       ],
       tip: 'No Admin gear? Your login can only look, not change. Ask whoever set up Analytics, or press Message us.'
     },
@@ -397,7 +348,7 @@
     const off = mode === 'disconnect';
     // One Meta trip: this account plus every other Meta account they need that isn't working or waiting yet.
     const ids = !off && a.guide === 'meta'
-      ? [id, ...srcs.filter((/** @type {any} */ x) => x.id !== id && D8.data.ACCOUNTS[x.id] && D8.data.ACCOUNTS[x.id].guide === 'meta' && !x.pending && x.state !== 'error' && !WORKING.includes(x.state)).map((/** @type {any} */ x) => x.id)]
+      ? [id, ...srcs.filter((/** @type {any} */ x) => x.id !== id && D8.data.ACCOUNTS[x.id] && D8.data.ACCOUNTS[x.id].guide === 'meta' && !x.pending && !WORKING.includes(x.state)).map((/** @type {any} */ x) => x.id)]
         .sort((p, q) => Object.keys(META_LIST).indexOf(p) - Object.keys(META_LIST).indexOf(q))
       : [id];
     const names = ids.map((x) => (srcs.find((/** @type {any} */ y) => y.id === x) || { name: (D8.data.ACCOUNTS[x] || {}).name || x }).name);
@@ -413,19 +364,17 @@
       <ol class="guide-steps">${steps.map((/** @type {any} */ x) => `<li><p class="guide-do">${rich(x.do)}</p>${x.list ? `<ul class="guide-list">${x.list.map((/** @type {string} */ y) => `<li>${rich(y)}</li>`).join('')}</ul>` : ''}${x.where ? `<p class="guide-where">${icon('info')}<span>${rich(x.where)}</span></p>` : ''}</li>`).join('')}</ol>
       ${g.tip && !off ? `<p class="guide-tip">${icon('help')}<span><strong>Stuck?</strong> ${rich(g.tip)}</span></p>` : ''}
       ${g.link ? '<p class="meta">Menus move now and then. If yours looks different, press Message us and we help.</p>' : ''}
-      ${demoLine()}
       <p class="form-error" role="alert" hidden></p>
       <div class="dlg-actions">${g.link ? `<a class="btn btn-glass" href="${g.link}" target="_blank" rel="noopener noreferrer">${esc(g.button)}${icon('external')}<span class="sr-only"> (opens in a new tab)</span></a>` : ''}<button class="btn btn-solid" type="button" data-account-done>${g.link ? "I've done it" : 'Tell us'}</button><button class="btn btn-glass" type="button" data-dlg-close>Cancel</button></div></div>`, trigger, () => { if (sent) ctx.afterChange(); });
     const done = /** @type {HTMLButtonElement} */ (inner().querySelector('[data-account-done]'));
     done.addEventListener('click', () => {
       formError('');
-      if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
       setBusy(true, done, 'Sending');
-      slow(ctx.client.accountRequest(ids, mode)).then(() => {
+      ctx.client.accountRequest(ids, mode).then(() => {
         sent = true;
         setBusy(false);
         const what = F.list(names);
-        inner().innerHTML = head(`Thanks${ctx.session.firstName ? ', ' + ctx.session.firstName : ''}`, '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>We got it.</h3><p>${off ? `We stop using ${esc(what)} and confirm it` : `We check ${esc(what)} ${ids.length > 1 ? 'work' : 'works'} and confirm it`}, usually within one working day. Until then ${ids.length > 1 ? 'they say' : 'it says'} Waiting for us to confirm.</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
+        inner().innerHTML = head(`Thanks, ${ctx.session.firstName}`, '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>We got it.</h3><p>${off ? `We stop using ${esc(what)} and confirm it` : `We check ${esc(what)} ${ids.length > 1 ? 'work' : 'works'} and confirm it`}, usually within one working day. Until then ${ids.length > 1 ? 'they say' : 'it says'} Waiting for us to confirm.</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
         focusTitle();
         toast('Sent. We will confirm soon.');
       }).catch((/** @type {any} */ err) => {
@@ -440,7 +389,7 @@
   function compose(o, trigger, ctx) {
     const isRequest = o.mode === 'request';
     const svc = isRequest ? D8.data.SERVICES[o.service] : null;
-    const pkg = ctx.account.package.services.filter((/** @type {string} */ x) => D8.data.SERVICES[x]);
+    const pkg = ctx.account.package.services;
     const title = isRequest ? (svc ? `Ask for a change: ${svc.label}` : 'Ask for a change') : 'Message us';
     // Opened from the top of Work (2026-10-09), a request first asks which service it is for.
     const pick = isRequest && !svc ? `<div class="field"><label for="msg-service">Which service?</label><select id="msg-service" name="service">${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}</select></div>` : '';
@@ -455,7 +404,6 @@
           <p class="hint" id="msg-hint">${isRequest ? 'For example: swap the brunch photo for the one I sent on Monday.' : 'We read every message. If it is urgent, say so in the first line.'}</p>
           <p class="field-error" id="err-text" hidden></p>
         </div>
-        ${demoLine()}
         <p class="form-error" role="alert" hidden></p>
         <div class="dlg-actions"><button class="btn btn-solid" type="submit">${isRequest ? 'Send request' : 'Send message'}</button><button class="btn btn-glass" type="button" data-dlg-close>Cancel</button></div>
       </form></div>`, trigger, () => { if (sent) ctx.afterChange(); });
@@ -468,14 +416,13 @@
       formError('');
       if (!text.trim()) { fieldError('text', isRequest ? 'Tell us what you would like changed.' : 'Write your message first.'); return; }
       const btn = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
-      if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
       setBusy(true, btn, 'Sending');
       const svcEl = /** @type {HTMLSelectElement|null} */ (form.elements.namedItem('service'));
-      const p = slow(isRequest ? ctx.client.sendRequest(svcEl ? svcEl.value : o.service, text) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text));
+      const p = isRequest ? ctx.client.sendRequest(svcEl ? svcEl.value : o.service, text) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text);
       p.then((rec) => {
         sent = true;
         setBusy(false);
-        inner().innerHTML = head(isRequest ? 'Request sent' : 'Message sent', '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>Thanks${ctx.session.firstName ? ', ' + esc(ctx.session.firstName) : ''}.</h3><p>${ctx.account.team.reply ? esc(D8.ui.replyLine(ctx.account.team.reply)) + ' ' : ''}We'll answer here and by email.</p><p class="audit">${icon('clock')}Sent on ${esc(F.date(rec.at))} at ${esc(F.time(rec.at))}</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
+        inner().innerHTML = head(isRequest ? 'Request sent' : 'Message sent', '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>Thanks, ${esc(ctx.session.firstName)}.</h3><p>${ctx.account.team.reply ? esc(D8.ui.replyLine(ctx.account.team.reply)) + ' ' : ''}We'll answer here and by email.</p><p class="audit">${icon('clock')}Sent on ${esc(F.date(rec.at))} at ${esc(F.time(rec.at))}</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
         focusTitle();
         toast(isRequest ? 'Request sent.' : 'Message sent.');
       }).catch((err) => {

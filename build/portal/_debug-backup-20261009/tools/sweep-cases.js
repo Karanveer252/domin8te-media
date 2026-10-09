@@ -86,22 +86,6 @@ cases.push(flow('save email preferences', [
   st(`$('#notify-form').requestSubmit();`),
   st(`note('status', ($('#notify-status') || {}).textContent);`)
 ], { route: 'settings', gap: 900 }));
-// The public demo is view-only (2026-10-09): every way to answer, write or save says so and stores nothing.
-cases.push(flow('view-only demo: approving says it is a demo and saves nothing', [
-  st(`click('[data-action="approve"]');`),
-  st(`if (!$('#dlg .notice')) throw new Error('no demo line up front'); var f = $('#dlg form'); f.requestSubmit(f.querySelector('button[value="approved"]'));`),
-  st(`var e = $('#dlg .form-error'); if (!e || e.hidden || e.textContent.indexOf('This is a demo') < 0) throw new Error('no demo message'); if ($('#dlg .confirm-state')) throw new Error('it looks answered'); note('message', e.textContent.slice(0, 40)); var k = Object.keys(localStorage).filter(function (x) { return x.indexOf('.demo.') > 0; }); note('stored', k.map(function (x) { var v = JSON.parse(localStorage.getItem(x) || '{}'); return Object.keys(v).filter(function (y) { return y === 'decisions' || y === 'messages' || y === 'requests' || y === 'notifications'; }).length; }).join(','));`)
-], { gap: 700, readOnly: true }));
-cases.push(flow('view-only demo: a message keeps the words and sends nothing', [
-  st(`click('.help-contact a[href="#/messages"]');`),
-  st(`var ta = $('#msg-new'); ta.value = 'Please change the opening hours.'; $('#msg-form').requestSubmit();`),
-  st(`var e = $('#msg-form-err'); if (!e || e.hidden || e.textContent.indexOf('This is a demo') < 0) throw new Error('no demo message'); if ($('#msg-new').value !== 'Please change the opening hours.') throw new Error('the words were lost'); if ($$('#msg-thread .msg').some(function (m) { return m.textContent.indexOf('opening hours') > 0 && !m.classList.contains('from-team'); })) throw new Error('a bubble was added'); note('kept', true);`)
-], { route: 'help', gap: 1000, readOnly: true, expect: { page: 'messages' } }));
-cases.push(flow('view-only demo: saving email choices says it is a demo', [
-  st(`$('.fold-emails').open = true; var box = $$('#notify-form input[type="checkbox"]').filter(function (b) { return !b.disabled; })[0]; box.click();`),
-  st(`$('#notify-form').requestSubmit();`),
-  st(`var t = ($('#notify-status') || {}).textContent; if (t.indexOf('This is a demo') < 0) throw new Error('no demo message: ' + t); note('status', t.slice(0, 30));`)
-], { route: 'settings', gap: 900, readOnly: true }));
 cases.push(flow('theme dark then light from Settings', [
   st(`$('.fold-look').open = true; click('input[name="theme"][value="dark"]'); note('dark', document.documentElement.getAttribute('data-theme')); note('toast1', toast());`),
   st(`click('input[name="theme"][value="light"]'); note('light', document.documentElement.getAttribute('data-theme'));`)
