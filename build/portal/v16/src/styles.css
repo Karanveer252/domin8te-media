@@ -678,6 +678,39 @@ html[data-theme="dark"] .orb { background: radial-gradient(circle at 32% 28%, rg
 .wc-stage[data-tone="neutral"] { background: var(--p-neutral-bg); color: var(--p-neutral); }
 .wc-more { margin-top: 6px; }
 .col-head-after { margin-top: 22px; }
+/* The simple Work page (2026-10-08): three plain lines, then one list of steps. */
+.svc-simple > * + * { margin-top: 22px; }
+.say { display: grid; gap: 0; }
+.say > div { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-top: 1px solid var(--p-line); }
+.say > div:first-child { border-top: 0; padding-top: 4px; }
+.say dt { font-size: 15px; font-weight: 600; color: var(--p-ink-2); }
+.say dd { margin: 0; font-size: 18px; line-height: 1.45; }
+.say-when { color: var(--p-ink-2); white-space: nowrap; }
+.steps-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.steps-head h3 { font-size: 17px; font-weight: 650; }
+.steps { display: grid; margin: 0; padding: 0; list-style: none; }
+.step { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--p-line); }
+.step:first-child { border-top: 0; padding-top: 4px; }
+.step-dot { display: grid; place-items: center; width: 32px; height: 32px; border: 2px solid var(--p-line-2); border-radius: 50%; background: var(--p-surface); color: var(--p-ink-3); }
+.step-dot .i { width: 16px; height: 16px; }
+.step.is-now .step-dot { border-color: var(--p-info); color: var(--p-info); }
+.step.is-you .step-dot { border-color: var(--p-attn); color: var(--p-attn); }
+.step.is-done .step-dot { border-color: var(--p-success); background: var(--p-success); color: #fff; }
+.step-title { font-size: 16.5px; font-weight: 600; line-height: 1.35; }
+.step.is-done .step-title { color: var(--p-ink-2); font-weight: 500; }
+.step-tag { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.step-tag [data-tone] { padding: 1px 9px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.step-tag [data-tone="info"] { background: var(--p-info-bg); color: var(--p-info); }
+.step-tag [data-tone="attention"] { background: var(--p-attn-bg); color: var(--p-attn); }
+.step-tag [data-tone="success"] { background: var(--p-success-bg); color: var(--p-success); }
+.step-tag [data-tone="neutral"] { background: var(--p-neutral-bg); color: var(--p-neutral); }
+.step-tag .meta { font-size: 13px; white-space: nowrap; }
+.steps-more { margin-top: 4px; }
+@container svc (max-width: 520px) {
+  .say > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .step { grid-template-columns: 32px minmax(0, 1fr); }
+  .step-tag { grid-column: 2; flex-direction: row; align-items: center; gap: 8px; text-align: left; }
+}
 .done-list li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: baseline; gap: 10px; padding: 8px 0; border-top: 1px solid var(--p-line); }
 .done-list li:first-child { border-top: 0; }
 .done-list .i { align-self: center; width: 18px; height: 18px; color: var(--p-success); }

@@ -691,6 +691,39 @@ html[data-theme="dark"] .orb { background: radial-gradient(circle at 32% 28%, rg
 .wc-stage[data-tone="neutral"] { background: var(--p-neutral-bg); color: var(--p-neutral); }
 .wc-more { margin-top: 6px; }
 .col-head-after { margin-top: 22px; }
+/* The simple Work page (2026-10-08): three plain lines, then one list of steps. */
+.svc-simple > * + * { margin-top: 22px; }
+.say { display: grid; gap: 0; }
+.say > div { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-top: 1px solid var(--p-line); }
+.say > div:first-child { border-top: 0; padding-top: 4px; }
+.say dt { font-size: 15px; font-weight: 600; color: var(--p-ink-2); }
+.say dd { margin: 0; font-size: 18px; line-height: 1.45; }
+.say-when { color: var(--p-ink-2); white-space: nowrap; }
+.steps-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.steps-head h3 { font-size: 17px; font-weight: 650; }
+.steps { display: grid; margin: 0; padding: 0; list-style: none; }
+.step { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--p-line); }
+.step:first-child { border-top: 0; padding-top: 4px; }
+.step-dot { display: grid; place-items: center; width: 32px; height: 32px; border: 2px solid var(--p-line-2); border-radius: 50%; background: var(--p-surface); color: var(--p-ink-3); }
+.step-dot .i { width: 16px; height: 16px; }
+.step.is-now .step-dot { border-color: var(--p-info); color: var(--p-info); }
+.step.is-you .step-dot { border-color: var(--p-attn); color: var(--p-attn); }
+.step.is-done .step-dot { border-color: var(--p-success); background: var(--p-success); color: #fff; }
+.step-title { font-size: 16.5px; font-weight: 600; line-height: 1.35; }
+.step.is-done .step-title { color: var(--p-ink-2); font-weight: 500; }
+.step-tag { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.step-tag [data-tone] { padding: 1px 9px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.step-tag [data-tone="info"] { background: var(--p-info-bg); color: var(--p-info); }
+.step-tag [data-tone="attention"] { background: var(--p-attn-bg); color: var(--p-attn); }
+.step-tag [data-tone="success"] { background: var(--p-success-bg); color: var(--p-success); }
+.step-tag [data-tone="neutral"] { background: var(--p-neutral-bg); color: var(--p-neutral); }
+.step-tag .meta { font-size: 13px; white-space: nowrap; }
+.steps-more { margin-top: 4px; }
+@container svc (max-width: 520px) {
+  .say > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .step { grid-template-columns: 32px minmax(0, 1fr); }
+  .step-tag { grid-column: 2; flex-direction: row; align-items: center; gap: 8px; text-align: left; }
+}
 .done-list li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: baseline; gap: 10px; padding: 8px 0; border-top: 1px solid var(--p-line); }
 .done-list li:first-child { border-top: 0; }
 .done-list .i { align-self: center; width: 18px; height: 18px; color: var(--p-success); }
@@ -5592,12 +5625,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
   /* ================================================================ WORK */
 
-  function milestone(m) {
-    const st = { done: ['Done', 'check'], current: ['In progress', 'progress'], next: ['Planned', 'clock'] }[m.state] || ['Planned', 'clock'];
-    const when = m.state === 'done' ? `Done ${F.date(m.date, { weekday: false })}` : m.state === 'current' ? `Expected ${F.date(m.date)}` : `Planned for ${F.date(m.date)}`;
-    return `<li class="ms is-${esc(m.state)}"><span class="ms-dot">${icon(st[1])}</span><div><p class="ms-title">${esc(m.title)}<span class="sr-only">, ${st[0]}</span></p><p class="meta">${esc(when)}${m.needs ? ' · <span class="ms-needs">Waiting for you</span>' : ''}</p></div></li>`;
-  }
-
   function actionButton(a, cls) {
     return a.primary.does === 'approval'
       ? `<button class="${cls}" type="button" data-action="approve" data-id="${esc(a.approvalId)}">${esc(a.primary.label)}</button>`
@@ -5611,70 +5638,75 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     return `<li><div><p class="blocker-title">${esc(a.title)}</p>${when}</div>${actionButton(a, style + ' btn-sm')}</li>`;
   }
 
-  /* The team's board cards for a service (2026-10-08): where each piece of work is, in the client's words. */
-  const CARD_STAGE = {
-    in_review: ['Waiting for you', 'alert', 'attention'],
-    in_progress: ['In progress', 'progress', 'info'],
-    blocked: ['On hold', 'pause', 'neutral'],
-    todo: ['Up next', 'clock', 'neutral'],
+  /* The Work page, made simple (2026-10-08, Karan: "make it as simple as possible so that even a five year old can
+     read and interpret it"). Each service says three things in plain words (how it is going, what we are doing now,
+     what happens next) and shows one list of steps: the team's board cards for that service when it has any,
+     otherwise the steps typed on the console's Work tab (and older finished lines). What is left first, then the
+     last few done. */
+  const STEP = {
+    you: ['Waiting for you', 'alert', 'attention'],
+    now: ['Doing now', 'progress', 'info'],
+    later: ['Later', 'clock', 'neutral'],
+    hold: ['On hold', 'pause', 'neutral'],
     done: ['Done', 'check', 'success']
   };
-  const DONE_SHOWN = 5;
-  /** @param {any[]} cards */
-  function workCards(cards) {
-    if (!cards || !cards.length) return '';
-    const open = cards.filter((c) => c.status !== 'done');
-    const done = cards.filter((c) => c.status === 'done');
-    const row = (/** @type {any} */ c) => {
-      const st = /** @type {any} */ (CARD_STAGE)[c.status] || CARD_STAGE.todo;
-      const when = c.status === 'done'
-        ? (c.updatedAt ? ` · ${esc(F.date(String(c.updatedAt).slice(0, 10), { weekday: false }))}` : '')
-        : c.due ? ` · Expected ${esc(F.date(c.due))}` : '';
-      return `<li class="wc is-${esc(c.status)}"><span class="wc-dot">${icon(st[1])}</span><div><p class="wc-title">${esc(c.title)}</p><p class="meta"><span class="wc-stage" data-tone="${st[2]}">${st[0]}</span>${when}</p></div></li>`;
+  const STEP_ORDER = { you: 0, now: 1, later: 2, hold: 3 };
+  const DONE_SHOWN = 3;
+  /** Every step for one service, from its cards, milestones and finished work, without repeats. @param {any} s */
+  function steps(s) {
+    /** @type {{title: string, kind: string, date?: string}[]} */
+    const out = [];
+    const seen = new Set();
+    const add = (/** @type {string} */ title, /** @type {string} */ kind, /** @type {string|undefined} */ date) => {
+      const key = String(title || '').trim().toLowerCase();
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      out.push({ title, kind, date });
     };
-    return `<div class="col-head"><h3>What we're working on</h3><p class="meta">${done.length} of ${cards.length} done</p></div>
-      <div class="ms-progress" aria-hidden="true">${cards.map((c) => `<span class="${c.status === 'done' ? 'is-on' : c.status === 'in_progress' || c.status === 'in_review' ? 'is-now' : ''}"></span>`).join('')}</div>
-      <ul class="work-cards">${open.map(row).join('')}${done.slice(0, DONE_SHOWN).map(row).join('')}</ul>
-      ${done.length > DONE_SHOWN ? `<p class="meta wc-more">And ${done.length - DONE_SHOWN} finished earlier</p>` : ''}`;
+    const CARD = { in_review: 'you', in_progress: 'now', todo: 'later', blocked: 'hold', done: 'done' };
+    if (s.cards && s.cards.length) {
+      for (const c of s.cards) add(c.title, /** @type {any} */ (CARD)[c.status] || 'later', c.status === 'done' ? String(c.updatedAt || '').slice(0, 10) : c.due);
+    } else {
+      for (const m of s.milestones || []) add(m.title, m.needs ? 'you' : m.state === 'done' ? 'done' : m.state === 'current' ? 'now' : 'later', m.date);
+      for (const c of s.completed || []) add(c.text, 'done', c.date);
+    }
+    const open = out.filter((x) => x.kind !== 'done')
+      .sort((a, b) => /** @type {any} */ (STEP_ORDER)[a.kind] - /** @type {any} */ (STEP_ORDER)[b.kind] || String(a.date || '9999').localeCompare(String(b.date || '9999')));
+    const done = out.filter((x) => x.kind === 'done').sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    return { open, done };
+  }
+  /** @param {any} s */
+  function stepList(s) {
+    const { open, done } = steps(s);
+    const all = open.length + done.length;
+    if (!all) return '';
+    const row = (/** @type {any} */ x) => {
+      const st = /** @type {any} */ (STEP)[x.kind];
+      const when = x.date ? (x.kind === 'done' ? F.date(x.date, { weekday: false }) : `by ${F.date(x.date, { weekday: false })}`) : '';
+      return `<li class="step is-${x.kind}"><span class="step-dot">${icon(st[1])}</span><p class="step-title">${esc(x.title)}</p><p class="step-tag"><span data-tone="${st[2]}">${st[0]}</span>${when ? `<span class="meta">${esc(when)}</span>` : ''}</p></li>`;
+    };
+    return `<div class="steps-head"><h3>Steps</h3><p class="meta">${done.length} of ${all} done</p></div>
+      <div class="ms-progress" aria-hidden="true">${[...done.map(() => 'is-on'), ...open.map((x) => x.kind === 'now' ? 'is-now' : '')].map((c) => `<span class="${c}"></span>`).join('')}</div>
+      <ol class="steps">${open.map(row).join('')}${done.slice(0, DONE_SHOWN).map(row).join('')}</ol>
+      ${done.length > DONE_SHOWN ? `<p class="meta steps-more">And ${done.length - DONE_SHOWN} more done before that</p>` : ''}`;
   }
 
   function serviceSection(s, actions, now) {
     const svc = SVC()[s.id];
     const needs = actions.filter((a) => a.service === s.id || (s.next && a.id === s.next.actionId));
-    const done = s.milestones.filter((m) => m.state === 'done').length;
-    const n = s.milestones.length;
-    const decisions = s.decisions.map((d) => `<li><p><strong>${esc(d.title)}:</strong> ${d.decision === 'approved' ? 'approved' : 'changes requested'} by ${esc(d.by)} on ${esc(F.date(d.at))} at ${esc(F.time(d.at))}</p>${d.comment ? `<p class="meta">Your note: “${esc(d.comment)}”</p>` : ''}</li>`).join('');
-    // A request's own stages, as the account team sets them in the agency console.
-    const REQUEST_STATUS = { review: 'Under review', in_progress: 'In progress', waiting: 'Waiting on you', done: 'Done', declined: 'Not going ahead' };
-    const requests = s.requests.map((q) => `<li><p>“${esc(q.text)}”</p><p class="meta">Sent ${esc(F.when(q.at, now))} · ${esc(/** @type {any} */ (REQUEST_STATUS)[q.status] || 'Received')}</p></li>`).join('');
-    return `<section class="card svc-section" id="svc-${esc(s.id)}" tabindex="-1" aria-labelledby="h-svc-${esc(s.id)}">
+    const by = s.expected && s.expected.date ? ` <span class="say-when">by ${esc(F.date(s.expected.date, { weekday: false }))}</span>` : '';
+    return `<section class="card svc-section svc-simple" id="svc-${esc(s.id)}" tabindex="-1" aria-labelledby="h-svc-${esc(s.id)}">
       <header class="svc-head">
         <h2 id="h-svc-${esc(s.id)}">${icon(svc.icon)}${esc(svc.label)}</h2>${UI.StatusBadge(s.status)}
         <button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="request" data-service="${esc(s.id)}">${icon('edit')}Ask for a change</button>
       </header>
-      ${s.objective ? `<p class="svc-goal"><span class="goal-label">Goal</span>${esc(s.objective)}</p>` : ''}
-      <div class="svc-grid">
-        <div class="svc-col">
-          <dl class="facts facts-wide">
-            ${s.now ? `<div><dt>Now</dt><dd>${esc(s.now)}</dd></div>` : ''}
-            ${s.next && s.next.text ? `<div><dt>Next step</dt><dd>${UI.nextStep(s.next)}</dd></div>` : ''}
-            ${s.expected && s.expected.date ? `<div><dt>Expected by</dt><dd>${esc(F.date(s.expected.date))}: ${esc(F.lcFirst(s.expected.text))}</dd></div>` : ''}
-          </dl>
-          ${s.note ? `<p class="notice">${icon('info')}<span>${esc(s.note)}</span></p>` : ''}
-          ${needs.length ? `<div class="blocker"><h3>Waiting for you</h3><ul>${needs.map((a) => blocker(a, now)).join('')}</ul></div>` : ''}
-          ${decisions ? `<div class="sub-list"><h3>Your decisions</h3><ul>${decisions}</ul></div>` : ''}
-          ${requests ? `<div class="sub-list"><h3>Your requests</h3><ul>${requests}</ul></div>` : ''}
-          ${s.files.length ? `<div class="sub-list"><h3>Files</h3><ul class="files">${s.files.map((f) => `<li>${icon('file')}<span>${esc(f.name)}</span><span class="meta">${esc(f.note)}</span></li>`).join('')}</ul></div>` : ''}
-        </div>
-        <div class="svc-col">
-          ${workCards(s.cards)}
-          ${n || !(s.cards && s.cards.length) ? `<div class="col-head${s.cards && s.cards.length ? ' col-head-after' : ''}"><h3>Milestones</h3><p class="meta">${n ? `${done} of ${n} done` : 'None set yet'}</p></div>
-          <div class="ms-progress" aria-hidden="true">${s.milestones.map((m) => `<span class="${m.state === 'done' ? 'is-on' : m.state === 'current' ? 'is-now' : ''}"></span>`).join('')}</div>
-          <ol class="timeline">${s.milestones.map(milestone).join('')}</ol>` : ''}
-          ${s.completed.length ? '<h3 class="col-title">Completed recently</h3>' : ''}
-          <ul class="done-list">${s.completed.map((c) => `<li>${icon('check')}<span>${esc(c.text)}</span><span class="meta">${esc(F.date(c.date, { weekday: false }))}</span></li>`).join('')}</ul>
-        </div>
-      </div>
+      ${s.now || (s.next && s.next.text) ? `<dl class="say">
+        ${s.now ? `<div><dt>Right now</dt><dd>${esc(s.now)}</dd></div>` : ''}
+        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${UI.nextStep(s.next)}${by}</dd></div>` : ''}
+      </dl>` : ''}
+      ${needs.length ? `<div class="blocker"><h3>Waiting for you</h3><ul>${needs.map((a) => blocker(a, now)).join('')}</ul></div>` : ''}
+      ${s.note ? `<p class="notice">${icon('info')}<span>${esc(s.note)}</span></p>` : ''}
+      ${stepList(s)}
     </section>`;
   }
 

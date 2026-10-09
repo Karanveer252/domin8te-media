@@ -19,7 +19,7 @@ const FILE = path.join(__dirname, '..', '..', 'versions', BUILD + '.html').split
 
 const FULL = [
   { route: 'home', title: 'Home', has: ['Needs your attention', 'Current work', 'What changed', 'Latest update', 'Your account', 'Last 30 days', 'Review and approve', 'Last verified', 'View details', 'Instagram disconnected', 'Preview mode'] },
-  { route: 'work', title: 'Work', has: ['Milestones', 'Waiting for you', 'Completed recently', 'Ask for a change'] },
+  { route: 'work', title: 'Work', has: ['Right now', 'Steps', 'Waiting for you', 'Ask for a change'] },
   { route: 'work/social', title: 'Work', has: ['Instagram posts are paused'] },
   { route: 'results', title: 'Results', has: ['id="h-summary"', 'Bookings and calls', 'Show these figures as a table', 'No ads ran in the previous 30 days'] },
   { route: 'results?days=7', title: 'Results', has: ['Last 7 days'], not: ['id="h-summary"'] },

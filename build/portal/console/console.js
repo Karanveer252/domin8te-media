@@ -2024,17 +2024,17 @@
 
   /* ---- Work ---------------------------------------------------------------------------------------- */
 
+  /* The Work tab, made simple (2026-10-08, Karan: "as simple as possible", for him and the client alike). The same
+     three questions the client's Work page answers, then one list of steps (shown to the client while the service
+     has no board cards; with cards, the cards are its steps). Old lines under "Completed recently"
+     come in as done steps, the latest result follows the newest done step, and "expected by" is the next step's date. */
+  const STEP_STATES = [['next', 'Later'], ['current', 'Doing now'], ['done', 'Done']];
   /** @param {any} m */
   const msRow = (m) => `<li class="row ms">
-      <input type="text" name="ms-title" value="${esc(m.title)}" aria-label="Milestone" placeholder="Milestone" maxlength="160">
+      <input type="text" name="ms-title" value="${esc(m.title)}" aria-label="Step" placeholder="What gets done" maxlength="160">
       <input type="date" name="ms-date" value="${esc(m.date)}" aria-label="Date">
-      <select name="ms-state" aria-label="State">${[['done', 'Done'], ['current', 'Current'], ['next', 'Coming up']].map(([v, l]) => `<option value="${v}"${m.state === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
-      <button class="icon-btn" type="button" data-remove aria-label="Remove this milestone">${icon('x')}</button></li>`;
-  /** @param {any} c */
-  const doneRow = (c) => `<li class="row done">
-      <input type="date" name="c-date" value="${esc(c.date)}" aria-label="Date">
-      <input type="text" name="c-text" value="${esc(c.text)}" aria-label="What was done" placeholder="What was done" maxlength="200">
-      <button class="icon-btn" type="button" data-remove aria-label="Remove this line">${icon('x')}</button></li>`;
+      <select name="ms-state" aria-label="Where it is">${STEP_STATES.map(([v, l]) => `<option value="${v}"${m.state === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
+      <button class="icon-btn" type="button" data-remove aria-label="Remove this step">${icon('x')}</button></li>`;
 
   /** @param {HTMLElement} box @param {string} part */
   function work(box, part) {
@@ -2048,40 +2048,34 @@
     const w = d.services[s] || blankService();
     const next = w.next || {};
     const exp = w.expected || {};
-    const proof = w.proof || {};
     const stOf = (/** @type {string} */ k) => (STATUS[(d.services[k] || {}).status] || STATUS.planned).label;
+    // Old "Completed recently" lines join the steps as done ones, unless a step already says the same.
+    const titles = new Set((w.milestones || []).map((/** @type {any} */ m) => String(m.title).trim().toLowerCase()));
+    const rows = [...(w.milestones || []), ...(w.completed || []).filter((/** @type {any} */ c) => !titles.has(String(c.text).trim().toLowerCase())).map((/** @type {any} */ c) => ({ title: c.text, date: c.date, state: 'done' }))];
+    const cards = (current.tasks || []).filter((/** @type {any} */ t) => t.service === s && t.status !== 'cancelled' && t.client_visible !== false).length;
     box.innerHTML = `<div class="toolbar"><nav class="seg" aria-label="Service">${services.map((/** @type {string} */ k) => `<a href="#/client/${esc(current.id)}/work/${k}"${k === s ? ' aria-current="page"' : ''} title="${esc(stOf(k))}">${esc(SERVICES[k].label)}</a>`).join('')}</nav><span class="meta">One service at a time. Each is saved on its own.</span></div>
       <form class="panel" data-svc="${s}" novalidate>
-        <div class="panel-head"><h2>${esc(SERVICES[s].label)}</h2><p>Shown on their Home and Work pages.</p></div>
+        <div class="panel-head"><h2>${esc(SERVICES[s].label)}</h2><p>What the client reads on their Work page, in plain words.</p></div>
         <div class="grid-3">
-          <div class="field"><label for="w-status">Status</label><select id="w-status" name="status">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}"${w.status === k ? ' selected' : ''}>${esc(/** @type {any} */ (v).label)}</option>`).join('')}</select></div>
-          <div class="field span-2"><label for="w-objective">Goal, in their words</label><input id="w-objective" type="text" name="objective" value="${esc(w.objective)}" placeholder="More table bookings straight from your website." maxlength="200"></div>
-          <div class="field span-all"><label for="w-now">What's happening now</label><input id="w-now" type="text" name="now" value="${esc(w.now)}" placeholder="Testing the booking button on phones" maxlength="200"></div>
-          <div class="field"><label for="w-who">Next step is for</label><select id="w-who" name="who"><option value="domin8te"${next.who !== 'client' ? ' selected' : ''}>Domin8te</option><option value="client"${next.who === 'client' ? ' selected' : ''}>The client</option></select></div>
-          <div class="field span-2"><label for="w-next">Next step</label><input id="w-next" type="text" name="nextText" value="${esc(next.text)}" placeholder="Final check of both ad versions" maxlength="200"></div>
-          <div class="field"><label for="w-expdate">Expected by</label><input id="w-expdate" type="date" name="expDate" value="${esc(exp.date)}"></div>
-          <div class="field span-2"><label for="w-exptext">What will be done by then</label><input id="w-exptext" type="text" name="expText" value="${esc(exp.text)}" placeholder="Ad goes live on Meta" maxlength="200"></div>
-          <div class="field"><label for="w-proofdate">Latest result date</label><input id="w-proofdate" type="date" name="proofDate" value="${esc(proof.date)}"></div>
-          <div class="field span-2"><label for="w-prooftext">Latest result</label><input id="w-prooftext" type="text" name="proofText" value="${esc(proof.text)}" placeholder="Autumn menu page published" maxlength="200"></div>
-          <div class="field span-all"><label for="w-note">Note for the client (optional)</label><input id="w-note" type="text" name="note" value="${esc(w.note)}" maxlength="240" placeholder="Instagram posts are paused until Instagram is reconnected."></div>
+          <div class="field"><label for="w-status">How is it going?</label><select id="w-status" name="status">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}"${w.status === k ? ' selected' : ''}>${esc(/** @type {any} */ (v).label)}</option>`).join('')}</select></div>
+          <div class="field span-2"><label for="w-now">What are we doing right now?</label><input id="w-now" type="text" name="now" value="${esc(w.now)}" placeholder="Testing the booking button on phones" maxlength="200"></div>
+          <div class="field span-all"><label for="w-next">What happens next?</label><input id="w-next" type="text" name="nextText" value="${esc(next.text)}" placeholder="Confirm your autumn opening hours" maxlength="200"></div>
+          <div class="field"><label for="w-who">Who does it?</label><select id="w-who" name="who"><option value="domin8te"${next.who !== 'client' ? ' selected' : ''}>Us</option><option value="client"${next.who === 'client' ? ' selected' : ''}>The client</option></select></div>
+          <div class="field"><label for="w-expdate">By when? (optional)</label><input id="w-expdate" type="date" name="expDate" value="${esc(exp.date)}"></div>
+          <div class="field span-all"><label for="w-note">A note for them (optional)</label><input id="w-note" type="text" name="note" value="${esc(w.note)}" maxlength="240" placeholder="Instagram posts are paused until Instagram is reconnected."></div>
         </div>
-        <div class="sub-head"><div><h3>Milestones</h3><p>Their timeline. Only lines with a title and a date are kept.</p></div><button class="btn btn-quiet btn-sm" type="button" data-add="ms">${icon('plus')}Add a milestone</button></div>
-        <div class="rows-head ms" aria-hidden="true"><span>Milestone</span><span>Date</span><span>State</span><span></span></div>
-        <ol class="rows" data-list="ms">${(w.milestones || []).map(msRow).join('')}</ol>
-        <div class="sub-head"><div><h3>Completed recently</h3><p>Newest first on their page.</p></div><button class="btn btn-quiet btn-sm" type="button" data-add="done">${icon('plus')}Add a line</button></div>
-        <div class="rows-head done" aria-hidden="true"><span>Date</span><span>What was done</span><span></span></div>
-        <ul class="rows" data-list="done">${(w.completed || []).map(doneRow).join('')}</ul>
+        <div class="sub-head"><div><h3>Steps</h3><p>${cards ? 'This service has cards on its board, so their page shows those cards as its steps. The steps below show again once it has none.' : 'The list they see. Only steps with a name and a date are kept.'}</p></div><button class="btn btn-quiet btn-sm" type="button" data-add="ms">${icon('plus')}Add a step</button></div>
+        <div class="rows-head ms" aria-hidden="true"><span>Step</span><span>Date</span><span>Where it is</span><span></span></div>
+        <ol class="rows" data-list="ms">${rows.map(msRow).join('')}</ol>
         <div class="actions"><button class="btn" type="submit">Save ${esc(SERVICES[s].label.toLowerCase())}</button></div>
       </form>`;
     const f = /** @type {HTMLFormElement} */ ($('form[data-svc]', box));
     track(f, SERVICES[s].label);
     box.addEventListener('click', (e) => {
       const t = /** @type {HTMLElement} */ (e.target);
-      const add = t.closest('[data-add]');
-      if (add) {
-        const kind = add.getAttribute('data-add');
-        const list = $(`[data-list="${kind}"]`, f);
-        list.insertAdjacentHTML('beforeend', kind === 'ms' ? msRow({ title: '', date: '', state: 'next' }) : doneRow({ date: today(), text: '' }));
+      if (t.closest('[data-add]')) {
+        const list = $('[data-list="ms"]', f);
+        list.insertAdjacentHTML('beforeend', msRow({ title: '', date: today(), state: 'next' }));
         $('input[type="text"]', list.lastElementChild).focus();
         f.dispatchEvent(new Event('input'));
       }
@@ -2093,22 +2087,21 @@
       const done = busy($('button[type=submit]', f), 'Saving');
       try {
         const milestones = $$('[data-list="ms"] li', f).map((li) => ({ title: $('[name="ms-title"]', li).value.trim(), date: $('[name="ms-date"]', li).value, state: $('[name="ms-state"]', li).value })).filter((m) => m.title && m.date);
-        const completed = $$('[data-list="done"] li', f).map((li) => ({ date: $('[name="c-date"]', li).value, text: $('[name="c-text"]', li).value.trim() })).filter((c) => c.text && c.date)
-          .sort((a, b) => b.date.localeCompare(a.date));
+        const newest = milestones.filter((m) => m.state === 'done').sort((x, y) => y.date.localeCompare(x.date))[0];
         await saveDoc((doc) => {
           const old = doc.services[s] || {};
           doc.services[s] = {
             ...old,
-            status: val(f, 'status'), objective: val(f, 'objective'), now: val(f, 'now'),
+            status: val(f, 'status'), now: val(f, 'now'),
             next: val(f, 'nextText') ? { ...(old.next || {}), who: val(f, 'who'), text: val(f, 'nextText') } : null,
-            expected: val(f, 'expDate') ? { date: val(f, 'expDate'), text: val(f, 'expText') } : null,
-            proof: val(f, 'proofText') && val(f, 'proofDate') ? { date: val(f, 'proofDate'), text: val(f, 'proofText') } : null,
+            expected: val(f, 'expDate') ? { date: val(f, 'expDate'), text: val(f, 'nextText') || (old.expected && old.expected.text) || '' } : null,
+            proof: newest ? { date: newest.date, text: newest.title } : old.proof || null,
             note: val(f, 'note') || undefined,
             milestones: milestones.map((m) => {
               const was = (old.milestones || []).find((/** @type {any} */ x) => x.title === m.title);
               return was ? { ...was, ...m } : m;
             }),
-            completed
+            completed: [] // now done steps
           };
         });
         clean(f);

@@ -829,6 +829,7 @@ html[data-scene="scenes"] .col { background: var(--glass); }
   option:checked { font-weight: 650; }
   option::checkmark { order: 1; margin-left: auto; color: var(--accent-ink); font-weight: 700; }
   option:disabled { color: var(--ink-3); cursor: default; }
+  html[data-theme="dark"] select { background-image: none; } /* the dark arrow above would sit beside the picker icon */
   html[data-theme="dark"] select::picker-icon { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A29E97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>"); }
   html[data-theme="dark"] ::picker(select) { border-color: rgba(255, 255, 255, 0.1); background: rgba(27, 30, 38, 0.95); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.6), 0 18px 40px -14px rgba(0, 0, 0, 0.7); }
   html[data-theme="dark"] option:hover, html[data-theme="dark"] option:focus-visible { background: rgba(255, 255, 255, 0.07); }
