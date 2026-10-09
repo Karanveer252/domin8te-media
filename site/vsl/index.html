@@ -131,7 +131,19 @@
       </div>
     </figure>
 
-    <figure class="live rv" data-src="/work/lecookie/live/" data-mode="desktop" data-title="Lecookie, the live website">
+    <!-- COOKIE PICKER: the visitor designs a cookie here, then the Lecookie window below opens and bakes it
+         (assets/vsl.js; the live copy reads lecookie.v6.design from sessionStorage, same origin) -->
+    <div class="vsl-bake rv" id="bake">
+      <div class="vsl-bake__pic"><img id="bakeImg" src="/work/lecookie/live/img/cookie/thumb/base_circle.webp?v=57" width="300" height="300" alt="" decoding="async"></div>
+      <div class="vsl-bake__body">
+        <h3 class="vsl-bake__ttl">Design a cookie first. <em>Then watch Lecookie bake it.</em></h3>
+        <div class="vsl-bake__row" role="group" aria-label="Shape"><span class="vsl-bake__n">1 · Shape</span><button type="button" class="vsl-bake__opt" data-q="shape" data-a="circle" aria-pressed="false">Classic round</button><button type="button" class="vsl-bake__opt" data-q="shape" data-a="heart" aria-pressed="false">Heart</button><button type="button" class="vsl-bake__opt" data-q="shape" data-a="square" aria-pressed="false">Square</button><button type="button" class="vsl-bake__opt" data-q="shape" data-a="star" aria-pressed="false">Star</button></div>
+        <div class="vsl-bake__row" role="group" aria-label="Icing"><span class="vsl-bake__n">2 · Icing</span><button type="button" class="vsl-bake__opt" data-q="icing" data-a="ivory" aria-pressed="false">Ivory</button><button type="button" class="vsl-bake__opt" data-q="icing" data-a="mauve" aria-pressed="false">Mauve</button><button type="button" class="vsl-bake__opt" data-q="icing" data-a="grey" aria-pressed="false">Dove grey</button><button type="button" class="vsl-bake__opt" data-q="icing" data-a="peach" aria-pressed="false">Peach</button></div>
+        <div class="vsl-bake__row" role="group" aria-label="Topping"><span class="vsl-bake__n">3 · Topping</span><button type="button" class="vsl-bake__opt" data-q="top" data-a="garland" aria-pressed="false">Flower garland</button><button type="button" class="vsl-bake__opt" data-q="top" data-a="bow" aria-pressed="false">Piped bow</button><button type="button" class="vsl-bake__opt" data-q="top" data-a="pearls" aria-pressed="false">Pearls and gold</button></div>
+        <p class="vsl-bake__foot"><button type="button" class="btn btn--primary" id="bakeGo" disabled>Bake it on the live site</button> <span class="vsl-bake__left" id="bakeLeft">Pick all three to bake it.</span></p>
+      </div>
+    </div>
+    <figure class="live rv" id="lecookieLive" data-src="/work/lecookie/live/" data-mode="desktop" data-title="Lecookie, the live website">
       <div class="live__bar">
         <i></i><i></i><i></i>
         <span class="live__url"><b>Lecookie</b></span>
@@ -391,6 +403,7 @@
 <script src="/assets/site.js?v=16386c93be" defer></script>
 <script src="/assets/dash.js?v=a56a2b4ced" defer></script>
 <script src="/assets/work.js?v=45ab9605c2" defer></script>
+<script src="/assets/vsl.js" defer></script>
 <script src="/assets/v3-cursor.js?v=136c753635" defer></script>
 </body>
 </html>

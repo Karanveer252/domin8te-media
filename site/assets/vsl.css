@@ -67,3 +67,25 @@ html[data-v="editorial"] .vsl-hero .lede::before{display:none}
   .vsl-hint{padding-bottom:70px}
   .vsl-hint__arrow{right:auto;left:40%}
 }
+
+/* the cookie picker before the Lecookie window */
+.vsl-bake{display:grid;grid-template-columns:clamp(150px,18vw,240px) 1fr;gap:clamp(20px,3vw,44px);align-items:center;
+  margin:clamp(40px,7vh,80px) 0 clamp(20px,3vh,32px);padding:clamp(20px,2.6vw,36px);
+  background:#fff;border-radius:var(--r-card,20px);box-shadow:var(--card-shadow)}
+.vsl-bake__pic{aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 50% 45%,#F7EFE6,#EADFD2);display:grid;place-items:center}
+.vsl-bake__pic img{width:86%;height:auto}
+.vsl-bake__ttl{margin:0 0 18px;font-size:clamp(20px,1.8vw,26px);font-weight:600;line-height:1.25}
+.vsl-bake__ttl em{color:#AE3A0B;font-weight:800}
+.vsl-bake__row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px}
+.vsl-bake__n{flex:0 0 100%;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#3A4E7A;margin-bottom:2px}
+.vsl-bake__opt{font:inherit;font-size:15px;padding:8px 16px;border-radius:999px;cursor:pointer;
+  border:1.5px solid rgba(14,20,32,.16);background:#fff;color:#0E1420;transition:border-color .15s,background .15s}
+.vsl-bake__opt:hover{border-color:#CA4A14}
+.vsl-bake__opt[aria-pressed="true"]{border-color:#FF5B1F;background:#FFE9DF;font-weight:600}
+.vsl-bake__opt:focus-visible{outline:2px solid #0E1420;outline-offset:2px}
+.vsl-bake__foot{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:18px 0 0}
+.vsl-bake__left{color:#3A4E7A;font-size:15px}
+@media (max-width:760px){
+  .vsl-bake{grid-template-columns:1fr}
+  .vsl-bake__pic{width:150px;margin:0 auto}
+}
