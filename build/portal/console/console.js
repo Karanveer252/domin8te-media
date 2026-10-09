@@ -1549,7 +1549,10 @@
       const items = cards.filter((t) => t.status === k || (k === 'done' && t.status === 'cancelled'));
       if (k === 'blocked' && !items.length) return '';
       return `<section class="col" data-col="${k}" aria-label="${l}"><h2 class="col-h">${l} <span class="meta">${items.length}</span></h2><ul class="cards">${items.map(draw).join('')}</ul></section>`;
-    }).join('');
+    }).join('') +
+      // A bin after Done (2026-10-09, Karan: "after done there should be a delete tab ... drag and drop the cards in it
+      // ... a confirmation in a dialog box"). Not a status: dropping a card here asks, then deletes it.
+      `<section class="col col-delete" data-col="__delete" aria-label="Delete: drop a card here to delete it"><h2 class="col-h">${icon('trash')}Delete</h2><p class="del-zone">Drop a card here to delete it. We ask first.</p></section>`;
   }
   /** Whether a client's own board is on screen. */
   const clientBoardOpen = () => !!document.querySelector('#tab #board');
@@ -1801,6 +1804,7 @@
       dragging = '';
       col.classList.remove('over');
       const status = col.getAttribute('data-col') || 'todo';
+      if (status === '__delete') { if (await deleteCard(t)) after(); return; }
       if (!t || t.status === status) return;
       try { await moveTask(t, status); after(); } catch (x) { toast(message(x), true); }
     }, on);

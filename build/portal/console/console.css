@@ -1061,3 +1061,13 @@ html[data-scene="scenes"]:not([data-theme="dark"]):is([data-page="queue"], [data
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] .about > summary, html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] .about > summary::after { color: var(--ink); }
 html[data-scene="scenes"] #tab > .toolbar .chip { background-color: rgba(255, 255, 255, 0.92); }
 html[data-scene="scenes"][data-theme="dark"] #tab > .toolbar .chip { background-color: rgba(16, 18, 23, 0.85); }
+
+/* The Delete bin after Done (2026-10-09): a drop target, not a status. */
+.col-delete { border-style: dashed; border-color: rgba(168, 35, 27, 0.35); background: rgba(168, 35, 27, 0.03); }
+.col-delete .col-h { display: flex; align-items: center; gap: 6px; color: var(--bad, #A8231B); }
+.col-delete .col-h .i { width: 16px; height: 16px; }
+.del-zone { flex: 1; display: grid; place-items: center; margin: 6px 0 0; padding: 16px 10px; border-radius: 12px; color: var(--ink-3); font-size: 13px; text-align: center; }
+.col-delete.over { background: rgba(168, 35, 27, 0.1); border-color: var(--bad, #A8231B); }
+.col-delete.over .del-zone { color: var(--bad, #A8231B); font-weight: 600; }
+html[data-theme="dark"] .col-delete { border-color: rgba(255, 120, 110, 0.35); background: rgba(255, 120, 110, 0.04); }
+html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.over .del-zone { color: #FF8A80; }
