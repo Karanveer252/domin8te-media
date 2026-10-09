@@ -613,10 +613,6 @@ dialog::backdrop { background: rgba(29, 26, 22, 0.28); -webkit-backdrop-filter: 
 .sw-static { background: #F4F1EC radial-gradient(circle, rgba(10, 10, 10, 0.35) 1px, transparent 1.6px) 0 0 / 7px 7px; }
 .sw-light { background: linear-gradient(135deg, #FFFFFF 0 50%, #F1EDE7 50%); }
 .sw-dark { background: linear-gradient(135deg, #2A2E38 0 50%, #101217 50%); }
-.sw-text { background: var(--surface-2); font-size: 14px; }
-.sw-text-lg { background: var(--surface-2); font-size: 19px; }
-.sw-roomy { background: linear-gradient(var(--ink-3), var(--ink-3)) 8px 9px / 30px 2px no-repeat, linear-gradient(var(--ink-3), var(--ink-3)) 8px 23px / 22px 2px no-repeat, var(--surface-2); }
-.sw-compact { background: linear-gradient(var(--ink-3), var(--ink-3)) 8px 8px / 30px 2px no-repeat, linear-gradient(var(--ink-3), var(--ink-3)) 8px 14px / 26px 2px no-repeat, linear-gradient(var(--ink-3), var(--ink-3)) 8px 20px / 30px 2px no-repeat, linear-gradient(var(--ink-3), var(--ink-3)) 8px 26px / 20px 2px no-repeat, var(--surface-2); }
 .switch-row { display: flex; align-items: flex-start; gap: 16px; cursor: pointer; }
 .switch-row input { appearance: none; -webkit-appearance: none; position: relative; flex: none; width: 48px; height: 28px; margin: 2px 0 0; border-radius: 999px; background: rgba(94, 72, 50, 0.28); cursor: pointer; transition: background 160ms var(--ease); }
 .switch-row input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 180ms var(--ease); }
@@ -625,23 +621,6 @@ dialog::backdrop { background: rgba(29, 26, 22, 0.28); -webkit-backdrop-filter: 
 .facts.keys dt { white-space: nowrap; }
 @media (max-width: 760px) { .pick-grid { grid-template-columns: 1fr; } }
 
-/* ==== Spacing and text size ============================================================================== */
-html[data-text="large"] body { zoom: 1.1; }
-html[data-density="compact"] main { padding-top: 22px; }
-html[data-density="compact"] .page-head { margin-bottom: 16px; }
-html[data-density="compact"] h1 { font-size: 28px; }
-html[data-density="compact"] .panel { padding: 16px 18px; }
-html[data-density="compact"] .panel + .panel { margin-top: 10px; }
-html[data-density="compact"] .q, html[data-density="compact"] .items { gap: 5px; }
-html[data-density="compact"] .q-row { padding: 8px 14px; }
-html[data-density="compact"] .item-card { padding: 10px 14px; }
-html[data-density="compact"] .card { padding: 10px 11px 9px; }
-html[data-density="compact"] table.grid th, html[data-density="compact"] table.grid td { padding-top: 8px; padding-bottom: 8px; }
-html[data-density="compact"] .glance li { padding: 7px 0; }
-html[data-density="compact"] .svc-list li { padding: 9px 0; }
-html[data-density="compact"] .q-group { margin-bottom: 20px; }
-html[data-density="compact"] .nav a { min-height: 38px; padding-top: 7px; padding-bottom: 7px; }
-html[data-density="compact"] .side-client { min-height: 32px; padding-top: 5px; padding-bottom: 5px; }
 
 /* ==== Dark: the dashboard's night colours ================================================================= */
 html[data-theme="dark"] {

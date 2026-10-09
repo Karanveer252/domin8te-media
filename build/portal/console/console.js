@@ -132,7 +132,7 @@
 
   /* ---- settings: how the console looks and works for this person --------------------------------------- */
 
-  const PREF_DEFAULTS = { theme: 'light', scene: 'static', density: 'comfortable', text: 'standard', start: 'queue', autoPull: true };
+  const PREF_DEFAULTS = { theme: 'light', scene: 'static', start: 'queue', autoPull: true };
   /** @type {any} */
   let prefs = (() => { let p = {}; try { p = JSON.parse(localStorage.getItem('d8c.prefs') || '{}'); } catch (e) { /* first visit */ } return { ...PREF_DEFAULTS, ...p }; })();
   /** ?theme= and ?scene= set the look for one visit without saving it. @type {any} */
@@ -148,8 +148,6 @@
     const p = { ...prefs, ...visitOverride };
     h.dataset.theme = p.theme;
     h.dataset.scene = p.scene;
-    h.dataset.density = p.density;
-    h.dataset.text = p.text;
   }
   applyPrefs();
   /** The account's saved look (user_prefs.appearance), so the portal's own choices are kept. @type {any} */
@@ -1946,10 +1944,6 @@
       <section class="panel" aria-labelledby="s-look"><div class="panel-head"><h2 id="s-look">Appearance</h2><p>The same choices as the client dashboard.</p></div>
         <div class="pick-grid" role="group" aria-label="Background">${pick('scene', 'scenes', 'Moving sky', 'A sky that changes with each page', 'scenes')}${pick('scene', 'static', 'Dotted grid', 'The dot grid from our website', 'static')}</div>
         <div class="pick-grid" role="group" aria-label="Theme">${pick('theme', 'light', 'Light', 'The standard look', 'light')}${pick('theme', 'dark', 'Dark', 'Easier on the eyes late at night', 'dark')}</div>
-      </section>
-      <section class="panel" aria-labelledby="s-read"><div class="panel-head"><h2 id="s-read">Reading and spacing</h2></div>
-        <div class="pick-grid" role="group" aria-label="Text size">${pick('text', 'standard', 'Standard text', 'The size the dashboard uses', 'text')}${pick('text', 'large', 'Larger text', 'Everything a little bigger', 'text-lg')}</div>
-        <div class="pick-grid" role="group" aria-label="Spacing">${pick('density', 'comfortable', 'Comfortable', 'Room to breathe between things', 'roomy')}${pick('density', 'compact', 'Compact', 'More on screen at once', 'compact')}</div>
       </section>
       <section class="panel" aria-labelledby="s-start"><div class="panel-head"><h2 id="s-start">Opening page</h2><p>The page you see first.</p></div>
         <div class="seg" role="group" aria-label="Opening page">${[['queue', 'Needs you'], ['board', 'All work'], ['clients', 'Clients']].map(([k, l]) => `<button type="button" data-pref="start" data-val="${k}" aria-pressed="${prefs.start === k}">${l}</button>`).join('')}</div>

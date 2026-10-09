@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 <script>
 /* The saved look, before the first paint, so the page never flashes the wrong theme. */
-(function () { try { var p = JSON.parse(localStorage.getItem('d8c.prefs') || '{}'), q = new URLSearchParams(location.search), h = document.documentElement; h.dataset.theme = /^(light|dark)$/.test(q.get('theme') || '') ? q.get('theme') : (p.theme || 'light'); h.dataset.scene = /^(scenes|static)$/.test(q.get('scene') || '') ? q.get('scene') : (p.scene || 'static'); h.dataset.density = p.density || 'comfortable'; h.dataset.text = p.text || 'standard'; } catch (e) { /* the defaults are fine */ } })();
+(function () { try { var p = JSON.parse(localStorage.getItem('d8c.prefs') || '{}'), q = new URLSearchParams(location.search), h = document.documentElement; h.dataset.theme = /^(light|dark)$/.test(q.get('theme') || '') ? q.get('theme') : (p.theme || 'light'); h.dataset.scene = /^(scenes|static)$/.test(q.get('scene') || '') ? q.get('scene') : (p.scene || 'static'); } catch (e) { /* the defaults are fine */ } })();
 </script>
 <!--CONFIG-->
 <link rel="stylesheet" href="console.css">
