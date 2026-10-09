@@ -1384,3 +1384,8 @@ html[data-theme="dark"] .field select:focus-visible { box-shadow: 0 0 0 3px rgba
   .field select option:checked { font-weight: 650; }
   .field select option::checkmark { order: 1; margin-left: auto; color: var(--p-ink-2); }
 }
+
+/* The card line on Billing (2026-10-09, Karan: "write something better ... like secured by Stripe"). */
+.secure-line { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0; padding: 10px 12px; border-radius: 12px; background: var(--p-success-bg); color: var(--p-ink-2); font-size: 14.5px; line-height: 1.5; }
+.secure-line .i { flex: none; width: 16px; height: 16px; margin-top: 3px; color: var(--p-success); }
+.secure-line strong { color: var(--p-ink); font-weight: 700; }

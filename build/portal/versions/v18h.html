@@ -1398,6 +1398,11 @@ html[data-theme="dark"] .field select:focus-visible { box-shadow: 0 0 0 3px rgba
   .field select option::checkmark { order: 1; margin-left: auto; color: var(--p-ink-2); }
 }
 
+/* The card line on Billing (2026-10-09, Karan: "write something better ... like secured by Stripe"). */
+.secure-line { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0; padding: 10px 12px; border-radius: 12px; background: var(--p-success-bg); color: var(--p-ink-2); font-size: 14.5px; line-height: 1.5; }
+.secure-line .i { flex: none; width: 16px; height: 16px; margin-top: 3px; color: var(--p-success); }
+.secure-line strong { color: var(--p-ink); font-weight: 700; }
+
 /* ================================================================ shared Liquid Glass layer */
 /*
  * Liquid Glass primitives shared by 16A to 16J. Each variant decides where to use them.
@@ -6575,7 +6580,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         ${planOff(b.plan.services)}
         <dl class="facts"><div><dt>How you pay</dt><dd>${esc(b.plan.interval)}</dd></div><div><dt>Next payment</dt><dd>${esc(day(s.nextBilling))}</dd></div><div><dt>Card</dt><dd class="card-line">${icon('card')}${esc(b.paymentMethod.brand)} ending ${esc(b.paymentMethod.last4)}</dd></div></dl>
         ${!problem && b.paymentMethod.problem ? `<p class="due tone-overdue">${icon('alert')}${esc(b.paymentMethod.problem.text)}</p>` : ''}
-        <p class="meta">Stripe (our payment service) keeps your card safe. We never see the full number.</p>
+        <p class="secure-line">${icon('lock')}<span><strong>Secured by Stripe</strong>, trusted by millions of businesses. Your card details stay with Stripe; we never see your full card number.</span></p>
         ${problem ? '' : `<button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="billing-portal">Change card${icon('external')}</button>`}
       </section>
       <section class="sec" aria-labelledby="h-invoices">
@@ -6897,14 +6902,14 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       const reply = ctx.account.team && ctx.account.team.reply ? replyLine(ctx.account.team.reply) : 'We usually reply within one working day.';
       const pkg = (ctx.account.package.services || []).filter((/** @type {string} */ x) => SVC()[x]);
       return `<div class="page page-messages">
-        ${UI.PageHeader({ title: 'Messages', intro: `Talk to your Domin8te team. ${reply}` })}
+        ${UI.PageHeader({ title: 'Messages', intro: `Talk to your Domin8te team. ${reply}`, aside: `<button class="btn btn-glass btn-sm" type="button" data-msg-reload title="Checks for new messages now. The page also checks by itself every 10 seconds.">${icon('refresh')}Reload conversation</button>` })}
         <section class="card msg-card" aria-labelledby="h-thread">
           <h2 id="h-thread" class="sr-only">Your conversation with Domin8te</h2>
           <div class="msg-scroll" id="msg-thread" role="log" aria-label="Messages with Domin8te" tabindex="0">${UI.Skeleton('text', 1)}</div>
           <form class="msg-compose" id="msg-form" novalidate>
             <div class="field msg-about" id="msg-about-box" hidden><label for="msg-about-pick">What is it about?</label><select id="msg-about-pick" name="about"><option value="general">General</option>${pkg.map((/** @type {string} */ x) => `<option value="${esc(x)}">${esc(SVC()[x].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>
             <label class="sr-only" for="msg-new">Write a message</label>
-            <textarea id="msg-new" name="text" rows="2" maxlength="2000" placeholder="Write a message" aria-describedby="msg-new-err msg-keys"></textarea>
+            <textarea id="msg-new" name="text" rows="2" maxlength="2000" placeholder="Start a conversation, or reply to us" aria-describedby="msg-new-err msg-keys"></textarea>
             <p class="field-error" id="msg-new-err" hidden></p>
             <p class="form-error" id="msg-form-err" role="alert" hidden></p>
             <div class="msg-compose-foot">
@@ -6968,13 +6973,19 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       }).catch(() => { /* the next check tries again */ });
 
       load();
-      // A reply shows up without a reload: every minute while Messages is open and in view.
+      // A reply shows up without a reload: every 10 seconds while Messages is open and in view (2026-10-09, Karan: "get the
+      // messages right away"), and at once with Reload conversation.
       if (msgTimer) clearInterval(msgTimer);
       msgTimer = setInterval(() => {
         if (!document.contains(box)) { clearInterval(msgTimer); msgTimer = null; return; }
         if (document.hidden) return;
-        ctx.client.refresh().then(() => quiet()).catch(() => { /* offline for a moment: the next minute tries again */ });
-      }, 60000);
+        ctx.client.refresh().then(() => quiet()).catch(() => { /* offline for a moment: the next check tries again */ });
+      }, 10000);
+      const reloadBtn = /** @type {HTMLButtonElement|null} */ (el.querySelector('[data-msg-reload]'));
+      if (reloadBtn) reloadBtn.addEventListener('click', () => {
+        reloadBtn.disabled = true;
+        ctx.client.refresh().then(() => quiet(true)).then(() => D8.dialogs.toast('Conversation up to date.')).catch(() => D8.dialogs.toast("We couldn't check just now. Try again in a minute.", { tone: 'error' })).finally(() => { reloadBtn.disabled = false; });
+      });
 
       toggle.addEventListener('click', () => {
         const open = aboutBox.hidden;

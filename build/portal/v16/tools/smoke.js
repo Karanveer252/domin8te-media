@@ -35,8 +35,8 @@ const FULL = [
   { route: 'settings/sources', title: 'Settings', has: ['Needs reconnecting', 'Connected'] },
   // Help leads to Messages (2026-10-09): one card, then the questions. The conversation lives on Messages.
   { route: 'help', title: 'Help', has: ['Common questions', 'Have a question? Message us', 'href="#/messages"', 'What we promise'], not: ['What is on each page?', 'What does "Waiting for you" mean?', 'Our promises to you', 'id="help-messages"', 'Your messages'] },
-  { route: 'messages', title: 'Messages', has: ['Talk to your Domin8te team. We usually reply within one working day.', 'class="msg-day"', 'You asked for a change', 'We are working on it', 'Karan', 'Instagram is disconnected right now', 'placeholder="Write a message"', 'Add a topic', 'aria-current="page"'], not: ['No messages yet', 'data-action="compose"'] },
-  { query: 'demo=cornerbean', route: 'messages', title: 'Messages', has: ['No messages yet. Write to us below.', 'placeholder="Write a message"'], not: ['class="msg-day"'] },
+  { route: 'messages', title: 'Messages', has: ['Talk to your Domin8te team. We usually reply within one working day.', 'class="msg-day"', 'You asked for a change', 'We are working on it', 'Karan', 'Instagram is disconnected right now', 'placeholder="Start a conversation, or reply to us"', 'Add a topic', 'aria-current="page"'], not: ['No messages yet', 'data-action="compose"'] },
+  { query: 'demo=cornerbean', route: 'messages', title: 'Messages', has: ['No messages yet. Write to us below.', 'placeholder="Start a conversation, or reply to us"'], not: ['class="msg-day"'] },
   { route: 'no-such-page', title: 'Page not found', has: ['Go to your Home page'] },
   { query: 'demo=cornerbean', route: 'home', title: 'Home', has: ["You're all caught up", 'Next planned', 'Latest win', 'See your results', 'Not connected yet', 'Good morning, Priya'], not: ['Social media', 'Advertising', 'Bayleaf'] },
   { query: 'demo=cornerbean', route: 'results', title: 'Results', has: ['Numbers start on'], not: ['id="h-g-social"', 'id="h-g-advertising"'] },

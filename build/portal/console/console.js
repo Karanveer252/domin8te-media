@@ -878,7 +878,7 @@
       ${log.length ? `<ol class="convo-log" id="convo-log" tabindex="0" aria-labelledby="convo-h">${log.map((x) => x.html).join('')}</ol>`
         : `<div class="convo-log convo-empty" id="convo-log"><p class="meta">No messages yet. Write the first one below.</p></div>`}
       <form class="convo-reply" id="convo-reply" novalidate>
-        <div class="field"><label for="convo-body">Reply as ${esc(me.name)}</label><textarea id="convo-body" name="body" maxlength="2000" rows="3" placeholder="Thanks ${esc(first)}${first ? ',' : ''} we can do that this week."></textarea></div>
+        <div class="field"><label for="convo-body">Reply as ${esc(me.name)}</label><textarea id="convo-body" name="body" maxlength="2000" rows="3" placeholder="Write your reply${first ? ` to ${esc(first)}` : ''} here"></textarea></div>
         <div class="actions"><button class="btn" type="submit">Send</button><span class="meta">They see it next time they open their portal. We don't email them. <kbd>Ctrl</kbd> <kbd>Enter</kbd> sends.</span></div>
       </form>`;
   }
@@ -893,7 +893,7 @@
     inboxState.open = shown ? shown.id : '';
     const waitingN = list.filter((/** @type {any} */ x) => x.c.waiting).length;
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Messages</h1><p>Every client's conversation in one place. ${waitingN ? `${plural(waitingN, 'client')} waiting for your reply.` : 'Nobody is waiting for a reply.'}</p></div>
-      <div class="btns updated"><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span><button class="icon-btn icon-btn-sm" type="button" data-action="refresh" aria-label="Reload" title="Reload">${icon('refresh')}</button></div></div>
+      <div class="btns updated"><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span><button class="btn btn-glass btn-sm" type="button" data-action="refresh" title="Checks for new messages now. The page also checks by itself every 10 seconds.">${icon('refresh')}Reload conversation</button></div></div>
       <div class="inbox${openId ? ' has-open' : ''}">
         <section class="panel inbox-list" aria-label="Conversations">
           <input id="inbox-q" type="search" placeholder="Search by client name" aria-label="Search conversations by client name" value="${esc(inboxState.q)}" autocomplete="off">
@@ -938,12 +938,13 @@
       catch (x) { sel.disabled = false; sel.value = r.status; toast(message(x), true); }
     };
     toBottom();
-    // While the page is open and visible, check for new messages every minute, quietly.
+    // While the page is open and visible, check for new messages every 10 seconds, quietly (2026-10-09, Karan: "get the
+    // messages right away"; true instant delivery would need Supabase Realtime switched on for the messages table).
     stopInbox();
     inboxTimer = window.setInterval(async () => {
       if (document.visibilityState !== 'visible' || dirty.size || !/^#\/messages/.test(location.hash)) return;
       try { await loadAll(); redrawInbox(); } catch (e) { /* the next check tries again; Reload reports errors */ }
-    }, 60000);
+    }, 10000);
   }
 
   /** Draws the Messages page again in place (after a quiet reload), keeping the search box's focus and the scroll. */
@@ -2857,7 +2858,7 @@
       <div class="toolbar talk-bar">${opener('reply-form', 'Reply', part === 'reply', true)}${opener('apv-form', 'Ask for an approval', part === 'approval', false)}${opener('upd-form', 'Post an update', part === 'update', false)}<a class="btn btn-sm btn-quiet talk-inbox" href="#/messages/${esc(current.id)}">${icon('chat')}Open in Messages</a></div>
       <div class="talk-forms">
       <form class="panel" id="reply-form" novalidate${part === 'reply' ? '' : ' hidden'}>
-        <div class="field"><label for="reply">Reply as ${esc(me.name)}</label><textarea id="reply" name="body" maxlength="2000" placeholder="Thanks ${esc(first)}${first ? ',' : ''} we can do that this week."></textarea></div>
+        <div class="field"><label for="reply">Reply as ${esc(me.name)}</label><textarea id="reply" name="body" maxlength="2000" placeholder="Write your reply${first ? ` to ${esc(first)}` : ''} here"></textarea></div>
         <div class="actions"><button class="btn" type="submit">Send reply</button><button class="btn btn-quiet" type="button" data-action="reveal-close">Cancel</button><span class="meta">They read it on their Help page next time they open their portal. We don't email them.</span></div>
       </form>
       <form class="panel" id="apv-form" novalidate${part === 'approval' ? '' : ' hidden'}>
