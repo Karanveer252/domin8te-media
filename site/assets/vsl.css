@@ -50,3 +50,20 @@ html[data-v="editorial"] .vsl-hero .lede::before{display:none}
 /* the live sites, under the client cards */
 .vsl-live{padding:clamp(56px,10vh,120px) 0 0}
 .vsl-live .live + .live{margin-top:clamp(28px,5vh,56px)}
+
+/* the side note beside "Try the real sites": orange, with an arrow down to the first window */
+.vsl-hint{position:relative;grid-column:1 / -1;align-self:end;margin:clamp(16px,3vh,28px) 0 0;max-width:30ch;padding-bottom:clamp(60px,9vh,96px);
+  color:#AE3A0B;font-size:clamp(18px,1.5vw,22px);font-weight:600;font-style:italic;line-height:1.35;transform:rotate(-2deg)}
+.vsl-hint b{font-weight:800}
+.vsl-hint__arrow{position:absolute;right:30%;bottom:-6px;width:clamp(76px,7vw,110px);height:auto}
+@media (prefers-reduced-motion:no-preference){
+  .vsl-hint__arrow{animation:vslNudge 1.8s ease-in-out infinite}
+  @keyframes vslNudge{0%,100%{transform:translate(0,0)}50%{transform:translate(-4px,6px)}}
+}
+@media (min-width:1101px){
+  .vsl-hint{grid-column:9 / -1;grid-row:1;margin:0;justify-self:end}
+}
+@media (max-width:760px){
+  .vsl-hint{padding-bottom:70px}
+  .vsl-hint__arrow{right:auto;left:40%}
+}
