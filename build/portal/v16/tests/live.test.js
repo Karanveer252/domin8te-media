@@ -106,14 +106,14 @@ function fakeClerk(opts) {
 }
 
 /** Loads the portal's data files in live mode with the stand-ins. */
-function live({ tables = {}, errors = {}, clerk = {} } = {}) {
+function live({ tables = {}, errors = {}, clerk = {}, fetch } = {}) {
   const C = fakeClerk(clerk);
   const S = fakeSupabase(tables, errors);
   const head = [];
   const ctx = {
     console, URLSearchParams,
     setTimeout: (fn) => { Promise.resolve().then(fn); return 0; }, clearTimeout: () => {},
-    localStorage: null, sessionStorage: null,
+    localStorage: null, sessionStorage: null, fetch,
     D8CONFIG: { mode: 'live', supabaseUrl: 'https://example.supabase.co', supabaseKey: 'sb_publishable_x', clerkPublishableKey: 'pk_test_x' },
     document: {
       visibilityState: 'visible',
@@ -412,4 +412,26 @@ test('without the cards function the Work page keeps the record as it is', async
   assert.deepEqual(web.cards, []);
   assert.equal(web.status, 'planned');
   assert.equal(web.now, 'Record only');
+});
+
+test("Stripe pages: the billing buttons ask stripe-billing for this client's own link (2026-10-09)", async () => {
+  const calls = [];
+  const reply = (status, body) => Promise.resolve({ ok: status < 300, status, json: () => Promise.resolve(body) });
+  let answer = { status: 200, body: { url: 'https://billing.stripe.com/p/session/test_x' } };
+  const { D8 } = live({ tables: withBayleaf(), clerk: { signedIn: true, orgs: ['org_bayleaf'] }, fetch: (url, init) => { calls.push([url, JSON.parse(init.body), init.headers.Authorization]); return reply(answer.status, answer.body); } });
+  await D8.auth.getSession();
+  assert.equal(await D8.integrations.resolve('billing-portal'), 'https://billing.stripe.com/p/session/test_x');
+  assert.equal(calls[0][0], 'https://example.supabase.co/functions/v1/stripe-billing');
+  assert.deepEqual(plain(calls[0][1]), { action: 'portal' }, 'the page never sends which client it is');
+  assert.match(calls[0][2], /^Bearer /, "it signs the call with the client's own session");
+  answer = { status: 200, body: { url: 'https://invoice.stripe.com/i/test_y' } };
+  assert.equal(await D8.integrations.resolve('invoice', 'inv_row', 'BAY-0010'), 'https://invoice.stripe.com/i/test_y');
+  assert.deepEqual(plain(calls[1][1]), { action: 'invoice', number: 'BAY-0010' });
+  answer = { status: 503, body: { error: 'not-configured', message: 'Stripe is not set up.' } };
+  await assert.rejects(D8.integrations.resolve('billing-portal'), (e) => e.code === 'not-configured' && /not set up for your account/.test(e.message));
+  answer = { status: 409, body: { error: 'no-customer' } };
+  await assert.rejects(D8.integrations.resolve('billing-portal'), (e) => e.code === 'no-customer');
+  assert.equal(calls.length, 4, 'other outside pages do not call Stripe');
+  await D8.integrations.resolve('connect-instagram');
+  assert.equal(calls.length, 4);
 });

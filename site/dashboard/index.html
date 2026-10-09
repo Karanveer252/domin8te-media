@@ -1339,7 +1339,7 @@ html[data-theme="dark"] .filter-select:focus-visible { box-shadow: 0 0 0 3px rgb
 
 /* One conversation: ours on the left, the client's on the right, newest at the bottom, the box to write in under it. */
 .msg-card { display: flex; flex-direction: column; margin-top: 24px; padding: 0; overflow: hidden; }
-.msg-scroll { min-height: 220px; max-height: min(62vh, 640px); padding: 20px 20px 14px; overflow-y: auto; overscroll-behavior: contain; scroll-behavior: auto; }
+.msg-scroll { min-height: 220px; max-height: max(220px, min(calc(100dvh - 400px), 640px)); padding: 20px 20px 14px; overflow-y: auto; overscroll-behavior: contain; scroll-behavior: auto; }
 .msg-scroll:focus-visible { outline: 2px solid var(--p-focus); outline-offset: -2px; }
 .msg-list { display: flex; flex-direction: column; gap: 10px; }
 .msg { display: flex; flex-direction: column; max-width: min(78%, 560px); }
@@ -1350,8 +1350,8 @@ html[data-theme="dark"] .filter-select:focus-visible { box-shadow: 0 0 0 3px rgb
 .msg.is-team .msg-bubble { border-bottom-left-radius: 6px; background: var(--p-surface); color: var(--p-ink); box-shadow: inset 0 0 0 1px var(--p-line); }
 .msg.is-mine .msg-bubble { border-bottom-right-radius: 6px; background: var(--p-ink); color: var(--p-bg); }
 .msg.is-sending { opacity: 0.62; }
-.msg-meta { display: flex; align-items: center; flex-wrap: wrap; margin-top: 4px; padding: 0 4px; color: var(--p-ink-3); font-size: 13px; }
-.msg-mark { width: 18px; height: 18px; margin-right: 6px; border-radius: 6px; background-size: 11px auto; }
+.msg-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0 6px; margin-top: 4px; padding: 0 4px; color: var(--p-ink-3); font-size: 13px; }
+.msg-mark { width: 18px; height: 18px; border-radius: 6px; background-size: 11px auto; }
 .msg-day { align-self: center; margin: 10px 0 2px; padding: 3px 12px; border-radius: 999px; background: var(--p-well); color: var(--p-ink-3); font-size: 13px; font-weight: 600; }
 .msg-list > .msg-day:first-child { margin-top: 0; }
 .msg-new { display: flex; align-items: center; gap: 10px; color: var(--p-accent-ink); font-size: 13px; font-weight: 700; }
@@ -1376,7 +1376,7 @@ html[data-theme="dark"] .filter-select:focus-visible { box-shadow: 0 0 0 3px rgb
 }
 @media (max-width: 760px) {
   .msg-card { margin-top: 18px; }
-  .msg-scroll { max-height: calc(100dvh - 380px); min-height: 240px; padding: 14px 12px 10px; }
+  .msg-scroll { max-height: max(200px, calc(100dvh - 470px)); min-height: 200px; padding: 14px 12px 10px; }
   .msg { max-width: 88%; }
   .msg-compose { padding: 12px; }
 }
@@ -4901,6 +4901,28 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   D8.data.liveSource = liveSource;
   // The agency console signs in the same way and talks to the same database.
   D8.live = { clerk, db, dbFail, config: cfg, token: async () => tokenFor(await clerk()) };
+
+  // Stripe's own pages (2026-10-09, Karan: "fully integrate" Stripe, test mode first). The server function stripe-billing
+  // makes a short-lived link for this client only (it finds the client from the sign-in, never from the page): the
+  // billing portal (change card, see every invoice) or one invoice they can already see here. Other kinds keep the old path.
+  const outside = D8.integrations.resolve;
+  D8.integrations.resolve = async (/** @type {string} */ kind, /** @type {string} */ id, /** @type {string} */ number) => {
+    if (kind !== 'billing-portal' && kind !== 'invoice') return outside(kind, id);
+    if (PREVIEW) return null;
+    const token = await tokenFor(await clerk());
+    const res = await fetch(cfg.supabaseUrl + '/functions/v1/stripe-billing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, apikey: cfg.supabaseKey },
+      body: JSON.stringify(kind === 'invoice' ? { action: 'invoice', number } : { action: 'portal' })
+    });
+    const j = await res.json().catch(() => ({}));
+    if (res.ok && j.url) return j.url;
+    const e = /** @type {any} */ (new Error(j.error === 'not-configured' || j.error === 'no-customer' || j.error === 'live-key-refused'
+      ? 'Online billing is not set up for your account yet. Press Message us and we sort it out.'
+      : j.error === 'not-found' ? 'That invoice is not ready to open yet. Try again later.' : 'We could not reach Stripe just now. Try again in a minute.'));
+    e.code = j.error || 'stripe';
+    throw e;
+  };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script>
@@ -5733,16 +5755,16 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const b = /** @type {HTMLButtonElement|null} */ (trigger && trigger.tagName === 'BUTTON' ? trigger : null);
     if (b) b.disabled = true;
     const number = trigger && trigger.getAttribute('data-number');
-    D8.integrations.resolve(kind, id).then((url) => {
+    D8.integrations.resolve(kind, id, number || undefined).then((url) => {
       if (b) b.disabled = false;
       if (url) { root.location.assign(url); return; }
       open(head(number ? `${o.title} ${number}` : o.title, '') + `<div class="dlg-body">
         <p class="dlg-intro">${esc(o.text)}</p>
         <div class="notice">${icon('info')}<p><strong>This is a demo</strong>, so ${esc(o.where)} does not open and nothing changes. In your real portal, this button takes you to ${esc(o.where)} and back.</p></div>
         <div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Close</button></div></div>`, trigger);
-    }).catch(() => {
+    }).catch((/** @type {any} */ err) => {
       if (b) b.disabled = false;
-      toast(`We couldn't reach ${o.where}. Try again in a minute.`, { tone: 'error' });
+      toast(err && err.code ? err.message : `We couldn't reach ${o.where}. Try again in a minute.`, { tone: 'error' });
     });
   }
 
@@ -6819,14 +6841,14 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   /** The topic's name, or nothing for general. @param {string} about */
   const aboutName = (about) => (about === 'billing' ? 'Billing' : about && SVC()[about] ? SVC()[about].label : '');
   const firstName = (/** @type {string} */ n) => String(n || '').trim().split(/\s+/)[0] || '';
-  const sep = '<span aria-hidden="true"> · </span><span class="sr-only">, </span>';
+  const sep = '<span aria-hidden="true">·</span><span class="sr-only">, </span>';
 
   /** One item of the thread. @param {any} x */
   function msgItem(x) {
     const t = F.time(x.at);
     if (x.kind === 'request') {
       const svc = SVC()[x.service];
-      return `<li class="msg is-mine is-request"><div class="msg-req"><p class="msg-req-h">${icon('edit')}<span>You asked for a change${svc ? sep + esc(svc.label) : ''}</span></p><p class="msg-text">${esc(x.text)}</p><p class="msg-req-status">${esc(/** @type {any} */ (REQ_WORDS)[x.status] || REQ_WORDS.review)}</p></div><p class="msg-meta"><span>${esc(t)}</span></p></li>`;
+      return `<li class="msg is-mine is-request"><div class="msg-req"><p class="msg-req-h">${icon('edit')}<span>You asked for a change${svc ? `<span aria-hidden="true"> · </span><span class="sr-only">, </span>${esc(svc.label)}` : ''}</span></p><p class="msg-text">${esc(x.text)}</p><p class="msg-req-status">${esc(/** @type {any} */ (REQ_WORDS)[x.status] || REQ_WORDS.review)}</p></div><p class="msg-meta"><span>${esc(t)}</span></p></li>`;
     }
     const topic = aboutName(x.about);
     const who = x.fromTeam ? (firstName(x.by) || 'Domin8te') : 'You';

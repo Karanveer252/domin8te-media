@@ -326,4 +326,26 @@
   D8.data.liveSource = liveSource;
   // The agency console signs in the same way and talks to the same database.
   D8.live = { clerk, db, dbFail, config: cfg, token: async () => tokenFor(await clerk()) };
+
+  // Stripe's own pages (2026-10-09, Karan: "fully integrate" Stripe, test mode first). The server function stripe-billing
+  // makes a short-lived link for this client only (it finds the client from the sign-in, never from the page): the
+  // billing portal (change card, see every invoice) or one invoice they can already see here. Other kinds keep the old path.
+  const outside = D8.integrations.resolve;
+  D8.integrations.resolve = async (/** @type {string} */ kind, /** @type {string} */ id, /** @type {string} */ number) => {
+    if (kind !== 'billing-portal' && kind !== 'invoice') return outside(kind, id);
+    if (PREVIEW) return null;
+    const token = await tokenFor(await clerk());
+    const res = await fetch(cfg.supabaseUrl + '/functions/v1/stripe-billing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, apikey: cfg.supabaseKey },
+      body: JSON.stringify(kind === 'invoice' ? { action: 'invoice', number } : { action: 'portal' })
+    });
+    const j = await res.json().catch(() => ({}));
+    if (res.ok && j.url) return j.url;
+    const e = /** @type {any} */ (new Error(j.error === 'not-configured' || j.error === 'no-customer' || j.error === 'live-key-refused'
+      ? 'Online billing is not set up for your account yet. Press Message us and we sort it out.'
+      : j.error === 'not-found' ? 'That invoice is not ready to open yet. Try again later.' : 'We could not reach Stripe just now. Try again in a minute.'));
+    e.code = j.error || 'stripe';
+    throw e;
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

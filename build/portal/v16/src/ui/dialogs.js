@@ -250,16 +250,16 @@
     const b = /** @type {HTMLButtonElement|null} */ (trigger && trigger.tagName === 'BUTTON' ? trigger : null);
     if (b) b.disabled = true;
     const number = trigger && trigger.getAttribute('data-number');
-    D8.integrations.resolve(kind, id).then((url) => {
+    D8.integrations.resolve(kind, id, number || undefined).then((url) => {
       if (b) b.disabled = false;
       if (url) { root.location.assign(url); return; }
       open(head(number ? `${o.title} ${number}` : o.title, '') + `<div class="dlg-body">
         <p class="dlg-intro">${esc(o.text)}</p>
         <div class="notice">${icon('info')}<p><strong>This is a demo</strong>, so ${esc(o.where)} does not open and nothing changes. In your real portal, this button takes you to ${esc(o.where)} and back.</p></div>
         <div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Close</button></div></div>`, trigger);
-    }).catch(() => {
+    }).catch((/** @type {any} */ err) => {
       if (b) b.disabled = false;
-      toast(`We couldn't reach ${o.where}. Try again in a minute.`, { tone: 'error' });
+      toast(err && err.code ? err.message : `We couldn't reach ${o.where}. Try again in a minute.`, { tone: 'error' });
     });
   }
 
