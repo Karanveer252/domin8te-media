@@ -977,3 +977,10 @@ html[data-theme="dark"] .mini-index { background: var(--surface); }
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-hint, .qa-label) { color: var(--ink-2); }
 /* Nine tabs with plain names: on a wide screen they wrap to a second row instead of hiding Raw data off the edge. */
 @media (min-width: 760px) { .tabs { flex-wrap: wrap; overflow-x: visible; gap: 6px; } .tabs a { padding-left: 13px; padding-right: 13px; } }
+
+/* Connected accounts on Logins and details (2026-10-09) */
+.acct-rows { display: grid; gap: 0; margin: 12px 0 6px; padding: 0; list-style: none; }
+.acct-rows li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line, rgba(0,0,0,.08)); }
+.acct-rows li:first-child { border-top: 0; }
+.acct-name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600; }
+.acct-rows select { width: auto; min-width: 190px; }

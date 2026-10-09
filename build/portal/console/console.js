@@ -1179,7 +1179,7 @@
       ${servicesPanel(d, services)}
       </div>
       <div class="ov-edit"${part === 'edit' ? '' : ' hidden'}>
-      <nav class="mini-index" aria-label="On this page"><span class="meta">Jump to</span>${[['sec-login', 'Logins'], ['sec-plan', 'Plan and sign-off'], ['sec-details', 'Details'], ['billing', 'Billing'], ['sec-meeting', 'Meeting']].map(([to, l]) => `<button class="linkish" type="button" data-action="jump" data-to="${to}">${l}</button>`).join('<span aria-hidden="true">·</span>')}</nav>
+      <nav class="mini-index" aria-label="On this page"><span class="meta">Jump to</span>${[['sec-login', 'Logins'], ['sec-plan', 'Plan and sign-off'], ['sec-details', 'Details'], ['billing', 'Billing'], ['sec-meeting', 'Meeting'], ['sec-accounts', 'Accounts']].map(([to, l]) => `<button class="linkish" type="button" data-action="jump" data-to="${to}">${l}</button>`).join('<span aria-hidden="true">·</span>')}</nav>
       <section class="panel" aria-labelledby="login-h" id="sec-login">
         <div class="panel-head"><h2 id="login-h">Portal login</h2><p>${current.clerk_org_id ? 'These people can sign in to their portal. Add someone, or remove a login.' : '<strong>Nobody can sign in yet.</strong> An email in Details below does not let anyone in. Only this button does.'}</p></div>
         ${current.clerk_org_id ? '<div id="login-people" class="login-people"><p class="meta">Checking who can sign in.</p></div>' : ''}
@@ -1233,6 +1233,7 @@
           <div class="field"><label for="o-mlen">Length</label><input id="o-mlen" name="mlen" type="text" value="${esc(mt.length || '')}" placeholder="20 minutes" maxlength="40"></div>
           <div class="field span-all"><label for="o-mtitle">Meeting title</label><input id="o-mtitle" name="mtitle" type="text" value="${esc(mt.title || '')}" placeholder="Monthly results call" maxlength="120"></div>
         </div>
+        ${accountsSection(d)}
         <div class="actions"><button class="btn" type="submit">Save details</button></div>
       </form>
       </div>`;
@@ -1264,7 +1265,21 @@
         doc.user = { ...doc.user, firstName: val(f, 'first'), email: val(f, 'email'), role: val(f, 'role') };
         // the services themselves change only through Change services (changeServices), never here
         doc.package = { ...doc.package, name: val(f, 'pkg'), billing: val(f, 'billing') };
-        doc.team = { name: val(f, 'team') || 'Your account team', reply: val(f, 'reply') };
+        doc.team = { ...(doc.team || {}), name: val(f, 'team') || 'Your account team', reply: val(f, 'reply'), metaBusinessId: val(f, 'metaid') || undefined, accessEmail: val(f, 'accessemail') || undefined };
+        // connected accounts: Connected, Needs reconnecting or Not connected (taken off the record)
+        if ($('#sec-accounts', box)) {
+          const stamp = new Date().toISOString().slice(0, 16);
+          let srcs = (doc.sources || []).slice();
+          for (const x of accountRows(doc)) {
+            const v = val(f, `acct-${x.id}`);
+            const i = srcs.findIndex((/** @type {any} */ y) => y.id === x.id);
+            const was = i >= 0 ? srcs[i] : null;
+            if (v === 'none') { if (i >= 0) srcs.splice(i, 1); continue; }
+            if (v === 'disconnected') { const n = { ...(was || { id: x.id, name: x.name, updatedAt: stamp }), status: 'disconnected', since: (was && was.status === 'disconnected' && was.since) || stamp }; if (i >= 0) srcs[i] = n; else srcs.push(n); }
+            if (v === 'connected') { const n = { ...(was || { id: x.id, name: x.name }), status: 'connected', updatedAt: was && was.status !== 'disconnected' && was.updatedAt ? was.updatedAt : stamp }; delete n.since; if (i >= 0) srcs[i] = n; else srcs.push(n); }
+          }
+          doc.sources = srcs;
+        }
         const md = val(f, 'mdate');
         const sub = { ...((doc.billing && doc.billing.subscription) || {}) };
         sub.startedAt = val(f, 'bstart') || null;
@@ -2006,10 +2021,39 @@
   }
 
   /** The Edit tab: the client's details, login, plan and approvals, on their own page. @param {HTMLElement} box @param {string} part @param {any} got */
+  /* ---- Connected accounts (2026-10-09): the accounts their services need, and whether we have access ------------- */
+
+  /** The accounts this client's services need, plus any other on record, with what the client last told us. @param {any} d */
+  function accountRows(d) {
+    const A = D8.data.ACCOUNTS || {};
+    const pkg = (d.package && d.package.services) || [];
+    const needed = (/** @type {string} */ id) => !A[id] || pkg.includes(A[id].service);
+    const have = (d.sources || []).filter((/** @type {any} */ x) => needed(x.id));
+    const missing = Object.keys(A).filter((id) => needed(id) && !(d.sources || []).some((/** @type {any} */ x) => x.id === id)).map((id) => ({ id, name: A[id].name, status: 'none' }));
+    const open = (current.requests || []).filter((/** @type {any} */ r) => r.status !== 'done' && r.status !== 'declined');
+    return [...have, ...missing].map((/** @type {any} */ x) => {
+      const r = open.find((/** @type {any} */ q) => String(q.body || '').startsWith(`Check ${x.name} access:`) || String(q.body || '').startsWith(`Stop using ${x.name}:`));
+      return { ...x, told: r ? (String(r.body).startsWith('Stop using') ? 'They say they removed our access' : 'They say they gave us access') : '' };
+    });
+  }
+  /** @param {any} d */
+  function accountsSection(d) {
+    const t = d.team || {};
+    const rows = accountRows(d);
+    return `<h3 class="panel-sub" id="sec-accounts">Connected accounts <span class="meta">The apps their services need. They connect them from Settings on their portal; you confirm here.</span></h3>
+        <div class="grid-3">
+          <div class="field"><label for="o-metaid">Our Meta business ID</label><input id="o-metaid" name="metaid" type="text" value="${esc(t.metaBusinessId || '')}" maxlength="40" inputmode="numeric"><p class="hint">Shown in their steps for Instagram, Facebook and Meta ads.</p></div>
+          <div class="field span-2"><label for="o-accessemail">Our email for Google access</label><input id="o-accessemail" name="accessemail" type="email" value="${esc(t.accessEmail || '')}" maxlength="120"><p class="hint">Shown in their steps for Google Business Profile and Google Analytics.</p></div>
+        </div>
+        ${rows.length ? `<ul class="acct-rows">${rows.map((x) => `<li><span class="acct-name">${esc(x.name)}${x.told ? `<span class="chip them">${esc(x.told)}</span>` : ''}</span>
+          <label class="sr-only" for="acct-${esc(x.id)}">${esc(x.name)}</label><select id="acct-${esc(x.id)}" name="acct-${esc(x.id)}">${[['connected', 'Connected'], ['disconnected', 'Needs reconnecting'], ['none', 'Not connected']].map(([v, l]) => `<option value="${v}"${(x.status === 'disconnected' ? 'disconnected' : x.status === 'none' || x.status === 'not_connected' ? 'none' : 'connected') === v ? ' selected' : ''}>${l}</option>`).join('')}</select></li>`).join('')}</ul>
+        <p class="hint">When they tell us, the request also lands on their board. Set the account here, then move that card to Done.</p>` : '<p class="hint">Their services need no accounts.</p>'}`;
+  }
+
   function editTab(box, part, got) {
     overview(box, 'edit', got);
     // #/client/<id>/edit/<section> opens the tab at that section (billing, meeting, login, plan).
-    const to = ({ billing: 'billing', meeting: 'sec-meeting', login: 'sec-login', plan: 'sec-plan' })[/** @type {'billing'} */ (part)];
+    const to = ({ billing: 'billing', meeting: 'sec-meeting', login: 'sec-login', plan: 'sec-plan', accounts: 'sec-accounts' })[/** @type {'billing'} */ (part)];
     if (to) setTimeout(() => { const el = document.getElementById(to); if (el) el.scrollIntoView({ block: 'start' }); }, 0);
   }
 

@@ -630,13 +630,20 @@
         ${c.required ? `<span class="badge tone-neutral" title="We always email you about payments and anything that could pause a service.">${icon('lock')}Always on</span>` : ''}
       </div>`).join('');
     const sources = s.sources.map((src) => {
-      const when = src.state === 'disconnected' ? `Disconnected since ${day(src.since)}. Numbers after that are missing, not zero.`
+      const when = src.pending ? `You told us you ${src.pending.kind === 'disconnect' ? 'removed our access' : 'connected it'}${src.pending.at ? ` on ${day(src.pending.at)}` : ''}. We confirm it, usually within one working day.`
+        : src.state === 'missing' ? 'Not connected yet. Press Connect to let us in.'
+        : src.state === 'disconnected' ? `Disconnected since ${day(src.since)}. Numbers after that are missing, not zero.`
         : src.state === 'error' ? 'Not answering right now. We keep trying on our own.'
           : src.state === 'stale' ? `Last updated ${F.ago(src.updatedAt, now)}. It usually updates several times a day.`
             : `Updated ${F.ago(src.updatedAt, now)}`;
-      const act = src.state === 'disconnected' ? `<button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="connect-${esc(src.id)}" title="Opens ${esc(src.name)}'s own page so you can let us in again. We never see your password.">Reconnect<span class="sr-only"> ${esc(src.name)}</span></button>` : '';
+      // One button per account (2026-10-09): Connect when it is missing, Reconnect when it broke, Disconnect when it works.
+      // While the team is checking a change the client told us about, the row says so instead.
+      const mode = src.state === 'missing' ? 'connect' : src.state === 'disconnected' || src.state === 'error' ? 'reconnect' : 'disconnect';
+      const label = { connect: 'Connect', reconnect: 'Reconnect', disconnect: 'Disconnect' }[mode];
+      const tip = mode === 'disconnect' ? `Shows how to remove our access to ${src.name}` : `Shows how to let us into ${src.name}. We never see your password.`;
+      const act = src.pending ? '' : `<button class="btn ${mode === 'disconnect' ? 'btn-text src-off' : 'btn-glass'} btn-sm" type="button" data-action="account" data-source="${esc(src.id)}" data-mode="${mode}" title="${esc(tip)}">${label}<span class="sr-only"> ${esc(src.name)}</span></button>`;
       const about = UI.sourceAbout(src);
-      return `<li class="src-row"><div><p class="src-name">${esc(src.name)}</p>${about ? `<p class="src-about">${esc(about)}</p>` : ''}<p class="meta">${esc(when)}</p></div>${UI.HealthBadge(src)}${act}</li>`;
+      return `<li class="src-row"><div><p class="src-name">${esc(src.name)}</p>${about ? `<p class="src-about">${esc(about)}</p>` : ''}<p class="meta">${esc(when)}</p></div>${src.pending ? `<span class="badge tone-info">${icon('clock')}Waiting for us to confirm</span>` : UI.HealthBadge(src)}${act}</li>`;
     }).join('');
     return `<section class="card set-card" aria-labelledby="h-email">
         <h2 id="h-email">Email notifications</h2>
@@ -656,7 +663,7 @@
       </section>
       <section class="card set-card" id="sources" tabindex="-1" aria-labelledby="h-sources">
         <h2 id="h-sources">Connected accounts</h2>
-        <p class="meta">These are the apps we take your numbers from. We check each one several times a day. If one says Needs reconnecting, press Reconnect and sign in to it again.</p>
+        <p class="meta">The apps your services need. We take your numbers from them and post through them. Connect lets us in, Reconnect fixes a broken link, Disconnect takes our access away. You do it on the app's own page; we never see your password.</p>
         <ul class="sources">${sources}</ul>
       </section>
       <section class="card set-card" aria-labelledby="h-security">

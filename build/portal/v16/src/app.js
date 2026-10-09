@@ -395,7 +395,8 @@
     const act = t.getAttribute('data-action');
     const ctx = context();
     if (act === 'approve') D8.dialogs.approval(t.dataset.id, t, ctx);
-    else if (act === 'external') D8.dialogs.external(t.dataset.kind, t.dataset.id, t);
+    else if (act === 'external') D8.dialogs.external(t.dataset.kind, t.dataset.id, t, ctx);
+    else if (act === 'account') D8.dialogs.account(t.dataset.source || '', t.dataset.mode || 'connect', t, ctx);
     else if (act === 'compose') D8.dialogs.compose({ mode: t.dataset.mode, service: t.dataset.service }, t, ctx);
     else if (act === 'refresh') doRefresh(t);
     else if (act === 'retry') { if (app.page && app.page.retry) app.page.retry(t.dataset.section); }

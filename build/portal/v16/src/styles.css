@@ -1170,3 +1170,11 @@ td { font-variant-numeric: tabular-nums; }
 @media (min-width: 761px) {
   .portal[data-demo] .main { padding-bottom: 132px; }
 }
+
+/* Connected accounts (2026-10-09): the step-by-step guide, and a quiet Disconnect. */
+.guide-steps { display: grid; gap: 10px; margin: 16px 0 12px; padding-left: 24px; list-style: decimal outside; }
+.guide-steps li { display: list-item; }
+.guide-steps li { padding-left: 4px; line-height: 1.5; }
+.guide-steps li::marker { font-family: inherit; font-weight: 700; color: var(--p-ink-2); }
+.src-off { color: var(--p-ink-2); }
+.src-off:hover { color: var(--p-error, #b42318); }

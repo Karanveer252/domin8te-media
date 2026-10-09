@@ -240,7 +240,11 @@
     'clerk-account': { title: 'Sign-in and security', where: 'our sign-in service', text: 'Our sign-in service looks after your email address, how you sign in, and where you are signed in.' }
   };
 
-  function external(kind, id, trigger) {
+  /** The page context, kept from the last account button, so old Reconnect buttons can open the guide. */
+  let lastCtx = /** @type {any} */ (null);
+  function external(kind, id, trigger, ctx) {
+    if (ctx) lastCtx = ctx;
+    if (String(kind).startsWith('connect-') && lastCtx) { account(String(kind).slice(8), 'reconnect', trigger, lastCtx); return; }
     const o = OUTSIDE[kind] || (String(kind).startsWith('connect-') ? { title: 'Reconnect this account', where: 'the provider', text: "You sign in on that service's own page and choose what we can use. We never see your password." } : null);
     if (!o) return;
     const b = /** @type {HTMLButtonElement|null} */ (trigger && trigger.tagName === 'BUTTON' ? trigger : null);
@@ -256,6 +260,75 @@
     }).catch(() => {
       if (b) b.disabled = false;
       toast(`We couldn't reach ${o.where}. Try again in a minute.`, { tone: 'error' });
+    });
+  }
+
+  /* ---- connected accounts: connect, reconnect, disconnect (2026-10-09) ---------------------- */
+
+  // The steps on each app's own site. Our business ID and access email come from the client record (team) when set.
+  const ASK = 'no ID yet? Press Message us and we send it';
+  const GUIDE = {
+    meta: {
+      where: "Meta's", link: 'https://business.facebook.com/settings/partners', button: 'Open Meta Business settings',
+      on: (/** @type {any} */ a, /** @type {any} */ t) => ['Press Open Meta Business settings below and sign in to Facebook.', 'Go to Users, then Partners, then press Add.',
+        `Choose Give a partner access to your assets and type Domin8te's business ID${t.metaBusinessId ? `: ${t.metaBusinessId}` : ` (${ASK})`}.`,
+        `Tick your ${a.asset}, give Domin8te full access, then press Save.`],
+      off: (/** @type {any} */ a) => ['Press Open Meta Business settings below and sign in to Facebook.', 'Go to Users, then Partners, then choose Domin8te.', `Press Remove next to your ${a.asset}.`]
+    },
+    gbp: {
+      where: "Google's", link: 'https://business.google.com/', button: 'Open Google Business Profile',
+      on: (/** @type {any} */ a, /** @type {any} */ t) => ['Press Open Google Business Profile below and sign in with the Google account that owns your listing.',
+        'Open your business, then the menu with three dots, then Business Profile settings.', 'Press People and access (it may say Managers), then Add.',
+        `Type Domin8te's email${t.accessEmail ? `: ${t.accessEmail}` : ' (no email yet? Press Message us and we send it)'}, choose Manager, then press Invite.`],
+      off: () => ['Press Open Google Business Profile below and sign in.', 'Open your business, then the menu with three dots, then Business Profile settings.',
+        'Press People and access (it may say Managers), choose Domin8te, then press Remove.']
+    },
+    analytics: {
+      where: "Google's", link: 'https://analytics.google.com/', button: 'Open Google Analytics',
+      on: (/** @type {any} */ a, /** @type {any} */ t) => ['Press Open Google Analytics below and sign in.', 'Press Admin, the gear at the bottom left.',
+        'Under Property, press Property access management, then the plus button, then Add users.',
+        `Type Domin8te's email${t.accessEmail ? `: ${t.accessEmail}` : ' (no email yet? Press Message us and we send it)'}, choose Viewer, then press Add.`],
+      off: () => ['Press Open Google Analytics below and sign in.', 'Press Admin, then Property access management.', 'Choose Domin8te, then press Remove access.']
+    },
+    other: {
+      where: '', link: '', button: '',
+      on: () => ['Every booking system works a little differently.', 'Press Tell us below. We send you the exact steps, or set it up with you.'],
+      off: () => ['Press Tell us below.', 'We stop using it and help you remove our access.']
+    }
+  };
+
+  /** @param {string} id @param {string} mode connect, reconnect or disconnect @param {HTMLElement|null} trigger @param {any} ctx */
+  function account(id, mode, trigger, ctx) {
+    const s = (ctx.account.sources || []).find((/** @type {any} */ x) => x.id === id) || { id, name: id };
+    const a = D8.data.ACCOUNTS[id] || { name: s.name, guide: 'other', asset: 'account', stops: 'use it' };
+    const g = /** @type {any} */ (GUIDE)[a.guide] || GUIDE.other;
+    const off = mode === 'disconnect';
+    const verb = off ? 'Disconnect' : mode === 'reconnect' ? 'Reconnect' : 'Connect';
+    const steps = (off ? g.off : g.on)(a, ctx.account.team || {});
+    const intro = off
+      ? `${g.where ? `You remove Domin8te on ${g.where} own page.` : 'We stop using it.'} While it is off, we can't ${a.stops}.`
+      : g.where ? `About two minutes. You let Domin8te in on ${g.where} own page. We never see your password.` : 'We set this one up with you. We never see your password.';
+    let sent = false;
+    open(head(`${verb} ${s.name}`, '') + `<div class="dlg-body">
+      <p class="dlg-intro">${esc(intro)}</p>
+      <ol class="guide-steps">${steps.map((/** @type {string} */ x) => `<li>${esc(x)}</li>`).join('')}</ol>
+      ${g.link ? '<p class="meta">Menus move now and then. Stuck? Press Message us and we help.</p>' : ''}
+      <p class="form-error" role="alert" hidden></p>
+      <div class="dlg-actions">${g.link ? `<a class="btn btn-glass" href="${g.link}" target="_blank" rel="noopener noreferrer">${esc(g.button)}${icon('external')}<span class="sr-only"> (opens in a new tab)</span></a>` : ''}<button class="btn btn-solid" type="button" data-account-done>${g.link ? "I've done it" : 'Tell us'}</button><button class="btn btn-glass" type="button" data-dlg-close>Cancel</button></div></div>`, trigger, () => { if (sent) ctx.afterChange(); });
+    const done = /** @type {HTMLButtonElement} */ (inner().querySelector('[data-account-done]'));
+    done.addEventListener('click', () => {
+      formError('');
+      setBusy(true, done, 'Sending');
+      ctx.client.accountRequest(id, mode).then(() => {
+        sent = true;
+        setBusy(false);
+        inner().innerHTML = head(`Thanks, ${ctx.session.firstName}`, '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>We got it.</h3><p>${off ? `We stop using ${esc(s.name)} and confirm it` : `We check ${esc(s.name)} works and confirm it`}, usually within one working day. Until then it says Waiting for us to confirm.</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
+        focusTitle();
+        toast('Sent. We will confirm soon.');
+      }).catch((/** @type {any} */ err) => {
+        setBusy(false, done);
+        formError(`That did not send. ${err.message || ''} Try again.`);
+      });
     });
   }
 
@@ -350,5 +423,5 @@
     });
   }
 
-  D8.dialogs = { wire, open, close, approval, external, compose, demo, confirm, toast };
+  D8.dialogs = { wire, open, close, approval, external, account, compose, demo, confirm, toast };
 })(typeof window !== 'undefined' ? window : globalThis);

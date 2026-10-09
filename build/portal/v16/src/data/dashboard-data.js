@@ -90,6 +90,18 @@
     missing: { label: 'Not connected', tone: 'neutral', icon: 'linkoff' }
   };
 
+  /* The accounts each service needs (2026-10-09, Karan: let the client connect, disconnect or reconnect Instagram,
+     Facebook, Google and the rest; "only the ones their services need"). The client gives or removes our access on the
+     app's own site, then tells us; that lands as a request (a card on the team's board) until the team confirms. */
+  const ACCOUNTS = {
+    instagram: { name: 'Instagram', service: 'social', guide: 'meta', asset: 'Instagram account', stops: 'post to Instagram or show its numbers' },
+    facebook: { name: 'Facebook page', service: 'social', guide: 'meta', asset: 'Facebook page', stops: 'post to your Facebook page or show its numbers' },
+    'meta-ads': { name: 'Meta ads', service: 'advertising', guide: 'meta', asset: 'ad account', stops: 'run your Facebook and Instagram ads or show how they do' },
+    gbp: { name: 'Google Business Profile', service: 'local', guide: 'gbp', stops: 'update your Google listing or show calls and directions' },
+    analytics: { name: 'Website analytics', service: 'website', guide: 'analytics', stops: 'show how many people visit your website' },
+    booking: { name: 'Booking widget', service: 'website', guide: 'other', stops: 'show bookings from your website' }
+  };
+
   const WEEKDAYS_PLURAL = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
   const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
@@ -438,7 +450,29 @@
       if (s.status === 'disconnected') return { ...s, state: 'disconnected' };
       return { ...s, state: now() - T.parse(s.updatedAt) > 26 * 3600e3 ? 'stale' : 'fresh' };
     }
-    const sources = () => tenant.sources.map((s) => sourceState(s.id));
+    /** The request line for an account change. The same words read well as the team's card title. */
+    const accountLine = (/** @type {string} */ kind, /** @type {string} */ name, /** @type {string} */ by) => kind === 'disconnect'
+      ? `Stop using ${name}: ${by} removed our access`
+      : `Check ${name} access: ${by} ${kind === 'reconnect' ? 'reconnected' : 'connected'} it`;
+    /** An account change the client told us about that the team has not closed yet. @param {string} name */
+    function pendingFor(name) {
+      const open = (state().requests || []).filter((/** @type {any} */ r) => r.status !== 'done' && r.status !== 'declined');
+      for (const r of open.slice().reverse()) {
+        const t = String(r.text || '');
+        if (t.startsWith(`Stop using ${name}:`)) return { kind: 'disconnect', at: r.at || null };
+        if (t.startsWith(`Check ${name} access:`)) return { kind: 'connect', at: r.at || null };
+      }
+      return null;
+    }
+    /** Shown when one of the client's services uses it (an account we don't know is always shown). @param {string} id */
+    const needed = (id) => { const a = /** @type {any} */ (ACCOUNTS)[id]; return !a || tenant.package.services.includes(a.service); };
+    /** The client's accounts: the ones on record that their services use, then any their services need that are missing. */
+    const sources = () => {
+      const have = tenant.sources.filter((s) => needed(s.id)).map((s) => sourceState(s.id));
+      const missing = Object.keys(ACCOUNTS).filter((id) => needed(id) && !tenant.sources.some((s) => s.id === id))
+        .map((id) => ({ id, name: /** @type {any} */ (ACCOUNTS)[id].name, status: 'not_connected', state: 'missing' }));
+      return [...have, ...missing].map((s) => ({ ...s, pending: pendingFor(s.name) }));
+    };
 
     /** The reporting window: `days` complete days ending with the last complete day. */
     function windows(days) {
@@ -803,6 +837,23 @@
     }
 
     /**
+     * The client connected, reconnected or removed one account on that app's own site: tell the team. It goes in as a
+     * request on the account's service, so it lands on the team's board, and the account shows as waiting until then.
+     * @param {string} id @param {string} kind connect, reconnect or disconnect
+     */
+    function accountRequest(id, kind) {
+      return call(() => {
+        if (!['connect', 'reconnect', 'disconnect'].includes(kind)) throw fail('bad-kind', 'Choose connect, reconnect or disconnect.');
+        const s = sources().find((x) => x.id === id);
+        if (!s) throw fail('bad-source', 'That account is not part of your plan.');
+        const a = /** @type {any} */ (ACCOUNTS)[id];
+        const svc = a ? a.service : tenant.package.services.find((x) => SERVICES[x]);
+        if (!svc || !inPackage(svc) || !SERVICES[svc]) throw fail('bad-service', 'That account is not part of your plan.');
+        return src.put('request', { service: svc, text: accountLine(kind, s.name, session.firstName || 'The client'), status: 'review', by: session.firstName });
+      }, 600);
+    }
+
+    /**
      * The client's look, kept with the account. Live: PUT /api/settings/appearance, stored with the
      * signed-in user (a personal choice, not the whole tenant's). Only known values are kept.
      * @param {{theme?: string, scene?: string}} look
@@ -856,6 +907,7 @@
       decide,
       sendMessage,
       sendRequest,
+      accountRequest,
       saveNotifications,
       saveAppearance,
       resetDemo: () => src.reset()
@@ -878,7 +930,7 @@
   D8.auth = auth;
   D8.integrations = integrations;
   D8.data = {
-    MODE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, SEVERITY, HEALTH,
+    MODE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, SEVERITY, HEALTH, ACCOUNTS,
     connect, scenarios, currentScenario, switchScenario,
     // For live-data.js: build a client on another source, and the shared helpers it needs.
     makeClient, normalize, mergeProjections, apply, fail,
