@@ -18,30 +18,34 @@ const BUILD = process.argv[2] || 'v18h';
 const FILE = path.join(__dirname, '..', '..', 'versions', BUILD + '.html').split(path.sep).join('/');
 
 const FULL = [
-  { route: 'home', title: 'Home', has: ['id="h-attention">Waiting for you', 'What we are working on', 'Biggest change this month', 'Latest update', 'Your account', 'More about your account', 'Last 30 days', 'Review and approve', 'Checked for new numbers', 'Check for new numbers', 'See details', 'Instagram disconnected', 'Preview mode'] },
-  { route: 'work', title: 'Work', has: ['Right now', 'Steps', 'Waiting for you', 'Ask for a change'] },
-  { route: 'work/social', title: 'Work', has: ['Instagram posts are paused'] },
-  { route: 'results', title: 'Results', has: ['id="h-summary"', 'Bookings and calls', 'Show these numbers as a table', 'No ads ran in the previous 30 days'] },
+  // Home in five parts (2026-10-09): greeting and one sentence, Waiting for you, three numbers, one row per service, contact.
+  { route: 'home', title: 'Home', has: ['id="h-attention">Waiting for you', 'things need you.', 'Last 30 days', 'Checked today at', 'See all results', 'Your services', 'See all work', 'class="svc-row"', 'Next meeting:', 'Message us', 'Review and approve', 'See details', 'class="strip is-3"', 'Preview mode'],
+    not: ['Biggest change this month', 'Latest update', 'More about your account', 'Check for new numbers', 'sev-chip', 'Do these', 'id="attention-count"', 'This is in Waiting for you', 'status-chip', 'fresh-line', 'metric-src', 'compared with the 30 days before'] },
+  { route: 'work', title: 'Work', has: ['Right now:', 'Steps', 'Waiting for you', 'Ask for a change', 'class="work-tab" href="#/updates"', 'thing waiting for you', 'done steps'], not: ['Jump to:', 'ms-progress', 'steps-key', 'data-tone=', 'class="say"', 'class="blocker"'] },
+  { route: 'work/social', title: 'Work', has: ['Instagram posts are paused', '2 things waiting for you'], not: ['Reconnect Instagram'] },
+  { route: 'results', title: 'Results', has: ['id="h-summary"', 'Written by our AI assistant', 'Biggest change this month:', 'Bookings and calls', 'Show these numbers as a table', 'Show daily website visits', 'See your 3 ads', 'No ads ran in the previous 30 days', 'Check for new numbers', 'vs the 30 days before', 'class="meta group-src"'],
+    not: ['Every number below comes straight from', 'class="meta chart-help"', 'Reconnect Instagram', 'class="metric-meta">From'] },
   { route: 'results?days=7', title: 'Results', has: ['Last 7 days'], not: ['id="h-summary"'] },
   { route: 'results?days=90', title: 'Results', has: ['No ads ran in the previous 90 days'] },
-  { route: 'updates', title: 'Updates', has: ['September 2026', 'July 2026', 'Sent automatically when an app stopped working', 'Written by your account team unless marked'] },
-  { route: 'updates?service=advertising', title: 'Updates', has: ['Sunday roast campaign results'], not: ['Autumn menu page is live'] },
-  { route: 'billing', title: 'Billing', has: ['Your payment did not go through', 'BAY-0009', 'See invoice'] },
-  { route: 'settings', title: 'Settings', has: ['Email notifications', 'Always on', 'Connected accounts'] },
+  // Updates is Work's Done tab: same route, a single service select, What we did first and the rest behind See details.
+  { route: 'updates', title: 'Work', has: ['September 2026', 'July 2026', 'Automatic notice', 'class="work-tab" href="#/updates" aria-current="page"', 'id="upd-service"', 'All services', 'What we did'], not: ['Written by your account team unless marked'] },
+  { route: 'updates?service=advertising', title: 'Work', has: ['Sunday roast campaign results'], not: ['Autumn menu page is live'] },
+  { route: 'billing', title: 'Billing', has: ['Your payment did not go through', 'September, BAY-0009', 'See invoice', 'See older invoices', 'Update payment method'], not: ['See the payment problem above', 'Press See invoice', 'Change card', 'Payment method</h2>'] },
+  { route: 'settings', title: 'Settings', has: ['Connected accounts', '5 of 6 working', 'See all connections', 'Who can sign in', 'Add someone', 'Emails', 'are always sent', 'Choose which emails you get', 'How it looks'], not: ['Sign-in and security', 'People who can sign in'] },
   { route: 'settings/sources', title: 'Settings', has: ['Needs reconnecting', 'Connected'] },
-  { route: 'help', title: 'Help', has: ['Common questions', 'Message us'] },
+  { route: 'help', title: 'Help', has: ['Common questions', 'Message us', 'What we promise'], not: ['What is on each page?', 'What does "Waiting for you" mean?', 'Our promises to you'] },
   { route: 'no-such-page', title: 'Page not found', has: ['Go to your Home page'] },
   { query: 'demo=cornerbean', route: 'home', title: 'Home', has: ["You're all caught up", 'Next planned', 'Latest win', 'See your results', 'Not connected yet', 'Good morning, Priya'], not: ['Social media', 'Advertising', 'Bayleaf'] },
   { query: 'demo=cornerbean', route: 'results', title: 'Results', has: ['Numbers start on'], not: ['id="h-g-social"', 'id="h-g-advertising"'] },
-  { query: 'demo=cornerbean', route: 'updates', title: 'Updates', has: ['Your new homepage is live'], not: ['Advertising'] },
-  { query: 'demo=google-down', route: 'home', title: 'Home', has: ["Couldn't load just now", 'Google Business Profile not loading', 'Review and approve'] },
+  { query: 'demo=cornerbean', route: 'updates', title: 'Work', has: ['Your new homepage is live'], not: ['Advertising'] },
+  { query: 'demo=google-down', route: 'home', title: 'Home', has: ["Couldn't load just now", 'Review and approve'] },
   { query: 'demo=google-down', route: 'results', title: 'Results', has: ["We couldn't load your local search numbers."] },
   { query: 'demo=slow', route: 'home', title: 'Home', has: ['id="h-attention">Waiting for you', 'Review and approve'], budget: 15000 },
   { query: 'theme=dark', route: 'home', title: 'Home', has: ['data-theme="dark"'] }
 ];
 // Every page in every demo situation: each must draw its title, finish loading and log no errors.
 // (The review that prompted this found pages stuck on "Loading" after switching situations.)
-const PAGES = { home: 'Home', work: 'Work', results: 'Results', updates: 'Updates', billing: 'Billing', settings: 'Settings', help: 'Help' };
+const PAGES = { home: 'Home', work: 'Work', results: 'Results', updates: 'Work', billing: 'Billing', settings: 'Settings', help: 'Help' };
 for (const demo of ['bayleaf', 'cornerbean', 'google-down', 'slow']) {
   for (const [route, title] of Object.entries(PAGES)) FULL.push({ query: 'demo=' + demo, route, title, budget: demo === 'slow' ? 15000 : 8000, has: ['id="page-title"'] });
 }

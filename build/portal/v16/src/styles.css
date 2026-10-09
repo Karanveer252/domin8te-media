@@ -1166,10 +1166,6 @@ td { font-variant-numeric: tabular-nums; }
 .pick-legend { padding: 0; margin-bottom: 10px; font-size: 15px; font-weight: 650; color: var(--p-ink); }
 /* The sidebar: Sign out last, on its own. */
 .nav-signout { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--p-line); }
-/* The Preview mode pill floats over the bottom corner, so the page leaves room under its last line. */
-@media (min-width: 761px) {
-  .portal[data-demo] .main { padding-bottom: 132px; }
-}
 
 /* Connected accounts (2026-10-09): the step-by-step guide, and a quiet Disconnect. */
 .guide-steps { display: grid; gap: 10px; margin: 16px 0 12px; padding-left: 24px; list-style: decimal outside; }
@@ -1178,3 +1174,112 @@ td { font-variant-numeric: tabular-nums; }
 .guide-steps li::marker { font-family: inherit; font-weight: 700; color: var(--p-ink-2); }
 .src-off { color: var(--p-ink-2); }
 .src-off:hover { color: var(--p-error, #b42318); }
+
+/* ================================================================== simplified structure (2026-10-09)
+   The complexity review: Home in five parts, Work with Now and Done, one line per source group on Results,
+   one plan card on Billing, folded extras in Settings and Help. */
+
+/* A fold: a quiet text summary with a chevron, used wherever something extra waits behind a click. */
+.fold { margin-top: 10px; }
+.fold > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; font-size: 14.5px; font-weight: 600; color: var(--p-ink-2); list-style: none; cursor: pointer; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary:hover { color: var(--p-ink); }
+.fold > summary .i { width: 16px; height: 16px; transition: transform var(--m) var(--ease); }
+.fold[open] > summary .i { transform: rotate(180deg); }
+
+/* The sidebar's collapse: a small icon at its foot. */
+.side-toggle { display: grid; place-items: center; width: 32px; height: 32px; margin: 6px 4px 0 auto; padding: 0; border: 0; border-radius: 10px; background: none; color: var(--p-ink-3); cursor: pointer; }
+.side-toggle:hover { background: var(--p-hover); color: var(--p-ink); }
+.side-toggle .i { width: 18px; height: 18px; }
+.portal[data-side="rail"] .side-toggle { margin: 6px auto 0; }
+.portal[data-forced] .side-toggle { display: none !important; }
+
+/* Preview mode, in the demo: docked at the top of the page, never over the content. */
+.preview-chip.is-float { position: absolute; top: 14px; right: 40px; bottom: auto; padding: 6px 14px 6px 10px; border-radius: 999px; }
+.preview-chip.is-float .pc-text { display: flex; align-items: baseline; gap: 8px; }
+@media (min-width: 761px) {
+  .portal[data-demo] .main { padding-top: 64px; }
+}
+
+/* Home */
+.strip.is-3, .sec-strip .skel-wrap.skel-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@container page (max-width: 860px) {
+  .strip.is-3 > :nth-child(3):last-child { grid-column: 1 / -1; }
+}
+.home-checked { margin-top: 12px; }
+.home-checked .link { font-size: 14px; }
+.act-card .act-head { display: block; }
+.act-when { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 16px; }
+.act-toggle { min-height: 28px; font-size: 14.5px; }
+.act-do { justify-content: center; }
+.svc-rows { padding: 6px 8px; }
+.svc-row-list { margin: 0; padding: 0; list-style: none; }
+.svc-row-list li + li { border-top: 1px solid var(--p-line); }
+.svc-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto 18px; align-items: center; gap: 14px; padding: 14px 12px; border-radius: 14px; color: var(--p-ink); text-decoration: none; }
+.svc-row:hover { background: var(--p-hover); }
+.svc-row-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--p-well); color: var(--p-ink-2); }
+.svc-row-icon .i { width: 20px; height: 20px; }
+.svc-row-text { display: grid; gap: 2px; min-width: 0; }
+.svc-row-name { font-size: 16.5px; font-weight: 650; }
+.svc-row-now { font-size: 15px; color: var(--p-ink-2); }
+.svc-row-wait { font-size: 14.5px; font-weight: 650; color: var(--p-attn); white-space: nowrap; }
+.svc-row-go { width: 18px; height: 18px; color: var(--p-ink-3); }
+@media (max-width: 560px) {
+  .svc-row { grid-template-columns: 40px minmax(0, 1fr) 18px; }
+  .svc-row-status { grid-column: 2; grid-row: 2; }
+  .svc-row-go { grid-column: 3; grid-row: 1 / span 2; }
+}
+.contact-strip { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; margin-top: 40px; padding: 14px 20px; }
+.contact-meet { display: inline-flex; align-items: center; gap: 10px; font-size: 15.5px; font-weight: 600; }
+.contact-meet .i { width: 20px; height: 20px; color: var(--p-ink-2); }
+
+/* Work: Now and Done */
+.work-tabs { display: inline-flex; gap: 4px; margin-top: 20px; padding: 4px; border: 1px solid var(--p-line-2); border-radius: 999px; background: var(--p-glass-strong); }
+.work-tab { display: inline-flex; align-items: center; min-height: 36px; padding: 6px 20px; border-radius: 999px; color: var(--p-ink-2); font-size: 15px; font-weight: 600; text-decoration: none; }
+.work-tab:hover { color: var(--p-ink); background: var(--p-hover); }
+.work-tab[aria-current="page"] { background: var(--p-surface); color: var(--p-ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.svc-now { font-size: 18px; line-height: 1.45; }
+.svc-now-label { font-weight: 650; color: var(--p-ink-2); }
+.svc-wait { display: flex; align-items: center; gap: 8px; font-size: 15.5px; }
+.svc-wait > .i { width: 18px; height: 18px; color: var(--p-attn); }
+.notice .link { white-space: nowrap; }
+.step-tag { font-size: 14px; color: var(--p-ink-3); white-space: nowrap; }
+.step.is-you .step-tag { color: var(--p-attn); font-weight: 600; }
+.filter-select { min-height: 40px; padding: 8px 14px; border: 1px solid var(--p-line-2); border-radius: 12px; background: var(--p-surface); color: var(--p-ink); font: inherit; font-size: 15px; font-weight: 600; }
+.tag-auto { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: var(--p-neutral-bg); color: var(--p-ink-2); font-size: 13px; font-weight: 600; }
+.tag-auto .i { width: 14px; height: 14px; }
+
+/* Results */
+.ai-big { margin-top: 12px; }
+.group-src { margin: -6px 0 12px; font-size: 14px; }
+.fold-chart, .fold-ads { margin-top: 12px; }
+.fold-chart > .chart-fig, .fold-ads > .campaigns { margin-top: 8px; }
+
+/* Billing */
+.bill-one { margin-top: 24px; }
+.bill-one .facts .card-line { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
+.banner .fold { margin-top: 4px; }
+.banner .fold > summary { min-height: 32px; }
+.fold-invoices { margin: 0; border-top: 1px solid var(--p-line); }
+.fold-invoices > summary { padding: 8px 22px; }
+.fold-invoices > .invoices { border-top: 1px solid var(--p-line); }
+
+/* Settings */
+.set-card .sec-head { margin-bottom: 6px; }
+.set-count { flex-basis: auto !important; font-weight: 600; }
+.set-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.ask-form { margin-top: 18px; }
+.ask-form > p:first-child { margin-bottom: 12px; }
+.fold-look { margin: 0; }
+.fold-look > summary { display: flex; justify-content: space-between; width: 100%; min-height: 32px; }
+.fold-look > summary h2 { margin: 0; color: var(--p-ink); }
+.fold-look[open] > summary { margin-bottom: 14px; }
+.fold-sources > .meta { margin-top: 4px; }
+
+/* Help */
+.help-contact { margin-top: 28px; padding: 24px; }
+.help-contact h2 { margin-bottom: 6px; font-size: 19px; font-weight: 650; }
+.help-contact-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px 24px; }
+.help-contact .sub-h { margin-top: 20px; }
+.faq .promise-list { padding-bottom: 12px; }
+.sec-work .sec-head > .sec-meta { flex-basis: auto; }

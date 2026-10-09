@@ -1182,10 +1182,6 @@ td { font-variant-numeric: tabular-nums; }
 .pick-legend { padding: 0; margin-bottom: 10px; font-size: 15px; font-weight: 650; color: var(--p-ink); }
 /* The sidebar: Sign out last, on its own. */
 .nav-signout { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--p-line); }
-/* The Preview mode pill floats over the bottom corner, so the page leaves room under its last line. */
-@media (min-width: 761px) {
-  .portal[data-demo] .main { padding-bottom: 132px; }
-}
 
 /* Connected accounts (2026-10-09): the step-by-step guide, and a quiet Disconnect. */
 .guide-steps { display: grid; gap: 10px; margin: 16px 0 12px; padding-left: 24px; list-style: decimal outside; }
@@ -1194,6 +1190,115 @@ td { font-variant-numeric: tabular-nums; }
 .guide-steps li::marker { font-family: inherit; font-weight: 700; color: var(--p-ink-2); }
 .src-off { color: var(--p-ink-2); }
 .src-off:hover { color: var(--p-error, #b42318); }
+
+/* ================================================================== simplified structure (2026-10-09)
+   The complexity review: Home in five parts, Work with Now and Done, one line per source group on Results,
+   one plan card on Billing, folded extras in Settings and Help. */
+
+/* A fold: a quiet text summary with a chevron, used wherever something extra waits behind a click. */
+.fold { margin-top: 10px; }
+.fold > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; font-size: 14.5px; font-weight: 600; color: var(--p-ink-2); list-style: none; cursor: pointer; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary:hover { color: var(--p-ink); }
+.fold > summary .i { width: 16px; height: 16px; transition: transform var(--m) var(--ease); }
+.fold[open] > summary .i { transform: rotate(180deg); }
+
+/* The sidebar's collapse: a small icon at its foot. */
+.side-toggle { display: grid; place-items: center; width: 32px; height: 32px; margin: 6px 4px 0 auto; padding: 0; border: 0; border-radius: 10px; background: none; color: var(--p-ink-3); cursor: pointer; }
+.side-toggle:hover { background: var(--p-hover); color: var(--p-ink); }
+.side-toggle .i { width: 18px; height: 18px; }
+.portal[data-side="rail"] .side-toggle { margin: 6px auto 0; }
+.portal[data-forced] .side-toggle { display: none !important; }
+
+/* Preview mode, in the demo: docked at the top of the page, never over the content. */
+.preview-chip.is-float { position: absolute; top: 14px; right: 40px; bottom: auto; padding: 6px 14px 6px 10px; border-radius: 999px; }
+.preview-chip.is-float .pc-text { display: flex; align-items: baseline; gap: 8px; }
+@media (min-width: 761px) {
+  .portal[data-demo] .main { padding-top: 64px; }
+}
+
+/* Home */
+.strip.is-3, .sec-strip .skel-wrap.skel-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@container page (max-width: 860px) {
+  .strip.is-3 > :nth-child(3):last-child { grid-column: 1 / -1; }
+}
+.home-checked { margin-top: 12px; }
+.home-checked .link { font-size: 14px; }
+.act-card .act-head { display: block; }
+.act-when { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 16px; }
+.act-toggle { min-height: 28px; font-size: 14.5px; }
+.act-do { justify-content: center; }
+.svc-rows { padding: 6px 8px; }
+.svc-row-list { margin: 0; padding: 0; list-style: none; }
+.svc-row-list li + li { border-top: 1px solid var(--p-line); }
+.svc-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto 18px; align-items: center; gap: 14px; padding: 14px 12px; border-radius: 14px; color: var(--p-ink); text-decoration: none; }
+.svc-row:hover { background: var(--p-hover); }
+.svc-row-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--p-well); color: var(--p-ink-2); }
+.svc-row-icon .i { width: 20px; height: 20px; }
+.svc-row-text { display: grid; gap: 2px; min-width: 0; }
+.svc-row-name { font-size: 16.5px; font-weight: 650; }
+.svc-row-now { font-size: 15px; color: var(--p-ink-2); }
+.svc-row-wait { font-size: 14.5px; font-weight: 650; color: var(--p-attn); white-space: nowrap; }
+.svc-row-go { width: 18px; height: 18px; color: var(--p-ink-3); }
+@media (max-width: 560px) {
+  .svc-row { grid-template-columns: 40px minmax(0, 1fr) 18px; }
+  .svc-row-status { grid-column: 2; grid-row: 2; }
+  .svc-row-go { grid-column: 3; grid-row: 1 / span 2; }
+}
+.contact-strip { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; margin-top: 40px; padding: 14px 20px; }
+.contact-meet { display: inline-flex; align-items: center; gap: 10px; font-size: 15.5px; font-weight: 600; }
+.contact-meet .i { width: 20px; height: 20px; color: var(--p-ink-2); }
+
+/* Work: Now and Done */
+.work-tabs { display: inline-flex; gap: 4px; margin-top: 20px; padding: 4px; border: 1px solid var(--p-line-2); border-radius: 999px; background: var(--p-glass-strong); }
+.work-tab { display: inline-flex; align-items: center; min-height: 36px; padding: 6px 20px; border-radius: 999px; color: var(--p-ink-2); font-size: 15px; font-weight: 600; text-decoration: none; }
+.work-tab:hover { color: var(--p-ink); background: var(--p-hover); }
+.work-tab[aria-current="page"] { background: var(--p-surface); color: var(--p-ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.svc-now { font-size: 18px; line-height: 1.45; }
+.svc-now-label { font-weight: 650; color: var(--p-ink-2); }
+.svc-wait { display: flex; align-items: center; gap: 8px; font-size: 15.5px; }
+.svc-wait > .i { width: 18px; height: 18px; color: var(--p-attn); }
+.notice .link { white-space: nowrap; }
+.step-tag { font-size: 14px; color: var(--p-ink-3); white-space: nowrap; }
+.step.is-you .step-tag { color: var(--p-attn); font-weight: 600; }
+.filter-select { min-height: 40px; padding: 8px 14px; border: 1px solid var(--p-line-2); border-radius: 12px; background: var(--p-surface); color: var(--p-ink); font: inherit; font-size: 15px; font-weight: 600; }
+.tag-auto { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: var(--p-neutral-bg); color: var(--p-ink-2); font-size: 13px; font-weight: 600; }
+.tag-auto .i { width: 14px; height: 14px; }
+
+/* Results */
+.ai-big { margin-top: 12px; }
+.group-src { margin: -6px 0 12px; font-size: 14px; }
+.fold-chart, .fold-ads { margin-top: 12px; }
+.fold-chart > .chart-fig, .fold-ads > .campaigns { margin-top: 8px; }
+
+/* Billing */
+.bill-one { margin-top: 24px; }
+.bill-one .facts .card-line { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
+.banner .fold { margin-top: 4px; }
+.banner .fold > summary { min-height: 32px; }
+.fold-invoices { margin: 0; border-top: 1px solid var(--p-line); }
+.fold-invoices > summary { padding: 8px 22px; }
+.fold-invoices > .invoices { border-top: 1px solid var(--p-line); }
+
+/* Settings */
+.set-card .sec-head { margin-bottom: 6px; }
+.set-count { flex-basis: auto !important; font-weight: 600; }
+.set-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.ask-form { margin-top: 18px; }
+.ask-form > p:first-child { margin-bottom: 12px; }
+.fold-look { margin: 0; }
+.fold-look > summary { display: flex; justify-content: space-between; width: 100%; min-height: 32px; }
+.fold-look > summary h2 { margin: 0; color: var(--p-ink); }
+.fold-look[open] > summary { margin-bottom: 14px; }
+.fold-sources > .meta { margin-top: 4px; }
+
+/* Help */
+.help-contact { margin-top: 28px; padding: 24px; }
+.help-contact h2 { margin-bottom: 6px; font-size: 19px; font-weight: 650; }
+.help-contact-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px 24px; }
+.help-contact .sub-h { margin-top: 20px; }
+.faq .promise-list { padding-bottom: 12px; }
+.sec-work .sec-head > .sec-meta { flex-basis: auto; }
 
 /* ================================================================ shared Liquid Glass layer */
 /*
@@ -2693,7 +2798,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         <li><a class="nav-link" href="#/home" data-nav="home"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-home"/></svg><span class="nav-label">Home</span><span class="nav-pill" data-badge="home" hidden></span></a></li>
         <li><a class="nav-link" href="#/work" data-nav="work"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-work"/></svg><span class="nav-label">Work</span></a></li>
         <li><a class="nav-link" href="#/results" data-nav="results"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-results"/></svg><span class="nav-label">Results</span></a></li>
-        <li><a class="nav-link" href="#/updates" data-nav="updates"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-updates"/></svg><span class="nav-label">Updates</span></a></li>
         <li><a class="nav-link" href="#/billing" data-nav="billing"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-card"/></svg><span class="nav-label">Billing</span><span class="nav-pill is-critical" data-badge="billing" hidden></span></a></li>
       </ul>
     </nav>
@@ -2702,15 +2806,14 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         <li><a class="nav-link" href="#/settings" data-nav="settings"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-settings"/></svg><span class="nav-label">Settings</span></a></li>
         <li><a class="nav-link" href="#/help" data-nav="help"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-help"/></svg><span class="nav-label">Help</span></a></li>
       </ul>
-      <button class="nav-link side-toggle" type="button" data-action="toggle-side" aria-expanded="true" aria-label="Collapse sidebar" title="Make menu smaller"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevron-left"/></svg><span class="nav-label">Collapse</span></button>
       <ul class="nav-list nav-signout">
         <li><button class="nav-link" type="button" data-action="sign-out"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-logout"/></svg><span class="nav-label">Sign out</span></button></li>
       </ul>
+      <button class="side-toggle" type="button" data-action="toggle-side" aria-expanded="true" title="Make menu smaller"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-chevron-left"/></svg><span class="side-toggle-label sr-only">Collapse sidebar</span></button>
     </div>
   </aside>
   <header class="topbar">
     <a class="topbar-brand" href="#/home"><img class="topbar-mark" src="data:image/webp;base64,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" alt=""><span class="topbar-name" id="topbar-name">Domin8te</span><span class="sr-only">, go to Home</span></a>
-    <button class="preview-chip is-bar" type="button" data-action="demo" data-preview hidden title="Sample restaurant. Nothing you click here is real."><svg class="i" aria-hidden="true" focusable="false"><use href="#i-eye"/></svg><span>Preview</span><span class="sr-only"> mode: demo data</span></button>
     <div class="account">
       <button class="account-btn" id="account-btn" type="button" data-action="account-menu" aria-expanded="false" aria-controls="account-menu"><span class="avatar" id="avatar" aria-hidden="true"></span><span class="sr-only">Account menu</span></button>
       <div class="account-menu" id="account-menu" hidden>
@@ -2727,7 +2830,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     <a class="tab" href="#/home" data-nav="home"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-home"/></svg><span>Home</span><span class="tab-pill" data-badge="home" hidden></span></a>
     <a class="tab" href="#/work" data-nav="work"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-work"/></svg><span>Work</span></a>
     <a class="tab" href="#/results" data-nav="results"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-results"/></svg><span>Results</span></a>
-    <a class="tab" href="#/updates" data-nav="updates"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-updates"/></svg><span>Updates</span></a>
     <a class="tab" href="#/billing" data-nav="billing"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-card"/></svg><span>Billing</span><span class="tab-pill is-critical" data-badge="billing" hidden></span></a>
   </nav>
 </div>
@@ -4847,7 +4949,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
   }
 
-  function MetricCard(m, now, days) {
+  /** @param {any} m @param {number} now @param {number} days @param {{sources?: boolean}} [o] sources: false leaves out where it came from (Home) */
+  function MetricCard(m, now, days, o = {}) {
     const label = metricLabel(m.label);
     const link = `<a class="card-link" href="#/results"><span class="sr-only">${esc(label)}: see it in Results</span></a>`;
     if (m.state === 'pending') {
@@ -4862,16 +4965,22 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       <p class="metric-value"><span class="fig">${m.value === null ? 'None' : F.num(m.value)}</span>${Delta(m, days)}${NewBadge(m, days)}</p>
       ${m.spark ? Sparkline(m.spark) : ''}
       ${note ? `<p class="metric-note">${note}</p>` : ''}
-      <p class="metric-src">${m.sources.map((s) => SourceChip(s, now)).join('')}</p>
+      ${o.sources === false ? '' : `<p class="metric-src">${m.sources.map((s) => SourceChip(s, now)).join('')}</p>`}
       ${link}
     </article>`;
   }
 
-  /** The performance strip: no more than four figures tied to the client's goals, each its own card. */
-  function MetricStrip(strip, now) {
+  /**
+   * The performance strip: no more than four figures tied to the client's goals, each its own card.
+   * Home asks for three (o.max), leaves some out (o.skip, metric ids) and drops the source lines (o.sources).
+   * @param {any} strip @param {number} now @param {{max?: number, skip?: string[], sources?: boolean}} [o]
+   */
+  function MetricStrip(strip, now, o = {}) {
     const w = strip.window;
-    const cells = strip.metrics.slice(0, 4).map((m) => MetricCard(m, now, w.days)).join('');
-    return `<div class="strip">${cells}</div>`;
+    const max = o.max || 4;
+    const list = strip.metrics.filter((/** @type {any} */ m) => !(o.skip || []).includes(m.id)).slice(0, max);
+    const cells = list.map((/** @type {any} */ m) => MetricCard(m, now, w.days, o)).join('');
+    return `<div class="strip${max === 3 ? ' is-3' : ''}">${cells}</div>`;
   }
 
   /* ---- needs your attention ------------------------------------------------------------ */
@@ -4891,7 +5000,6 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
    * the details too.
    */
   function ActionNeededItem(a, now) {
-    const sev = D8.data.SEVERITY[a.severity] || D8.data.SEVERITY.approval;
     const kindIcon = a.icon || { billing: 'card', connection: 'linkoff', approval: 'check' }[a.kind] || 'alert';
     let when = '';
     if (a.deadline && a.deadline.kind === 'grace') {
@@ -4906,16 +5014,17 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const more = (a.more && a.more.length) || a.link
       ? `<div class="act-more" id="${moreId}" hidden>${(a.more || []).map((p) => `<p>${esc(p)}</p>`).join('')}${a.link ? `<a class="link link-more" href="${esc(a.link.href)}">${esc(a.link.label)}${icon('arrow-right')}</a>` : ''}</div>`
       : '';
-    const toggle = more ? `<button class="btn-text act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span>${icon('chevron-down')}</button>` : '';
+    const toggle = more ? `<button class="link-btn act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span></button>` : '';
+    // No severity chip (2026-10-09): the order (red first), the red tint and the icon carry it.
     return `<li class="act-card sev-${esc(a.severity)}" data-row="${esc(a.id)}">
       <span class="act-icon">${icon(kindIcon)}</span>
       <div class="act-main">
-        <div class="act-head"><h3 class="act-title">${esc(a.title)}</h3><span class="sev-chip">${icon(sev.icon)}${esc(a.tag || sev.label)}</span></div>
+        <h3 class="act-title">${esc(a.title)}</h3>
         <p class="act-detail">${esc(a.detail)}</p>
-        ${when ? `<p class="act-when">${when}</p>` : ''}
+        ${when || toggle ? `<p class="act-when">${when}${toggle}</p>` : ''}
         ${more}
       </div>
-      <div class="act-do">${actionPrimary(a, PRIMARY_STYLE[a.severity] || 'btn btn-glass')}${toggle}</div>
+      <div class="act-do">${actionPrimary(a, PRIMARY_STYLE[a.severity] || 'btn btn-glass')}</div>
     </li>`;
   }
 
@@ -4986,17 +5095,36 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   function ServiceWorkCard(s, actions) {
     const svc = D8.data.SERVICES[s.id];
     const act = s.next && s.next.actionId ? (actions || []).find((a) => a.id === s.next.actionId) : null;
-    const waiting = act && s.next.who === 'client' ? `<a class="in-wait" href="#h-attention">${icon('alert')}This is in Waiting for you</a>` : '';
     return `<article class="card work-card is-link" aria-labelledby="wc-${esc(s.id)}">
       <header class="work-head"><h3 id="wc-${esc(s.id)}">${icon(svc.icon)}${esc(svc.label)}</h3>${StatusBadge(s.status)}</header>
       <dl class="facts work-facts">
         <div><dt>Right now</dt><dd>${esc(s.now || 'Getting started')}</dd></div>
-        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${nextStep(s.next, act)}${waiting}</dd></div>` : ''}
+        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${s.next.who === 'client' && act ? 'Waiting for you' : nextStep(s.next, act)}</dd></div>` : ''}
         ${s.expected && s.expected.date ? `<div><dt>Coming</dt><dd>${comingLine(s)}</dd></div>` : ''}
         ${s.proof && s.proof.text ? `<div><dt>Last done</dt><dd>${esc(s.proof.text)}, ${esc(day(s.proof.date))}</dd></div>` : ''}
       </dl>
       <a class="link link-more card-link-text" href="#/work/${esc(s.id)}">See details<span class="sr-only"> for ${esc(svc.label)}</span>${icon('arrow-right')}</a>
     </article>`;
+  }
+
+  /**
+   * Home's services: one card, one row per service (icon, name, status, what we are doing right now), each row
+   * a link to that service on Work. A step that is the client's reads "Waiting for you", in plain text.
+   * @param {any[]} list @param {any[]} [actions] what is waiting for the client
+   */
+  function ServiceRows(list, actions) {
+    const rows = list.map((s) => {
+      const svc = D8.data.SERVICES[s.id];
+      const act = s.next && s.next.actionId ? (actions || []).find((a) => a.id === s.next.actionId) : null;
+      const yours = (act && s.next.who === 'client') || s.status === 'waiting';
+      const status = yours ? '<span class="svc-row-wait">Waiting for you</span>' : StatusBadge(s.status);
+      return `<li><a class="svc-row" href="#/work/${esc(s.id)}">
+        <span class="svc-row-icon">${icon(svc.icon)}</span>
+        <span class="svc-row-text"><span class="svc-row-name">${esc(svc.label)}</span><span class="svc-row-now">${esc(s.now || 'Getting started')}</span></span>
+        <span class="svc-row-status">${status}</span>${icon('chevron-right', 'svc-row-go')}
+      </a></li>`;
+    }).join('');
+    return `<div class="card svc-rows"><ul class="svc-row-list">${rows}</ul></div>`;
   }
 
   /* ---- insight and updates --------------------------------------------------------------- */
@@ -5014,26 +5142,25 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     </article>`;
   }
 
-  /** Updates are written by the account team unless marked; only the ones that are not say who. */
+  /** An update sent on its own (an app stopped working) carries a small tag; the account team's carry none. */
   function author(u) {
-    if (u.author === 'automatic') return `<span class="author">${icon('refresh', 'author-icon')}Sent automatically when an app stopped working</span>`;
-    return '';
+    return u.author === 'automatic' ? `<span class="tag-auto" title="Sent automatically when an app stopped working">${icon('refresh')}Automatic notice</span>` : '';
   }
 
   /**
-   * One agency update: the title, what we did and what comes next. Anything different, the result and why it
-   * matters sit behind "See details". Compact (Home) shows the title and Next, with the rest behind See details.
+   * One agency update: the date, the service, the title and what we did. Next, anything different, the result and
+   * why it matters sit behind "See details" (2026-10-09). Compact shows the title with everything behind See details,
+   * and a link to all updates.
    */
   function UpdateCard(u, o = {}) {
-    const main = o.compact ? [['Next', u.next]] : [['What we did', u.completed], ['Next', u.next]];
-    const extra = (o.compact ? [['What we did', u.completed]] : []).concat([['Anything different', u.changed], ['Result', u.result], ['Why it matters', u.why]]);
+    const main = o.compact ? [] : [['What we did', u.completed]];
+    const extra = (o.compact ? [['What we did', u.completed]] : []).concat([['Next', u.next], ['Anything different', u.changed], ['Result', u.result], ['Why it matters', u.why]]);
     const dl = (/** @type {any[]} */ rows) => `<dl class="facts facts-wide">${rows.filter((r) => r[1]).map((r) => `<div><dt>${r[0]}</dt><dd>${esc(r[1])}</dd></div>`).join('')}</dl>`;
     const more = extra.filter((r) => r[1]);
     const tag = o.headingLevel || 'h3';
-    const by = author(u);
-    const foot = by || o.compact ? `<footer class="update-foot">${by}${o.compact ? `<a class="link link-more" href="#/updates">See all updates${icon('arrow-right')}</a>` : ''}</footer>` : '';
+    const foot = o.compact ? `<footer class="update-foot"><a class="link link-more" href="#/updates">See all updates${icon('arrow-right')}</a></footer>` : '';
     return `<article class="card update${o.compact ? ' is-compact' : ''}"${o.id ? ` id="${esc(o.id)}"` : ''}>${o.lead || ''}
-      <header class="update-head"><p class="update-date"><time datetime="${esc(u.date)}">${esc(day(u.date))}</time></p>${ServiceTag(u.service)}</header>
+      <header class="update-head"><p class="update-date"><time datetime="${esc(u.date)}">${esc(day(u.date))}</time></p>${ServiceTag(u.service)}${author(u)}</header>
       <${tag} class="update-title">${esc(u.title)}</${tag}>
       ${main.some((r) => r[1]) ? dl(main) : ''}
       ${more.length ? `<details class="update-more"><summary>See details${icon('chevron-down')}</summary>${dl(more)}</details>` : ''}
@@ -5062,19 +5189,16 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       failed: ['Payment failed', 'error', 'alert'],
       open: ['Due', 'attention', 'clock']
     }[inv.status] || ['Unknown', 'neutral', 'info'];
-    // Invoices are the one place with the year. They lead with their month; the number is small.
-    const yr = (/** @type {any} */ x) => F.date(x, { year: true });
-    const period = inv.period && inv.period[0] && inv.period[1] ? `${yr(inv.period[0])} to ${yr(inv.period[1])}` : '';
-    const month = inv.issued ? F.monthYear(inv.issued).split(' ')[0] + ' invoice' : 'Invoice';
-    // The amount only when the record has one (live invoices carry it; the demo's do not).
+    // One line per invoice: "September, BAY-0009", the amount only when the record has one (live invoices carry
+    // it; the demo's do not), and its status. A failed one's note repeats the banner above, so it is left out.
+    const month = inv.issued ? F.monthYear(inv.issued).split(' ')[0] : 'Invoice';
     let amount = '';
     if (inv.amountMinor !== undefined && inv.amountMinor !== null && inv.currency) {
       try { amount = new Intl.NumberFormat('en-GB', { style: 'currency', currency: String(inv.currency).toUpperCase() }).format(Number(inv.amountMinor) / 100); } catch (e) { amount = ''; }
     }
-    // A failed invoice's note repeats the payment problem shown at the top of Billing, so it points there instead.
-    const note = inv.status === 'failed' && o.problemShown ? '<p class="meta">See the payment problem above.</p>' : inv.note ? `<p class="meta">${esc(inv.note)}</p>` : '';
+    const note = inv.status === 'failed' && o.problemShown ? '' : inv.note ? `<p class="meta">${esc(inv.note)}</p>` : '';
     return `<li class="invoice">
-      <div class="inv-main"><p class="inv-num">${esc(month)}${amount ? `, ${esc(amount)}` : ''}</p><p class="meta">${esc(inv.number)}${inv.issued ? `, sent ${esc(yr(inv.issued))}` : ''}${period ? `, for ${esc(period)}` : ''}</p>${note}</div>
+      <div class="inv-main"><p class="inv-num">${esc(month)}, ${esc(inv.number)}${amount ? `, ${esc(amount)}` : ''}</p>${note}</div>
       <span class="badge tone-${st[1]}">${icon(st[2])}${st[0]}</span>
       <button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="invoice" data-id="${esc(inv.id)}" data-number="${esc(inv.number)}">See invoice<span class="sr-only"> ${esc(inv.number)} on Stripe</span>${icon('external')}</button>
     </li>`;
@@ -5096,7 +5220,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     icon, day, span, metricLabel, replyLine, fromSource, sourceAbout, comingLine,
     StatusBadge, ServiceTag, HealthBadge, FreshnessIndicator, SourceChip, StatusChip, Delta, NewBadge, ComparisonNote, sourceLine,
     EmptyState, ErrorState, Skeleton, PageHeader, SectionHead,
-    Sparkline, MetricCard, MetricStrip, ActionNeededItem, ActionNeededList, CaughtUp, UpcomingList, ServiceWorkCard, nextStep,
+    Sparkline, MetricCard, MetricStrip, ActionNeededItem, ActionNeededList, CaughtUp, UpcomingList, ServiceWorkCard, ServiceRows, nextStep,
     InsightCard, UpdateCard, DateRangeSelector, FilterChips, InvoiceRow
   };
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -5555,8 +5679,10 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const isRequest = o.mode === 'request';
     const svc = isRequest ? D8.data.SERVICES[o.service] : null;
     const pkg = ctx.account.package.services;
-    const title = isRequest ? `Ask for a change: ${svc ? svc.label : ''}` : 'Message us';
-    const about = isRequest ? '' : `<div class="field"><label for="msg-about">What is it about?</label><select id="msg-about" name="about"><option value="general">Something else</option>${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>`;
+    const title = isRequest ? (svc ? `Ask for a change: ${svc.label}` : 'Ask for a change') : 'Message us';
+    // Opened from the top of Work (2026-10-09), a request first asks which service it is for.
+    const pick = isRequest && !svc ? `<div class="field"><label for="msg-service">Which service?</label><select id="msg-service" name="service">${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}</select></div>` : '';
+    const about = isRequest ? pick : `<div class="field"><label for="msg-about">What is it about?</label><select id="msg-about" name="about"><option value="general">Something else</option>${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>`;
     let sent = false;
     open(head(title, esc(D8.ui.replyLine(ctx.account.team.reply || ''))) + `<div class="dlg-body">
       <form class="dlg-form" novalidate>
@@ -5580,7 +5706,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       if (!text.trim()) { fieldError('text', isRequest ? 'Tell us what you would like changed.' : 'Write your message first.'); return; }
       const btn = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
       setBusy(true, btn, 'Sending');
-      const p = isRequest ? ctx.client.sendRequest(o.service, text) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text);
+      const svcEl = /** @type {HTMLSelectElement|null} */ (form.elements.namedItem('service'));
+      const p = isRequest ? ctx.client.sendRequest(svcEl ? svcEl.value : o.service, text) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text);
       p.then((rec) => {
         sent = true;
         setBusy(false);
@@ -5759,36 +5886,27 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
   /* ================================================================ HOME */
 
-  /**
-   * The line under the greeting: when the figures were last verified against their sources,
-   * then one clickable chip per source problem.
-   */
-  function freshLine(a, now) {
-    const bits = [`<span class="verified">${icon('shield')}${a.updatedAt ? `Checked for new numbers ${esc(F.when(a.updatedAt, now))}` : 'Not checked yet'}</span>`];
-    for (const s of a.problems) bits.push(UI.StatusChip(s, now));
-    return `<div class="fresh-line" id="fresh-line">${bits.join('')}</div>`;
+  /* Home, as simple as it can be (2026-10-09 complexity review): the greeting and one sentence, what is
+     waiting for the client, three numbers from the last 30 days, one row per service, and how to reach us.
+     The biggest change moved into the Results summary, the latest update lives under Work > Done, the plan
+     on Billing and the connected accounts in Settings. */
+
+  /** The grey line under the numbers: when they were last checked against their sources. */
+  function checkedText(a, now) {
+    return a.updatedAt ? `Checked ${esc(F.when(a.updatedAt, now))}.` : 'Not checked yet.';
+  }
+  function checkedLine(a, now) {
+    return `<p class="meta home-checked"><span id="home-checked">${checkedText(a, now)}</span> <a class="link" href="#/results">See all results</a></p>`;
   }
 
-  function accountBand(a, now) {
-    const sub = a.subscription;
-    // The payment problem is told once on Home, under Waiting for you; here it only points there.
-    const bill = sub && sub.status === 'past_due'
-      ? `<span class="acct-meta">See the payment problem in Waiting for you, at the top of this page.</span>`
-      : sub ? `<span class="badge tone-success">${icon('check')}Paid up</span><span class="acct-meta">Next payment ${esc(day(sub.nextBilling))}</span>` : '';
-    const meet = a.meeting
-      ? `<span class="acct-value">${esc(day(a.meeting.at))} at ${esc(F.time(a.meeting.at))}</span><span class="acct-meta">${esc(a.meeting.title)}, ${esc(a.meeting.length)}</span>`
-      : '<span class="acct-value">None booked</span>';
-    const off = a.problems.filter((s) => s.state === 'disconnected').map((s) => s.name);
-    const err = a.problems.filter((s) => s.state === 'error').map((s) => s.name);
-    const which = [off.length ? `${F.list(off)} ${off.length === 1 ? 'needs' : 'need'} reconnecting.` : '', err.length ? `${F.list(err)} ${err.length === 1 ? 'is' : 'are'} not loading just now.` : ''].filter(Boolean).join(' ') || 'All working';
-    const services = F.list(a.package.services.map((s, i) => { const l = SVC()[s].label; return i ? l.toLowerCase() : l; }));
-    return `<dl class="acct-grid">
-      <div class="acct-item"><dt>Your plan</dt><dd><span class="acct-value">${esc(a.package.name)}</span>${services.toLowerCase() === a.package.name.toLowerCase() ? '' : `<span class="acct-meta">${esc(services)}</span>`}</dd></div>
-      <div class="acct-item"><dt>Next meeting</dt><dd>${meet}</dd></div>
-      <div class="acct-item"><dt>Billing</dt><dd>${bill}<a class="link" href="#/billing">See billing</a></dd></div>
-      <div class="acct-item"><dt>Talk to us</dt><dd>${a.team.reply ? `<span class="acct-meta">${esc(replyLine(a.team.reply))}</span>` : ''}<button class="link-btn" type="button" data-action="compose" data-mode="message">Message us</button></dd></div>
-      <div class="acct-item"><dt>Connected accounts</dt><dd><span class="acct-meta">These are the apps we take your numbers from.</span><span class="acct-value">${a.connected} of ${a.sources.length} working</span><span class="acct-meta">${esc(which)}</span><a class="link" href="#/settings/sources">See connections</a></dd></div>
-    </dl>`;
+  /** Next meeting and Message us, in one quiet strip at the bottom of Home. */
+  function contactStrip(a) {
+    const m = a.meeting;
+    const when = m && m.at ? `${day(m.at)} at ${F.time(m.at)}` : 'none booked';
+    return `<section class="card contact-strip" aria-label="Talk to us">
+      <p class="contact-meet">${icon('calendar')}<span>Next meeting: ${esc(when)}</span></p>
+      <button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="message">${icon('message')}Message us</button>
+    </section>`;
   }
 
   const home = {
@@ -5797,41 +5915,29 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       const now = ctx.client.now();
       const a = ctx.account;
       const parts = {
-        strip: `<section class="sec sec-strip" aria-labelledby="h-strip">
-          ${UI.SectionHead('h-strip', 'Last 30 days', '<p class="sec-meta"><span id="strip-range"></span> <a class="link" href="#/results">See all results</a></p>')}
-          <div id="home-strip">${UI.Skeleton('strip', 4)}</div>
-        </section>`,
         attention: `<section class="sec sec-attention" aria-labelledby="h-attention">
-          ${UI.SectionHead('h-attention', 'Waiting for you <span class="count" id="attention-count" hidden></span>')}
+          ${UI.SectionHead('h-attention', 'Waiting for you')}
           <div id="home-attention">${UI.Skeleton('row', 2)}</div>
         </section>`,
+        strip: `<section class="sec sec-strip" aria-labelledby="h-strip">
+          ${UI.SectionHead('h-strip', 'Last 30 days')}
+          <div id="home-strip">${UI.Skeleton('strip', 3)}</div>
+          ${checkedLine(a, now)}
+        </section>`,
         work: `<section class="sec sec-work" aria-labelledby="h-work">
-          ${UI.SectionHead('h-work', 'What we are working on', '<p class="sec-meta"><a class="link" href="#/work">See all work</a></p>')}
-          <div id="home-work" class="work-grid">${UI.Skeleton('card', 4)}</div>
+          ${UI.SectionHead('h-work', 'Your services', '<p class="sec-meta"><a class="link" href="#/work">See all work</a></p>')}
+          <div id="home-work">${UI.Skeleton('card', 1)}</div>
         </section>`,
         upcoming: HOME.upcoming ? `<section class="sec sec-upcoming" aria-labelledby="h-upcoming">
           ${UI.SectionHead('h-upcoming', 'Coming up', '<p class="sec-meta">The next few weeks</p>')}
           <div id="home-upcoming" class="upcoming-box">${UI.Skeleton('text', 3)}</div>
-        </section>` : '',
-        duo: `<div class="duo">
-          <section class="sec" id="home-insight" aria-labelledby="h-insight">${UI.Skeleton('block', 1)}</section>
-          <section class="sec" id="home-update" aria-labelledby="h-latest">${UI.Skeleton('block', 1)}</section>
-        </div>`,
-        account: `<section class="sec account-band" aria-labelledby="h-account">
-          <h2 id="h-account" class="band-title">Your account</h2>
-          <div id="home-account">${UI.Skeleton('text', 2)}</div>
-        </section>`
+        </section>` : ''
       };
-      // Home in the order a client needs it (2026-10-08 usability review): what is waiting for them, the last 30 days,
-      // what we are working on. The biggest change, the latest update and the account details fold away underneath.
       const order = HOME.order || ['attention', 'strip', 'work', 'upcoming'];
-      const folded = HOME.order ? [] : ['duo', 'account'];
       return `<div class="page page-home">
-        ${UI.PageHeader({ cls: 'is-home', title: `${F.greeting(now)}, ${a.user.firstName}.`, intro: '<span id="home-summary">Checking your account.</span>', introHtml: true, after: freshLine(a, now), aside: refreshButton() })}
+        ${UI.PageHeader({ cls: 'is-home', title: `${F.greeting(now)}, ${a.user.firstName}.`, intro: '<span id="home-summary">Checking your account.</span>', introHtml: true })}
         ${order.map((k) => parts[k] || '').join('\n        ')}
-        ${folded.length ? `<details class="home-more"><summary class="card home-more-sum"><span class="home-more-title">More about your account</span><span class="meta">The biggest change this month, the latest update, your plan, billing and meetings.</span>${icon('chevron-down')}</summary>
-          ${folded.map((k) => parts[k] || '').join('\n          ')}
-        </details>` : ''}
+        ${contactStrip(a)}
       </div>`;
     },
     mount(ctx, r, el) {
@@ -5840,49 +5946,35 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       /** @type {any} */ let strip = null;
       const summary = () => {
         if (count === null || strip === null) return;
-        const lead = count ? `${count} ${F.plural(count, 'thing is', 'things are')} waiting for you` : 'Nothing is waiting for you right now';
+        const lead = count ? `${count} ${F.plural(count, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.';
         const m = strip && strip.metrics.find((x) => x.state === 'ok' && x.change);
         const what = m ? F.lcFirst(label(m.label)) : '';
         const perf = !m ? '' : m.change.dir === 'flat'
-          ? `${what} were about the same as the month before`
-          : `you got ${Math.round(Math.abs(m.change.pct))}% ${m.change.dir === 'up' ? 'more' : 'fewer'} ${what} than the month before`;
-        setText(el, '#home-summary', lead + (perf ? ', and ' + perf : '') + '.');
+          ? ` Your ${what} were about the same as the month before.`
+          : ` You got ${Math.round(Math.abs(m.change.pct))}% ${m.change.dir === 'up' ? 'more' : 'fewer'} ${what} than the month before.`;
+        setText(el, '#home-summary', lead + perf);
       };
       const loaders = {
         strip: () => section(el, '#home-strip', () => ctx.client.getStrip(30), (d) => {
           strip = d;
-          setText(el, '#strip-range', `${span(d.window.from, d.window.to)}, compared with the 30 days before.`);
           summary();
-          return UI.MetricStrip(d, now());
+          // Three numbers on Home; directions and where each number comes from are on Results.
+          return UI.MetricStrip(d, now(), { max: 3, skip: ['directions'], sources: false });
         }, () => { strip = false; summary(); return { title: "We couldn't load your numbers.", text: 'The rest of this page works.', retry: 'strip' }; }),
         // When nothing needs the client, the section turns into the all-caught-up state, which
         // also needs the next planned milestone and the latest win.
         attention: () => section(el, '#home-attention', () => ctx.client.getAttention()
           .then((items) => (items.length ? { items, highlights: null } : ctx.client.getHighlights().then((h) => ({ items, highlights: h })))), (d) => {
           count = d.items.length;
-          const badge = /** @type {HTMLElement|null} */ (el.querySelector('#attention-count'));
-          if (badge) { badge.innerHTML = `<span class="sr-only">: </span>${count}<span class="sr-only"> ${F.plural(count, 'item', 'items')}</span>`; badge.hidden = count === 0; }
           summary();
-          ctx.setBadges(count);
-          if (!count) return UI.CaughtUp(d.highlights);
-          const red = d.items.some((/** @type {any} */ x) => x.severity === 'critical');
-          const ask = count === 1 ? 'Do this one thing and we can keep going.' : `Do these ${count} things and we can keep going.`;
-          return `<p class="sec-note">${ask}${red ? ' The red one matters most.' : ''}</p>${UI.ActionNeededList(d.items, now())}`;
+          ctx.setBadges(d.items);
+          return count ? UI.ActionNeededList(d.items, now()) : UI.CaughtUp(d.highlights);
         }, () => ({ title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' })),
-        // The cards need what is waiting for the client too, to date a next step that is theirs.
+        // The rows need what is waiting for the client too, to say when a service's next step is theirs.
         work: () => section(el, '#home-work', () => Promise.all([ctx.client.getWorkSummary(), ctx.client.getAttention().catch(() => [])]), ([list, acts]) => list.length
-          ? list.map((s) => UI.ServiceWorkCard(s, acts)).join('')
+          ? UI.ServiceRows(list, acts)
           : UI.EmptyState({ icon: 'work', title: 'No work started yet.', text: 'Your services show here once we start.' }),
-          () => ({ title: "We couldn't load our work for you.", text: 'The rest of this page works.', retry: 'work' })),
-        insight: () => section(el, '#home-insight', () => ctx.client.getInsight(), (ins) => UI.InsightCard(ins, now()),
-          () => ({ title: "We couldn't work out what changed.", retry: 'insight' })),
-        update: () => section(el, '#home-update', () => ctx.client.getUpdates(), (list) => list.length
-          ? UI.UpdateCard(list[0], { compact: true, lead: UI.SectionHead('h-latest', 'Latest update') })
-          // the same padding as the filled card (UpdateCard's .update): the empty one sat flush with its edge (2026-10-08)
-          : `<div class="card update">${UI.SectionHead('h-latest', 'Latest update')}${UI.EmptyState({ icon: 'updates', title: 'No updates yet.', text: 'You get your first one when we finish something.' })}</div>`,
-          () => ({ title: "We couldn't load the latest update.", retry: 'update' })),
-        account: () => section(el, '#home-account', () => ctx.client.getAccount(), (a) => accountBand(a, now()),
-          () => ({ title: "We couldn't load your account details.", retry: 'account' }))
+          () => ({ title: "We couldn't load our work for you.", text: 'The rest of this page works.', retry: 'work' }))
       };
       if (HOME.upcoming) {
         loaders.upcoming = () => section(el, '#home-upcoming', () => ctx.client.getUpcoming(), (list) => UI.UpcomingList(list, now()),
@@ -5891,16 +5983,16 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       Object.values(loaders).forEach((load) => load());
       return {
         refresh() {
-          const fl = el.querySelector('#fresh-line');
-          if (fl) fl.outerHTML = freshLine(ctx.account, now());
+          const c = el.querySelector('#home-checked');
+          if (c) c.innerHTML = checkedText(ctx.account, now());
           Object.values(loaders).forEach((load) => load());
         },
         retry(which) {
           const f = loaders[which];
           if (!f) return;
-          const box = /** @type {HTMLElement|null} */ (el.querySelector({ strip: '#home-strip', attention: '#home-attention', work: '#home-work', upcoming: '#home-upcoming', insight: '#home-insight', update: '#home-update', account: '#home-account' }[which] || ''));
+          const box = /** @type {HTMLElement|null} */ (el.querySelector({ strip: '#home-strip', attention: '#home-attention', work: '#home-work', upcoming: '#home-upcoming' }[which] || ''));
           // A section that never loaded goes back to its placeholder; one with content keeps it, dimmed.
-          if (box && !box.hasAttribute('data-loaded')) box.innerHTML = UI.Skeleton({ strip: 'strip', attention: 'row', work: 'card' }[which] || 'block', which === 'strip' ? 4 : which === 'work' ? 4 : 1);
+          if (box && !box.hasAttribute('data-loaded')) box.innerHTML = UI.Skeleton({ strip: 'strip', attention: 'row', work: 'card' }[which] || 'block', which === 'strip' ? 3 : 1);
           f();
         }
       };
@@ -5909,33 +6001,20 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
   /* ================================================================ WORK */
 
-  function actionButton(a, cls) {
-    return a.primary.does === 'approval'
-      ? `<button class="${cls}" type="button" data-action="approve" data-id="${esc(a.approvalId)}" title="Opens it so you can look, then say yes or ask for changes.">${esc(a.primary.label)}</button>`
-      : `<button class="${cls}" type="button" data-action="external" data-kind="${esc(a.primary.does)}">${esc(a.primary.label)}</button>`;
-  }
-
-  function blocker(a, now, same) {
-    const d = a.deadline && a.deadline.kind === 'due' ? F.due(a.deadline.date, now) : null;
-    const when = d ? `<p class="due tone-${d.tone}">${icon('calendar')}${esc(d.text)}</p>` : a.since ? `<p class="due tone-later">${icon('pause')}Paused since ${esc(day(a.since))}</p>` : '';
-    const style = { critical: 'btn btn-primary', approval: 'btn btn-tint' }[a.severity] || 'btn btn-glass';
-    return `<li><div><p class="blocker-title">${esc(a.title)}</p>${when}${same || ''}</div>${actionButton(a, style + ' btn-sm')}</li>`;
-  }
-
   /* The Work page, made simple (2026-10-08, Karan: "make it as simple as possible so that even a five year old can
-     read and interpret it"). Each service says three things in plain words (how it is going, what we are doing now,
-     what happens next) and shows one list of steps: the team's board cards for that service when it has any,
-     otherwise the steps typed on the console's Work tab (and older finished lines). What is left first, then the
-     last few done. */
+     read and interpret it"; 2026-10-09 complexity review). Two tabs: Now (each service, what we are doing right now
+     and its steps) and Done (the updates, at #/updates). Each service shows one "Right now" sentence and one list
+     of steps: the team's board cards for that service when it has any, otherwise the steps typed on the console's
+     Work tab (and older finished lines). What is left first; the done steps fold away. What the client has to do
+     lives once, under Waiting for you on Home; a service only points there. */
   const STEP = {
-    you: ['Waiting for you', 'alert', 'attention'],
-    now: ['Doing now', 'progress', 'info'],
-    later: ['Coming up', 'clock', 'neutral'],
-    hold: ['On hold', 'pause', 'neutral'],
-    done: ['Done', 'check', 'success']
+    you: ['Waiting for you', 'alert'],
+    now: ['Doing now', 'progress'],
+    later: ['Coming up', 'clock'],
+    hold: ['On hold', 'pause'],
+    done: ['Done', 'check']
   };
   const STEP_ORDER = { you: 0, now: 1, later: 2, hold: 3 };
-  const DONE_SHOWN = 3;
   /** Every step for one service, from its cards, milestones and finished work, without repeats. @param {any} s */
   function steps(s) {
     /** @type {{title: string, kind: string, date?: string}[]} */
@@ -5959,70 +6038,61 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const done = out.filter((x) => x.kind === 'done').sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
     return { open, done };
   }
-  /** @param {any} s @param {boolean} [key] whether this is the first bar on the page, which carries the colour key */
-  function stepList(s, key) {
+  /** The steps: "N of M done", what is left, and the done ones behind "Show N done steps". One colour per row: the icon's. @param {any} s */
+  function stepList(s) {
     const { open, done } = steps(s);
     const all = open.length + done.length;
     if (!all) return '';
     const row = (/** @type {any} */ x) => {
       const st = /** @type {any} */ (STEP)[x.kind];
-      // The stage and its date on one line, in one pill: "Done, Fri 18 Sep", "Coming up, by Thu 1 Oct".
+      // The stage and its date on one line, as plain words: "Done, Fri 18 Sep", "Coming up, by Thu 1 Oct".
       const when = x.date ? (x.kind === 'done' ? day(x.date) : `by ${day(x.date)}`) : '';
-      return `<li class="step is-${x.kind}"><span class="step-dot">${icon(st[1])}</span><p class="step-title">${esc(x.title)}</p><p class="step-tag"><span data-tone="${st[2]}">${st[0]}${when ? `, ${esc(when)}` : ''}</span></p></li>`;
+      return `<li class="step is-${x.kind}"><span class="step-dot">${icon(st[1])}</span><p class="step-title">${esc(x.title)}</p><p class="step-tag">${st[0]}${when ? `, ${esc(when)}` : ''}</p></li>`;
     };
-    const earlier = done.slice(DONE_SHOWN);
     return `<div class="steps-head"><h3>Steps</h3><p class="meta">${done.length} of ${all} done</p></div>
-      ${key ? '<p class="meta steps-key">Green is done, blue is doing now, red is waiting for you, grey is coming up.</p>' : ''}
-      <div class="ms-progress" aria-hidden="true" title="Each piece is one step.">${[...done.map(() => 'is-on'), ...open.map((x) => x.kind === 'now' ? 'is-now' : x.kind === 'you' ? 'is-you' : '')].map((c) => `<span class="${c}"></span>`).join('')}</div>
-      <ol class="steps">${open.map(row).join('')}${done.slice(0, DONE_SHOWN).map(row).join('')}</ol>
-      ${earlier.length ? `<details class="steps-earlier"><summary class="btn-text">Show ${earlier.length} earlier ${F.plural(earlier.length, 'step', 'steps')}${icon('chevron-down')}</summary><ol class="steps">${earlier.map(row).join('')}</ol></details>` : ''}`;
+      ${open.length ? `<ol class="steps">${open.map(row).join('')}</ol>` : ''}
+      ${done.length ? `<details class="steps-earlier"><summary class="btn-text">Show ${done.length} done ${F.plural(done.length, 'step', 'steps')}${icon('chevron-down')}</summary><ol class="steps">${done.map(row).join('')}</ol></details>` : ''}`;
   }
 
-  /** @param {any} s @param {any[]} actions @param {number} now @param {any[]} all every service, to spot a task shared with another @param {number} i */
-  function serviceSection(s, actions, now, all, i) {
+  /** @param {any} s @param {any[]} actions */
+  function serviceSection(s, actions) {
     const svc = SVC()[s.id];
     const needs = actions.filter((a) => a.service === s.id || (s.next && a.id === s.next.actionId));
-    const act = s.next && s.next.actionId ? actions.find((a) => a.id === s.next.actionId) : null;
-    // A task that shows in more than one service's box says so, so one answer is not mistaken for two.
-    const shared = (/** @type {any} */ a) => {
-      const others = all.filter((o) => o.id !== s.id && (a.service === o.id || (o.next && o.next.actionId === a.id)));
-      if (!others.length) return '';
-      const d = String(a.detail || '') + ' ' + (a.more || []).join(' ');
-      const text = /website/i.test(d) && /google/i.test(d) && /apple maps/i.test(d)
-        ? 'One answer updates your website, Google and Apple Maps.'
-        : `This is the same task as in ${F.list(others.map((o) => SVC()[o.id].label))}.`;
-      return `<p class="meta blocker-same">${esc(text)}</p>`;
-    };
+    // One line that points to Home, where the button is; a service's own note (Social's "posts are paused")
+    // and that line read as one, so the fix shows once.
+    const wait = needs.length ? `<a class="link" href="#/home">${needs.length} ${F.plural(needs.length, 'thing', 'things')} waiting for you</a>` : '';
+    const note = s.note
+      ? `<p class="notice">${icon('info')}<span>${esc(s.note)}${wait ? ` ${wait}` : ''}</span></p>`
+      : wait ? `<p class="svc-wait">${icon('alert')}<span>${wait}</span></p>` : '';
     return `<section class="card svc-section svc-simple" id="svc-${esc(s.id)}" tabindex="-1" aria-labelledby="h-svc-${esc(s.id)}">
       <header class="svc-head">
         <h2 id="h-svc-${esc(s.id)}">${icon(svc.icon)}${esc(svc.label)}</h2>${UI.StatusBadge(s.status)}
-        <button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="request" data-service="${esc(s.id)}" title="Tell us anything you want different. We usually reply within one working day.">${icon('edit')}Ask for a change</button>
       </header>
-      <dl class="say">
-        <div><dt>Right now</dt><dd>${esc(s.now || 'Getting started')}</dd></div>
-        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${UI.nextStep(s.next, act)}</dd></div>` : ''}
-        ${s.expected && s.expected.date ? `<div><dt>Coming</dt><dd>${UI.comingLine(s)}</dd></div>` : ''}
-        ${s.proof && s.proof.text ? `<div><dt>Last done</dt><dd>${esc(s.proof.text)}, ${esc(day(s.proof.date))}</dd></div>` : ''}
-      </dl>
-      ${needs.length ? `<div class="blocker"><h3>Waiting for you</h3><ul>${needs.map((a) => blocker(a, now, shared(a))).join('')}</ul></div>` : ''}
-      ${s.note ? `<p class="notice">${icon('info')}<span>${esc(s.note)}</span></p>` : ''}
-      ${stepList(s, i === 0)}
+      <p class="svc-now"><span class="svc-now-label">Right now:</span> ${esc(s.now || 'Getting started')}</p>
+      ${note}
+      ${stepList(s)}
     </section>`;
+  }
+
+  /** The top of Work, on both tabs: the title, one Ask for a change (it asks which service), and Now / Done. @param {'now'|'done'} cur */
+  function workHead(cur) {
+    const ask = `<button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="request" title="Tell us anything you want different. We usually reply within one working day.">${icon('edit')}Ask for a change</button>`;
+    const tab = (/** @type {string} */ id, /** @type {string} */ href, /** @type {string} */ text) => `<a class="work-tab" href="${href}"${cur === id ? ' aria-current="page"' : ''}>${text}</a>`;
+    return `${UI.PageHeader({ title: 'Work', intro: cur === 'done' ? 'Everything we finished for you, newest first.' : 'What we are doing for you now, step by step.', aside: ask })}
+      <nav class="work-tabs" aria-label="Work">${tab('now', '#/work', 'Now')}${tab('done', '#/updates', 'Done')}</nav>`;
   }
 
   const work = {
     title: () => 'Work',
-    render(ctx) {
-      const pkg = ctx.account.package.services;
+    render() {
       return `<div class="page page-work">
-        ${UI.PageHeader({ title: 'Work', intro: 'What we are doing for you now, step by step. For what we already did, see Updates.' })}
-        <nav class="jump" aria-label="Services on this page"><span class="jump-label">Jump to:</span>${pkg.map((s) => `<a class="jump-link" href="#/work/${esc(s)}">${icon(SVC()[s].icon)}${esc(SVC()[s].label)}</a>`).join('')}</nav>
+        ${workHead('now')}
         <div id="work-body">${UI.Skeleton('block', 2)}</div>
       </div>`;
     },
     mount(ctx, r, el) {
       const load = () => section(el, '#work-body', () => ctx.client.getWork(), (w) => w.services.length
-        ? w.services.map((s, i) => serviceSection(s, w.actions, ctx.client.now(), w.services, i)).join('')
+        ? w.services.map((s) => serviceSection(s, w.actions)).join('')
         : UI.EmptyState({ icon: 'work', title: 'No work started yet.', text: 'Your services show here once we start.' }),
       () => ({ title: "We couldn't load your work.", text: 'Your other pages still work. Try again soon.', retry: 'work' }))
         .then(() => {
@@ -6039,30 +6109,30 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
   const pickDays = (v) => ([7, 30, 90].includes(Number(v)) ? Number(v) : 30);
 
-  function resultTile(m, w, now) {
+  /** One figure: its name, the number and its change, and the number before. Where it comes from is said once, under the group's heading. */
+  function resultTile(m, w) {
     const name = label(m.label);
     if (m.state === 'error') {
       return `<div class="card mtile is-error"><p class="metric-label">${esc(name)}</p><p class="metric-empty">${icon('alert')}Couldn't load just now</p><p class="metric-meta">${esc(m.text)}</p><button class="link-btn" type="button" data-action="retry" data-section="results">Try again</button></div>`;
     }
     const note = UI.ComparisonNote(m, w.days);
     const prev = m.change && m.previous !== null ? `<p class="metric-prev">${F.num(m.previous)} in the ${w.days} days before</p>` : '';
-    // A disconnected account is explained once, in the notice under the tiles, so its tile does not repeat it in red.
-    const src = UI.sourceLine(m.sources.filter((/** @type {any} */ s) => s.state !== 'disconnected'), now);
-    return `<div class="card mtile"><p class="metric-label">${esc(name)}</p><p class="metric-value"><span class="fig">${m.value === null ? 'None' : F.num(m.value)}</span>${UI.Delta(m, w.days)}${UI.NewBadge(m, w.days)}</p>${prev}${note ? `<p class="metric-note">${note}</p>` : ''}${src ? `<p class="metric-meta">${src}</p>` : ''}</div>`;
+    return `<div class="card mtile"><p class="metric-label">${esc(name)}</p><p class="metric-value"><span class="fig">${m.value === null ? 'None' : F.num(m.value)}</span>${UI.Delta(m, w.days)}${UI.NewBadge(m, w.days)}</p>${prev}${note ? `<p class="metric-note">${note}</p>` : ''}</div>`;
   }
 
-  function chartBlock(c, w) {
+  /** A daily chart. The first one on the page shows; the others fold behind "Show daily ...". @param {boolean} [folded] */
+  function chartBlock(c, w, folded) {
     const name = label(c.label);
     const cur = `These ${w.days} days`;
     const before = `The ${w.days} days before`;
     const aria = `${name} per day, ${span(w.from, w.to)}. ${F.num(c.value)} in total${c.previous !== null ? `, compared with ${F.num(c.previous)} in the ${w.days} days before` : ''}. The same numbers are in the table below.`;
     const rows = c.points.map((p) => `<tr><th scope="row">${esc(day(p.d))}</th><td>${p.v === null ? 'No numbers' : F.num(p.v)}</td><td>${p.p === null ? 'No numbers' : F.num(p.p)}</td></tr>`).join('');
-    return `<figure class="card chart-fig">
+    const fig = `<figure class="card chart-fig">
       <figcaption class="chart-cap"><span class="chart-title">${esc(name)} per day</span><span class="legend"><span class="lg lg-cur" title="${esc(span(w.from, w.to))}">${esc(cur)}</span><span class="lg lg-prev" title="${esc(span(w.pFrom, w.pTo))}">${esc(before)}</span></span></figcaption>
-      <p class="meta chart-help">The solid line is ${esc(cur.toLowerCase())}. The dashed line is the ${w.days} days before, so you can compare. The numbers on the right are ${esc(c.unit)} a day.</p>
       <div class="chart" role="img" aria-label="${esc(aria)}" data-points="${esc(JSON.stringify(c.points))}" data-days="${w.days}" data-unit="${esc(c.unit)}"></div>
       <details class="chart-table"><summary title="Every day's number, written out">Show these numbers as a table</summary><div class="table-wrap" tabindex="0" role="region" aria-label="${esc(name)} per day, as a table"><table><caption class="sr-only">${esc(name)} per day</caption><thead><tr><th scope="col">Day</th><th scope="col">${esc(cur)}</th><th scope="col">Same day, ${w.days} days earlier</th></tr></thead><tbody>${rows}</tbody></table></div></details>
     </figure>`;
+    return folded ? `<details class="fold fold-chart"><summary>Show daily ${esc(F.lcFirst(name))}${icon('chevron-down')}</summary>${fig}</details>` : fig;
   }
 
   /** A channel name with what it means the first time it shows: "Meta" is "Meta (Facebook and Instagram ads)". */
@@ -6075,9 +6145,10 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     });
   }
 
+  /** The ads, folded under the Advertising group: "See your 3 ads". */
   function campaigns(list) {
     const gloss = glossOnce();
-    return `<div class="card campaigns"><h3>Your ads</h3><ul>${list.map((c) => `<li><div><p class="camp-name">${esc(c.name)}</p><p class="meta">${c.to ? esc(span(c.from, c.to)) : 'From ' + esc(day(c.from))} on ${esc(gloss(c.channel))}</p></div>${UI.StatusBadge(c.status === 'complete' ? 'complete' : c.status === 'planned' ? 'planned' : 'in_progress')}</li>`).join('')}</ul></div>`;
+    return `<details class="fold fold-ads"><summary>See your ${list.length} ${F.plural(list.length, 'ad', 'ads')}${icon('chevron-down')}</summary><div class="card campaigns"><h3 class="sr-only">Your ads</h3><ul>${list.map((c) => `<li><div><p class="camp-name">${esc(c.name)}</p><p class="meta">${c.to ? esc(span(c.from, c.to)) : 'From ' + esc(day(c.from))} on ${esc(gloss(c.channel))}</p></div>${UI.StatusBadge(c.status === 'complete' ? 'complete' : c.status === 'planned' ? 'planned' : 'in_progress')}</li>`).join('')}</ul></div></details>`;
   }
 
   /** The group's one-line description, from what is in it: "People who booked online or called you from Google." */
@@ -6090,29 +6161,53 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     return g.intro;
   }
 
-  function group(g, w, now) {
+  /** Where a group's numbers come from and how fresh they are, once, under its heading. A disconnected account is told in its notice instead. */
+  function groupSources(g, now) {
+    /** @type {any[]} */ const list = [];
+    const seen = new Set();
+    for (const m of g.metrics || []) for (const s of m.sources || []) {
+      if (s.state === 'disconnected' || seen.has(s.id)) continue;
+      seen.add(s.id);
+      list.push(s);
+    }
+    const line = UI.sourceLine(list, now);
+    return line ? `<p class="meta group-src">${line}</p>` : '';
+  }
+
+  /** @param {any} g @param {any} w @param {number} now @param {{chartShown: boolean}} seen whether a chart is already open on the page */
+  function group(g, w, now, seen) {
     const head = UI.SectionHead('h-g-' + g.id, esc(g.title), `<p class="sec-meta">${esc(groupIntro(g))}</p>`);
     if (g.state === 'error') {
       const who = F.list(g.sources.filter((s) => s.state === 'error').map((s) => s.name)) || 'The source';
       return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head}${UI.ErrorState({ title: `We couldn't load your ${g.title.toLowerCase()} numbers.`, text: `${who} is not answering. The rest of this page works.`, retry: 'results' })}</section>`;
     }
-    const tiles = g.metrics.map((m) => resultTile(m, w, now)).join('') + g.pending.map((p) =>
+    const tiles = g.metrics.map((m) => resultTile(m, w)).join('') + g.pending.map((p) =>
       `<div class="card mtile is-pending"><p class="metric-label">${esc(label(p.label))}</p><p class="metric-empty">${icon('linkoff')}Not connected yet</p><p class="metric-meta">${esc(p.text)}</p></div>`).join('');
-    const notes = g.notes.map((n) => `<div class="notice is-off">${icon('linkoff')}<p>${esc(n.name)} has been disconnected since ${esc(day(n.since))}${n.lastDay ? `, so its numbers stop on ${esc(day(n.lastDay))}` : ''}. The gap means missing numbers, not a drop.</p><button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="connect-${esc(n.source)}" title="Opens ${esc(n.name)}'s own page so you can let us in again. We never see your password.">Reconnect ${esc(n.name)}</button></div>`).join('');
-    return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head}<div class="mtiles">${tiles}</div>${notes}${g.chart ? chartBlock(g.chart, w) : ''}${g.campaigns.length ? campaigns(g.campaigns) : ''}</section>`;
+    // The note stays; reconnecting is done from Waiting for you on Home and from Settings.
+    const notes = g.notes.map((n) => `<div class="notice is-off">${icon('linkoff')}<p>${esc(n.name)} has been disconnected since ${esc(day(n.since))}${n.lastDay ? `, so its numbers stop on ${esc(day(n.lastDay))}` : ''}. The gap means missing numbers, not a drop.</p></div>`).join('');
+    let chart = '';
+    if (g.chart) { chart = chartBlock(g.chart, w, seen.chartShown); seen.chartShown = true; }
+    return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head}${groupSources(g, now)}<div class="mtiles">${tiles}</div>${notes}${chart}${g.campaigns.length ? campaigns(g.campaigns) : ''}</section>`;
   }
 
-  function resultsBody(res, now) {
+  /** The summary at the top: the assistant's few lines (labelled) and the biggest change this month, in one card. */
+  function summaryCard(res, ins) {
+    const big = ins && ins.state !== 'error' && ins.state !== 'none' && ins.headline ? ins : null;
+    if (!res.summary && !big) return '';
+    return `<section class="ai-summary" aria-labelledby="h-summary">
+        <div class="sec-head"><h2 id="h-summary">Summary</h2>${res.summary ? `<span class="ai-label">${icon('spark')}Written by our AI assistant, checked against the numbers below.</span>` : ''}</div>
+        ${res.summary ? `<p class="ai-text">${esc(res.summary.text)}</p>` : ''}
+        ${big ? `<p class="ai-big"><strong>Biggest change this month:</strong> ${esc(big.headline)} ${esc(big.detail || '')}</p>` : ''}
+      </section>`;
+  }
+
+  function resultsBody(res, ins, now) {
     const out = [];
-    if (res.summary) {
-      out.push(`<section class="ai-summary" aria-labelledby="h-summary">
-        <div class="sec-head"><h2 id="h-summary">Summary</h2><span class="ai-label">${icon('spark')}Written by our AI assistant, checked against the numbers below.</span></div>
-        <p class="ai-text">${esc(res.summary.text)}</p>
-        <p class="meta">Written ${esc(F.when(res.summary.writtenAt, now))}. Every number below comes straight from your connected accounts.</p>
-      </section>`);
-    }
+    // The biggest change is a 30-day comparison, so it joins the summary on the 30-day view.
+    out.push(summaryCard(res, res.window.days === 30 ? ins : null));
     if (!res.groups.length) out.push(UI.EmptyState({ icon: 'results', title: 'No results yet.', text: 'Numbers show here once your accounts are connected.' }));
-    for (const g of res.groups) out.push(group(g, res.window, now));
+    const seen = { chartShown: false };
+    for (const g of res.groups) out.push(group(g, res.window, now, seen));
     return out.join('');
   }
 
@@ -6124,7 +6219,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       const detail = V.reportModes ? (pref('detail') === 'advanced' ? 'advanced' : 'basic') : '';
       const modes = detail ? UI.FilterChips([['basic', 'Basic'], ['advanced', 'Advanced']], detail, 'detail', 'How much detail to show') : '';
       return `<div class="page page-results"${detail ? ` data-detail="${detail}"` : ''}>
-        ${UI.PageHeader({ title: 'Results', intro: 'How your marketing is doing. Each number says where it came from and when.', after: `<div class="range-bar">${UI.DateRangeSelector(days)}${modes}<p class="range-text" id="range-text" aria-live="polite"></p></div>` })}
+        ${UI.PageHeader({ title: 'Results', intro: 'How your marketing is doing, and where each number comes from.', after: `<div class="range-bar">${UI.DateRangeSelector(days)}${modes}${refreshButton()}<p class="range-text" id="range-text" aria-live="polite"></p></div>` })}
         <div id="results-body">${UI.Skeleton('block', 3)}</div>
       </div>`;
     },
@@ -6134,13 +6229,20 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         const body = /** @type {HTMLElement} */ (el.querySelector('#results-body'));
         // Changing the range keeps the current figures on screen, dimmed, until the new ones arrive.
         if (!body.hasAttribute('data-loaded')) body.innerHTML = UI.Skeleton('block', 3);
-        return section(el, '#results-body', () => ctx.client.getResults(days), (res) => {
+        // The biggest change is extra: if it fails, the results still show.
+        return section(el, '#results-body', () => Promise.all([ctx.client.getResults(days), ctx.client.getInsight().catch(() => null)]), ([res, ins]) => {
           const w = res.window;
-          setText(el, '#range-text', `Showing ${span(w.from, w.to)}, compared with ${span(w.pFrom, w.pTo)}.`);
-          return resultsBody(res, ctx.client.now());
+          setText(el, '#range-text', `${F.range(w.from, w.to)} vs the ${w.days} days before`);
+          return resultsBody(res, ins, ctx.client.now());
         }, () => ({ title: "We couldn't load your results.", text: 'Your other pages still work. Try again soon.', retry: 'results' }))
           .then(() => D8.charts.mountAll(el));
       };
+      // A folded chart is drawn when it opens, at its real width. (The page element, not main, which outlives it.)
+      const page = el.querySelector('.page-results');
+      if (page) page.addEventListener('toggle', (e) => {
+        const d = /** @type {HTMLElement} */ (e.target);
+        if (d && d.classList && d.classList.contains('fold-chart') && /** @type {HTMLDetailsElement} */ (d).open) D8.charts.mountAll(d);
+      }, true);
       load();
       return {
         retry: load,
@@ -6161,7 +6263,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     }
   };
 
-  /* ================================================================ UPDATES */
+  /* ================================================================ UPDATES (Work > Done) */
 
   function feed(list) {
     /** @type {Array<{k: string, items: any[]}>} */
@@ -6175,14 +6277,16 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     return months.map((m) => `<section class="feed-month" aria-labelledby="m-${m.k}"><h2 id="m-${m.k}">${esc(F.monthYear(m.k + '-01'))}</h2><div class="feed">${m.items.map((u) => UI.UpdateCard(u, { id: 'u-' + u.id })).join('')}</div></section>`).join('');
   }
 
+  /* The updates are the Done tab of Work (2026-10-09). #/updates still opens them, with ?service= kept. */
   const updates = {
-    title: () => 'Updates',
+    title: () => 'Work',
     render(ctx, r) {
       const pkg = ctx.account.package.services;
       const v = pkg.includes(r.params.service) ? r.params.service : 'all';
-      const opts = [['all', 'All updates'], ...pkg.map((s) => [s, SVC()[s].label])];
+      const opts = [['all', 'All services'], ...pkg.map((s) => [s, SVC()[s].label])];
       return `<div class="page page-updates">
-        ${UI.PageHeader({ title: 'Updates', intro: 'A diary of everything we did for you. Newest at the top.', after: `<p class="meta updates-by"><span class="team-mark" aria-hidden="true"></span>Written by your account team unless marked.</p><div class="filter-bar">${UI.FilterChips(opts, v, 'service', 'Show updates for')}</div>` })}
+        ${workHead('done')}
+        <div class="filter-bar"><label class="sr-only" for="upd-service">Show updates for</label><select class="filter-select" id="upd-service" name="service" data-change="service">${opts.map(([k, l]) => `<option value="${esc(k)}"${k === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></div>
         <p class="sr-only" id="updates-status" aria-live="polite"></p>
         <div id="updates-body">${UI.Skeleton('card', 3)}</div>
       </div>`;
@@ -6205,8 +6309,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         refresh: load,
         change(name, value) {
           if (name !== 'service') return;
-          filter = value;
-          D8.ui.replaceHash(value === 'all' ? '#/updates' : '#/updates?service=' + value);
+          filter = pkg.includes(value) ? value : 'all';
+          D8.ui.replaceHash(filter === 'all' ? '#/updates' : '#/updates?service=' + filter);
           const body = /** @type {HTMLElement|null} */ (el.querySelector('#updates-body'));
           if (all && body) body.innerHTML = draw();
         }
@@ -6216,39 +6320,34 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
   /* ================================================================ BILLING */
 
+  /* Billing, simplified (2026-10-09): one banner while a payment failed (with the one Update payment method
+     button), one card for the plan and the card, and the last three invoices with the older ones folded. */
+  const INVOICES_SHOWN = 3;
   function billingBody(b) {
     const s = b.subscription;
     const problem = s.status === 'past_due';
     const banner = problem ? `<section class="banner tone-error" aria-labelledby="h-bill-problem">
         ${icon('alert', 'banner-icon')}
-        <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>Your card ending ${esc(b.paymentMethod.last4)} was declined on ${esc(day(b.paymentMethod.problem.date))}. Everything keeps running until ${esc(day(s.graceUntil))}. If the payment still fails, services pause after that. Update your payment method so nothing stops.</p>${s.retryOn ? `<p class="meta">Stripe, our payment service, will try your card again on ${esc(day(s.retryOn))}.</p>` : ''}</div>
+        <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>Your card ending ${esc(b.paymentMethod.last4)} was declined on ${esc(day(b.paymentMethod.problem.date))}. Everything keeps running until ${esc(day(s.graceUntil))}. If the payment still fails, services pause after that.</p>${s.retryOn ? `<details class="fold fold-quiet"><summary>See details${icon('chevron-down')}</summary><p class="meta">Stripe, our payment service, will try your card again on ${esc(day(s.retryOn))}.</p></details>` : ''}</div>
         <button class="btn btn-primary" type="button" data-action="external" data-kind="billing-portal">Update payment method</button>
       </section>` : '';
-    // The payment problem is told once, in the banner above; the cards below only point to it.
-    const status = problem ? '' : `<span class="badge tone-success">${icon('check')}Active</span>`;
-    const seeAbove = '<p class="meta">See the payment problem above.</p>';
-    const noAmount = b.invoices.some((/** @type {any} */ i) => i.amountMinor === undefined || i.amountMinor === null);
+    const rows = (/** @type {any[]} */ list) => list.map((i) => UI.InvoiceRow(i, { problemShown: problem })).join('');
+    const recent = b.invoices.slice(0, INVOICES_SHOWN);
+    const older = b.invoices.slice(INVOICES_SHOWN);
     return `${banner}
-      <div class="bill-grid">
-        <section class="card bill-card" aria-labelledby="h-plan">
-          <div class="sec-head"><h2 id="h-plan">Your plan</h2>${status}</div>
-          ${problem ? seeAbove : ''}
-          <p class="plan-name">${esc(b.plan.name)}</p>
-          <ul class="plan-list">${b.plan.services.map((x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
-          ${planOff(b.plan.services)}
-          <dl class="facts"><div><dt>How you pay</dt><dd>${esc(b.plan.interval)}</dd></div><div><dt>Next payment</dt><dd>${esc(day(s.nextBilling))}</dd></div></dl>
-        </section>
-        <section class="card bill-card" aria-labelledby="h-pay">
-          <div class="sec-head"><h2 id="h-pay">Payment method</h2></div>
-          <p class="card-line">${icon('card')}${esc(b.paymentMethod.brand)} ending ${esc(b.paymentMethod.last4)}</p>
-          ${b.paymentMethod.problem ? (problem ? seeAbove : `<p class="due tone-overdue">${icon('alert')}${esc(b.paymentMethod.problem.text)}</p>`) : ''}
-          <p class="meta">${problem ? 'Stripe' : 'Stripe (our payment service)'} keeps your card safe. We never see the full number.</p>
-          <button class="btn btn-glass" type="button" data-action="external" data-kind="billing-portal">Update payment method${icon('external')}</button>
-        </section>
-      </div>
+      <section class="card bill-card bill-one" aria-labelledby="h-plan">
+        <div class="sec-head"><h2 id="h-plan">Your plan</h2>${problem ? '' : `<span class="badge tone-success">${icon('check')}Active</span>`}</div>
+        <p class="plan-name">${esc(b.plan.name)}</p>
+        <ul class="plan-list">${b.plan.services.map((x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
+        ${planOff(b.plan.services)}
+        <dl class="facts"><div><dt>How you pay</dt><dd>${esc(b.plan.interval)}</dd></div><div><dt>Next payment</dt><dd>${esc(day(s.nextBilling))}</dd></div><div><dt>Card</dt><dd class="card-line">${icon('card')}${esc(b.paymentMethod.brand)} ending ${esc(b.paymentMethod.last4)}</dd></div></dl>
+        ${!problem && b.paymentMethod.problem ? `<p class="due tone-overdue">${icon('alert')}${esc(b.paymentMethod.problem.text)}</p>` : ''}
+        <p class="meta">Stripe (our payment service) keeps your card safe. We never see the full number.</p>
+        ${problem ? '' : `<button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="billing-portal">Change card${icon('external')}</button>`}
+      </section>
       <section class="sec" aria-labelledby="h-invoices">
-        <div class="sec-head"><h2 id="h-invoices">Invoices</h2>${noAmount ? '<p class="sec-meta">Press See invoice to see how much and download a PDF.</p>' : ''}</div>
-        ${b.invoices.length ? `<div class="card"><ul class="invoices">${b.invoices.map((i) => UI.InvoiceRow(i, { problemShown: problem })).join('')}</ul></div>` : UI.EmptyState({ icon: 'file', title: 'No invoices yet.', text: 'Your first one shows here when Stripe sends it.' })}
+        <div class="sec-head"><h2 id="h-invoices">Invoices</h2></div>
+        ${b.invoices.length ? `<div class="card"><ul class="invoices">${rows(recent)}</ul>${older.length ? `<details class="fold fold-invoices"><summary>See older invoices${icon('chevron-down')}</summary><ul class="invoices">${rows(older)}</ul></details>` : ''}</div>` : UI.EmptyState({ icon: 'file', title: 'No invoices yet.', text: 'Your first one shows here when Stripe sends it.' })}
       </section>
       <p class="bill-help">Question about a charge? <button class="link-btn" type="button" data-action="compose" data-mode="message">Message us</button></p>`;
   }
@@ -6268,61 +6367,52 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
   /* ================================================================ SETTINGS */
 
+  /* Settings, simplified (2026-10-09): Connected accounts (a count, only the ones with a problem, the rest folded),
+     Who can sign in (sign-in and asking for a login, merged), Emails (the optional ones folded) and How it looks
+     (folded). */
+  function sourceRow(src, now) {
+    const when = src.pending ? `You told us you ${src.pending.kind === 'disconnect' ? 'removed our access' : 'connected it'}${src.pending.at ? ` on ${day(src.pending.at)}` : ''}. We confirm it, usually within one working day.`
+      : src.state === 'missing' ? 'Not connected yet. Press Connect to let us in.'
+      : src.state === 'disconnected' ? `Disconnected since ${day(src.since)}. Numbers after that are missing, not zero.`
+      : src.state === 'error' ? 'Not answering right now. We keep trying on our own.'
+        : src.state === 'stale' ? `Last updated ${F.ago(src.updatedAt, now)}. It usually updates several times a day.`
+          : `Updated ${F.ago(src.updatedAt, now)}`;
+    // One button per account (2026-10-09): Connect when it is missing, Reconnect when it broke, Disconnect when it works.
+    // While the team is checking a change the client told us about, the row says so instead.
+    const mode = src.state === 'missing' ? 'connect' : src.state === 'disconnected' || src.state === 'error' ? 'reconnect' : 'disconnect';
+    const text = { connect: 'Connect', reconnect: 'Reconnect', disconnect: 'Disconnect' }[mode];
+    const tip = mode === 'disconnect' ? `Shows how to remove our access to ${src.name}` : `Shows how to let us into ${src.name}. We never see your password.`;
+    const act = src.pending ? '' : `<button class="btn ${mode === 'disconnect' ? 'btn-text src-off' : 'btn-glass'} btn-sm" type="button" data-action="account" data-source="${esc(src.id)}" data-mode="${mode}" title="${esc(tip)}">${text}<span class="sr-only"> ${esc(src.name)}</span></button>`;
+    const about = UI.sourceAbout(src);
+    return `<li class="src-row"><div><p class="src-name">${esc(src.name)}</p>${about ? `<p class="src-about">${esc(about)}</p>` : ''}<p class="meta">${esc(when)}</p></div>${src.pending ? `<span class="badge tone-info">${icon('clock')}Waiting for us to confirm</span>` : UI.HealthBadge(src)}${act}</li>`;
+  }
+
   function settingsBody(s, ctx) {
     const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
     const now = ctx.client.now();
-    const rows = s.categories.map((c) => `<div class="toggle-row">
-        <input class="switch" type="checkbox" id="n-${esc(c.id)}" name="${esc(c.id)}"${s.prefs[c.id] ? ' checked' : ''}${c.required ? ' disabled' : ''} aria-describedby="n-${esc(c.id)}-text">
+    const optional = s.categories.filter((c) => !c.required);
+    const rows = optional.map((c) => `<div class="toggle-row">
+        <input class="switch" type="checkbox" id="n-${esc(c.id)}" name="${esc(c.id)}"${s.prefs[c.id] ? ' checked' : ''} aria-describedby="n-${esc(c.id)}-text">
         <label for="n-${esc(c.id)}"><span class="toggle-label">${esc(c.label)}</span><span class="toggle-text" id="n-${esc(c.id)}-text">${esc(c.text)}</span></label>
-        ${c.required ? `<span class="badge tone-neutral" title="We always email you about payments and anything that could pause a service.">${icon('lock')}Always on</span>` : ''}
       </div>`).join('');
-    const sources = s.sources.map((src) => {
-      const when = src.pending ? `You told us you ${src.pending.kind === 'disconnect' ? 'removed our access' : 'connected it'}${src.pending.at ? ` on ${day(src.pending.at)}` : ''}. We confirm it, usually within one working day.`
-        : src.state === 'missing' ? 'Not connected yet. Press Connect to let us in.'
-        : src.state === 'disconnected' ? `Disconnected since ${day(src.since)}. Numbers after that are missing, not zero.`
-        : src.state === 'error' ? 'Not answering right now. We keep trying on our own.'
-          : src.state === 'stale' ? `Last updated ${F.ago(src.updatedAt, now)}. It usually updates several times a day.`
-            : `Updated ${F.ago(src.updatedAt, now)}`;
-      // One button per account (2026-10-09): Connect when it is missing, Reconnect when it broke, Disconnect when it works.
-      // While the team is checking a change the client told us about, the row says so instead.
-      const mode = src.state === 'missing' ? 'connect' : src.state === 'disconnected' || src.state === 'error' ? 'reconnect' : 'disconnect';
-      const label = { connect: 'Connect', reconnect: 'Reconnect', disconnect: 'Disconnect' }[mode];
-      const tip = mode === 'disconnect' ? `Shows how to remove our access to ${src.name}` : `Shows how to let us into ${src.name}. We never see your password.`;
-      const act = src.pending ? '' : `<button class="btn ${mode === 'disconnect' ? 'btn-text src-off' : 'btn-glass'} btn-sm" type="button" data-action="account" data-source="${esc(src.id)}" data-mode="${mode}" title="${esc(tip)}">${label}<span class="sr-only"> ${esc(src.name)}</span></button>`;
-      const about = UI.sourceAbout(src);
-      return `<li class="src-row"><div><p class="src-name">${esc(src.name)}</p>${about ? `<p class="src-about">${esc(about)}</p>` : ''}<p class="meta">${esc(when)}</p></div>${src.pending ? `<span class="badge tone-info">${icon('clock')}Waiting for us to confirm</span>` : UI.HealthBadge(src)}${act}</li>`;
-    }).join('');
-    return `<section class="card set-card" aria-labelledby="h-email">
-        <h2 id="h-email">Email notifications</h2>
-        <p class="meta">We send these to ${esc(s.email)}. Sign-in emails are always sent, whatever you switch off here.</p>
-        <form id="notify-form" novalidate>
-          <fieldset class="toggles"><legend class="sr-only">Emails you get</legend>${rows}</fieldset>
-          <p class="form-error" role="alert" hidden></p>
-          <div class="form-foot"><button class="btn btn-solid" type="submit" disabled>Save changes</button><p class="meta" id="notify-status" aria-live="polite">${s.savedAt ? `Saved ${esc(F.when(s.savedAt, now))}.` : 'No changes yet.'}</p></div>
-        </form>
-      </section>
-      <section class="card set-card" aria-labelledby="h-look">
-        <h2 id="h-look">How it looks</h2>
-        <fieldset class="theme-pick"><legend class="pick-legend">Colours</legend>
-          <label class="theme-opt"><input type="radio" name="theme" value="light" data-change="theme"${theme === 'light' ? ' checked' : ''}><span class="theme-swatch is-light" aria-hidden="true"></span><span><strong>Light</strong><span class="meta">The usual look</span></span></label>
-          <label class="theme-opt"><input type="radio" name="theme" value="dark" data-change="theme"${theme === 'dark' ? ' checked' : ''}><span class="theme-swatch is-dark" aria-hidden="true"></span><span><strong>Dark</strong><span class="meta">Easier on the eyes at night</span></span></label>
-        </fieldset>
-      </section>
-      <section class="card set-card" id="sources" tabindex="-1" aria-labelledby="h-sources">
-        <h2 id="h-sources">Connected accounts</h2>
-        <p class="meta">The apps your services need. We take your numbers from them and post through them. Connect lets us in, Reconnect fixes a broken link, Disconnect takes our access away. You do it on the app's own page; we never see your password.</p>
-        <ul class="sources">${sources}</ul>
-      </section>
-      <section class="card set-card" aria-labelledby="h-security">
-        <h2 id="h-security">Sign-in and security</h2>
-        <p>You sign in with ${isLive() ? 'a 6-digit code' : 'a sign-in link'} we email to ${esc(s.email)}. No password to remember.</p>
-        <p class="meta">Our sign-in service looks after this.</p>
-        <button class="btn btn-glass" type="button" data-action="external" data-kind="clerk-account">Manage sign-in and security${icon('external')}</button>
+    const working = s.sources.filter((src) => src.state === 'fresh' || src.state === 'stale').length;
+    const problems = s.sources.filter((src) => src.pending || src.state !== 'fresh');
+    const fine = s.sources.filter((src) => !(src.pending || src.state !== 'fresh'));
+    const count = working === s.sources.length ? `All ${s.sources.length} working` : `${working} of ${s.sources.length} working`;
+    return `<section class="card set-card" id="sources" tabindex="-1" aria-labelledby="h-sources">
+        <div class="sec-head"><h2 id="h-sources">Connected accounts</h2><p class="sec-meta set-count">${esc(count)}</p></div>
+        ${problems.length ? `<ul class="sources">${problems.map((src) => sourceRow(src, now)).join('')}</ul>` : ''}
+        ${fine.length ? `<details class="fold fold-sources"${problems.length ? '' : ' open'}><summary>See all connections${icon('chevron-down')}</summary><p class="meta">You connect and disconnect on the app's own page. We never see your password.</p><ul class="sources">${fine.map((src) => sourceRow(src, now)).join('')}</ul></details>` : ''}
       </section>
       <section class="card set-card" aria-labelledby="h-people">
-        <h2 id="h-people">People who can sign in</h2>
-        <p>Want a login for your manager or someone else at the restaurant? Ask here and we set it up. They sign in with their own email. Nobody shares a password.</p>
-        <form id="login-ask" class="ask-form" novalidate>
+        <h2 id="h-people">Who can sign in</h2>
+        <p>You sign in as ${esc(s.email)} with ${isLive() ? 'a 6-digit code' : 'a sign-in link'} we email you. No password to remember.</p>
+        <div class="set-actions">
+          <button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="clerk-account">Manage your sign-in${icon('external')}</button>
+          <button class="btn btn-glass btn-sm" type="button" data-action="add-login" aria-expanded="false" aria-controls="login-ask">${icon('message')}Add someone</button>
+        </div>
+        <form id="login-ask" class="ask-form" novalidate hidden>
+          <p>Ask for a login for your manager or someone else at the restaurant. They sign in with their own email. Nobody shares a password.</p>
           <div class="ask-grid">
             <div class="field"><label for="la-first">Their first name</label><input id="la-first" name="first" type="text" maxlength="100" autocomplete="off" aria-describedby="la-err-first"><p class="field-error" id="la-err-first" hidden></p></div>
             <div class="field"><label for="la-email">Their email address</label><input id="la-email" name="email" type="email" maxlength="200" autocomplete="off" inputmode="email" spellcheck="false" aria-describedby="la-err-email"><p class="field-error" id="la-err-email" hidden></p></div>
@@ -6332,6 +6422,27 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
           <div class="form-foot"><button class="btn btn-solid" type="submit">${icon('message')}Ask for a login</button><p class="meta" id="la-status" aria-live="polite">${D8.live ? 'We usually set it up within one working day.' : 'This is a demo, so nothing is sent.'}</p></div>
         </form>
         <div id="la-list"></div>
+      </section>
+      <section class="card set-card" aria-labelledby="h-email">
+        <h2 id="h-email">Emails</h2>
+        <p class="meta">We send these to ${esc(s.email)}. Payment problems and sign-in emails are always sent.</p>
+        <details class="fold fold-emails">
+          <summary>Choose which emails you get${icon('chevron-down')}</summary>
+          <form id="notify-form" novalidate>
+            <fieldset class="toggles"><legend class="sr-only">Emails you get</legend>${rows}</fieldset>
+            <p class="form-error" role="alert" hidden></p>
+            <div class="form-foot"><button class="btn btn-solid" type="submit" disabled>Save changes</button><p class="meta" id="notify-status" aria-live="polite">${s.savedAt ? `Saved ${esc(F.when(s.savedAt, now))}.` : 'No changes yet.'}</p></div>
+          </form>
+        </details>
+      </section>
+      <section class="card set-card" aria-labelledby="h-look">
+        <details class="fold fold-look">
+          <summary><h2 id="h-look">How it looks</h2>${icon('chevron-down')}</summary>
+          <fieldset class="theme-pick"><legend class="pick-legend">Colours</legend>
+            <label class="theme-opt"><input type="radio" name="theme" value="light" data-change="theme"${theme === 'light' ? ' checked' : ''}><span class="theme-swatch is-light" aria-hidden="true"></span><span><strong>Light</strong><span class="meta">The usual look</span></span></label>
+            <label class="theme-opt"><input type="radio" name="theme" value="dark" data-change="theme"${theme === 'dark' ? ' checked' : ''}><span class="theme-swatch is-dark" aria-hidden="true"></span><span><strong>Dark</strong><span class="meta">Easier on the eyes at night</span></span></label>
+          </fieldset>
+        </details>
       </section>`;
   }
 
@@ -6358,6 +6469,14 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const form = /** @type {HTMLFormElement|null} */ (el.querySelector('#login-ask'));
     if (!form) return;
     loadAsks(el);
+    // The form shows once the client presses Add someone.
+    const add = /** @type {HTMLButtonElement|null} */ (el.querySelector('[data-action="add-login"]'));
+    if (add) add.addEventListener('click', () => {
+      const open = form.hidden;
+      form.hidden = !open;
+      add.setAttribute('aria-expanded', String(open));
+      if (open) /** @type {HTMLInputElement} */ (form.elements.namedItem('first')).focus();
+    });
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const field = (/** @type {string} */ n) => /** @type {HTMLInputElement} */ (form.elements.namedItem(n));
@@ -6399,7 +6518,11 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     let saved = { ...s.prefs };
     const current = () => {
       /** @type {Record<string, boolean>} */ const p = {};
-      for (const c of s.categories) p[c.id] = /** @type {HTMLInputElement} */ (form.elements.namedItem(c.id)).checked;
+      // The always-on emails have no switch: they keep their saved value.
+      for (const c of s.categories) {
+        const box = /** @type {HTMLInputElement|null} */ (form.elements.namedItem(c.id));
+        p[c.id] = box ? box.checked : saved[c.id];
+      }
       return p;
     };
     const dirty = () => s.categories.some((c) => current()[c.id] !== saved[c.id]);
@@ -6427,7 +6550,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   const settings = {
     title: () => 'Settings',
     render() {
-      return `<div class="page page-settings">${UI.PageHeader({ title: 'Settings', intro: 'Your emails, how the portal looks, and where your numbers come from.' })}<div id="settings-body" class="settings-stack">${UI.Skeleton('block', 2)}</div></div>`;
+      return `<div class="page page-settings">${UI.PageHeader({ title: 'Settings', intro: 'Your connected accounts, who can sign in, your emails and how the portal looks.' })}<div id="settings-body" class="settings-stack">${UI.Skeleton('block', 2)}</div></div>`;
     },
     mount(ctx, r, el) {
       const load = () => section(el, '#settings-body', () => ctx.client.getSettings(), (s) => settingsBody(s, ctx),
@@ -6446,12 +6569,20 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
   /* ================================================================ HELP */
 
+  /* Help, simplified (2026-10-09): Message us and the reply time at the top, the client's messages only when
+     there are some, then the common questions, with our promises as one of them. */
+  const PROMISES = [
+    'We only publish posts, pages and ads you have approved.',
+    'We never change your ad budget without asking you first.',
+    'Every number comes straight from your connected accounts and shows when it was last updated.',
+    'Summaries written by our assistant are labelled and checked against the numbers.',
+    'Only people you invite can see your account.'
+  ];
   const FAQ = [
-    ['What is on each page?', 'Home shows what is waiting for you, your last 30 days and what we are working on. Work shows each service step by step. Results shows your numbers and where they come from. Updates is a diary of what we did. Billing has your plan, payments and invoices. Settings has your emails, how the portal looks and your connected accounts.'],
+    ['What we promise', `<ul class="promise-list">${PROMISES.map((p) => `<li>${icon('check')}<span>${esc(p)}</span></li>`).join('')}</ul>`],
     ['How fast do you make changes?', 'Small changes, like new opening hours or a menu price, usually go live within one working day. Bigger jobs, like a new page or an ad campaign, follow the dates on your Work page.'],
     ['How do approvals work?', 'When we need your OK, it shows under Waiting for you on your Home page, with a date. Approve it, or ask for changes with a short note. Nothing goes out until you approve it.'],
     ['Where do the numbers come from?', 'Straight from your connected accounts, like Google Business Profile (your listing on Google and Maps) and your booking system. Each number shows where it came from and when it was last updated. If an account disconnects, we tell you instead of guessing.'],
-    ['What does "Waiting for you" mean?', 'We can\'t move that job forward until you answer something. The button next to it tells you what we need.'],
     ['How do I change my card or my plan?', 'Change your payment details on Stripe (our payment service), from your Billing page. To change your plan, message us.'],
     ['Who can see my account?', 'You, the people at your restaurant we have given a login (ask for one in Settings), and the Domin8te team working for you. Other clients never see your numbers.']
   ];
@@ -6461,36 +6592,24 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     render(ctx) {
       return `<div class="page page-help">
         ${UI.PageHeader({ title: 'Help', intro: 'How to reach us, and answers to common questions.' })}
-        <div class="help-grid">
-          <section class="card" aria-labelledby="h-contact">
-            <h2 id="h-contact">Talk to us</h2>
-            <p>${ctx.account.team.reply ? esc(replyLine(ctx.account.team.reply)) + ' ' : ''}Messages go straight to the people who work on your account.</p>
+        <section class="card help-contact" aria-labelledby="h-contact">
+          <div class="help-contact-row">
+            <div><h2 id="h-contact">Talk to us</h2><p>${ctx.account.team.reply ? esc(replyLine(ctx.account.team.reply)) + ' ' : ''}Messages go straight to the people who work on your account.</p></div>
             <button class="btn btn-solid" type="button" data-action="compose" data-mode="message">${icon('message')}Message us</button>
-            <h3 class="sub-h">Your messages</h3>
-            <p class="meta">Messages you send us, and our replies, show up here.</p>
-            <div id="help-messages">${UI.Skeleton('text', 2)}</div>
-          </section>
-          <section class="card" aria-labelledby="h-promises">
-            <h2 id="h-promises">Our promises to you</h2>
-            <ul class="promise-list">
-              <li>${icon('check')}<span>We only publish posts, pages and ads you have approved.</span></li>
-              <li>${icon('check')}<span>We never change your ad budget without asking you first.</span></li>
-              <li>${icon('check')}<span>Every number comes straight from your connected accounts and shows when it was last updated.</span></li>
-              <li>${icon('check')}<span>Summaries written by our assistant are labelled and checked against the numbers.</span></li>
-              <li>${icon('check')}<span>Only people you invite can see your account.</span></li>
-            </ul>
-          </section>
-        </div>
+          </div>
+          <div id="help-messages" aria-live="polite"></div>
+        </section>
         <section class="sec" aria-labelledby="h-faq"><h2 id="h-faq" class="sec-title">Common questions</h2>
-          <div class="card faq">${FAQ.map(([q, a]) => `<details><summary>${esc(q)}${icon('chevron-down')}</summary><p>${esc(a)}</p></details>`).join('')}</div>
+          <div class="card faq">${FAQ.map(([q, a]) => `<details><summary>${esc(q)}${icon('chevron-down')}</summary>${a.startsWith('<') ? a : `<p>${esc(a)}</p>`}</details>`).join('')}</div>
         </section>
       </div>`;
     },
     mount(ctx, r, el) {
+      // Your messages shows only once there are some; a failed load says so quietly.
       const load = () => section(el, '#help-messages', () => ctx.client.getMessages(), (list) => list.length
         // Live, the account team's replies sit in the same list, marked as theirs.
-        ? `<ul class="sent-list">${list.map((m) => `<li${m.fromTeam ? ' class="is-team"' : ''}><p>${esc(m.text)}</p><p class="meta">${m.fromTeam ? `From ${esc(m.by || 'Domin8te')}, ` : 'Sent '}${esc(F.when(m.at, ctx.client.now()))}</p></li>`).join('')}</ul>`
-        : '<p class="meta">You have not sent us a message yet.</p>',
+        ? `<h3 class="sub-h">Your messages</h3><ul class="sent-list">${list.map((m) => `<li${m.fromTeam ? ' class="is-team"' : ''}><p>${esc(m.text)}</p><p class="meta">${m.fromTeam ? `From ${esc(m.by || 'Domin8te')}, ` : 'Sent '}${esc(F.when(m.at, ctx.client.now()))}</p></li>`).join('')}</ul>`
+        : '',
       () => ({ title: "We couldn't load your messages.", retry: 'messages' }));
       load();
       return { retry: load, refresh: load };
@@ -6701,7 +6820,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       b.setAttribute('aria-expanded', rail ? 'false' : 'true');
       b.setAttribute('aria-label', rail ? 'Expand sidebar' : 'Collapse sidebar');
       b.setAttribute('title', rail ? 'Make menu bigger' : 'Make menu smaller');
-      b.querySelector('.nav-label').textContent = rail ? 'Expand' : 'Collapse';
+      b.querySelector('.side-toggle-label').textContent = rail ? 'Expand sidebar' : 'Collapse sidebar';
       b.querySelector('.i use').setAttribute('href', rail ? '#i-chevron-right' : '#i-chevron-left');
     }
     hideTip();
@@ -6769,8 +6888,16 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
   /* ---- shell --------------------------------------------------------------------------- */
 
-  /** One badge language: a small pill with a count. Home's is quiet; Billing's marks a problem. */
-  function setBadges(n) {
+  /** Whether Billing shows its own badge for a payment problem. */
+  const billingProblem = () => !!(app.account && app.account.subscription && app.account.subscription.status === 'past_due');
+  /**
+   * One badge language: a small pill with a count. Home's is quiet; Billing's marks a problem.
+   * Given the list of what is waiting, Home's count leaves out the payment problem while Billing
+   * shows it, so the one item is never counted twice (2026-10-09).
+   * @param {number|any[]} items
+   */
+  function setBadges(items) {
+    const n = Array.isArray(items) ? items.filter((x) => !(x && x.kind === 'billing' && billingProblem())).length : Number(items) || 0;
     document.querySelectorAll('[data-badge="home"]').forEach((el) => {
       const b = /** @type {HTMLElement} */ (el);
       b.hidden = !n;
@@ -6786,10 +6913,12 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     $('#avatar').textContent = a.user.firstName.charAt(0);
     $('#account-who').innerHTML = `<strong>${F.esc(a.user.firstName)}</strong><span>${F.esc(a.business.name)}</span>`;
     document.querySelectorAll('[data-preview]').forEach((el) => { /** @type {HTMLElement} */ (el).hidden = D8.data.MODE !== 'demo'; });
-    // The floating Preview mode pill sits over the page's bottom corner: the page gets room underneath it.
+    // The Preview mode pill is docked at the top of the page in the demo: the page gets room above it.
     $('#app').toggleAttribute('data-demo', D8.data.MODE === 'demo');
-    setBadges(a.openActions);
-    const problem = a.subscription && a.subscription.status === 'past_due';
+    const problem = billingProblem();
+    // The count first, then the same count without the payment problem once the list is known.
+    setBadges(Math.max(0, a.openActions - (problem ? 1 : 0)));
+    if (app.client && app.client.getAttention) app.client.getAttention().then(setBadges).catch(() => { /* the first count stays */ });
     document.querySelectorAll('[data-badge="billing"]').forEach((el) => {
       const b = /** @type {HTMLElement} */ (el);
       b.hidden = !problem;
@@ -6805,8 +6934,10 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   function markCurrent(name) {
     // The page's name on the root, so a design can give each page its own world.
     document.documentElement.setAttribute('data-page', name);
+    // Updates is the Done tab of Work (2026-10-09), so Work stays marked there.
+    const nav = name === 'updates' ? 'work' : name;
     document.querySelectorAll('[data-nav]').forEach((el) => {
-      if (el.getAttribute('data-nav') === name) el.setAttribute('aria-current', 'page');
+      if (el.getAttribute('data-nav') === nav) el.setAttribute('aria-current', 'page');
       else el.removeAttribute('aria-current');
     });
     placeIndicator();
@@ -7456,7 +7587,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   // The slider sits beside the Preview mode chip when that floats in the corner.
   const chip = /** @type {HTMLElement|null} */ (document.querySelector('.preview-chip.is-float'));
   const place = () => {
-    const w = chip ? chip.offsetWidth : 0;
+    // Only while the chip floats in the corner (it is docked at the top of the page since 2026-10-09).
+    const w = chip && getComputedStyle(chip).position === 'fixed' ? chip.offsetWidth : 0;
     if (w && !media('(max-width: 760px)')) dock.style.setProperty('--lg-dock-x', `${w + 26}px`);
     else dock.style.removeProperty('--lg-dock-x');
   };

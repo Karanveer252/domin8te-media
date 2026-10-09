@@ -184,7 +184,8 @@
     return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
   }
 
-  function MetricCard(m, now, days) {
+  /** @param {any} m @param {number} now @param {number} days @param {{sources?: boolean}} [o] sources: false leaves out where it came from (Home) */
+  function MetricCard(m, now, days, o = {}) {
     const label = metricLabel(m.label);
     const link = `<a class="card-link" href="#/results"><span class="sr-only">${esc(label)}: see it in Results</span></a>`;
     if (m.state === 'pending') {
@@ -199,16 +200,22 @@
       <p class="metric-value"><span class="fig">${m.value === null ? 'None' : F.num(m.value)}</span>${Delta(m, days)}${NewBadge(m, days)}</p>
       ${m.spark ? Sparkline(m.spark) : ''}
       ${note ? `<p class="metric-note">${note}</p>` : ''}
-      <p class="metric-src">${m.sources.map((s) => SourceChip(s, now)).join('')}</p>
+      ${o.sources === false ? '' : `<p class="metric-src">${m.sources.map((s) => SourceChip(s, now)).join('')}</p>`}
       ${link}
     </article>`;
   }
 
-  /** The performance strip: no more than four figures tied to the client's goals, each its own card. */
-  function MetricStrip(strip, now) {
+  /**
+   * The performance strip: no more than four figures tied to the client's goals, each its own card.
+   * Home asks for three (o.max), leaves some out (o.skip, metric ids) and drops the source lines (o.sources).
+   * @param {any} strip @param {number} now @param {{max?: number, skip?: string[], sources?: boolean}} [o]
+   */
+  function MetricStrip(strip, now, o = {}) {
     const w = strip.window;
-    const cells = strip.metrics.slice(0, 4).map((m) => MetricCard(m, now, w.days)).join('');
-    return `<div class="strip">${cells}</div>`;
+    const max = o.max || 4;
+    const list = strip.metrics.filter((/** @type {any} */ m) => !(o.skip || []).includes(m.id)).slice(0, max);
+    const cells = list.map((/** @type {any} */ m) => MetricCard(m, now, w.days, o)).join('');
+    return `<div class="strip${max === 3 ? ' is-3' : ''}">${cells}</div>`;
   }
 
   /* ---- needs your attention ------------------------------------------------------------ */
@@ -228,7 +235,6 @@
    * the details too.
    */
   function ActionNeededItem(a, now) {
-    const sev = D8.data.SEVERITY[a.severity] || D8.data.SEVERITY.approval;
     const kindIcon = a.icon || { billing: 'card', connection: 'linkoff', approval: 'check' }[a.kind] || 'alert';
     let when = '';
     if (a.deadline && a.deadline.kind === 'grace') {
@@ -243,16 +249,17 @@
     const more = (a.more && a.more.length) || a.link
       ? `<div class="act-more" id="${moreId}" hidden>${(a.more || []).map((p) => `<p>${esc(p)}</p>`).join('')}${a.link ? `<a class="link link-more" href="${esc(a.link.href)}">${esc(a.link.label)}${icon('arrow-right')}</a>` : ''}</div>`
       : '';
-    const toggle = more ? `<button class="btn-text act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span>${icon('chevron-down')}</button>` : '';
+    const toggle = more ? `<button class="link-btn act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span></button>` : '';
+    // No severity chip (2026-10-09): the order (red first), the red tint and the icon carry it.
     return `<li class="act-card sev-${esc(a.severity)}" data-row="${esc(a.id)}">
       <span class="act-icon">${icon(kindIcon)}</span>
       <div class="act-main">
-        <div class="act-head"><h3 class="act-title">${esc(a.title)}</h3><span class="sev-chip">${icon(sev.icon)}${esc(a.tag || sev.label)}</span></div>
+        <h3 class="act-title">${esc(a.title)}</h3>
         <p class="act-detail">${esc(a.detail)}</p>
-        ${when ? `<p class="act-when">${when}</p>` : ''}
+        ${when || toggle ? `<p class="act-when">${when}${toggle}</p>` : ''}
         ${more}
       </div>
-      <div class="act-do">${actionPrimary(a, PRIMARY_STYLE[a.severity] || 'btn btn-glass')}${toggle}</div>
+      <div class="act-do">${actionPrimary(a, PRIMARY_STYLE[a.severity] || 'btn btn-glass')}</div>
     </li>`;
   }
 
@@ -323,17 +330,36 @@
   function ServiceWorkCard(s, actions) {
     const svc = D8.data.SERVICES[s.id];
     const act = s.next && s.next.actionId ? (actions || []).find((a) => a.id === s.next.actionId) : null;
-    const waiting = act && s.next.who === 'client' ? `<a class="in-wait" href="#h-attention">${icon('alert')}This is in Waiting for you</a>` : '';
     return `<article class="card work-card is-link" aria-labelledby="wc-${esc(s.id)}">
       <header class="work-head"><h3 id="wc-${esc(s.id)}">${icon(svc.icon)}${esc(svc.label)}</h3>${StatusBadge(s.status)}</header>
       <dl class="facts work-facts">
         <div><dt>Right now</dt><dd>${esc(s.now || 'Getting started')}</dd></div>
-        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${nextStep(s.next, act)}${waiting}</dd></div>` : ''}
+        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${s.next.who === 'client' && act ? 'Waiting for you' : nextStep(s.next, act)}</dd></div>` : ''}
         ${s.expected && s.expected.date ? `<div><dt>Coming</dt><dd>${comingLine(s)}</dd></div>` : ''}
         ${s.proof && s.proof.text ? `<div><dt>Last done</dt><dd>${esc(s.proof.text)}, ${esc(day(s.proof.date))}</dd></div>` : ''}
       </dl>
       <a class="link link-more card-link-text" href="#/work/${esc(s.id)}">See details<span class="sr-only"> for ${esc(svc.label)}</span>${icon('arrow-right')}</a>
     </article>`;
+  }
+
+  /**
+   * Home's services: one card, one row per service (icon, name, status, what we are doing right now), each row
+   * a link to that service on Work. A step that is the client's reads "Waiting for you", in plain text.
+   * @param {any[]} list @param {any[]} [actions] what is waiting for the client
+   */
+  function ServiceRows(list, actions) {
+    const rows = list.map((s) => {
+      const svc = D8.data.SERVICES[s.id];
+      const act = s.next && s.next.actionId ? (actions || []).find((a) => a.id === s.next.actionId) : null;
+      const yours = (act && s.next.who === 'client') || s.status === 'waiting';
+      const status = yours ? '<span class="svc-row-wait">Waiting for you</span>' : StatusBadge(s.status);
+      return `<li><a class="svc-row" href="#/work/${esc(s.id)}">
+        <span class="svc-row-icon">${icon(svc.icon)}</span>
+        <span class="svc-row-text"><span class="svc-row-name">${esc(svc.label)}</span><span class="svc-row-now">${esc(s.now || 'Getting started')}</span></span>
+        <span class="svc-row-status">${status}</span>${icon('chevron-right', 'svc-row-go')}
+      </a></li>`;
+    }).join('');
+    return `<div class="card svc-rows"><ul class="svc-row-list">${rows}</ul></div>`;
   }
 
   /* ---- insight and updates --------------------------------------------------------------- */
@@ -351,26 +377,25 @@
     </article>`;
   }
 
-  /** Updates are written by the account team unless marked; only the ones that are not say who. */
+  /** An update sent on its own (an app stopped working) carries a small tag; the account team's carry none. */
   function author(u) {
-    if (u.author === 'automatic') return `<span class="author">${icon('refresh', 'author-icon')}Sent automatically when an app stopped working</span>`;
-    return '';
+    return u.author === 'automatic' ? `<span class="tag-auto" title="Sent automatically when an app stopped working">${icon('refresh')}Automatic notice</span>` : '';
   }
 
   /**
-   * One agency update: the title, what we did and what comes next. Anything different, the result and why it
-   * matters sit behind "See details". Compact (Home) shows the title and Next, with the rest behind See details.
+   * One agency update: the date, the service, the title and what we did. Next, anything different, the result and
+   * why it matters sit behind "See details" (2026-10-09). Compact shows the title with everything behind See details,
+   * and a link to all updates.
    */
   function UpdateCard(u, o = {}) {
-    const main = o.compact ? [['Next', u.next]] : [['What we did', u.completed], ['Next', u.next]];
-    const extra = (o.compact ? [['What we did', u.completed]] : []).concat([['Anything different', u.changed], ['Result', u.result], ['Why it matters', u.why]]);
+    const main = o.compact ? [] : [['What we did', u.completed]];
+    const extra = (o.compact ? [['What we did', u.completed]] : []).concat([['Next', u.next], ['Anything different', u.changed], ['Result', u.result], ['Why it matters', u.why]]);
     const dl = (/** @type {any[]} */ rows) => `<dl class="facts facts-wide">${rows.filter((r) => r[1]).map((r) => `<div><dt>${r[0]}</dt><dd>${esc(r[1])}</dd></div>`).join('')}</dl>`;
     const more = extra.filter((r) => r[1]);
     const tag = o.headingLevel || 'h3';
-    const by = author(u);
-    const foot = by || o.compact ? `<footer class="update-foot">${by}${o.compact ? `<a class="link link-more" href="#/updates">See all updates${icon('arrow-right')}</a>` : ''}</footer>` : '';
+    const foot = o.compact ? `<footer class="update-foot"><a class="link link-more" href="#/updates">See all updates${icon('arrow-right')}</a></footer>` : '';
     return `<article class="card update${o.compact ? ' is-compact' : ''}"${o.id ? ` id="${esc(o.id)}"` : ''}>${o.lead || ''}
-      <header class="update-head"><p class="update-date"><time datetime="${esc(u.date)}">${esc(day(u.date))}</time></p>${ServiceTag(u.service)}</header>
+      <header class="update-head"><p class="update-date"><time datetime="${esc(u.date)}">${esc(day(u.date))}</time></p>${ServiceTag(u.service)}${author(u)}</header>
       <${tag} class="update-title">${esc(u.title)}</${tag}>
       ${main.some((r) => r[1]) ? dl(main) : ''}
       ${more.length ? `<details class="update-more"><summary>See details${icon('chevron-down')}</summary>${dl(more)}</details>` : ''}
@@ -399,19 +424,16 @@
       failed: ['Payment failed', 'error', 'alert'],
       open: ['Due', 'attention', 'clock']
     }[inv.status] || ['Unknown', 'neutral', 'info'];
-    // Invoices are the one place with the year. They lead with their month; the number is small.
-    const yr = (/** @type {any} */ x) => F.date(x, { year: true });
-    const period = inv.period && inv.period[0] && inv.period[1] ? `${yr(inv.period[0])} to ${yr(inv.period[1])}` : '';
-    const month = inv.issued ? F.monthYear(inv.issued).split(' ')[0] + ' invoice' : 'Invoice';
-    // The amount only when the record has one (live invoices carry it; the demo's do not).
+    // One line per invoice: "September, BAY-0009", the amount only when the record has one (live invoices carry
+    // it; the demo's do not), and its status. A failed one's note repeats the banner above, so it is left out.
+    const month = inv.issued ? F.monthYear(inv.issued).split(' ')[0] : 'Invoice';
     let amount = '';
     if (inv.amountMinor !== undefined && inv.amountMinor !== null && inv.currency) {
       try { amount = new Intl.NumberFormat('en-GB', { style: 'currency', currency: String(inv.currency).toUpperCase() }).format(Number(inv.amountMinor) / 100); } catch (e) { amount = ''; }
     }
-    // A failed invoice's note repeats the payment problem shown at the top of Billing, so it points there instead.
-    const note = inv.status === 'failed' && o.problemShown ? '<p class="meta">See the payment problem above.</p>' : inv.note ? `<p class="meta">${esc(inv.note)}</p>` : '';
+    const note = inv.status === 'failed' && o.problemShown ? '' : inv.note ? `<p class="meta">${esc(inv.note)}</p>` : '';
     return `<li class="invoice">
-      <div class="inv-main"><p class="inv-num">${esc(month)}${amount ? `, ${esc(amount)}` : ''}</p><p class="meta">${esc(inv.number)}${inv.issued ? `, sent ${esc(yr(inv.issued))}` : ''}${period ? `, for ${esc(period)}` : ''}</p>${note}</div>
+      <div class="inv-main"><p class="inv-num">${esc(month)}, ${esc(inv.number)}${amount ? `, ${esc(amount)}` : ''}</p>${note}</div>
       <span class="badge tone-${st[1]}">${icon(st[2])}${st[0]}</span>
       <button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="invoice" data-id="${esc(inv.id)}" data-number="${esc(inv.number)}">See invoice<span class="sr-only"> ${esc(inv.number)} on Stripe</span>${icon('external')}</button>
     </li>`;
@@ -433,7 +455,7 @@
     icon, day, span, metricLabel, replyLine, fromSource, sourceAbout, comingLine,
     StatusBadge, ServiceTag, HealthBadge, FreshnessIndicator, SourceChip, StatusChip, Delta, NewBadge, ComparisonNote, sourceLine,
     EmptyState, ErrorState, Skeleton, PageHeader, SectionHead,
-    Sparkline, MetricCard, MetricStrip, ActionNeededItem, ActionNeededList, CaughtUp, UpcomingList, ServiceWorkCard, nextStep,
+    Sparkline, MetricCard, MetricStrip, ActionNeededItem, ActionNeededList, CaughtUp, UpcomingList, ServiceWorkCard, ServiceRows, nextStep,
     InsightCard, UpdateCard, DateRangeSelector, FilterChips, InvoiceRow
   };
 })(typeof window !== 'undefined' ? window : globalThis);

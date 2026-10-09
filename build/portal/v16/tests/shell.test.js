@@ -15,12 +15,17 @@ test('the sidebar has no demo or preview control: preview mode sits apart from t
   assert.ok(!side.includes('data-action="demo"'), 'no demo control in the sidebar');
   assert.ok(!/demo data/i.test(side), 'no demo wording in the sidebar');
   assert.ok(html.includes('class="preview-chip is-float"'), 'a separate preview chip exists');
+  const top = between('<header class="topbar">', '</header>');
+  assert.ok(!top.includes('preview-chip'), 'no Preview pill in the phone top bar (it is in the account menu)');
+  assert.ok(between('<div class="account-menu"', '</div>').includes('data-action="demo"'), 'Preview mode stays reachable from the account menu');
   assert.ok(/data-preview hidden/.test(html), 'preview controls start hidden and only show in demo mode');
 });
 
-test('the sidebar keeps five main items, then Settings, Help and Sign out', () => {
+test('the sidebar keeps four main items (Updates is the Done tab of Work), then Settings, Help and Sign out', () => {
   const main = between('<nav class="nav" aria-label="Main">', '</nav>');
-  assert.deepEqual([...main.matchAll(/data-nav="([a-z]+)"/g)].map((m) => m[1]), ['home', 'work', 'results', 'updates', 'billing']);
+  assert.deepEqual([...main.matchAll(/data-nav="([a-z]+)"/g)].map((m) => m[1]), ['home', 'work', 'results', 'billing']);
+  const tabs = between('<nav class="tabbar" aria-label="Main">', '</nav>');
+  assert.deepEqual([...tabs.matchAll(/data-nav="([a-z]+)"/g)].map((m) => m[1]), ['home', 'work', 'results', 'billing'], 'the phone tab bar has the same four');
   const foot = between('<div class="side-foot">', '</div>');
   for (const x of ['data-nav="settings"', 'data-nav="help"', 'data-action="sign-out"', 'data-action="toggle-side"']) assert.ok(foot.includes(x), x);
 });

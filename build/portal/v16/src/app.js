@@ -89,7 +89,7 @@
       b.setAttribute('aria-expanded', rail ? 'false' : 'true');
       b.setAttribute('aria-label', rail ? 'Expand sidebar' : 'Collapse sidebar');
       b.setAttribute('title', rail ? 'Make menu bigger' : 'Make menu smaller');
-      b.querySelector('.nav-label').textContent = rail ? 'Expand' : 'Collapse';
+      b.querySelector('.side-toggle-label').textContent = rail ? 'Expand sidebar' : 'Collapse sidebar';
       b.querySelector('.i use').setAttribute('href', rail ? '#i-chevron-right' : '#i-chevron-left');
     }
     hideTip();
@@ -157,8 +157,16 @@
 
   /* ---- shell --------------------------------------------------------------------------- */
 
-  /** One badge language: a small pill with a count. Home's is quiet; Billing's marks a problem. */
-  function setBadges(n) {
+  /** Whether Billing shows its own badge for a payment problem. */
+  const billingProblem = () => !!(app.account && app.account.subscription && app.account.subscription.status === 'past_due');
+  /**
+   * One badge language: a small pill with a count. Home's is quiet; Billing's marks a problem.
+   * Given the list of what is waiting, Home's count leaves out the payment problem while Billing
+   * shows it, so the one item is never counted twice (2026-10-09).
+   * @param {number|any[]} items
+   */
+  function setBadges(items) {
+    const n = Array.isArray(items) ? items.filter((x) => !(x && x.kind === 'billing' && billingProblem())).length : Number(items) || 0;
     document.querySelectorAll('[data-badge="home"]').forEach((el) => {
       const b = /** @type {HTMLElement} */ (el);
       b.hidden = !n;
@@ -174,10 +182,12 @@
     $('#avatar').textContent = a.user.firstName.charAt(0);
     $('#account-who').innerHTML = `<strong>${F.esc(a.user.firstName)}</strong><span>${F.esc(a.business.name)}</span>`;
     document.querySelectorAll('[data-preview]').forEach((el) => { /** @type {HTMLElement} */ (el).hidden = D8.data.MODE !== 'demo'; });
-    // The floating Preview mode pill sits over the page's bottom corner: the page gets room underneath it.
+    // The Preview mode pill is docked at the top of the page in the demo: the page gets room above it.
     $('#app').toggleAttribute('data-demo', D8.data.MODE === 'demo');
-    setBadges(a.openActions);
-    const problem = a.subscription && a.subscription.status === 'past_due';
+    const problem = billingProblem();
+    // The count first, then the same count without the payment problem once the list is known.
+    setBadges(Math.max(0, a.openActions - (problem ? 1 : 0)));
+    if (app.client && app.client.getAttention) app.client.getAttention().then(setBadges).catch(() => { /* the first count stays */ });
     document.querySelectorAll('[data-badge="billing"]').forEach((el) => {
       const b = /** @type {HTMLElement} */ (el);
       b.hidden = !problem;
@@ -193,8 +203,10 @@
   function markCurrent(name) {
     // The page's name on the root, so a design can give each page its own world.
     document.documentElement.setAttribute('data-page', name);
+    // Updates is the Done tab of Work (2026-10-09), so Work stays marked there.
+    const nav = name === 'updates' ? 'work' : name;
     document.querySelectorAll('[data-nav]').forEach((el) => {
-      if (el.getAttribute('data-nav') === name) el.setAttribute('aria-current', 'page');
+      if (el.getAttribute('data-nav') === nav) el.setAttribute('aria-current', 'page');
       else el.removeAttribute('aria-current');
     });
     placeIndicator();

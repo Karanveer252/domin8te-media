@@ -32,13 +32,28 @@ for (const scene of ['static', 'scenes']) for (const r of routes) cases.push({ n
 for (const r of routes) cases.push({ name: `tablet ${r}`, route: r, w: 1024, h: 900, expect: { page: pageOf[r] || r } });
 
 // 4. The flows.
-const navs = ['work', 'results', 'updates', 'billing', 'settings', 'help', 'home'];
+const navs = ['work', 'results', 'billing', 'settings', 'help', 'home'];
 cases.push(flow('nav through every page by the panel', navs.map((p) => st(`click('.side .nav-link[data-nav="${p}"]'); setTimeout(function () { note('${p}', title()); }, 350);`)), { expect: { page: 'home' } }));
 cases.push(flow('nav on Scenes', navs.map((p) => st(`click('.side .nav-link[data-nav="${p}"]'); setTimeout(function () { note('${p}', title()); }, 350);`)), { query: 'scene=scenes', expect: { page: 'home', scene: 'scenes' } }));
 cases.push(flow('collapse and expand the panel', [
   st(`click('.side-toggle'); setTimeout(function () { note('collapsed', $('.side-toggle').getAttribute('aria-expanded')); }, 300);`),
   st(`click('.side-toggle'); setTimeout(function () { note('expanded', $('.side-toggle').getAttribute('aria-expanded')); }, 300);`)
 ]));
+// Updates is the Done tab of Work (2026-10-09): Now and Done switch, and Work stays marked in the panel.
+cases.push(flow('Work: Now, Done and back', [
+  st(`click('.side .nav-link[data-nav="work"]');`),
+  st(`click('.work-tab[href="#/updates"]'); setTimeout(function () { note('done', location.hash + ' ' + !!$('#upd-service')); note('work marked', $('.side .nav-link[data-nav="work"]').getAttribute('aria-current')); }, 350);`),
+  st(`click('.work-tab[href="#/work"]'); setTimeout(function () { note('now', location.hash + ' ' + !!$('.svc-section')); }, 350);`)
+], { gap: 800, expect: { page: 'work' } }));
+cases.push(flow('Ask for a change from the top of Work asks which service', [
+  st(`click('.page-head [data-action="compose"]');`),
+  st(`var sel = $('#msg-service'); if (!sel) throw new Error('no service select'); sel.value = sel.options[sel.options.length - 1].value; var f = $('#dlg form'); f.querySelector('textarea').value = 'Please add the new brunch photo.'; f.requestSubmit();`),
+  st(`note('title', ($('#dlg-title') || {}).textContent); click('#dlg [data-dlg-close]');`)
+], { route: 'work', gap: 800 }));
+cases.push(flow('Settings: Add someone shows the form, connections expand', [
+  st(`var f = $('#login-ask'); note('hidden first', f.hidden); click('[data-action="add-login"]'); note('shown', !f.hidden);`),
+  st(`var d = $('.fold-sources'); d.open = true; note('rows', $$('.fold-sources .src-row').length);`)
+], { route: 'settings', gap: 600 }));
 cases.push(flow('attention card details open and close', [
   st(`click('.act-toggle'); note('open', $('.act-toggle').getAttribute('aria-expanded'));`),
   st(`click('.act-toggle'); note('closed', $('.act-toggle').getAttribute('aria-expanded'));`)
@@ -66,16 +81,16 @@ cases.push(flow('message the account team from Help', [
   st(`note('title', ($('#dlg-title') || {}).textContent); click('#dlg [data-dlg-close]');`)
 ], { route: 'help', gap: 800 }));
 cases.push(flow('save email preferences', [
-  st(`var box = $$('#notify-form input[type="checkbox"]').filter(function (b) { return !b.disabled; })[0]; box.click(); note('save enabled', !$('#notify-form button[type="submit"]').disabled);`),
+  st(`$('.fold-emails').open = true; var box = $$('#notify-form input[type="checkbox"]').filter(function (b) { return !b.disabled; })[0]; box.click(); note('save enabled', !$('#notify-form button[type="submit"]').disabled);`),
   st(`$('#notify-form').requestSubmit();`),
   st(`note('status', ($('#notify-status') || {}).textContent);`)
 ], { route: 'settings', gap: 900 }));
 cases.push(flow('theme dark then light from Settings', [
-  st(`click('input[name="theme"][value="dark"]'); note('dark', document.documentElement.getAttribute('data-theme')); note('toast1', toast());`),
+  st(`$('.fold-look').open = true; click('input[name="theme"][value="dark"]'); note('dark', document.documentElement.getAttribute('data-theme')); note('toast1', toast());`),
   st(`click('input[name="theme"][value="light"]'); note('light', document.documentElement.getAttribute('data-theme'));`)
 ], { route: 'settings' }));
 cases.push(flow('Scenes then Static from Settings', [
-  st(`click('.scene-pick input[value="scenes"]'); var h = document.documentElement; note('scenes', h.getAttribute('data-scene') + ' live ' + h.classList.contains('dots-live')); note('toast', toast()); note('stored', localStorage.getItem('d8.18h.scene'));`),
+  st(`$('.fold-look').open = true; click('.scene-pick input[value="scenes"]'); var h = document.documentElement; note('scenes', h.getAttribute('data-scene') + ' live ' + h.classList.contains('dots-live')); note('toast', toast()); note('stored', localStorage.getItem('d8.18h.scene'));`),
   st(`click('.scene-pick input[value="static"]'); var h = document.documentElement; note('static', h.getAttribute('data-scene') + ' live ' + h.classList.contains('dots-live'));`)
 ], { route: 'settings', expect: { scene: 'static' } }));
 cases.push(flow('Scenes in dark, then back to Home', [
@@ -89,8 +104,8 @@ cases.push(flow('Results range and table', [
   st(`note('hash', location.hash); var t = byText('button, summary, a', 'Show these numbers as a table'); if (t) { t.click(); } note('table', !!$('table'));`)
 ], { route: 'results', gap: 900 }));
 cases.push(flow('Updates filter', [
-  st(`var chips = $$('.page input[type="radio"], .page [role="tab"], .page .seg input'); note('filters', chips.length); if (chips[1]) chips[1].click();`),
-  st(`note('title', title()); note('items', $$('.page article, .page .feed-item, .page li').length);`)
+  st(`var sel = $('#upd-service'); if (!sel) throw new Error('no filter'); note('filters', sel.options.length); sel.value = sel.options[1].value; sel.dispatchEvent(new Event('change', { bubbles: true }));`),
+  st(`note('title', title()); note('hash', location.hash); var n = $$('.page article').length; note('items', n); if (!/service=/.test(location.hash)) throw new Error('filter did not apply');`)
 ], { route: 'updates', gap: 800 }));
 cases.push(flow('Billing: invoice and payment method dialogs', [
   st(`click('[data-kind="invoice"]');`),
@@ -98,10 +113,10 @@ cases.push(flow('Billing: invoice and payment method dialogs', [
   st(`click('[data-kind="billing-portal"]');`),
   st(`note('payment', ($('#dlg-title') || {}).textContent); click('#dlg [data-dlg-close]');`)
 ], { route: 'billing', gap: 700 }));
-cases.push(flow('Refresh', [
+cases.push(flow('Refresh (beside the range picker on Results)', [
   st(`click('[data-action="refresh"]');`),
   st(`note('toast', toast());`)
-], { gap: 1500 }));
+], { route: 'results', gap: 1500, expect: { page: 'results' } }));
 cases.push(flow('demo situation: All caught up, then back', [
   st(`click('.preview-chip.is-float');`),
   st(`note('dialog', dlg()); click('[data-scenario="cornerbean"]');`),

@@ -320,7 +320,8 @@
   // The slider sits beside the Preview mode chip when that floats in the corner.
   const chip = /** @type {HTMLElement|null} */ (document.querySelector('.preview-chip.is-float'));
   const place = () => {
-    const w = chip ? chip.offsetWidth : 0;
+    // Only while the chip floats in the corner (it is docked at the top of the page since 2026-10-09).
+    const w = chip && getComputedStyle(chip).position === 'fixed' ? chip.offsetWidth : 0;
     if (w && !media('(max-width: 760px)')) dock.style.setProperty('--lg-dock-x', `${w + 26}px`);
     else dock.style.removeProperty('--lg-dock-x');
   };

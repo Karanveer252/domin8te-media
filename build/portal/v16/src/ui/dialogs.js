@@ -338,8 +338,10 @@
     const isRequest = o.mode === 'request';
     const svc = isRequest ? D8.data.SERVICES[o.service] : null;
     const pkg = ctx.account.package.services;
-    const title = isRequest ? `Ask for a change: ${svc ? svc.label : ''}` : 'Message us';
-    const about = isRequest ? '' : `<div class="field"><label for="msg-about">What is it about?</label><select id="msg-about" name="about"><option value="general">Something else</option>${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>`;
+    const title = isRequest ? (svc ? `Ask for a change: ${svc.label}` : 'Ask for a change') : 'Message us';
+    // Opened from the top of Work (2026-10-09), a request first asks which service it is for.
+    const pick = isRequest && !svc ? `<div class="field"><label for="msg-service">Which service?</label><select id="msg-service" name="service">${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}</select></div>` : '';
+    const about = isRequest ? pick : `<div class="field"><label for="msg-about">What is it about?</label><select id="msg-about" name="about"><option value="general">Something else</option>${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>`;
     let sent = false;
     open(head(title, esc(D8.ui.replyLine(ctx.account.team.reply || ''))) + `<div class="dlg-body">
       <form class="dlg-form" novalidate>
@@ -363,7 +365,8 @@
       if (!text.trim()) { fieldError('text', isRequest ? 'Tell us what you would like changed.' : 'Write your message first.'); return; }
       const btn = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
       setBusy(true, btn, 'Sending');
-      const p = isRequest ? ctx.client.sendRequest(o.service, text) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text);
+      const svcEl = /** @type {HTMLSelectElement|null} */ (form.elements.namedItem('service'));
+      const p = isRequest ? ctx.client.sendRequest(svcEl ? svcEl.value : o.service, text) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text);
       p.then((rec) => {
         sent = true;
         setBusy(false);

@@ -963,3 +963,101 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-
 .acct-rows li:first-child { border-top: 0; }
 .acct-name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600; }
 .acct-rows select { width: auto; min-width: 190px; }
+
+/* ==== Round 4 (2026-10-09): the simplest structure. Five client tabs, Talk, Setup folds, one-line cards ==== */
+/* Five tabs on one line, no divider. */
+@media (min-width: 760px) { .tabs { flex-wrap: nowrap; overflow-x: auto; gap: 2px; } }
+/* The client header: status, warnings only when something is missing, the rest folded into About. */
+.client-head .who { align-items: center; }
+.chip-link { text-decoration: none; }
+.chip-link:hover, .chip-link:focus-visible { text-decoration: underline; }
+.about > summary { cursor: pointer; list-style: none; color: var(--accent-ink); font-size: 13.5px; font-weight: 600; }
+.about > summary::-webkit-details-marker { display: none; }
+.about > summary::after { content: " +"; color: var(--ink-3); font-weight: 500; }
+.about[open] > summary::after { content: " \2212"; }
+.about[open] { flex-basis: 100%; }
+.about-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 6px; }
+/* Overview: one to-do list, one Next line, one row per service. */
+.todo { display: grid; margin: 0; padding: 0; list-style: none; }
+.todo li + li { border-top: 1px solid var(--line); }
+.todo-row { display: grid; grid-template-columns: max-content minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 0; color: var(--ink); text-decoration: none; }
+.todo-row:hover .text { text-decoration: underline; }
+.todo-row .text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.todo-row .meta { white-space: nowrap; }
+.todo-row .meta.late { color: var(--bad); font-weight: 600; }
+@media (max-width: 760px) { .todo-row { display: flex; flex-wrap: wrap; gap: 4px 10px; } .todo-row .text { order: 3; flex-basis: 100%; white-space: normal; } }
+.next-line { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: var(--ink-2); font-size: 14px; }
+.next-line .ic { flex: none; color: var(--ink-3); }
+.svc-rows { display: grid; margin: 0; padding: 0; list-style: none; }
+.svc-rows li + li { border-top: 1px solid var(--line); }
+.svc-rows a { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 10px 0; color: var(--ink); text-decoration: none; }
+.svc-rows .s-name { display: inline-flex; align-items: center; gap: 10px; font-weight: 650; }
+.svc-rows .s-edit { color: var(--accent-ink); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.svc-rows a:hover .s-edit, .svc-rows a:focus-visible .s-edit { text-decoration: underline; }
+.svc-off-line { margin-top: 10px; }
+/* Needs you: rows without the arrow; inside a client's group, no client name. */
+.q-row { grid-template-columns: minmax(150px, 210px) 160px minmax(0, 1fr) auto; }
+.q-row.no-client { grid-template-columns: 160px minmax(0, 1fr) auto; }
+@media (max-width: 760px) { .q-row, .q-row.no-client { grid-template-columns: minmax(0, 1fr) auto; } }
+.page-head .updated { align-items: center; }
+.icon-btn.icon-btn-sm { width: 32px; height: 32px; }
+.soon-strip { margin: 0 0 18px; padding: 10px 16px; border: 1px solid var(--line); border-radius: var(--r-item, 12px); background-color: var(--glass-soft, var(--surface)); box-shadow: var(--glass-shadow-sm, none); }
+.soon-strip > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; color: var(--ink-2); font-size: 14px; }
+.soon-strip > summary::-webkit-details-marker { display: none; }
+.soon-strip > summary::after { content: "+"; margin-left: auto; color: var(--ink-3); }
+.soon-strip[open] > summary::after { content: "\2212"; }
+.soon-strip[open] > summary { margin-bottom: 10px; }
+.soon-strip b { color: var(--ink); font-weight: 650; }
+.soon-strip .q { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.q-fold > summary { cursor: pointer; list-style: none; }
+.q-fold > summary::-webkit-details-marker { display: none; }
+.q-fold > summary h2::after { content: "+"; color: var(--ink-3); font-weight: 500; }
+.q-fold[open] > summary h2::after { content: "\2212"; }
+.q-fold[open] > summary { margin-bottom: 8px; }
+.q-dm { margin-bottom: 14px; }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] :is(main > .q-fold > summary h2, main > .q-fold > .lede, main > .q-fold .q-client-h, main > .q-fold > .q-client > .q-more > summary) { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+/* Check before it goes live: one line and two buttons; the rest under Details. */
+.dm-card { gap: 6px; }
+.dm-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; }
+.dm-line .g-top { flex: 1 1 320px; min-width: 0; }
+.dm-title { min-width: 0; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+.dm-ids .dm-diff { margin-top: 8px; }
+.dm-ids .actions { margin-top: 8px; }
+/* Cards: client, title, one chip. Everything else is on hover and in Edit. */
+.card-meta { justify-content: flex-start; }
+.card-edit-btn { margin-left: auto; font-size: 12.5px; }
+.board { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(186px, 1fr); }
+@media (max-width: 1240px) { .board { grid-template-columns: none; grid-auto-columns: 230px; } }
+@media (max-width: 760px) { .board { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: 1fr; } }
+.multica-chip .linkish { color: inherit; font: inherit; }
+/* Talk: three buttons on top, quiet removes. */
+.talk-bar { gap: 8px; }
+.quiet-act { margin-left: 4px; color: var(--ink-3); font-size: 12.5px; text-decoration: none; }
+.quiet-act:hover, .quiet-act:focus-visible { color: var(--bad); text-decoration: underline; }
+.item-card .item-title .chip { margin-right: 6px; }
+.req-select { width: auto; min-height: 30px; padding: 3px 28px 3px 10px; font-size: 13px; }
+.item-card .thread { margin-top: 10px; }
+/* Plan and sign-off as segmented controls; only the chosen one's words show. */
+.seg-radio label { position: relative; display: inline-flex; align-items: center; min-height: 30px; padding: 0 14px; border-radius: 7px; color: var(--ink-2); font-weight: 600; font-size: 13.5px; cursor: pointer; }
+.seg-radio input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.seg-radio label:has(input:checked) { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(40, 30, 20, 0.1); }
+.seg-radio label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg-desc { display: none; margin: 6px 0 0; }
+.seg-set:has(input[value="bronze"]:checked) .seg-desc[data-v="bronze"], .seg-set:has(input[value="silver"]:checked) .seg-desc[data-v="silver"], .seg-set:has(input[value="gold"]:checked) .seg-desc[data-v="gold"],
+.seg-set:has(input[value="red"]:checked) .seg-desc[data-v="red"], .seg-set:has(input[value="yellow"]:checked) .seg-desc[data-v="yellow"], .seg-set:has(input[value="green"]:checked) .seg-desc[data-v="green"] { display: block; }
+/* Billing: counts inside the filter chips. */
+.seg .count.quiet { background: var(--surface-3); color: var(--ink-2); }
+/* The keyboard shortcuts, from the "?" in the sidebar. */
+.keys-dlg { width: min(480px, calc(100vw - 32px)); margin: auto; padding: 22px 24px; }
+.keys-dlg h2 { margin: 0 0 14px; font-size: 18px; }
+.keys-dlg .actions { display: flex; justify-content: flex-end; margin-top: 18px; }
+/* Logins in Setup: people and requests as quiet rows, not bullets. */
+.item-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.item-list > li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--r-item, 12px); }
+.item-list .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.q-group > h2 + .q-client { margin-top: 10px; }
+/* On the moving sky: the Updated line and the About fold stay readable. */
+html[data-scene="scenes"]:not([data-theme="dark"]):is([data-page="queue"], [data-page="board"], [data-page="new"], [data-page="settings"]) main > .page-head .updated .meta { color: rgba(246, 243, 238, 0.92); text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] .about > summary, html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] .about > summary::after { color: var(--ink); }
+html[data-scene="scenes"] #tab > .toolbar .chip { background-color: rgba(255, 255, 255, 0.92); }
+html[data-scene="scenes"][data-theme="dark"] #tab > .toolbar .chip { background-color: rgba(16, 18, 23, 0.85); }

@@ -50,15 +50,13 @@
     </div>
     <ul class="nav">
       <li><a href="#/queue" data-nav="queue"><svg class="ic"><use href="#i-inbox"/></svg>Needs you<span class="badge" id="queue-badge" hidden></span></a></li>
-      <li><a href="#/clients" data-nav="clients"><svg class="ic"><use href="#i-users"/></svg>Clients<span class="badge quiet" id="clients-badge" hidden></span></a></li>
-      <li><a href="#/board" data-nav="board" title="Every client's team cards on one board"><svg class="ic"><use href="#i-board"/></svg>All work<span class="badge quiet" id="board-badge" hidden></span></a></li>
-      <li><a href="#/billing" data-nav="billing"><svg class="ic"><use href="#i-card"/></svg>Billing<span class="badge" id="billing-badge" hidden></span></a></li>
-      <li><a href="#/new" data-nav="new"><svg class="ic"><use href="#i-plus"/></svg>Add a client</a></li>
+      <li><a href="#/clients" data-nav="clients"><svg class="ic"><use href="#i-users"/></svg>Clients</a></li>
+      <li><a href="#/board" data-nav="board" title="Every client's team cards on one board"><svg class="ic"><use href="#i-board"/></svg>All work</a></li>
+      <li><a href="#/billing" data-nav="billing"><svg class="ic"><use href="#i-card"/></svg>Billing<span class="badge" id="billing-badge" hidden title="Past due"></span></a></li>
       <li><a href="#/settings" data-nav="settings"><svg class="ic"><use href="#i-gear"/></svg>Settings</a></li>
     </ul>
-    <div class="side-h"><span>Clients</span><a href="#/clients">All</a></div>
-    <div class="side-search"><svg class="ic"><use href="#i-search"/></svg><input id="side-find" type="search" placeholder="Find a client" aria-label="Find a client" autocomplete="off"></div>
-    <ul class="side-list" id="side-list"></ul>
+    <div class="side-h" id="side-recent-h" hidden><span>Recent</span><a href="#/clients">All clients</a></div>
+    <ul class="side-list" id="side-list" aria-labelledby="side-recent-h"></ul>
     <div class="side-foot">
       <div class="side-me"><span class="who"><span class="avatar" id="me-avatar"></span><span id="me-name"></span></span><button class="btn btn-quiet btn-sm" type="button" data-action="sign-out">Sign out</button></div>
       <p class="side-hint"><button type="button" data-action="palette" title="Search any client, page or tab"><kbd>Ctrl</kbd><kbd>K</kbd> jump anywhere</button><button class="side-help" type="button" data-action="shortcuts" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">?</button></p>
@@ -77,7 +75,12 @@
 <dialog class="palette" id="palette" aria-label="Jump to">
   <div class="p-in"><svg class="ic ic-lg"><use href="#i-search"/></svg><input id="palette-in" type="text" placeholder="Client, page or tab" aria-label="Jump to" autocomplete="off" spellcheck="false"><kbd class="p-esc">Esc</kbd></div>
   <ul id="palette-list" role="listbox" aria-label="Places"></ul>
-  <div class="p-foot"><span><kbd>↑</kbd><kbd>↓</kbd> choose</span><span><kbd>Enter</kbd> go</span><span><kbd>Esc</kbd> close</span><span><kbd>Alt</kbd><kbd>1</kbd> to <kbd>8</kbd> client tabs</span></div>
+  <div class="p-foot"><span><kbd>↑</kbd><kbd>↓</kbd> choose</span><span><kbd>Enter</kbd> go</span><span><kbd>Esc</kbd> close</span><span><kbd>Alt</kbd><kbd>1</kbd> to <kbd>5</kbd> client tabs</span></div>
+</dialog>
+<dialog class="keys-dlg" id="keys" aria-labelledby="keys-h">
+  <h2 id="keys-h">Keyboard shortcuts</h2>
+  <dl class="facts keys"><dt><kbd>Ctrl</kbd> <kbd>K</kbd> or <kbd>/</kbd></dt><dd>Search any client, page or tab, and jump there</dd><dt><kbd>Alt</kbd> <kbd>1</kbd> to <kbd>5</kbd></dt><dd>Client tabs: Overview, Work, Talk, Setup, Advanced</dd><dt><kbd>Enter</kbd> on a card</dt><dd>Edit the card, and move it</dd><dt><kbd>Esc</kbd></dt><dd>Close the search or a dialog</dd></dl>
+  <div class="actions"><button class="btn btn-quiet" type="button" value="close">Close</button></div>
 </dialog>
 <dialog class="confirm" id="confirm" aria-labelledby="confirm-h">
   <h2 id="confirm-h"></h2><p id="confirm-p"></p>
