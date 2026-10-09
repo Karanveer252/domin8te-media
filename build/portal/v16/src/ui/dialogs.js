@@ -185,7 +185,7 @@
         ${preview(a.preview)}
         <form class="dlg-form" novalidate>
           <div class="field">
-            <label for="apv-comment">Note for your account team <span class="optional">(needed if you request changes)</span></label>
+            <label for="apv-comment">Note for us <span class="optional">(needed if you ask for changes)</span></label>
             <textarea id="apv-comment" name="comment" rows="3" maxlength="1000" aria-describedby="err-comment"></textarea>
             <p class="field-error" id="err-comment" hidden></p>
           </div>
@@ -205,7 +205,7 @@
         fieldError('comment', '');
         formError('');
         if (decision === 'changes' && !comment.trim()) { fieldError('comment', 'Tell us what to change so we can fix it.'); return; }
-        setBusy(true, btn, decision === 'approved' ? 'Saving your approval' : 'Sending your changes');
+        setBusy(true, btn, decision === 'approved' ? 'Saving' : 'Sending');
         ctx.client.decide(id, decision, comment).then((rec) => {
           changed = true;
           setBusy(false);
@@ -221,12 +221,12 @@
           } else if (err.field && fieldError(err.field, err.message)) {
             /* shown next to the field */
           } else {
-            formError(`We couldn't save your answer, so nothing has changed. ${err.message || ''} Try again.`);
+            formError(`We couldn't save your answer, so nothing changed. ${err.message || ''} Try again.`);
           }
         });
       });
     }).catch((err) => {
-      inner().innerHTML = head('Something went wrong', '') + `<div class="dlg-body">${D8.ui.ErrorState({ title: "We couldn't open this item.", text: err.message || 'Try again in a moment.' })}<div class="dlg-actions"><button class="btn btn-glass" type="button" data-dlg-close>Close</button></div></div>`;
+      inner().innerHTML = head('Something went wrong', '') + `<div class="dlg-body">${D8.ui.ErrorState({ title: "We couldn't open this.", text: err.message || 'Try again soon.' })}<div class="dlg-actions"><button class="btn btn-glass" type="button" data-dlg-close>Close</button></div></div>`;
       focusTitle();
     });
   }
@@ -234,14 +234,14 @@
   /* ---- outside pages: Stripe, Instagram, Clerk -------------------------------------------- */
 
   const OUTSIDE = {
-    'billing-portal': { title: 'Update your payment method', where: 'Stripe', text: 'Your card details are handled by Stripe, our payment provider, on its own secure page. Domin8te never sees your full card number.' },
-    invoice: { title: 'View invoice', where: 'Stripe', text: 'Invoices, with the amount and a PDF to download, open on Stripe.' },
-    'connect-instagram': { title: 'Reconnect Instagram', where: 'Instagram', text: "You'll sign in on Instagram's own page and choose the account Domin8te can post to. We never see your password." },
-    'clerk-account': { title: 'Sign-in and security', where: 'Clerk', text: 'Your email address, sign-in methods and active sessions are managed by Clerk, our sign-in provider.' }
+    'billing-portal': { title: 'Update your payment method', where: 'Stripe', text: 'Stripe, our payment service, looks after your card on its own safe page. We never see the full card number.' },
+    invoice: { title: 'Invoice', where: 'Stripe', text: 'Invoices open on Stripe, with the amount and a PDF to download.' },
+    'connect-instagram': { title: 'Reconnect Instagram', where: 'Instagram', text: "You sign in on Instagram's own page and pick the account we can post to. We never see your password." },
+    'clerk-account': { title: 'Sign-in and security', where: 'Clerk', text: 'Clerk, our sign-in service, looks after your email address, how you sign in, and where you are signed in.' }
   };
 
   function external(kind, id, trigger) {
-    const o = OUTSIDE[kind] || (String(kind).startsWith('connect-') ? { title: 'Reconnect this account', where: 'the provider', text: "You'll sign in on the provider's own page and choose what Domin8te can access. We never see your password." } : null);
+    const o = OUTSIDE[kind] || (String(kind).startsWith('connect-') ? { title: 'Reconnect this account', where: 'the provider', text: "You sign in on that service's own page and choose what we can use. We never see your password." } : null);
     if (!o) return;
     const b = /** @type {HTMLButtonElement|null} */ (trigger && trigger.tagName === 'BUTTON' ? trigger : null);
     if (b) b.disabled = true;
@@ -251,11 +251,11 @@
       if (url) { root.location.assign(url); return; }
       open(head(number ? `${o.title} ${number}` : o.title, '') + `<div class="dlg-body">
         <p class="dlg-intro">${esc(o.text)}</p>
-        <div class="notice">${icon('info')}<p><strong>${esc(o.where)} is not connected in this demo</strong>, so nothing opens and nothing changes. In the live portal this button takes you straight to ${esc(o.where)}, then brings you back here.</p></div>
+        <div class="notice">${icon('info')}<p><strong>This is a demo</strong>, so ${esc(o.where)} does not open and nothing changes. In your real portal, this button takes you to ${esc(o.where)} and back.</p></div>
         <div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Close</button></div></div>`, trigger);
     }).catch(() => {
       if (b) b.disabled = false;
-      toast(`We couldn't reach ${o.where} just now. Try again in a minute.`, { tone: 'error' });
+      toast(`We couldn't reach ${o.where}. Try again in a minute.`, { tone: 'error' });
     });
   }
 
@@ -265,16 +265,16 @@
     const isRequest = o.mode === 'request';
     const svc = isRequest ? D8.data.SERVICES[o.service] : null;
     const pkg = ctx.account.package.services;
-    const title = isRequest ? `Ask for a change: ${svc ? svc.label : ''}` : 'Message your account team';
+    const title = isRequest ? `Ask for a change: ${svc ? svc.label : ''}` : 'Message us';
     const about = isRequest ? '' : `<div class="field"><label for="msg-about">What is it about?</label><select id="msg-about" name="about"><option value="general">Something else</option>${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>`;
     let sent = false;
-    open(head(title, esc(ctx.account.team.reply)) + `<div class="dlg-body">
+    open(head(title, esc(ctx.account.team.reply || '')) + `<div class="dlg-body">
       <form class="dlg-form" novalidate>
         ${about}
         <div class="field">
           <label for="msg-text">${isRequest ? 'What would you like changed?' : 'Your message'}</label>
           <textarea id="msg-text" name="text" rows="5" maxlength="2000" aria-describedby="msg-hint err-text"></textarea>
-          <p class="hint" id="msg-hint">${isRequest ? 'For example: swap the brunch photo for the one I sent on Monday.' : 'Your account team reads every message. For urgent problems, say so in the first line.'}</p>
+          <p class="hint" id="msg-hint">${isRequest ? 'For example: swap the brunch photo for the one I sent on Monday.' : 'We read every message. If it is urgent, say so in the first line.'}</p>
           <p class="field-error" id="err-text" hidden></p>
         </div>
         <p class="form-error" role="alert" hidden></p>
@@ -294,12 +294,12 @@
       p.then((rec) => {
         sent = true;
         setBusy(false);
-        inner().innerHTML = head(isRequest ? 'Request sent' : 'Message sent', '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>Thanks, ${esc(ctx.session.firstName)}.</h3><p>Your account team ${esc(F.lcFirst(ctx.account.team.reply))}. We'll answer here and by email.</p><p class="audit">${icon('clock')}Sent on ${esc(F.date(rec.at))} at ${esc(F.time(rec.at))}</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
+        inner().innerHTML = head(isRequest ? 'Request sent' : 'Message sent', '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>Thanks, ${esc(ctx.session.firstName)}.</h3><p>${ctx.account.team.reply ? esc(ctx.account.team.reply) + '. ' : ''}We'll answer here and by email.</p><p class="audit">${icon('clock')}Sent on ${esc(F.date(rec.at))} at ${esc(F.time(rec.at))}</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
         focusTitle();
-        toast(isRequest ? 'Request sent to your account team.' : 'Message sent to your account team.');
+        toast(isRequest ? 'Request sent.' : 'Message sent.');
       }).catch((err) => {
         setBusy(false, btn);
-        if (!(err.field && fieldError(err.field, err.message))) formError(`We couldn't send that, so nothing was sent. ${err.message || ''} Try again.`);
+        if (!(err.field && fieldError(err.field, err.message))) formError(`That did not send. ${err.message || ''} Try again.`);
       });
     });
   }
@@ -314,12 +314,12 @@
   function demo(trigger, ctx) {
     const cur = D8.data.currentScenario();
     open(head('Preview mode', 'Demo data only. Not a client account.') + `<div class="dlg-body">
-      <p class="dlg-intro">Everything in this portal is made-up demo data. ${esc(ctx.account.business.name)} is not a real ${esc(ctx.account.business.kind.toLowerCase())}, and nothing here is live. Stripe, Clerk and the connected accounts are not wired up yet, so buttons that would open them explain what would happen instead.</p>
-      <h3 class="dlg-h3" id="scn-title">Preview another situation</h3>
+      <p class="dlg-intro">Everything here is made up. ${esc(ctx.account.business.name)} is not a real ${esc(ctx.account.business.kind.toLowerCase())}, and nothing is live. Stripe, Clerk and the connected accounts are not hooked up, so their buttons tell you what would happen instead.</p>
+      <h3 class="dlg-h3" id="scn-title">Try another situation</h3>
       <ul class="scenarios" aria-labelledby="scn-title">${D8.data.scenarios().map((s) => `<li><button class="scenario${s.id === cur.id ? ' is-current' : ''}" type="button" data-scenario="${esc(s.id)}"${s.id === cur.id ? ' aria-current="true"' : ''}><strong>${esc(s.label)}${s.id === cur.id ? '<span class="scn-now">Showing now</span>' : ''}</strong><span>${esc(s.about)}</span></button></li>`).join('')}</ul>
       <p class="meta">Tip: press Alt, Shift and P together to open this panel from any page.</p>
       <h3 class="dlg-h3">Start again</h3>
-      <p>Clears the demo approvals, messages and settings for this account.</p>
+      <p>Clears the demo approvals, messages and settings.</p>
       <div class="dlg-actions"><button class="btn btn-glass" type="button" data-demo-reset>Reset the demo</button><button class="btn btn-glass" type="button" data-dlg-close>Close</button></div></div>`, trigger);
     inner().querySelectorAll('[data-scenario]').forEach((b) => b.addEventListener('click', () => {
       const id = b.getAttribute('data-scenario') || '';
@@ -333,7 +333,7 @@
         setBusy(false, reset);
         close();
         ctx.afterChange();
-        toast('Demo reset. Everything is back to how it started.');
+        toast('Demo reset. Everything is back to the start.');
       });
     });
   }

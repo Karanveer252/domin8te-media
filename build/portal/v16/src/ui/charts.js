@@ -74,7 +74,7 @@
       if (p.v !== null) { dot.setAttribute('cx', px.toFixed(1)); dot.setAttribute('cy', y(p.v).toFixed(1)); dot.setAttribute('visibility', 'visible'); } else dot.setAttribute('visibility', 'hidden');
       if (p.p !== null) { dotPrev.setAttribute('cx', px.toFixed(1)); dotPrev.setAttribute('cy', y(p.p).toFixed(1)); dotPrev.setAttribute('visibility', 'visible'); } else dotPrev.setAttribute('visibility', 'hidden');
       const prevDay = T.isoDay(T.dayNum(p.d) - days);
-      tip.innerHTML = `<strong>${F.date(p.d)}</strong><span>${p.v === null ? 'No figures' : F.num(p.v) + ' ' + F.esc(unit)}</span><span class="tip-prev">${F.date(prevDay, { weekday: false })}: ${p.p === null ? 'no figures' : F.num(p.p)}</span>`;
+      tip.innerHTML = `<strong>${F.date(p.d)}</strong><span>${p.v === null ? 'No numbers' : F.num(p.v) + ' ' + F.esc(unit)}</span><span class="tip-prev">${F.date(prevDay, { weekday: false })}: ${p.p === null ? 'no numbers' : F.num(p.p)}</span>`;
       tip.hidden = false;
       const tw = tip.offsetWidth;
       tip.style.left = Math.max(0, Math.min(W - tw, px - tw / 2)) + 'px';

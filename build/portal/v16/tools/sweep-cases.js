@@ -86,7 +86,7 @@ cases.push(flow('Scenes in dark, then back to Home', [
 ], { route: 'settings', expect: { scene: 'scenes', theme: 'dark', page: 'home' } }));
 cases.push(flow('Results range and table', [
   st(`var r = $$('input[data-change="range"]'); note('ranges', r.length); var seven = r.filter(function (x) { return /7/.test(x.value); })[0] || r[0]; seven.click();`),
-  st(`note('hash', location.hash); var t = byText('button, summary, a', 'Show these figures as a table'); if (t) { t.click(); } note('table', !!$('table'));`)
+  st(`note('hash', location.hash); var t = byText('button, summary, a', 'Show these numbers as a table'); if (t) { t.click(); } note('table', !!$('table'));`)
 ], { route: 'results', gap: 900 }));
 cases.push(flow('Updates filter', [
   st(`var chips = $$('.page input[type="radio"], .page [role="tab"], .page .seg input'); note('filters', chips.length); if (chips[1]) chips[1].click();`),

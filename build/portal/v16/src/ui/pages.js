@@ -67,8 +67,8 @@
       if (!current() || !box.hasAttribute('aria-busy')) return;
       settle();
       const i = info({ code: 'timeout' });
-      if (had) staleNote(box, 'This is taking longer than usual, so you are seeing the last figures we had.', i.retry);
-      else box.innerHTML = UI.ErrorState({ icon: 'clock', title: 'This is taking longer than usual.', text: 'Your connection may be slow, or one of your accounts is not answering. The rest of the page works. Try again, or check back in a minute.', retry: i.retry });
+      if (had) staleNote(box, 'This is slow right now. You are seeing the last numbers we had.', i.retry);
+      else box.innerHTML = UI.ErrorState({ icon: 'clock', title: 'This is taking a while.', text: 'Your internet may be slow, or one of your accounts is not answering. The rest of the page works. Try again in a minute.', retry: i.retry });
     }, SLOW_MS);
     let result;
     try {
@@ -91,7 +91,7 @@
         if (root.console) console.warn('[portal] section failed', sel, e);
         settle();
         const i = info(e);
-        if (had) staleNote(box, "We couldn't refresh this just now, so you are seeing the last figures we had.", i.retry);
+        if (had) staleNote(box, "We couldn't update this. You are seeing the last numbers we had.", i.retry);
         else box.innerHTML = UI.ErrorState(i);
         return null;
       });
@@ -113,7 +113,7 @@
    * then one clickable chip per source problem.
    */
   function freshLine(a, now) {
-    const bits = [`<span class="verified">${icon('shield')}${a.updatedAt ? `Last verified ${esc(F.when(a.updatedAt, now))}` : 'Not verified yet'}</span>`];
+    const bits = [`<span class="verified">${icon('shield')}${a.updatedAt ? `Numbers checked ${esc(F.when(a.updatedAt, now))}` : 'Not checked yet'}</span>`];
     for (const s of a.problems) bits.push(UI.StatusChip(s, now));
     return `<div class="fresh-line" id="fresh-line">${bits.join('')}</div>`;
   }
@@ -121,7 +121,7 @@
   function accountBand(a, now) {
     const sub = a.subscription;
     const bill = sub.status === 'past_due'
-      ? `<span class="badge tone-error">${icon('alert')}Payment problem</span><span class="acct-meta">Services continue until ${esc(F.date(sub.graceUntil))}</span>`
+      ? `<span class="badge tone-error">${icon('alert')}Payment problem</span><span class="acct-meta">Everything keeps running until ${esc(F.date(sub.graceUntil))}</span>`
       : `<span class="badge tone-success">${icon('check')}Paid up</span><span class="acct-meta">Next payment ${esc(F.date(sub.nextBilling))}</span>`;
     const meet = a.meeting
       ? `<span class="acct-value">${esc(F.date(a.meeting.at))} at ${esc(F.time(a.meeting.at))}</span><span class="acct-meta">${esc(a.meeting.title)}, ${esc(a.meeting.length)}</span>`
@@ -131,9 +131,9 @@
     return `<dl class="acct-grid">
       <div class="acct-item"><dt>Your plan</dt><dd><span class="acct-value">${esc(a.package.name)}</span>${services.toLowerCase() === a.package.name.toLowerCase() ? '' : `<span class="acct-meta">${esc(services)}</span>`}</dd></div>
       <div class="acct-item"><dt>Next meeting</dt><dd>${meet}</dd></div>
-      <div class="acct-item"><dt>Billing</dt><dd>${bill}<a class="link" href="#/billing">View billing</a></dd></div>
-      <div class="acct-item"><dt>Your account team</dt><dd><span class="acct-meta">${esc(a.team.reply)}</span><button class="link-btn" type="button" data-action="compose" data-mode="message">Message your account team</button></dd></div>
-      <div class="acct-item"><dt>Connected accounts</dt><dd><span class="acct-value">${a.connected} of ${a.sources.length} working</span><span class="acct-meta">${off.length ? `${esc(F.list(off.map((s) => s.name)))} ${off.length === 1 ? 'needs' : 'need'} attention` : 'All up to date'}</span><a class="link" href="#/settings/sources">View connections</a></dd></div>
+      <div class="acct-item"><dt>Billing</dt><dd>${bill}<a class="link" href="#/billing">See billing</a></dd></div>
+      <div class="acct-item"><dt>Talk to us</dt><dd>${a.team.reply ? `<span class="acct-meta">${esc(a.team.reply)}</span>` : ''}<button class="link-btn" type="button" data-action="compose" data-mode="message">Message us</button></dd></div>
+      <div class="acct-item"><dt>Connected accounts</dt><dd><span class="acct-value">${a.connected} of ${a.sources.length} working</span><span class="acct-meta">${off.length ? `${esc(F.list(off.map((s) => s.name)))} ${off.length === 1 ? 'has a problem' : 'have a problem'}` : 'All working'}</span><a class="link" href="#/settings/sources">See connections</a></dd></div>
     </dl>`;
   }
 
@@ -148,11 +148,11 @@
           <div id="home-strip">${UI.Skeleton('strip', 4)}</div>
         </section>`,
         attention: `<section class="sec sec-attention" aria-labelledby="h-attention">
-          ${UI.SectionHead('h-attention', 'Needs your attention <span class="count" id="attention-count" hidden></span>')}
+          ${UI.SectionHead('h-attention', 'Waiting for you <span class="count" id="attention-count" hidden></span>')}
           <div id="home-attention">${UI.Skeleton('row', 2)}</div>
         </section>`,
         work: `<section class="sec sec-work" aria-labelledby="h-work">
-          ${UI.SectionHead('h-work', 'Current work', '<p class="sec-meta"><a class="link" href="#/work">View all work</a></p>')}
+          ${UI.SectionHead('h-work', 'What we are working on', '<p class="sec-meta"><a class="link" href="#/work">See all work</a></p>')}
           <div id="home-work" class="work-grid">${UI.Skeleton('card', 4)}</div>
         </section>`,
         upcoming: HOME.upcoming ? `<section class="sec sec-upcoming" aria-labelledby="h-upcoming">
@@ -180,11 +180,11 @@
       /** @type {any} */ let strip = null;
       const summary = () => {
         if (count === null || strip === null) return;
-        const lead = count ? `${count} ${F.plural(count, 'thing needs', 'things need')} your attention` : 'Nothing needs your attention right now';
+        const lead = count ? `${count} ${F.plural(count, 'thing is', 'things are')} waiting for you` : 'Nothing is waiting for you right now';
         const m = strip && strip.metrics.find((x) => x.state === 'ok' && x.change);
         const perf = !m ? '' : m.change.dir === 'flat'
-          ? `${F.lcFirst(m.label)} are about the same as the previous 30 days`
-          : `${F.lcFirst(m.label)} are ${m.change.dir} ${Math.round(Math.abs(m.change.pct))}% on the previous 30 days`;
+          ? `${F.lcFirst(m.label)} are about the same as the 30 days before`
+          : `${F.lcFirst(m.label)} are ${m.change.dir} ${Math.round(Math.abs(m.change.pct))}% on the 30 days before`;
         setText(el, '#home-summary', lead + (perf ? ', and ' + perf : '') + '.');
       };
       const loaders = {
@@ -193,7 +193,7 @@
           setText(el, '#strip-range', `${F.range(d.window.from, d.window.to)}, compared with the 30 days before.`);
           summary();
           return UI.MetricStrip(d, now());
-        }, () => { strip = false; summary(); return { title: "We couldn't load your figures just now.", text: 'Everything else on this page is up to date.', retry: 'strip' }; }),
+        }, () => { strip = false; summary(); return { title: "We couldn't load your numbers.", text: 'The rest of this page works.', retry: 'strip' }; }),
         // When nothing needs the client, the section turns into the all-caught-up state, which
         // also needs the next planned milestone and the latest win.
         attention: () => section(el, '#home-attention', () => ctx.client.getAttention()
@@ -204,24 +204,24 @@
           summary();
           ctx.setBadges(count);
           return count ? UI.ActionNeededList(d.items, now()) : UI.CaughtUp(d.highlights);
-        }, () => ({ title: "We couldn't load what needs your attention.", text: 'Nothing is lost. The rest of this page is up to date.', retry: 'attention' })),
+        }, () => ({ title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' })),
         work: () => section(el, '#home-work', () => ctx.client.getWorkSummary(), (list) => list.length
           ? list.map((s) => UI.ServiceWorkCard(s)).join('')
-          : UI.EmptyState({ icon: 'work', title: 'No active work yet.', text: 'Your services appear here as soon as work starts.' }),
-          () => ({ title: "We couldn't load your current work.", text: 'The rest of this page is up to date.', retry: 'work' })),
+          : UI.EmptyState({ icon: 'work', title: 'No work started yet.', text: 'Your services show here once we start.' }),
+          () => ({ title: "We couldn't load our work for you.", text: 'The rest of this page works.', retry: 'work' })),
         insight: () => section(el, '#home-insight', () => ctx.client.getInsight(), (ins) => UI.InsightCard(ins, now()),
-          () => ({ title: "We couldn't work out what changed just now.", retry: 'insight' })),
+          () => ({ title: "We couldn't work out what changed.", retry: 'insight' })),
         update: () => section(el, '#home-update', () => ctx.client.getUpdates(), (list) => list.length
           ? UI.UpdateCard(list[0], { compact: true, lead: UI.SectionHead('h-latest', 'Latest update') })
           // the same padding as the filled card (UpdateCard's .update): the empty one sat flush with its edge (2026-10-08)
-          : `<div class="card update">${UI.SectionHead('h-latest', 'Latest update')}${UI.EmptyState({ icon: 'updates', title: 'No updates yet.', text: 'Your first update arrives when we finish something.' })}</div>`,
+          : `<div class="card update">${UI.SectionHead('h-latest', 'Latest update')}${UI.EmptyState({ icon: 'updates', title: 'No updates yet.', text: 'You get your first one when we finish something.' })}</div>`,
           () => ({ title: "We couldn't load the latest update.", retry: 'update' })),
         account: () => section(el, '#home-account', () => ctx.client.getAccount(), (a) => accountBand(a, now()),
           () => ({ title: "We couldn't load your account details.", retry: 'account' }))
       };
       if (HOME.upcoming) {
         loaders.upcoming = () => section(el, '#home-upcoming', () => ctx.client.getUpcoming(), (list) => UI.UpcomingList(list, now()),
-          () => ({ title: "We couldn't load what's coming up.", text: 'The rest of this page is up to date.', retry: 'upcoming' }));
+          () => ({ title: "We couldn't load what is coming up.", text: 'The rest of this page works.', retry: 'upcoming' }));
       }
       Object.values(loaders).forEach((load) => load());
       return {
@@ -334,7 +334,7 @@
     render(ctx) {
       const pkg = ctx.account.package.services;
       return `<div class="page page-work">
-        ${UI.PageHeader({ title: 'Work', intro: 'What we are doing for each service, what comes next, and anything we need from you.' })}
+        ${UI.PageHeader({ title: 'Work', intro: 'What we are doing, what comes next, and what we need from you.' })}
         <nav class="jump" aria-label="Services on this page">${pkg.map((s) => `<a class="jump-link" href="#/work/${esc(s)}">${icon(SVC()[s].icon)}${esc(SVC()[s].label)}</a>`).join('')}</nav>
         <div id="work-body">${UI.Skeleton('block', 2)}</div>
       </div>`;
@@ -342,8 +342,8 @@
     mount(ctx, r, el) {
       const load = () => section(el, '#work-body', () => ctx.client.getWork(), (w) => w.services.length
         ? w.services.map((s) => serviceSection(s, w.actions, ctx.client.now())).join('')
-        : UI.EmptyState({ icon: 'work', title: 'No active work yet.', text: 'Your services appear here as soon as work starts.' }),
-      () => ({ title: "We couldn't load your work just now.", text: 'Your other pages still work. Try again in a moment.', retry: 'work' }))
+        : UI.EmptyState({ icon: 'work', title: 'No work started yet.', text: 'Your services show here once we start.' }),
+      () => ({ title: "We couldn't load your work.", text: 'Your other pages still work. Try again soon.', retry: 'work' }))
         .then(() => {
           if (!r.sub) return;
           const t = /** @type {HTMLElement|null} */ (el.querySelector('#svc-' + r.sub));
@@ -368,12 +368,12 @@
   }
 
   function chartBlock(c, w) {
-    const aria = `${c.label} per day, ${F.range(w.from, w.to)}. ${F.num(c.value)} in total${c.previous !== null ? `, compared with ${F.num(c.previous)} in the previous ${w.days} days` : ''}. The same figures are in the table below.`;
-    const rows = c.points.map((p) => `<tr><th scope="row">${esc(F.date(p.d))}</th><td>${p.v === null ? 'No figures' : F.num(p.v)}</td><td>${p.p === null ? 'No figures' : F.num(p.p)}</td></tr>`).join('');
+    const aria = `${c.label} per day, ${F.range(w.from, w.to)}. ${F.num(c.value)} in total${c.previous !== null ? `, compared with ${F.num(c.previous)} in the ${w.days} days before` : ''}. The same numbers are in the table below.`;
+    const rows = c.points.map((p) => `<tr><th scope="row">${esc(F.date(p.d))}</th><td>${p.v === null ? 'No numbers' : F.num(p.v)}</td><td>${p.p === null ? 'No numbers' : F.num(p.p)}</td></tr>`).join('');
     return `<figure class="card chart-fig">
       <figcaption class="chart-cap"><span class="chart-title">${esc(c.label)} per day</span><span class="legend"><span class="lg lg-cur">${esc(F.range(w.from, w.to))}</span><span class="lg lg-prev">${esc(F.range(w.pFrom, w.pTo))}</span></span></figcaption>
       <div class="chart" role="img" aria-label="${esc(aria)}" data-points="${esc(JSON.stringify(c.points))}" data-days="${w.days}" data-unit="${esc(c.unit)}"></div>
-      <details class="chart-table"><summary>Show these figures as a table</summary><div class="table-wrap" tabindex="0" role="region" aria-label="${esc(c.label)} per day, as a table"><table><caption class="sr-only">${esc(c.label)} per day</caption><thead><tr><th scope="col">Day</th><th scope="col">${esc(F.range(w.from, w.to))}</th><th scope="col">Same day, ${w.days} days earlier</th></tr></thead><tbody>${rows}</tbody></table></div></details>
+      <details class="chart-table"><summary>Show these numbers as a table</summary><div class="table-wrap" tabindex="0" role="region" aria-label="${esc(c.label)} per day, as a table"><table><caption class="sr-only">${esc(c.label)} per day</caption><thead><tr><th scope="col">Day</th><th scope="col">${esc(F.range(w.from, w.to))}</th><th scope="col">Same day, ${w.days} days earlier</th></tr></thead><tbody>${rows}</tbody></table></div></details>
     </figure>`;
   }
 
@@ -385,11 +385,11 @@
     const head = UI.SectionHead('h-g-' + g.id, esc(g.title), `<p class="sec-meta">${esc(g.intro)}</p>`);
     if (g.state === 'error') {
       const who = F.list(g.sources.filter((s) => s.state === 'error').map((s) => s.name)) || 'The source';
-      return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head}${UI.ErrorState({ title: `We couldn't load your ${g.title.toLowerCase()} figures just now.`, text: `${who} isn't responding. The rest of this page is up to date.`, retry: 'results' })}</section>`;
+      return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head}${UI.ErrorState({ title: `We couldn't load your ${g.title.toLowerCase()} numbers.`, text: `${who} is not answering. The rest of this page works.`, retry: 'results' })}</section>`;
     }
     const tiles = g.metrics.map((m) => resultTile(m, w, now)).join('') + g.pending.map((p) =>
       `<div class="card mtile is-pending"><p class="metric-label">${esc(p.label)}</p><p class="metric-empty">${icon('linkoff')}Not connected yet</p><p class="metric-meta">${esc(p.text)}</p></div>`).join('');
-    const notes = g.notes.map((n) => `<div class="notice is-off">${icon('linkoff')}<p>${esc(n.name)} has been disconnected since ${esc(F.date(n.since))}${n.lastDay ? `, so its figures stop on ${esc(F.date(n.lastDay, { weekday: false }))}` : ''}. The gap is missing data, not a drop.</p><button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="connect-${esc(n.source)}">Reconnect ${esc(n.name)}</button></div>`).join('');
+    const notes = g.notes.map((n) => `<div class="notice is-off">${icon('linkoff')}<p>${esc(n.name)} has been disconnected since ${esc(F.date(n.since))}${n.lastDay ? `, so its numbers stop on ${esc(F.date(n.lastDay, { weekday: false }))}` : ''}. The gap means missing numbers, not a drop.</p><button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="connect-${esc(n.source)}">Reconnect ${esc(n.name)}</button></div>`).join('');
     return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head}<div class="mtiles">${tiles}</div>${notes}${g.chart ? chartBlock(g.chart, w) : ''}${g.campaigns.length ? campaigns(g.campaigns) : ''}</section>`;
   }
 
@@ -399,10 +399,10 @@
       out.push(`<section class="ai-summary" aria-labelledby="h-summary">
         <div class="sec-head"><h2 id="h-summary">Summary</h2><span class="ai-label">${icon('spark')}Written by the Domin8te assistant</span></div>
         <p class="ai-text">${esc(res.summary.text)}</p>
-        <p class="meta">Written ${esc(F.when(res.summary.writtenAt, now))} from the figures on this page. Every figure below comes straight from your connected accounts.</p>
+        <p class="meta">Written ${esc(F.when(res.summary.writtenAt, now))} from the numbers on this page. Every number below comes straight from your connected accounts.</p>
       </section>`);
     }
-    if (!res.groups.length) out.push(UI.EmptyState({ icon: 'results', title: 'No results to show yet.', text: 'Figures appear here once your accounts are connected.' }));
+    if (!res.groups.length) out.push(UI.EmptyState({ icon: 'results', title: 'No results yet.', text: 'Numbers show here once your accounts are connected.' }));
     for (const g of res.groups) out.push(group(g, res.window, now));
     return out.join('');
   }
@@ -415,7 +415,7 @@
       const detail = V.reportModes ? (pref('detail') === 'advanced' ? 'advanced' : 'basic') : '';
       const modes = detail ? UI.FilterChips([['basic', 'Basic'], ['advanced', 'Advanced']], detail, 'detail', 'How much detail to show') : '';
       return `<div class="page page-results"${detail ? ` data-detail="${detail}"` : ''}>
-        ${UI.PageHeader({ title: 'Results', intro: 'How your marketing is doing, where each figure comes from, and how fresh it is.', after: `<div class="range-bar">${UI.DateRangeSelector(days)}${modes}<p class="range-text" id="range-text" aria-live="polite"></p></div>` })}
+        ${UI.PageHeader({ title: 'Results', intro: 'How your marketing is doing. Each number says where it came from and when.', after: `<div class="range-bar">${UI.DateRangeSelector(days)}${modes}<p class="range-text" id="range-text" aria-live="polite"></p></div>` })}
         <div id="results-body">${UI.Skeleton('block', 3)}</div>
       </div>`;
     },
@@ -429,7 +429,7 @@
           const w = res.window;
           setText(el, '#range-text', `Showing ${F.range(w.from, w.to)}, compared with ${F.range(w.pFrom, w.pTo)}.`);
           return resultsBody(res, ctx.client.now());
-        }, () => ({ title: "We couldn't load your results just now.", text: 'Your other pages still work. Try again in a moment.', retry: 'results' }))
+        }, () => ({ title: "We couldn't load your results.", text: 'Your other pages still work. Try again soon.', retry: 'results' }))
           .then(() => D8.charts.mountAll(el));
       };
       load();
@@ -473,7 +473,7 @@
       const v = pkg.includes(r.params.service) ? r.params.service : 'all';
       const opts = [['all', 'All updates'], ...pkg.map((s) => [s, SVC()[s].label])];
       return `<div class="page page-updates">
-        ${UI.PageHeader({ title: 'Updates', intro: 'What we did, what changed and what comes next, newest first.', after: `<div class="filter-bar">${UI.FilterChips(opts, v, 'service', 'Show updates for')}</div>` })}
+        ${UI.PageHeader({ title: 'Updates', intro: 'What we did and what comes next. Newest first.', after: `<div class="filter-bar">${UI.FilterChips(opts, v, 'service', 'Show updates for')}</div>` })}
         <p class="sr-only" id="updates-status" aria-live="polite"></p>
         <div id="updates-body">${UI.Skeleton('card', 3)}</div>
       </div>`;
@@ -486,10 +486,10 @@
         const list = (all || []).filter((u) => filter === 'all' || u.service === filter);
         const label = filter === 'all' ? '' : SVC()[filter].label.toLowerCase() + ' ';
         setText(el, '#updates-status', `${list.length} ${label}${F.plural(list.length, 'update', 'updates')}`);
-        return list.length ? feed(list) : UI.EmptyState({ icon: 'updates', title: `No ${label}updates yet.`, text: 'Updates appear here as soon as we finish something.' });
+        return list.length ? feed(list) : UI.EmptyState({ icon: 'updates', title: `No ${label}updates yet.`, text: 'They show here when we finish something.' });
       };
       const load = () => section(el, '#updates-body', () => ctx.client.getUpdates(), (list) => { all = list; return draw(); },
-        () => ({ title: "We couldn't load your updates just now.", text: 'Your other pages still work. Try again in a moment.', retry: 'updates' }));
+        () => ({ title: "We couldn't load your updates.", text: 'Your other pages still work. Try again soon.', retry: 'updates' }));
       load();
       return {
         retry: load,
@@ -512,7 +512,7 @@
     const problem = s.status === 'past_due';
     const banner = problem ? `<section class="banner tone-error" aria-labelledby="h-bill-problem">
         ${icon('alert', 'banner-icon')}
-        <div><h2 id="h-bill-problem">Your payment could not be processed</h2><p>Your card ending ${esc(b.paymentMethod.last4)} was declined on ${esc(F.date(b.paymentMethod.problem.date))}. Your services remain active until ${esc(F.longDate(s.graceUntil))}. Update your payment method to avoid interruption.</p>${s.retryOn ? `<p class="meta">Stripe will try the card again on ${esc(F.date(s.retryOn))}.</p>` : ''}</div>
+        <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>Your card ending ${esc(b.paymentMethod.last4)} was declined on ${esc(F.date(b.paymentMethod.problem.date))}. Everything keeps running until ${esc(F.longDate(s.graceUntil))}. Update your payment method so nothing stops.</p>${s.retryOn ? `<p class="meta">Stripe will try the card again on ${esc(F.date(s.retryOn))}.</p>` : ''}</div>
         <button class="btn btn-primary" type="button" data-action="external" data-kind="billing-portal">Update payment method</button>
       </section>` : '';
     const status = problem ? `<span class="badge tone-error">${icon('alert')}Payment problem</span>` : `<span class="badge tone-success">${icon('check')}Active</span>`;
@@ -523,31 +523,31 @@
           <p class="plan-name">${esc(b.plan.name)}</p>
           <ul class="plan-list">${b.plan.services.map((x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
           ${planOff(b.plan.services)}
-          <dl class="facts"><div><dt>Billing</dt><dd>${esc(b.plan.interval)}</dd></div><div><dt>Next payment</dt><dd>${esc(F.date(s.nextBilling, { year: true }))}</dd></div></dl>
+          <dl class="facts"><div><dt>How you pay</dt><dd>${esc(b.plan.interval)}</dd></div><div><dt>Next payment</dt><dd>${esc(F.date(s.nextBilling, { year: true }))}</dd></div></dl>
         </section>
         <section class="card bill-card" aria-labelledby="h-pay">
           <div class="sec-head"><h2 id="h-pay">Payment method</h2></div>
           <p class="card-line">${icon('card')}${esc(b.paymentMethod.brand)} ending ${esc(b.paymentMethod.last4)}</p>
           ${b.paymentMethod.problem ? `<p class="due tone-overdue">${icon('alert')}${esc(b.paymentMethod.problem.text)}</p>` : ''}
-          <p class="meta">Stored securely by Stripe. Domin8te never sees your full card number.</p>
-          <button class="btn btn-glass" type="button" data-action="external" data-kind="billing-portal">Manage payment method${icon('external')}</button>
+          <p class="meta">Stripe keeps your card safe. We never see the full number.</p>
+          <button class="btn btn-glass" type="button" data-action="external" data-kind="billing-portal">Change payment method${icon('external')}</button>
         </section>
       </div>
       <section class="sec" aria-labelledby="h-invoices">
-        <div class="sec-head"><h2 id="h-invoices">Invoices</h2><p class="sec-meta">Amounts and PDFs open on Stripe.</p></div>
-        ${b.invoices.length ? `<div class="card"><ul class="invoices">${b.invoices.map((i) => UI.InvoiceRow(i)).join('')}</ul></div>` : UI.EmptyState({ icon: 'file', title: 'No invoices yet.', text: 'Your first invoice appears here when Stripe issues it.' })}
+        <div class="sec-head"><h2 id="h-invoices">Invoices</h2><p class="sec-meta">Each one opens on Stripe, with the amount and a PDF.</p></div>
+        ${b.invoices.length ? `<div class="card"><ul class="invoices">${b.invoices.map((i) => UI.InvoiceRow(i)).join('')}</ul></div>` : UI.EmptyState({ icon: 'file', title: 'No invoices yet.', text: 'Your first one shows here when Stripe sends it.' })}
       </section>
-      <p class="bill-help">Questions about a charge? <button class="link-btn" type="button" data-action="compose" data-mode="message">Message your account team</button></p>`;
+      <p class="bill-help">Question about a charge? <button class="link-btn" type="button" data-action="compose" data-mode="message">Message us</button></p>`;
   }
 
   const billing = {
     title: () => 'Billing',
     render() {
-      return `<div class="page page-billing">${UI.PageHeader({ title: 'Billing', intro: 'Your plan, payments and invoices. Payments are handled securely by Stripe.' })}<div id="billing-body">${UI.Skeleton('block', 2)}</div></div>`;
+      return `<div class="page page-billing">${UI.PageHeader({ title: 'Billing', intro: 'Your plan, payments and invoices.' })}<div id="billing-body">${UI.Skeleton('block', 2)}</div></div>`;
     },
     mount(ctx, r, el) {
       const load = () => section(el, '#billing-body', () => ctx.client.getBilling(), billingBody,
-        () => ({ title: "We couldn't load your billing details just now.", text: 'Your services are not affected. Try again in a moment.', retry: 'billing' }));
+        () => ({ title: "We couldn't load your billing.", text: 'Your services are not affected. Try again soon.', retry: 'billing' }));
       load();
       return { retry: load, refresh: load };
     }
@@ -560,47 +560,47 @@
     const now = ctx.client.now();
     const rows = s.categories.map((c) => `<div class="toggle-row">
         <input class="switch" type="checkbox" id="n-${esc(c.id)}" name="${esc(c.id)}"${s.prefs[c.id] ? ' checked' : ''}${c.required ? ' disabled' : ''} aria-describedby="n-${esc(c.id)}-text">
-        <label for="n-${esc(c.id)}"><span class="toggle-label">${esc(c.label)}</span><span class="toggle-text" id="n-${esc(c.id)}-text">${esc(c.text)}${c.required ? ' Always sent.' : ''}</span></label>
+        <label for="n-${esc(c.id)}"><span class="toggle-label">${esc(c.label)}</span><span class="toggle-text" id="n-${esc(c.id)}-text">${esc(c.text)}</span></label>
         ${c.required ? `<span class="badge tone-neutral">${icon('lock')}Always on</span>` : ''}
       </div>`).join('');
     const sources = s.sources.map((src) => {
-      const when = src.state === 'disconnected' ? `Disconnected since ${F.date(src.since)}. Figures after that are missing, not zero.`
-        : src.state === 'error' ? 'Not answering right now. We are retrying automatically.'
-          : src.state === 'stale' ? `Last updated ${F.ago(src.updatedAt, now)}. Normally it updates several times a day.`
+      const when = src.state === 'disconnected' ? `Disconnected since ${F.date(src.since)}. Numbers after that are missing, not zero.`
+        : src.state === 'error' ? 'Not answering right now. We keep trying on our own.'
+          : src.state === 'stale' ? `Last updated ${F.ago(src.updatedAt, now)}. It usually updates several times a day.`
             : `Updated ${F.ago(src.updatedAt, now)}`;
       const act = src.state === 'disconnected' ? `<button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="connect-${esc(src.id)}">Reconnect<span class="sr-only"> ${esc(src.name)}</span></button>` : '';
       return `<li class="src-row"><div><p class="src-name">${esc(src.name)}</p><p class="meta">${esc(when)}</p></div>${UI.HealthBadge(src)}${act}</li>`;
     }).join('');
     return `<section class="card set-card" aria-labelledby="h-email">
         <h2 id="h-email">Email notifications</h2>
-        <p class="meta">Sent to ${esc(s.email)}. Sign-in links and password emails come from Clerk, our sign-in provider, and are always sent.</p>
+        <p class="meta">We send these to ${esc(s.email)}. Sign-in emails come from Clerk, our sign-in service, and always arrive.</p>
         <form id="notify-form" novalidate>
           <fieldset class="toggles"><legend class="sr-only">Emails you get</legend>${rows}</fieldset>
           <p class="form-error" role="alert" hidden></p>
-          <div class="form-foot"><button class="btn btn-solid" type="submit" disabled>Save preferences</button><p class="meta" id="notify-status" aria-live="polite">${s.savedAt ? `Saved ${esc(F.when(s.savedAt, now))}.` : 'No changes yet.'}</p></div>
+          <div class="form-foot"><button class="btn btn-solid" type="submit" disabled>Save email choices</button><p class="meta" id="notify-status" aria-live="polite">${s.savedAt ? `Saved ${esc(F.when(s.savedAt, now))}.` : 'No changes yet.'}</p></div>
         </form>
       </section>
       <section class="card set-card" aria-labelledby="h-look">
-        <h2 id="h-look">Appearance</h2>
+        <h2 id="h-look">How it looks</h2>
         <fieldset class="theme-pick"><legend class="sr-only">Theme</legend>
-          <label class="theme-opt"><input type="radio" name="theme" value="light" data-change="theme"${theme === 'light' ? ' checked' : ''}><span class="theme-swatch is-light" aria-hidden="true"></span><span><strong>Light</strong><span class="meta">The standard look</span></span></label>
-          <label class="theme-opt"><input type="radio" name="theme" value="dark" data-change="theme"${theme === 'dark' ? ' checked' : ''}><span class="theme-swatch is-dark" aria-hidden="true"></span><span><strong>Dark</strong><span class="meta">Easier on the eyes late at night</span></span></label>
+          <label class="theme-opt"><input type="radio" name="theme" value="light" data-change="theme"${theme === 'light' ? ' checked' : ''}><span class="theme-swatch is-light" aria-hidden="true"></span><span><strong>Light</strong><span class="meta">The usual look</span></span></label>
+          <label class="theme-opt"><input type="radio" name="theme" value="dark" data-change="theme"${theme === 'dark' ? ' checked' : ''}><span class="theme-swatch is-dark" aria-hidden="true"></span><span><strong>Dark</strong><span class="meta">Easier on the eyes at night</span></span></label>
         </fieldset>
       </section>
       <section class="card set-card" id="sources" tabindex="-1" aria-labelledby="h-sources">
         <h2 id="h-sources">Connected accounts</h2>
-        <p class="meta">Where your figures come from. We check each one several times a day.</p>
+        <p class="meta">Where your numbers come from. We check each one several times a day.</p>
         <ul class="sources">${sources}</ul>
       </section>
       <section class="card set-card" aria-labelledby="h-security">
         <h2 id="h-security">Sign-in and security</h2>
-        <p>You sign in with a secure link sent to ${esc(s.email)}. There is no password to remember.</p>
-        <p class="meta">Managed by Clerk, our sign-in provider.</p>
+        <p>You sign in with ${isLive() ? 'a 6-digit code' : 'a sign-in link'} we email to ${esc(s.email)}. No password to remember.</p>
+        <p class="meta">Clerk, our sign-in service, looks after this.</p>
         <button class="btn btn-glass" type="button" data-action="external" data-kind="clerk-account">Manage sign-in and security${icon('external')}</button>
       </section>
       <section class="card set-card" aria-labelledby="h-people">
         <h2 id="h-people">People who can sign in</h2>
-        <p>Need a login for your manager or someone else at the restaurant? Ask here and your account team sets it up. They sign in with their own email address; nobody shares a password.</p>
+        <p>Want a login for your manager or someone else at the restaurant? Ask here and we set it up. They sign in with their own email. Nobody shares a password.</p>
         <form id="login-ask" class="ask-form" novalidate>
           <div class="ask-grid">
             <div class="field"><label for="la-first">Their first name</label><input id="la-first" name="first" type="text" maxlength="100" autocomplete="off" aria-describedby="la-err-first"><p class="field-error" id="la-err-first" hidden></p></div>
@@ -608,7 +608,7 @@
             <div class="field"><label for="la-role">Their role <span class="optional">(optional)</span></label><input id="la-role" name="role" type="text" maxlength="60" placeholder="Manager"></div>
           </div>
           <p class="form-error" role="alert" hidden></p>
-          <div class="form-foot"><button class="btn btn-solid" type="submit">${icon('message')}Ask for a login</button><p class="meta" id="la-status" aria-live="polite">${D8.live ? 'Your account team usually sets it up within one working day.' : 'This is a demo: nothing is sent.'}</p></div>
+          <div class="form-foot"><button class="btn btn-solid" type="submit">${icon('message')}Ask for a login</button><p class="meta" id="la-status" aria-live="polite">${D8.live ? 'We usually set it up within one working day.' : 'This is a demo, so nothing is sent.'}</p></div>
         </form>
         <div id="la-list"></div>
       </section>`;
@@ -616,7 +616,7 @@
 
   /* Asking for a login for someone else. Only a request: the account team creates logins in the
      agency console. Live portal only; the demo shows the form but sends nothing. */
-  const ASK_STATUS = { pending: ['Asked', 'Your account team will set it up'], granted: ['Login ready', 'They can sign in now'], declined: ['Not set up', 'Your account team will be in touch'] };
+  const ASK_STATUS = { pending: ['Asked', 'We will set it up'], granted: ['Login ready', 'They can sign in now'], declined: ['Not set up', 'We will be in touch'] };
   /** @param {HTMLElement} el */
   async function loadAsks(el) {
     const box = /** @type {HTMLElement|null} */ (el.querySelector('#la-list'));
@@ -651,7 +651,7 @@
       err.hidden = true;
       if (!first) return bad('first', 'Add their first name.');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return bad('email', 'Enter their email address, like name@restaurant.com.');
-      if (!D8.live) { status.textContent = 'This is a demo: nothing was sent. In your portal, your account team would get this request.'; return; }
+      if (!D8.live) { status.textContent = 'This is a demo, so nothing was sent. In your own portal, we would get this request.'; return; }
       const btn = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
       btn.disabled = true;
       try {
@@ -660,10 +660,10 @@
         const r = await sb.from('login_requests').insert({ first_name: first, email, role: role || null, by_name: who }).select('id').single();
         if (r.error) throw r.error;
         form.reset();
-        status.textContent = `Sent. Your account team will set up a login for ${first} and let you know.`;
+        status.textContent = `Sent. We will set up a login for ${first} and let you know.`;
         loadAsks(el);
       } catch (x) {
-        err.innerHTML = icon('alert') + esc("We couldn't send that just now. Try again in a moment, or message your account team.");
+        err.innerHTML = icon('alert') + esc("We couldn't send that. Try again soon, or message us.");
         err.hidden = false;
       } finally { btn.disabled = false; }
     });
@@ -682,7 +682,7 @@
       return p;
     };
     const dirty = () => s.categories.some((c) => current()[c.id] !== saved[c.id]);
-    form.addEventListener('change', () => { btn.disabled = !dirty(); if (dirty()) status.textContent = 'You have unsaved changes.'; });
+    form.addEventListener('change', () => { btn.disabled = !dirty(); if (dirty()) status.textContent = 'You have changes to save.'; });
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (!dirty()) return;
@@ -691,13 +691,13 @@
       err.hidden = true;
       ctx.client.saveNotifications(current()).then((res) => {
         saved = { ...res.prefs };
-        btn.innerHTML = 'Save preferences';
+        btn.innerHTML = 'Save email choices';
         status.textContent = `Saved ${F.when(res.at, ctx.client.now())}.`;
-        D8.dialogs.toast('Email preferences saved.');
+        D8.dialogs.toast('Email choices saved.');
       }).catch((e2) => {
-        btn.innerHTML = 'Save preferences';
+        btn.innerHTML = 'Save email choices';
         btn.disabled = false;
-        err.innerHTML = `${icon('alert')}<span>We couldn't save your preferences, so nothing changed. ${esc(e2.message || '')} Try again.</span>`;
+        err.innerHTML = `${icon('alert')}<span>We couldn't save, so nothing changed. ${esc(e2.message || '')} Try again.</span>`;
         err.hidden = false;
       });
     });
@@ -706,11 +706,11 @@
   const settings = {
     title: () => 'Settings',
     render() {
-      return `<div class="page page-settings">${UI.PageHeader({ title: 'Settings', intro: 'Emails, appearance and the accounts your figures come from.' })}<div id="settings-body" class="settings-stack">${UI.Skeleton('block', 2)}</div></div>`;
+      return `<div class="page page-settings">${UI.PageHeader({ title: 'Settings', intro: 'Your emails, how the portal looks, and where your numbers come from.' })}<div id="settings-body" class="settings-stack">${UI.Skeleton('block', 2)}</div></div>`;
     },
     mount(ctx, r, el) {
       const load = () => section(el, '#settings-body', () => ctx.client.getSettings(), (s) => settingsBody(s, ctx),
-        () => ({ title: "We couldn't load your settings just now.", text: 'Nothing has changed. Try again in a moment.', retry: 'settings' }))
+        () => ({ title: "We couldn't load your settings.", text: 'Nothing has changed. Try again soon.', retry: 'settings' }))
         .then((s) => {
           if (s) { wireSettings(el, s, ctx); wireLoginAsk(el, ctx); }
           if (r.sub === 'sources') {
@@ -726,34 +726,34 @@
   /* ================================================================ HELP */
 
   const FAQ = [
-    ['How quickly do you make changes?', 'Small changes, like new opening hours or a menu price, usually go live within one working day. Bigger pieces, like a new page or a campaign, follow the dates on your Work page.'],
-    ['How do approvals work?', 'When something needs your OK, it appears under Needs your attention on your Home page, with a deadline. You can approve it, or ask for changes with a short note. Nothing goes out until you approve it.'],
-    ['Where do the numbers come from?', 'Straight from your connected accounts, such as Google Business Profile and your booking system. Each figure shows its source and when it was last updated. If an account disconnects, we say so instead of guessing.'],
-    ['What does "Waiting for you" mean?', 'We cannot move that piece of work forward until you answer something. The button next to it tells you exactly what we need.'],
-    ['How do I change my payment details or plan?', 'Payment details are managed on Stripe, from your Billing page. To change your plan, message your account team.'],
-    ['Who can see my account?', 'You, the people at your restaurant your account team has given a login (ask for one under Settings), and the Domin8te team working on your account. Your figures are never shown to other clients.']
+    ['How fast do you make changes?', 'Small changes, like new opening hours or a menu price, usually go live within one working day. Bigger jobs, like a new page or an ad campaign, follow the dates on your Work page.'],
+    ['How do approvals work?', 'When we need your OK, it shows under Waiting for you on your Home page, with a date. Approve it, or ask for changes with a short note. Nothing goes out until you approve it.'],
+    ['Where do the numbers come from?', 'Straight from your connected accounts, like Google Business Profile and your booking system. Each number shows where it came from and when it was last updated. If an account disconnects, we tell you instead of guessing.'],
+    ['What does "Waiting for you" mean?', 'We can\'t move that job forward until you answer something. The button next to it tells you what we need.'],
+    ['How do I change my card or my plan?', 'Change your payment details on Stripe, from your Billing page. To change your plan, message us.'],
+    ['Who can see my account?', 'You, the people at your restaurant we have given a login (ask for one in Settings), and the Domin8te team working for you. Other clients never see your numbers.']
   ];
 
   const help = {
     title: () => 'Help',
     render(ctx) {
       return `<div class="page page-help">
-        ${UI.PageHeader({ title: 'Help', intro: 'How to reach your account team, and answers to common questions.' })}
+        ${UI.PageHeader({ title: 'Help', intro: 'How to reach us, and answers to common questions.' })}
         <div class="help-grid">
           <section class="card" aria-labelledby="h-contact">
-            <h2 id="h-contact">Talk to your account team</h2>
-            <p>${esc(ctx.account.team.reply)}. Messages go straight to the people who work on your account.</p>
-            <button class="btn btn-solid" type="button" data-action="compose" data-mode="message">${icon('message')}Message your account team</button>
-            <h3 class="sub-h">Messages you've sent</h3>
+            <h2 id="h-contact">Talk to us</h2>
+            <p>${ctx.account.team.reply ? esc(ctx.account.team.reply) + '. ' : ''}Messages go straight to the people who work on your account.</p>
+            <button class="btn btn-solid" type="button" data-action="compose" data-mode="message">${icon('message')}Message us</button>
+            <h3 class="sub-h">Your messages</h3>
             <div id="help-messages">${UI.Skeleton('text', 2)}</div>
           </section>
           <section class="card" aria-labelledby="h-promises">
-            <h2 id="h-promises">How we look after your account</h2>
+            <h2 id="h-promises">Our promises to you</h2>
             <ul class="promise-list">
               <li>${icon('check')}<span>We only publish posts, pages and ads you have approved.</span></li>
               <li>${icon('check')}<span>We never change your ad budget without asking you first.</span></li>
-              <li>${icon('check')}<span>Figures come straight from your connected accounts and show when they were last updated.</span></li>
-              <li>${icon('check')}<span>Summaries written by our assistant are labelled and checked against the figures.</span></li>
+              <li>${icon('check')}<span>Every number comes straight from your connected accounts and shows when it was last updated.</span></li>
+              <li>${icon('check')}<span>Summaries written by our assistant are labelled and checked against the numbers.</span></li>
               <li>${icon('check')}<span>Only people you invite can see your account.</span></li>
             </ul>
           </section>
@@ -766,8 +766,8 @@
     mount(ctx, r, el) {
       const load = () => section(el, '#help-messages', () => ctx.client.getMessages(), (list) => list.length
         // Live, the account team's replies sit in the same list, marked as theirs.
-        ? `<ul class="sent-list">${list.map((m) => `<li${m.fromTeam ? ' class="is-team"' : ''}><p>${esc(m.text)}</p><p class="meta">${m.fromTeam ? `From ${esc(m.by || 'your account team')}, ` : 'Sent '}${esc(F.when(m.at, ctx.client.now()))}</p></li>`).join('')}</ul>`
-        : '<p class="meta">You have not sent any messages from here yet.</p>',
+        ? `<ul class="sent-list">${list.map((m) => `<li${m.fromTeam ? ' class="is-team"' : ''}><p>${esc(m.text)}</p><p class="meta">${m.fromTeam ? `From ${esc(m.by || 'Domin8te')}, ` : 'Sent '}${esc(F.when(m.at, ctx.client.now()))}</p></li>`).join('')}</ul>`
+        : '<p class="meta">You have not sent us a message yet.</p>',
       () => ({ title: "We couldn't load your messages.", retry: 'messages' }));
       load();
       return { retry: load, refresh: load };
@@ -789,13 +789,13 @@
       return `<div class="signin"><div class="signin-card">
         <p class="signin-brand"><img src="${esc(markSrc())}" alt="" width="44" height="25"><span>Domin8te</span></p>
         <h1 id="page-title" tabindex="-1">Sign in to your portal</h1>
-        <p class="lede">${isLive() ? "We'll email you a 6-digit sign-in code." : "We'll email you a secure sign-in link."} There is no password to remember.</p>
+        <p class="lede">${isLive() ? "We'll email you a 6-digit code." : "We'll email you a sign-in link."} No password needed.</p>
         <form id="signin-form" novalidate>
           <div class="field"><label for="signin-email">Email address</label><input id="signin-email" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false" aria-describedby="err-email" value="${esc(/** @type {any} */ (window).__d8LastEmail || '')}"><p class="field-error" id="err-email" hidden></p></div>
           <button class="btn btn-solid btn-block" type="submit">${sendLabel()}</button>
         </form>
         <div id="signin-sent" hidden></div>
-        <p class="meta signin-foot">${icon('lock')}<span>The portal is invite only. Sign-in is handled by Clerk, and Domin8te never emails passwords.</span></p>
+        <p class="meta signin-foot">${icon('lock')}<span>Only invited people can sign in. Clerk handles sign-in, and we never email passwords.</span></p>
         ${isLive() && demoUrl() ? `<p class="signin-demo">Not a client yet? <a href="${esc(demoUrl())}">See a demo of the portal</a></p>` : ''}
       </div></div>`;
     },
@@ -824,8 +824,8 @@
             mountCode(/** @type {HTMLFormElement} */ (sent.querySelector('#code-form')));
             return;
           }
-          sent.innerHTML = `<div class="notice">${icon('mail')}<p><strong>Check your email.</strong> The sign-in link would go to ${esc(res.to)}. In this demo Clerk is not connected, so no email is sent.</p></div>
-            <button class="btn btn-solid btn-block" type="button" data-action="demo-sign-in">Continue to the demo account</button>
+          sent.innerHTML = `<div class="notice">${icon('mail')}<p><strong>This is a demo.</strong> In your real portal, the sign-in link goes to ${esc(res.to)}. Here, no email is sent.</p></div>
+            <button class="btn btn-solid btn-block" type="button" data-action="demo-sign-in">Open the demo account</button>
             <button class="btn btn-glass btn-block" type="button" data-action="signin-again">Use a different email</button>`;
           const next = /** @type {HTMLElement} */ (sent.querySelector('button'));
           next.focus();
@@ -877,7 +877,7 @@
   const notFound = {
     title: () => 'Page not found',
     render() {
-      return `<div class="page">${UI.PageHeader({ title: 'Page not found', intro: 'There is nothing at this address.' })}<p><a class="btn btn-solid" href="#/home">Go to your Home page</a></p></div>`;
+      return `<div class="page">${UI.PageHeader({ title: 'Page not found', intro: 'There is nothing here.' })}<p><a class="btn btn-solid" href="#/home">Go to your Home page</a></p></div>`;
     },
     mount() { return {}; }
   };

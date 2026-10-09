@@ -161,7 +161,7 @@
     document.querySelectorAll('[data-badge="home"]').forEach((el) => {
       const b = /** @type {HTMLElement} */ (el);
       b.hidden = !n;
-      b.innerHTML = n ? `${n}<span class="sr-only"> ${F.plural(n, 'thing needs', 'things need')} your attention</span>` : '';
+      b.innerHTML = n ? `${n}<span class="sr-only"> ${F.plural(n, 'thing', 'things')} waiting for you</span>` : '';
     });
   }
 
@@ -259,7 +259,7 @@
     if (root.console) console.error('[portal] page failed', r.name, e);
     countError();
     app.page = {};
-    main.innerHTML = `<div class="page page-crash">${UI.PageHeader({ title: 'This page could not be shown', intro: 'Something went wrong on our side while opening it. Nothing has been lost, and the rest of your portal works.' })}
+    main.innerHTML = `<div class="page page-crash">${UI.PageHeader({ title: 'This page did not open', intro: 'Something went wrong on our side. Nothing is lost, and the rest of your portal works.' })}
       <div class="crash-actions"><a class="btn btn-solid" href="#/home">Go to your Home page</a><button class="btn btn-glass" type="button" data-action="rerender">${icon('refresh')}Try again</button></div></div>`;
   }
 
@@ -322,9 +322,9 @@
       .then(() => refreshAccount())
       .then((a) => {
         if (app.page && app.page.refresh) app.page.refresh();
-        D8.dialogs.toast(`Up to date. Last verified ${a.updatedAt ? F.when(a.updatedAt, app.client.now()) : 'just now'}.`);
+        D8.dialogs.toast(`All up to date. Numbers checked ${a.updatedAt ? F.when(a.updatedAt, app.client.now()) : 'just now'}.`);
       })
-      .catch(() => D8.dialogs.toast("We couldn't refresh just now. What you see is still correct as of the time shown.", { tone: 'error' }))
+      .catch(() => D8.dialogs.toast("We couldn't refresh. What you see was right at the time shown.", { tone: 'error' }))
       .then(() => {
         if (!document.contains(btn)) return;
         btn.disabled = false;
@@ -348,7 +348,7 @@
 
   function signOut(trigger) {
     if (menuOpen()) toggleMenu(false);
-    D8.dialogs.confirm({ title: 'Sign out of the portal?', text: 'You can sign back in any time with a link sent to your email.', yes: 'Sign out', no: 'Stay signed in' }, trigger)
+    D8.dialogs.confirm({ title: 'Sign out?', text: `You can sign back in any time with ${D8.auth && D8.auth.live ? 'a code' : 'a link'} we email you.`, yes: 'Sign out', no: 'Stay signed in' }, trigger)
       .then((yes) => {
         if (!yes) return;
         D8.auth.signOut().then(() => {
@@ -373,7 +373,7 @@
     more.hidden = !open;
     card.classList.toggle('is-open', open);
     const label = btn.firstChild;
-    if (label && label.nodeType === 3) label.textContent = open ? 'Hide details' : 'View details';
+    if (label && label.nodeType === 3) label.textContent = open ? 'Hide details' : 'See details';
   }
 
   function onClick(e) {
@@ -441,8 +441,8 @@
     $('#app').classList.add('is-auth');
     const notFound = e && e.code === 'tenant-not-found';
     $('#main').innerHTML = `<div class="signin"><div class="signin-card"><h1 id="page-title" tabindex="-1">We couldn't open your portal</h1>${UI.ErrorState({
-      title: notFound ? 'This sign-in does not have access to a client portal.' : 'Something went wrong while loading your account.',
-      text: notFound ? 'Only people Domin8te has added can open a portal. If you think you should have access, email your account team.' : 'Try again in a moment. Nothing has been lost.'
+      title: notFound ? 'This email is not linked to a client portal.' : 'Something went wrong while loading your account.',
+      text: notFound ? 'Only people we have added can open a portal. If you think you should have one, email us.' : 'Try again soon. Nothing is lost.'
     })}<button class="btn btn-glass" type="button" data-action="sign-out">Sign out</button></div></div>`;
   }
 

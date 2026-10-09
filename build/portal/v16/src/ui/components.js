@@ -63,10 +63,10 @@
   function ComparisonNote(m, days) {
     const n = m.note;
     if (!n) return '';
-    if (n.kind === 'ends') return `Figures stop on ${esc(F.date(n.date, { weekday: false }))}, so this is not compared.`;
-    if (n.kind === 'starts') return `Figures start on ${esc(F.date(n.date, { weekday: false }))}, so this is not compared yet.`;
-    if (n.kind === 'no-history') return `Not enough history yet to compare with the previous ${days} days.`;
-    if (n.kind === 'zero-before') return m.group === 'advertising' ? `No ads ran in the previous ${days} days.` : `None in the previous ${days} days.`;
+    if (n.kind === 'ends') return `Numbers stop on ${esc(F.date(n.date, { weekday: false }))}, so we can't compare.`;
+    if (n.kind === 'starts') return `Numbers start on ${esc(F.date(n.date, { weekday: false }))}, so we can't compare yet.`;
+    if (n.kind === 'no-history') return `Too new to compare with the ${days} days before.`;
+    if (n.kind === 'zero-before') return m.group === 'advertising' ? `No ads ran in the previous ${days} days.` : `None in the ${days} days before.`;
     return '';
   }
 
@@ -93,7 +93,7 @@
 
   /** A section-sized error: says what failed, that the rest of the page works, and offers a retry. */
   function ErrorState(o) {
-    return `<div class="error-state" role="alert">${icon(o.icon || 'alert', 'empty-icon')}<div><p class="empty-title">${esc(o.title)}</p><p class="empty-text">${esc(o.text || 'The rest of this page is still up to date.')}</p>${o.retry ? `<button class="btn btn-glass btn-sm" type="button" data-action="retry" data-section="${esc(o.retry)}">${icon('refresh')}Try again</button>` : ''}</div></div>`;
+    return `<div class="error-state" role="alert">${icon(o.icon || 'alert', 'empty-icon')}<div><p class="empty-title">${esc(o.title)}</p><p class="empty-text">${esc(o.text || 'The rest of this page works.')}</p>${o.retry ? `<button class="btn btn-glass btn-sm" type="button" data-action="retry" data-section="${esc(o.retry)}">${icon('refresh')}Try again</button>` : ''}</div></div>`;
   }
 
   /** Shimmering placeholder shapes while a section loads. Hidden from screen readers; the section says "Loading". */
@@ -149,7 +149,7 @@
       return `<article class="metric-card is-pending"><p class="metric-label">${esc(m.label)}</p><p class="metric-empty">${icon('linkoff')}Not connected yet</p><p class="metric-meta">${esc(m.text)}</p></article>`;
     }
     if (m.state === 'error') {
-      return `<article class="metric-card is-error"><p class="metric-label">${esc(m.label)}</p><p class="metric-empty">${icon('alert')}Couldn't load just now</p><p class="metric-meta">${esc(m.text)} The other figures are up to date.</p><button class="btn-text" type="button" data-action="retry" data-section="strip">${icon('refresh')}Try again</button></article>`;
+      return `<article class="metric-card is-error"><p class="metric-label">${esc(m.label)}</p><p class="metric-empty">${icon('alert')}Couldn't load just now</p><p class="metric-meta">${esc(m.text)} The other numbers are fine.</p><button class="btn-text" type="button" data-action="retry" data-section="strip">${icon('refresh')}Try again</button></article>`;
     }
     const note = ComparisonNote(m, days);
     return `<article class="metric-card is-link">
@@ -190,7 +190,7 @@
     const kindIcon = a.icon || { billing: 'card', connection: 'linkoff', approval: 'check' }[a.kind] || 'alert';
     let when = '';
     if (a.deadline && a.deadline.kind === 'grace') {
-      when = `<span class="due tone-overdue">${icon('calendar')}Services continue until ${esc(F.date(a.deadline.date))}</span>`;
+      when = `<span class="due tone-overdue">${icon('calendar')}Everything keeps running until ${esc(F.date(a.deadline.date))}</span>`;
     } else if (a.deadline) {
       const d = F.due(a.deadline.date, now);
       when = `<span class="due tone-${d.tone}">${icon('calendar')}${esc(d.text)}</span>`;
@@ -201,7 +201,7 @@
     const more = (a.more && a.more.length) || a.link
       ? `<div class="act-more" id="${moreId}" hidden>${(a.more || []).map((p) => `<p>${esc(p)}</p>`).join('')}${a.link ? `<a class="link link-more" href="${esc(a.link.href)}">${esc(a.link.label)}${icon('arrow-right')}</a>` : ''}</div>`
       : '';
-    const toggle = more ? `<button class="btn-text act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">View details<span class="sr-only">: ${esc(a.title)}</span>${icon('chevron-down')}</button>` : '';
+    const toggle = more ? `<button class="btn-text act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span>${icon('chevron-down')}</button>` : '';
     return `<li class="act-card sev-${esc(a.severity)}" data-row="${esc(a.id)}">
       <span class="act-icon">${icon(kindIcon)}</span>
       <div class="act-main">
@@ -231,9 +231,9 @@
       <span class="orb" aria-hidden="true">${icon('check')}</span>
       <div class="cu-body">
         <h3 class="cu-title">You're all caught up</h3>
-        <p class="cu-text">Nothing needs you right now. When something does, it appears here first, and we email you.</p>
+        <p class="cu-text">Nothing is waiting for you. If something comes up, it shows here first and we email you.</p>
         ${facts.length ? `<dl class="cu-facts">${facts.join('')}</dl>` : ''}
-        <a class="btn btn-glass" href="#/results">Review your results${icon('arrow-right')}</a>
+        <a class="btn btn-glass" href="#/results">See your results${icon('arrow-right')}</a>
       </div>
     </div>`;
   }
@@ -243,9 +243,9 @@
    * the thing, then who (you, Domin8te, or you and your account team) and the service.
    */
   function UpcomingList(items, now) {
-    if (!items.length) return EmptyState({ icon: 'calendar', title: 'Nothing scheduled in the next few weeks.', text: 'New dates appear here as soon as they are set.' });
+    if (!items.length) return EmptyState({ icon: 'calendar', title: 'Nothing planned in the next few weeks.', text: 'New dates show here once they are set.' });
     const T = D8.time;
-    const who = { client: 'You', team: 'Domin8te', both: 'You and your account team' };
+    const who = { client: 'You', team: 'Domin8te', both: 'You and Domin8te' };
     return `<ol class="upcoming">${items.map((i) => {
       const gap = T.dayNum(i.date) - T.dayNum(now);
       const day = gap === 0 ? 'Today' : gap === 1 ? 'Tomorrow' : F.longDate(i.date).split(' ')[0];
@@ -273,24 +273,24 @@
       <header class="work-head"><h3 id="wc-${esc(s.id)}">${icon(svc.icon)}${esc(svc.label)}</h3>${StatusBadge(s.status)}</header>
       <p class="work-now">${esc(s.now || 'Getting started')}</p>
       <dl class="facts">
-        ${s.expected && s.expected.date ? `<div><dt>Expected by</dt><dd>${esc(F.date(s.expected.date))}: ${esc(F.lcFirst(s.expected.text))}</dd></div>` : ''}
-        ${s.next && s.next.text ? `<div><dt>Next step</dt><dd>${nextStep(s.next)}</dd></div>` : ''}
-        ${s.proof && s.proof.text ? `<div><dt>Completed</dt><dd>${esc(s.proof.text)}, ${esc(F.date(s.proof.date, { weekday: false }))}</dd></div>` : ''}
+        ${s.expected && s.expected.date ? `<div><dt>Ready by</dt><dd>${esc(F.date(s.expected.date))}: ${esc(F.lcFirst(s.expected.text))}</dd></div>` : ''}
+        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${nextStep(s.next)}</dd></div>` : ''}
+        ${s.proof && s.proof.text ? `<div><dt>Last done</dt><dd>${esc(s.proof.text)}, ${esc(F.date(s.proof.date, { weekday: false }))}</dd></div>` : ''}
       </dl>
-      <a class="link link-more card-link-text" href="#/work/${esc(s.id)}">View details<span class="sr-only"> for ${esc(svc.label)}</span>${icon('arrow-right')}</a>
+      <a class="link link-more card-link-text" href="#/work/${esc(s.id)}">See details<span class="sr-only"> for ${esc(svc.label)}</span>${icon('arrow-right')}</a>
     </article>`;
   }
 
   /* ---- insight and updates --------------------------------------------------------------- */
 
   function InsightCard(ins, now) {
-    if (ins.state === 'error') return `<div class="card insight">${SectionHead('h-insight', 'What changed')}${ErrorState({ title: 'No comparison to show right now.', text: ins.text, retry: 'insight' })}</div>`;
+    if (ins.state === 'error') return `<div class="card insight">${SectionHead('h-insight', 'What changed')}${ErrorState({ title: 'Nothing to compare right now.', text: ins.text, retry: 'insight' })}</div>`;
     if (ins.state === 'none') return `<div class="card insight">${SectionHead('h-insight', 'What changed')}<p class="insight-detail">${esc(ins.text)}</p><a class="link link-more" href="#/results">See all results${icon('arrow-right')}</a></div>`;
     return `<article class="card insight" aria-labelledby="h-insight">
       ${SectionHead('h-insight', 'What changed')}
       <p class="insight-lead">${esc(ins.headline)}</p>
       <p class="insight-detail">${esc(ins.detail)}</p>
-      <p class="meta insight-src">${icon('shield')}Worked out from ${sourceLine(ins.sources, now)}</p>
+      <p class="meta insight-src">${icon('shield')}Based on ${sourceLine(ins.sources, now)}</p>
       <a class="link link-more" href="#/results">See all results${icon('arrow-right')}</a>
     </article>`;
   }
@@ -306,14 +306,14 @@
    */
   function UpdateCard(u, o = {}) {
     const rows = o.compact
-      ? [['Completed', u.completed], ['What changed', u.changed], ['Why it matters', u.why || u.result], ['Next step', u.next]]
-      : [['Completed', u.completed], ['What changed', u.changed], ['Result', u.result], ['Why it matters', u.why], ['Next step', u.next]];
+      ? [['What we did', u.completed], ['What changed', u.changed], ['Why it matters', u.why || u.result], ['Next', u.next]]
+      : [['What we did', u.completed], ['What changed', u.changed], ['Result', u.result], ['Why it matters', u.why], ['Next', u.next]];
     const tag = o.headingLevel || 'h3';
     return `<article class="card update${o.compact ? ' is-compact' : ''}"${o.id ? ` id="${esc(o.id)}"` : ''}>${o.lead || ''}
       <header class="update-head"><p class="update-date"><time datetime="${esc(u.date)}">${esc(F.date(u.date))}</time></p>${ServiceTag(u.service)}</header>
       <${tag} class="update-title">${esc(u.title)}</${tag}>
       <dl class="facts facts-wide">${rows.filter((r) => r[1]).map((r) => `<div><dt>${r[0]}</dt><dd>${esc(r[1])}</dd></div>`).join('')}</dl>
-      <footer class="update-foot">${author(u)}${o.compact ? `<a class="link link-more" href="#/updates">View all updates${icon('arrow-right')}</a>` : ''}</footer>
+      <footer class="update-foot">${author(u)}${o.compact ? `<a class="link link-more" href="#/updates">See all updates${icon('arrow-right')}</a>` : ''}</footer>
     </article>`;
   }
 
@@ -339,9 +339,9 @@
     }[inv.status] || ['Unknown', 'neutral', 'info'];
     const period = F.range(inv.period[0], inv.period[1]);
     return `<li class="invoice">
-      <div class="inv-main"><p class="inv-num">${esc(inv.number)}</p><p class="meta">Issued ${esc(F.date(inv.issued, { year: true }))} for ${esc(period)}</p>${inv.note ? `<p class="inv-note">${esc(inv.note)}</p>` : ''}</div>
+      <div class="inv-main"><p class="inv-num">${esc(inv.number)}</p><p class="meta">Sent ${esc(F.date(inv.issued, { year: true }))}, for ${esc(period)}</p>${inv.note ? `<p class="inv-note">${esc(inv.note)}</p>` : ''}</div>
       <span class="badge tone-${st[1]}">${icon(st[2])}${st[0]}</span>
-      <button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="invoice" data-id="${esc(inv.id)}" data-number="${esc(inv.number)}">View invoice<span class="sr-only"> ${esc(inv.number)} on Stripe</span>${icon('external')}</button>
+      <button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="invoice" data-id="${esc(inv.id)}" data-number="${esc(inv.number)}">See invoice<span class="sr-only"> ${esc(inv.number)} on Stripe</span>${icon('external')}</button>
     </li>`;
   }
 

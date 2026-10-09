@@ -106,9 +106,9 @@
     const text = /** @type {any} */ (err).message || String(err);
     const t = /** @type {any} */ (window).__d8AuthTrouble;
     if (t && Date.now() - new Date(t.at).getTime() < 15000 && /sign out and in|forbidden|permission/i.test(text)) {
-      return t.why === 'no-session' ? 'Your sign-in has ended on this browser. Sign in again; your last change was not saved.'
-        : t.why === 'refresh-failed' ? `Your sign-in could not be refreshed (${t.error}). Sign in again; your last change was not saved.`
-        : 'Your sign-in could not be confirmed. Sign in again; your last change was not saved.';
+      return t.why === 'no-session' ? 'You are signed out on this browser. Sign in again. Your last change was not saved.'
+        : t.why === 'refresh-failed' ? `Your sign-in ran out and could not be renewed (${t.error}). Sign in again. Your last change was not saved.`
+        : 'We could not check your sign-in. Sign in again. Your last change was not saved.';
     }
     return text;
   };
@@ -271,7 +271,7 @@
       }
       if (w.next && w.next.who === 'client' && w.next.text) waiting.push({ kind: 'next', label: 'Their next step', text: `${label}: ${w.next.text}`, href: go('work', [s]) });
       for (const m of w.milestones || []) {
-        if (m.state === 'current' && m.date && m.date < now) needs.push({ kind: 'late', label: 'Milestone overdue', text: `${label}: ${m.title}`, dueDate: m.date, late: true, href: go('work', [s]), rank: 0 });
+        if (m.state === 'current' && m.date && m.date < now) needs.push({ kind: 'late', label: 'Step overdue', text: `${label}: ${m.title}`, dueDate: m.date, late: true, href: go('work', [s]), rank: 0 });
       }
     }
     for (const k of all.tasks || []) {
@@ -282,7 +282,7 @@
     const bill = billingOf(t);
     if (bill.status === 'past_due') needs.push({ kind: 'billing', label: 'Payment past due', text: `${bill.plan || 'Plan'}${bill.grace ? `: services pause after ${when(bill.grace)}` : ''}`, dueDate: bill.grace || undefined, href: '#/billing', rank: 1 });
     else if (bill.renews && bill.status !== 'canceled') { const rd = due(bill.renews); if (rd.days >= 0 && rd.days <= 7) soon.push({ kind: 'renewal', label: 'Renews', text: `${bill.plan || 'Plan'}${bill.amount ? `, ${bill.amount}` : ''}`, dueDate: bill.renews, href: '#/billing' }); }
-    if (!t.clerk_org_id && t.status === 'active') needs.push({ kind: 'login', label: 'No login yet', text: 'They cannot open their portal until you give them a login', href: go('edit'), rank: 2 });
+    if (!t.clerk_org_id && t.status === 'active') needs.push({ kind: 'login', label: 'No login yet', text: 'They can\'t open their portal until you give them a login', href: go('edit'), rank: 2 });
     for (const a of asksFor(id)) needs.push({ kind: 'login-ask', label: 'Login request', text: `${a.first_name}${a.role ? ', ' + a.role : ''} (${a.email})`, at: a.at, href: go('edit'), rank: 1 });
     if (doc.meeting && doc.meeting.at) {
       const d = due(doc.meeting.at);
@@ -441,7 +441,7 @@
       };
       palette.list.innerHTML = palette.hits.length
         ? palette.hits.map((p, i) => `<li role="option" data-i="${i}" aria-selected="${i === palette.sel}">${icon(p.icon)}<span class="name">${mark(p.name)}</span><span class="meta">${esc(p.hint)}</span></li>`).join('')
-        : `<li class="p-none"><strong>Nothing matches “${esc(q)}”</strong><span>Try part of a client’s name, or a page like Settings or All work.</span></li>`;
+        : `<li class="p-none"><strong>Nothing matches “${esc(q)}”</strong><span>Try part of a client’s name, or a page like Settings.</span></li>`;
     },
     go() {
       const p = palette.hits[palette.sel];
@@ -518,9 +518,9 @@
         if (me && sessions.some((/** @type {any} */ s) => s && s.user && s.user.id === me.userId)) return;
         if (!e || !e.session || !user || user.id !== me.userId) {
           const why = user && user.id !== me.userId
-            ? 'Someone else signed in on this browser, in another tab. Sign in again to carry on as yourself.'
-            : 'You were signed out, perhaps in another tab. Sign in again to carry on.';
-          const keep = dirty.size ? ' Unsaved changes on this page could not be kept.' : '';
+            ? 'Someone else signed in on this browser, in another tab. Sign in again as yourself.'
+            : 'You were signed out, maybe in another tab. Sign in again.';
+          const keep = dirty.size ? ' Your unsaved changes on this page were lost.' : '';
           me = null;
           current = null;
           all = null;
@@ -605,7 +605,7 @@
         f.hidden = true;
         const step = $('#code-step');
         step.hidden = false;
-        step.innerHTML = `<p class="notice">Check your email: a 6-digit code went to ${esc(r.to)}.</p>
+        step.innerHTML = `<p class="notice">We sent a 6-digit code to ${esc(r.to)}. Check your email.</p>
           <form id="code-form" novalidate><div class="field"><label for="code">Code</label><input id="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"><p class="field-error" id="code-err" hidden></p></div>
           <button class="btn btn-block" type="submit">Sign in</button></form>`;
         const cf = /** @type {HTMLFormElement} */ ($('#code-form'));
@@ -639,8 +639,8 @@
     $('#topbar').hidden = true;
     main.innerHTML = `<div class="signin"><div class="signin-card">
       <h1 id="page-title">This console is for the Domin8te team</h1>
-      <p class="lede">You're signed in as ${esc(session.email || session.userId)}, but that account is not on the Domin8te team.</p>
-      <p class="notice">If you should have access, ask the account owner to add you to the <strong>Domin8te team</strong> organisation in Clerk, then sign in again.</p>
+      <p class="lede">You're signed in as ${esc(session.email || session.userId)}. That account is not on the Domin8te team.</p>
+      <p class="notice">Need access? Ask the account owner to add you to the <strong>Domin8te team</strong> organisation in Clerk (our sign-in service). Then sign in again.</p>
       <div class="actions"><button class="btn btn-quiet" type="button" data-action="sign-out">Sign out</button><a class="btn" href="${PORTAL_URL}">Go to the client portal</a></div>
     </div></div>`;
   }
@@ -728,14 +728,14 @@
     soon.sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
     const group = (/** @type {string} */ title, /** @type {string} */ lede, /** @type {any[]} */ items, /** @type {string} */ empty) => `<section class="q-group"><h2>${esc(title)} <span class="meta">${items.length}</span></h2><p class="lede">${esc(lede)}</p>
       ${items.length ? `<ul class="q">${items.map((x) => qRow(x, x.client)).join('')}</ul>` : `<p class="meta">${esc(empty)}</p>`}</section>`;
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Needs you</h1><p>Everything waiting on the team, across every client. Most urgent first.</p></div>
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Needs you</h1><p>What the team has to do, for every client. Most urgent first.</p></div>
       <div class="btns"><button class="btn btn-quiet btn-sm" type="button" data-action="refresh">${icon('refresh')}Refresh</button></div></div>
       <p class="summary"><span><b>${needs.length}</b> ${needs.length === 1 ? 'thing needs' : 'things need'} you</span><span><b>${waiting.length}</b> waiting on clients</span><span><b>${soon.length}</b> coming up this week</span><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span></p>
       ${all.tenants.length ? '' : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p><a class="btn" href="#/new">Add a client</a></div>`}
-      ${needs.length ? group('Needs you', 'Requests, messages and answers from clients, and dates that have passed. Open one to deal with it.', needs, '') : `<div class="empty"><p><strong>Nothing needs you right now.</strong></p><p>New requests, messages, changes and passed dates will appear here.</p></div>`}
+      ${needs.length ? group('Needs you', 'Client requests, messages and answers, late dates and stuck work. Click one to deal with it.', needs, '') : `<div class="empty"><p><strong>Nothing needs you right now.</strong></p><p>New requests, messages, change requests and late dates show up here.</p></div>`}
       ${dmBlock(null)}
-      ${group('Waiting on clients', 'Approvals they have not answered and next steps that are theirs. Overdue ones are marked.', waiting, 'Nothing is waiting on a client.')}
-      ${group('Coming up in the next 7 days', 'Dates you have promised and meetings in the diary.', soon, 'No dates or meetings in the next week.')}`;
+      ${group('Waiting on clients', 'Approvals they have not answered, and next steps that are theirs. Late ones are marked.', waiting, 'Nothing is waiting on a client.')}
+      ${group('Coming up in the next 7 days', 'Dates we promised, renewals and meetings.', soon, 'Nothing in the next 7 days.')}`;
   }
 
   /* ---- the client list ------------------------------------------------------------------------------ */
@@ -746,7 +746,7 @@
     document.title = 'Clients · Domin8te console';
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Clients</h1><p>Every restaurant, what is waiting, and who can sign in.</p></div>
       <div class="btns"><button class="btn btn-quiet btn-sm" type="button" data-action="refresh">${icon('refresh')}Refresh</button><a class="btn" href="#/new">${icon('plus')}Add a client</a></div></div>
-      <div class="toolbar"><input id="list-q" type="search" placeholder="Search by name or kind" aria-label="Search clients" value="${esc(listState.q)}" autocomplete="off">
+      <div class="toolbar"><input id="list-q" type="search" placeholder="Search by name, kind or package" aria-label="Search clients" value="${esc(listState.q)}" autocomplete="off">
         <div class="seg" id="list-filter" role="group" aria-label="Show">${[['all', 'All'], ['needs', 'Needs you'], ['waiting', 'Waiting on them'], ['nologin', 'No login'], ['inactive', 'Paused or archived']].map(([k, l]) => `<button type="button" data-filter="${k}" aria-pressed="${listState.filter === k}">${l}</button>`).join('')}</div></div>
       <div id="list"></div>`;
     renderClients();
@@ -796,19 +796,19 @@
     });
     const th = (/** @type {string} */ k, /** @type {string} */ label) => `<th scope="col"${listState.sort === k ? ` aria-sort="${listState.dir === 'asc' ? 'ascending' : 'descending'}"` : ''}><button type="button" data-sort="${k}">${label}${listState.sort === k ? icon('sort') : ''}</button></th>`;
     $('#list').innerHTML = rows.length ? `<div class="table-wrap"><table class="grid"><thead><tr>
-        ${th('name', 'Client')}<th scope="col">Services</th><th scope="col">Status</th>${th('needs', 'Needs you')}${th('waiting', 'Waiting on them')}<th scope="col">Login</th>${th('saved', 'Saved')}
+        ${th('name', 'Client')}<th scope="col">Services</th><th scope="col">Status</th>${th('needs', 'Needs you')}${th('waiting', 'Waiting on them')}<th scope="col">Login</th>${th('saved', 'Last saved')}
       </tr></thead><tbody>${rows.map(({ t, d }) => {
         const services = (t.doc.package.services || []).map(svcLabel).join(', ');
         const status = t.status === 'active' ? '<span class="chip good">Active</span>' : t.status === 'paused' ? '<span class="chip warn">Paused</span>' : '<span class="chip">Archived</span>';
         return `<tr data-href="#/client/${esc(t.id)}/overview"${t.status !== 'active' ? ' class="paused"' : ''}>
           <td><a class="row-link" href="#/client/${esc(t.id)}/overview">${esc(t.name)}</a>${profileOf(t.id).tier || profileOf(t.id).approval_level ? `<span class="row-chips">${tierChip(profileOf(t.id).tier)}${approvalChip(profileOf(t.id).approval_level)}</span>` : ''}<span class="sub">${esc([t.doc.business.kind, t.doc.package.name].filter(Boolean).join(' · ') || 'Kind of place not set')}</span></td>
-          <td>${services ? esc(services) : '<span class="none">None chosen</span>'}</td>
+          <td>${services ? esc(services) : '<span class="none">None</span>'}</td>
           <td>${status}</td>
           <td>${d.needs.length ? `<span class="with"><span class="chip you">${d.needs.length}</span><span class="sub">${esc(d.needs[0].label)}${d.needs.length > 1 ? ', more' : ''}</span></span>` : '<span class="none">Nothing</span>'}</td>
           <td>${d.waiting.length ? `<span class="with"><span class="chip them">${d.waiting.length}</span><span class="sub">${esc(d.waiting[0].kind === 'approval' ? (d.waiting[0].late ? 'Approval overdue' : 'Approval') : 'Their next step')}</span></span>` : '<span class="none">Nothing</span>'}</td>
           <td>${t.clerk_org_id ? '<span class="chip good">Can sign in</span>' : '<span class="chip warn">No login</span>'}</td>
           <td class="when"><time datetime="${esc(t.updated_at)}" title="${esc(when(t.updated_at))}">${esc(ago(t.updated_at))}</time></td></tr>`;
-      }).join('')}</tbody></table></div><p class="meta" style="margin-top:8px">${plural(rows.length, 'client')}${rows.length !== all.tenants.length ? ` of ${all.tenants.length}` : ''}. Click a column to sort.</p>`
+      }).join('')}</tbody></table></div><p class="meta" style="margin-top:8px">${plural(rows.length, 'client')}${rows.length !== all.tenants.length ? ` of ${all.tenants.length}` : ''}. Click a column name to sort.</p>`
       : all.tenants.length ? `<div class="empty"><p><strong>No client matches.</strong></p><p>Try another name or a different filter.</p></div>`
       : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p><a class="btn" href="#/new">Add a client</a></div>`;
   }
@@ -829,7 +829,7 @@
       return;
     }
     main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a>
-      <div class="page-head"><div><h1 id="page-title" tabindex="-1">Add a client</h1><p>Only the name is needed now. Everything else can be filled in on their page, and nothing is sent to them until you give them a login.</p></div></div>
+      <div class="page-head"><div><h1 id="page-title" tabindex="-1">Add a client</h1><p>Only the name is needed. Fill in the rest later on their page. They see nothing until you give them a login.</p></div></div>
       <form class="panel" id="new-form" novalidate>
         <div class="grid-2">
           <div class="field"><label for="n-name">Restaurant name</label><input id="n-name" name="name" type="text" required maxlength="200" autocomplete="off"></div>
@@ -837,7 +837,7 @@
           <div class="field"><label for="n-first">Contact's first name</label><input id="n-first" name="first" type="text" maxlength="100"></div>
           <div class="field"><label for="n-email">Contact's email</label><input id="n-email" name="email" type="email" maxlength="200"></div>
           <div class="field span-all"><span class="label">Services</span>${servicesChecks(['website', 'social', 'advertising', 'local'])}</div>
-          <div class="span-all">${profilePickers({})}<p class="hint">Plan and approvals are for the team only; the client never sees them.</p></div>
+          <div class="span-all">${profilePickers({})}<p class="hint">Only the team sees the plan and approvals. The client never does.</p></div>
         </div>
         <p class="field-error" id="n-err" hidden></p>
         <div class="actions"><button class="btn" type="submit">Add the client</button><a class="btn btn-quiet" href="#/clients">Cancel</a></div>
@@ -1036,7 +1036,7 @@
       }).join('')}</ul>` : '<p class="meta">They have no services right now, so their dashboard has no Work pages.</p>'}
       ${off.length ? `<div class="svc-off-wrap"><h3 class="svc-off-h">Not provided</h3><ul class="svc-off">${off.map((/** @type {string} */ s) => `<li>
           <span class="svc-off__ic"><svg class="ic" aria-hidden="true"><use href="#i-${SVC_ICON[s] || 'page'}"/></svg></span>
-          <span class="svc-off__txt"><span class="s-name">${esc(SERVICES[s].label)}</span><span class="meta">${hasHistory(d.services[s]) ? 'Hidden from their dashboard. Its history is kept and comes back if you add it again.' : 'Not part of their plan, so it does not appear on their dashboard.'}</span></span>
+          <span class="svc-off__txt"><span class="s-name">${esc(SERVICES[s].label)}</span><span class="meta">${hasHistory(d.services[s]) ? 'Hidden from their dashboard. Its history is saved and comes back if you add it again.' : 'Not in their plan, so it is not on their dashboard.'}</span></span>
           <span class="chip off">Not provided</span>
           <button class="btn btn-quiet btn-sm" type="button" data-svc-change>Add back</button></li>`).join('')}</ul></div>` : ''}
       ${last ? `<p class="svc-last meta">${icon('clock')}Last change ${esc(ago(last.at))}${last.by ? ` by ${esc(last.by)}` : ''}: ${esc(lastLine)}.</p>` : ''}
@@ -1061,7 +1061,7 @@
     const box = dlg;
     const name = current.name;
     box.innerHTML = `<form method="dialog" class="sd-form" novalidate>
-      <div class="sd-head"><h2 id="svc-dlg-h">Change services</h2><p>What ${esc(name)} gets from you. Their dashboard shows only the services that are on.</p></div>
+      <div class="sd-head"><h2 id="svc-dlg-h">Change services</h2><p>Turn on what ${esc(name)} gets from us. Their dashboard shows only these.</p></div>
       <div class="sd-list" role="group" aria-label="Services for ${esc(name)}">${SERVICE_ORDER.map((/** @type {string} */ s) => `
         <label class="sd-opt" data-svc="${s}">
           <span class="sd-ic"><svg class="ic" aria-hidden="true"><use href="#i-${SVC_ICON[s]}"/></svg></span>
@@ -1091,7 +1091,7 @@
       const lines = [];
       if (removed.length) lines.push(`<p class="sd-line is-off"><b>${esc(andList(removed.map(svcLabel)))}</b> ${many ? 'come' : 'comes'} off ${esc(name)}'s dashboard: ${many ? 'their Work pages' : 'its Work page'}, updates and results${waiting ? `, and ${waiting} item${waiting > 1 ? 's' : ''} waiting on them` : ''}. Nothing is deleted. Add ${many ? 'them' : 'it'} back any time and the history returns.</p>`);
       if (added.length) lines.push(`<p class="sd-line is-on"><b>${esc(andList(added.map(svcLabel)))}</b> ${added.length > 1 ? 'get their own Work pages' : 'gets its own Work page'} on their dashboard${added.some((/** @type {string} */ s) => hasHistory(d.services[s])) ? ', with the history from before' : ', starting as Planned'}.</p>`);
-      if (!now.length) lines.push('<p class="sd-line is-warn">With no services their dashboard has no Work pages. If they are taking a break, pausing the client may fit better.</p>');
+      if (!now.length) lines.push('<p class="sd-line is-warn">With no services, their dashboard has no Work pages. If they are taking a break, pause the client instead.</p>');
       if (!lines.length) lines.push('<p class="sd-line">Switch a service on or off to see what changes for them.</p>');
       $('.sd-note', form).innerHTML = lines.join('');
       /** @type {HTMLButtonElement} */ ($('[data-sd="save"]', form)).disabled = !added.length && !removed.length && val(form, 'pkg') === (d.package.name || '');
@@ -1139,22 +1139,22 @@
       <div class="ov-read"${part === 'edit' ? ' hidden' : ''}>
       <div class="glance">
         <section class="panel" aria-labelledby="g-you"><div class="panel-head"><h2 id="g-you">Needs you</h2></div>${glanceList(got.needs, 'Nothing is waiting on you.')}</section>
-        <section class="panel" aria-labelledby="g-them"><div class="panel-head"><h2 id="g-them">Waiting on them</h2></div>${glanceList(got.waiting, 'Nothing is waiting on the client.')}</section>
-        <section class="panel" aria-labelledby="g-soon"><div class="panel-head"><h2 id="g-soon">Coming up</h2></div>${glanceList(got.soon, 'No dates in the next week.')}</section>
+        <section class="panel" aria-labelledby="g-them"><div class="panel-head"><h2 id="g-them">Waiting on them</h2></div>${glanceList(got.waiting, 'Nothing is waiting on them.')}</section>
+        <section class="panel" aria-labelledby="g-soon"><div class="panel-head"><h2 id="g-soon">Coming up</h2></div>${glanceList(got.soon, 'Nothing in the next 7 days.')}</section>
       </div>
       ${dmBlock(current.id)}
       ${servicesPanel(d, services)}
       </div>
       <div class="ov-edit"${part === 'edit' ? '' : ' hidden'}>
       <section class="panel" aria-labelledby="login-h">
-        <div class="panel-head"><h2 id="login-h">Portal login</h2><p>${current.clerk_org_id ? 'Everyone below can sign in to their portal. Add another person, or take a login away.' : '<strong>Nobody can sign in yet.</strong> Saving an email in the details below does not let anyone in; this button does.'}</p></div>
+        <div class="panel-head"><h2 id="login-h">Portal login</h2><p>${current.clerk_org_id ? 'These people can sign in to their portal. Add someone, or remove a login.' : '<strong>Nobody can sign in yet.</strong> An email in Details below does not let anyone in. Only this button does.'}</p></div>
         ${current.clerk_org_id ? '<div id="login-people" class="login-people"><p class="meta">Checking who can sign in.</p></div>' : ''}
         ${asksFor(current.id).length ? `<div class="login-asks"><h3 class="panel-sub">They asked for a login</h3><ul class="item-list">${asksFor(current.id).map((/** @type {any} */ a) => `<li class="login-ask" data-ask="${esc(a.id)}"><div><p><strong>${esc(a.first_name)}</strong>${a.role ? `, ${esc(a.role)}` : ''} <span class="meta">${esc(a.email)}</span></p><p class="meta">Asked by ${esc(a.by_name || 'the client')}, ${esc(ago(a.at))}</p></div><div class="btns"><button class="btn btn-sm" type="button" data-ask-grant="${esc(a.id)}">Give them a login</button><button class="btn btn-quiet btn-sm" type="button" data-ask-decline="${esc(a.id)}">Decline</button></div></li>`).join('')}</ul></div>` : ''}
         <form id="login-form" class="grid-3" novalidate>
           ${current.clerk_org_id ? '<h3 class="panel-sub span-all">Add another login</h3>' : ''}
           <div class="field"><label for="l-first">First name</label><input id="l-first" name="first" type="text" value="${current.clerk_org_id ? '' : esc(d.user.firstName)}" maxlength="100"></div>
           <div class="field span-2"><label for="l-email">Email</label><input id="l-email" name="email" type="email" value="${current.clerk_org_id ? '' : esc(d.user.email)}" maxlength="200"></div>
-          <div class="span-all"><p class="hint meta">They sign in at ${esc(PORTAL_URL)} with this email and a 6-digit code Clerk emails them each time. There is no password, and nothing is emailed until they ask for a code.</p></div>
+          <div class="span-all"><p class="hint meta">They sign in at ${esc(PORTAL_URL)} with this email. Each time, Clerk emails them a 6-digit code. There is no password. Nothing is emailed until they ask for a code.</p></div>
           <div class="actions span-all" style="margin-top:0"><button class="btn" type="submit">${current.clerk_org_id ? 'Add this login' : 'Give them a login'}</button><span id="login-out" class="meta"></span></div>
         </form>
       </section>
@@ -1164,7 +1164,7 @@
         <div class="actions"><button class="btn" type="submit">Save plan and approvals</button></div>
       </form>
       <form class="panel" id="ov-form" novalidate>
-        <div class="panel-head"><h2>Details</h2><p>What the client sees on every page of their portal.</p></div>
+        <div class="panel-head"><h2>Details</h2><p>What the client sees across their portal.</p></div>
         <div class="grid-3">
           <div class="field"><label for="o-name">Restaurant name</label><input id="o-name" name="name" type="text" value="${esc(current.name)}" maxlength="200"></div>
           <div class="field"><label for="o-kind">Kind of place</label><input id="o-kind" name="kind" type="text" value="${esc(d.business.kind)}" maxlength="60" placeholder="Restaurant, cafe, bar"></div>
@@ -1183,7 +1183,7 @@
           <div class="field span-2"><label for="o-billing">Billing line</label><input id="o-billing" name="billing" type="text" value="${esc(d.package.billing)}" placeholder="Billed monthly on the 22nd" maxlength="120"></div>
           <div class="field span-all"><span class="label">Services</span><div class="svc-sum">${SERVICE_ORDER.map((/** @type {string} */ s) => `<span class="chip ${services.includes(s) ? 'good' : 'off'}">${esc(SERVICES[s].label)}${services.includes(s) ? '' : ': not provided'}</span>`).join('')}<button class="btn btn-quiet btn-sm" type="button" data-svc-change>Change services</button></div></div>
         </div>
-        <h3 class="panel-sub" id="billing">Billing <span class="meta">For the Billing page. Entered here until Stripe is connected, then filled in automatically.</span></h3>
+        <h3 class="panel-sub" id="billing">Billing <span class="meta">Shown on their Billing page. Type it here until Stripe is connected. Then it fills in by itself.</span></h3>
         <div class="grid-4">
           <div class="field"><label for="o-bstart">Started</label><input id="o-bstart" name="bstart" type="date" value="${esc(billingOf(current).startedAt.slice(0, 10))}"></div>
           <div class="field"><label for="o-brenew">Renews</label><input id="o-brenew" name="brenew" type="date" value="${esc(billingOf(current).renews.slice(0, 10))}"></div>
@@ -1241,7 +1241,7 @@
         doc.meeting = md ? { at: `${md}T${val(f, 'mtime') || '10:00'}`, title: val(f, 'mtitle') || 'Meeting', length: val(f, 'mlen'), status: 'confirmed' } : null;
         await save({ name, status: val(f, 'status') || current.status, doc });
         clean(f);
-        toast(current.clerk_org_id ? 'Details saved. The client sees them next time their portal loads.' : 'Details saved. Nobody can sign in yet: use Portal login at the top to let them in.');
+        toast(current.clerk_org_id ? 'Details saved. The client sees them next time their portal loads.' : 'Details saved. Nobody can sign in yet. Use Portal login at the top to let them in.');
         route();
       } catch (x) {
         done();
@@ -1276,7 +1276,7 @@
       if (!people) return;
       people.innerHTML = list.length
         ? `<ul class="item-list">${list.map((p) => `<li><div><p><strong>${esc(p.name || p.email)}</strong>${p.name ? ` <span class="meta">${esc(p.email)}</span>` : ''}</p>${p.since ? `<p class="meta">Can sign in since ${esc(when(p.since))}</p>` : ''}</div><button class="btn btn-quiet btn-sm card-del" type="button" data-login-remove="${esc(p.userId)}" data-login-name="${esc(p.name || p.email)}">Remove</button></li>`).join('')}</ul>`
-        : '<p class="meta">Nobody can sign in at the moment. Add a login below.</p>';
+        : '<p class="meta">Nobody can sign in right now. Add a login below.</p>';
     };
     /* The main contact (the name and email in the client's header, their Help page and the Details form) follows the
        logins (2026-10-08, Karan: "I changed the portal login but on the top bar it still says derek"): when the
@@ -1307,7 +1307,7 @@
       const rm = /** @type {HTMLButtonElement|null} */ (target.closest('[data-login-remove]'));
       if (rm) {
         const name = rm.getAttribute('data-login-name') || 'this person';
-        if (!await ask(`Remove ${name}'s login?`, `${name} can no longer open ${current ? current.name : 'the'} portal, from within about a minute. You can give them a login again at any time.`, 'Remove login')) return;
+        if (!await ask(`Remove ${name}'s login?`, `${name} loses access to the ${current ? current.name + ' ' : ''}portal within about a minute. You can give them a login again any time.`, 'Remove login')) return;
         const done = busy(rm, 'Removing');
         try {
           const r = await callFn('client-login', { action: 'remove', tenantId: id, userId: rm.getAttribute('data-login-remove') });
@@ -1447,14 +1447,14 @@
     }
     const openCount = tasks().filter((t) => t.status !== 'done' && t.status !== 'cancelled').length;
     const strip = st.pending
-      ? `<p class="board-strip"><span class="chip plain">Checking Multica</span> <span>Cards are saved here as usual.</span></p>`
+      ? `<p class="board-strip"><span class="chip plain">Checking Multica</span> <span>Cards still save here as normal.</span></p>`
       : st.configured
-      ? `<p class="board-strip"><span class="chip good">Multica connected</span> <span>Workspace <strong>${esc(st.workspace)}</strong>${st.agent ? ', new cards go to your agent' : ''}. Moving a card here moves the issue there. ${prefs.autoPull ? 'What Hermes changes is picked up every 90 seconds while this board is open, or' : 'Automatic checks are off in Settings, so'} <button class="linkish" type="button" data-action="board-sync">check Multica now</button>.</span></p>`
-      : `<p class="board-strip"><span class="chip warn">Multica not set up yet</span> <span>Cards are kept here. ${st.failed ? esc(st.failed) : 'Once MULTICA_TOKEN and MULTICA_WORKSPACE are in the Supabase secrets, every card becomes an issue in the Multica project for this client and moves both ways.'}</span></p>`;
+      ? `<p class="board-strip"><span class="chip good">Multica connected</span> <span>Workspace <strong>${esc(st.workspace)}</strong>${st.agent ? '. New cards go to your agent' : ''}. Move a card here and it moves in Multica too. ${prefs.autoPull ? 'Changes Hermes makes show up every 90 seconds while this board is open, or' : 'Automatic checks are off in Settings, so'} <button class="linkish" type="button" data-action="board-sync">check Multica now</button>.</span></p>`
+      : `<p class="board-strip"><span class="chip warn">Multica not set up yet</span> <span>Cards are kept here for now. ${st.failed ? esc(st.failed) : 'Once MULTICA_TOKEN and MULTICA_WORKSPACE are in the Supabase secrets, each card also becomes an issue in this client\'s Multica project, and moves stay in step both ways.'}</span></p>`;
     box.innerHTML = `${strip}
       <div class="toolbar"><span class="meta">${openCount ? plural(openCount, 'open card') : 'No open cards'}. Drag a card to another column, or use its Move list.</span><span class="grow"></span><button class="btn btn-sm" type="button" data-action="reveal" aria-expanded="${part === 'new'}" aria-controls="card-form">${icon('plus')}Add a card</button></div>
       <form class="panel" id="card-form" novalidate${part === 'new' ? '' : ' hidden'}>
-        <div class="panel-head"><h2 id="card-form-h">Add a card</h2><p>A piece of work for this client. Client requests arrive here on their own.</p></div>
+        <div class="panel-head"><h2 id="card-form-h">Add a card</h2><p>One job for this client. Client requests show up here by themselves.</p></div>
         <div class="grid-3">
           <div class="field span-2"><label for="c-title">What needs doing</label><input id="c-title" name="title" type="text" maxlength="200" required placeholder="Write the October newsletter"></div>
           <div class="field"><label for="c-status">Column</label><select id="c-status" name="status">${COLUMNS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
@@ -1462,7 +1462,7 @@
           <div class="field"><label for="c-service">Service</label><select id="c-service" name="service"><option value="">General</option>${services.map((/** @type {string} */ s) => `<option value="${s}">${esc(SERVICES[s].label)}</option>`).join('')}</select></div>
           <div class="field"><label for="c-due">Due</label><input id="c-due" name="due" type="date"></div>
           <div class="field"><label for="c-priority">Priority</label><select id="c-priority" name="priority">${PRIORITIES.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
-          <div class="field span-all card-vis-field"><label class="check-inline"><input type="checkbox" name="internal" id="c-internal"> Keep internal</label><p class="hint">Cards with a service show on the client's Work page straight away: the title, where it is and the due date. Details, priority and who is on it stay with the team. Tick this for a card the client should not see.</p></div>
+          <div class="field span-all card-vis-field"><label class="check-inline"><input type="checkbox" name="internal" id="c-internal"> Keep internal</label><p class="hint">A card with a service shows on the client's Work page right away: its title, stage and due date. Details, priority and who is on it stay with the team. Tick this to hide the card from the client.</p></div>
           <div class="field span-all"><label for="c-assignee">Who is on it (optional)</label><input id="c-assignee" name="assignee" type="text" maxlength="60" placeholder="Hermes, Karan"></div>
         </div>
         <div class="actions"><button class="btn" type="submit">Add the card</button><button class="btn btn-quiet" type="button" data-action="reveal-close">Cancel</button></div>
@@ -1536,7 +1536,7 @@
         <div class="field"><label for="e-priority-${esc(t.id)}">Priority</label><select id="e-priority-${esc(t.id)}" name="priority">${PRIORITIES.map(([k, l]) => `<option value="${k}"${t.priority === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
         <div class="field"><label for="e-assignee-${esc(t.id)}">Who is on it</label><input id="e-assignee-${esc(t.id)}" name="assignee" type="text" value="${esc(t.assignee || '')}" maxlength="60"></div>
       </div>
-      <div class="field card-vis-field"><label class="check-inline"><input type="checkbox" name="internal"${t.client_visible === false ? ' checked' : ''}> Keep internal</label><p class="hint">With a service and this off, the client sees the title, where it is and the due date on their Work page.</p></div>
+      <div class="field card-vis-field"><label class="check-inline"><input type="checkbox" name="internal"${t.client_visible === false ? ' checked' : ''}> Keep internal</label><p class="hint">If it has a service and this is off, the client sees its title, stage and due date on their Work page.</p></div>
       <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-danger btn-sm" type="button" data-remove-card style="margin-left:auto">Delete</button></div>
       ${t.multica_issue_id ? `<div class="card-note"><div class="field"><label for="e-note-${esc(t.id)}">Note on ${esc(t.multica_identifier || 'the issue')} in Multica</label><textarea id="e-note-${esc(t.id)}" name="note" maxlength="4000" placeholder="Hermes and the team see this in the issue's thread."></textarea></div><button class="btn btn-quiet btn-sm" type="button" data-note>Add the note</button></div>` : ''}
     </form>`;
@@ -1592,7 +1592,7 @@
     const cards = (all.tasks || []).filter((/** @type {any} */ k) => names[k.tenant_id] && (!allBoardState.client || k.tenant_id === allBoardState.client))
       .sort((/** @type {any} */ a, /** @type {any} */ b) => String(a.due || '9999').localeCompare(String(b.due || '9999')) || String(a.created_at).localeCompare(String(b.created_at)));
     const open = cards.filter((/** @type {any} */ k) => k.status !== 'done' && k.status !== 'cancelled').length;
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">All work</h1><p>Every card for every client on one board. Move cards here exactly as on a client's own board.</p></div>
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">All work</h1><p>Every client's cards on one board. Move them the same way as on a client's own board.</p></div>
       <div class="btns"><button class="btn btn-quiet btn-sm" type="button" data-action="refresh">${icon('refresh')}Refresh</button></div></div>
       <div class="toolbar"><label class="sr-only" for="ab-client">Show</label><select id="ab-client" style="width:auto;min-width:220px"><option value="">Every client</option>${active.map((/** @type {any} */ t) => `<option value="${esc(t.id)}"${allBoardState.client === t.id ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select>
         <span class="meta">${open ? plural(open, 'open card') : 'No open cards'}. To add a card, open the client's own board.</span></div>
@@ -1614,7 +1614,7 @@
   /** Deletes a card after asking. Returns whether it was deleted. @param {any} t */
   async function deleteCard(t) {
     if (!t) return false;
-    if (!await ask(`Delete "${t.title}"?`, t.kind === 'request' ? 'Only the card goes. The request stays in the inbox, and the client keeps seeing its last status.' : 'The card goes from the board for good. Its Multica issue, if any, is left as it is.', 'Delete')) return false;
+    if (!await ask(`Delete "${t.title}"?`, t.kind === 'request' ? 'Only the card goes. The request stays in the Inbox, and the client keeps seeing its last status.' : 'The card is gone for good. If it has a Multica issue, that issue stays as it is.', 'Delete')) return false;
     try {
       const client = await db();
       check(await client.from('tasks').delete().eq('id', t.id).select('id'));
@@ -1742,7 +1742,7 @@
 
   /** @param {HTMLElement} box */
   async function history(box) {
-    box.innerHTML = `<section class="panel" aria-labelledby="hist-h"><div class="panel-head"><h2 id="hist-h">History</h2><p>Who did what for this client, newest first. Written by the database, so nothing can be left out or edited.</p></div><div id="hist">${skeleton(2)}</div></section>`;
+    box.innerHTML = `<section class="panel" aria-labelledby="hist-h"><div class="panel-head"><h2 id="hist-h">History</h2><p>Who did what for this client, newest first. The database writes this list, so nothing can be skipped or changed.</p></div><div id="hist">${skeleton(2)}</div></section>`;
     try {
       const client = await db();
       const [a, s] = await Promise.all([
@@ -1805,10 +1805,10 @@
   /** Fills the Team panel and wires its controls. @param {HTMLElement} box */
   async function teamPanel(box) {
     const admin = me.role === 'super_admin';
-    box.innerHTML = `<div class="panel-head"><h2 id="s-team">Team</h2><p>${admin ? 'Who can use this console. Changes are made in Clerk, the sign-in service, and take effect within a minute.' : 'Who can use this console. Only a super admin can change it.'}</p></div>
+    box.innerHTML = `<div class="panel-head"><h2 id="s-team">Team</h2><p>${admin ? 'Who can use this console. Changes go to Clerk (our sign-in service) and work within a minute.' : 'Who can use this console. Only a super admin can change it.'}</p></div>
       <div id="team-list">${skeleton(1)}</div>
       ${admin ? `<form class="team-add" id="team-add" novalidate>
-        <h3 class="panel-sub">Add a teammate <span class="meta">They get a login with no password: Clerk emails them a code when they sign in.</span></h3>
+        <h3 class="panel-sub">Add a teammate <span class="meta">No password. Clerk emails them a code each time they sign in.</span></h3>
         <div class="grid-3">
           <div class="field"><label for="t-first">First name</label><input id="t-first" name="first" type="text" maxlength="100" autocomplete="off"></div>
           <div class="field"><label for="t-email">Email</label><input id="t-email" name="email" type="email" maxlength="200" autocomplete="off" required></div>
@@ -1853,7 +1853,7 @@
       try {
         const r = await callFn('team', { action: 'role', userId: id, role });
         show(r.members || []);
-        toast(`Now ${ROLE_LABEL[role].toLowerCase()}.`);
+        toast(`Role changed to ${ROLE_LABEL[role]}.`);
       } catch (x) {
         toast(message(x), true);
         try { show((await callFn('team', { action: 'list' })).members || []); } catch (y) { /* the list stays as it was */ }
@@ -1883,24 +1883,24 @@
     const st = multicaState || { pending: true };
     if (!multicaState) multicaStatus().then(() => { if (location.hash === '#/settings' && !dirty.size) settingsPage(note); });
     const y = window.scrollY;
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Settings</h1><p>How the console looks and works for you. Changes apply at once and are saved to your account, so they follow you to any computer.</p></div></div>
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Settings</h1><p>How the console looks and works for you. Changes apply at once. They save to your account, so they follow you to any computer.</p></div></div>
       <p class="meta set-note" id="set-note" role="status">${note ? esc(note) : ''}</p>
       <section class="panel" aria-labelledby="s-look"><div class="panel-head"><h2 id="s-look">Appearance</h2><p>The same choices as the client dashboard.</p></div>
         <div class="pick-grid" role="group" aria-label="Background">${pick('scene', 'scenes', 'Scenes', 'A sky that changes with each page', 'scenes')}${pick('scene', 'static', 'Static', 'The dot grid from our website', 'static')}</div>
         <div class="pick-grid" role="group" aria-label="Theme">${pick('theme', 'light', 'Light', 'The standard look', 'light')}${pick('theme', 'dark', 'Dark', 'Easier on the eyes late at night', 'dark')}</div>
       </section>
-      <section class="panel" aria-labelledby="s-read"><div class="panel-head"><h2 id="s-read">Reading and spacing</h2><p>For long days in the console.</p></div>
+      <section class="panel" aria-labelledby="s-read"><div class="panel-head"><h2 id="s-read">Reading and spacing</h2></div>
         <div class="pick-grid" role="group" aria-label="Text size">${pick('text', 'standard', 'Standard text', 'The size the dashboard uses', 'text')}${pick('text', 'large', 'Larger text', 'Everything a little bigger', 'text-lg')}</div>
         <div class="pick-grid" role="group" aria-label="Spacing">${pick('density', 'comfortable', 'Comfortable', 'Room to breathe between things', 'roomy')}${pick('density', 'compact', 'Compact', 'More on screen at once', 'compact')}</div>
       </section>
-      <section class="panel" aria-labelledby="s-start"><div class="panel-head"><h2 id="s-start">Opening page</h2><p>What you see first when you open the console.</p></div>
+      <section class="panel" aria-labelledby="s-start"><div class="panel-head"><h2 id="s-start">Opening page</h2><p>The page you see first.</p></div>
         <div class="seg" role="group" aria-label="Opening page">${[['queue', 'Needs you'], ['board', 'All work'], ['clients', 'Clients']].map(([k, l]) => `<button type="button" data-pref="start" data-val="${k}" aria-pressed="${prefs.start === k}">${l}</button>`).join('')}</div>
       </section>
       <section class="panel" aria-labelledby="s-multica"><div class="panel-head"><h2 id="s-multica">Task boards and Multica</h2><p>${st.pending ? 'Checking the connection to Multica.' : st.configured ? `Connected to the <strong>${esc(st.workspace)}</strong> workspace.` : 'Multica is not set up on the server yet. Cards are kept here until it is.'}</p></div>
-        <label class="switch-row"><input type="checkbox" role="switch" data-pref-toggle="autoPull"${prefs.autoPull ? ' checked' : ''}><span><span class="pick-t">Check Multica automatically</span><span class="pick-d">While a board is open: when it opens, every 90 seconds, and when you come back to the tab. Off means only when you press "check Multica now".</span></span></label>
+        <label class="switch-row"><input type="checkbox" role="switch" data-pref-toggle="autoPull"${prefs.autoPull ? ' checked' : ''}><span><span class="pick-t">Check Multica automatically</span><span class="pick-d">While a board is open: when it opens, every 90 seconds, and when you come back to the tab. When off, it checks only when you press "check Multica now".</span></span></label>
       </section>
       <section class="panel" aria-labelledby="s-me"><div class="panel-head"><h2 id="s-me">Your account</h2></div>
-        <dl class="facts"><dt>Name</dt><dd>${esc(me.name)}</dd><dt>Email</dt><dd>${esc(me.email || 'Not shown')}</dd><dt>Role</dt><dd>${me.role === 'super_admin' ? 'Super admin: uses the console and manages the team' : 'Member: uses the console'}</dd><dt>Sign-in</dt><dd>With a code emailed by Clerk. Access comes from membership of the Domin8te team in Clerk.</dd></dl>
+        <dl class="facts"><dt>Name</dt><dd>${esc(me.name)}</dd><dt>Email</dt><dd>${esc(me.email || 'Not shown')}</dd><dt>Role</dt><dd>${me.role === 'super_admin' ? 'Super admin: uses the console and manages the team' : 'Member: uses the console'}</dd><dt>Sign-in</dt><dd>With a code Clerk emails you. You get in because you are on the Domin8te team in Clerk.</dd></dl>
         <div class="actions"><button class="btn btn-quiet" type="button" data-action="sign-out">Sign out</button></div>
       </section>
       <section class="panel" aria-labelledby="s-team" id="team-box"></section>
@@ -1938,7 +1938,7 @@
   const TIERS = { bronze: ['Bronze', 'Entry plan, the least expensive'], silver: ['Silver', 'Middle plan'], gold: ['Gold', 'Top plan, the most expensive'] };
   const APPROVAL_LEVELS = {
     red: ['Red', 'Approves everything', 'Ask them before anything goes out: every post, page, ad and change.', 'bad'],
-    yellow: ['Yellow', 'Only big decisions', 'Ask about design and company-level decisions; handle the routine work yourselves.', 'warn'],
+    yellow: ['Yellow', 'Only big decisions', 'Ask about design and big business decisions. Do the everyday work without asking.', 'warn'],
     green: ['Green', 'As few as possible', 'Just do the work. Ask only when there is truly no other way.', 'good']
   };
   /** @param {string} id */
@@ -1997,7 +1997,7 @@
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Billing</h1><p>Every client's plan, when they started and when they renew. Next renewal first.</p></div></div>
       <p class="summary"><span><b>${soon.length}</b> renew${soon.length === 1 ? 's' : ''} in the next 7 days</span><span><b>${late.length}</b> past due</span><span><b>${unset.length}</b> without dates</span></p>
       <div class="toolbar"><div class="seg" role="group" aria-label="Show">${[['all', 'All'], ['soon', 'Renewing this week'], ['late', 'Past due'], ['unset', 'No dates yet']].map(([k, l]) => `<button type="button" data-bfilter="${k}" aria-pressed="${billingState.filter === k}">${l}</button>`).join('')}</div>
-        <span class="meta">Dates are entered on each client's Overview, under Billing, until Stripe is connected.</span></div>
+        <span class="meta">Until Stripe is connected, type the dates on each client's Edit tab, under Billing.</span></div>
       ${shown.length ? `<div class="table-wrap"><table class="grid"><thead><tr><th scope="col">Client</th><th scope="col">Plan</th><th scope="col">Started</th><th scope="col">Renews</th><th scope="col">Status</th></tr></thead><tbody>
         ${shown.map(({ t, b }) => {
           const d = b.renews ? due(b.renews) : null;
@@ -2012,7 +2012,7 @@
             <td class="when">${renewText}</td>
             <td>${st ? `<span class="chip ${st[1]}">${st[0]}</span>` : '<span class="none">Not set</span>'}${b.status === 'past_due' && b.grace ? `<span class="sub">Services pause after ${esc(when(b.grace))}</span>` : ''}</td></tr>`;
         }).join('')}</tbody></table></div>`
-        : `<div class="empty"><p><strong>${billingState.filter === 'all' ? 'No clients yet.' : 'Nothing here.'}</strong></p><p>${billingState.filter === 'all' ? 'Add a client, then enter their plan and dates on their Overview.' : 'Try another filter.'}</p></div>`}`;
+        : `<div class="empty"><p><strong>${billingState.filter === 'all' ? 'No clients yet.' : 'Nothing here.'}</strong></p><p>${billingState.filter === 'all' ? 'Add a client, then type their plan and dates on their Edit tab.' : 'Try another filter.'}</p></div>`}`;
     main.onclick = (e) => {
       const target = /** @type {HTMLElement} */ (e.target);
       const f = target.closest('[data-bfilter]');
@@ -2128,10 +2128,10 @@
     const listHtml = `
       ${level ? `<p class="board-strip">${approvalChip(level, true)} <span>${esc(APPROVAL_LEVELS[level][2])}</span></p>` : ''}
       <section class="panel" aria-labelledby="apv-list-h">
-        <div class="panel-head"><h2 id="apv-list-h">Approvals</h2><p>${open ? `${plural(open, 'is', 'are').replace(/^(\d+) /, '$1 ')} waiting for their answer` : list.length ? 'All answered' : 'None yet'}</p>
+        <div class="panel-head"><h2 id="apv-list-h">Approvals</h2><p>${open ? `${open} waiting on them` : list.length ? 'All answered' : 'None yet'}</p>
           <div class="btns"><button class="btn btn-sm" type="button" data-action="reveal" aria-expanded="${part === 'new'}" aria-controls="apv-form">${icon('plus')}Ask for an approval</button></div></div>
         ${list.length ? `<ul class="items">${list.map(({ a, ans, d: dd }) => `<li class="item-card${!ans && dd && dd.late ? ' late' : ''}"><div class="item-top"><span class="item-title">${esc(a.title)}</span>
-            <span class="r">${ans ? `<span class="chip ${ans.decision === 'approved' ? 'good' : 'you'}">${ans.decision === 'approved' ? 'Approved' : 'Changes requested'}</span>` : `<span class="chip ${dd && dd.late ? 'bad' : 'them'}">Waiting for them${dd ? `, ${esc(dd.text)}` : ''}</span>`}
+            <span class="r">${ans ? `<span class="chip ${ans.decision === 'approved' ? 'good' : 'you'}">${ans.decision === 'approved' ? 'Approved' : 'Changes requested'}</span>` : `<span class="chip ${dd && dd.late ? 'bad' : 'them'}">Waiting on them${dd ? `, ${esc(dd.text)}` : ''}</span>`}
             <button class="btn btn-danger btn-sm" type="button" data-remove-apv="${esc(a.id)}">Remove</button></span></div>
             <p class="meta">${esc(svcLabel(a.service))}${a.due ? ` · answer needed by ${esc(when(a.due))}` : ''}${a.preview ? ` · shows ${a.preview.type === 'list' ? 'a list' : a.preview.type === 'link' ? 'a link' : 'a preview'}` : ''}</p>
             ${ans ? `<p class="meta">${esc(ans.by_name || 'They')} answered ${esc(when(ans.at))}</p>${ans.comment ? `<blockquote>${esc(ans.comment)}</blockquote>` : ''}` : ''}</li>`).join('')}</ul>`
@@ -2207,7 +2207,7 @@
       if (!b) return;
       const id = b.getAttribute('data-remove-apv') || '';
       const a = d.approvals[id];
-      if (!await ask(`Remove "${a ? a.title : 'this approval'}"?`, 'It disappears from their portal. Their answer, if they gave one, stays in the history.')) return;
+      if (!await ask(`Remove "${a ? a.title : 'this approval'}"?`, 'It goes from their portal. If they already answered, the answer stays in History.')) return;
       try {
         await saveDoc((doc) => {
           const was = doc.approvals[id];
@@ -2240,14 +2240,14 @@
       </section>`;
     const formHtml = `
       <form class="panel" id="upd-form" novalidate${part === 'new' ? '' : ' hidden'}>
-        <div class="panel-head"><h2>Post an update</h2><p>Appears on their Updates page. Fill in what applies; empty lines are left out.</p></div>
+        <div class="panel-head"><h2>Post an update</h2><p>Shows on their Updates page. Fill in only what applies. Empty boxes are left out.</p></div>
         <div class="grid-3">
           <div class="field span-2"><label for="u-title">Headline</label><input id="u-title" type="text" name="title" placeholder="Autumn menu page is live" maxlength="140" required></div>
           <div class="field"><label for="u-date">Date</label><input id="u-date" type="date" name="date" value="${today()}"></div>
           <div class="field"><label for="u-service">Service</label><select id="u-service" name="service"><option value="">General</option>${services.map((/** @type {string} */ s) => `<option value="${s}">${esc(SERVICES[s].label)}</option>`).join('')}</select></div>
           <div class="field span-2"><label for="u-completed">What we completed</label><input id="u-completed" type="text" name="completed" maxlength="300"></div>
           <div class="field span-all"><label for="u-changed">What changed</label><input id="u-changed" type="text" name="changed" maxlength="300"></div>
-          <div class="field span-all"><label for="u-result">Result (only real figures)</label><input id="u-result" type="text" name="result" maxlength="300"></div>
+          <div class="field span-all"><label for="u-result">Result (real numbers only)</label><input id="u-result" type="text" name="result" maxlength="300"></div>
           <div class="field span-all"><label for="u-why">Why it matters</label><input id="u-why" type="text" name="why" maxlength="300"></div>
           <div class="field span-all"><label for="u-next">Next step</label><input id="u-next" type="text" name="next" maxlength="300"></div>
         </div>
@@ -2309,7 +2309,7 @@
       <section class="panel" aria-labelledby="msg-h"><div class="panel-head"><h2 id="msg-h">Messages</h2><p>They see your replies on their Help page.</p></div>
         ${current.messages.length ? `<ul class="thread">${current.messages.map((/** @type {any} */ m) => `<li class="msg${m.from_staff ? ' team' : ''}"><p>${esc(m.body)}</p><p class="meta">${esc(m.by_name || (m.from_staff ? 'Domin8te' : 'Client'))}, ${esc(when(m.at))}</p></li>`).join('')}</ul>` : '<p class="meta" style="margin-bottom:14px">No messages yet.</p>'}
         <form id="reply-form" novalidate><div class="field"><label for="reply">Reply as ${esc(me.name)}</label><textarea id="reply" name="body" maxlength="2000" placeholder="Thanks ${esc(current.doc.user.firstName || '')}${current.doc.user.firstName ? ',' : ''} we can do that this week."></textarea></div>
-          <div class="actions"><button class="btn" type="submit">Send reply</button><span class="meta">Appears in their portal. No email is sent yet.</span></div></form>
+          <div class="actions"><button class="btn" type="submit">Send reply</button><span class="meta">Shows in their portal. No email is sent yet.</span></div></form>
       </section>
       <section class="panel" aria-labelledby="req-h"><div class="panel-head"><h2 id="req-h">Change requests</h2><p>They see the status on their Work page.</p></div>
         ${openReqs.length ? `<ul class="items">${openReqs.map(reqCard).join('')}</ul>` : '<p class="meta">No open requests.</p>'}
@@ -2374,7 +2374,7 @@
       <div class="panel-head"><h2>The full record</h2><p>Everything their portal reads, including figures, connected accounts and billing. Edit with care.</p><div class="btns"><button class="btn btn-quiet btn-sm" type="button" data-action="copy-record">Copy</button></div></div>
       <textarea class="code" name="doc" spellcheck="false" aria-label="Client record as JSON">${esc(JSON.stringify(current.doc, null, 2))}</textarea>
       <p class="field-error" id="rec-err" hidden></p>
-      <div class="actions"><button class="btn" type="submit">Save the record</button><span class="meta">Figures must be real: never type in numbers that did not come from a source.</span></div>
+      <div class="actions"><button class="btn" type="submit">Save the record</button><span class="meta">Numbers must be real. Never type a number that did not come from a source.</span></div>
     </form>`;
     const f = /** @type {HTMLFormElement} */ ($('#rec-form', box));
     track(f, 'Record');
@@ -2415,7 +2415,7 @@
   // questions: a card moved in both places, a card gone from Multica, a data source gone quiet.
 
   const DM_KIND = { work: 'Work', update: 'Update', result: 'Result' };
-  const DM_EXCEPTION = { multica_conflict: 'Moved in both places', multica_missing: 'Gone from Multica', source_stale: 'Data source quiet', event_reaped_failed: 'Event failed', invalid_event: 'Event rejected', invalid_billing_invoice: 'Invoice rejected', projection_write_failed: 'Write failed', billing_projection_write_failed: 'Write failed', client_item_hidden: 'Hidden from client', client_invoice_hidden: 'Invoice hidden' };
+  const DM_EXCEPTION = { multica_conflict: 'Moved in both places', multica_missing: 'Gone from Multica', source_stale: 'Data source quiet', event_reaped_failed: 'Event failed', invalid_event: 'Event rejected', invalid_billing_invoice: 'Invoice rejected', projection_write_failed: 'Save failed', billing_projection_write_failed: 'Save failed', client_item_hidden: 'Hidden from client', client_invoice_hidden: 'Invoice hidden' };
 
   /** The queue for every client. Tables added later: if they are not there yet, the console carries on without them. */
   async function loadReviews() {
@@ -2456,21 +2456,21 @@
     const source = revision ? it.pending_source_ref : it.source_ref;
     const fields = Object.entries(proposed || {}).map(([k, v]) => `<div class="field"><label for="dm-${esc(it.id)}-${esc(k)}">${esc(k)}</label><input id="dm-${esc(it.id)}-${esc(k)}" name="${esc(k)}" data-type="${typeof v}" value="${esc(dmText(v))}" maxlength="2000"></div>`).join('');
     return `<li class="dm-card" data-dm-item="${esc(it.id)}">
-      <p class="g-top">${showClient ? `<span class="client">${esc(clientName(it.tenant_id))}</span>` : ''}<span class="chip you">${esc(DM_KIND[it.item_kind] || it.item_kind)}</span>${revision ? '<span class="chip info">Change to something they see</span>' : ''}${it.hidden_at ? '<span class="chip">Hidden</span>' : ''}${it.publish_requested ? '<span class="chip plain">Sender asked to publish</span>' : ''}<span class="meta">${esc(it.source_kind)} · ${esc(source || '')} · ${esc(ago(it.pending_at || it.updated_at))}</span></p>
+      <p class="g-top">${showClient ? `<span class="client">${esc(clientName(it.tenant_id))}</span>` : ''}<span class="chip you">${esc(DM_KIND[it.item_kind] || it.item_kind)}</span>${revision ? '<span class="chip info">Changes what they see</span>' : ''}${it.hidden_at ? '<span class="chip">Hidden</span>' : ''}${it.publish_requested ? '<span class="chip plain">Sender asked to publish</span>' : ''}<span class="meta">${esc(it.source_kind)} · ${esc(source || '')} · ${esc(ago(it.pending_at || it.updated_at))}</span></p>
       ${dmDiff(revision ? it.content : null, proposed)}
       <form class="dm-edit" hidden novalidate><div class="grid-3">${fields}</div>
         <div class="actions"><button class="btn btn-sm" type="submit">Save and approve</button><button class="btn btn-quiet btn-sm" type="button" data-dm="edit-cancel">Cancel</button></div></form>
-      <form class="dm-hide" hidden novalidate><div class="field"><label for="dm-why-${esc(it.id)}">Why hide it? (kept in the history)</label><input id="dm-why-${esc(it.id)}" name="reason" maxlength="1000" required></div>
+      <form class="dm-hide" hidden novalidate><div class="field"><label for="dm-why-${esc(it.id)}">Why hide it? (kept in History)</label><input id="dm-why-${esc(it.id)}" name="reason" maxlength="1000" required></div>
         <div class="actions"><button class="btn btn-danger btn-sm" type="submit">Hide from the client</button><button class="btn btn-quiet btn-sm" type="button" data-dm="hide-cancel">Cancel</button></div></form>
       <div class="actions dm-buttons">${it.hidden_at ? '' : '<button class="btn btn-sm" type="button" data-dm="approve">Approve</button><button class="btn btn-quiet btn-sm" type="button" data-dm="edit">Edit, then approve</button>'}
-        <button class="btn btn-quiet btn-sm" type="button" data-dm="reject">Reject</button>${it.client_visible ? '<button class="btn btn-quiet btn-sm" type="button" data-dm="hide">Hide what they see</button>' : ''}</div></li>`;
+        <button class="btn btn-quiet btn-sm" type="button" data-dm="reject">Reject</button>${it.client_visible ? '<button class="btn btn-quiet btn-sm" type="button" data-dm="hide">Hide it from them</button>' : ''}</div></li>`;
   }
   /** Invoices: approve or reject only. They are never published automatically. @param {any} inv @param {boolean} showClient */
   function dmInvoiceCard(inv, showClient) {
     const p = inv.pending_at ? inv.pending_row || {} : null;
     const view = (/** @type {any} */ r) => ({ number: r.invoice_number, amount: r.amount_minor === undefined || r.amount_minor === null ? '' : `${(Number(r.amount_minor) / 100).toFixed(2)} ${r.currency || ''}`, status: r.status, issued: r.issued_at, due: r.due_at, paid: r.paid_at, link: r.hosted_payment_url });
     return `<li class="dm-card" data-dm-invoice="${esc(inv.id)}">
-      <p class="g-top">${showClient ? `<span class="client">${esc(clientName(inv.tenant_id))}</span>` : ''}<span class="chip you">Invoice</span>${p ? '<span class="chip info">Change to something they see</span>' : ''}<span class="meta">${esc(inv.source_ref)} · ${esc(ago(inv.pending_at || inv.updated_at))}</span></p>
+      <p class="g-top">${showClient ? `<span class="client">${esc(clientName(inv.tenant_id))}</span>` : ''}<span class="chip you">Invoice</span>${p ? '<span class="chip info">Changes what they see</span>' : ''}<span class="meta">${esc(inv.source_ref)} · ${esc(ago(inv.pending_at || inv.updated_at))}</span></p>
       ${dmDiff(p ? view(inv) : null, view(p ? { ...inv, ...p } : inv))}
       <div class="actions dm-buttons"><button class="btn btn-sm" type="button" data-dm="inv-approve">Approve</button><button class="btn btn-quiet btn-sm" type="button" data-dm="inv-reject">Reject</button></div></li>`;
   }
@@ -2478,8 +2478,8 @@
   function dmExceptionCard(x, showClient) {
     const v = x.last_verified_value || {};
     const buttons = x.reason_code === 'multica_conflict' && v.taskId
-      ? `<button class="btn btn-sm" type="button" data-dm="keep-ours">Keep ours (${esc(TASK_STATUS_LABEL[v.local] || v.local)}), push to Multica</button><button class="btn btn-quiet btn-sm" type="button" data-dm="take-theirs">Take Multica's (${esc(TASK_STATUS_LABEL[v.remote] || v.remote)})</button>`
-      : '<button class="btn btn-quiet btn-sm" type="button" data-dm="resolve">Resolve</button>';
+      ? `<button class="btn btn-sm" type="button" data-dm="keep-ours">Keep ours (${esc(TASK_STATUS_LABEL[v.local] || v.local)}) and send to Multica</button><button class="btn btn-quiet btn-sm" type="button" data-dm="take-theirs">Use Multica's (${esc(TASK_STATUS_LABEL[v.remote] || v.remote)})</button>`
+      : '<button class="btn btn-quiet btn-sm" type="button" data-dm="resolve">Mark as fixed</button>';
     return `<li class="dm-card" data-dm-exception="${esc(x.id)}" data-task="${esc(v.taskId || '')}" data-local="${esc(v.local || '')}" data-remote="${esc(v.remote || '')}">
       <p class="g-top">${showClient ? `<span class="client">${esc(clientName(x.tenant_id))}</span>` : ''}<span class="chip ${x.severity === 'critical' ? 'bad' : 'warn'}">${esc(DM_EXCEPTION[x.reason_code] || x.reason_code)}</span><span class="meta">${esc(ago(x.detected_at))}</span></p>
       <p>${esc(x.message)}</p>
@@ -2490,9 +2490,9 @@
     const t = tenant(tenantId);
     if (!t) return '';
     const st = multicaState;
-    if (st && !st.pending && !st.configured) return '<p class="meta dm-sync">Multica not configured, so nothing syncs from it yet.</p>';
+    if (st && !st.pending && !st.configured) return '<p class="meta dm-sync">Multica is not set up, so nothing comes in from it yet.</p>';
     const s = all && all.reviews && all.reviews.sync ? all.reviews.sync[tenantId] : null;
-    if (!s) return '<p class="meta dm-sync">Multica: not synced yet. Clients sync once their Multica project is linked.</p>';
+    if (!s) return '<p class="meta dm-sync">Multica has not synced this client yet. It starts once their Multica project is linked.</p>';
     const okAt = s.last_ok_at ? Math.round((Date.now() - new Date(s.last_ok_at).getTime()) / 1000) : null;
     const when = okAt === null ? 'never' : okAt < 90 ? `${okAt} s ago` : ago(s.last_ok_at);
     return `<p class="meta dm-sync">Multica synced ${esc(when)}${s.last_total !== null && s.last_total !== undefined ? `, ${plural(s.last_total, 'card')} in their project` : ''}${s.last_error ? `. <span class="late">Last try failed (${esc(s.last_error)}).</span>` : '.'}</p>`;
@@ -2502,10 +2502,10 @@
     const r = reviewsFor(tenantId);
     const count = r.items.length + r.invoices.length + r.exceptions.length;
     const showClient = !tenantId;
-    const lede = 'Nothing here reaches a client\'s portal until you approve it. A change to something they already see keeps showing the old version until then.';
+    const lede = 'Work, updates, results and invoices our system made for client dashboards, and problems it found. Clients see none of it until you approve. If it changes something they already see, they keep the old version until then.';
     const body = count
       ? `<ul class="q dm-list">${r.exceptions.map((x) => dmExceptionCard(x, showClient)).join('')}${r.items.map((x) => dmItemCard(x, showClient)).join('')}${r.invoices.map((x) => dmInvoiceCard(x, showClient)).join('')}</ul>`
-      : `<p class="meta">Nothing waiting for approval.</p>`;
+      : `<p class="meta">Nothing to approve.</p>`;
     if (tenantId) return `<section class="panel" aria-labelledby="g-dm"><div class="panel-head"><h2 id="g-dm">Dashboard updates to approve <span class="meta">${count}</span></h2><p>${esc(lede)}</p></div>${dmSyncLine(tenantId)}${body}</section>`;
     return count ? `<section class="q-group"><h2>Dashboard updates to approve <span class="meta">${count}</span></h2><p class="lede">${esc(lede)}</p>${body}</section>` : '';
   }
@@ -2545,7 +2545,7 @@
         const taskId = card.getAttribute('data-task') || '';
         if (act === 'keep-ours') {
           await multica({ action: 'push', taskId });
-          toast('Pushed. Multica has the card as it is here.');
+          toast('Sent. Multica now matches this card.');
         } else {
           const remote = card.getAttribute('data-remote') || '';
           const row = check(await client.from('tasks').update({ status: remote, multica_status: remote }).eq('id', taskId).select('*').single());
@@ -2581,7 +2581,7 @@
         toast('Edited and approved. It is on their portal now.');
       } else {
         const reason = val(f, 'reason');
-        if (!reason) { done(); toast('Say why it is being hidden.', true); return; }
+        if (!reason) { done(); toast('Say why you are hiding it.', true); return; }
         await callFn('dashboard-recovery', { action: 'hide', targetType: 'dashboard-item', itemId, reason });
         toast('Hidden from the client. The history keeps it.');
       }
@@ -2593,7 +2593,7 @@
   /** Settings, super admins only: the four rollout gates and the per-client auto-publish switch. @param {HTMLElement} box */
   async function gatesPanel(box) {
     const GATES = [['a_test_project_tests', 'Test-project tests pass'], ['b_field_evidence_checks', 'Field-level evidence checks pass'], ['c_tenant_authorization', 'Tenant authorization checks pass'], ['d_test_client_backfill', 'One test client backfilled and approved']];
-    const head = `<div class="panel-head"><h2 id="s-gates">Publishing gates</h2><p>Automatic publishing stays off until all four gates are recorded. Even then it needs the client switched on here <strong>and</strong> AUTO_PUBLISH_ENABLED set on the server by Karan. Invoices are never published automatically.</p></div>`;
+    const head = `<div class="panel-head"><h2 id="s-gates">Publishing gates</h2><p>Automatic publishing stays off until all four gates are recorded. Even then, the client's switch must be on here <strong>and</strong> Karan must set AUTO_PUBLISH_ENABLED on the server. Invoices never publish automatically.</p></div>`;
     box.innerHTML = head + skeleton(1);
     const client = await db();
     const [g, a] = await Promise.all([client.from('dashboard_publish_gates').select('*'), client.from('tenant_auto_publish').select('*')]);
@@ -2603,12 +2603,12 @@
     const on = Object.fromEntries(((a && a.data) || []).map((/** @type {any} */ x) => [x.tenant_id, x.enabled]));
     box.innerHTML = `${head}
       <dl class="facts">${GATES.map(([k, l]) => `<dt>${esc(l)}</dt><dd>${passed[k] ? `<span class="chip good">Passed</span> <span class="meta">${esc(ago(passed[k].passed_at))}: ${esc(passed[k].evidence_ref)}</span>` : '<span class="chip warn">Not yet</span>'}</dd>`).join('')}</dl>
-      <form id="gate-form" novalidate><h3 class="panel-sub">Record a gate <span class="meta">With a link to the evidence: the CI run, the test report, the sign-off.</span></h3>
+      <form id="gate-form" novalidate><h3 class="panel-sub">Record a gate <span class="meta">Add a link to the evidence: the CI run, test report or sign-off.</span></h3>
         <div class="grid-3"><div class="field"><label for="g-gate">Gate</label><select id="g-gate" name="gate">${GATES.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</select></div>
           <div class="field"><label for="g-ev">Evidence</label><input id="g-ev" name="evidence" maxlength="1000" required></div></div>
         <div class="actions"><button class="btn" type="submit">Record the gate</button></div></form>
-      <h3 class="panel-sub">Automatic publishing, per client <span class="meta">${allPassed ? 'Only items the sender asked to publish, and only when the database\'s evidence rules pass. Everything else still waits here.' : 'The switches stay off until all four gates are recorded.'}</span></h3>
-      ${all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived').map((/** @type {any} */ t) => `<label class="switch-row"><input type="checkbox" role="switch" data-dm-auto="${esc(t.id)}"${on[t.id] ? ' checked' : ''}${allPassed || on[t.id] ? '' : ' disabled'}><span><span class="pick-t">${esc(t.name)}</span><span class="pick-d">${on[t.id] ? 'On here; also needs AUTO_PUBLISH_ENABLED on the server' : 'Off: everything waits for approval'}</span></span></label>`).join('')}`;
+      <h3 class="panel-sub">Automatic publishing, per client <span class="meta">${allPassed ? 'Only items the sender asked to publish, and only when the database\'s evidence rules pass. Everything else still waits here.' : 'You can turn these on once all four gates are recorded.'}</span></h3>
+      ${all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived').map((/** @type {any} */ t) => `<label class="switch-row"><input type="checkbox" role="switch" data-dm-auto="${esc(t.id)}"${on[t.id] ? ' checked' : ''}${allPassed || on[t.id] ? '' : ' disabled'}><span><span class="pick-t">${esc(t.name)}</span><span class="pick-d">${on[t.id] ? 'On here. Also needs AUTO_PUBLISH_ENABLED on the server.' : 'Off. Everything waits for approval.'}</span></span></label>`).join('')}`;
     const f = /** @type {HTMLFormElement} */ ($('#gate-form', box));
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -2687,7 +2687,7 @@
     main.innerHTML = `<div class="signin"><div class="signin-card">
       <p class="signin-brand"><img src="${esc($('.brand img').getAttribute('src'))}" alt="" width="34" height="19"><span>Domin8te agency console</span></p>
       <h1 id="page-title">Sign-in is not open yet</h1>
-      <p class="lede">This console is for the Domin8te team only. It opens once team sign-in is switched on, and then every visit starts with a code sent to a team email address.</p>
+      <p class="lede">This console is only for the Domin8te team. It opens once team sign-in is turned on. Then each visit starts with a code sent to a team email address.</p>
       <p class="notice">Looking for your restaurant's dashboard? It is at <a href="https://domin8temedia.com/dashboard/">domin8temedia.com/dashboard</a>.</p>
     </div></div>`;
     return;
