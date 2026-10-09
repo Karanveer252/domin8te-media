@@ -16,7 +16,7 @@ const flow = (name, steps, extra = {}) => ({ name, route: extra.route || 'home',
 const st = (code) => `function () { ${code} }`;
 
 const cases = [];
-const routes = ['home', 'work', 'results', 'updates', 'billing', 'settings', 'help', 'no-such-page'];
+const routes = ['home', 'work', 'results', 'updates', 'billing', 'settings', 'messages', 'help', 'no-such-page'];
 const pageOf = { 'no-such-page': 'notFound' };
 
 // 1. Every page, both grounds, both themes, at 1440.
@@ -32,7 +32,7 @@ for (const scene of ['static', 'scenes']) for (const r of routes) cases.push({ n
 for (const r of routes) cases.push({ name: `tablet ${r}`, route: r, w: 1024, h: 900, expect: { page: pageOf[r] || r } });
 
 // 4. The flows.
-const navs = ['work', 'results', 'billing', 'settings', 'help', 'home'];
+const navs = ['work', 'results', 'billing', 'messages', 'settings', 'help', 'home'];
 cases.push(flow('nav through every page by the panel', navs.map((p) => st(`click('.side .nav-link[data-nav="${p}"]'); setTimeout(function () { note('${p}', title()); }, 350);`)), { expect: { page: 'home' } }));
 cases.push(flow('nav on Scenes', navs.map((p) => st(`click('.side .nav-link[data-nav="${p}"]'); setTimeout(function () { note('${p}', title()); }, 350);`)), { query: 'scene=scenes', expect: { page: 'home', scene: 'scenes' } }));
 cases.push(flow('collapse and expand the panel', [
@@ -75,11 +75,12 @@ cases.push(flow('Escape closes a dialog and focus returns', [
   st(`note('open', dlg()); $('#dlg').dispatchEvent(new Event('cancel', { cancelable: true }));`),
   st(`note('closed', !dlg()); note('focus back', document.activeElement && document.activeElement.getAttribute('data-action'));`)
 ], { gap: 700 }));
-cases.push(flow('message the account team from Help', [
-  st(`click('[data-action="compose"]');`),
-  st(`note('dialog', dlg()); var f = $('#dlg form'); var ta = f.querySelector('textarea'); ta.value = 'Can we add the autumn menu to the site this week?'; f.requestSubmit();`),
-  st(`note('title', ($('#dlg-title') || {}).textContent); click('#dlg [data-dlg-close]');`)
-], { route: 'help', gap: 800 }));
+// Messages (2026-10-09): Help leads there, and a message sent shows in the thread at once.
+cases.push(flow('message the account team from Messages', [
+  st(`click('.help-contact a[href="#/messages"]');`),
+  st(`note('page', title()); click('.msg-about-toggle'); note('topic shown', !$('#msg-about-box').hidden); var ta = $('#msg-new'); ta.value = 'Can we add the autumn menu to the site this week?'; ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true }));`),
+  st(`var all = $$('#msg-thread .msg'); var last = all[all.length - 1]; if (!last || last.textContent.indexOf('autumn menu to the site') < 0 || last.classList.contains('is-sending')) throw new Error('the message is not in the thread'); note('sent', true); note('box cleared', $('#msg-new').value === '');`)
+], { route: 'help', gap: 1000, expect: { page: 'messages' } }));
 cases.push(flow('save email preferences', [
   st(`$('.fold-emails').open = true; var box = $$('#notify-form input[type="checkbox"]').filter(function (b) { return !b.disabled; })[0]; box.click(); note('save enabled', !$('#notify-form button[type="submit"]').disabled);`),
   st(`$('#notify-form').requestSubmit();`),
@@ -160,7 +161,7 @@ cases.push(flow('pointer over the dots, then away', [
 ], { gap: 700 }));
 
 // Page changes made while the portal starts: it must end on the page chosen, with no crash screen.
-for (const p of ['work', 'results', 'billing', 'settings', 'updates', 'help']) for (const ms of [0, 60, 150, 300, 600]) {
+for (const p of ['work', 'results', 'billing', 'settings', 'updates', 'messages', 'help']) for (const ms of [0, 60, 150, 300, 600]) {
   cases.push({ name: `start, ${ms}ms, then ${p}`, route: 'home', early: `setTimeout(function () { location.hash = '#/${p}'; }, ${ms});`, expect: { page: p } });
 }
 

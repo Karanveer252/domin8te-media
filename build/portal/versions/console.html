@@ -1093,12 +1093,86 @@ html[data-scene="scenes"][data-theme="dark"] #tab > .toolbar .chip { background-
 .col-delete.over .del-zone { color: var(--bad, #A8231B); font-weight: 600; }
 html[data-theme="dark"] .col-delete { border-color: rgba(255, 120, 110, 0.35); background: rgba(255, 120, 110, 0.04); }
 html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.over .del-zone { color: #FF8A80; }
+
+/* ---- Messages: every client's conversation in one place (2026-10-09) ------------------------------------ */
+html[data-scene="scenes"][data-page="messages"] { --sky-up: #C5CCE7; --sky-low: #F5DAD6; --sky-hz: #FFF1EC; --sky-ground: #B4BCCC; --orb-x: 12%; --orb-y: 78%; --orb-s: 0px; --orb-c: #FFE6C4; --orb-glow: rgba(255, 230, 196, 0.9); --stars-a: 0; }
+html[data-scene="scenes"][data-theme="dark"][data-page="messages"] { --sky-up: #151A2C; --sky-low: #2E3450; --sky-hz: #3E4462; --sky-ground: #0F121C; --orb-glow: rgba(90, 98, 138, 0.35); --stars-a: 0.4; }
+.inbox { display: grid; grid-template-columns: minmax(250px, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.inbox > .panel { margin: 0; min-width: 0; }
+.inbox-list { padding: 14px; }
+.inbox-list input[type="search"] { width: 100%; }
+.convos { display: grid; gap: 4px; margin: 12px 0 0; padding: 0; list-style: none; }
+.convo { display: grid; gap: 4px; padding: 11px 13px; border: 0.67px solid transparent; border-radius: var(--r-item); color: inherit; text-decoration: none; transition: background-color 160ms var(--ease); }
+.convo:hover { background-color: var(--glass-soft); }
+.convo[aria-current="true"] { border-color: var(--glass-edge); background-color: var(--glass-strong); box-shadow: var(--glass-shadow-sm); }
+.convo-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; }
+.convo .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; }
+.convo .when { flex: none; color: var(--ink-3); font-size: 13px; }
+.convo .preview { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-size: 14px; }
+.convo.waiting .preview { color: var(--ink); }
+.convo .chip { justify-self: start; margin-top: 2px; }
+.convo-none { padding: 14px 4px 4px; }
+.inbox-list .empty { margin-top: 12px; padding: 20px 16px; }
+.inbox-thread { display: flex; flex-direction: column; padding: 18px 20px 20px; }
+.convo-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; padding-bottom: 14px; border-bottom: 1px solid rgba(94, 72, 50, 0.1); }
+.convo-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-width: 0; }
+.convo-title h2 { font-size: 20px; }
+.convo-title h2 a { color: inherit; text-decoration: none; }
+.convo-title h2 a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.convo-back { display: none; flex-basis: 100%; margin: 0; }
+.convo-log { display: grid; align-content: start; gap: 10px; max-height: max(320px, calc(100dvh - 430px)); margin: 0; padding: 16px 4px; overflow-y: auto; overscroll-behavior: contain; list-style: none; }
+.convo-log:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 12px; }
+.convo-log .msg { justify-self: start; max-width: min(76%, 560px); }
+.convo-log .msg.team { justify-self: end; }
+/* .team (the Settings team list) also matched our bubbles and took their padding away, in Talk too */
+.msg.team { padding: 9px 13px; }
+.convo-log .msg .meta { font-size: 12.5px; }
+.convo-log .log-card { justify-self: start; width: min(88%, 620px); }
+.convo-empty { min-height: 120px; place-content: center; text-align: center; }
+.convo-pick { display: grid; place-content: center; min-height: 240px; text-align: center; }
+.convo-reply { padding-top: 14px; border-top: 1px solid rgba(94, 72, 50, 0.1); }
+.convo-reply textarea { width: 100%; min-height: 84px; }
+.convo-reply .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 10px; }
+html[data-theme="dark"] :is(.convo-head, .convo-reply) { border-color: rgba(255, 255, 255, 0.08); }
+@media (max-width: 900px) {
+  .inbox { grid-template-columns: minmax(0, 1fr); }
+  .inbox:not(.has-open) .inbox-thread, .inbox.has-open .inbox-list { display: none; }
+  .convo-back { display: inline-flex; }
+  .inbox-thread { padding: 14px 14px 16px; }
+  .convo-log { max-height: 58dvh; }
+  .convo-log .msg { max-width: 86%; }
+  .convo-log .log-card { width: 100%; }
+}
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(main > .page-head p, main > .page-head .updated .meta) { color: var(--ink-2); }
+/* Stripe: Settings panel and the line in Setup > Billing */
+.stripe-state { margin-bottom: 10px; }
+.stripe-steps { margin: 10px 0; padding-left: 22px; display: grid; gap: 6px; }
+.stripe-hook { margin-top: 10px; }
+#sec-stripe code, .stripe-row code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.92em; padding: 1px 6px; border-radius: 6px; background: var(--surface-2); }
+.stripe-row { margin: 0 0 18px; }
+.stripe-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.stripe-acts { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-left: auto; }
+.stripe-find { margin-top: 14px; display: grid; gap: 6px; max-width: 640px; }
+.stripe-search { display: flex; gap: 8px; }
+.stripe-search input { flex: 1; min-width: 0; }
+.stripe-hits { list-style: none; margin: 6px 0 0; padding: 0; }
+.stripe-hits li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.stripe-hits li:first-child { border-top: 0; }
+@media (max-width: 560px) { .stripe-acts { margin-left: 0; } .stripe-hits li { flex-direction: column; align-items: flex-start; } }
+.field input[readonly], .field select:disabled { background: var(--surface-2); color: var(--ink-2); cursor: default; }
+
+/* Start fresh on What they see (2026-10-09): quiet, at the far end of the save row; the toast keeps an Undo for 10 seconds. */
+.start-fresh { margin-left: auto; }
+.start-fresh .i { width: 15px; height: 15px; }
+.toast-undo { display: flex; align-items: center; gap: 14px; }
+.toast-undo .linkish { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <svg hidden aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
   <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4.5 5h15a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-5 4v-4h-.5A1.5 1.5 0 0 1 3 15.5v-9A1.5 1.5 0 0 1 4.5 5z"/><path d="M8 10h8M8 13h5"/></symbol>
   <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M17.5 13.6A6.5 6.5 0 0 1 21.5 20"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
@@ -1130,6 +1204,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     </div>
     <ul class="nav">
       <li><a href="#/queue" data-nav="queue"><svg class="ic"><use href="#i-inbox"/></svg>Needs you<span class="badge" id="queue-badge" hidden></span></a></li>
+      <li><a href="#/messages" data-nav="messages"><svg class="ic"><use href="#i-chat"/></svg>Messages<span class="badge" id="msg-badge" hidden title="Waiting for your reply"></span></a></li>
       <li><a href="#/clients" data-nav="clients"><svg class="ic"><use href="#i-users"/></svg>Clients</a></li>
       <li><a href="#/board" data-nav="board" title="Every client's team cards on one board"><svg class="ic"><use href="#i-board"/></svg>All work</a></li>
       <li><a href="#/billing" data-nav="billing"><svg class="ic"><use href="#i-card"/></svg>Billing<span class="badge" id="billing-badge" hidden title="Past due"></span></a></li>
@@ -1159,7 +1234,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
 </dialog>
 <dialog class="keys-dlg" id="keys" aria-labelledby="keys-h">
   <h2 id="keys-h">Keyboard shortcuts</h2>
-  <dl class="facts keys"><dt><kbd>Ctrl</kbd> <kbd>K</kbd> or <kbd>/</kbd></dt><dd>Search any client, page or tab, and jump there</dd><dt><kbd>Alt</kbd> <kbd>1</kbd> to <kbd>5</kbd></dt><dd>Client tabs: Overview, Work, Talk, Setup, Advanced</dd><dt><kbd>Enter</kbd> on a card</dt><dd>Edit the card, and move it</dd><dt><kbd>Esc</kbd></dt><dd>Close the search or a dialog</dd></dl>
+  <dl class="facts keys"><dt><kbd>Ctrl</kbd> <kbd>K</kbd> or <kbd>/</kbd></dt><dd>Search any client, page or tab, and jump there</dd><dt><kbd>Alt</kbd> <kbd>1</kbd> to <kbd>5</kbd></dt><dd>Client tabs: Overview, Work, Talk, Setup, Advanced</dd><dt><kbd>Ctrl</kbd> <kbd>Enter</kbd></dt><dd>Send a reply in Messages</dd><dt><kbd>Enter</kbd> on a card</dt><dd>Edit the card, and move it</dd><dt><kbd>Esc</kbd></dt><dd>Close the search or a dialog</dd></dl>
   <div class="actions"><button class="btn btn-quiet" type="button" value="close">Close</button></div>
 </dialog>
 <dialog class="confirm" id="confirm" aria-labelledby="confirm-h">
@@ -1695,6 +1770,8 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     return {
       ready: Promise.resolve(),
       tenant: () => tenant,
+      // The demo's starting conversation with the team (Messages); what the client writes is added after it.
+      seed: () => ({ messages: clone((raw && raw.demoMessages) || []), requests: clone((raw && raw.demoRequests) || []) }),
       // No pretend network time on reads: a page switch draws its content in the same frame. The
       // "Slow connection" demo keeps its two seconds so the loading states can be shown on purpose.
       latency: sc.latency || 0,
@@ -2166,7 +2243,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     /**
      * The client's look, kept with the account. Live: PUT /api/settings/appearance, stored with the
      * signed-in user (a personal choice, not the whole tenant's). Only known values are kept.
-     * @param {{theme?: string, scene?: string}} look
+     * @param {{theme?: string, scene?: string, messagesSeenAt?: string}} look
      */
     function saveAppearance(look) {
       return call(() => {
@@ -2174,11 +2251,46 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
         const l = look || {};
         if (l.theme !== undefined && l.theme !== 'light' && l.theme !== 'dark') throw fail('bad-theme', 'Choose light or dark.');
         if (l.scene !== undefined && l.scene !== 'scenes' && l.scene !== 'static') throw fail('bad-scene', 'Choose Scenes or Static.');
+        if (l.messagesSeenAt !== undefined && !Number.isFinite(T.parse(l.messagesSeenAt))) throw fail('bad-seen', 'That time is not right.');
         if (l.theme) next.theme = l.theme;
         if (l.scene) next.scene = l.scene;
+        // When the client last opened Messages (2026-10-09): kept with the look, so no new table is needed.
+        if (l.messagesSeenAt) next.messagesSeenAt = l.messagesSeenAt;
         next.savedAt = T.isoTime(now());
         return src.put('appearance', { look: next }).then(() => clone(next));
       }, 150);
+    }
+
+    /* ---- messages (2026-10-09: their own page) ------------------------------------- */
+
+    /** When the client last opened Messages, or null. */
+    const seenAt = () => { const a = state().appearance; return a && a.messagesSeenAt ? String(a.messagesSeenAt) : null; };
+    /** Every message: the demo's starting thread (none live), then what was written since, oldest first. */
+    function allMessages() {
+      const seed = src.seed ? src.seed() : {};
+      return [...(seed.messages || []), ...(state().messages || [])].map((/** @type {any} */ m) => clone(m))
+        .sort((a, b) => T.parse(a.at) - T.parse(b.at));
+    }
+    /** Our replies newer than when the client last opened Messages. Never opened: our replies from the last 14 days. */
+    function unreadReplies() {
+      const s = seenAt();
+      const since = s ? T.parse(s) : now() - 14 * T.DAY;
+      return allMessages().filter((m) => m.fromTeam && T.parse(m.at) > since).length;
+    }
+    /** The client's thread: messages and their change requests, oldest first, with what is new. */
+    function thread() {
+      const seed = src.seed ? src.seed() : {};
+      const reqs = [...(seed.requests || []), ...(state().requests || [])].filter((/** @type {any} */ r) => SERVICES[r.service])
+        .map((/** @type {any} */ r) => ({ kind: 'request', id: r.id, service: r.service, text: r.text, at: r.at, status: r.status || 'review', by: r.by || '' }));
+      const items = [...allMessages().map((m) => ({ kind: 'message', ...m })), ...reqs].sort((a, b) => T.parse(a.at) - T.parse(b.at));
+      return { items, seenAt: seenAt(), unread: unreadReplies(), services: tenant.package.services.filter((/** @type {string} */ x) => SERVICES[x]), team: clone(tenant.team) };
+    }
+    /** The client opened Messages: remember when, with their look. Nothing is written when nothing is new. */
+    function markMessagesSeen() {
+      return call(() => {
+        if (seenAt() && !unreadReplies()) return { messagesSeenAt: seenAt(), written: false };
+        return saveAppearance({ messagesSeenAt: T.isoTime(now()) }).then((/** @type {any} */ l) => ({ messagesSeenAt: l.messagesSeenAt, written: true }));
+      }, 0);
     }
 
     /** Resend preferences. The required category cannot be switched off. */
@@ -2211,7 +2323,10 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
       getResults: (days = 30) => call(() => results(days)),
       getBilling: () => call(billing),
       getSettings: () => call(settings),
-      getMessages: () => call(() => (state().messages || []).slice().reverse(), 150),
+      getMessages: () => call(() => allMessages().reverse(), 150),
+      getThread: () => call(thread, 0),
+      getUnreadReplies: () => call(unreadReplies, 0),
+      markMessagesSeen,
       getApproval: (id) => call(() => approval(id), 150),
       refresh: () => src.reload().then(() => call(() => ({ checkedAt: T.isoTime(now()), updatedAt: account().updatedAt }))),
       decide,
@@ -2677,6 +2792,21 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     box.appendChild(t);
     setTimeout(() => t.remove(), bad ? 7000 : 3500);
   }
+  /** A toast with an Undo button for a few seconds. @param {string} text @param {() => Promise<void>} undo */
+  function undoToast(text, undo) {
+    const box = /** @type {HTMLElement} */ (document.getElementById('toasts'));
+    const t = document.createElement('div');
+    t.className = 'toast toast-undo';
+    t.setAttribute('role', 'status');
+    t.innerHTML = `<span>${esc(text)}</span><button class="linkish" type="button">Undo</button>`;
+    box.appendChild(t);
+    const gone = setTimeout(() => t.remove(), 10000);
+    /** @type {HTMLButtonElement} */ ($('button', t)).addEventListener('click', async () => {
+      clearTimeout(gone);
+      t.remove();
+      try { await undo(); } catch (x) { toast(message(x), true); }
+    }, { once: true });
+  }
   /** @param {HTMLButtonElement} btn @param {string} label */
   function busy(btn, label) {
     const was = btn.innerHTML;
@@ -2811,6 +2941,26 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     renderSide();
   }
 
+  /** A change request that is still being worked on. @param {any} r */
+  const isOpenReq = (r) => r.status === 'review' || r.status === 'in_progress' || r.status === 'waiting';
+  /**
+   * One client's conversation: their messages (oldest first), their requests, and whether it is waiting for
+   * our reply. Waiting means their newest message is theirs, or they have a new change request (status review).
+   * Replying clears it, because our reply becomes the newest message. Derived every time; no read flags.
+   * @param {string} id
+   */
+  function convo(id) {
+    const msgs = all.messages.filter((/** @type {any} */ x) => x.tenant_id === id).sort((/** @type {any} */ a, /** @type {any} */ b) => String(a.at).localeCompare(String(b.at)));
+    const reqs = all.requests.filter((/** @type {any} */ x) => x.tenant_id === id);
+    /** Their messages since our last reply. @type {any[]} */ let unanswered = [];
+    for (const m of msgs) { if (m.from_staff) unanswered = []; else unanswered.push(m); }
+    const fresh = reqs.filter((/** @type {any} */ r) => r.status === 'review');
+    const open = reqs.filter(isOpenReq);
+    const last = msgs[msgs.length - 1] || null;
+    const lastAt = [last ? last.at : '', ...open.map((/** @type {any} */ r) => r.at)].reduce((a, b) => (String(b) > String(a) ? String(b) : a), '');
+    return { msgs, reqs, unanswered, fresh, open, last, lastAt, waiting: unanswered.length > 0 || fresh.length > 0 };
+  }
+
   /**
    * What is waiting on the team, on the client, and coming up, for one client. Everything the
    * queue, the sidebar marks and the client's overview show comes from here, so they agree.
@@ -2826,17 +2976,12 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     /** Next steps that are theirs: one line per client when there is more than one. @type {any[]} */ const theirs = [];
     const go = (/** @type {string} */ tab, /** @type {string} */ [part] = []) => `#/client/${id}/${tab}${part ? '/' + part : ''}`;
 
-    for (const r of all.requests) {
-      if (r.tenant_id === id && r.status === 'review') needs.push({ kind: 'request', label: 'New request', text: r.body, at: r.at, href: go('talk'), rank: 1 });
-    }
-    let unanswered = 0;
-    let last = null;
-    for (const x of all.messages) {
-      if (x.tenant_id !== id) continue;
-      if (x.from_staff) unanswered = 0;
-      else { unanswered++; last = x; }
-    }
-    if (unanswered && last) needs.push({ kind: 'message', label: unanswered > 1 ? `${unanswered} messages` : 'Message', text: last.body, at: last.at, href: go('talk', ['reply']), rank: 1 });
+    // Messages and new requests follow the Messages page's rule (convo), so the two always agree.
+    const c = convo(id);
+    for (const r of c.fresh) needs.push({ kind: 'request', label: 'New request', text: r.body, at: r.at, href: `#/messages/${id}`, rank: 1 });
+    const unanswered = c.unanswered.length;
+    const last = c.unanswered[unanswered - 1];
+    if (unanswered && last) needs.push({ kind: 'message', label: unanswered > 1 ? `${unanswered} messages` : 'Message', text: last.body, at: last.at, href: `#/messages/${id}`, rank: 1 });
     const answered = new Set();
     for (const x of all.decisions) {
       if (x.tenant_id !== id) continue;
@@ -2920,6 +3065,9 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     const qb = $('#queue-badge');
     qb.textContent = String(needsTotal);
     qb.hidden = !needsTotal;
+    // Messages counts clients whose conversation is waiting for our reply.
+    const mb = $('#msg-badge');
+    if (mb) { const n = all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived' && convo(t.id).waiting).length; mb.textContent = String(n); mb.hidden = !n; }
     // Billing shows a count only when a payment is past due.
     const pastDue = all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived' && billingOf(t).status === 'past_due').length;
     const blb = $('#billing-badge');
@@ -3005,6 +3153,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
       /** @type {any[]} */
       const out = [
         { name: 'Needs you', hint: 'Page', href: '#/queue', icon: 'inbox' },
+        { name: 'Messages', hint: 'Page', href: '#/messages', icon: 'chat' },
         { name: 'Clients', hint: 'Page', href: '#/clients', icon: 'users' },
         { name: 'All work (every client\'s team cards)', hint: 'Page', href: '#/board', icon: 'board' },
         { name: 'Billing', hint: 'Page', href: '#/billing', icon: 'card' },
@@ -3017,6 +3166,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
       for (const t of (all ? all.tenants : [])) {
         out.push({ name: t.name, hint: 'Client', href: `#/client/${t.id}`, icon: 'store' });
         for (const [k, label] of TABS) if (k !== 'overview') out.push({ name: `${t.name}: ${label}`, hint: 'Tab', href: `#/client/${t.id}/${k}`, icon: 'page' });
+        out.push({ name: `${t.name}: Messages`, hint: 'Tab', href: `#/messages/${t.id}`, icon: 'chat' });
       }
       return out;
     },
@@ -3271,7 +3421,8 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     saveBar();
     // Needs you is always the first page (the old Opening page setting, prefs.start, is no longer read).
     const parts = (location.hash || '#/queue').replace(/^#\//, '').split('/');
-    document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'settings'].includes(parts[0]) ? parts[0] : 'queue';
+    document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'settings', 'messages'].includes(parts[0]) ? parts[0] : 'queue';
+    stopInbox();
     main.onclick = null;
     main.onchange = null;
     unwireBoard(main); // the All work board's listeners go with the page
@@ -3281,10 +3432,12 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     else if (parts[0] === 'board') allBoardPage();
     else if (parts[0] === 'billing') billingPage();
     else if (parts[0] === 'settings') settingsPage('');
+    else if (parts[0] === 'messages') messagesPage(parts[1] || '');
     else queuePage();
     if (parts[0] !== 'client') stopPulling();
     renderSide();
     window.scrollTo(0, 0);
+    if (parts[0] === 'messages') toBottom();
   }
   async function onHash() {
     if (restoring) { restoring = false; return; }
@@ -3302,7 +3455,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
       try { const r = await pullQuietly(current.id); if (r && r.changed && r.changed.length) route(); } catch (e) { /* a manual check reports errors */ }
     }
     if (document.visibilityState !== 'visible' || !me || !all || Date.now() - all.at < 60000 || dirty.size) return;
-    try { await loadAll(); if (/^#\/(queue|clients)/.test(location.hash || '#/queue')) route(); } catch (e) { /* the next action reports it */ }
+    try { await loadAll(); if (/^#\/(queue|clients)/.test(location.hash || '#/queue')) route(); else if (/^#\/messages/.test(location.hash)) redrawInbox(); } catch (e) { /* the next action reports it */ }
   });
 
   /* ---- the queue: what needs the team ---------------------------------------------------------------- */
@@ -3357,6 +3510,154 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
       </section>
       ${waiting.length ? `<details class="q-group q-fold" id="q-waiting"><summary><h2>Waiting on clients <span class="meta">${waiting.length}</span></h2></summary>
         <p class="lede">Approvals they have not answered, and next steps that are theirs. Late ones first.</p>${grouped(waiting)}</details>` : ''}`;
+  }
+
+  /* ---- Messages: every client's conversation in one place ------------------------------------------------ */
+
+  /*
+   * Karan, 2026-10-09: "Instead of me going into each client and looking at if they have messaged me or not ...
+   * how about a messaging tab?" One row per client that has written or has an open request; waiting ones first.
+   * The thread shows their messages, our replies, their change requests and the approvals they sent back, in time
+   * order. The waiting rule is convo(), the same one Needs you and the sidebar badge use.
+   */
+  const inboxState = { q: '', open: '' };
+  let inboxTimer = 0;
+  function stopInbox() { if (inboxTimer) { clearInterval(inboxTimer); inboxTimer = 0; } }
+  /** Scrolls the open conversation to its newest message. */
+  function toBottom() { const log = $('#convo-log'); if (log) log.scrollTop = log.scrollHeight; }
+
+  /** Every conversation worth a row: waiting first, then newest first. */
+  function conversations() {
+    return all.tenants
+      .filter((/** @type {any} */ t) => t.status !== 'archived')
+      .map((/** @type {any} */ t) => ({ t, c: convo(t.id) }))
+      .filter((/** @type {any} */ x) => x.c.msgs.length || x.c.open.length)
+      .sort((/** @type {any} */ a, /** @type {any} */ b) => Number(b.c.waiting) - Number(a.c.waiting) || String(b.c.lastAt).localeCompare(String(a.c.lastAt)));
+  }
+
+  /** The newest thing said, with who said it. @param {any} c */
+  function convoPreview(c) {
+    if (c.last) return `${c.last.from_staff ? 'You' : c.last.by_name || 'Client'}: ${c.last.body}`;
+    const r = c.open[c.open.length - 1];
+    return r ? `Change request: ${r.body}` : '';
+  }
+
+  function convoRows() {
+    const q = inboxState.q.trim().toLowerCase();
+    const list = conversations();
+    if (!list.length) return `<div class="empty"><p><strong>No messages yet.</strong></p><p>Clients write from the Messages page on their dashboard. What they send shows up here.</p></div>`;
+    const hits = q ? list.filter((/** @type {any} */ x) => x.t.name.toLowerCase().includes(q)) : list;
+    if (!hits.length) return `<p class="meta convo-none">No client matches “${esc(inboxState.q.trim())}”.</p>`;
+    return `<ul class="convos">${hits.map((/** @type {any} */ x) => `<li><a class="convo${x.c.waiting ? ' waiting' : ''}" href="#/messages/${esc(x.t.id)}"${x.t.id === inboxState.open ? ' aria-current="true"' : ''}>
+      <span class="convo-top"><span class="name">${esc(x.t.name)}</span><span class="when">${esc(ago(x.c.lastAt))}</span></span>
+      <span class="preview">${esc(convoPreview(x.c))}</span>
+      ${x.c.waiting ? '<span class="chip you">Waiting for your reply</span>' : ''}</a></li>`).join('')}</ul>`;
+  }
+
+  /** The open conversation: messages, requests and approvals sent back, oldest first. @param {any} t */
+  function convoThread(t) {
+    const c = convo(t.id);
+    const doc = t.doc || {};
+    const first = (doc.user && doc.user.firstName) || '';
+    /** @type {any[]} */ const log = [];
+    for (const r of c.reqs) log.push({ at: r.at, html: `<li class="item-card log-card"><div class="item-top"><span class="item-title">Change request · ${esc(svcLabel(r.service))}</span>
+        <span class="r"><label class="sr-only" for="iq-${esc(r.id)}">Status</label><select class="req-select" id="iq-${esc(r.id)}" data-req="${esc(r.id)}">${REQ_STATUS.map(([v, l]) => `<option value="${v}"${r.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select></span></div>
+        <p>${esc(r.body)}</p><p class="meta">${esc(r.by_name || 'Client')}, ${esc(when(r.at))}</p></li>` });
+    for (const x of all.decisions) {
+      if (x.tenant_id !== t.id || x.decision === 'approved') continue;
+      const a = (doc.approvals || {})[x.approval_id];
+      log.push({ at: x.at, html: `<li class="item-card log-card"><div class="item-top"><span class="item-title">Sent back: ${esc(a ? a.title : 'an approval')}</span><span class="r"><a class="linkish" href="#/client/${esc(t.id)}/talk">Open in Talk</a></span></div>
+        ${x.comment ? `<blockquote>${esc(x.comment)}</blockquote>` : ''}<p class="meta">${esc(x.by_name || 'Client')}, ${esc(when(x.at))}</p></li>` });
+    }
+    for (const m of c.msgs) log.push({ at: m.at, html: `<li class="msg${m.from_staff ? ' team' : ''}"><p>${esc(m.body)}</p><p class="meta">${esc(m.by_name || (m.from_staff ? 'Domin8te' : 'Client'))} · ${esc(when(m.at))}</p></li>` });
+    log.sort((a, b) => String(a.at).localeCompare(String(b.at)));
+    const state = c.waiting ? '<span class="chip you">Waiting for your reply</span>' : c.msgs.length ? '<span class="chip good">You replied last</span>' : '';
+    return `<div class="convo-head"><a class="crumb convo-back" href="#/messages">${icon('back')}All messages</a>
+        <div class="convo-title"><h2 id="convo-h"><a href="#/client/${esc(t.id)}">${esc(t.name)}</a></h2>${state}</div>
+        <a class="btn btn-quiet btn-sm" href="#/client/${esc(t.id)}">Open client</a></div>
+      ${log.length ? `<ol class="convo-log" id="convo-log" tabindex="0" aria-labelledby="convo-h">${log.map((x) => x.html).join('')}</ol>`
+        : `<div class="convo-log convo-empty" id="convo-log"><p class="meta">No messages yet. Write the first one below.</p></div>`}
+      <form class="convo-reply" id="convo-reply" novalidate>
+        <div class="field"><label for="convo-body">Reply as ${esc(me.name)}</label><textarea id="convo-body" name="body" maxlength="2000" rows="3" placeholder="Thanks ${esc(first)}${first ? ',' : ''} we can do that this week."></textarea></div>
+        <div class="actions"><button class="btn" type="submit">Send</button><span class="meta">They see it next time they open their portal. We don't email them. <kbd>Ctrl</kbd> <kbd>Enter</kbd> sends.</span></div>
+      </form>`;
+  }
+
+  /** @param {string} openId */
+  function messagesPage(openId) {
+    document.title = 'Messages · Domin8te console';
+    const list = conversations();
+    const wide = window.matchMedia('(min-width: 901px)').matches;
+    // On a wide screen the top conversation opens on its own; on a phone the list comes first.
+    const shown = openId ? tenant(openId) : wide && list[0] ? list[0].t : null;
+    inboxState.open = shown ? shown.id : '';
+    const waitingN = list.filter((/** @type {any} */ x) => x.c.waiting).length;
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Messages</h1><p>Every client's conversation in one place. ${waitingN ? `${plural(waitingN, 'client')} waiting for your reply.` : 'Nobody is waiting for a reply.'}</p></div>
+      <div class="btns updated"><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span><button class="icon-btn icon-btn-sm" type="button" data-action="refresh" aria-label="Reload" title="Reload">${icon('refresh')}</button></div></div>
+      <div class="inbox${openId ? ' has-open' : ''}">
+        <section class="panel inbox-list" aria-label="Conversations">
+          <input id="inbox-q" type="search" placeholder="Search by client name" aria-label="Search conversations by client name" value="${esc(inboxState.q)}" autocomplete="off">
+          <div id="convos">${convoRows()}</div>
+        </section>
+        <section class="panel inbox-thread" aria-label="Conversation">${shown ? convoThread(shown)
+          : openId ? `<a class="crumb convo-back" href="#/messages">${icon('back')}All messages</a><p class="notice">That client was not found. The link may be old.</p>`
+          : `<div class="convo-pick"><p class="meta">Choose a conversation.</p></div>`}</section>
+      </div>`;
+    $('#inbox-q').addEventListener('input', (/** @type {any} */ e) => { inboxState.q = e.target.value; $('#convos').innerHTML = convoRows(); });
+    const f = /** @type {HTMLFormElement} */ ($('#convo-reply'));
+    if (f && shown) {
+      track(f, 'Reply');
+      const ta = /** @type {HTMLTextAreaElement} */ ($('#convo-body', f));
+      ta.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); f.requestSubmit(); } });
+      f.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = val(f, 'body');
+        if (!body) { toast('Write the reply first.', true); ta.focus(); return; }
+        const done = busy($('button[type=submit]', f), 'Sending');
+        try {
+          await sendReply(shown.id, body);
+          clean(f);
+          toast('Reply sent.');
+          const to = `#/messages/${shown.id}`;
+          if (location.hash !== to) location.hash = to;
+          else { route(); const again = $('#convo-body'); if (again) again.focus({ preventScroll: true }); }
+        } catch (x) {
+          done();
+          toast(message(x), true);
+        }
+      });
+    }
+    main.onchange = async (e) => {
+      const sel = /** @type {HTMLSelectElement} */ (e.target);
+      const id = sel.getAttribute && sel.getAttribute('data-req');
+      if (!id) return;
+      const r = all.requests.find((/** @type {any} */ x) => x.id === id);
+      if (!r || r.status === sel.value) return;
+      sel.disabled = true;
+      try { await setRequestStatus(id, sel.value); redrawInbox(); }
+      catch (x) { sel.disabled = false; sel.value = r.status; toast(message(x), true); }
+    };
+    toBottom();
+    // While the page is open and visible, check for new messages every minute, quietly.
+    stopInbox();
+    inboxTimer = window.setInterval(async () => {
+      if (document.visibilityState !== 'visible' || dirty.size || !/^#\/messages/.test(location.hash)) return;
+      try { await loadAll(); redrawInbox(); } catch (e) { /* the next check tries again; Reload reports errors */ }
+    }, 60000);
+  }
+
+  /** Draws the Messages page again in place (after a quiet reload), keeping the search box's focus and the scroll. */
+  function redrawInbox() {
+    if (!/^#\/messages/.test(location.hash) || dirty.size) return;
+    const focusQ = document.activeElement && document.activeElement.id === 'inbox-q';
+    const log = $('#convo-log');
+    const atEnd = !log || log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+    const keep = log ? log.scrollTop : 0;
+    messagesPage(location.hash.split('/')[2] || '');
+    renderSide();
+    const fresh = $('#convo-log');
+    if (fresh && !atEnd) fresh.scrollTop = keep;
+    if (focusQ) { const q = $('#inbox-q'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
   }
 
   /* ---- the client list ------------------------------------------------------------------------------ */
@@ -3487,11 +3788,22 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
         if (val(f, 'tier') || val(f, 'approval')) {
           try { await saveProfile(row.id, val(f, 'tier'), val(f, 'approval')); } catch (x) { toast(`${name} was added, but the plan and sign-off level were not saved: ${message(x)}`, true); }
         }
+        // Their Stripe customer, made now when Stripe is set up (owners only). If it fails, the client is still added.
+        let stripeNote = '';
+        const sst = await stripeStatus();
+        if (sst.configured && !sst.refused && me.role === 'super_admin') {
+          const mail = val(f, 'email');
+          try {
+            const r = await stripeFn({ action: 'create', tenantId: row.id, name, email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail) ? mail : undefined });
+            if (r.customer) stripeKnown[r.customer.id] = r.customer;
+            stripeNote = ` Stripe customer created (${stripeModeText()}).`;
+          } catch (x) { stripeNote = ' Stripe was not set up for them. You can link it later from Setup > Billing.'; }
+        }
         // The client's own board in Multica, made now so it is ready for the team (and Hermes).
         multicaStatus().then((st) => { if (st.configured) multica({ action: 'project', tenantId: row.id }).catch((x) => toast(`The Multica board for ${name} could not be made yet: ${message(x)}`, true)); });
         clean(f);
         await loadAll();
-        toast(`${name} added.`);
+        toast(`${name} added.${stripeNote}`);
         location.hash = `#/client/${row.id}/overview`;
       } catch (x) {
         done();
@@ -3779,6 +4091,9 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     const asks = asksFor(current.id);
     const pf = profileOf(current.id);
     const moreParts = ['billing', 'meeting', 'accounts', 'more'];
+    // Dates, amount and status the Stripe webhook keeps up to date are shown, not typed.
+    const fromStripe = billingFromStripe(current);
+    if (!stripeState) stripeStatus().then(() => { if (box.isConnected) stripeRowRefresh(box); });
     const last = (d.package.changes || [])[0];
     const lastLine = last ? [
       last.removed && last.removed.length ? `${andList(last.removed.map(svcLabel))} taken off` : '',
@@ -3823,12 +4138,13 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
         </form>`)}
       ${fold('sec-more', 'more-h', 'More', 'Billing dates, account team and meeting, connected accounts', moreParts.includes(part), `
         <form id="more-form" novalidate>
-        <h3 class="panel-sub" id="billing">Billing <span class="meta">Shown on their Billing page. Typed here until our payment system (Stripe) fills them in.</span></h3>
+        <h3 class="panel-sub" id="billing">Billing <span class="meta" id="billing-sub">${billingSubText(current)}</span></h3>
+        <div class="stripe-row" id="stripe-row">${stripeRow(current)}</div>
         <div class="grid-4">
-          <div class="field"><label for="o-bstart">Started</label><input id="o-bstart" name="bstart" type="date" value="${esc(billingOf(current).startedAt.slice(0, 10))}"></div>
-          <div class="field"><label for="o-brenew">Renews</label><input id="o-brenew" name="brenew" type="date" value="${esc(billingOf(current).renews.slice(0, 10))}"></div>
-          <div class="field"><label for="o-bamount">Amount</label><input id="o-bamount" name="bamount" type="text" value="${esc(billingOf(current).amount)}" placeholder="$499 a month" maxlength="40"></div>
-          <div class="field"><label for="o-bstatus">Payment status</label><select id="o-bstatus" name="bstatus"><option value="">Not set</option>${Object.entries(SUB_STATUS).map(([k, v]) => `<option value="${k}"${billingOf(current).status === k ? ' selected' : ''}>${v[0]}</option>`).join('')}</select></div>
+          <div class="field"><label for="o-bstart">Started</label><input id="o-bstart" name="bstart" type="date" value="${esc(billingOf(current).startedAt.slice(0, 10))}"${fromStripe ? ' readonly aria-describedby="o-bstart-h"' : ''}>${fromStripe ? '<p class="hint" id="o-bstart-h">Comes from Stripe</p>' : ''}</div>
+          <div class="field"><label for="o-brenew">Renews</label><input id="o-brenew" name="brenew" type="date" value="${esc(billingOf(current).renews.slice(0, 10))}"${fromStripe ? ' readonly aria-describedby="o-brenew-h"' : ''}>${fromStripe ? '<p class="hint" id="o-brenew-h">Comes from Stripe</p>' : ''}</div>
+          <div class="field"><label for="o-bamount">Amount</label><input id="o-bamount" name="bamount" type="text" value="${esc(billingOf(current).amount)}" placeholder="$499 a month" maxlength="40"${fromStripe ? ' readonly aria-describedby="o-bamount-h"' : ''}>${fromStripe ? '<p class="hint" id="o-bamount-h">Comes from Stripe</p>' : ''}</div>
+          <div class="field"><label for="o-bstatus">Payment status</label><select id="o-bstatus" name="bstatus"${fromStripe ? ' disabled aria-describedby="o-bstatus-h"' : ''}><option value="">Not set</option>${Object.entries(SUB_STATUS).map(([k, v]) => `<option value="${k}"${billingOf(current).status === k ? ' selected' : ''}>${v[0]}</option>`).join('')}</select>${fromStripe ? '<p class="hint" id="o-bstatus-h">Comes from Stripe</p>' : ''}</div>
           <div class="field span-all"><label for="o-billing">Billing note they see (for example: Billed monthly on the 22nd)</label><input id="o-billing" name="billing" type="text" value="${esc(d.package.billing)}" placeholder="Billed monthly on the 22nd" maxlength="120"></div>
         </div>
         <h3 class="panel-sub" id="sec-meeting">Account team and next meeting <span class="meta">Shown on their Help page and Home page.</span></h3>
@@ -3844,6 +4160,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
         <div class="actions"><button class="btn" type="submit">Save billing, meeting and accounts</button></div>
         </form>`)}`;
     for (const b of $$('[data-svc-change]', box)) b.addEventListener('click', () => changeServices());
+    stripeRowWire(box);
     for (const a of $$('[data-jump-access]', box)) a.addEventListener('click', () => { jumpAfter = 'sec-access'; });
     // #/client/<id>/setup/<section> opens that fold and scrolls to it (login, plan, details, billing, meeting, accounts).
     const to = ({ billing: 'billing', meeting: 'sec-meeting', login: 'sec-login', plan: 'sec-plan', accounts: 'sec-accounts', details: 'sec-details', more: 'sec-more' })[/** @type {'billing'} */ (part)];
@@ -3908,10 +4225,13 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
         }
         const md = val(mf, 'mdate');
         const sub = { ...((doc.billing && doc.billing.subscription) || {}) };
-        sub.startedAt = val(mf, 'bstart') || null;
-        sub.nextBilling = val(mf, 'brenew') || null;
-        sub.amount = val(mf, 'bamount') || undefined;
-        sub.status = val(mf, 'bstatus') || null;
+        // Facts from Stripe stay as the webhook wrote them.
+        if (!billingFromStripe(current)) {
+          sub.startedAt = val(mf, 'bstart') || null;
+          sub.nextBilling = val(mf, 'brenew') || null;
+          sub.amount = val(mf, 'bamount') || undefined;
+          sub.status = val(mf, 'bstatus') || null;
+        }
         doc.billing = { ...(doc.billing || {}), subscription: sub };
         doc.meeting = md ? { at: `${md}T${val(mf, 'mtime') || '10:00'}`, title: val(mf, 'mtitle') || 'Meeting', length: val(mf, 'mlen'), status: 'confirmed' } : null;
         await save({ doc });
@@ -4524,7 +4844,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
       body: JSON.stringify(payload)
     });
     const body = await res.json().catch(() => ({}));
-    if (!res.ok) { const e = new Error(body.message || `The server answered ${res.status}.`); /** @type {any} */ (e).code = body.error || res.status; throw e; }
+    if (!res.ok) { const e = new Error(body.message || `The server answered ${res.status}.`); /** @type {any} */ (e).code = body.error || res.status; /** @type {any} */ (e).customer = body.customer || null; throw e; }
     return body;
   }
   // Display only: the stored roles stay super_admin and member.
@@ -4621,6 +4941,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     document.title = 'Settings · Domin8te console';
     const st = multicaState || { pending: true };
     if (!multicaState) multicaStatus().then(() => { if (location.hash === '#/settings' && !dirty.size) settingsPage(note); });
+    if (!stripeState) stripeStatus().then(() => { const box = $('#sec-stripe'); if (box && location.hash === '#/settings') box.innerHTML = stripePanel(); });
     const y = window.scrollY;
     const look = (/** @type {string} */ key, /** @type {string} */ label, /** @type {string[][]} */ opts) => `<div class="field"><label for="pref-${key}">${label}</label><select id="pref-${key}" data-pref-select="${key}">${opts.map(([v, l]) => `<option value="${v}"${String(prefs[key]) === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Settings</h1><p>Changes apply at once and save to your account, so they follow you to any computer.</p></div></div>
@@ -4632,6 +4953,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
           <div class="field span-2"><label for="s-accessemail">Our email for Google access</label><input id="s-accessemail" name="accessemail" type="email" value="${esc(agencyAccess().accessEmail || '')}" maxlength="120" autocomplete="off"><p class="hint">The Google account clients add as a manager. Used for Google Business Profile and Google Analytics.</p></div>
         </div><div class="actions"><button class="btn" type="submit">Save for all clients</button></div></form>
       </section>
+      <section class="panel" aria-labelledby="s-stripe" id="sec-stripe">${stripePanel()}</section>
       <section class="panel" aria-labelledby="s-multica"><div class="panel-head"><h2 id="s-multica">Multica</h2><p>${MULTICA_HINT} ${HERMES_HINT} ${st.pending ? 'Checking the connection.' : st.configured ? `Linked to the <strong>${esc(st.workspace)}</strong> workspace${st.agent ? '. New cards go to your agent' : ''}. Each card is an issue in the client's Multica project: moves here copy there, and moves there show here.` : `Not linked yet, so cards save here only.${st.failed ? ` ${esc(st.failed)}` : ' Once MULTICA_TOKEN and MULTICA_WORKSPACE are in the Supabase secrets, each card also becomes an issue in its client\'s Multica project.'}`}</p></div>
         <label class="switch-row"><input type="checkbox" role="switch" data-pref-toggle="autoPull"${prefs.autoPull ? ' checked' : ''}><span><span class="pick-t">Keep boards in step with Multica</span><span class="pick-d">Checks every 90 seconds while a board is open, when it opens, and when you come back to the tab. Off: press Check now yourself.</span></span></label>
       </section>
@@ -4791,6 +5113,195 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     return { changed, failed };
   }
 
+  /* ---- Stripe (test mode first): the keys live in the Supabase secrets; the console never asks for them ---- */
+
+  /** @type {any} */
+  let stripeState = null;
+  /** Names and emails of Stripe customers seen this session, by id (the record keeps only the id). @type {Record<string, any>} */
+  const stripeKnown = {};
+  /** @param {any} payload */
+  const stripeFn = (payload) => callFn('stripe-billing', payload);
+  async function stripeStatus() {
+    if (stripeState) return stripeState;
+    try { stripeState = await stripeFn({ action: 'status' }); } catch (e) { stripeState = { configured: false, failed: message(e) }; }
+    return stripeState;
+  }
+  /** A key is set and it is not a refused live key. */
+  const stripeReady = () => !!(stripeState && stripeState.configured && !stripeState.refused);
+  const stripeModeText = () => (stripeState && stripeState.mode === 'live' ? 'live' : 'test mode');
+  /** @param {any} t */
+  const stripeIdOf = (t) => (t && t.doc && t.doc.billing && t.doc.billing.stripeCustomerId) || '';
+  /** The subscription facts were written by the Stripe webhook, not typed. @param {any} t */
+  const billingFromStripe = (t) => !!(stripeIdOf(t) && t.doc.billing.subscription && t.doc.billing.subscription.stripeSubscriptionId);
+  /** @param {string} id */
+  const stripeUrl = (id) => `https://dashboard.stripe.com/${stripeState && stripeState.mode === 'live' ? '' : 'test/'}customers/${encodeURIComponent(id)}`;
+  /** @param {string} id */
+  const stripeShort = (id) => (id.length > 16 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id);
+  /** @param {any} e */
+  function stripeErr(e) {
+    const c = e && e.code;
+    if (c === 'not-configured') return 'Stripe is not set up yet. See Settings > Stripe.';
+    if (c === 'live-key-refused') return 'The server has a live Stripe key and live mode is off. See Settings > Stripe.';
+    if (c === 'forbidden') return 'Only an owner can change the Stripe link.';
+    if (c === 'conflict' && e.customer && e.customer.id) return `Stripe made the customer (${e.customer.id}), but the client was not saved. Use Link existing to link it.`;
+    return message(e);
+  }
+  /** @param {any} t */
+  function billingSubText(t) {
+    if (billingFromStripe(t)) return 'Shown on their Billing page. Dates, amount and status come from Stripe.';
+    if (stripeIdOf(t)) return 'Shown on their Billing page. Typed here until their first Stripe subscription fills them in.';
+    return 'Shown on their Billing page. Typed here, or filled in by Stripe once they are linked.';
+  }
+
+  /** The Settings panel: is Stripe connected, in which mode, and is the webhook secret set. */
+  function stripePanel() {
+    const st = stripeState;
+    let chip = '', body = '';
+    if (!st) { chip = '<span class="chip plain">Checking</span>'; body = '<p class="meta">Checking the connection.</p>'; }
+    else if (st.failed) { chip = '<span class="chip warn">Could not check</span>'; body = `<p class="notice bad">${esc(st.failed)}</p>`; }
+    else if (st.refused) { chip = '<span class="chip bad">Live key refused</span>'; body = '<p>The server has a live Stripe key, but live mode is off, so Stripe is not used. Put the test key back, or turn on live mode when you are ready. The README says how.</p>'; }
+    else if (st.configured && st.mode === 'live') { chip = '<span class="chip good">Live</span>'; body = '<p>Real customers and real payments.</p>'; }
+    else if (st.configured) { chip = '<span class="chip info">Connected (test mode)</span>'; body = '<p>Test customers only. No real money moves.</p>'; }
+    else {
+      chip = '<span class="chip plain">Not set up yet</span>';
+      body = `<p>You add the keys yourself. This page never asks for them.</p>
+        <ol class="stripe-steps">
+          <li>In Stripe, turn on Test mode and make a key under Developers, API keys.</li>
+          <li>In Supabase, add it as the secret <code>STRIPE_SECRET_KEY</code>. Paste it there, never here or in a chat.</li>
+          <li>In Stripe, add the webhook. Save its signing secret in Supabase as <code>STRIPE_WEBHOOK_SECRET</code>.</li>
+          <li>Deploy the two Stripe functions, then open this page again.</li>
+        </ol>
+        <p class="meta">Every step, with the exact settings, is in <code>portal/supabase/README.md</code> under "Stripe (test mode first)".</p>`;
+    }
+    const hook = st && !st.failed && (st.configured || st.webhook)
+      ? `<p class="meta stripe-hook">Webhook secret: ${st.webhook ? 'set. Payments and new invoices arrive here.' : 'not set yet. Payments and new invoices do not arrive until it is.'}</p>` : '';
+    return `<div class="panel-head"><h2 id="s-stripe">Stripe</h2><p>Payments and invoices. Adding a client makes their Stripe customer. New invoices wait in "Check before it goes live".</p></div>
+      <div class="stripe-state">${chip}</div>${body}${hook}`;
+  }
+
+  /** The Stripe line in a client's Setup > Billing. @param {any} t */
+  function stripeRow(t) {
+    const id = stripeIdOf(t);
+    const owner = me.role === 'super_admin';
+    const st = stripeState;
+    const label = '<span class="pick-t">Stripe</span>';
+    if (id) {
+      const c = stripeKnown[id];
+      const who = c ? [c.name, c.email].filter(Boolean).map(esc).join(', ') : '';
+      return `<div class="stripe-line">${label}<span class="chip good">Linked</span><code class="stripe-id" title="${esc(id)}">${esc(stripeShort(id))}</code>${who ? `<span class="meta">${who}</span>` : ''}
+        <span class="stripe-acts"><a href="${stripeUrl(id)}" target="_blank" rel="noopener">Open in Stripe</a>${owner ? '<button class="btn btn-quiet btn-sm" type="button" data-stripe="unlink">Unlink</button>' : ''}</span></div>`;
+    }
+    const head = `<div class="stripe-line">${label}<span class="chip off">Not linked</span>`;
+    if (!st) return `${head}<span class="meta">Checking Stripe.</span></div>`;
+    if (!stripeReady()) return `${head}<span class="meta">Stripe is not set up yet. See <a href="#/settings">Settings</a>.</span></div>`;
+    if (!owner) return `${head}<span class="meta">An owner can link them.</span></div>`;
+    return `${head}<span class="stripe-acts"><button class="btn btn-sm" type="button" data-stripe="create">Create in Stripe</button><button class="btn btn-quiet btn-sm" type="button" data-stripe="find" aria-expanded="false" aria-controls="stripe-find">Link existing</button></span></div>
+      <div class="stripe-find" id="stripe-find" hidden>
+        <label for="stripe-q">Find their Stripe customer by name or email</label>
+        <div class="stripe-search"><input id="stripe-q" type="search" autocomplete="off" maxlength="100" aria-describedby="stripe-q-h"><button class="btn btn-sm" type="button" data-stripe="search">Search</button></div>
+        <p class="hint" id="stripe-q-h">At least three letters. An email must match exactly.</p>
+        <div id="stripe-hits" aria-live="polite"></div>
+      </div>`;
+  }
+  /** @param {HTMLElement} box */
+  function stripeRowRefresh(box) {
+    const row = $('#stripe-row', box);
+    if (row) row.innerHTML = stripeRow(current);
+    const sub = $('#billing-sub', box);
+    if (sub) sub.textContent = billingSubText(current);
+    stripeLookup(box);
+  }
+  /** Fills in a linked customer's name and email (the record has only the id). @param {HTMLElement} box */
+  function stripeLookup(box) {
+    const id = stripeIdOf(current);
+    if (!id || stripeKnown[id] || !stripeReady()) return;
+    stripeKnown[id] = { id };
+    const q = String(current.name || '').trim();
+    if (q.length < 3) return;
+    stripeFn({ action: 'search', query: q }).then((r) => {
+      const hit = (r.customers || []).find((/** @type {any} */ c) => c.id === id);
+      if (hit) { stripeKnown[id] = hit; const row = $('#stripe-row', box); if (row && stripeIdOf(current) === id) row.innerHTML = stripeRow(current); }
+    }).catch(() => { /* the id alone is enough */ });
+  }
+  /** Reads the client again after the server changed its Stripe link. */
+  async function stripeReload() {
+    const fresh = await loadClient(current.id);
+    if (!fresh) return;
+    Object.assign(current, { updated_at: fresh.updated_at, name: fresh.name, status: fresh.status, doc: fresh.doc });
+    const i = all.tenants.findIndex((/** @type {any} */ x) => x.id === current.id);
+    if (i >= 0) all.tenants[i] = { ...all.tenants[i], updated_at: current.updated_at, doc: current.doc };
+  }
+  /** @param {HTMLElement} box */
+  function stripeRowWire(box) {
+    const row = $('#stripe-row', box);
+    if (!row) return;
+    stripeLookup(box);
+    // The search box is not part of the billing form: typing in it is not an unsaved change.
+    for (const ev of ['input', 'change']) row.addEventListener(ev, (e) => e.stopPropagation());
+    const after = async (/** @type {string} */ text) => {
+      await stripeReload();
+      toast(text);
+      const mf = $('#more-form', box);
+      if (mf && !dirty.has(/** @type {HTMLFormElement} */ (mf))) route(); else stripeRowRefresh(box);
+    };
+    const search = async () => {
+      const q = /** @type {HTMLInputElement} */ ($('#stripe-q', box)).value.trim();
+      const out = $('#stripe-hits', box);
+      if (q.length < 3) { out.innerHTML = '<p class="field-error">Type at least three letters.</p>'; return; }
+      out.innerHTML = '<p class="meta">Searching Stripe.</p>';
+      try {
+        const r = await stripeFn({ action: 'search', query: q });
+        const list = r.customers || [];
+        for (const c of list) stripeKnown[c.id] = c;
+        out.innerHTML = list.length ? `<ul class="stripe-hits">${list.map((/** @type {any} */ c) => {
+          const other = c.tenantId && c.tenantId !== current.id ? tenant(c.tenantId) : null;
+          const taken = !!(c.tenantId && c.tenantId !== current.id);
+          return `<li><span class="team-who"><span class="pick-t">${esc(c.name || 'No name')}</span><span class="pick-d">${esc(c.email || 'No email')} · <code class="stripe-id">${esc(stripeShort(c.id))}</code>${c.created ? ` · since ${esc(when(c.created))}` : ''}</span>${taken ? `<span class="pick-d">Already linked to ${esc(other ? other.name : 'another client')}. Unlink it there first.</span>` : ''}</span>
+            <button class="btn btn-sm${taken ? ' btn-quiet' : ''}" type="button" data-stripe-link="${esc(c.id)}"${taken ? ' disabled' : ''}>Link this one</button></li>`;
+        }).join('')}</ul>` : '<p class="meta">No Stripe customers match. Try the email, or use Create in Stripe.</p>';
+      } catch (x) { out.innerHTML = `<p class="field-error">${esc(stripeErr(x))}</p>`; }
+    };
+    row.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && /** @type {HTMLElement} */ (e.target).id === 'stripe-q') { e.preventDefault(); search(); }
+    });
+    row.addEventListener('click', async (e) => {
+      const b = /** @type {HTMLButtonElement|null} */ (/** @type {HTMLElement} */ (e.target).closest('[data-stripe], [data-stripe-link]'));
+      if (!b) return;
+      const what = b.getAttribute('data-stripe');
+      const linkId = b.getAttribute('data-stripe-link');
+      if (what === 'find') {
+        const find = $('#stripe-find', box);
+        find.hidden = !find.hidden;
+        b.setAttribute('aria-expanded', String(!find.hidden));
+        if (!find.hidden) { const q = /** @type {HTMLInputElement} */ ($('#stripe-q', box)); if (!q.value) q.value = current.name || ''; q.focus(); q.select(); }
+        return;
+      }
+      if (what === 'search') { search(); return; }
+      if (what === 'unlink') {
+        if (!(await ask('Unlink from Stripe?', `${current.name} stays in Stripe. Their payments and invoices stop arriving here until you link them again.`, 'Unlink'))) return;
+      }
+      const done = busy(b, what === 'create' ? 'Creating' : what === 'unlink' ? 'Unlinking' : 'Linking');
+      try {
+        if (what === 'create') {
+          const mail = String(current.doc.user.email || '');
+          const r = await stripeFn({ action: 'create', tenantId: current.id, name: current.name, email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail) ? mail : undefined });
+          if (r.customer) stripeKnown[r.customer.id] = r.customer;
+          await after(r.created === false ? `Linked to their Stripe customer (${stripeModeText()}).` : `Stripe customer created (${stripeModeText()}).`);
+        } else if (what === 'unlink') {
+          await stripeFn({ action: 'unlink', tenantId: current.id });
+          await after('Unlinked. The customer is still in Stripe.');
+        } else if (linkId) {
+          const r = await stripeFn({ action: 'link', tenantId: current.id, customerId: linkId });
+          if (r.customer) stripeKnown[r.customer.id] = r.customer;
+          await after('Linked to Stripe.');
+        }
+      } catch (x) {
+        if (b.isConnected) done();
+        toast(stripeErr(x), true);
+      }
+    });
+  }
+
   /* ---- Billing: every client's plan, start date and renewal ---------------------------------------------- */
 
   const SUB_STATUS = { active: ['Active', 'good'], trialing: ['Trial', 'info'], past_due: ['Past due', 'bad'], paused: ['Paused', 'warn'], canceled: ['Cancelled', 'plain'] };
@@ -4820,9 +5331,14 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     if (billingState.filter === 'late') shown = late;
     if (billingState.filter === 'unset') shown = unset;
     shown = shown.slice().sort((x, y) => String(x.b.renews || '9999').localeCompare(String(y.b.renews || '9999')) || x.t.name.localeCompare(y.t.name));
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Billing</h1><p>Every client's package, when they started and when they renew. Next renewal first.</p></div></div>
+    if (!stripeState) stripeStatus().then(() => { if (location.hash === '#/billing') billingPage(); });
+    const stripeLine = !stripeState ? ''
+      : stripeReady() ? ` Stripe is connected (${stripeModeText()}): linked clients get their dates from it.`
+      : stripeState.refused ? ' Stripe is off: the server has a live key and live mode is off.'
+      : ' Stripe is not connected yet, so dates are typed in each client\'s Setup.';
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Billing</h1><p>Every client's package, when they started and when they renew. Next renewal first.${stripeLine}</p></div></div>
       <div class="toolbar"><div class="seg" role="group" aria-label="Show">${[['all', 'All', rows.length], ['soon', 'Renewing this week', soon.length], ['late', 'Past due', late.length], ['unset', 'No dates yet', unset.length]].map(([k, l, n]) => `<button type="button" data-bfilter="${k}" aria-pressed="${billingState.filter === k}">${l}<span class="count${k === 'late' && n ? '' : ' quiet'}">${n}</span></button>`).join('')}</div></div>
-      ${shown.length ? `<div class="table-wrap"><table class="grid"><thead><tr><th scope="col">Client</th><th scope="col">Package</th><th scope="col">Started</th><th scope="col">Renews</th><th scope="col">Status</th></tr></thead><tbody>
+      ${shown.length ? `<div class="table-wrap"><table class="grid"><thead><tr><th scope="col">Client</th><th scope="col">Package</th><th scope="col">Started</th><th scope="col">Renews</th><th scope="col">Status</th><th scope="col">Stripe</th></tr></thead><tbody>
         ${shown.map(({ t, b }) => {
           const d = b.renews ? due(b.renews) : null;
           const st = SUB_STATUS[b.status];
@@ -4834,7 +5350,8 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
             <td>${b.plan ? esc(b.plan) : '<span class="none">Not set</span>'}${b.amount ? `<span class="sub">${esc(b.amount)}</span>` : ''}</td>
             <td class="when">${b.startedAt ? esc(when(b.startedAt)) : '<span class="none">Not set</span>'}</td>
             <td class="when">${renewText}</td>
-            <td>${st ? `<span class="chip ${st[1]}">${st[0]}</span>` : '<span class="none">Not set</span>'}${b.status === 'past_due' && b.grace ? `<span class="sub">Services pause after ${esc(when(b.grace))}</span>` : ''}</td></tr>`;
+            <td>${st ? `<span class="chip ${st[1]}">${st[0]}</span>` : '<span class="none">Not set</span>'}${b.status === 'past_due' && b.grace ? `<span class="sub">Services pause after ${esc(when(b.grace))}</span>` : ''}</td>
+            <td>${stripeIdOf(t) ? `<span class="chip good" title="${esc(stripeIdOf(t))}">Linked</span>` : '<span class="chip off">Not linked</span>'}</td></tr>`;
         }).join('')}</tbody></table></div>`
         : `<div class="empty"><p><strong>${billingState.filter === 'all' ? 'No clients yet.' : 'Nothing here.'}</strong></p><p>${billingState.filter === 'all' ? 'Add a client, then type their package and dates in their Setup tab.' : 'Try another filter.'}</p></div>`}`;
     main.onclick = (e) => {
@@ -4894,7 +5411,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
         <div class="steps-wrap${cards ? ' is-muted' : ''}">
         <div class="rows-head ms" aria-hidden="true"><span>Step</span><span>Date</span><span>Status</span><span></span></div>
         <ol class="rows" data-list="ms">${rows.map(msRow).join('')}</ol></div>
-        <div class="actions"><button class="btn" type="submit">Save ${esc(SERVICES[s].label.toLowerCase())}</button></div>
+        <div class="actions"><button class="btn" type="submit">Save ${esc(SERVICES[s].label.toLowerCase())}</button><button class="btn btn-quiet start-fresh" type="button" data-fresh title="Clears everything on this form for ${esc(SERVICES[s].label)}, after you say yes. You can undo it for a few seconds.">${icon('refresh')}Start fresh</button></div>
       </form>`;
     const f = /** @type {HTMLFormElement} */ ($('form[data-svc]', box));
     track(f, SERVICES[s].label);
@@ -4915,6 +5432,32 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
       }
       const rm = t.closest('[data-remove]');
       if (rm) { rm.closest('li').remove(); f.dispatchEvent(new Event('input')); }
+    });
+    // Start fresh (2026-10-09, Karan: "one single button for resetting ... make sure it asks me for approval"): clears this
+    // service's status, now, next, date, note and steps in one go, after a yes, with Undo for a few seconds after.
+    // Board cards, files and anything the client sent are not touched.
+    const fresh = /** @type {HTMLButtonElement} */ ($('[data-fresh]', f));
+    fresh.addEventListener('click', async () => {
+      const label = SERVICES[s].label;
+      if (!await ask(`Start ${label} fresh?`, `This clears the status, right now, next step, date, note and all steps for ${label}. Their Work page shows an empty ${label} section until you fill it in again. Your board cards are not touched.`, 'Clear it')) return;
+      const done = busy(fresh, 'Clearing');
+      const before = clone(current.doc.services[s] || null);
+      try {
+        await saveDoc((doc) => {
+          const old = doc.services[s] || {};
+          doc.services[s] = { ...blankService(), objective: old.objective || '', files: old.files || [] };
+        });
+        clean(f);
+        route();
+        undoToast(`${label} cleared.`, async () => {
+          await saveDoc((doc) => { if (before) doc.services[s] = before; else delete doc.services[s]; });
+          route();
+          toast(`${label} is back as it was.`);
+        });
+      } catch (x) {
+        done();
+        toast(message(x), true);
+      }
     });
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -4951,6 +5494,25 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
   /* ---- Talk: messages, approvals and updates in one column ------------------------------------------- */
 
   const REQ_STATUS = [['review', 'New'], ['in_progress', 'In progress'], ['waiting', 'Waiting on client'], ['done', 'Done'], ['declined', 'Declined']];
+
+  /** Sends our reply to a client (Talk and Messages both use this). by_user is set by the database. @param {string} tenantId @param {string} body */
+  async function sendReply(tenantId, body) {
+    const client = await db();
+    const row = check(await client.from('messages').insert({ tenant_id: tenantId, body, from_staff: true, by_name: me.name }).select('id, about, body, from_staff, by_name, at').single());
+    if (current && current.id === tenantId) current.messages.push(row);
+    all.messages.push({ ...row, tenant_id: tenantId });
+    return row;
+  }
+
+  /** Moves a change request to a new status; its card follows (Talk and Messages both use this). @param {string} id @param {string} status */
+  async function setRequestStatus(id, status) {
+    const client = await db();
+    check(await client.from('requests').update({ status }).eq('id', id).select('id').single());
+    for (const list of [current ? current.requests : [], all.requests]) { const x = (list || []).find((/** @type {any} */ y) => y.id === id); if (x) x.status = status; }
+    const cardStatus = { review: 'todo', waiting: 'in_review', done: 'done', declined: 'cancelled' }[status] || 'in_progress';
+    for (const list of [current ? current.tasks : [], all.tasks]) for (const k of list || []) if (k.request_id === id && ({ todo: 'review', in_review: 'waiting', done: 'done', cancelled: 'declined' }[k.status] || 'in_progress') !== status) k.status = cardStatus;
+    toast(`Marked ${(REQ_STATUS.find(([v]) => v === status) || ['', status])[1].toLowerCase()}.`);
+  }
 
   /**
    * The Talk tab. Three buttons on top (Reply, Ask for an approval, Post an update), then what needs a reply
@@ -4992,7 +5554,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
     const needCount = (unanswered.length ? 1 : 0) + openReqs.length + sentBack.length;
     const opener = (/** @type {string} */ id, /** @type {string} */ label, /** @type {boolean} */ open, /** @type {boolean} */ main) => `<button class="btn btn-sm${main ? '' : ' btn-quiet'}" type="button" data-action="reveal" aria-expanded="${open}" aria-controls="${id}">${icon('plus')}${label}</button>`;
     box.innerHTML = `
-      <div class="toolbar talk-bar">${opener('reply-form', 'Reply', part === 'reply', true)}${opener('apv-form', 'Ask for an approval', part === 'approval', false)}${opener('upd-form', 'Post an update', part === 'update', false)}</div>
+      <div class="toolbar talk-bar">${opener('reply-form', 'Reply', part === 'reply', true)}${opener('apv-form', 'Ask for an approval', part === 'approval', false)}${opener('upd-form', 'Post an update', part === 'update', false)}<a class="btn btn-sm btn-quiet talk-inbox" href="#/messages/${esc(current.id)}">${icon('chat')}Open in Messages</a></div>
       <div class="talk-forms">
       <form class="panel" id="reply-form" novalidate${part === 'reply' ? '' : ' hidden'}>
         <div class="field"><label for="reply">Reply as ${esc(me.name)}</label><textarea id="reply" name="body" maxlength="2000" placeholder="Thanks ${esc(first)}${first ? ',' : ''} we can do that this week."></textarea></div>
@@ -5067,10 +5629,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
       if (!body) { toast('Write the reply first.', true); $('#reply', box).focus(); return; }
       const done = busy($('button[type=submit]', rf), 'Sending');
       try {
-        const client = await db();
-        const row = check(await client.from('messages').insert({ tenant_id: current.id, body, from_staff: true, by_name: me.name }).select('id, about, body, from_staff, by_name, at').single());
-        current.messages.push(row);
-        all.messages.push({ ...row, tenant_id: current.id });
+        await sendReply(current.id, body);
         clean(rf);
         toast('Reply sent.');
         back();
@@ -5187,14 +5746,7 @@ html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.
       if (!r || r.status === status) return;
       sel.disabled = true;
       try {
-        const client = await db();
-        check(await client.from('requests').update({ status }).eq('id', id).select('id').single());
-        r.status = status;
-        const g = all.requests.find((/** @type {any} */ x) => x.id === id);
-        if (g) g.status = status;
-        const cardStatus = { review: 'todo', waiting: 'in_review', done: 'done', declined: 'cancelled' }[status] || 'in_progress';
-        for (const list of [current.tasks, all.tasks]) for (const k of list || []) if (k.request_id === id && ({ todo: 'review', in_review: 'waiting', done: 'done', cancelled: 'declined' }[k.status] || 'in_progress') !== status) k.status = cardStatus;
-        toast(`Marked ${REQ_STATUS.find(([v]) => v === status)[1].toLowerCase()}.`);
+        await setRequestStatus(id, status);
         route();
       } catch (x) {
         sel.disabled = false;

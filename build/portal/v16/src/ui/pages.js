@@ -20,7 +20,7 @@
     const off = (D8.data.SERVICE_ORDER || Object.keys(SVC())).filter((/** @type {string} */ s) => !has.includes(s) && SVC()[s]);
     return off.length ? `<div class="plan-off"><p class="plan-off-h">Not in your plan</p>
       <ul class="plan-list is-off">${off.map((/** @type {string} */ x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
-      <p class="plan-off-ask">Want one of these added? <a href="#/help">Send us a note</a>.</p></div>` : '';
+      <p class="plan-off-ask">Want one of these added? <a href="#/messages">Send us a note</a>.</p></div>` : '';
   };
   // Design variants can ask for a Home order, a Coming up section and a Basic / Advanced switch
   // on Results (D8VARIANT.home, .reportModes). Without them, every page renders as in 16.
@@ -131,7 +131,7 @@
     const when = m && m.at ? `${day(m.at)} at ${F.time(m.at)}` : 'none booked';
     return `<section class="card contact-strip" aria-label="Talk to us">
       <p class="contact-meet">${icon('calendar')}<span>Next meeting: ${esc(when)}</span></p>
-      <button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="message">${icon('message')}Message us</button>
+      <a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a>
     </section>`;
   }
 
@@ -575,7 +575,7 @@
         <div class="sec-head"><h2 id="h-invoices">Invoices</h2></div>
         ${b.invoices.length ? `<div class="card"><ul class="invoices">${rows(recent)}</ul>${older.length ? `<details class="fold fold-invoices"><summary>See older invoices${icon('chevron-down')}</summary><ul class="invoices">${rows(older)}</ul></details>` : ''}</div>` : UI.EmptyState({ icon: 'file', title: 'No invoices yet.', text: 'Your first one shows here when Stripe sends it.' })}
       </section>
-      <p class="bill-help">Question about a charge? <button class="link-btn" type="button" data-action="compose" data-mode="message">Message us</button></p>`;
+      <p class="bill-help">Question about a charge? <a class="link" href="#/messages">Message us</a></p>`;
   }
 
   const billing = {
@@ -795,8 +795,8 @@
 
   /* ================================================================ HELP */
 
-  /* Help, simplified (2026-10-09): Message us and the reply time at the top, the client's messages only when
-     there are some, then the common questions, with our promises as one of them. */
+  /* Help (2026-10-09): one card that leads to Messages, where the conversation lives now, then the
+     common questions, with our promises as one of them. */
   const PROMISES = [
     'We only publish posts, pages and ads you have approved.',
     'We never change your ad budget without asking you first.',
@@ -820,25 +820,207 @@
         ${UI.PageHeader({ title: 'Help', intro: 'How to reach us, and answers to common questions.' })}
         <section class="card help-contact" aria-labelledby="h-contact">
           <div class="help-contact-row">
-            <div><h2 id="h-contact">Talk to us</h2><p>${ctx.account.team.reply ? esc(replyLine(ctx.account.team.reply)) + ' ' : ''}Messages go straight to the people who work on your account.</p></div>
-            <button class="btn btn-solid" type="button" data-action="compose" data-mode="message">${icon('message')}Message us</button>
+            <div><h2 id="h-contact">Have a question? Message us</h2><p>${ctx.account.team.reply ? esc(replyLine(ctx.account.team.reply)) + ' ' : ''}Messages go straight to the people who work on your account.</p></div>
+            <a class="btn btn-solid" href="#/messages">${icon('message')}Go to Messages</a>
           </div>
-          <div id="help-messages" aria-live="polite"></div>
         </section>
         <section class="sec" aria-labelledby="h-faq"><h2 id="h-faq" class="sec-title">Common questions</h2>
           <div class="card faq">${FAQ.map(([q, a]) => `<details><summary>${esc(q)}${icon('chevron-down')}</summary>${a.startsWith('<') ? a : `<p>${esc(a)}</p>`}</details>`).join('')}</div>
         </section>
       </div>`;
     },
+    mount() { return {}; }
+  };
+
+  /* ================================================================ MESSAGES */
+
+  /* Messages (2026-10-09): one conversation with the team, oldest at the top and newest at the bottom,
+     with the client's change requests in it as small cards, and a box to write in at the bottom.
+     It checks for a reply every minute while it is open and in view. */
+  const REQ_WORDS = { review: 'We have it and will look soon', open: 'We have it and will look soon', in_progress: 'We are working on it', done: 'Done', complete: 'Done', declined: 'Not going ahead' };
+  /** @type {any} */
+  let msgTimer = null;
+
+  /** "Today", "Yesterday" or "Tue 22 Sep". @param {string} at @param {number} now */
+  function msgDay(at, now) {
+    const d = F.daysBetween(at, now);
+    if (d === 0) return 'Today';
+    if (d === 1) return 'Yesterday';
+    return F.date(at);
+  }
+  /** The topic's name, or nothing for general. @param {string} about */
+  const aboutName = (about) => (about === 'billing' ? 'Billing' : about && SVC()[about] ? SVC()[about].label : '');
+  const firstName = (/** @type {string} */ n) => String(n || '').trim().split(/\s+/)[0] || '';
+  const sep = '<span aria-hidden="true">·</span><span class="sr-only">, </span>';
+
+  /** One item of the thread. @param {any} x */
+  function msgItem(x) {
+    const t = F.time(x.at);
+    if (x.kind === 'request') {
+      const svc = SVC()[x.service];
+      return `<li class="msg is-mine is-request"><div class="msg-req"><p class="msg-req-h">${icon('edit')}<span>You asked for a change${svc ? `<span aria-hidden="true"> · </span><span class="sr-only">, </span>${esc(svc.label)}` : ''}</span></p><p class="msg-text">${esc(x.text)}</p><p class="msg-req-status">${esc(/** @type {any} */ (REQ_WORDS)[x.status] || REQ_WORDS.review)}</p></div><p class="msg-meta"><span>${esc(t)}</span></p></li>`;
+    }
+    const topic = aboutName(x.about);
+    const who = x.fromTeam ? (firstName(x.by) || 'Domin8te') : 'You';
+    return `<li class="msg ${x.fromTeam ? 'is-team' : 'is-mine'}${x.sending ? ' is-sending' : ''}"><div class="msg-bubble"><p class="msg-text">${esc(x.text)}</p></div><p class="msg-meta">${x.fromTeam ? '<span class="team-mark msg-mark" aria-hidden="true"></span>' : ''}<span>${esc(who)}</span>${sep}<span>${x.sending ? 'Sending' : esc(t)}</span>${topic && !x.fromTeam ? `${sep}<span>About ${esc(topic === 'Billing' ? 'billing' : F.lcFirst(topic))}</span>` : ''}</p></li>`;
+  }
+
+  /**
+   * The whole thread, with day lines and a "New" line before the first reply the client had not seen.
+   * @param {any} th @param {number} now @param {string|null} seen
+   */
+  function msgThread(th, now, seen) {
+    if (!th.items.length) return `<p class="msg-empty">${icon('message')}<span>No messages yet. Write to us below.</span></p>`;
+    let lastDay = '';
+    let newShown = false;
+    const since = seen ? D8.time.parse(seen) : now - 14 * D8.time.DAY;
+    const out = [];
+    for (const x of th.items) {
+      const d = msgDay(x.at, now);
+      if (d !== lastDay) { out.push(`<li class="msg-day"><span>${esc(d)}</span></li>`); lastDay = d; }
+      if (!newShown && x.kind === 'message' && x.fromTeam && D8.time.parse(x.at) > since) { out.push('<li class="msg-new"><span>New</span></li>'); newShown = true; }
+      out.push(msgItem(x));
+    }
+    return `<ol class="msg-list">${out.join('')}</ol>`;
+  }
+
+  const messages = {
+    title: () => 'Messages',
+    render(ctx) {
+      const reply = ctx.account.team && ctx.account.team.reply ? replyLine(ctx.account.team.reply) : 'We usually reply within one working day.';
+      const pkg = (ctx.account.package.services || []).filter((/** @type {string} */ x) => SVC()[x]);
+      return `<div class="page page-messages">
+        ${UI.PageHeader({ title: 'Messages', intro: `Talk to your Domin8te team. ${reply}` })}
+        <section class="card msg-card" aria-labelledby="h-thread">
+          <h2 id="h-thread" class="sr-only">Your conversation with Domin8te</h2>
+          <div class="msg-scroll" id="msg-thread" role="log" aria-label="Messages with Domin8te" tabindex="0">${UI.Skeleton('text', 1)}</div>
+          <form class="msg-compose" id="msg-form" novalidate>
+            <div class="field msg-about" id="msg-about-box" hidden><label for="msg-about-pick">What is it about?</label><select id="msg-about-pick" name="about"><option value="general">General</option>${pkg.map((/** @type {string} */ x) => `<option value="${esc(x)}">${esc(SVC()[x].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>
+            <label class="sr-only" for="msg-new">Write a message</label>
+            <textarea id="msg-new" name="text" rows="2" maxlength="2000" placeholder="Write a message" aria-describedby="msg-new-err msg-keys"></textarea>
+            <p class="field-error" id="msg-new-err" hidden></p>
+            <p class="form-error" id="msg-form-err" role="alert" hidden></p>
+            <div class="msg-compose-foot">
+              <button class="link-btn msg-about-toggle" type="button" aria-expanded="false" aria-controls="msg-about-box">Add a topic</button>
+              <span class="hint msg-keys" id="msg-keys">Ctrl and Enter sends</span>
+              <button class="btn btn-solid msg-send" type="submit">Send${icon('arrow-right')}</button>
+            </div>
+          </form>
+        </section>
+      </div>`;
+    },
     mount(ctx, r, el) {
-      // Your messages shows only once there are some; a failed load says so quietly.
-      const load = () => section(el, '#help-messages', () => ctx.client.getMessages(), (list) => list.length
-        // Live, the account team's replies sit in the same list, marked as theirs.
-        ? `<h3 class="sub-h">Your messages</h3><ul class="sent-list">${list.map((m) => `<li${m.fromTeam ? ' class="is-team"' : ''}><p>${esc(m.text)}</p><p class="meta">${m.fromTeam ? `From ${esc(m.by || 'Domin8te')}, ` : 'Sent '}${esc(F.when(m.at, ctx.client.now()))}</p></li>`).join('')}</ul>`
-        : '',
-      () => ({ title: "We couldn't load your messages.", retry: 'messages' }));
+      const box = /** @type {HTMLElement} */ (el.querySelector('#msg-thread'));
+      const form = /** @type {HTMLFormElement} */ (el.querySelector('#msg-form'));
+      const text = /** @type {HTMLTextAreaElement} */ (el.querySelector('#msg-new'));
+      const err = /** @type {HTMLElement} */ (el.querySelector('#msg-new-err'));
+      const formErr = /** @type {HTMLElement} */ (el.querySelector('#msg-form-err'));
+      const send = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
+      const toggle = /** @type {HTMLButtonElement} */ (el.querySelector('.msg-about-toggle'));
+      const aboutBox = /** @type {HTMLElement} */ (el.querySelector('#msg-about-box'));
+      const about = /** @type {HTMLSelectElement} */ (el.querySelector('#msg-about-pick'));
+      /** When the client last opened Messages before this visit: replies after it get the "New" line. @type {string|null|undefined} */
+      let seenBefore;
+      let lastKey = '';
+      /** @type {any} */ let last = null;
+      const sendLabel = `Send${icon('arrow-right')}`;
+
+      const nearBottom = () => box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+      const toBottom = () => { box.scrollTop = box.scrollHeight; };
+      const html = (/** @type {any} */ th) => msgThread(th, ctx.client.now(), seenBefore === undefined ? th.seenAt : seenBefore);
+      /** Draws the thread and keeps the reader's place, unless they were at the newest message. @param {any} th @param {boolean} [force] */
+      function draw(th, force) {
+        const stay = !force && !nearBottom();
+        const top = box.scrollTop;
+        box.innerHTML = html(th);
+        box.setAttribute('data-loaded', '');
+        if (stay) box.scrollTop = top; else toBottom();
+      }
+      /** The client has seen everything shown: remember when, and clear the badge. */
+      function seen() {
+        ctx.setMessagesBadge(0);
+        ctx.client.markMessagesSeen().catch(() => { /* remembered next time they open Messages */ });
+      }
+      /** @param {any} th */
+      function keep(th) {
+        if (seenBefore === undefined) seenBefore = th.seenAt;
+        last = th;
+        lastKey = th.items.map((/** @type {any} */ x) => x.id + ':' + (x.status || '')).join('|');
+        return th;
+      }
+      const load = () => section(el, '#msg-thread', () => ctx.client.getThread().then(keep), html,
+        () => ({ title: "We couldn't load your messages.", text: 'You can still write to us below. Try again soon.', retry: 'messages' }))
+        .then((th) => { if (th) { toBottom(); seen(); } });
+      /** Quietly: no placeholder and no dimming; draws only when something changed. @param {boolean} [force] */
+      const quiet = (force) => ctx.client.getThread().then((th) => {
+        if (!document.contains(box)) return;
+        const before = lastKey;
+        keep(th);
+        if (force || before !== lastKey || !box.hasAttribute('data-loaded')) draw(th, force);
+        if (th.unread) seen();
+      }).catch(() => { /* the next check tries again */ });
+
       load();
-      return { retry: load, refresh: load };
+      // A reply shows up without a reload: every minute while Messages is open and in view.
+      if (msgTimer) clearInterval(msgTimer);
+      msgTimer = setInterval(() => {
+        if (!document.contains(box)) { clearInterval(msgTimer); msgTimer = null; return; }
+        if (document.hidden) return;
+        ctx.client.refresh().then(() => quiet()).catch(() => { /* offline for a moment: the next minute tries again */ });
+      }, 60000);
+
+      toggle.addEventListener('click', () => {
+        const open = aboutBox.hidden;
+        aboutBox.hidden = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.textContent = open ? 'No topic' : 'Add a topic';
+        if (open) about.focus(); else about.value = 'general';
+      });
+      text.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); form.requestSubmit(); }
+      });
+      text.addEventListener('input', () => { if (!err.hidden) { err.hidden = true; text.removeAttribute('aria-invalid'); } });
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (send.disabled) return;
+        err.hidden = true;
+        formErr.hidden = true;
+        text.removeAttribute('aria-invalid');
+        const body = text.value;
+        if (!body.trim()) {
+          err.innerHTML = `${icon('alert')}Write your message first.`;
+          err.hidden = false;
+          text.setAttribute('aria-invalid', 'true');
+          text.focus();
+          return;
+        }
+        const topic = aboutBox.hidden ? 'general' : about.value;
+        // It shows in the thread at once, marked Sending, and is swapped for the saved one.
+        const pending = { kind: 'message', id: 'sending', about: topic, text: body.trim(), at: D8.time.isoTime(ctx.client.now()), fromTeam: false, sending: true };
+        if (last) draw({ ...last, items: [...last.items, pending] }, true);
+        send.disabled = true;
+        send.innerHTML = '<span class="spinner" aria-hidden="true"></span>Sending';
+        ctx.client.sendMessage(topic, body).then(() => {
+          text.value = '';
+          if (!aboutBox.hidden) toggle.click();
+          return quiet(true);
+        }).catch((/** @type {any} */ e2) => {
+          if (last) draw(last, true);
+          if (e2 && e2.field === 'text') {
+            err.innerHTML = `${icon('alert')}${esc(e2.message)}`;
+            err.hidden = false;
+            text.setAttribute('aria-invalid', 'true');
+          } else {
+            formErr.innerHTML = `${icon('alert')}<span>That did not send. ${esc((e2 && e2.message) || '')} Your words are still here. Try again.</span>`;
+            formErr.hidden = false;
+          }
+        }).then(() => {
+          send.disabled = false;
+          send.innerHTML = sendLabel;
+          text.focus();
+        });
+      });
+      return { retry: load, refresh: () => quiet() };
     }
   };
 
@@ -950,5 +1132,5 @@
     mount() { return {}; }
   };
 
-  D8.pages = { home, work, results, updates, billing, settings, help, 'sign-in': signIn, notFound };
+  D8.pages = { home, work, results, updates, billing, settings, messages, help, 'sign-in': signIn, notFound };
 })(typeof window !== 'undefined' ? window : globalThis);

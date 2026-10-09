@@ -117,7 +117,7 @@ html[data-variant="18h"][data-page="settings"] .lg-world {
   --c1a: 0; --c1y: 2%; --c2a: 1; --c2y: 12%; --c3a: 1; --c3b: 15%; --c4a: 1; --c4y: 1.5%; --c5a: 1; --c5b: 7%;
   --stars: 1;
 }
-html[data-variant="18h"][data-page="help"] .lg-world {
+html[data-variant="18h"]:is([data-page="help"], [data-page="messages"]) .lg-world {
   /* Dawn on a lake: the sun still in the mist, a far shore, mist drifting over still water. */
   --sky-up: #C5CCE7; --sky-low: #F5DAD6; --low-top: 34%;
   --hz-b: var(--lake-b);
@@ -167,7 +167,7 @@ html[data-variant="18h"][data-theme="dark"][data-page="settings"] .lg-world {
   --cloud: #2E3060; --cloud-a: 0.6;
   --stars: 1;
 }
-html[data-variant="18h"][data-theme="dark"][data-page="help"] .lg-world {
+html[data-variant="18h"][data-theme="dark"]:is([data-page="help"], [data-page="messages"]) .lg-world {
   --sky-up: #151A2C; --sky-low: #2E3450; --ground: #0F121C; --hz: #3E4462;
   --lo-glow: #5A628A; --lo-glow-a: 0.35; --lo-gs: 2.4;
   --cloud: #2A3048; --cloud-a: 0.5;
@@ -488,7 +488,7 @@ html[data-variant="18h"]:not([data-theme="dark"]):is(:not([data-page]), [data-pa
 @media (max-width: 760px) {
   html[data-variant="18h"]:is([data-theme="dark"], :is(:not([data-page]), [data-page="home"], [data-page="sign-in"], [data-page="notFound"], [data-page="results"], [data-page="updates"], [data-page="billing"], [data-page="settings"])) .lg-world { --lo-k: 0; --hi-k: 0; --lights-k: 0; --stars-k: 0; --aur-k: 0.5; --way-k: 0.5; }
   html[data-variant="18h"] .lg-world > .k-s { box-shadow: none; }
-  html[data-variant="18h"][data-theme="dark"][data-page="help"] .lg-world { --lake-a: 0.6; }
+  html[data-variant="18h"][data-theme="dark"]:is([data-page="help"], [data-page="messages"]) .lg-world { --lake-a: 0.6; }
 }
 
 /* Words inside a card or the summary sit on glass, not on the sky: no shadow there. */

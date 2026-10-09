@@ -33,7 +33,10 @@ const FULL = [
   { route: 'billing', title: 'Billing', has: ['Your payment did not go through', 'September, BAY-0009', 'See invoice', 'See older invoices', 'Update payment method'], not: ['See the payment problem above', 'Press See invoice', 'Change card', 'Payment method</h2>'] },
   { route: 'settings', title: 'Settings', has: ['Connected accounts', '5 of 6 working', 'See all connections', 'Who can sign in', 'Add someone', 'Emails', 'are always sent', 'Choose which emails you get', 'How it looks'], not: ['Sign-in and security', 'People who can sign in'] },
   { route: 'settings/sources', title: 'Settings', has: ['Needs reconnecting', 'Connected'] },
-  { route: 'help', title: 'Help', has: ['Common questions', 'Message us', 'What we promise'], not: ['What is on each page?', 'What does "Waiting for you" mean?', 'Our promises to you'] },
+  // Help leads to Messages (2026-10-09): one card, then the questions. The conversation lives on Messages.
+  { route: 'help', title: 'Help', has: ['Common questions', 'Have a question? Message us', 'href="#/messages"', 'What we promise'], not: ['What is on each page?', 'What does "Waiting for you" mean?', 'Our promises to you', 'id="help-messages"', 'Your messages'] },
+  { route: 'messages', title: 'Messages', has: ['Talk to your Domin8te team. We usually reply within one working day.', 'class="msg-day"', 'You asked for a change', 'We are working on it', 'Karan', 'Instagram is disconnected right now', 'placeholder="Write a message"', 'Add a topic', 'aria-current="page"'], not: ['No messages yet', 'data-action="compose"'] },
+  { query: 'demo=cornerbean', route: 'messages', title: 'Messages', has: ['No messages yet. Write to us below.', 'placeholder="Write a message"'], not: ['class="msg-day"'] },
   { route: 'no-such-page', title: 'Page not found', has: ['Go to your Home page'] },
   { query: 'demo=cornerbean', route: 'home', title: 'Home', has: ["You're all caught up", 'Next planned', 'Latest win', 'See your results', 'Not connected yet', 'Good morning, Priya'], not: ['Social media', 'Advertising', 'Bayleaf'] },
   { query: 'demo=cornerbean', route: 'results', title: 'Results', has: ['Numbers start on'], not: ['id="h-g-social"', 'id="h-g-advertising"'] },
@@ -45,7 +48,7 @@ const FULL = [
 ];
 // Every page in every demo situation: each must draw its title, finish loading and log no errors.
 // (The review that prompted this found pages stuck on "Loading" after switching situations.)
-const PAGES = { home: 'Home', work: 'Work', results: 'Results', updates: 'Work', billing: 'Billing', settings: 'Settings', help: 'Help' };
+const PAGES = { home: 'Home', work: 'Work', results: 'Results', updates: 'Work', billing: 'Billing', settings: 'Settings', messages: 'Messages', help: 'Help' };
 for (const demo of ['bayleaf', 'cornerbean', 'google-down', 'slow']) {
   for (const [route, title] of Object.entries(PAGES)) FULL.push({ query: 'demo=' + demo, route, title, budget: demo === 'slow' ? 15000 : 8000, has: ['id="page-title"'] });
 }

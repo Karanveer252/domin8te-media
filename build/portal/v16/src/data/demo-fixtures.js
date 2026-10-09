@@ -101,6 +101,15 @@
     ],
     team: { name: 'Your account team', reply: 'Usually replies within one working day' },
     meeting: { at: '2026-10-06T10:00', title: 'Monthly results call', length: '20 minutes', status: 'confirmed' },
+    // The demo's conversation with the team, shown on Messages (2026-10-09). What the visitor writes is added after it.
+    demoRequests: [
+      { id: 'req_demo_hours', service: 'website', text: 'Please put our autumn opening hours on the website.', at: '2026-09-21T10:05', status: 'in_progress', by: 'Dani' }
+    ],
+    demoMessages: [
+      { id: 'msg_demo_1', about: 'website', text: 'Thanks, Dani. The new hours go on the website this week. We will show you before they go live.', at: '2026-09-21T11:20', fromTeam: true, by: 'Karan' },
+      { id: 'msg_demo_2', about: 'social', text: 'Can we post the autumn menu on Instagram too?', at: '2026-09-23T09:15', fromTeam: false, by: 'Dani' },
+      { id: 'msg_demo_3', about: 'social', text: 'Yes. Instagram is disconnected right now, so those posts wait until you reconnect it. You can do that from your Home page.', at: '2026-09-24T11:40', fromTeam: true, by: 'Karan' }
+    ],
     sources: [
       { id: 'gbp', name: 'Google Business Profile', status: 'connected', updatedAt: '2026-09-24T13:10' },
       { id: 'analytics', name: 'Website analytics', status: 'connected', updatedAt: '2026-09-24T06:00' },

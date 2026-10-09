@@ -238,6 +238,18 @@ test('messages, requests, the look and email choices are saved to the database',
   assert.equal(tables.user_prefs[0].notifications.weekly, false);
   assert.equal(tables.user_prefs[0].notifications.account, true, 'the required category stays on');
   assert.equal((await c.getSettings()).prefs.weekly, false);
+  // Messages seen (2026-10-09): kept inside the same appearance, never dropping the theme or the ground.
+  const th = await c.getThread();
+  assert.ok(th.items.some((x) => x.kind === 'message' && x.fromTeam && x.by === 'Karan'), 'our reply is in the thread');
+  assert.ok(th.items.some((x) => x.kind === 'request' && x.service === 'website'), 'the request is in the thread');
+  await c.markMessagesSeen();
+  const look = tables.user_prefs[0].appearance;
+  assert.equal(look.theme, 'dark');
+  assert.equal(look.scene, 'static');
+  assert.ok(look.messagesSeenAt);
+  assert.equal(await c.getUnreadReplies(), 0);
+  await c.saveAppearance({ theme: 'light' });
+  assert.equal(tables.user_prefs[0].appearance.messagesSeenAt, look.messagesSeenAt, 'a later theme change keeps the seen time');
 });
 
 test('database refusals are explained in the portal\'s words', async () => {

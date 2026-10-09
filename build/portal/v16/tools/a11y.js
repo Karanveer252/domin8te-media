@@ -41,7 +41,8 @@ fs.writeFileSync(tmp, fs.readFileSync(BUILT, 'utf8').replace('</body>', runner +
 const FILE = tmp.split(path.sep).join('/');
 
 let CASES = [];
-for (const route of ['home', 'work', 'results', 'updates', 'billing', 'settings', 'help']) CASES.push({ route, w: 1440 });
+for (const route of ['home', 'work', 'results', 'updates', 'billing', 'settings', 'messages', 'help']) CASES.push({ route, w: 1440 });
+CASES.push({ route: 'messages', w: 390 }, { route: 'messages', w: 1440, query: 'theme=dark' }, { route: 'messages', w: 1440, query: 'demo=cornerbean' });
 for (const route of ['home', 'results', 'billing']) CASES.push({ route, w: 1440, query: 'theme=dark' });
 for (const route of ['home', 'work', 'results']) CASES.push({ route, w: 500 });
 CASES.push({ route: 'home', w: 1440, query: 'demo=cornerbean' }, { route: 'home', w: 1440, query: 'demo=cornerbean&theme=dark' }, { route: 'results', w: 1440, query: 'demo=google-down' }, { route: 'home', w: 1440, query: 'side=rail' }, { route: 'settings', w: 1440, query: 'theme=dark' }, { route: 'work', w: 1440, query: 'theme=dark' });
@@ -54,7 +55,8 @@ if (/v18h/.test(BUILD)) {
   CASES = [{ route: 'queue', w: 1440 }, { route: 'clients', w: 1440 }, { route: 'new', w: 1440 }, { route: 'client/tnt_preview_bayleaf/overview', w: 1440 }, { route: 'client/tnt_preview_bayleaf/board', w: 1440 }, { route: 'client/tnt_preview_bayleaf/board/new', w: 1440 }, { route: 'client/tnt_preview_bayleaf/work/social', w: 1440 },
     { route: 'client/tnt_preview_bayleaf/approvals/new', w: 1440 }, { route: 'client/tnt_preview_bayleaf/updates/new', w: 1440 }, { route: 'client/tnt_preview_marlow/inbox', w: 1440 }, { route: 'client/tnt_preview_bayleaf/record', w: 1440 }, { route: 'queue', w: 500 }, { route: 'client/tnt_preview_osteria/overview', w: 500 }, { route: 'client/tnt_preview_bayleaf/board', w: 500 }, { route: 'settings', w: 1440 }, { route: 'billing', w: 1440 }, { route: 'billing', w: 1440, query: 'theme=dark' },
     { route: 'queue', w: 1440, query: 'theme=dark' }, { route: 'client/tnt_preview_bayleaf/overview', w: 1440, query: 'theme=dark' }, { route: 'board', w: 1440, query: 'theme=dark' }, { route: 'settings', w: 1440, query: 'theme=dark' },
-    { route: 'queue', w: 1440, query: 'scene=scenes' }, { route: 'board', w: 1440, query: 'scene=scenes' }, { route: 'clients', w: 1440, query: 'scene=scenes' }, { route: 'client/tnt_preview_bayleaf/inbox', w: 1440, query: 'scene=scenes' }, { route: 'settings', w: 1440, query: 'scene=scenes&theme=dark' }];
+    { route: 'queue', w: 1440, query: 'scene=scenes' }, { route: 'board', w: 1440, query: 'scene=scenes' }, { route: 'clients', w: 1440, query: 'scene=scenes' }, { route: 'client/tnt_preview_bayleaf/inbox', w: 1440, query: 'scene=scenes' }, { route: 'settings', w: 1440, query: 'scene=scenes&theme=dark' },
+    { route: 'messages', w: 1440 }, { route: 'messages/tnt_preview_osteria', w: 1440, query: 'theme=dark' }, { route: 'messages/tnt_preview_bayleaf', w: 500 }, { route: 'messages', w: 500 }, { route: 'messages', w: 1440, query: 'scene=scenes' }];
 } else if (BUILD !== 'v16') {
   // Variants: every main page in light, then dark, a phone width and the all-caught-up state.
   CASES = ['home', 'work', 'results', 'billing', 'settings'].map((route) => ({ route, w: 1440 }))

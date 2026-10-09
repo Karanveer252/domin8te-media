@@ -395,6 +395,8 @@
     return {
       ready: Promise.resolve(),
       tenant: () => tenant,
+      // The demo's starting conversation with the team (Messages); what the client writes is added after it.
+      seed: () => ({ messages: clone((raw && raw.demoMessages) || []), requests: clone((raw && raw.demoRequests) || []) }),
       // No pretend network time on reads: a page switch draws its content in the same frame. The
       // "Slow connection" demo keeps its two seconds so the loading states can be shown on purpose.
       latency: sc.latency || 0,
@@ -866,7 +868,7 @@
     /**
      * The client's look, kept with the account. Live: PUT /api/settings/appearance, stored with the
      * signed-in user (a personal choice, not the whole tenant's). Only known values are kept.
-     * @param {{theme?: string, scene?: string}} look
+     * @param {{theme?: string, scene?: string, messagesSeenAt?: string}} look
      */
     function saveAppearance(look) {
       return call(() => {
@@ -874,11 +876,46 @@
         const l = look || {};
         if (l.theme !== undefined && l.theme !== 'light' && l.theme !== 'dark') throw fail('bad-theme', 'Choose light or dark.');
         if (l.scene !== undefined && l.scene !== 'scenes' && l.scene !== 'static') throw fail('bad-scene', 'Choose Scenes or Static.');
+        if (l.messagesSeenAt !== undefined && !Number.isFinite(T.parse(l.messagesSeenAt))) throw fail('bad-seen', 'That time is not right.');
         if (l.theme) next.theme = l.theme;
         if (l.scene) next.scene = l.scene;
+        // When the client last opened Messages (2026-10-09): kept with the look, so no new table is needed.
+        if (l.messagesSeenAt) next.messagesSeenAt = l.messagesSeenAt;
         next.savedAt = T.isoTime(now());
         return src.put('appearance', { look: next }).then(() => clone(next));
       }, 150);
+    }
+
+    /* ---- messages (2026-10-09: their own page) ------------------------------------- */
+
+    /** When the client last opened Messages, or null. */
+    const seenAt = () => { const a = state().appearance; return a && a.messagesSeenAt ? String(a.messagesSeenAt) : null; };
+    /** Every message: the demo's starting thread (none live), then what was written since, oldest first. */
+    function allMessages() {
+      const seed = src.seed ? src.seed() : {};
+      return [...(seed.messages || []), ...(state().messages || [])].map((/** @type {any} */ m) => clone(m))
+        .sort((a, b) => T.parse(a.at) - T.parse(b.at));
+    }
+    /** Our replies newer than when the client last opened Messages. Never opened: our replies from the last 14 days. */
+    function unreadReplies() {
+      const s = seenAt();
+      const since = s ? T.parse(s) : now() - 14 * T.DAY;
+      return allMessages().filter((m) => m.fromTeam && T.parse(m.at) > since).length;
+    }
+    /** The client's thread: messages and their change requests, oldest first, with what is new. */
+    function thread() {
+      const seed = src.seed ? src.seed() : {};
+      const reqs = [...(seed.requests || []), ...(state().requests || [])].filter((/** @type {any} */ r) => SERVICES[r.service])
+        .map((/** @type {any} */ r) => ({ kind: 'request', id: r.id, service: r.service, text: r.text, at: r.at, status: r.status || 'review', by: r.by || '' }));
+      const items = [...allMessages().map((m) => ({ kind: 'message', ...m })), ...reqs].sort((a, b) => T.parse(a.at) - T.parse(b.at));
+      return { items, seenAt: seenAt(), unread: unreadReplies(), services: tenant.package.services.filter((/** @type {string} */ x) => SERVICES[x]), team: clone(tenant.team) };
+    }
+    /** The client opened Messages: remember when, with their look. Nothing is written when nothing is new. */
+    function markMessagesSeen() {
+      return call(() => {
+        if (seenAt() && !unreadReplies()) return { messagesSeenAt: seenAt(), written: false };
+        return saveAppearance({ messagesSeenAt: T.isoTime(now()) }).then((/** @type {any} */ l) => ({ messagesSeenAt: l.messagesSeenAt, written: true }));
+      }, 0);
     }
 
     /** Resend preferences. The required category cannot be switched off. */
@@ -911,7 +948,10 @@
       getResults: (days = 30) => call(() => results(days)),
       getBilling: () => call(billing),
       getSettings: () => call(settings),
-      getMessages: () => call(() => (state().messages || []).slice().reverse(), 150),
+      getMessages: () => call(() => allMessages().reverse(), 150),
+      getThread: () => call(thread, 0),
+      getUnreadReplies: () => call(unreadReplies, 0),
+      markMessagesSeen,
       getApproval: (id) => call(() => approval(id), 150),
       refresh: () => src.reload().then(() => call(() => ({ checkedAt: T.isoTime(now()), updatedAt: account().updatedAt }))),
       decide,

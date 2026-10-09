@@ -90,6 +90,61 @@ Approved bots (for example Grok) use `scripts/dashboard-event.sh` with `DASHBOAR
 | Sync one card now (optional; the minute sync gets there anyway) | `{"tenantId":"…","eventType":"work.changed","entityType":"multica_issue","entityId":"DOM-42","payload":{"sync":{"identifier":"DOM-42"}}}` |
 | Propose client-facing text | `{"tenantId":"…","eventType":"updates.changed","entityType":"update","entityId":"upd-…","idempotencyKey":"…","payload":{"item":{"kind":"update","externalId":"upd-…","sourceKind":"manager","sourceRef":"console:upd-…","content":{"title":"…"},"clientVisible":true}}}`: it always waits for approval in the console |
 
+## Stripe (test mode first)
+
+Two edge functions and one shared file; no table changes. A client's Stripe customer is stored as `doc.billing.stripeCustomerId`.
+
+- `_shared/stripe.ts`: the Stripe REST client (form-encoded, `Stripe-Version` pinned), webhook signature checks (HMAC-SHA256, 5 minutes, any of several `v1` signatures), and the mappings. **A live key (`sk_live_` / `rk_live_`) is refused unless `STRIPE_ALLOW_LIVE` is exactly `true`**, so test mode holds until Karan switches it. Tests: `node --test build/portal/supabase/functions/_shared/stripe.test.mjs`.
+- `stripe-billing` (Clerk token): staff `status` and `search`; super admins `create` (a Stripe customer for a client, metadata `tenant_id`), `link` (an existing `cus_…`, checked with Stripe first) and `unlink`; a client `portal` (a Stripe Billing Portal session, back to `https://domin8temedia.com/dashboard/#/billing`) and `invoice` (the hosted page of one of their own invoices, only once it is visible to them). A client's restaurant is read with their own token under row level security; a tenant id in the body is never trusted for them.
+- `stripe-webhook` (Stripe only, signature required): invoices go through `enqueue_dashboard_event` (source `webhook`, `stripe:<invoice id>`, key = the event id), so **every invoice waits pending and invisible until Karan approves it in the console's "Check before it goes live"**, and so does every later change to an approved one. Subscription events (and `invoice.paid` / `invoice.payment_failed`) update only `doc.billing.subscription`'s facts: `status` (active, trialing, past_due, paused, canceled; Stripe's `unpaid` and `incomplete` count as past_due, `incomplete_expired` as canceled), `startedAt`, `nextBilling`, `amount` ("$499 a month"), `graceUntil` and `retryOn` (the next payment attempt, when past due) and `stripeSubscriptionId`. Dates are the day in Chicago. An unknown customer, a live event while live mode is off, or an event type not in the list answers 200 and is logged, so Stripe does not retry it.
+
+Secrets (Supabase > Edge Functions > Secrets; names only, never values in chat): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and later `STRIPE_ALLOW_LIVE`. Until `STRIPE_SECRET_KEY` is set, `stripe-billing` answers 503 `not-configured` (except `status`); until `STRIPE_WEBHOOK_SECRET` is set, the webhook answers 503.
+
+### Karan's steps (test mode)
+
+1. Stripe dashboard, switch on **Test mode**. Developers > API keys > **Create restricted key**, name it "Domin8te portal (test)", and give it:
+   - Customers: **Write**
+   - Invoices: **Read**
+   - Subscriptions: **Read**
+   - Prices: **Read**
+   - Products: **Read**
+   - Customer portal (Billing portal sessions): **Write**
+   - Everything else: None (Webhook endpoints are not needed: you add the endpoint by hand below).
+
+   Or, simpler for testing, use the test **Secret key** (`sk_test_…`).
+2. Supabase > project `cxnohsykstdudsrummzs` > Edge Functions > Secrets: add `STRIPE_SECRET_KEY` with that key. Paste it there yourself; never into a chat.
+3. Whoever deploys (after Karan's go), from `build/portal`:
+   ```
+   supabase functions deploy stripe-billing --project-ref cxnohsykstdudsrummzs --no-verify-jwt
+   supabase functions deploy stripe-webhook --project-ref cxnohsykstdudsrummzs --no-verify-jwt
+   ```
+   Both bundle `../_shared/stripe.ts`. `verify_jwt` must be off for both: the webhook is called by Stripe (no Supabase token), and `stripe-billing` checks Clerk's token itself.
+4. Stripe (Test mode) > Developers > Webhooks > **Add endpoint**: URL `https://cxnohsykstdudsrummzs.supabase.co/functions/v1/stripe-webhook`, and select exactly these events:
+   - `invoice.finalized`
+   - `invoice.paid`
+   - `invoice.payment_failed`
+   - `invoice.voided`
+   - `invoice.marked_uncollectible`
+   - `invoice.updated`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+5. Open the endpoint, **Reveal** the signing secret (`whsec_…`) and add it in Supabase as `STRIPE_WEBHOOK_SECRET`.
+6. Stripe (Test mode) > Settings > Billing > **Customer portal**: turn it on; allow customers to **update payment methods** and to **view invoice history**; set the default return link to `https://domin8temedia.com/dashboard/#/billing`. Save. (Without this, `portal` answers a Stripe error.)
+7. Test:
+   - In the console, add a test client (or use the Bayleaf test record) and create its Stripe customer (`stripe-billing` `create`), or create a customer in Stripe and `link` it.
+   - In Stripe (Test mode), on that customer: add a subscription with a monthly price, paying with card `4242 4242 4242 4242`, any future date, any CVC. The client's record should show Active, the next billing day and "$… a month" within seconds, and the first invoice should appear in the console's "Check before it goes live", pending.
+   - A failed payment: card `4000 0000 0000 0341` (attaches, then declines) on the customer, then let the next invoice try it (or use a test clock): the status turns Past due with the retry day.
+   - Or with the Stripe CLI: `stripe trigger invoice.paid` / `stripe trigger customer.subscription.updated`. Those make new customers that are not linked to a client, so the webhook answers 200 `ignored: unknown-customer`: that proves the endpoint and signature work. Stripe > Webhooks > the endpoint shows each delivery and our answer.
+   - `stripe-billing` `status` from the console should say `configured: true, mode: "test"`.
+
+### Switching to live later
+
+1. Stripe, Live mode: create the same restricted key (live), and a **new** webhook endpoint (same URL, same events); live and test endpoints have different signing secrets.
+2. Supabase secrets: replace `STRIPE_SECRET_KEY` with the live key, `STRIPE_WEBHOOK_SECRET` with the live endpoint's secret, and add `STRIPE_ALLOW_LIVE` = `true`. Without that last one every call refuses the live key and live events are ignored.
+3. Turn on the Customer portal in Live mode too (step 6).
+4. Test customer ids do not exist in live mode: unlink them and create or link live customers for each real client. Reject leftover test invoices in "Check before it goes live".
+
 ## Testing the rules
 
 `tests/rls.sql` runs every check inside a transaction and rolls it back, so it leaves nothing behind. Run it after any change to tables or policies; every row must say PASS. On 2026-09-30 all 31 passed (16 before the board, 8 for the board and request moving, 7 for staff coming from the Clerk team), and Supabase's security advisor reported nothing.

@@ -1071,3 +1071,76 @@ html[data-scene="scenes"][data-theme="dark"] #tab > .toolbar .chip { background-
 .col-delete.over .del-zone { color: var(--bad, #A8231B); font-weight: 600; }
 html[data-theme="dark"] .col-delete { border-color: rgba(255, 120, 110, 0.35); background: rgba(255, 120, 110, 0.04); }
 html[data-theme="dark"] .col-delete .col-h, html[data-theme="dark"] .col-delete.over .del-zone { color: #FF8A80; }
+
+/* ---- Messages: every client's conversation in one place (2026-10-09) ------------------------------------ */
+html[data-scene="scenes"][data-page="messages"] { --sky-up: #C5CCE7; --sky-low: #F5DAD6; --sky-hz: #FFF1EC; --sky-ground: #B4BCCC; --orb-x: 12%; --orb-y: 78%; --orb-s: 0px; --orb-c: #FFE6C4; --orb-glow: rgba(255, 230, 196, 0.9); --stars-a: 0; }
+html[data-scene="scenes"][data-theme="dark"][data-page="messages"] { --sky-up: #151A2C; --sky-low: #2E3450; --sky-hz: #3E4462; --sky-ground: #0F121C; --orb-glow: rgba(90, 98, 138, 0.35); --stars-a: 0.4; }
+.inbox { display: grid; grid-template-columns: minmax(250px, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.inbox > .panel { margin: 0; min-width: 0; }
+.inbox-list { padding: 14px; }
+.inbox-list input[type="search"] { width: 100%; }
+.convos { display: grid; gap: 4px; margin: 12px 0 0; padding: 0; list-style: none; }
+.convo { display: grid; gap: 4px; padding: 11px 13px; border: 0.67px solid transparent; border-radius: var(--r-item); color: inherit; text-decoration: none; transition: background-color 160ms var(--ease); }
+.convo:hover { background-color: var(--glass-soft); }
+.convo[aria-current="true"] { border-color: var(--glass-edge); background-color: var(--glass-strong); box-shadow: var(--glass-shadow-sm); }
+.convo-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; }
+.convo .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; }
+.convo .when { flex: none; color: var(--ink-3); font-size: 13px; }
+.convo .preview { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-size: 14px; }
+.convo.waiting .preview { color: var(--ink); }
+.convo .chip { justify-self: start; margin-top: 2px; }
+.convo-none { padding: 14px 4px 4px; }
+.inbox-list .empty { margin-top: 12px; padding: 20px 16px; }
+.inbox-thread { display: flex; flex-direction: column; padding: 18px 20px 20px; }
+.convo-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; padding-bottom: 14px; border-bottom: 1px solid rgba(94, 72, 50, 0.1); }
+.convo-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-width: 0; }
+.convo-title h2 { font-size: 20px; }
+.convo-title h2 a { color: inherit; text-decoration: none; }
+.convo-title h2 a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.convo-back { display: none; flex-basis: 100%; margin: 0; }
+.convo-log { display: grid; align-content: start; gap: 10px; max-height: max(320px, calc(100dvh - 430px)); margin: 0; padding: 16px 4px; overflow-y: auto; overscroll-behavior: contain; list-style: none; }
+.convo-log:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 12px; }
+.convo-log .msg { justify-self: start; max-width: min(76%, 560px); }
+.convo-log .msg.team { justify-self: end; }
+/* .team (the Settings team list) also matched our bubbles and took their padding away, in Talk too */
+.msg.team { padding: 9px 13px; }
+.convo-log .msg .meta { font-size: 12.5px; }
+.convo-log .log-card { justify-self: start; width: min(88%, 620px); }
+.convo-empty { min-height: 120px; place-content: center; text-align: center; }
+.convo-pick { display: grid; place-content: center; min-height: 240px; text-align: center; }
+.convo-reply { padding-top: 14px; border-top: 1px solid rgba(94, 72, 50, 0.1); }
+.convo-reply textarea { width: 100%; min-height: 84px; }
+.convo-reply .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 10px; }
+html[data-theme="dark"] :is(.convo-head, .convo-reply) { border-color: rgba(255, 255, 255, 0.08); }
+@media (max-width: 900px) {
+  .inbox { grid-template-columns: minmax(0, 1fr); }
+  .inbox:not(.has-open) .inbox-thread, .inbox.has-open .inbox-list { display: none; }
+  .convo-back { display: inline-flex; }
+  .inbox-thread { padding: 14px 14px 16px; }
+  .convo-log { max-height: 58dvh; }
+  .convo-log .msg { max-width: 86%; }
+  .convo-log .log-card { width: 100%; }
+}
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(main > .page-head p, main > .page-head .updated .meta) { color: var(--ink-2); }
+/* Stripe: Settings panel and the line in Setup > Billing */
+.stripe-state { margin-bottom: 10px; }
+.stripe-steps { margin: 10px 0; padding-left: 22px; display: grid; gap: 6px; }
+.stripe-hook { margin-top: 10px; }
+#sec-stripe code, .stripe-row code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.92em; padding: 1px 6px; border-radius: 6px; background: var(--surface-2); }
+.stripe-row { margin: 0 0 18px; }
+.stripe-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.stripe-acts { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-left: auto; }
+.stripe-find { margin-top: 14px; display: grid; gap: 6px; max-width: 640px; }
+.stripe-search { display: flex; gap: 8px; }
+.stripe-search input { flex: 1; min-width: 0; }
+.stripe-hits { list-style: none; margin: 6px 0 0; padding: 0; }
+.stripe-hits li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.stripe-hits li:first-child { border-top: 0; }
+@media (max-width: 560px) { .stripe-acts { margin-left: 0; } .stripe-hits li { flex-direction: column; align-items: flex-start; } }
+.field input[readonly], .field select:disabled { background: var(--surface-2); color: var(--ink-2); cursor: default; }
+
+/* Start fresh on What they see (2026-10-09): quiet, at the far end of the save row; the toast keeps an Undo for 10 seconds. */
+.start-fresh { margin-left: auto; }
+.start-fresh .i { width: 15px; height: 15px; }
+.toast-undo { display: flex; align-items: center; gap: 14px; }
+.toast-undo .linkish { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }

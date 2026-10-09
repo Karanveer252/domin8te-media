@@ -123,7 +123,7 @@ html[data-variant="18h"][data-page="results"] .lg-world > .pg-results,
 html[data-variant="18h"][data-page="updates"] .lg-world > .pg-updates,
 html[data-variant="18h"][data-page="billing"] .lg-world > .pg-billing,
 html[data-variant="18h"][data-page="settings"] .lg-world > .pg-settings,
-html[data-variant="18h"][data-page="help"] .lg-world > .pg-help { --play: running; --wc: transform, opacity; opacity: 1; visibility: visible; transition-delay: 0s; }
+html[data-variant="18h"]:is([data-page="help"], [data-page="messages"]) .lg-world > .pg-help { --play: running; --wc: transform, opacity; opacity: 1; visibility: visible; transition-delay: 0s; }
 
 @media (prefers-reduced-motion: reduce) {
   html[data-variant="18h"] .lg-world > i::before, html[data-variant="18h"] .lg-world > i::after { animation: none !important; }

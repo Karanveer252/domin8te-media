@@ -21,11 +21,11 @@ test('the sidebar has no demo or preview control: preview mode sits apart from t
   assert.ok(/data-preview hidden/.test(html), 'preview controls start hidden and only show in demo mode');
 });
 
-test('the sidebar keeps four main items (Updates is the Done tab of Work), then Settings, Help and Sign out', () => {
+test('the sidebar keeps five main items (Updates is the Done tab of Work; Messages since 2026-10-09), then Settings, Help and Sign out', () => {
   const main = between('<nav class="nav" aria-label="Main">', '</nav>');
-  assert.deepEqual([...main.matchAll(/data-nav="([a-z]+)"/g)].map((m) => m[1]), ['home', 'work', 'results', 'billing']);
+  assert.deepEqual([...main.matchAll(/data-nav="([a-z]+)"/g)].map((m) => m[1]), ['home', 'work', 'results', 'billing', 'messages']);
   const tabs = between('<nav class="tabbar" aria-label="Main">', '</nav>');
-  assert.deepEqual([...tabs.matchAll(/data-nav="([a-z]+)"/g)].map((m) => m[1]), ['home', 'work', 'results', 'billing'], 'the phone tab bar has the same four');
+  assert.deepEqual([...tabs.matchAll(/data-nav="([a-z]+)"/g)].map((m) => m[1]), ['home', 'work', 'results', 'billing', 'messages'], 'the phone tab bar has the same five');
   const foot = between('<div class="side-foot">', '</div>');
   for (const x of ['data-nav="settings"', 'data-nav="help"', 'data-action="sign-out"', 'data-action="toggle-side"']) assert.ok(foot.includes(x), x);
 });

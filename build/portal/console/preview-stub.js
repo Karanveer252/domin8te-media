@@ -41,6 +41,15 @@
   withBilling(osteria, { status: 'active', startedAt: day(-9), nextBilling: day(21), amount: '$399 a month' });
   withBilling(marlow, { status: 'active', startedAt: day(-62), nextBilling: day(3), amount: '$449 a month' });
   withBilling(corner, { status: 'paused', startedAt: day(-120), nextBilling: null, amount: '$199 a month' });
+  // Marlow & Finch is linked to Stripe and their subscription came from it, so their billing fields are read-only.
+  marlow.billing.stripeCustomerId = 'cus_PreviewMarlow01';
+  marlow.billing.subscription.stripeSubscriptionId = 'sub_preview_marlow';
+  /** Stripe's test customers, as stripe-billing would find them. */
+  const stripeCustomers = [
+    { id: 'cus_PreviewMarlow01', name: 'Marlow & Finch', email: 'priya@marlowfinch.example', created: day(-62), livemode: false, tenantId: 'tnt_preview_marlow' },
+    { id: 'cus_PreviewOsteria2', name: 'Osteria Nove', email: 'marco@osterianove.example', created: day(-9), livemode: false, tenantId: null },
+    { id: 'cus_PreviewBayleaf3', name: 'Bayleaf Kitchen', email: 'dani@bayleafkitchen.com', created: day(-200), livemode: false, tenantId: null }
+  ];
   if (seed && seed.billing && seed.billing.subscription) { seed.billing.subscription.startedAt = seed.billing.subscription.startedAt || '2026-03-22'; seed.billing.subscription.amount = seed.billing.subscription.amount || '$799 a month'; }
   const db = {
     login_requests: [{ id: 'la_preview_1', tenant_id: 'tnt_preview_bayleaf', first_name: 'Priya', email: 'priya@bayleafkitchen.com', role: 'Manager', by_name: 'Dani', status: 'pending', at: stamp(-1, 3) }],
@@ -55,6 +64,12 @@
       { tenant_id: 'tnt_preview_bayleaf', approval_id: 'apv_hours', decision: 'changes', comment: 'Sunday should be 10 to 16, not 17.', by_name: 'Dani', at: stamp(0, 5) }
     ],
     messages: [
+      // Sample threads for the Messages page: Bayleaf and Osteria wait for a reply, Marlow & Finch was answered.
+      { id: 'm0a', tenant_id: 'tnt_preview_bayleaf', about: 'general', body: 'Is the autumn menu page going up this week?', from_staff: false, by_name: 'Dani', at: stamp(-6, 4) },
+      { id: 'm0b', tenant_id: 'tnt_preview_bayleaf', about: 'general', body: 'Yes, it goes live on Thursday. We will post an update when it is up.', from_staff: true, by_name: 'Karan', at: stamp(-6, 2) },
+      { id: 'm0c', tenant_id: 'tnt_preview_bayleaf', about: 'general', body: 'Perfect, thank you!', from_staff: false, by_name: 'Dani', at: stamp(-6, 1) },
+      { id: 'm0d', tenant_id: 'tnt_preview_bayleaf', about: 'general', body: 'The autumn menu page is live now. Have a look when you can.', from_staff: true, by_name: 'Karan', at: stamp(-3, 0) },
+      { id: 'm0e', tenant_id: 'tnt_preview_osteria', about: 'general', body: 'Welcome aboard, Marco. We start on the menu page this week.', from_staff: true, by_name: 'Karan', at: stamp(-3, 2) },
       { id: 'm1', tenant_id: 'tnt_preview_bayleaf', about: 'general', body: 'Could we add our brunch menu to the website?', from_staff: false, by_name: 'Dani', at: stamp(0, 3) },
       { id: 'm2', tenant_id: 'tnt_preview_osteria', about: 'general', body: 'Which photos do you need from us for the menu page?', from_staff: false, by_name: 'Marco', at: stamp(-1, 1) },
       { id: 'm3', tenant_id: 'tnt_preview_osteria', about: 'general', body: 'Also, can the menu be in Italian and English?', from_staff: false, by_name: 'Marco', at: stamp(0, 20) },
@@ -273,6 +288,46 @@
         return out({ ok: true, members: team });
       }
       return out({ error: 'bad-action', message: 'Unknown action.' }, 400);
+    }
+    if (String(url).includes('/functions/v1/stripe-billing')) {
+      // Stripe in test mode: a few customers in memory; create, link and unlink write doc.billing.stripeCustomerId.
+      const body = JSON.parse(String((init && init.body) || '{}'));
+      await new Promise((r) => setTimeout(r, 250));
+      const out = (o, status) => new Response(JSON.stringify(o), { status: status || 200 });
+      const fail = (status, error, msg) => out({ error, message: msg }, status);
+      const owner = (id) => { const t = db.tenants.find((x) => x.doc && x.doc.billing && x.doc.billing.stripeCustomerId === id); return t ? t.id : null; };
+      const safe = (c) => ({ ...c, tenantId: owner(c.id) || c.tenantId || null });
+      if (body.action === 'status') return out({ ok: true, configured: true, mode: 'test', refused: false, liveAllowed: false, webhook: true });
+      if (body.action === 'search') {
+        const q = String(body.query || '').trim().toLowerCase();
+        if (q.length < 3) return fail(400, 'bad-request', 'Type at least three characters.');
+        const hits = stripeCustomers.filter((c) => (q.includes('@') ? (c.email || '').toLowerCase() === q : (c.name || '').toLowerCase().includes(q)));
+        return out({ ok: true, customers: hits.slice(0, 10).map(safe) });
+      }
+      const t = db.tenants.find((x) => x.id === body.tenantId);
+      if (!t) return fail(404, 'no-client', 'That client was not found.');
+      t.doc.billing = t.doc.billing || { plan: null, subscription: null, paymentMethod: null, invoices: [] };
+      const linked = t.doc.billing.stripeCustomerId || null;
+      const write = (id) => { if (id) t.doc.billing.stripeCustomerId = id; else delete t.doc.billing.stripeCustomerId; t.updated_at = now(); };
+      if (body.action === 'unlink') { if (!linked) return out({ ok: true, unlinked: false }); write(null); return out({ ok: true, unlinked: true }); }
+      if (body.action === 'link') {
+        const c = stripeCustomers.find((x) => x.id === body.customerId);
+        if (linked && linked !== body.customerId) return fail(409, 'already-linked', 'This client is already linked to another Stripe customer. Unlink it first.');
+        if (!c) return fail(404, 'not-found', 'Stripe has no such customer (in this mode).');
+        const o = owner(c.id);
+        if (o && o !== t.id) return fail(409, 'already-linked', 'That Stripe customer belongs to another client.');
+        write(c.id);
+        c.tenantId = t.id;
+        return out({ ok: true, customer: safe(c) });
+      }
+      if (body.action === 'create') {
+        if (linked) return fail(409, 'already-linked', 'This client already has a Stripe customer.');
+        const c = { id: 'cus_Preview' + String(++n).padStart(8, '0'), name: body.name || t.name, email: body.email || null, created: day(0), livemode: false, tenantId: t.id };
+        stripeCustomers.push(c);
+        write(c.id);
+        return out({ ok: true, created: true, customer: safe(c) });
+      }
+      return fail(400, 'bad-request', 'Unknown action.');
     }
     if (String(url).includes('/functions/v1/multica-sync')) {
       const body = JSON.parse(String((init && init.body) || '{}'));

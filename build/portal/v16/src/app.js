@@ -175,6 +175,24 @@
     });
   }
 
+  /**
+   * Messages' badge: our replies newer than when the client last opened Messages ("1 new reply").
+   * While Messages is open it stays hidden: the client is reading them. @param {number} count
+   */
+  function setMessagesBadge(count) {
+    const n = document.documentElement.getAttribute('data-page') === 'messages' ? 0 : Number(count) || 0;
+    const words = `${n} new ${F.plural(n, 'reply', 'replies')}`;
+    document.querySelectorAll('[data-badge="messages"]').forEach((el) => {
+      const b = /** @type {HTMLElement} */ (el);
+      b.hidden = !n;
+      b.innerHTML = n ? `${n}<span class="sr-only"> ${words}</span>` : '';
+      if (n) b.setAttribute('title', words); else b.removeAttribute('title');
+    });
+  }
+  function countMessages() {
+    if (app.client && app.client.getUnreadReplies) app.client.getUnreadReplies().then(setMessagesBadge).catch(() => { /* the badge waits for the next check */ });
+  }
+
   function drawShell() {
     const a = app.account;
     $('#identity').innerHTML = `<span class="identity-avatar" aria-hidden="true">${F.esc(a.business.name.charAt(0))}</span><span class="identity-text"><span class="identity-name">${F.esc(a.business.name)}</span><span class="identity-role">${F.esc(a.user.firstName)}, ${F.esc(a.user.role.toLowerCase())}</span></span>`;
@@ -194,6 +212,7 @@
       b.innerHTML = problem ? '1<span class="sr-only"> payment problem</span>' : '';
       if (problem) b.setAttribute('title', '1 payment problem'); else b.removeAttribute('title');
     });
+    countMessages();
   }
 
   function refreshAccount() {
@@ -202,7 +221,10 @@
 
   function markCurrent(name) {
     // The page's name on the root, so a design can give each page its own world.
+    const was = document.documentElement.getAttribute('data-page');
     document.documentElement.setAttribute('data-page', name);
+    if (name === 'messages') setMessagesBadge(0);
+    else if (was === 'messages') countMessages();
     // Updates is the Done tab of Work (2026-10-09), so Work stays marked there.
     const nav = name === 'updates' ? 'work' : name;
     document.querySelectorAll('[data-nav]').forEach((el) => {
@@ -247,6 +269,7 @@
       get client() { return app.client; },
       get account() { return app.account; },
       setBadges,
+      setMessagesBadge,
       switchScenario,
       /** Live sign-in finished: open the portal. */
       signedIn: () => start('#/home'),

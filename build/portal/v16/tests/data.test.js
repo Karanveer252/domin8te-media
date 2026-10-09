@@ -218,6 +218,36 @@ test('messages and change requests are validated and kept', async () => {
   assert.equal((await c.getMessages())[0].about, 'billing');
 });
 
+test('Messages: one thread, oldest first, with change requests in it, and our new replies counted until seen', async () => {
+  const { client: c } = await client('bayleaf');
+  let th = await c.getThread();
+  assert.equal(th.items.map((x) => x.kind).join(' '), 'request message message message', 'the demo starts with a request and three messages');
+  assert.ok(th.items.every((x, i) => i === 0 || x.at >= th.items[i - 1].at), 'oldest first');
+  assert.equal(th.seenAt, null);
+  assert.equal(await c.getUnreadReplies(), 2, 'never opened: our replies from the last 14 days count');
+  const before = (await c.getAccount()).appearance;
+  await c.saveAppearance({ theme: 'dark' });
+  const seen = await c.markMessagesSeen();
+  assert.equal(seen.written, true);
+  assert.equal(await c.getUnreadReplies(), 0);
+  const look = (await c.getAccount()).appearance;
+  assert.equal(look.theme, 'dark', 'the theme is kept beside the seen time');
+  assert.ok(look.messagesSeenAt, 'the seen time is kept with the look');
+  assert.equal(before, null);
+  assert.equal((await c.markMessagesSeen()).written, false, 'nothing new: nothing written');
+  await c.sendMessage('general', 'Thanks!');
+  await c.sendRequest('social', 'Swap the Saturday photo.');
+  th = await c.getThread();
+  assert.equal(th.items.at(-2).text, 'Thanks!');
+  assert.equal(th.items.at(-1).kind, 'request');
+  assert.equal(await c.getUnreadReplies(), 0, "the client's own messages are never new replies");
+  await assert.rejects(() => c.saveAppearance({ messagesSeenAt: 'soon' }), (e) => e.code === 'bad-seen');
+  const cafe = (await client('cornerbean')).client;
+  const cth = await cafe.getThread();
+  assert.equal(cth.items.length, 0, 'another tenant never sees this thread');
+  assert.equal(await cafe.getUnreadReplies(), 0);
+});
+
 test('Clerk sign-in link: the email is validated and nothing pretends to be sent', async () => {
   const D8 = load('bayleaf');
   await assert.rejects(() => D8.auth.requestSignInLink('not an email'), (e) => e.code === 'bad-email' && e.field === 'email');
