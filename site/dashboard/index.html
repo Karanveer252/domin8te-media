@@ -749,6 +749,8 @@ html[data-theme="dark"] .orb { background: radial-gradient(circle at 32% 28%, rg
 /* ------------------------------------------------------------------ results page */
 
 .range-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 16px; margin-top: 20px; }
+/* Room between the range bar and whatever comes first under it, a summary or an empty state (2026-10-09, Karan: "fix the spacing"). */
+#results-body > :first-child { margin-top: 24px; }
 .segmented { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid var(--p-glass-edge); border-radius: 16px; background: var(--p-glass-soft); box-shadow: inset 0 0 0 1px var(--p-line); -webkit-backdrop-filter: var(--p-glass-blur); backdrop-filter: var(--p-glass-blur); }
 .seg { position: relative; }
 .seg input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
@@ -1262,7 +1264,29 @@ td { font-variant-numeric: tabular-nums; }
 .notice .link { white-space: nowrap; }
 .step-tag { font-size: 14px; color: var(--p-ink-3); white-space: nowrap; }
 .step.is-you .step-tag { color: var(--p-attn); font-weight: 600; }
-.filter-select { min-height: 40px; padding: 8px 14px; border: 1px solid var(--p-line-2); border-radius: 12px; background: var(--p-surface); color: var(--p-ink); font: inherit; font-size: 15px; font-weight: 600; }
+/* The Done tab's service filter (2026-10-09, Karan: "fix this drop down and the spacing"): a pill like the Now / Done
+   switch above it, its own arrow with room around the words, and a clear gap before the list. */
+.page-updates .filter-bar { margin-top: 16px; }
+.page-updates #updates-body { margin-top: 20px; }
+.filter-select { min-height: 44px; min-width: 200px; padding: 10px 44px 10px 18px; border: 1px solid var(--p-line-2); border-radius: 999px; background: var(--p-glass-strong) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23534C44' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>") no-repeat right 16px center / 16px; color: var(--p-ink); font: inherit; font-size: 15px; font-weight: 600; line-height: 1.3; cursor: pointer; -webkit-appearance: none; appearance: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); transition: border-color 160ms ease, box-shadow 160ms ease; }
+.filter-select:hover { border-color: var(--p-ink-3); }
+.filter-select:focus-visible { outline: none; border-color: var(--p-focus); box-shadow: 0 0 0 3px rgba(29, 26, 22, 0.14); }
+html[data-theme="dark"] .filter-select { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23B9B2A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>"); }
+html[data-theme="dark"] .filter-select:focus-visible { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18); }
+/* Where the browser can style the open list too, it matches the pill: rounded, roomy rows, a tick on the chosen one. */
+@supports (appearance: base-select) {
+  .filter-select, .filter-select::picker(select) { appearance: base-select; }
+  .filter-select { display: inline-flex; align-items: center; gap: 12px; padding-right: 16px; background-image: none; }
+  .filter-select::picker-icon { content: ""; width: 16px; height: 16px; margin-left: auto; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23534C44' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>") center / 16px no-repeat; transition: rotate 160ms ease; }
+  html[data-theme="dark"] .filter-select { background-image: none; } /* or the dark arrow above sits beside the picker icon */
+  html[data-theme="dark"] .filter-select::picker-icon { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23B9B2A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>"); }
+  .filter-select:open::picker-icon { rotate: 180deg; }
+  .filter-select::picker(select) { margin-top: 6px; padding: 6px; min-width: anchor-size(width); border: 1px solid var(--p-line-2); border-radius: 16px; background: var(--p-surface); box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.28); }
+  .filter-select option { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 8px 12px; border-radius: 10px; font-size: 15px; font-weight: 500; color: var(--p-ink); cursor: pointer; }
+  .filter-select option:hover, .filter-select option:focus-visible { background: var(--p-hover); outline: none; }
+  .filter-select option:checked { font-weight: 650; }
+  .filter-select option::checkmark { order: 1; margin-left: auto; color: var(--p-ink-2); }
+}
 .tag-auto { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: var(--p-neutral-bg); color: var(--p-ink-2); font-size: 13px; font-weight: 600; }
 .tag-auto .i { width: 14px; height: 14px; }
 
