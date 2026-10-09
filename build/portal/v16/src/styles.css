@@ -1363,3 +1363,24 @@ html[data-theme="dark"] .filter-select:focus-visible { box-shadow: 0 0 0 3px rgb
   .msg { max-width: 88%; }
   .msg-compose { padding: 12px; }
 }
+
+/* Every form dropdown (2026-10-09, Karan: "fix this" on Messages' "What is it about?"): the same look as the Done filter.
+   Our own arrow with room around the words, a soft focus ring, and where the browser allows it, a styled open list. */
+.field select { padding-right: 44px; background: var(--p-surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23534C44' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>") no-repeat right 14px center / 16px; cursor: pointer; -webkit-appearance: none; appearance: none; transition: border-color 160ms ease, box-shadow 160ms ease; }
+.field select:hover { border-color: var(--p-ink-3); }
+.field select:focus-visible { outline: none; border-color: var(--p-focus); box-shadow: 0 0 0 3px rgba(29, 26, 22, 0.14); }
+html[data-theme="dark"] .field select { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23B9B2A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>"); }
+html[data-theme="dark"] .field select:focus-visible { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18); }
+@supports (appearance: base-select) {
+  .field select, .field select::picker(select) { appearance: base-select; }
+  .field select { display: flex; align-items: center; gap: 12px; padding-right: 14px; background-image: none; }
+  html[data-theme="dark"] .field select { background-image: none; }
+  .field select::picker-icon { content: ""; width: 16px; height: 16px; margin-left: auto; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23534C44' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>") center / 16px no-repeat; transition: rotate 160ms ease; }
+  html[data-theme="dark"] .field select::picker-icon { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23B9B2A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>"); }
+  .field select:open::picker-icon { rotate: 180deg; }
+  .field select::picker(select) { margin-top: 6px; padding: 6px; min-width: anchor-size(width); border: 1px solid var(--p-line-2); border-radius: 16px; background: var(--p-surface); box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.28); }
+  .field select option { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 8px 12px; border-radius: 10px; font-size: 15px; font-weight: 500; color: var(--p-ink); cursor: pointer; }
+  .field select option:hover, .field select option:focus-visible { background: var(--p-hover); outline: none; }
+  .field select option:checked { font-weight: 650; }
+  .field select option::checkmark { order: 1; margin-left: auto; color: var(--p-ink-2); }
+}
