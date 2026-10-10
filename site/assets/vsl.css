@@ -101,14 +101,10 @@ html[data-v="editorial"] .vsl-hero .lede::before{display:none}
   display:grid;place-items:center;background:#FF5B1F;color:#0E1420;font-weight:800}
 .vsl-book__small{margin:20px 0 0;font-size:15px;color:#3A4E7A}
 .vsl-cal{background:#fff;border-radius:var(--r-card,20px);box-shadow:var(--card-shadow);overflow:hidden;display:grid;min-height:420px;
-  max-width:1120px;width:100%;margin:0 auto}
-/* tall enough that Google's page never scrolls inside its own box. It can't report its height (another
-   site), so these follow its own layouts, measured 2026-10-09: about 1120px tall from 640px wide,
-   1285px from 600, and 1810px below that (the month above the times) */
-.vsl-cal{container-type:inline-size}
-.vsl-cal iframe{display:block;width:100%;height:1160px;border:0}
-@container (max-width:639px){.vsl-cal iframe{height:1320px}}
-@container (max-width:599px){.vsl-cal iframe{height:1850px}}
+  max-width:1060px;width:100%;margin:0 auto}
+/* a first guess at Calendly's height; it reports the real one and assets/vsl.js sets it */
+.vsl-cal iframe{display:block;width:100%;height:700px;border:0;transition:height .25s ease}
+@media (max-width:760px){.vsl-cal iframe{height:1100px}}
 .vsl-cal__wait{display:grid;place-content:center;justify-items:center;gap:16px;padding:32px;text-align:center;
   background:repeating-linear-gradient(0deg,transparent 0 47px,rgba(14,20,32,.05) 47px 48px),
              repeating-linear-gradient(90deg,transparent 0 47px,rgba(14,20,32,.05) 47px 48px)}

@@ -12,7 +12,7 @@ var title = function () { var t = $('#page-title'); return t ? t.textContent.tri
 var toast = function () { var t = $('#toasts'); return t ? t.textContent.trim().slice(0, 80) : ''; };
 var run = function (steps, gap) { var i = 0; (function next() { if (i >= steps.length) return; try { steps[i++](); } catch (e) { ex.stepError = (ex.stepError || '') + ' step ' + i + ': ' + e.message; } setTimeout(next, gap || 500); })(); };
 `;
-const flow = (name, steps, extra = {}) => ({ name, route: extra.route || 'home', query: extra.query || '', w: extra.w, h: extra.h, late: H + `run([${steps.join(',\n')}], ${extra.gap || 500});`, settle: (steps.length + 2) * (extra.gap || 500) + 800, budget: 9000 + (steps.length + 2) * (extra.gap || 500), wait: 1800, expect: extra.expect });
+const flow = (name, steps, extra = {}) => ({ name, route: extra.route || 'home', query: extra.query || '', w: extra.w, h: extra.h, late: H + `run([${steps.join(',\n')}], ${extra.gap || 500});`, settle: (steps.length + 2) * (extra.gap || 500) + 800, budget: 9000 + (steps.length + 2) * (extra.gap || 500), wait: 1800, expect: extra.expect, readOnly: extra.readOnly });
 const st = (code) => `function () { ${code} }`;
 
 const cases = [];
@@ -94,8 +94,8 @@ cases.push(flow('view-only demo: approving says it is a demo and saves nothing',
 ], { gap: 700, readOnly: true }));
 cases.push(flow('view-only demo: a message keeps the words and sends nothing', [
   st(`click('.help-contact a[href="#/messages"]');`),
-  st(`var ta = $('#msg-new'); ta.value = 'Please change the opening hours.'; $('#msg-form').requestSubmit();`),
-  st(`var e = $('#msg-form-err'); if (!e || e.hidden || e.textContent.indexOf('This is a demo') < 0) throw new Error('no demo message'); if ($('#msg-new').value !== 'Please change the opening hours.') throw new Error('the words were lost'); if ($$('#msg-thread .msg').some(function (m) { return m.textContent.indexOf('opening hours') > 0 && !m.classList.contains('from-team'); })) throw new Error('a bubble was added'); note('kept', true);`)
+  st(`window.__n = $$('#msg-thread .msg').length; var ta = $('#msg-new'); ta.value = 'Please change the opening hours.'; $('#msg-form').requestSubmit();`),
+  st(`var e = $('#msg-form-err'); if (!e || e.hidden || e.textContent.indexOf('This is a demo') < 0) throw new Error('no demo message'); if ($('#msg-new').value !== 'Please change the opening hours.') throw new Error('the words were lost'); if ($$('#msg-thread .msg').length !== window.__n) throw new Error('a bubble was added'); note('kept', true);`)
 ], { route: 'help', gap: 1000, readOnly: true, expect: { page: 'messages' } }));
 cases.push(flow('view-only demo: saving email choices says it is a demo', [
   st(`$('.fold-emails').open = true; var box = $$('#notify-form input[type="checkbox"]').filter(function (b) { return !b.disabled; })[0]; box.click();`),

@@ -1672,8 +1672,11 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] || c);
   }
+  /** A missing or unreadable date shows nothing, never "undefined NaN". */
+  const bad = (/** @type {any} */ x) => x == null || x === '' || !Number.isFinite(toMs(x));
   /** 'Wed 24 Sep', or '24 Sep' without the weekday, with ' 2026' when asked. */
   function date(x, o = {}) {
+    if (bad(x)) return '';
     const d = new Date(toMs(x));
     let s = (o.weekday === false ? '' : WD[d.getUTCDay()] + ' ') + d.getUTCDate() + ' ' + MON[d.getUTCMonth()];
     if (o.year) s += ' ' + d.getUTCFullYear();
@@ -1681,16 +1684,19 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   }
   /** 'Wednesday 24 September' */
   function longDate(x) {
+    if (bad(x)) return '';
     const d = new Date(toMs(x));
     return WEEKDAY[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MONTH[d.getUTCMonth()];
   }
   /** 'September 2026' */
   function monthYear(x) {
+    if (bad(x)) return '';
     const d = new Date(toMs(x));
     return MONTH[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
   }
   /** '15:10' */
   function time(x) {
+    if (bad(x)) return '';
     const d = new Date(toMs(x));
     return pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
   }
@@ -1716,6 +1722,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   }
   /** A due date as words, with a tone for styling: soon, later or overdue. */
   function due(iso, now) {
+    if (bad(iso)) return { text: '', tone: 'later' };
     const d = daysBetween(now, iso);
     if (d < 0) return { text: 'Overdue since ' + date(iso), tone: 'overdue' };
     if (d === 0) return { text: 'Due today', tone: 'soon' };
@@ -1779,6 +1786,9 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
    * Clerk; see live-data.js), switched on by window.D8CONFIG = { mode: 'live', ... } in the live build.
    */
   const MODE = root.D8CONFIG && root.D8CONFIG.mode === 'live' ? 'live' : 'demo';
+  /** The public demo is view-only: browse everything, change nothing. Tests set D8_DEMO_WRITABLE. */
+  const READ_ONLY = MODE === 'demo' && !root.D8_DEMO_WRITABLE;
+  const DEMO_NOTE = 'This is a demo, so nothing is sent or saved. In your own portal this would go to the team.';
   /** Storage names: each design variant keeps its own, so nothing leaks between them. */
   const NS = (root.D8VARIANT && root.D8VARIANT.storage) || 'd8.v16';
 
@@ -2130,7 +2140,12 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     const sc = currentScenario();
     const raw = fixtures().tenants[session.tenantId];
     const key = NS + '.demo.' + session.tenantId;
-    const state = () => readJSON(key) || {};
+    const state = () => {
+      const s = readJSON(key) || {};
+      // View-only: answers kept by an earlier visit are not shown, so nothing looks already done.
+      if (READ_ONLY) { delete s.decisions; delete s.messages; delete s.requests; delete s.notifications; }
+      return s;
+    };
     const started = Date.now();
     const lastAt = state().lastAt;
     /**
@@ -2153,6 +2168,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       state,
       /** @param {string} kind @param {any} rec @returns {Promise<any>} */
       put(kind, rec) {
+        if (READ_ONLY) return Promise.reject(fail('demo-readonly', DEMO_NOTE));
         const st = state();
         if (kind === 'message') rec.id = 'msg_' + ((st.messages || []).length + 1);
         if (kind === 'request') rec.id = 'req_' + ((st.requests || []).length + 1);
@@ -2566,7 +2582,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
         const text = String(comment || '').trim();
         if (decision === 'changes' && !text) throw fail('comment-required', 'Tell us what to change so we can fix it.', 'comment');
         if (text.length > 1000) throw fail('comment-too-long', 'Keep the note under 1,000 characters.', 'comment');
-        return src.put('decision', { approvalId: id, decision, comment: text, by: session.firstName })
+        return src.put('decision', { approvalId: id, decision, comment: text, by: session.firstName || session.email || 'You' })
           .then((/** @type {any} */ r) => ({ decision: r.decision, comment: r.comment, at: r.at, by: r.by }));
       }, 700);
     }
@@ -2618,8 +2634,10 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
      * signed-in user (a personal choice, not the whole tenant's). Only known values are kept.
      * @param {{theme?: string, scene?: string, messagesSeenAt?: string}} look
      */
+    let appearanceQ = Promise.resolve();
     function saveAppearance(look) {
-      return call(() => {
+      // One at a time: two quick saves (theme, then scene, or Messages seen) must not overwrite each other's field.
+      const run = () => call(() => {
         const next = { ...(state().appearance || {}) };
         const l = look || {};
         if (l.theme !== undefined && l.theme !== 'light' && l.theme !== 'dark') throw fail('bad-theme', 'Choose light or dark.');
@@ -2632,12 +2650,17 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
         next.savedAt = T.isoTime(now());
         return src.put('appearance', { look: next }).then(() => clone(next));
       }, 150);
+      const out = appearanceQ.catch(() => {}).then(run);
+      appearanceQ = out;
+      return out;
     }
 
     /* ---- messages (2026-10-09: their own page) ------------------------------------- */
 
     /** When the client last opened Messages, or null. */
-    const seenAt = () => { const a = state().appearance; return a && a.messagesSeenAt ? String(a.messagesSeenAt) : null; };
+    /** Demo (view-only): when Messages was opened, kept in memory; nothing is written. */
+    let seenLocal = null;
+    const seenAt = () => { if (seenLocal) return seenLocal; const a = state().appearance; return a && a.messagesSeenAt ? String(a.messagesSeenAt) : null; };
     /** Every message: the demo's starting thread (none live), then what was written since, oldest first. */
     function allMessages() {
       const seed = src.seed ? src.seed() : {};
@@ -2661,6 +2684,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     /** The client opened Messages: remember when, with their look. Nothing is written when nothing is new. */
     function markMessagesSeen() {
       return call(() => {
+        if (READ_ONLY) { seenLocal = T.isoTime(now()); return { messagesSeenAt: seenLocal, written: false }; }
         if (seenAt() && !unreadReplies()) return { messagesSeenAt: seenAt(), written: false };
         return saveAppearance({ messagesSeenAt: T.isoTime(now()) }).then((/** @type {any} */ l) => ({ messagesSeenAt: l.messagesSeenAt, written: true }));
       }, 0);
@@ -2728,7 +2752,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   D8.auth = auth;
   D8.integrations = integrations;
   D8.data = {
-    MODE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, SEVERITY, HEALTH, ACCOUNTS,
+    MODE, READ_ONLY, DEMO_NOTE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, SEVERITY, HEALTH, ACCOUNTS,
     connect, scenarios, currentScenario, switchScenario,
     // For live-data.js: build a client on another source, and the shared helpers it needs.
     makeClient, normalize, mergeProjections, apply, fail,
@@ -2778,9 +2802,14 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       s.async = true;
       s.crossOrigin = 'anonymous';
       for (const [k, v] of Object.entries(attrs || {})) s.setAttribute(k, v);
-      s.onload = () => resolve(null);
-      s.onerror = () => reject(fail('offline', "We couldn't reach the sign-in service. Check your connection and try again."));
+      // A service that never answers (not an error) must not leave the page blank for ever.
+      let settled = false;
+      let timer;
+      const gone = () => reject(fail('offline', "We couldn't reach the sign-in service. Check your connection and try again."));
+      s.onload = () => { settled = true; clearTimeout(timer); resolve(null); };
+      s.onerror = () => { if (settled) return; settled = true; clearTimeout(timer); gone(); };
       document.head.appendChild(s);
+      timer = setTimeout(() => { if (settled) return; settled = true; if (s.remove) s.remove(); gone(); }, 15000);
     });
   }
 
@@ -2850,7 +2879,10 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   async function pickOrganisation(C) {
     if (C.organization) return;
     const memberships = (C.user && C.user.organizationMemberships) || [];
-    if (memberships.length) await C.setActive({ organization: memberships[0].organization.id });
+    if (!memberships.length) return;
+    // This page's own organisation first (the restaurant, or for the console the team); a failure here must not fail the whole load.
+    const pick = (C.session && orgFor(C.session)) || memberships[0].organization.id;
+    try { await C.setActive({ organization: pick }); } catch (e) { /* the token still names the organisation (tokenFor) */ }
   }
 
   /** Clerk's errors, in the portal's words. @param {any} err @param {string} [field] */
@@ -2997,20 +3029,30 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       const t = await sb.from('tenants').select('id, name, doc').eq('clerk_org_id', session.tenantId).limit(1);
       if (t.error) throw dbFail(t.error);
       const row = t.data && t.data[0];
-      if (!row) { tenant = null; return; }
+      if (!row) {
+        // No row can also mean the sign-in ended (the request then went out without a token): say so, not "no portal".
+        if (!PREVIEW && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
+        tenant = null; return;
+      }
       const [d, m, r, p, items, inv, cards] = await Promise.all([
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
         sb.from('requests').select('id, service, body, status, by_name, at').eq('tenant_id', row.id).order('at'),
-        sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').maybeSingle(),
+        sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').eq('clerk_user_id', session.userId).maybeSingle(),
         // What staff approved for this client. The database returns a client only client_visible rows; asking
         // for them here as well keeps a staff session previewing the portal to the same rows.
         sb.from('client_dashboard_items').select('id, item_kind, external_id, content, source_observed_at, reporting_period_start, reporting_period_end, verification_status, published_at').eq('tenant_id', row.id).eq('client_visible', true),
         sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url').eq('tenant_id', row.id).eq('client_visible', true),
         // The team's board cards for this client (2026-10-08): only their visible cards with a service, safe fields only
-        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve({ data: null, error: { message: 'no rpc' } })
+        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve({ data: null, error: { code: 'PGRST202', message: 'no rpc' } })
       ]);
       for (const x of [d, m, r, p]) if (x.error) throw dbFail(x.error);
+      // The three projections may be missing before their migration (table or function not there yet): that is fine.
+      // Any other error (access, token, network) must not read as "no invoices" or "nothing approved": fail, and the
+      // record already on screen stays as it was.
+      const MISSING = ['42P01', 'PGRST205', 'PGRST202', '42883'];
+      const missing = (/** @type {any} */ e) => MISSING.includes(e.code) || /does not exist|schema cache|no rpc/i.test(String(e.message || ''));
+      for (const x of [items, inv, cards]) if (x.error && !missing(x.error)) throw dbFail(x.error);
       /** @type {any} */ const next = {};
       for (const x of d.data || []) apply(next, 'decision', { approvalId: x.approval_id, decision: x.decision, comment: x.comment, at: x.at, by: x.by_name });
       for (const x of m.data || []) apply(next, 'message', { id: x.id, about: x.about, text: x.body, at: x.at, fromTeam: x.from_staff, by: x.by_name });
@@ -3027,6 +3069,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     }
 
     let ready = load();
+    /** @type {Promise<any>|null} */ let loading = null;
     return {
       get ready() { return ready; },
       tenant: () => tenant,
@@ -3051,14 +3094,31 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
         } else {
           throw fail('bad-kind', 'Unknown action.');
         }
-        if (res.error) throw dbFail(res.error);
+        if (res.error) {
+          // Answered already (another tab or device): show what was saved, not "nothing changed".
+          if (kind === 'decision' && res.error.code === '23505') {
+            try { await this.reload(); } catch (e) { /* the answer below is still true */ }
+            throw Object.assign(dbFail(res.error), { previous: st.decisions && st.decisions[rec.approvalId] });
+          }
+          throw dbFail(res.error);
+        }
         const row = res.data || {};
         const stored = { ...rec, id: row.id || rec.id, at: row.at || row.notifications_saved_at || T.isoTime(now()) };
         if (row.status) stored.status = row.status;
         apply(st, kind, stored);
         return stored;
       },
-      reload() { ready = load(); return ready; },
+      reload() {
+        // One refresh at a time (a slow one must not finish after a newer one and overwrite it).
+        if (loading) return loading;
+        const p = load();
+        loading = p;
+        const done = () => { loading = null; };
+        p.then(done, done);
+        // A failed refresh leaves the record already loaded usable; the caller still sees the error.
+        ready = p.then(() => {}, () => {});
+        return p;
+      },
       reset: () => Promise.resolve()
     };
   }
@@ -3075,13 +3135,22 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   D8.integrations.resolve = async (/** @type {string} */ kind, /** @type {string} */ id, /** @type {string} */ number) => {
     if (kind !== 'billing-portal' && kind !== 'invoice') return outside(kind, id);
     if (PREVIEW) return null;
-    const token = await tokenFor(await clerk());
-    const res = await fetch(cfg.supabaseUrl + '/functions/v1/stripe-billing', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, apikey: cfg.supabaseKey },
-      body: JSON.stringify(kind === 'invoice' ? { action: 'invoice', number } : { action: 'portal' })
-    });
-    const j = await res.json().catch(() => ({}));
+    const notSet = () => {
+      const x = /** @type {any} */ (new Error('Online billing is not switched on yet. Press Message us and we sort it out.'));
+      x.code = 'not-configured';
+      return x;
+    };
+    let res, j;
+    try {
+      const token = await tokenFor(await clerk());
+      res = await fetch(cfg.supabaseUrl + '/functions/v1/stripe-billing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, apikey: cfg.supabaseKey },
+        body: JSON.stringify(kind === 'invoice' ? { action: 'invoice', number } : { action: 'portal' })
+      });
+      j = await res.json().catch(() => ({}));
+    } catch (e) { throw notSet(); } // the billing function is not there (or the browser was refused): retrying never helps
+    if (res.status === 404 || j.code === 'NOT_FOUND') throw notSet();
     if (res.ok && j.url) return j.url;
     const e = /** @type {any} */ (new Error(j.error === 'not-configured' || j.error === 'no-customer' || j.error === 'live-key-refused'
       ? 'Online billing is not set up for your account yet. Press Message us and we sort it out.'
@@ -3129,7 +3198,11 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   const $ = (sel, el) => /** @type {any} */ ((el || document).querySelector(sel));
   /** @param {string} sel @param {ParentNode} [el] */
   const $$ = (sel, el) => /** @type {any[]} */ (Array.from((el || document).querySelectorAll(sel)));
-  const today = () => new Date().toISOString().slice(0, 10);
+  /** A date as the calendar day on this computer, "2026-10-09" (toISOString is the UTC day, a day off in the evening or small hours). @param {Date} d */
+  const localDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const today = () => localDay(new Date());
+  /** The calendar day of a stored time: a bare "2026-10-09T10:00" is already local; one with a Z or an offset is converted. @param {string} iso */
+  const dayOf = (iso) => { const t = String(iso || ''); if (/(Z|[+-]\d\d:?\d\d)$/.test(t) && t.length > 10) { const d = new Date(t); if (!isNaN(d.getTime())) return localDay(d); } return t.slice(0, 10); };
   /** @param {string} prefix */
   const newId = (prefix) => prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   /** @param {any} v */
@@ -3302,23 +3375,29 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     return res.data;
   }
 
-  /** Loads every client, request, message and decision in one go. */
-  async function loadAll() {
+  /** Counts this person's own writes, so a reload that raced one is thrown away instead of putting old rows back. */
+  let writes = 0;
+  /** The client whose logins were just added to: the main contact is checked against the logins once, on the redraw after. */
+  let followFor = '';
+  /** Loads every client, request, message and decision in one go. @param {number} [retries] reloads left if one of our own writes landed meanwhile */
+  async function loadAll(retries = 2) {
+    const w = writes;
     const client = await db();
+    // Newest first with a limit, so the cap of 1000 rows cuts the oldest ones, never the newest; flipped back below.
     const [t, r, m, d, k, pf, la] = await Promise.all([
       client.from('tenants').select('id, name, status, clerk_org_id, updated_at, doc').order('name'),
-      client.from('requests').select('id, tenant_id, service, body, status, by_name, at').order('at'),
-      client.from('messages').select('id, tenant_id, about, body, from_staff, by_name, at').order('at'),
-      client.from('decisions').select('tenant_id, approval_id, decision, comment, by_name, at').order('at'),
+      client.from('requests').select('id, tenant_id, service, body, status, by_name, at').order('at', { ascending: false }).limit(1000),
+      client.from('messages').select('id, tenant_id, about, body, from_staff, by_name, at').order('at', { ascending: false }).limit(1000),
+      client.from('decisions').select('tenant_id, approval_id, decision, comment, by_name, at').order('at', { ascending: false }).limit(1000),
       client.from('tasks').select('*').order('position'),
       client.from('client_profile').select('*'),
       client.from('login_requests').select('*').eq('status', 'pending').order('at')
     ]);
-    all = {
+    const next = {
       tenants: (check(t) || []).map((/** @type {any} */ x) => ({ ...x, doc: D8.data.normalize(x.doc, () => Date.now()) })),
-      requests: check(r) || [],
-      messages: check(m) || [],
-      decisions: check(d) || [],
+      requests: (check(r) || []).slice().reverse(),
+      messages: (check(m) || []).slice().reverse(),
+      decisions: (check(d) || []).slice().reverse(),
       tasks: check(k) || [],
       profiles: Object.fromEntries((check(pf) || []).map((/** @type {any} */ x) => [x.tenant_id, x])),
       // A table added later: if it is not there yet, the console carries on without it.
@@ -3326,12 +3405,20 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       reviews: all && all.reviews,
       at: Date.now()
     };
-    try { await loadReviews(); } catch (e) { /* the approvals block shows nothing rather than stopping the console */ }
+    // We saved something while this was loading, so these rows may be older than it: ask again (twice at most).
+    if (w !== writes && retries > 0) return loadAll(retries - 1);
+    all = next;
+    try { await loadReviews(); } catch (e) {
+      // The console carries on, but the approvals block says it could not look, rather than showing an empty queue.
+      all.reviews = all.reviews || { items: [], invoices: [], exceptions: [], sync: {}, auto: [] };
+      all.reviews.error = message(e);
+    }
     if (current) {
-      const fresh = all.tenants.find((/** @type {any} */ x) => x.id === current.id);
-      // the board's cards come along too, fresh (Hermes may have moved some); leaving them out made the next "Add the card"
-      // fail with "Cannot read properties of undefined (reading 'push')" after the card was already saved (2026-10-08)
-      if (fresh) current = { ...fresh, decisions: current.decisions, messages: current.messages, requests: current.requests, tasks: all.tasks.filter((/** @type {any} */ x) => x.tenant_id === fresh.id) };
+      // Everything comes from the fresh rows (the cards too: leaving them out made the next "Add the card" fail with
+      // "Cannot read properties of undefined (reading 'push')" after the card was already saved, 2026-10-08), so the
+      // Talk tab matches the Messages page.
+      const fresh = fromCache(current.id);
+      if (fresh) current = fresh;
     }
     renderSide();
   }
@@ -3418,8 +3505,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     for (const a of asksFor(id)) needs.push({ kind: 'login-ask', label: 'Login request', hint: 'The client asked us to give someone a login. Answer it in Setup.', text: `${a.first_name}${a.role ? ', ' + a.role : ''} (${a.email})`, at: a.at, href: go('setup', ['login']), rank: 1 });
     if (doc.meeting && doc.meeting.at) {
       const d = due(doc.meeting.at);
-      if (d.late) needs.push({ kind: 'meeting', label: 'Meeting passed', text: `${doc.meeting.title || 'Meeting'} was ${when(doc.meeting.at)}. Set the next one or clear it in Setup.`, dueDate: doc.meeting.at.slice(0, 10), href: go('setup', ['meeting']), rank: 2 });
-      else if (d.days <= 7) soon.push({ kind: 'meeting', label: 'Meeting', text: `${doc.meeting.title || 'Meeting'}, ${when(doc.meeting.at)}`, dueDate: doc.meeting.at.slice(0, 10), href: go('overview') });
+      if (d.late) needs.push({ kind: 'meeting', label: 'Meeting passed', text: `${doc.meeting.title || 'Meeting'} was ${when(doc.meeting.at)}. Set the next one or clear it in Setup.`, dueDate: dayOf(doc.meeting.at), href: go('setup', ['meeting']), rank: 2 });
+      else if (d.days <= 7) soon.push({ kind: 'meeting', label: 'Meeting', text: `${doc.meeting.title || 'Meeting'}, ${when(doc.meeting.at)}`, dueDate: dayOf(doc.meeting.at), href: go('overview') });
     }
     const stamp = (/** @type {any} */ x) => x.dueDate || (x.at ? String(x.at).slice(0, 10) : '9999');
     needs.sort((a, b) => a.rank - b.rank || stamp(a).localeCompare(stamp(b)));
@@ -3625,7 +3712,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(/** @type {HTMLElement} */ (e.target).tagName) || /** @type {HTMLElement} */ (e.target).isContentEditable;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); palette.open(); }
     else if (e.key === '/' && !typing && !palette.dlg.open) { e.preventDefault(); palette.open(); }
-    else if (e.altKey && /^[1-5]$/.test(e.key) && current && /^#\/client\//.test(location.hash)) {
+    else if (e.altKey && !typing && /^[1-5]$/.test(e.key) && current && /^#\/client\//.test(location.hash)) {
       const tab = TABS[Number(e.key) - 1];
       if (tab) { e.preventDefault(); location.hash = `#/client/${current.id}/${tab[0]}`; }
     }
@@ -3639,7 +3726,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
    * (app.is_staff) checks the token on every request. Remove someone from the team in Clerk and their
    * next token, within about a minute, opens nothing.
    */
-  const PREVIEWING = !!(/** @type {any} */ (window).D8PREVIEW);
+  // The sample-data stand-ins are honoured only on a computer's own address (or a saved file), never on a live site.
+  const PREVIEWING = !!(/** @type {any} */ (window).D8PREVIEW) && /^(localhost|127\.0\.0\.1|\[::1\]|)$/.test(location.hostname);
   /** Makes the Domin8te team organisation the active one, if this person belongs to it. */
   async function useTeamOrganisation() {
     if (PREVIEWING) return;
@@ -3679,6 +3767,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
           dirty.clear();
           saveBar();
           stopPulling();
+          stopInbox();
           signInPage(why + keep);
         }
       });
@@ -3806,7 +3895,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   function lastTab(id) {
     let t = 'overview';
     try { t = localStorage.getItem('d8c.tab.' + id) || 'overview'; } catch (e) { /* first visit */ }
-    return LEGACY_TABS[t] ? LEGACY_TABS[t]('').split('/')[0] : t;
+    return Object.prototype.hasOwnProperty.call(LEGACY_TABS, t) ? LEGACY_TABS[t]('').split('/')[0] : t;
   }
 
   function route() {
@@ -3818,6 +3907,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     const parts = (location.hash || '#/queue').replace(/^#\//, '').split('/');
     document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'settings', 'messages'].includes(parts[0]) ? parts[0] : 'queue';
     stopInbox();
+    const svcDlg = /** @type {HTMLDialogElement|null} */ ($('#svc-dlg'));
+    if (svcDlg && svcDlg.open) svcDlg.close();
     main.onclick = null;
     main.onchange = null;
     unwireBoard(main); // the All work board's listeners go with the page
@@ -3834,11 +3925,14 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     window.scrollTo(0, 0);
     if (parts[0] === 'messages') toBottom();
   }
+  /** Redraws after a change made by code, not by the person: route() would throw away unsaved edits, so those are kept. */
+  const redraw = () => (dirty.size ? toast('Updated. Your unsaved edits are kept; save or discard to see the new data.') : route());
   async function onHash() {
     if (restoring) { restoring = false; return; }
     if (dirty.size) {
       const ok = await ask('Leave without saving?', `You have unsaved changes: ${Array.from(dirty.values()).join(', ')}.`, 'Leave');
-      if (!ok) { restoring = true; location.hash = lastHash; return; }
+      // Only if the address really changed: setting it to what it already is fires no event, and the flag would swallow the next real one.
+      if (!ok) { if (location.hash !== lastHash) { restoring = true; location.hash = lastHash; } return; }
     }
     lastHash = location.hash;
     route();
@@ -3847,10 +3941,10 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   // When the tab has been in the background for a while, catch up quietly on the way back.
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState === 'visible' && prefs.autoPull && current && clientBoardOpen() && !dirty.size && (!pulledAt[current.id] || Date.now() - pulledAt[current.id] > 60000)) {
-      try { const r = await pullQuietly(current.id); if (r && r.changed && r.changed.length) route(); } catch (e) { /* a manual check reports errors */ }
+      try { const r = await pullQuietly(current.id); if (r && r.changed && r.changed.length && !dirty.size) route(); } catch (e) { /* a manual check reports errors */ }
     }
     if (document.visibilityState !== 'visible' || !me || !all || Date.now() - all.at < 60000 || dirty.size) return;
-    try { await loadAll(); if (/^#\/(queue|clients)/.test(location.hash || '#/queue')) route(); else if (/^#\/messages/.test(location.hash)) redrawInbox(); } catch (e) { /* the next action reports it */ }
+    try { await loadAll(); if (dirty.size) return; if (/^#\/(queue|clients)/.test(location.hash || '#/queue')) route(); else if (/^#\/messages/.test(location.hash)) redrawInbox(); } catch (e) { /* the next action reports it */ }
   });
 
   /* ---- the queue: what needs the team ---------------------------------------------------------------- */
@@ -3918,6 +4012,12 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   const inboxState = { q: '', open: '' };
   let inboxTimer = 0;
   function stopInbox() { if (inboxTimer) { clearInterval(inboxTimer); inboxTimer = 0; } }
+  /** A short fingerprint of what the Messages page shows, so a check that found nothing new does not redraw it. */
+  function inboxSig() {
+    if (!all) return '';
+    const last = all.messages[all.messages.length - 1];
+    return [all.messages.length, last ? last.id : '', all.requests.map((/** @type {any} */ r) => `${r.id}:${r.status}`).join(','), all.decisions.length].join('|');
+  }
   /** Scrolls the open conversation to its newest message. */
   function toBottom() { const log = $('#convo-log'); if (log) log.scrollTop = log.scrollHeight; }
 
@@ -3984,7 +4084,9 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     const list = conversations();
     const wide = window.matchMedia('(min-width: 901px)').matches;
     // On a wide screen the top conversation opens on its own; on a phone the list comes first.
-    const shown = openId ? tenant(openId) : wide && list[0] ? list[0].t : null;
+    // (a quiet redraw keeps the conversation being read, if it is still in the list)
+    const keep = list.find((/** @type {any} */ x) => x.t.id === inboxState.open);
+    const shown = openId ? tenant(openId) : wide ? (keep ? keep.t : list[0] ? list[0].t : null) : null;
     inboxState.open = shown ? shown.id : '';
     const waitingN = list.filter((/** @type {any} */ x) => x.c.waiting).length;
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Messages</h1><p>Every client's conversation in one place. ${waitingN ? `${plural(waitingN, 'client')} waiting for your reply.` : 'Nobody is waiting for a reply.'}</p></div>
@@ -4003,7 +4105,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     if (f && shown) {
       track(f, 'Reply');
       const ta = /** @type {HTMLTextAreaElement} */ ($('#convo-body', f));
-      ta.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); f.requestSubmit(); } });
+      ta.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); const sub = /** @type {HTMLButtonElement|null} */ (f.querySelector('button[type=submit]')); if (sub && sub.disabled) return; f.requestSubmit(); } });
       f.addEventListener('submit', async (e) => {
         e.preventDefault();
         const body = val(f, 'body');
@@ -4033,17 +4135,27 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       catch (x) { sel.disabled = false; sel.value = r.status; toast(message(x), true); }
     };
     toBottom();
+    let seen = inboxSig();
     // While the page is open and visible, check for new messages every 10 seconds, quietly (2026-10-09, Karan: "get the
     // messages right away"; true instant delivery would need Supabase Realtime switched on for the messages table).
     stopInbox();
     inboxTimer = window.setInterval(async () => {
-      if (document.visibilityState !== 'visible' || dirty.size || !/^#\/messages/.test(location.hash)) return;
-      try { await loadAll(); redrawInbox(); } catch (e) { /* the next check tries again; Reload reports errors */ }
+      if (!me || document.visibilityState !== 'visible' || dirty.size || !/^#\/messages/.test(location.hash)) return;
+      try {
+        await loadAll();
+        // Nothing new, or the person is clicking into a box: leave the page alone (a redraw would drop the focus).
+        const now = inboxSig();
+        const ae = document.activeElement;
+        if (now === seen || (ae && /^(TEXTAREA|SELECT)$/.test(ae.tagName))) return;
+        seen = now;
+        redrawInbox();
+      } catch (e) { /* the next check tries again; Reload reports errors */ }
     }, 10000);
   }
 
   /** Draws the Messages page again in place (after a quiet reload), keeping the search box's focus and the scroll. */
   function redrawInbox() {
+    if (!me || !all) return;
     if (!/^#\/messages/.test(location.hash) || dirty.size) return;
     const focusQ = document.activeElement && document.activeElement.id === 'inbox-q';
     const log = $('#convo-log');
@@ -4096,7 +4208,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     rows = rows.filter(({ t, d }) => {
       if (q && !`${t.name} ${t.doc.business.kind || ''} ${t.doc.package.name || ''}`.toLowerCase().includes(q)) return false;
       switch (listState.filter) {
-        case 'needs': return d.needs.length > 0;
+        case 'needs': return t.status !== 'archived' && d.needs.length > 0;
         case 'inactive': return t.status !== 'active';
         default: return true;
       }
@@ -4166,6 +4278,10 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       err.hidden = true;
       const name = val(f, 'name');
       if (!name) { err.textContent = 'Give the restaurant a name.'; err.hidden = false; $('#n-name').focus(); return; }
+      const contactMail = val(f, 'email');
+      if (contactMail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactMail)) { err.textContent = 'That email does not look right. Fix it or leave it empty.'; err.hidden = false; $('#n-email').focus(); return; }
+      const same = (all.tenants || []).find((/** @type {any} */ t) => String(t.name || '').trim().toLowerCase() === name.toLowerCase());
+      if (same && !await ask(`${same.name} is already a client`, 'A client with this name is already in the console. Add another one with the same name?', 'Add anyway')) return;
       const services = $$('input[name="svc"]:checked', f).map((i) => i.value);
       /** @type {Record<string, any>} */
       const svcDocs = {};
@@ -4193,12 +4309,13 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
             const r = await stripeFn({ action: 'create', tenantId: row.id, name, email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail) ? mail : undefined });
             if (r.customer) stripeKnown[r.customer.id] = r.customer;
             stripeNote = ` Stripe customer created (${stripeModeText()}).`;
-          } catch (x) { stripeNote = ' Stripe was not set up for them. You can link it later from Setup > Billing.'; }
+          } catch (x) { stripeNote = ` Stripe was not set up for them: ${stripeErr(x)} You can link it later from Setup > Billing.`; }
         }
         // The client's own board in Multica, made now so it is ready for the team (and Hermes).
         multicaStatus().then((st) => { if (st.configured) multica({ action: 'project', tenantId: row.id }).catch((x) => toast(`The Multica board for ${name} could not be made yet: ${message(x)}`, true)); });
         clean(f);
-        await loadAll();
+        // Added is added: a failed reload must not put the form back in reach of a second, duplicate insert.
+        try { await loadAll(); } catch (x) { toast(`${name} was added, but the client list could not reload: ${message(x)}`, true); }
         toast(`${name} added.${stripeNote}`);
         location.hash = `#/client/${row.id}/overview`;
       } catch (x) {
@@ -4248,7 +4365,12 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     const client = await db();
     const res = await client.from('tenants').update(patch).eq('id', current.id).eq('updated_at', current.updated_at).select('updated_at, name, status, doc');
     const rows = check(res) || [];
-    if (!rows.length) throw new Error('Someone else saved this client since you opened it. Reload to see their changes, then make yours again.');
+    if (!rows.length) {
+      // Pull their version in first, so the next Save starts from it instead of failing the same way.
+      await loadAll().catch(() => { /* the message below still tells them */ });
+      throw new Error('Someone else saved this client since you opened it. Their changes are loaded now. Check the page, then press Save again.');
+    }
+    writes++;
     current.updated_at = rows[0].updated_at;
     current.name = rows[0].name;
     current.status = rows[0].status;
@@ -4264,18 +4386,34 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     await save({ doc });
   }
 
+  /** Counts client opens, so a slow load that finishes after the user moved on is dropped, never made current. */
+  let loadSeq = 0;
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   /** @param {string} id @param {string} tab @param {string} part */
   async function clientPage(id, tab, part) {
     if (!current || current.id !== id) {
       current = null;
+      const seq = ++loadSeq;
       const cached = fromCache(id);
       if (!cached) main.innerHTML = skeleton(3);
-      try {
-        current = cached || await loadClient(id);
-      } catch (e) {
-        main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a><p class="notice bad">${esc(message(e))}</p>`;
-        return;
+      /** @type {any} */ let got = cached;
+      if (!got) {
+        // A made-up address would otherwise reach the database as a raw "invalid input syntax for type uuid".
+        if (!PREVIEWING && !UUID_RE.test(id)) {
+          main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a><div class="empty"><p><strong>We couldn't find that client.</strong></p><p>The link may be old or mistyped.</p><a class="btn" href="#/clients">See all clients</a></div>`;
+          return;
+        }
+        try {
+          got = await loadClient(id);
+        } catch (e) {
+          if (seq !== loadSeq) return;
+          main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a><p class="notice bad">${esc(message(e))}</p>`;
+          return;
+        }
+        // The user opened another client while this one loaded: `current` must stay theirs.
+        if (seq !== loadSeq) return;
       }
+      current = got;
       if (!current) {
         main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a><div class="empty"><p><strong>That client was not found.</strong></p><p>It may have been removed, or the link is old.</p><a class="btn" href="#/clients">See all clients</a></div>`;
         return;
@@ -4285,7 +4423,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       renderSide();
     }
     // An old link (#/client/<id>/board, /approvals/new, /edit/billing, /record...) opens the same place in the new tabs.
-    if (LEGACY_TABS[tab]) {
+    if (Object.prototype.hasOwnProperty.call(LEGACY_TABS, tab)) {
       const to = LEGACY_TABS[tab](part).split('/');
       tab = to[0];
       part = to[1] || '';
@@ -4389,6 +4527,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       dlg = made;
     }
     const box = dlg;
+    // The client this window was opened for; a save after the user has moved to another client must not write there.
+    const target = current;
     const name = current.name;
     box.innerHTML = `<form method="dialog" class="sd-form" novalidate>
       <div class="sd-head"><h2 id="svc-dlg-h">Change services</h2><p>Turn on what ${esc(name)} gets from us. Their dashboard shows only these.</p></div>
@@ -4436,10 +4576,13 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       const pkgName = val(form, 'pkg');
       const renamed = pkgName !== (d.package.name || '');
       if (!added.length && !removed.length && !renamed) { box.close(); return; }
+      if (!current || current.id !== target.id) { box.close(); return; }
       const done = busy(/** @type {HTMLButtonElement} */ ($('[data-sd="save"]', form)), 'Saving');
       try {
         await saveDoc((doc) => {
-          doc.package = { ...doc.package, name: pkgName, services: SERVICE_ORDER.filter((/** @type {string} */ s) => now.includes(s)) };
+          // Worked out from the record as it is now, so a service another staff member changed meanwhile is not put back.
+          const cur = doc.package.services || [];
+          doc.package = { ...doc.package, name: pkgName, services: SERVICE_ORDER.filter((/** @type {string} */ s) => added.includes(s) || (cur.includes(s) && !removed.includes(s))) };
           for (const s of added) if (!doc.services[s]) doc.services[s] = blankService();
           // the Billing page shows the plan's own name: keep it with the package, as Save details does
           if (renamed && pkgName) doc.billing = { ...(doc.billing || {}), plan: { ...((doc.billing && doc.billing.plan) || {}), name: pkgName } };
@@ -4447,7 +4590,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
         });
         box.close();
         toast(`${added.length || removed.length ? `${name} now has ${now.length ? andList(now.map(svcLabel)) : 'no services'}.` : `Package renamed to ${pkgName || 'nothing'}.`}${current && current.clerk_org_id ? ' Their dashboard shows this the next time it loads.' : ''}`);
-        route();
+        redraw();
       } catch (x) { done(); toast(message(x), true); }
     });
     paint();
@@ -4471,7 +4614,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     const next = got.soon[0];
     const nd = next ? due(next.dueDate) : null;
     box.innerHTML = `
-      ${reviewCount(current.id) ? dmBlock(current.id) : ''}
+      ${reviewCount(current.id) || (all.reviews && all.reviews.error) ? dmBlock(current.id) : ''}
       <section class="panel" aria-labelledby="g-todo"><div class="panel-head"><h2 id="g-todo">To do for this client <span class="meta">${todo.length}</span></h2></div>
         ${todo.length ? `<ul class="todo">${todo.slice(0, 5).map(row).join('')}</ul>${todo.length > 5 ? `<details class="reveal q-more"><summary>Show ${todo.length - 5} more</summary><ul class="todo">${todo.slice(5).map(row).join('')}</ul></details>` : ''}` : '<p class="meta">Nothing to do for them right now.</p>'}
         ${next ? `<p class="next-line">${icon('clock')}<span><b>Next:</b> <a href="${esc(next.href)}">${esc(next.label)}: ${esc(next.text)}</a>, ${esc(nd ? (nd.days === 0 ? 'today' : nd.text) : '')}${got.soon.length > 1 ? ` <span class="meta" title="${esc(got.soon.slice(1).map((x) => `${x.label}: ${x.text}`).join('; '))}">and ${got.soon.length - 1} more this week</span>` : ''}</span></p>` : ''}
@@ -4489,7 +4632,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     const moreParts = ['billing', 'meeting', 'accounts', 'more'];
     // Dates, amount and status the Stripe webhook keeps up to date are shown, not typed.
     const fromStripe = billingFromStripe(current);
-    if (!stripeState) stripeStatus().then(() => { if (box.isConnected) stripeRowRefresh(box); });
+    if (!stripeState || stripeState.retry) stripeStatus().then(() => { if (box.isConnected) stripeRowRefresh(box); });
     const last = (d.package.changes || [])[0];
     const lastLine = last ? [
       last.removed && last.removed.length ? `${andList(last.removed.map(svcLabel))} taken off` : '',
@@ -4650,10 +4793,10 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       try {
         await callFn('client-login', { tenantId: current.id, email, firstName: val(lf, 'first') });
         done();
-        current = null;
+        followFor = current.id;
         await loadAll();
         toast(`${email} can now sign in to the portal.`);
-        route();
+        redraw();
       } catch (x) {
         done();
         out.textContent = message(x);
@@ -4681,16 +4824,24 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       if (u.email && emails.includes(String(u.email).toLowerCase())) return;
       const p = list.slice().sort((a, b) => String(b.since || '').localeCompare(String(a.since || '')))[0];
       if (!p || !p.email) return;
+      const at = location.hash;
       const first = String(p.name || '').trim().split(/\s+/)[0] || u.firstName || '';
       try {
         await saveDoc((doc) => { doc.user = { ...(doc.user || {}), firstName: first, email: p.email }; });
         toast(`The main contact is now ${first || p.email} (${p.email}), who can sign in.`);
-        if (!dirty.size) route();
+        // Only redraw if they are still looking at this page; they may have moved on while it saved.
+        if (!dirty.size && current && current.id === id && location.hash === at) route();
       } catch (x) { toast(`Could not update the main contact: ${message(x)}`, true); }
     };
     if (people) {
       callFn('client-login', { action: 'list', tenantId: id })
-        .then((r) => { if (current && current.id === id) { drawPeople(r.people || []); followLogins(r.people || []); } })
+        .then((r) => {
+          if (current && current.id === id) {
+            drawPeople(r.people || []);
+            // Only after a login was added or removed, not on every look at this page.
+            if (followFor === id) { followFor = ''; followLogins(r.people || []); }
+          }
+        })
         .catch((x) => { if (people) people.innerHTML = `<p class="meta">Could not check who can sign in: ${esc(message(x))}</p>`; });
     }
     box.addEventListener('click', async (e) => {
@@ -4705,7 +4856,12 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
           drawPeople(r.people || []);
           followLogins(r.people || []);
           toast(`${name} can no longer sign in.`);
-        } catch (x) { done(); toast(message(x), true); }
+        } catch (x) {
+          done();
+          toast(message(x), true);
+          // The removal may have gone through even though the answer did not come back: show the list as it really is.
+          callFn('client-login', { action: 'list', tenantId: id }).then((r) => { if (current && current.id === id) drawPeople(r.people || []); }).catch(() => { /* the list stays as it was */ });
+        }
         return;
       }
       const grant = target.closest('[data-ask-grant]');
@@ -4780,7 +4936,14 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   async function moveTask(task, status) {
     if (task.status === status) return;
     const client = await db();
-    const row = check(await client.from('tasks').update({ status }).eq('id', task.id).select('*').single());
+    // Only if the card is still in the column we think it is in; somebody (or Hermes) may have moved it already.
+    const row = check(await client.from('tasks').update({ status }).eq('id', task.id).eq('status', task.status).select('*').maybeSingle());
+    if (!row) {
+      await loadAll().catch(() => { /* the toast below still says what happened */ });
+      toast('Moved elsewhere. Board refreshed.', true);
+      return;
+    }
+    writes++;
     Object.assign(task, row);
     requestFollows(task);
     const idx = all.tasks.findIndex((/** @type {any} */ x) => x.id === task.id);
@@ -4791,8 +4954,18 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     await mirror(task);
   }
 
-  /** Pushes one card to Multica when Multica is set up; quiet when it is not. @param {any} task */
-  async function mirror(task) {
+  /** The push in progress for each card, so two quick changes to one card queue up instead of each creating an issue. @type {Map<string, Promise<void>>} */
+  const inflight = new Map();
+  /** Pushes one card to Multica when Multica is set up; quiet when it is not. One push per card at a time. @param {any} task */
+  function mirror(task) {
+    const run = (inflight.get(task.id) || Promise.resolve()).then(() => pushCard(task));
+    inflight.set(task.id, run);
+    const fin = () => { if (inflight.get(task.id) === run) inflight.delete(task.id); };
+    run.then(fin, fin);
+    return run;
+  }
+  /** @param {any} task */
+  async function pushCard(task) {
     const st = await multicaStatus();
     if (!st.configured) return;
     try {
@@ -4910,15 +5083,18 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       e.preventDefault();
       const title = val(f, 'title');
       if (!title) { toast('Say what needs doing.', true); $('#c-title', box).focus(); return; }
+      // The client this card is for, read now: `current` can be another client by the time the insert comes back.
+      const tid = current.id;
       const done = busy($('button[type=submit]', f), 'Adding');
       try {
         const client = await db();
-        const row = check(await client.from('tasks').insert({ tenant_id: current.id, kind: 'task', title, detail: val(f, 'detail'), status: val(f, 'status') || 'todo', client_visible: !(/** @type {HTMLInputElement} */ (f.elements.namedItem('internal'))).checked, service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, position: (current.tasks || []).length }).select('*').single());
-        (current.tasks = current.tasks || []).push(row);
+        const row = check(await client.from('tasks').insert({ tenant_id: tid, kind: 'task', title, detail: val(f, 'detail'), status: val(f, 'status') || 'todo', client_visible: !(/** @type {HTMLInputElement} */ (f.elements.namedItem('internal'))).checked, service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, position: (current && current.id === tid ? current.tasks || [] : []).length }).select('*').single());
+        writes++;
+        if (current && current.id === tid) (current.tasks = current.tasks || []).push(row);
         (all.tasks = all.tasks || []).push(row);
         clean(f);
         toast('Card added.');
-        location.hash = `#/client/${current.id}/work/cards`;
+        location.hash = `#/client/${tid}/work/cards`;
         route();
         mirror(row);
       } catch (x) {
@@ -4927,13 +5103,13 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       }
     });
 
-    wireBoard(box, (id) => (current.tasks || []).find((/** @type {any} */ x) => x.id === id), () => route());
+    wireBoard(box, (id) => (current.tasks || []).find((/** @type {any} */ x) => x.id === id), () => redraw());
     box.addEventListener('click', async (e) => {
       const target = /** @type {HTMLElement} */ (e.target);
       if (target.closest('[data-action="board-sync"]')) {
         const b = /** @type {HTMLButtonElement} */ (target.closest('[data-action="board-sync"]'));
         const done = busy(b, 'Checking');
-        try { await pullQuietly(current.id, true); route(); } catch (x) { done(); toast(message(x), true); }
+        try { await pullQuietly(current.id, true); done(); redraw(); } catch (x) { done(); toast(message(x), true); }
       }
     });
   }
@@ -4971,7 +5147,19 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       const done = busy($('button[type=submit]', f), 'Saving');
       try {
         const client = await db();
-        const row = check(await client.from('tasks').update({ title, detail: val(f, 'detail'), service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, client_visible: !(/** @type {HTMLInputElement} */ (f.elements.namedItem('internal'))).checked }).eq('id', t.id).select('*').single());
+        // Only what this person changed is sent, so a teammate's edit to another field of the same card is not undone.
+        /** @type {Record<string, any>} */
+        const want = { title, detail: val(f, 'detail'), service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, client_visible: !(/** @type {HTMLInputElement} */ (f.elements.namedItem('internal'))).checked };
+        /** @type {Record<string, any>} */
+        const was = { title: t.title, detail: t.detail || '', service: t.service || null, due: t.due || null, priority: t.priority || 'none', assignee: t.assignee || null, client_visible: t.client_visible !== false };
+        /** @type {Record<string, any>} */
+        const patch = {};
+        for (const k of Object.keys(want)) if (want[k] !== was[k]) patch[k] = want[k];
+        let row = {};
+        if (Object.keys(patch).length) {
+          row = check(await client.from('tasks').update(patch).eq('id', t.id).select('*').single());
+          writes++;
+        }
         const status = val(f, 'status');
         Object.assign(t, { ...row, status: t.status });
         clean(f);
@@ -5142,7 +5330,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       // One toast, however many moved.
       toast(r.changed.length === 1 ? `Multica moved “${titleOf(r.changed[0])}” to ${TASK_STATUS_LABEL[r.changed[0].to] || r.changed[0].to}.` : `${r.changed.length} cards moved by Multica.`);
     }
-    else if (loud) toast(`Checked ${plural(r.checked || 0, 'card')}: nothing moved in Multica.`);
+    else if (loud && !(r.conflicts && r.conflicts.length)) toast(`Checked ${plural(r.checked || 0, 'card')}: nothing moved in Multica.`);
+    if (r.conflicts && r.conflicts.length) toast(`${plural(r.conflicts.length, 'card')} moved in both places. Check ${r.conflicts.length === 1 ? 'it' : 'them'} in Multica.`, true);
     return r;
   }
   function stopPulling() { if (pullTimer) { clearInterval(pullTimer); pullTimer = 0; } }
@@ -5170,7 +5359,15 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     'messages.created': () => 'sent a message',
     'decisions.created': () => 'answered an approval',
     'task.created': (/** @type {any} */ d) => `added the card “${d.title || 'a card'}”`,
-    'task.moved': (/** @type {any} */ d) => `moved a card from ${TASK_STATUS_LABEL[d.from] || d.from} to ${TASK_STATUS_LABEL[d.to] || d.to}`
+    'task.moved': (/** @type {any} */ d) => `moved a card from ${TASK_STATUS_LABEL[d.from] || d.from} to ${TASK_STATUS_LABEL[d.to] || d.to}`,
+    'dashboard.item.approved': (/** @type {any} */ d) => `${d.edited ? 'edited and approved' : 'approved'} a ${(DM_KIND[d.kind] || 'dashboard').toLowerCase()} item for their dashboard`,
+    'dashboard.item.rejected': (/** @type {any} */ d) => `turned down a ${(DM_KIND[d.kind] || 'dashboard').toLowerCase()} item for their dashboard`,
+    'dashboard.item.hidden': () => 'hid an item from their dashboard',
+    'dashboard.item.auto_published': (/** @type {any} */ d) => `published a ${(DM_KIND[d.kind] || 'dashboard').toLowerCase()} item to their dashboard automatically`,
+    'dashboard.invoice.approved': (/** @type {any} */ d) => `approved invoice ${d.number || ''} for their billing page`.replace('  ', ' '),
+    'dashboard.invoice.rejected': (/** @type {any} */ d) => `turned down invoice ${d.number || ''}`.replace('  ', ' '),
+    'dashboard.invoice.hidden': (/** @type {any} */ d) => `hid invoice ${d.number || ''} from their billing page`.replace('  ', ' '),
+    'dashboard.exception.resolved': () => 'marked a dashboard problem as fixed'
   };
 
   /**
@@ -5199,7 +5396,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       // Runs of "saved client info" by the same person on the same day become one line.
       /** @type {any[]} */ const lines = [];
       for (const r of rows) {
-        const who = staffNames[r.actor] || (r.actor ? clientName : 'The system');
+        // Clerk ids are not names: a staff member who has left is "A team member", the dashboard manager is "The system".
+        const who = staffNames[r.actor] || (/^user_/.test(r.actor || '') ? 'A team member' : /^(dashboard-manager|system)/.test(r.actor || '') ? 'The system' : r.actor ? clientName : 'The system');
         const day = new Date(r.at).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
         const prev = lines[lines.length - 1];
         if (r.action === 'tenant.updated' && prev && prev.action === 'tenant.updated' && prev.who === who && prev.day === day) { prev.n++; continue; }
@@ -5234,15 +5432,26 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   /** Calls one of the console's server functions with the signed-in person's token. @param {string} name @param {any} payload */
   async function callFn(name, payload) {
     const token = await D8.live.token();
-    const res = await fetch(`${D8.live.config.supabaseUrl}/functions/v1/${name}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, apikey: D8.live.config.supabaseKey },
-      body: JSON.stringify(payload)
-    });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) { const e = new Error(body.message || `The server answered ${res.status}.`); /** @type {any} */ (e).code = body.error || res.status; /** @type {any} */ (e).customer = body.customer || null; throw e; }
+    /** @type {Response} */ let res;
+    try {
+      res = await fetch(`${D8.live.config.supabaseUrl}/functions/v1/${name}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, apikey: D8.live.config.supabaseKey },
+        body: JSON.stringify(payload)
+      });
+    } catch (x) { throw new Error('Could not reach the server. Check your connection and try again.'); }
+    // An error page or an empty answer is not JSON: say what the server said instead of a parse error.
+    /** @type {any} */ let body;
+    try { body = await res.json(); } catch (x) { body = null; }
+    if (!res.ok || !body) {
+      const b = body || {};
+      const e = new Error(FN_CODES[b.error] || (b.message ? `${b.message}${b.detail ? ` (${b.detail})` : ''}` : `The server answered ${res.status}.`));
+      /** @type {any} */ (e).code = b.error || res.status; /** @type {any} */ (e).customer = b.customer || null; throw e;
+    }
     return body;
   }
+  /** The server's error codes for hiding, in words. @type {Record<string, string>} */
+  const FN_CODES = { 'not-assigned-manager': 'Only an owner can hide this.', 'already-hidden': 'Already hidden.', 'item-not-found': 'Not found. Reload.' };
   // Display only: the stored roles stay super_admin and member.
   const ROLE_LABEL = { super_admin: 'Owner (can manage the team)', member: 'Team member' };
 
@@ -5286,20 +5495,29 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       list.innerHTML = `<p class="notice bad">${esc(message(e))}</p>`;
     }
     if (!admin) return;
+    // After a failed call the change may still have gone through: show the list as it really is.
+    const relist = () => callFn('team', { action: 'list' }).then((r) => show(r.members || [])).catch(() => { /* the list stays as it was */ });
     const f = /** @type {HTMLFormElement} */ ($('#team-add', box));
     track(f, 'New teammate');
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = val(f, 'email');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Enter their email address.', true); $('#t-email', box).focus(); return; }
+      const role = val(f, 'role');
+      if (role === 'super_admin' && !await ask(`Add ${email} as an owner?`, 'Owners can add, change and remove everyone on the team, including you.', 'Add as owner')) return;
       const done = busy($('button[type=submit]', f), 'Adding');
       try {
-        const r = await callFn('team', { action: 'add', email, firstName: val(f, 'first'), role: val(f, 'role') });
+        const r = await callFn('team', { action: 'add', email, firstName: val(f, 'first'), role });
         show(r.members || []);
         f.reset();
         clean(f);
-        toast(r.already ? `${email} was already on the team.` : `${email} is on the team. They sign in at this page with their email.`);
-      } catch (x) { toast(message(x), true); }
+        if (r.already) {
+          // The server only adds; it does not change the role of someone already there. Say so rather than imply it did.
+          const have = (r.members || []).find((/** @type {any} */ m) => String(m.email || '').toLowerCase() === email.toLowerCase());
+          const differs = !!(have && have.role !== role);
+          toast(`${email} was already on the team.${differs ? ` Their role was NOT changed (they are ${(ROLE_LABEL[have.role] || have.role).toLowerCase()}). Use the role buttons in the list.` : ''}`, differs);
+        } else toast(`${email} is on the team. They sign in at this page with their email.`);
+      } catch (x) { toast(message(x), true); relist(); }
       done();
     });
     list.addEventListener('click', async (e) => {
@@ -5308,6 +5526,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       const id = b.getAttribute('data-team-role') || '';
       const role = b.getAttribute('data-val') || 'member';
       const group = /** @type {HTMLElement} */ (b.closest('.role-seg'));
+      const who = (group.getAttribute('aria-label') || '').replace(/^Role for /, '') || 'this person';
+      if (role === 'super_admin' && !await ask(`Make ${who} an owner?`, 'Owners can add, change and remove everyone on the team, including you.', 'Make owner')) return;
       for (const x of $$('button', group)) { x.setAttribute('aria-pressed', String(x === b)); x.disabled = true; }
       try {
         const r = await callFn('team', { action: 'role', userId: id, role });
@@ -5315,7 +5535,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
         toast(`Role changed to ${ROLE_LABEL[role]}.`);
       } catch (x) {
         toast(message(x), true);
-        try { show((await callFn('team', { action: 'list' })).members || []); } catch (y) { /* the list stays as it was */ }
+        relist();
       }
     });
     list.addEventListener('click', async (e) => {
@@ -5327,7 +5547,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
         const r = await callFn('team', { action: 'remove', userId: b.getAttribute('data-team-remove') });
         show(r.members || []);
         toast(`${name} is off the team.`);
-      } catch (x) { toast(message(x), true); }
+      } catch (x) { toast(message(x), true); relist(); }
     });
   }
 
@@ -5337,17 +5557,17 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     document.title = 'Settings · Domin8te console';
     const st = multicaState || { pending: true };
     if (!multicaState) multicaStatus().then(() => { if (location.hash === '#/settings' && !dirty.size) settingsPage(note); });
-    if (!stripeState) stripeStatus().then(() => { const box = $('#sec-stripe'); if (box && location.hash === '#/settings') box.innerHTML = stripePanel(); });
+    if (!stripeState || stripeState.retry) stripeStatus().then(() => { const box = $('#sec-stripe'); if (box && location.hash === '#/settings') box.innerHTML = stripePanel(); });
     const y = window.scrollY;
     const look = (/** @type {string} */ key, /** @type {string} */ label, /** @type {string[][]} */ opts) => `<div class="field"><label for="pref-${key}">${label}</label><select id="pref-${key}" data-pref-select="${key}">${opts.map(([v, l]) => `<option value="${v}"${String(prefs[key]) === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Settings</h1><p>Changes apply at once and save to your account, so they follow you to any computer.</p></div></div>
       <p class="meta set-note" id="set-note" role="status">${note ? esc(note) : ''}</p>
       <section class="panel" aria-labelledby="s-team" id="team-box"></section>
       <section class="panel" aria-labelledby="s-access" id="sec-access"><div class="panel-head"><h2 id="s-access">Access details for clients</h2><p>Clients see these in their steps when they connect Instagram, Facebook, Meta ads or Google. Saving copies them to every client, and new clients get them too.</p></div>
-        <form id="access-form" novalidate><div class="grid-3">
+        ${me.role === 'super_admin' ? `<form id="access-form" novalidate><div class="grid-3">
           <div class="field"><label for="s-metaid">Our Meta business ID</label><input id="s-metaid" name="metaid" type="text" value="${esc(agencyAccess().metaBusinessId || '')}" maxlength="40" inputmode="numeric" autocomplete="off"><p class="hint">In Meta Business settings, under Business info. Used for Instagram, Facebook and Meta ads.</p></div>
           <div class="field span-2"><label for="s-accessemail">Our email for Google access</label><input id="s-accessemail" name="accessemail" type="email" value="${esc(agencyAccess().accessEmail || '')}" maxlength="120" autocomplete="off"><p class="hint">The Google account clients add as a manager. Used for Google Business Profile and Google Analytics.</p></div>
-        </div><div class="actions"><button class="btn" type="submit">Save for all clients</button></div></form>
+        </div><div class="actions"><button class="btn" type="submit">Save for all clients</button></div></form>` : `<p class="meta">Meta business ID: ${esc(agencyAccess().metaBusinessId || 'not set')}. Google access email: ${esc(agencyAccess().accessEmail || 'not set')}. Only an owner can change these.</p>`}
       </section>
       <section class="panel" aria-labelledby="s-stripe" id="sec-stripe">${stripePanel()}</section>
       <section class="panel" aria-labelledby="s-multica"><div class="panel-head"><h2 id="s-multica">Multica</h2><p>${MULTICA_HINT} ${HERMES_HINT} ${st.pending ? 'Checking the connection.' : st.configured ? `Linked to the <strong>${esc(st.workspace)}</strong> workspace${st.agent ? '. New cards go to your agent' : ''}. Each card is an issue in the client's Multica project: moves here copy there, and moves there show here.` : `Not linked yet, so cards save here only.${st.failed ? ` ${esc(st.failed)}` : ' Once MULTICA_TOKEN and MULTICA_WORKSPACE are in the Supabase secrets, each card also becomes an issue in its client\'s Multica project.'}`}</p></div>
@@ -5365,9 +5585,16 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       track(af, 'Access details');
       af.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const metaId = val(af, 'metaid').replace(/\s+/g, ''), mail = val(af, 'accessemail');
+        const metaId = val(af, 'metaid').replace(/\s+/g, ''), mail = val(af, 'accessemail').toLowerCase();
         if (metaId && !/^\d{5,20}$/.test(metaId)) { toast('A Meta business ID is only numbers.', true); $('#s-metaid').focus(); return; }
         if (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) { toast('That email does not look right.', true); $('#s-accessemail').focus(); return; }
+        // This is copied into every client's record and shown in their steps, so changes are confirmed first.
+        const now = agencyAccess();
+        if (!metaId && !mail) {
+          if (!await ask('Clear both access details?', 'Every client loses the Meta business ID and the Google email in their connect steps.', 'Clear both')) return;
+        } else if (mail && mail !== String(now.accessEmail || '').toLowerCase()) {
+          if (!await ask('Change the Google access email?', `Every client will be told to add ${mail} as a manager.`, 'Change it')) return;
+        }
         const done = busy($('button[type=submit]', af), 'Saving');
         try {
           /** @type {{metaBusinessId?: string, accessEmail?: string}} */ const acc = {};
@@ -5375,7 +5602,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
           if (mail) acc.accessEmail = mail;
           const r = await applyAccessToAll(acc);
           clean(af);
-          if (r.failed.length) toast(`Saved for most clients. Not saved for ${r.failed.join(', ')}, because someone was changing them. Save again.`, true);
+          if (r.failed.length) toast(`Saved for ${plural(r.changed, 'client')}. Not saved for ${r.failed.join(', ')}, because someone was changing them or the save failed. Save again.`, true);
           else toast(r.changed ? `Saved. ${r.changed === 1 ? 'One client' : `${r.changed} clients`} now show these in their steps.` : 'Nothing changed. Every client already has these.');
           settingsPage();
         } catch (x) {
@@ -5490,20 +5717,23 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     /** @type {string[]} */ const failed = [];
     for (const t of all.tenants || []) {
       let ok = false;
-      for (let tries = 0; tries < 2 && !ok; tries++) {
-        const got = check(await client.from('tenants').select('updated_at, doc').eq('id', t.id).single());
-        const doc = clone(got.doc || {});
-        const team = { ...(doc.team || {}) };
-        if ((team.metaBusinessId || '') === (acc.metaBusinessId || '') && (team.accessEmail || '') === (acc.accessEmail || '')) { ok = true; break; }
-        delete team.metaBusinessId; delete team.accessEmail;
-        doc.team = { ...team, ...acc };
-        const rows = check(await client.from('tenants').update({ doc }).eq('id', t.id).eq('updated_at', got.updated_at).select('updated_at, doc')) || [];
-        if (rows.length) {
-          ok = true; changed++;
-          t.updated_at = rows[0].updated_at; t.doc = D8.data.normalize(rows[0].doc, () => Date.now());
-          if (current && current.id === t.id) { current.updated_at = t.updated_at; current.doc = t.doc; }
+      // One client failing (a lost connection, a refused write) must not stop the rest or hide which ones were missed.
+      try {
+        for (let tries = 0; tries < 2 && !ok; tries++) {
+          const got = check(await client.from('tenants').select('updated_at, doc').eq('id', t.id).single());
+          const doc = clone(got.doc || {});
+          const team = { ...(doc.team || {}) };
+          if ((team.metaBusinessId || '') === (acc.metaBusinessId || '') && (team.accessEmail || '') === (acc.accessEmail || '')) { ok = true; break; }
+          delete team.metaBusinessId; delete team.accessEmail;
+          doc.team = { ...team, ...acc };
+          const rows = check(await client.from('tenants').update({ doc }).eq('id', t.id).eq('updated_at', got.updated_at).select('updated_at, doc')) || [];
+          if (rows.length) {
+            ok = true; changed++; writes++;
+            t.updated_at = rows[0].updated_at; t.doc = D8.data.normalize(rows[0].doc, () => Date.now());
+            if (current && current.id === t.id) { current.updated_at = t.updated_at; current.doc = t.doc; }
+          }
         }
-      }
+      } catch (x) { ok = false; }
       if (!ok) failed.push(t.name);
     }
     return { changed, failed };
@@ -5518,8 +5748,13 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   /** @param {any} payload */
   const stripeFn = (payload) => callFn('stripe-billing', payload);
   async function stripeStatus() {
-    if (stripeState) return stripeState;
-    try { stripeState = await stripeFn({ action: 'status' }); } catch (e) { stripeState = { configured: false, failed: message(e) }; }
+    if (stripeState && !stripeState.retry) return stripeState;
+    try { stripeState = await stripeFn({ action: 'status' }); } catch (e) {
+      // A server function that is not there yet answers 404: that is "not set up", true for the whole session.
+      // Any other failure (a dropped connection) is shown, but not kept: the next look tries again.
+      const gone = !!e && (e.code === 404 || e.code === 'NOT_FOUND' || /not found/i.test(String(e.message || '')));
+      stripeState = gone ? { configured: false } : { configured: false, failed: message(e), retry: true };
+    }
     return stripeState;
   }
   /** A key is set and it is not a refused live key. */
@@ -5895,6 +6130,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   async function sendReply(tenantId, body) {
     const client = await db();
     const row = check(await client.from('messages').insert({ tenant_id: tenantId, body, from_staff: true, by_name: me.name }).select('id, about, body, from_staff, by_name, at').single());
+    writes++;
     if (current && current.id === tenantId) current.messages.push(row);
     all.messages.push({ ...row, tenant_id: tenantId });
     return row;
@@ -5904,10 +6140,14 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   async function setRequestStatus(id, status) {
     const client = await db();
     check(await client.from('requests').update({ status }).eq('id', id).select('id').single());
+    writes++;
     for (const list of [current ? current.requests : [], all.requests]) { const x = (list || []).find((/** @type {any} */ y) => y.id === id); if (x) x.status = status; }
     const cardStatus = { review: 'todo', waiting: 'in_review', done: 'done', declined: 'cancelled' }[status] || 'in_progress';
-    for (const list of [current ? current.tasks : [], all.tasks]) for (const k of list || []) if (k.request_id === id && ({ todo: 'review', in_review: 'waiting', done: 'done', cancelled: 'declined' }[k.status] || 'in_progress') !== status) k.status = cardStatus;
+    // The database moves the linked cards with the request; the ones in Multica are told too.
+    /** @type {Map<string, any>} */ const linked = new Map();
+    for (const list of [current ? current.tasks : [], all.tasks]) for (const k of list || []) if (k.request_id === id && ({ todo: 'review', in_review: 'waiting', done: 'done', cancelled: 'declined' }[k.status] || 'in_progress') !== status) { k.status = cardStatus; if (k.multica_issue_id) linked.set(k.id, k); }
     toast(`Marked ${(REQ_STATUS.find(([v]) => v === status) || ['', status])[1].toLowerCase()}.`);
+    for (const k of linked.values()) mirror(k);
   }
 
   /**
@@ -6212,14 +6452,32 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   /** The queue for every client. Tables added later: if they are not there yet, the console carries on without them. */
   async function loadReviews() {
     const client = await db();
-    const [i, v, x, s] = await Promise.all([
+    const [i, v, x, s, au] = await Promise.all([
       client.from('client_dashboard_items').select('*').or('verification_status.eq.pending,pending_at.not.is.null').order('updated_at'),
       client.from('client_billing_invoices').select('*').or('verification_status.eq.pending,pending_at.not.is.null').order('updated_at'),
       client.from('dashboard_exceptions').select('*').eq('status', 'open').order('detected_at'),
-      client.from('tenant_multica_sync').select('*')
+      client.from('tenant_multica_sync').select('*'),
+      client.from('tenant_auto_publish').select('tenant_id, enabled')
     ]);
-    const ok = (/** @type {any} */ r) => (r && !r.error ? r.data || [] : []);
-    if (all) all.reviews = { items: ok(i), invoices: ok(v), exceptions: ok(x), sync: Object.fromEntries(ok(s).map((/** @type {any} */ r) => [r.tenant_id, r])) };
+    const prev = (all && all.reviews) || { items: [], invoices: [], exceptions: [], sync: {}, auto: [] };
+    /** The only errors that mean "not set up yet". Anything else is a failure and must not look like an empty queue. */
+    const notThere = (/** @type {any} */ r) => !!(r && r.error && /PGRST205|42P01|does not exist|schema cache/i.test(`${r.error.code || ''} ${r.error.message || ''}`));
+    let failed = '';
+    const ok = (/** @type {any} */ r, /** @type {any} */ before) => {
+      if (r && !r.error) return r.data || [];
+      if (notThere(r)) return [];
+      failed = failed || String((r && r.error && r.error.message) || 'unknown error');
+      return before;
+    };
+    if (all) {
+      all.reviews = {
+        items: ok(i, prev.items), invoices: ok(v, prev.invoices), exceptions: ok(x, prev.exceptions),
+        sync: Object.fromEntries(ok(s, Object.values(prev.sync || {})).map((/** @type {any} */ r) => [r.tenant_id, r])),
+        // Which clients have auto-publish on; only read to word the page truthfully, so a failed read is not an error here.
+        auto: au && !au.error ? (au.data || []).filter((/** @type {any} */ r) => r.enabled).map((/** @type {any} */ r) => r.tenant_id) : prev.auto || []
+      };
+      if (failed) all.reviews.error = failed;
+    }
   }
   /** @param {string|null} tenantId */
   function reviewsFor(tenantId) {
@@ -6263,15 +6521,18 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   /** What an item says in one line: its title or first words. @param {any} c */
   const dmHeadline = (c) => { const v = c && (c.title || c.text || c.completed || c.changed || c.result); return v ? dmText(v) : 'No title'; };
 
+  /** What each queued item proposed when the block was drawn, by item id, so an edit can send back what was not touched as it was. @type {Map<string, any>} */
+  const dmOriginal = new Map();
   /** One summary line with Approve and Hide; the field by field view, Edit and Reject fold into Details. @param {any} it @param {boolean} showClient */
   function dmItemCard(it, showClient) {
     const revision = !!it.pending_at;
     const proposed = revision ? it.pending_content : it.content;
     const source = revision ? it.pending_source_ref : it.source_ref;
+    dmOriginal.set(it.id, proposed || {});
     const fields = Object.entries(proposed || {}).map(([k, v]) => `<div class="field"><label for="dm-${esc(it.id)}-${esc(k)}">${esc(dmField(k))}</label><input id="dm-${esc(it.id)}-${esc(k)}" name="${esc(k)}" data-type="${typeof v}" value="${esc(dmText(v))}" maxlength="2000"></div>`).join('');
     return `<li class="dm-card" data-dm-item="${esc(it.id)}">
       <div class="dm-line"><p class="g-top">${showClient ? `<span class="client">${esc(clientName(it.tenant_id))}</span>` : ''}<span class="chip you">${esc(DM_KIND[it.item_kind] || it.item_kind)}</span>${revision ? '<span class="chip info" title="They keep seeing the old version until you approve">Replaces what they see</span>' : ''}${it.hidden_at ? '<span class="chip">Hidden</span>' : ''}<span class="dm-title">${esc(dmHeadline(proposed))}</span><span class="meta">${esc(ago(it.pending_at || it.updated_at))}</span></p>
-        <div class="actions dm-buttons">${it.hidden_at ? '' : '<button class="btn btn-sm" type="button" data-dm="approve">Approve</button>'}${it.client_visible ? '<button class="btn btn-quiet btn-sm" type="button" data-dm="hide">Hide</button>' : ''}</div></div>
+        <div class="actions dm-buttons">${it.hidden_at ? '' : '<button class="btn btn-sm" type="button" data-dm="approve">Approve</button>'}${it.client_visible && me.role === 'super_admin' ? '<button class="btn btn-quiet btn-sm" type="button" data-dm="hide">Hide</button>' : ''}</div></div>
       <details class="dm-ids"><summary>Details</summary>
         ${dmDiff(revision ? it.content : null, proposed)}
         <p class="meta">${esc(dmMadeBy(it.source_kind))}${it.publish_requested ? ' · Team asked to publish' : ''}${[it.source_kind, source].filter(Boolean).length ? ` · ${[it.source_kind, source].filter(Boolean).map(esc).join(' · ')}` : ''}</p>
@@ -6329,13 +6590,45 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     const r = reviewsFor(tenantId);
     const count = r.items.length + r.invoices.length + r.exceptions.length;
     const showClient = !tenantId;
-    const lede = 'Things our system made for client dashboards (work, updates, results and invoices), and problems it found. Clients see nothing new until you press Approve. If it replaces something they see now, they keep the old version until then.';
+    const autoOn = ((all && all.reviews && all.reviews.auto) || []).filter((/** @type {string} */ id) => !tenantId || id === tenantId).length;
+    // Only claim "nothing without your click" when no client has auto-publish switched on.
+    const gate = autoOn ? `Auto-publish is on for ${tenantId ? 'this client' : plural(autoOn, 'client')}, so some items can go live without a click. Invoices always wait for you.` : 'Clients see nothing new until you press Approve.';
+    const lede = `Things our system made for client dashboards (work, updates, results and invoices), and problems it found. ${gate} If it replaces something they see now, they keep the old version until then.`;
+    const loadErr = all && all.reviews && all.reviews.error;
+    const notice = loadErr ? `<p class="notice bad" role="alert">Could not load the approvals queue (${esc(loadErr)}). Reload. Do not assume nothing is waiting.</p>` : '';
     const body = count
       ? `<ul class="q dm-list">${r.exceptions.map((x) => dmExceptionCard(x, showClient)).join('')}${r.items.map((x) => dmItemCard(x, showClient)).join('')}${r.invoices.map((x) => dmInvoiceCard(x, showClient)).join('')}</ul>`
       : `<p class="meta">Nothing to check.</p>`;
-    if (tenantId) return `<section class="panel" aria-labelledby="g-dm"><div class="panel-head"><h2 id="g-dm">Check before it goes live <span class="meta">${count}</span></h2><p title="${esc(lede)}">Clients see nothing new until you approve it.</p></div>${dmSyncLine(tenantId)}${body}</section>`;
+    if (tenantId) return `<section class="panel" aria-labelledby="g-dm"><div class="panel-head"><h2 id="g-dm">Check before it goes live <span class="meta">${count}</span></h2><p title="${esc(lede)}">${autoOn ? 'Some items may go live by themselves. Hover for details.' : 'Clients see nothing new until you approve it.'}</p></div>${notice}${dmSyncLine(tenantId)}${body}</section>`;
     // On Needs you it sits pinned at the top of Do now.
-    return count ? `<div class="q-client q-dm" id="q-dm"><h3 class="q-client-h" title="${esc(lede)}">Check before it goes live · ${count}</h3>${body}</div>` : '';
+    return count || loadErr ? `<div class="q-client q-dm" id="q-dm"><h3 class="q-client-h" title="${esc(lede)}">Check before it goes live · ${count}</h3>${notice}${count ? body : ''}</div>` : '';
+  }
+
+  /**
+   * Like check(), for the review, resolve and gate calls: the database's own words become sentences for the team
+   * (D8.live.dbFail's wording is for customers). @param {any} res
+   */
+  function dmCheck(res) {
+    if (res.error) {
+      const raw = String(res.error.message || '');
+      const text = /^not-found/.test(raw) ? 'Someone already dealt with this. Reloaded.'
+        : /^stale/.test(raw) ? 'It changed since you opened it. Reloaded.'
+        : /super-admin-only/.test(raw) ? 'Only an owner can do this.'
+        : /gates-incomplete/.test(raw) ? 'All four safety checks must be recorded first.'
+        : /^hidden/.test(raw) ? 'This was hidden from the client.'
+        : raw;
+      throw new Error(text);
+    }
+    return res.data;
+  }
+  /** After a failed review call the queue may have moved on: load it again and redraw. */
+  function dmRecover() { loadReviews().then(() => redraw(), () => { /* the message already said what failed */ }); }
+  /** The client and the item named in the question asked before anything goes live. @param {HTMLElement} card */
+  function dmWho(card) {
+    const r = (all && all.reviews) || { items: [], invoices: [], exceptions: [] };
+    const row = r.items.find((/** @type {any} */ x) => x.id === card.getAttribute('data-dm-item')) || r.invoices.find((/** @type {any} */ x) => x.id === card.getAttribute('data-dm-invoice')) || r.exceptions.find((/** @type {any} */ x) => x.id === card.getAttribute('data-dm-exception'));
+    const t = $('.dm-title', card);
+    return { who: row ? clientName(row.tenant_id) : 'the client', title: (t && t.textContent) || 'this' };
   }
 
   /** Approve, reject, edit, hide and resolve, wherever the block is shown. */
@@ -6358,16 +6651,26 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       $('.dm-buttons', card).hidden = false;
       return;
     }
+    // Nothing goes live, or is turned down, on one stray click: ask first, naming the client and the item.
+    const { who, title } = dmWho(card);
+    const remoteNow = card.getAttribute('data-remote') || '';
+    /** @type {string[]|null} */ let q = null;
+    if (act === 'approve') q = [`Publish to ${who}?`, `“${title}” goes live on their dashboard now.`, 'Publish'];
+    else if (act === 'reject') q = [`Reject this for ${who}?`, `“${title}” is turned down. Nothing changes on their dashboard.`, 'Reject'];
+    else if (act === 'inv-approve') q = [`Publish to ${who}?`, `“${title}” goes live on their billing page now.`, 'Publish'];
+    else if (act === 'inv-reject') q = [`Reject this invoice for ${who}?`, `“${title}” is turned down. Nothing changes on their billing page.`, 'Reject'];
+    else if (act === 'take-theirs') q = [`Move the card to match Multica?`, `${who}'s card goes to ${TASK_STATUS_LABEL[remoteNow] || remoteNow}, as Multica has it.`, 'Move it'];
+    if (q && !await ask(q[0], q[1], q[2])) return;
     const done = busy(b, 'Saving');
     try {
       if (itemId && (act === 'approve' || act === 'reject')) {
-        check(await client.rpc('review_dashboard_item', { p_item_id: itemId, p_decision: act, p_note: null }));
+        dmCheck(await client.rpc('review_dashboard_item', { p_item_id: itemId, p_decision: act, p_note: null }));
         toast(act === 'approve' ? 'Approved. It is on their portal now.' : 'Rejected. Nothing changed on their portal.');
       } else if (invId && (act === 'inv-approve' || act === 'inv-reject')) {
-        check(await client.rpc('review_billing_invoice', { p_invoice_id: invId, p_decision: act === 'inv-approve' ? 'approve' : 'reject', p_note: null }));
+        dmCheck(await client.rpc('review_billing_invoice', { p_invoice_id: invId, p_decision: act === 'inv-approve' ? 'approve' : 'reject', p_note: null }));
         toast(act === 'inv-approve' ? 'Invoice approved. It is on their portal now.' : 'Invoice rejected.');
       } else if (excId && act === 'resolve') {
-        check(await client.rpc('resolve_dashboard_exception', { p_id: excId, p_status: 'resolved', p_note: null }));
+        dmCheck(await client.rpc('resolve_dashboard_exception', { p_id: excId, p_status: 'resolved', p_note: null }));
         toast('Resolved.');
       } else if (excId && (act === 'keep-ours' || act === 'take-theirs')) {
         const taskId = card.getAttribute('data-task') || '';
@@ -6376,16 +6679,20 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
           toast('Sent. Multica now matches this card.');
         } else {
           const remote = card.getAttribute('data-remote') || '';
+          // Someone may have settled this while the question was open: do not move the card for a problem that is closed.
+          const open = check(await client.from('dashboard_exceptions').select('id').eq('id', excId).eq('status', 'open').maybeSingle());
+          if (!open) throw new Error('Someone already dealt with this. Reloaded.');
           const row = check(await client.from('tasks').update({ status: remote, multica_status: remote }).eq('id', taskId).select('*').single());
+          writes++;
           const k = all.tasks.find((/** @type {any} */ x) => x.id === taskId);
           if (k) { Object.assign(k, row); requestFollows(k); }
           toast(`Moved to ${TASK_STATUS_LABEL[remote] || remote}, as in Multica.`);
         }
-        check(await client.rpc('resolve_dashboard_exception', { p_id: excId, p_status: 'resolved', p_note: act === 'keep-ours' ? 'kept ours, pushed' : 'took Multica\'s' }));
+        dmCheck(await client.rpc('resolve_dashboard_exception', { p_id: excId, p_status: 'resolved', p_note: act === 'keep-ours' ? 'kept ours, pushed' : 'took Multica\'s' }));
       }
       await loadReviews();
       route();
-    } catch (x) { done(); toast(message(x), true); }
+    } catch (x) { done(); toast(message(x), true); dmRecover(); }
   }
   document.addEventListener('click', (e) => {
     const b = /** @type {HTMLButtonElement} */ (/** @type {HTMLElement} */ (e.target).closest('[data-dm]'));
@@ -6397,25 +6704,57 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     e.preventDefault();
     const card = /** @type {HTMLElement} */ (f.closest('.dm-card'));
     const itemId = card.getAttribute('data-dm-item') || '';
+    const isEdit = f.classList.contains('dm-edit');
+    const { who, title } = dmWho(card);
+    /** The whole proposed content, with only the fields the person changed replaced. The database swaps the content for
+     *  whatever is sent, so the untouched fields (and any null or nested value) go back exactly as they were. @type {any} */
+    let content = null;
+    let changed = 0;
+    if (isEdit) {
+      const orig = dmOriginal.get(itemId) || {};
+      content = { ...orig };
+      for (const el of $$('input', f)) {
+        const o = orig[el.name];
+        if (typeof o !== 'string' && typeof o !== 'number' && typeof o !== 'boolean') continue; // null and nested values are never turned into text
+        let v;
+        if (typeof o === 'number') {
+          const raw = el.value.trim();
+          if (raw === '' || isNaN(Number(raw))) { toast(`${dmField(el.name)} must be a number.`, true); el.focus(); return; }
+          v = Number(raw);
+        } else if (typeof o === 'boolean') {
+          const raw = el.value.trim().toLowerCase();
+          if (raw !== 'true' && raw !== 'false') { toast(`${dmField(el.name)} must be true or false.`, true); el.focus(); return; }
+          v = raw === 'true';
+        } else {
+          // a text box drops line breaks and stops at its limit, so compare with the original as the box would show it
+          v = el.value;
+          if (v === o.replace(/[\r\n]/g, '').slice(0, 2000)) continue;
+        }
+        if (v !== o) { content[el.name] = v; changed++; }
+      }
+    }
+    const reason = isEdit ? '' : val(f, 'reason');
+    if (!isEdit && !reason) { toast('Say why you are hiding it.', true); return; }
+    const sure = isEdit
+      ? await ask(`Publish to ${who}?`, `“${title}” goes live on their dashboard now${changed ? ', with your edits' : ''}.`, 'Publish')
+      : await ask(`Hide this from ${who}?`, `“${title}” comes off their dashboard. The history keeps it.`, 'Hide');
+    if (!sure) return;
     const done = busy(/** @type {HTMLButtonElement} */ ($('button[type=submit]', f)), 'Saving');
     try {
-      if (f.classList.contains('dm-edit')) {
-        /** @type {any} */ const content = {};
-        for (const el of $$('input', f)) {
-          const type = el.getAttribute('data-type');
-          content[el.name] = type === 'number' && el.value.trim() !== '' && !isNaN(Number(el.value)) ? Number(el.value) : type === 'boolean' ? el.value === 'true' : el.value;
-        }
-        check(await (await db()).rpc('review_dashboard_item', { p_item_id: itemId, p_decision: 'approve', p_note: 'edited before approval', p_content: content }));
-        toast('Edited and approved. It is on their portal now.');
+      if (isEdit) {
+        const client = await db();
+        // Nothing changed: it is a plain approval of what was proposed.
+        dmCheck(await client.rpc('review_dashboard_item', changed
+          ? { p_item_id: itemId, p_decision: 'approve', p_note: 'edited before approval', p_content: content }
+          : { p_item_id: itemId, p_decision: 'approve', p_note: null }));
+        toast(changed ? 'Edited and approved. It is on their portal now.' : 'Approved. It is on their portal now.');
       } else {
-        const reason = val(f, 'reason');
-        if (!reason) { done(); toast('Say why you are hiding it.', true); return; }
         await callFn('dashboard-recovery', { action: 'hide', targetType: 'dashboard-item', itemId, reason });
         toast('Hidden from the client. The history keeps it.');
       }
       await loadReviews();
       route();
-    } catch (x) { done(); toast(message(x), true); }
+    } catch (x) { done(); toast(message(x), true); dmRecover(); }
   });
 
   /** Settings, super admins only: the four rollout gates and the per-client auto-publish switch. @param {HTMLElement} box */
@@ -6424,9 +6763,11 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     const GATES = [['a_test_project_tests', 'Automated tests pass', 'Test-project tests pass'], ['b_field_evidence_checks', 'Every number traces to a source', 'Field-level evidence checks pass'], ['c_tenant_authorization', 'Each client sees only their own data', 'Tenant authorization checks pass'], ['d_test_client_backfill', 'One real client tested end to end', 'One test client backfilled and approved']];
     // Folded shut by default; a redraw keeps it open if it was.
     const wasOpen = !!$('details.fold-panel[open]', box);
-    const head = `<summary class="fold-sum"><h2 id="s-gates">Automatic publishing (owner only)</h2><span class="meta">Off for now. It turns on only after 4 safety checks pass, an owner switches it on, and the client's own switch is on. Invoices always wait for you.</span></summary>
+    // The first line says what is true now: the switches are per client, so it reads them once they have loaded.
+    let state = 'Off for now. It turns on only after 4 safety checks pass, an owner switches it on, and the client\'s own switch is on.';
+    const head = () => `<summary class="fold-sum"><h2 id="s-gates">Automatic publishing (owner only)</h2><span class="meta">${state} Invoices always wait for you.</span></summary>
       <p class="hint">The owner's switch is AUTO_PUBLISH_ENABLED on the server. Until all three are on, everything waits in Check before it goes live.</p>`;
-    const wrap = (/** @type {string} */ inner) => `<details class="fold-panel"${wasOpen ? ' open' : ''}>${head}${inner}</details>`;
+    const wrap = (/** @type {string} */ inner) => `<details class="fold-panel"${wasOpen ? ' open' : ''}>${head()}${inner}</details>`;
     box.innerHTML = wrap(skeleton(1));
     const client = await db();
     const [g, a] = await Promise.all([client.from('dashboard_publish_gates').select('*'), client.from('tenant_auto_publish').select('*')]);
@@ -6434,6 +6775,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     const passed = Object.fromEntries((g.data || []).map((/** @type {any} */ x) => [x.gate, x]));
     const allPassed = GATES.every(([k]) => passed[k]);
     const on = Object.fromEntries(((a && a.data) || []).map((/** @type {any} */ x) => [x.tenant_id, x.enabled]));
+    const nOn = Object.values(on).filter(Boolean).length;
+    if (nOn) state = `On for ${plural(nOn, 'client')}: items the team asked to publish can go live there without a click, once an owner's switch is on too.`;
     box.innerHTML = wrap(`
       <h3 class="panel-sub">The 4 safety checks</h3>
       <dl class="facts">${GATES.map(([k, l, tech]) => `<dt>${esc(l)}<span class="gate-tech">${esc(tech)}</span></dt><dd>${passed[k] ? `<span class="chip good">Passed</span> <span class="meta">${esc(ago(passed[k].passed_at))}: ${esc(passed[k].evidence_ref)}</span>` : '<span class="chip warn">Not yet</span>'}</dd>`).join('')}</dl>
@@ -6448,8 +6791,10 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       e.preventDefault();
       const evidence = val(f, 'evidence');
       if (!evidence) { toast('Add the evidence: a link or reference.', true); return; }
+      const gate = GATES.find(([k]) => k === val(f, 'gate'));
+      if (!await ask('Record this safety check?', `This says “${gate ? gate[1] : 'the check'}” has passed, with this evidence: ${evidence}. Once all four are recorded, an owner can switch on automatic publishing.`, 'Record')) return;
       const done = busy($('button[type=submit]', f), 'Recording');
-      try { check(await client.rpc('record_publish_gate', { p_gate: val(f, 'gate'), p_evidence_ref: evidence })); toast('Safety check recorded.'); gatesPanel(box); } catch (x) { done(); toast(message(x), true); }
+      try { dmCheck(await client.rpc('record_publish_gate', { p_gate: val(f, 'gate'), p_evidence_ref: evidence })); toast('Safety check recorded.'); gatesPanel(box); } catch (x) { done(); toast(message(x), true); }
     });
     // onchange, not addEventListener: the panel redraws itself after each change and must not stack handlers.
     box.onchange = async (e) => {
@@ -6457,8 +6802,11 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       const id = t.getAttribute('data-dm-auto');
       if (!id) return;
       e.stopPropagation();
+      const want = t.checked;
+      const who = clientName(id);
+      if (!await ask(want ? `Turn on auto-publish for ${who}?` : `Turn off auto-publish for ${who}?`, want ? 'Items the team asked to publish can then go live on their dashboard without your click, once the safety checks pass and the owner\'s switch is on. Invoices still wait for you.' : 'Everything for them waits for your approval again.', want ? 'Turn on' : 'Turn off')) { t.checked = !want; return; }
       t.disabled = true;
-      try { check(await client.rpc('set_tenant_auto_publish', { p_tenant: id, p_enabled: t.checked })); toast(t.checked ? 'On for this client. The owner\'s switch (AUTO_PUBLISH_ENABLED on the server) must also be on.' : 'Off for this client.'); } catch (x) { t.checked = !t.checked; toast(message(x), true); }
+      try { dmCheck(await client.rpc('set_tenant_auto_publish', { p_tenant: id, p_enabled: t.checked })); toast(t.checked ? 'On for this client. The owner\'s switch (AUTO_PUBLISH_ENABLED on the server) must also be on.' : 'Off for this client.'); } catch (x) { t.checked = !t.checked; toast(message(x), true); }
       gatesPanel(box);
     };
   }
@@ -6467,7 +6815,12 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
 
   /** Loads everything again and redraws the page (the palette's Reload, the small icon by "Updated"). */
   async function refreshAll() {
-    try { await loadAll(); route(); toast('Up to date.'); } catch (x) { toast(message(x), true); }
+    if (dirty.size) {
+      if (!await ask('Reload and lose your changes?', `Unsaved: ${Array.from(dirty.values()).join(', ')}.`, 'Reload')) return;
+      dirty.clear();
+      saveBar();
+    }
+    try { await loadAll(); redraw(); toast('Up to date.'); } catch (x) { toast(message(x), true); }
   }
   /** The keyboard shortcuts, from the "?" in the sidebar. */
   function openKeys() {
@@ -6487,10 +6840,15 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       if (dirty.size && !await ask('Sign out without saving?', `You have unsaved changes: ${Array.from(dirty.values()).join(', ')}.`, 'Sign out')) return;
       await signOutNow('You are signed out.');
     } else if (action === 'reload') {
+      if (dirty.size) {
+        if (!await ask('Reload and lose your changes?', `Unsaved: ${Array.from(dirty.values()).join(', ')}.`, 'Reload')) return;
+        dirty.clear();
+        saveBar();
+      }
       current = null;
       main.innerHTML = skeleton(3);
       try { await loadAll(); } catch (x) { toast(message(x), true); }
-      route();
+      redraw();
     } else if (action === 'refresh') {
       /** @type {HTMLButtonElement} */ (b).disabled = true;
       await refreshAll();
@@ -6538,7 +6896,12 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       if (await ask('Discard your changes?', `Unsaved: ${Array.from(dirty.values()).join(', ')}.`, 'Discard')) { dirty.clear(); saveBar(); route(); }
     } else if (action === 'save-dirty') {
       const form = dirty.keys().next().value;
-      if (form) form.requestSubmit();
+      if (form) {
+        // A form that is already saving has its button disabled; requestSubmit() ignores that and would send it twice.
+        const sub = form.querySelector('button[type=submit]');
+        if (sub && sub.disabled) return;
+        form.requestSubmit();
+      }
     }
   });
 

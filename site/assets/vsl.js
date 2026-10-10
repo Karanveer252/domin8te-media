@@ -69,21 +69,33 @@ go.addEventListener('click', function () {
 update();
 })();
 
-/* the booking calendar: a Google appointment schedule, loaded only when the section is close */
+/* the booking calendar: Calendly's inline page in an iframe, loaded only when the section is close.
+   Calendly posts its own height to this page (calendly.page_height), so the box fits it exactly and
+   never scrolls inside itself. Colours match the page: white ground, the site's orange, navy ink. */
 (function () {
 'use strict';
 var cal = document.getElementById('bookCal');
 var src = cal && cal.getAttribute('data-src');
 if (!src) return;
+var frame = null;
 function load() {
-  var f = document.createElement('iframe');
-  f.src = src + (src.indexOf('?') < 0 ? '?gv=true' : '&gv=true');
-  f.title = 'Book a discovery call';
-  f.loading = 'lazy';
+  var q = 'embed_type=Inline&embed_domain=' + encodeURIComponent(location.host || 'domin8temedia.com') +
+          '&hide_gdpr_banner=1&background_color=ffffff&text_color=0e1420&primary_color=ca4a14';
+  frame = document.createElement('iframe');
+  frame.src = src + (src.indexOf('?') < 0 ? '?' : '&') + q;
+  frame.title = 'Book a discovery call';
   cal.innerHTML = '';
-  cal.appendChild(f);
+  cal.appendChild(frame);
   cal.classList.add('is-on');
 }
+window.addEventListener('message', function (e) {
+  if (!frame || e.source !== frame.contentWindow || !/^https:\/\/([a-z0-9-]+\.)?calendly\.com$/.test(e.origin)) return;
+  var d = e.data;
+  if (d && d.event === 'calendly.page_height' && d.payload && d.payload.height) {
+    var h = parseInt(d.payload.height, 10);
+    if (h > 200) frame.style.height = h + 'px';
+  }
+});
 if (!('IntersectionObserver' in window)) { load(); return }
 var io = new IntersectionObserver(function (es) {
   if (es.some(function (e) { return e.isIntersecting })) { io.disconnect(); load() }
