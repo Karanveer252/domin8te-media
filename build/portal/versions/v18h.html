@@ -4404,7 +4404,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       const b = clone(tenant.billing);
       // the plan lists the services the client actually has: the package is the one list the team changes
       // (Change services in the console), so a client who drops two services sees two here, as everywhere else
-      if (b.plan) b.plan = { ...b.plan, services: tenant.package.services.filter((s) => SERVICES[s]) };
+      if (b.plan) b.plan = { ...b.plan, interval: b.plan.interval || tenant.package.billing || '', services: tenant.package.services.filter((s) => SERVICES[s]) };
       return { ...b, stripeConnected: integrations.stripe.connected };
     }
 
@@ -4870,6 +4870,11 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     return fail('source-error', "We couldn't reach your account just now. Try again in a moment.");
   }
 
+  /** Whether a freshly loaded state already has this write. @param {any} s @param {string} kind @param {any} rec */
+  const holds = (s, kind, rec) => (kind === 'decision' ? !!(s.decisions && s.decisions[rec.approvalId])
+    : kind === 'message' || kind === 'request' ? (s[kind + 's'] || []).some((/** @type {any} */ x) => x.id === rec.id)
+      : false);
+
   /**
    * The live source for one signed-in person: their restaurant's record and their own rows, read
    * once and kept here, and every action written to the database before it counts.
@@ -4881,7 +4886,9 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     /** @type {any} */ let st = {};
     const now = () => Date.now();
 
+    let loads = 0;
     async function load() {
+      const mine = ++loads;
       if (!session.tenantId) { tenant = null; return; }
       const sb = await db();
       const t = await sb.from('tenants').select('id, name, doc').eq('clerk_org_id', session.tenantId).limit(1);
@@ -4915,6 +4922,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       const MISSING = ['42P01', 'PGRST205', 'PGRST202', '42883'];
       const missing = (/** @type {any} */ e) => MISSING.includes(e.code) || /does not exist|schema cache|no rpc/i.test(String(e.message || ''));
       for (const x of [items, inv, cards]) if (x.error && !missing(x.error)) throw dbFail(x.error);
+      if (mine !== loads && tenant) return; // a newer load started (after a 30 s give-up): it has the say
       /** @type {any} */ const next = {};
       for (const x of d.data || []) apply(next, 'decision', { approvalId: x.approval_id, decision: x.decision, comment: x.comment, at: x.at, by: x.by_name });
       for (const x of m.data || []) apply(next, 'message', { id: x.id, about: x.about, text: x.body, at: x.at, fromTeam: x.from_staff, by: x.by_name });
@@ -4930,7 +4938,15 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       if (!cards.error && Array.isArray(cards.data)) tenant.cards = cards.data.map((/** @type {any} */ c) => ({ id: c.id, service: c.service, title: c.title, status: c.status, due: c.due, updatedAt: c.updated_at, createdAt: c.created_at }));
     }
 
-    let ready = load();
+    /** A load that gives up after 30 real seconds (the elapsed check keeps instant test timers from firing it early). */
+    function timed() {
+      const t0 = Date.now();
+      /** @type {any} */ let timer;
+      // A give-up counts as a newer load, so the abandoned one cannot land later over what came after it.
+      const hang = new Promise((_, no) => { timer = setTimeout(() => { if (Date.now() - t0 >= 29000) { loads++; no(fail('source-error', "We couldn't reach your account just now. Try again in a moment.")); } }, 30000); });
+      return Promise.race([load(), hang]).finally(() => clearTimeout(timer));
+    }
+    let ready = timed();
     /** @type {Promise<any>|null} */ let loading = null;
     /** @type {Promise<any>|null} */ let queued = null;
     return {
@@ -4969,16 +4985,15 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         const stored = { ...rec, id: row.id || rec.id, at: row.at || row.notifications_saved_at || T.isoTime(now()) };
         if (row.status) stored.status = row.status;
         apply(st, kind, stored);
+        // A refresh already running read the rows before this write: keep the write when that refresh lands.
+        if (loading) loading.then(() => { if (!holds(st, kind, stored)) apply(st, kind, stored); }, () => {});
         return stored;
       },
       reload() {
         // One refresh at a time (a slow one must not finish after a newer one and overwrite it). A refresh asked for
         // while one runs waits for it and then loads again, so what changed in between (a message just sent) is read.
         if (loading) return (queued = queued || loading.then(() => {}, () => {}).then(() => { queued = null; return this.reload(); }));
-        const t0 = Date.now();
-        // gives up only after 30 real seconds (the elapsed check keeps instant test timers from firing it early)
-        const hang = new Promise((_, no) => setTimeout(() => { if (Date.now() - t0 >= 29000) no(fail('source-error', "We couldn't reach your account just now. Try again in a moment.")); }, 30000));
-        const p = Promise.race([load(), hang]);
+        const p = timed();
         loading = p;
         const done = () => { loading = null; };
         p.then(done, done);
@@ -5016,7 +5031,10 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         body: JSON.stringify(kind === 'invoice' ? { action: 'invoice', number } : { action: 'portal' })
       });
       j = await res.json().catch(() => ({}));
-    } catch (e) { throw notSet(); } // the billing function is not there (or the browser was refused): retrying never helps
+    } catch (e) {
+      if (root.navigator && root.navigator.onLine === false) throw fail('offline', "You're offline. Check your connection and try again.");
+      throw notSet(); // the billing function is not there (or the browser was refused): retrying never helps
+    }
     if ((res.status === 404 && !j.error) || j.code === 'NOT_FOUND') throw notSet();
     if (res.ok && j.url) return j.url;
     const e = /** @type {any} */ (new Error(j.error === 'not-configured' || j.error === 'no-customer' || j.error === 'live-key-refused'
@@ -5726,10 +5744,10 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     }
   }
 
-  /** A request that never answers must not lock the dialog for ever. @param {Promise<any>} p @param {number} [ms] */
-  function slow(p, ms) {
+  /** A request that never answers must not lock the dialog for ever. @param {Promise<any>} p @param {string} where @param {number} [ms] */
+  function slow(p, where, ms) {
     return new Promise((res, rej) => {
-      const t = setTimeout(() => rej(Object.assign(new Error('Still waiting for an answer. Check Home before trying again, in case it went through.'), { code: 'slow' })), ms || 25000);
+      const t = setTimeout(() => rej(Object.assign(new Error(`Still waiting for an answer. Check ${where} before trying again, in case it went through.`), { code: 'slow' })), ms || 25000);
       p.then((v) => { clearTimeout(t); res(v); }, (e) => { clearTimeout(t); rej(e); });
     });
   }
@@ -5841,7 +5859,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         if (decision === 'changes' && !comment.trim()) { fieldError('comment', 'Tell us what to change so we can fix it.'); return; }
         if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
         setBusy(true, btn, decision === 'approved' ? 'Saving' : 'Sending');
-        slow(ctx.client.decide(id, decision, comment)).then((rec) => {
+        slow(ctx.client.decide(id, decision, comment), 'Home').then((rec) => {
           changed = true;
           setBusy(false);
           inner().innerHTML = head(a.title, label) + `<div class="dlg-body">${decided(a, rec, ctx.client.now())}</div>`;
@@ -6028,7 +6046,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       formError('');
       if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
       setBusy(true, done, 'Sending');
-      slow(ctx.client.accountRequest(ids, mode)).then(() => {
+      slow(ctx.client.accountRequest(ids, mode), 'Settings').then(() => {
         sent = true;
         setBusy(false);
         const what = F.list(names);
@@ -6078,7 +6096,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
       setBusy(true, btn, 'Sending');
       const svcEl = /** @type {HTMLSelectElement|null} */ (form.elements.namedItem('service'));
-      const p = slow(isRequest ? ctx.client.sendRequest(svcEl ? svcEl.value : o.service, text) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text));
+      const p = slow(isRequest ? ctx.client.sendRequest(svcEl ? svcEl.value : o.service, text) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text), 'Messages');
       p.then((rec) => {
         sent = true;
         setBusy(false);
@@ -6138,7 +6156,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     });
   }
 
-  D8.dialogs = { wire, open, close, approval, external, account, compose, demo, confirm, toast };
+  D8.dialogs = { wire, open, close, approval, external, account, compose, demo, confirm, toast, slow };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script>
@@ -6701,21 +6719,23 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   const INVOICES_SHOWN = 3;
   function billingBody(b) {
     const s = b.subscription;
+    const pm = b.paymentMethod || {};
     const rowsOf = (/** @type {any[]} */ list) => list.map((i) => UI.InvoiceRow(i, { problemShown: false })).join('');
-    // A new client has no plan, card or subscription on file yet: say so, never a "could not load".
-    if (!s || !b.plan || !b.paymentMethod) {
+    // A new client has no plan or subscription on file yet: say so, never a "could not load". The card is optional
+    // (the console never records one): without it the card line is simply left out.
+    if (!s || !b.plan || !b.plan.name || !(s.status || s.nextBilling || s.startedAt)) {
       const recentOnly = (b.invoices || []).slice(0, INVOICES_SHOWN);
       return `${UI.EmptyState({ icon: 'card', title: 'Billing is not set up yet.', text: 'Message us and we will sort it out.' })}
         ${recentOnly.length ? `<section class="sec" aria-labelledby="h-invoices"><div class="sec-head"><h2 id="h-invoices">Invoices</h2></div><div class="card"><ul class="invoices">${rowsOf(recentOnly)}</ul></div></section>` : ''}
         <p class="bill-help">Question about a charge? <a class="link" href="#/messages">Message us</a></p>`;
     }
     const problem = s.status === 'past_due';
-    const payProblem = b.paymentMethod.problem;
+    const payProblem = pm.problem;
     const okStatus = !s.status || ['active', 'trialing'].includes(s.status);
-    const statusText = s.status ? String(s.status).replace(/_/g, ' ').replace(/^./, (x) => x.toUpperCase()) : 'Active';
+    const statusText = s.status === 'canceled' ? 'Cancelled' : s.status ? String(s.status).replace(/_/g, ' ').replace(/^./, (x) => x.toUpperCase()) : 'Active'; // UK spelling, as in the console
     const banner = problem ? `<section class="banner tone-error" aria-labelledby="h-bill-problem">
         ${icon('alert', 'banner-icon')}
-        <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>Your card ending ${esc(b.paymentMethod.last4)} was declined${payProblem && payProblem.date ? ` on ${esc(day(payProblem.date))}` : ''}. Everything keeps running until ${esc(day(s.graceUntil))}. If the payment still fails, services pause after that.</p>${s.retryOn ? `<details class="fold fold-quiet"><summary>See details${icon('chevron-down')}</summary><p class="meta">Stripe, our payment service, will try your card again on ${esc(day(s.retryOn))}.</p></details>` : ''}</div>
+        <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>${pm.last4 ? `Your card ending ${esc(pm.last4)} was` : 'Your last payment was'} declined${payProblem && payProblem.date ? ` on ${esc(day(payProblem.date))}` : ''}.${s.graceUntil ? ` Everything keeps running until ${esc(day(s.graceUntil))}. If the payment still fails, services pause after that.` : ''}</p>${s.retryOn ? `<details class="fold fold-quiet"><summary>See details${icon('chevron-down')}</summary><p class="meta">Stripe, our payment service, will try your card again on ${esc(day(s.retryOn))}.</p></details>` : ''}</div>
         <button class="btn btn-primary" type="button" data-action="external" data-kind="billing-portal">Update payment method</button>
       </section>` : '';
     const rows = (/** @type {any[]} */ list) => list.map((i) => UI.InvoiceRow(i, { problemShown: problem })).join('');
@@ -6727,8 +6747,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         <p class="plan-name">${esc(b.plan.name)}</p>
         <ul class="plan-list">${b.plan.services.map((x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
         ${planOff(b.plan.services)}
-        <dl class="facts"><div><dt>How you pay</dt><dd>${esc(b.plan.interval)}</dd></div><div><dt>Next payment</dt><dd>${esc(day(s.nextBilling))}</dd></div><div><dt>Card</dt><dd class="card-line">${icon('card')}${esc(b.paymentMethod.brand)} ending ${esc(b.paymentMethod.last4)}</dd></div></dl>
-        ${!problem && b.paymentMethod.problem ? `<p class="due tone-overdue">${icon('alert')}${esc(b.paymentMethod.problem.text)}</p>` : ''}
+        <dl class="facts">${b.plan.interval ? `<div><dt>How you pay</dt><dd>${esc(b.plan.interval)}</dd></div>` : ''}${s.nextBilling ? `<div><dt>Next payment</dt><dd>${esc(day(s.nextBilling))}</dd></div>` : ''}${pm.last4 ? `<div><dt>Card</dt><dd class="card-line">${icon('card')}${esc(pm.brand || 'Card')} ending ${esc(pm.last4)}</dd></div>` : ''}</dl>
+        ${!problem && payProblem ? `<p class="due tone-overdue">${icon('alert')}${esc(payProblem.text)}</p>` : ''}
         <p class="secure-line">${icon('lock')}<span><strong>Secured by Stripe</strong>, trusted by millions of businesses. Your card details stay with Stripe; we never see your full card number.</span></p>
         ${problem ? '' : `<button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="billing-portal">Change card${icon('external')}</button>`}
       </section>
@@ -7175,7 +7195,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         if (last) draw({ ...last, items: [...last.items, pending] }, true);
         send.disabled = true;
         send.innerHTML = '<span class="spinner" aria-hidden="true"></span>Sending';
-        ctx.client.sendMessage(topic, body).then(() => {
+        D8.dialogs.slow(ctx.client.sendMessage(topic, body), 'the conversation').then(() => {
           if (text.value === body) text.value = ''; // anything typed while it sent stays
           if (!aboutBox.hidden) toggle.click();
           return quiet(true);
@@ -7185,6 +7205,9 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
             err.innerHTML = `${icon('alert')}${esc(e2.message)}`;
             err.hidden = false;
             text.setAttribute('aria-invalid', 'true');
+          } else if (e2 && e2.code === 'slow') {
+            formErr.innerHTML = `${icon('alert')}<span>${esc(e2.message)} Your words are still here.</span>`;
+            formErr.hidden = false;
           } else {
             formErr.innerHTML = `${icon('alert')}<span>That did not send. ${esc((e2 && e2.message) || '')} Your words are still here. Try again.</span>`;
             formErr.hidden = false;

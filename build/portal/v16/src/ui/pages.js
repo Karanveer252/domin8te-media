@@ -556,21 +556,23 @@
   const INVOICES_SHOWN = 3;
   function billingBody(b) {
     const s = b.subscription;
+    const pm = b.paymentMethod || {};
     const rowsOf = (/** @type {any[]} */ list) => list.map((i) => UI.InvoiceRow(i, { problemShown: false })).join('');
-    // A new client has no plan, card or subscription on file yet: say so, never a "could not load".
-    if (!s || !b.plan || !b.paymentMethod) {
+    // A new client has no plan or subscription on file yet: say so, never a "could not load". The card is optional
+    // (the console never records one): without it the card line is simply left out.
+    if (!s || !b.plan || !b.plan.name || !(s.status || s.nextBilling || s.startedAt)) {
       const recentOnly = (b.invoices || []).slice(0, INVOICES_SHOWN);
       return `${UI.EmptyState({ icon: 'card', title: 'Billing is not set up yet.', text: 'Message us and we will sort it out.' })}
         ${recentOnly.length ? `<section class="sec" aria-labelledby="h-invoices"><div class="sec-head"><h2 id="h-invoices">Invoices</h2></div><div class="card"><ul class="invoices">${rowsOf(recentOnly)}</ul></div></section>` : ''}
         <p class="bill-help">Question about a charge? <a class="link" href="#/messages">Message us</a></p>`;
     }
     const problem = s.status === 'past_due';
-    const payProblem = b.paymentMethod.problem;
+    const payProblem = pm.problem;
     const okStatus = !s.status || ['active', 'trialing'].includes(s.status);
-    const statusText = s.status ? String(s.status).replace(/_/g, ' ').replace(/^./, (x) => x.toUpperCase()) : 'Active';
+    const statusText = s.status === 'canceled' ? 'Cancelled' : s.status ? String(s.status).replace(/_/g, ' ').replace(/^./, (x) => x.toUpperCase()) : 'Active'; // UK spelling, as in the console
     const banner = problem ? `<section class="banner tone-error" aria-labelledby="h-bill-problem">
         ${icon('alert', 'banner-icon')}
-        <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>Your card ending ${esc(b.paymentMethod.last4)} was declined${payProblem && payProblem.date ? ` on ${esc(day(payProblem.date))}` : ''}. Everything keeps running until ${esc(day(s.graceUntil))}. If the payment still fails, services pause after that.</p>${s.retryOn ? `<details class="fold fold-quiet"><summary>See details${icon('chevron-down')}</summary><p class="meta">Stripe, our payment service, will try your card again on ${esc(day(s.retryOn))}.</p></details>` : ''}</div>
+        <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>${pm.last4 ? `Your card ending ${esc(pm.last4)} was` : 'Your last payment was'} declined${payProblem && payProblem.date ? ` on ${esc(day(payProblem.date))}` : ''}.${s.graceUntil ? ` Everything keeps running until ${esc(day(s.graceUntil))}. If the payment still fails, services pause after that.` : ''}</p>${s.retryOn ? `<details class="fold fold-quiet"><summary>See details${icon('chevron-down')}</summary><p class="meta">Stripe, our payment service, will try your card again on ${esc(day(s.retryOn))}.</p></details>` : ''}</div>
         <button class="btn btn-primary" type="button" data-action="external" data-kind="billing-portal">Update payment method</button>
       </section>` : '';
     const rows = (/** @type {any[]} */ list) => list.map((i) => UI.InvoiceRow(i, { problemShown: problem })).join('');
@@ -582,8 +584,8 @@
         <p class="plan-name">${esc(b.plan.name)}</p>
         <ul class="plan-list">${b.plan.services.map((x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
         ${planOff(b.plan.services)}
-        <dl class="facts"><div><dt>How you pay</dt><dd>${esc(b.plan.interval)}</dd></div><div><dt>Next payment</dt><dd>${esc(day(s.nextBilling))}</dd></div><div><dt>Card</dt><dd class="card-line">${icon('card')}${esc(b.paymentMethod.brand)} ending ${esc(b.paymentMethod.last4)}</dd></div></dl>
-        ${!problem && b.paymentMethod.problem ? `<p class="due tone-overdue">${icon('alert')}${esc(b.paymentMethod.problem.text)}</p>` : ''}
+        <dl class="facts">${b.plan.interval ? `<div><dt>How you pay</dt><dd>${esc(b.plan.interval)}</dd></div>` : ''}${s.nextBilling ? `<div><dt>Next payment</dt><dd>${esc(day(s.nextBilling))}</dd></div>` : ''}${pm.last4 ? `<div><dt>Card</dt><dd class="card-line">${icon('card')}${esc(pm.brand || 'Card')} ending ${esc(pm.last4)}</dd></div>` : ''}</dl>
+        ${!problem && payProblem ? `<p class="due tone-overdue">${icon('alert')}${esc(payProblem.text)}</p>` : ''}
         <p class="secure-line">${icon('lock')}<span><strong>Secured by Stripe</strong>, trusted by millions of businesses. Your card details stay with Stripe; we never see your full card number.</span></p>
         ${problem ? '' : `<button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="billing-portal">Change card${icon('external')}</button>`}
       </section>
@@ -1030,7 +1032,7 @@
         if (last) draw({ ...last, items: [...last.items, pending] }, true);
         send.disabled = true;
         send.innerHTML = '<span class="spinner" aria-hidden="true"></span>Sending';
-        ctx.client.sendMessage(topic, body).then(() => {
+        D8.dialogs.slow(ctx.client.sendMessage(topic, body), 'the conversation').then(() => {
           if (text.value === body) text.value = ''; // anything typed while it sent stays
           if (!aboutBox.hidden) toggle.click();
           return quiet(true);
@@ -1040,6 +1042,9 @@
             err.innerHTML = `${icon('alert')}${esc(e2.message)}`;
             err.hidden = false;
             text.setAttribute('aria-invalid', 'true');
+          } else if (e2 && e2.code === 'slow') {
+            formErr.innerHTML = `${icon('alert')}<span>${esc(e2.message)} Your words are still here.</span>`;
+            formErr.hidden = false;
           } else {
             formErr.innerHTML = `${icon('alert')}<span>That did not send. ${esc((e2 && e2.message) || '')} Your words are still here. Try again.</span>`;
             formErr.hidden = false;

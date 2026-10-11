@@ -791,7 +791,7 @@
       const b = clone(tenant.billing);
       // the plan lists the services the client actually has: the package is the one list the team changes
       // (Change services in the console), so a client who drops two services sees two here, as everywhere else
-      if (b.plan) b.plan = { ...b.plan, services: tenant.package.services.filter((s) => SERVICES[s]) };
+      if (b.plan) b.plan = { ...b.plan, interval: b.plan.interval || tenant.package.billing || '', services: tenant.package.services.filter((s) => SERVICES[s]) };
       return { ...b, stripeConnected: integrations.stripe.connected };
     }
 

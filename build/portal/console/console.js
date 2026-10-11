@@ -434,6 +434,8 @@
   /** A confirmation in the page's own words. Resolves true when confirmed. @param {string} title @param {string} text @param {string} [ok] */
   function ask(title, text, ok) {
     const dlg = /** @type {HTMLDialogElement} */ ($('#confirm'));
+    // One question at a time: a second one would take over this dialog, and one click would answer both.
+    if (dlg.open) return Promise.resolve(false);
     $('#confirm-h').textContent = title;
     $('#confirm-p').textContent = text;
     $('[value="ok"]', dlg).textContent = ok || 'Remove';
@@ -549,7 +551,8 @@
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(/** @type {HTMLElement} */ (e.target).tagName) || /** @type {HTMLElement} */ (e.target).isContentEditable;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); palette.open(); }
     else if (e.key === '/' && !typing && !palette.dlg.open) { e.preventDefault(); palette.open(); }
-    else if (e.altKey && !typing && /^[1-5]$/.test(e.key) && current && /^#\/client\//.test(location.hash)) {
+    // (not while a dialog is open: changing page under a question would ask another one on top of it)
+    else if (e.altKey && !typing && !$('dialog[open]') && /^[1-5]$/.test(e.key) && current && /^#\/client\//.test(location.hash)) {
       const tab = TABS[Number(e.key) - 1];
       if (tab) { e.preventDefault(); location.hash = `#/client/${current.id}/${tab[0]}`; }
     }
@@ -608,6 +611,9 @@
           saveBar();
           stopPulling();
           stopInbox();
+          // A question still open would run its action for whoever is signed in now: answer it No.
+          const q = /** @type {HTMLDialogElement} */ ($('#confirm'));
+          if (q.open) { q.dispatchEvent(new Event('cancel')); q.close(); }
           signInPage(why + keep);
         }
       });
@@ -730,6 +736,8 @@
 
   let lastHash = location.hash || '#/queue';
   let restoring = false;
+  /** The address the page on screen was last drawn for (a save can redraw while "Leave without saving?" is open). */
+  let drawn = lastHash;
 
   /** The tab last used for a client on this computer. @param {string} id */
   function lastTab(id) {
@@ -740,6 +748,7 @@
 
   function route() {
     if (!me) return;
+    drawn = location.hash || '#/queue';
     closeSide();
     dirty.clear();
     saveBar();
@@ -767,12 +776,19 @@
   }
   /** Redraws after a change made by code, not by the person: route() would throw away unsaved edits, so those are kept. */
   const redraw = () => (dirty.size ? toast('Updated. Your unsaved edits are kept; save or discard to see the new data.') : route());
+  /** After one form saved: draw the page again, unless another form on it still has unsaved edits; those are kept. @param {() => void} done */
+  const afterSave = (done) => { if (dirty.size) { done(); toast('Saved. Other unsaved edits on this page are kept.'); } else route(); };
   async function onHash() {
     if (restoring) { restoring = false; return; }
     if (dirty.size) {
       const ok = await ask('Leave without saving?', `You have unsaved changes: ${Array.from(dirty.values()).join(', ')}.`, 'Leave');
       // Only if the address really changed: setting it to what it already is fires no event, and the flag would swallow the next real one.
-      if (!ok) { if (location.hash !== lastHash) { restoring = true; location.hash = lastHash; } return; }
+      if (!ok) {
+        if (location.hash !== lastHash) { restoring = true; location.hash = lastHash; }
+        // A save that finished while this was asked may have drawn the page it would have gone to: draw this one again.
+        if (drawn !== (lastHash || '#/queue')) route();
+        return;
+      }
     }
     lastHash = location.hash;
     route();
@@ -971,7 +987,7 @@
       const r = all.requests.find((/** @type {any} */ x) => x.id === id);
       if (!r || r.status === sel.value) return;
       sel.disabled = true;
-      try { await setRequestStatus(id, sel.value); redrawInbox(); }
+      try { await setRequestStatus(id, sel.value); sel.disabled = false; redrawInbox(); }
       catch (x) { sel.disabled = false; sel.value = r.status; toast(message(x), true); }
     };
     toBottom();
@@ -1270,7 +1286,7 @@
       tab = to[0];
       part = to[1] || '';
       const fixed = `#/client/${id}/${tab}${part ? '/' + part : ''}`;
-      try { window.history.replaceState(null, '', fixed); lastHash = fixed; } catch (e) { /* the old address stays; it still works */ }
+      try { window.history.replaceState(null, '', fixed); lastHash = fixed; drawn = fixed; } catch (e) { /* the old address stays; it still works */ }
     }
     rememberRecent(id);
     const t = TABS.find((x) => x[0] === tab) ? tab : 'overview';
@@ -1555,7 +1571,7 @@
         await saveProfile(current.id, val(pfm, 'tier'), val(pfm, 'approval'));
         clean(pfm);
         toast('Plan and sign-off saved.');
-        route();
+        afterSave(done);
       } catch (x) { done(); toast(message(x), true); }
     });
     const f = /** @type {HTMLFormElement} */ ($('#ov-form', box));
@@ -1566,6 +1582,7 @@
       if (!name) { toast('The restaurant needs a name.', true); $('#o-name', box).focus(); return; }
       const done = busy($('button[type=submit]', f), 'Saving');
       try {
+        const signsIn = !!current.clerk_org_id; // read before the save: another client may be open when it comes back
         const doc = clone(current.doc);
         doc.business = { ...doc.business, name, kind: val(f, 'kind') };
         doc.user = { ...doc.user, firstName: val(f, 'first'), email: val(f, 'email'), role: val(f, 'role') };
@@ -1574,8 +1591,8 @@
         doc.billing = { ...(doc.billing || {}), plan: { ...((doc.billing && doc.billing.plan) || {}), name: val(f, 'pkg') || ((doc.billing && doc.billing.plan && doc.billing.plan.name) || '') } };
         await save({ name, status: val(f, 'status') || current.status, doc });
         clean(f);
-        toast(current.clerk_org_id ? 'Details saved. The client sees them next time their portal loads.' : 'Details saved. Nobody can sign in yet. Use Logins at the top to let them in.');
-        route();
+        toast(signsIn ? 'Details saved. The client sees them next time their portal loads.' : 'Details saved. Nobody can sign in yet. Use Logins at the top to let them in.');
+        afterSave(done);
       } catch (x) {
         done();
         toast(message(x), true);
@@ -1618,7 +1635,7 @@
         await save({ doc });
         clean(mf);
         toast('Saved. The client sees it next time their portal loads.');
-        route();
+        afterSave(done);
       } catch (x) {
         done();
         toast(message(x), true);
@@ -1632,10 +1649,12 @@
       const email = val(lf, 'email');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { out.textContent = 'Enter the email they will sign in with.'; $('#l-email', box).focus(); return; }
       const done = busy($('button[type=submit]', lf), 'Setting up');
+      // The client this login is for, read now: another one may be open when the answer comes back.
+      const tid = current.id;
       try {
-        await callFn('client-login', { tenantId: current.id, email, firstName: val(lf, 'first') });
+        await callFn('client-login', { tenantId: tid, email, firstName: val(lf, 'first') });
         done();
-        followFor = current.id;
+        followFor = tid;
         await loadAll();
         toast(`${email} can now sign in to the portal.`);
         redraw();
@@ -1708,6 +1727,9 @@
       }
       const grant = target.closest('[data-ask-grant]');
       if (grant) {
+        // Already setting one up (a second click): requestSubmit() ignores the disabled button and would add it twice.
+        const sb = /** @type {HTMLButtonElement|null} */ ($('button[type=submit]', lf));
+        if (sb && sb.disabled) return;
         const a = asksFor(id).find((/** @type {any} */ x) => x.id === grant.getAttribute('data-ask-grant'));
         if (!a) return;
         /** @type {HTMLInputElement} */ ($('#l-first', box)).value = a.first_name;
@@ -1726,7 +1748,7 @@
           writes++;
           all.loginAsks = (all.loginAsks || []).filter((/** @type {any} */ x) => x.id !== askId);
           toast('Declined.');
-          route();
+          redraw();
         } catch (x) { toast(message(x), true); }
       }
     });
@@ -1938,8 +1960,9 @@
         (all.tasks = all.tasks || []).push(row);
         clean(f);
         toast('Card added.');
-        location.hash = `#/client/${tid}/work/cards`;
-        route();
+        // A card editor with unsaved edits stays open (the new card shows on the next redraw); this form is emptied, so
+        // it cannot be added twice.
+        if (dirty.size) { f.reset(); afterSave(done); } else { location.hash = `#/client/${tid}/work/cards`; route(); }
         mirror(row);
       } catch (x) {
         done();
@@ -1953,7 +1976,8 @@
     const forId = current.id;
     const boardAfter = () => {
       const cols = $('#board', box);
-      if (!cols || !current || current.id !== forId || Array.from(dirty.keys()).some((x) => x !== f)) { redraw(); return; }
+      // (a redraw meanwhile, such as a Multica check, replaced this board: then the page on screen is drawn instead)
+      if (!box.isConnected || !cols || !current || current.id !== forId || Array.from(dirty.keys()).some((x) => x !== f)) { redraw(); return; }
       cols.innerHTML = boardColumns(tasks(), (t) => card(t));
     };
     wireBoard(box, (id) => (current.tasks || []).find((/** @type {any} */ x) => x.id === id), boardAfter);
@@ -1962,7 +1986,8 @@
       if (target.closest('[data-action="board-sync"]')) {
         const b = /** @type {HTMLButtonElement} */ (target.closest('[data-action="board-sync"]'));
         const done = busy(b, 'Checking');
-        try { await pullQuietly(current.id, true); done(); redraw(); } catch (x) { done(); toast(message(x), true); }
+        // boardAfter, not redraw(): text in the add-card form stays and the moved cards still show
+        try { await pullQuietly(current.id, true); done(); boardAfter(); } catch (x) { done(); toast(message(x), true); }
       }
     });
   }
@@ -2022,8 +2047,8 @@
         Object.assign(t, { ...row, status: t.status });
         clean(f);
         // A new column goes through moveTask, as a drag does (it mirrors to Multica); otherwise the card is mirrored here.
-        if (status && status !== t.status) { await moveTask(t, status); back(); }
-        else { toast('Card saved.'); back(); mirror(t); }
+        if (status && status !== t.status) { await moveTask(t, status); done(); back(); }
+        else { toast('Card saved.'); done(); back(); mirror(t); }
       } catch (x) { done(); toast(message(x), true); }
     });
     f.addEventListener('click', async (e) => {
@@ -2220,6 +2245,7 @@
     'tenant.updated': () => 'saved client info',
     'requests.created': () => 'sent a change request',
     'messages.created': () => 'sent a message',
+    'billing.subscription.synced': () => 'updated the subscription from Stripe',
     'decisions.created': () => 'answered an approval',
     'task.created': (/** @type {any} */ d) => `added the card “${d.title || 'a card'}”`,
     'task.moved': (/** @type {any} */ d) => `moved a card from ${TASK_STATUS_LABEL[d.from] || d.from} to ${TASK_STATUS_LABEL[d.to] || d.to}`,
@@ -2233,6 +2259,9 @@
     'dashboard.exception.resolved': () => 'marked a dashboard problem as fixed',
     'dashboard.daily': () => 'ran the daily check' // "The system ran the daily check", not the raw "dashboard daily"
   };
+  // The database writes 'reject' + 'd' for these two (review_dashboard_item, review_billing_invoice): the same words.
+  HISTORY_WORDS['dashboard.item.rejectd'] = HISTORY_WORDS['dashboard.item.rejected'];
+  HISTORY_WORDS['dashboard.invoice.rejectd'] = HISTORY_WORDS['dashboard.invoice.rejected'];
 
   /**
    * The Advanced tab: History (the last 7 days shown, older behind Show older, runs of "saved client info"
@@ -2260,8 +2289,11 @@
       // Runs of "saved client info" by the same person on the same day become one line.
       /** @type {any[]} */ const lines = [];
       for (const r of rows) {
-        // Clerk ids are not names: a staff member who has left is "A team member", the dashboard manager is "The system".
-        const who = staffNames[r.actor] || (/^user_/.test(r.actor || '') ? 'A team member' : /^(dashboard-manager|system)/.test(r.actor || '') ? 'The system' : r.actor ? clientName : 'The system');
+        // Clerk ids are not names. The dashboard manager is "The system"; a staff-only action by someone not on the team list
+        // (they left) is "A team member"; anything else (a message, request or answer) was the client's own.
+        const sys = !r.actor || !/^user_/.test(r.actor); // stripe-webhook, dashboard-manager, cron: not a person
+        const staffMsg = r.action === 'messages.created' && (current.messages || []).some((/** @type {any} */ m) => m.id === (r.detail || {}).id && m.from_staff);
+        const who = staffNames[r.actor] || (sys ? 'The system' : staffMsg || /^(tenant|dashboard)\.|^task\.moved$/.test(r.action) ? 'A team member' : clientName);
         const day = new Date(r.at).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
         const prev = lines[lines.length - 1];
         if (r.action === 'tenant.updated' && prev && prev.action === 'tenant.updated' && prev.who === who && prev.day === day) { prev.n++; continue; }
@@ -2392,6 +2424,7 @@
       const group = /** @type {HTMLElement} */ (b.closest('.role-seg'));
       const who = (group.getAttribute('aria-label') || '').replace(/^Role for /, '') || 'this person';
       if (role === 'super_admin' && !await ask(`Make ${who} an owner?`, 'Owners can add, change and remove everyone on the team, including you.', 'Make owner')) return;
+      const was = $$('button', group).find((x) => x.getAttribute('aria-pressed') === 'true') || null;
       for (const x of $$('button', group)) { x.setAttribute('aria-pressed', String(x === b)); x.disabled = true; }
       try {
         const r = await callFn('team', { action: 'role', userId: id, role });
@@ -2399,7 +2432,8 @@
         toast(`Role changed to ${ROLE_LABEL[role]}.`);
       } catch (x) {
         toast(message(x), true);
-        relist();
+        // If the list cannot be read either, the buttons go back as they were instead of staying stuck.
+        relist().then(() => { if (group.isConnected) for (const x of $$('button', group)) { x.disabled = false; x.setAttribute('aria-pressed', String(x === was)); } });
       }
     });
     list.addEventListener('click', async (e) => {
@@ -2456,8 +2490,10 @@
         const now = agencyAccess();
         if (!metaId && !mail) {
           if (!await ask('Clear both access details?', 'Every client loses the Meta business ID and the Google email in their connect steps.', 'Clear both')) return;
-        } else if (mail && mail !== String(now.accessEmail || '').toLowerCase()) {
-          if (!await ask('Change the Google access email?', `Every client will be told to add ${mail} as a manager.`, 'Change it')) return;
+        } else {
+          if (mail && mail !== String(now.accessEmail || '').toLowerCase() && !await ask('Change the Google access email?', `Every client will be told to add ${mail} as a manager.`, 'Change it')) return;
+          // The Meta business ID is copied to every client too: a new one, or none, is confirmed the same way.
+          if (metaId !== (now.metaBusinessId || '') && !await ask(metaId ? 'Change the Meta business ID?' : 'Clear the Meta business ID?', metaId ? `Every client's connect steps will show business ID ${metaId}.` : 'Every client loses the Meta business ID in their connect steps.', metaId ? 'Change it' : 'Clear it')) return;
         }
         const done = busy($('button[type=submit]', af), 'Saving');
         try {
@@ -2468,7 +2504,7 @@
           clean(af);
           if (r.failed.length) toast(`Saved for ${plural(r.changed, 'client')}. Not saved for ${r.failed.join(', ')}, because someone was changing them or the save failed. Save again.`, true);
           else toast(r.changed ? `Saved. ${r.changed === 1 ? 'One client' : `${r.changed} clients`} now show these in their steps.` : 'Nothing changed. Every client already has these.');
-          settingsPage();
+          if (location.hash.startsWith('#/settings')) afterSave(done);
         } catch (x) {
           done();
           toast(message(x), true);
@@ -2482,7 +2518,10 @@
       if (sel) {
         if (String(prefs[sel]) === t.value) return;
         const saved = await savePrefs({ [sel]: t.value });
-        settingsPage(saved ? 'Saved to your account.' : 'Saved on this computer. Your account could not be reached, so other computers keep their old settings.');
+        const msg = saved ? 'Saved to your account.' : 'Saved on this computer. Your account could not be reached, so other computers keep their old settings.';
+        // Drawn again only when nothing here is unsaved: a redraw would drop what is typed in the other forms.
+        if (dirty.size) { $('#set-note').textContent = msg; return; }
+        settingsPage(msg);
         const again = $(`[data-pref-select="${sel}"]`);
         if (again) again.focus();
         return;
@@ -2943,6 +2982,8 @@
       if (!await ask(`Start ${label} fresh?`, `This clears the status, right now, next step, date, note and all steps for ${label}. Their Work page shows an empty ${label} section until you fill it in again. Your board cards are not touched.`, 'Clear it')) return;
       const done = busy(fresh, 'Clearing');
       const before = clone(current.doc.services[s] || null);
+      // Undo puts it back on this client only: by the time it is pressed another client may be open.
+      const forId = current.id, forName = current.name;
       try {
         await saveDoc((doc) => {
           const old = doc.services[s] || {};
@@ -2951,8 +2992,9 @@
         clean(f);
         route();
         undoToast(`${label} cleared.`, async () => {
+          if (!current || current.id !== forId) throw new Error(`${label} was not put back, because ${forName} is no longer open. Nothing else changed: open ${forName} and fill ${label} in again.`);
           await saveDoc((doc) => { if (before) doc.services[s] = before; else delete doc.services[s]; });
-          route();
+          redraw();
           toast(`${label} is back as it was.`);
         });
       } catch (x) {
@@ -2984,7 +3026,7 @@
         });
         clean(f);
         toast(`${SERVICES[s].label} saved.`);
-        route();
+        afterSave(done);
       } catch (x) {
         done();
         toast(message(x), true);
@@ -3128,7 +3170,15 @@
     if (part === 'reply') $('#reply', box).focus();
     if (part === 'approval') $('#a-title', box).focus();
     if (part === 'update') $('#u-title', box).focus();
-    const back = () => { location.hash = `#/client/${current.id}/talk`; route(); };
+    const forId = current.id;
+    /** After a send. Another form here with unsaved edits keeps them (the sent one is emptied, the page is not drawn again);
+     *  if the person went to another page meanwhile, they stay there. @param {HTMLFormElement} form @param {() => void} done */
+    const back = (form, done) => {
+      if (dirty.size) { form.reset(); for (const el of $$('[data-kind]', form)) /** @type {HTMLElement} */ (el).hidden = true; afterSave(done); return; }
+      if (!location.hash.startsWith(`#/client/${forId}/talk`)) return;
+      location.hash = `#/client/${forId}/talk`;
+      route();
+    };
     rf.addEventListener('submit', async (e) => {
       e.preventDefault();
       const body = val(rf, 'body');
@@ -3138,7 +3188,7 @@
         await sendReply(current.id, body);
         clean(rf);
         toast('Reply sent.');
-        back();
+        back(rf, done);
       } catch (x) {
         done();
         toast(message(x), true);
@@ -3181,7 +3231,7 @@
         });
         clean(af);
         toast('Sent. It is at the top of their Home page now.');
-        back();
+        back(af, done);
       } catch (x) {
         done();
         toast(message(x), true);
@@ -3199,7 +3249,7 @@
         await saveDoc((doc) => { doc.updates.push(u); });
         clean(uf);
         toast('Posted.');
-        back();
+        back(uf, done);
       } catch (x) {
         done();
         toast(message(x), true);
@@ -3227,7 +3277,7 @@
             doc.actions = doc.actions.filter((/** @type {any} */ x) => x.approvalId !== id && (!was || x.id !== was.actionId));
           });
           toast('Removed.');
-          route();
+          redraw(); // keeps a reply or form being written here
         } catch (x) { toast(message(x), true); }
         return;
       }
@@ -3239,7 +3289,7 @@
         try {
           await saveDoc((doc) => { doc.updates = doc.updates.filter((/** @type {any} */ x) => x.id !== id); });
           toast('Removed.');
-          route();
+          redraw();
         } catch (x) { toast(message(x), true); }
       }
     });
@@ -3253,7 +3303,8 @@
       sel.disabled = true;
       try {
         await setRequestStatus(id, status);
-        route();
+        sel.disabled = false;
+        redraw(); // keeps a reply being written here
       } catch (x) {
         sel.disabled = false;
         sel.value = r.status;
@@ -3295,7 +3346,7 @@
         await save({ doc });
         clean(f);
         toast('Raw data saved.');
-        route();
+        afterSave(done);
       } catch (x) {
         done();
         toast(message(x), true);
@@ -3516,13 +3567,15 @@
     if (act === 'edit' || act === 'hide') {
       const f = /** @type {HTMLFormElement} */ ($(act === 'edit' ? '.dm-edit' : '.dm-hide', card));
       f.hidden = false;
+      // What is typed here counts as unsaved, so a quiet refresh of the page keeps it and leaving asks first.
+      track(f, act === 'edit' ? 'Edit before approval' : 'Reason to hide');
       $('.dm-buttons', card).hidden = true;
       const first = $('input', f);
       if (first) first.focus();
       return;
     }
     if (act === 'edit-cancel' || act === 'hide-cancel') {
-      for (const f of $$('form', card)) { f.hidden = true; f.reset(); }
+      for (const f of $$('form', card)) { f.hidden = true; f.reset(); clean(f); }
       $('.dm-buttons', card).hidden = false;
       return;
     }
@@ -3629,7 +3682,8 @@
       }
       await loadReviews();
       route();
-    } catch (x) { done(); toast(message(x), true); dmRecover(); }
+      // clean: the queue is drawn again after a refusal, so the card shows what changed (and its new stamp)
+    } catch (x) { done(); clean(f); toast(message(x), true); dmRecover(); }
   });
 
   /** Settings, super admins only: the four rollout gates and the per-client auto-publish switch. @param {HTMLElement} box */

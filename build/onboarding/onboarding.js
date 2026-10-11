@@ -435,7 +435,7 @@
       if (lost) { go(lost.id); toast(sendError('refile'), 9000); return; }
       sending = true; refreshDock();
       try {
-        await submit(); S.sent = true;
+        await submit(); S.sent = true; delete S.sid; // the next send (a step finished later) is a new submission
         try { localStorage.removeItem(KEY); } catch (e) { /* private window */ } // sent: don't keep their answers on this device
       }
       catch (e) { sending = false; refreshDock(); toast(sendError(e.message), 9000); return; }
@@ -454,18 +454,22 @@
     /* timing trap and duplicate guard: t = ms since the visit began, sid = one id per submission, kept across retries */
     if (!S.sid) { S.sid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 12); save(true); }
     fd.append('sid', S.sid);
-    fd.append('t', String(S.born ? Math.max(0, Date.now() - S.born) : 600000)); // no start time known: not a bot
+    fd.append('t', String(S.born ? Date.now() - S.born : 600000)); // no start time known: not a bot; negative is ignored
     steps.filter(x => x.type === 'upload').forEach(x => arr(d[x.key]).forEach(f => { const o = fileObjs[x.key + '/' + f.name]; if (o) fd.append('files[]', o, o.name); }));
     let res;
-    try { res = await fetch('submit.php', { method: 'POST', body: fd, headers: { Accept: 'application/json' } }); }
-    catch (e) { throw new Error('offline'); }
+    /* a stalled send gives up after 2 minutes (a 6 MB menu on a slow phone needs time); the same id makes a retry safe */
+    const opts = { method: 'POST', body: fd, headers: { Accept: 'application/json' } };
+    if (window.AbortSignal && AbortSignal.timeout) opts.signal = AbortSignal.timeout(120000);
+    try { res = await fetch('submit.php', opts); }
+    catch (e) { throw new Error(e && e.name === 'TimeoutError' ? 'slow' : 'offline'); }
     const j = await res.json().catch(() => ({}));
     if (!res.ok || !j.ok) throw new Error(j.error || 'send');
   }
   function sendError(code) {
     if (code === 'toobig') return 'Your files are too large to send. Remove them and email them to ' + STUDIO_EMAIL + ' instead.';
     if (code === 'refile') return 'Please add your menu file again. It was chosen before the page reloaded.';
-    if (code === 'rate') return 'That was a little quick. Wait a few seconds and try again.';
+    if (code === 'rate') return 'That was a little quick. Wait half a minute and try again.';
+    if (code === 'slow') return 'Sending is taking too long. Your answers are saved: try again, or email ' + STUDIO_EMAIL + '.';
     if (code === 'filetype') return 'We can only take photos, PDFs or Word files. Remove that file and try again.';
     if (code === 'missing') return 'We’re missing your name, email or the name of your place. Go back and fill them in.';
     if (code === 'offline') return 'No connection right now. Your answers are saved, so try again when you have signal.';

@@ -247,6 +247,11 @@
     return fail('source-error', "We couldn't reach your account just now. Try again in a moment.");
   }
 
+  /** Whether a freshly loaded state already has this write. @param {any} s @param {string} kind @param {any} rec */
+  const holds = (s, kind, rec) => (kind === 'decision' ? !!(s.decisions && s.decisions[rec.approvalId])
+    : kind === 'message' || kind === 'request' ? (s[kind + 's'] || []).some((/** @type {any} */ x) => x.id === rec.id)
+      : false);
+
   /**
    * The live source for one signed-in person: their restaurant's record and their own rows, read
    * once and kept here, and every action written to the database before it counts.
@@ -258,7 +263,9 @@
     /** @type {any} */ let st = {};
     const now = () => Date.now();
 
+    let loads = 0;
     async function load() {
+      const mine = ++loads;
       if (!session.tenantId) { tenant = null; return; }
       const sb = await db();
       const t = await sb.from('tenants').select('id, name, doc').eq('clerk_org_id', session.tenantId).limit(1);
@@ -292,6 +299,7 @@
       const MISSING = ['42P01', 'PGRST205', 'PGRST202', '42883'];
       const missing = (/** @type {any} */ e) => MISSING.includes(e.code) || /does not exist|schema cache|no rpc/i.test(String(e.message || ''));
       for (const x of [items, inv, cards]) if (x.error && !missing(x.error)) throw dbFail(x.error);
+      if (mine !== loads && tenant) return; // a newer load started (after a 30 s give-up): it has the say
       /** @type {any} */ const next = {};
       for (const x of d.data || []) apply(next, 'decision', { approvalId: x.approval_id, decision: x.decision, comment: x.comment, at: x.at, by: x.by_name });
       for (const x of m.data || []) apply(next, 'message', { id: x.id, about: x.about, text: x.body, at: x.at, fromTeam: x.from_staff, by: x.by_name });
@@ -307,7 +315,15 @@
       if (!cards.error && Array.isArray(cards.data)) tenant.cards = cards.data.map((/** @type {any} */ c) => ({ id: c.id, service: c.service, title: c.title, status: c.status, due: c.due, updatedAt: c.updated_at, createdAt: c.created_at }));
     }
 
-    let ready = load();
+    /** A load that gives up after 30 real seconds (the elapsed check keeps instant test timers from firing it early). */
+    function timed() {
+      const t0 = Date.now();
+      /** @type {any} */ let timer;
+      // A give-up counts as a newer load, so the abandoned one cannot land later over what came after it.
+      const hang = new Promise((_, no) => { timer = setTimeout(() => { if (Date.now() - t0 >= 29000) { loads++; no(fail('source-error', "We couldn't reach your account just now. Try again in a moment.")); } }, 30000); });
+      return Promise.race([load(), hang]).finally(() => clearTimeout(timer));
+    }
+    let ready = timed();
     /** @type {Promise<any>|null} */ let loading = null;
     /** @type {Promise<any>|null} */ let queued = null;
     return {
@@ -346,16 +362,15 @@
         const stored = { ...rec, id: row.id || rec.id, at: row.at || row.notifications_saved_at || T.isoTime(now()) };
         if (row.status) stored.status = row.status;
         apply(st, kind, stored);
+        // A refresh already running read the rows before this write: keep the write when that refresh lands.
+        if (loading) loading.then(() => { if (!holds(st, kind, stored)) apply(st, kind, stored); }, () => {});
         return stored;
       },
       reload() {
         // One refresh at a time (a slow one must not finish after a newer one and overwrite it). A refresh asked for
         // while one runs waits for it and then loads again, so what changed in between (a message just sent) is read.
         if (loading) return (queued = queued || loading.then(() => {}, () => {}).then(() => { queued = null; return this.reload(); }));
-        const t0 = Date.now();
-        // gives up only after 30 real seconds (the elapsed check keeps instant test timers from firing it early)
-        const hang = new Promise((_, no) => setTimeout(() => { if (Date.now() - t0 >= 29000) no(fail('source-error', "We couldn't reach your account just now. Try again in a moment.")); }, 30000));
-        const p = Promise.race([load(), hang]);
+        const p = timed();
         loading = p;
         const done = () => { loading = null; };
         p.then(done, done);
@@ -393,7 +408,10 @@
         body: JSON.stringify(kind === 'invoice' ? { action: 'invoice', number } : { action: 'portal' })
       });
       j = await res.json().catch(() => ({}));
-    } catch (e) { throw notSet(); } // the billing function is not there (or the browser was refused): retrying never helps
+    } catch (e) {
+      if (root.navigator && root.navigator.onLine === false) throw fail('offline', "You're offline. Check your connection and try again.");
+      throw notSet(); // the billing function is not there (or the browser was refused): retrying never helps
+    }
     if ((res.status === 404 && !j.error) || j.code === 'NOT_FOUND') throw notSet();
     if (res.ok && j.url) return j.url;
     const e = /** @type {any} */ (new Error(j.error === 'not-configured' || j.error === 'no-customer' || j.error === 'live-key-refused'

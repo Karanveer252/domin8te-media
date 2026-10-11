@@ -119,10 +119,10 @@
     }
   }
 
-  /** A request that never answers must not lock the dialog for ever. @param {Promise<any>} p @param {number} [ms] */
-  function slow(p, ms) {
+  /** A request that never answers must not lock the dialog for ever. @param {Promise<any>} p @param {string} where @param {number} [ms] */
+  function slow(p, where, ms) {
     return new Promise((res, rej) => {
-      const t = setTimeout(() => rej(Object.assign(new Error('Still waiting for an answer. Check Home before trying again, in case it went through.'), { code: 'slow' })), ms || 25000);
+      const t = setTimeout(() => rej(Object.assign(new Error(`Still waiting for an answer. Check ${where} before trying again, in case it went through.`), { code: 'slow' })), ms || 25000);
       p.then((v) => { clearTimeout(t); res(v); }, (e) => { clearTimeout(t); rej(e); });
     });
   }
@@ -234,7 +234,7 @@
         if (decision === 'changes' && !comment.trim()) { fieldError('comment', 'Tell us what to change so we can fix it.'); return; }
         if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
         setBusy(true, btn, decision === 'approved' ? 'Saving' : 'Sending');
-        slow(ctx.client.decide(id, decision, comment)).then((rec) => {
+        slow(ctx.client.decide(id, decision, comment), 'Home').then((rec) => {
           changed = true;
           setBusy(false);
           inner().innerHTML = head(a.title, label) + `<div class="dlg-body">${decided(a, rec, ctx.client.now())}</div>`;
@@ -421,7 +421,7 @@
       formError('');
       if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
       setBusy(true, done, 'Sending');
-      slow(ctx.client.accountRequest(ids, mode)).then(() => {
+      slow(ctx.client.accountRequest(ids, mode), 'Settings').then(() => {
         sent = true;
         setBusy(false);
         const what = F.list(names);
@@ -471,7 +471,7 @@
       if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
       setBusy(true, btn, 'Sending');
       const svcEl = /** @type {HTMLSelectElement|null} */ (form.elements.namedItem('service'));
-      const p = slow(isRequest ? ctx.client.sendRequest(svcEl ? svcEl.value : o.service, text) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text));
+      const p = slow(isRequest ? ctx.client.sendRequest(svcEl ? svcEl.value : o.service, text) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text), 'Messages');
       p.then((rec) => {
         sent = true;
         setBusy(false);
@@ -531,5 +531,5 @@
     });
   }
 
-  D8.dialogs = { wire, open, close, approval, external, account, compose, demo, confirm, toast };
+  D8.dialogs = { wire, open, close, approval, external, account, compose, demo, confirm, toast, slow };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -8,17 +8,19 @@
 <title>Set up · Domin8te</title>
 <link rel="preload" href="assets/fonts/bvp-200.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/bvp-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="onboarding.css?v=27d540d4">
+<link rel="stylesheet" href="onboarding.css?v=5e1bed3d">
 </head>
 <body>
 <a class="skip" href="#stage">Skip to the question</a>
+<!-- honeypot: humans never see it, form-filling bots do. submit.php drops anything that fills it -->
+<div class="hp" aria-hidden="true"><input type="text" id="d8x" name="d8x" tabindex="-1" autocomplete="off"></div>
 
 <header class="top">
   <a class="brand" href="/" aria-label="Domin8te Media home">
     <img src="assets/mark-120.webp" alt="" width="40" height="20">
     <span>Domin8te</span>
   </a>
-  <div class="top-mid" id="topChapter" aria-hidden="true"></div>
+  <div class="top-mid" id="topChapter"></div>
   <div class="top-right">
     <span class="saved" id="saved" aria-live="polite"></span>
     <button class="ghost" type="button" id="laterBtn">Finish later</button>
@@ -94,8 +96,8 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="steps.js?v=4a9e5386"></script>
+<script src="steps.js?v=0cb9bb63"></script>
 <script src="guides.js?v=6b907342"></script>
-<script src="onboarding.js?v=aefb120d"></script>
+<script src="onboarding.js?v=75a77ac1"></script>
 </body>
 </html>

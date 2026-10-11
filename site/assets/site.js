@@ -1689,7 +1689,7 @@ if (plan) {
    sender's own address as Reply-To when they gave one.
    ============================================================ */
 
-/* page-load time, sent as `ts` so send.php can spot instant bot posts */
+/* page-load time: the fallback for `te` (how long the page was open) where performance.now() is missing */
 window.__t0 = Date.now();
 
 var form = document.getElementById('leadform');
@@ -1751,7 +1751,8 @@ if (form) {
     var web = form.elements.website;
     if (web && web.value.trim() && !/^https?:\/\//i.test(web.value.trim())) data.set('website', 'https://' + web.value.trim());
 
-    data.set('te', String(Math.max(0, Date.now() - window.__t0)));
+    // how long the page has been open; performance.now() counts from the page opening and ignores the device clock
+    data.set('te', String(Math.round(window.performance && performance.now ? performance.now() : Math.max(0, Date.now() - window.__t0))));
 
     submit.disabled = true;
     submit.textContent = MSG.sending;
@@ -1762,7 +1763,7 @@ if (form) {
     fetch(form.action, opts)
       .then(function (r) { return r.json() })
       .then(function (d) {
-        if (!d || d.ok !== true) throw new Error(d && d.error === 'rate' ? 'rate' : 'send');
+        if (!d || d.ok !== true) throw new Error((d && d.error) || 'send');
         form.reset();
         submit.textContent = 'Sent';
         status.textContent = MSG.success;
@@ -1774,10 +1775,12 @@ if (form) {
       .catch(function (e) {
         submit.disabled = false;
         submit.textContent = submitLabel;
+        var code = e && e.message;
         // a resend within seconds of a sent one is not a failure: the first one arrived
-        var again = e && e.message === 'rate';
-        status.textContent = again ? MSG.rate : MSG.fail;
-        status.className = again ? 'formstatus ok' : 'formstatus bad';
+        if (code === 'rate') { status.textContent = MSG.rate; status.className = 'formstatus ok'; return; }
+        // the server could not use the email or number: say so, instead of "it didn't go through"
+        status.textContent = (code === 'email' || code === 'missing') ? MSG.contactBad : MSG.fail;
+        status.className = 'formstatus bad';
       });
   });
 }

@@ -13,7 +13,7 @@ const MAIL_TO   = 'karanhelps@domin8temedia.com';
 const MAIL_FROM = 'website@domin8temedia.com';
 const MAX_FILES = 3;
 const MAX_TOTAL = 6291456; // 6 MB of files in total: base64 makes that about 8.4 MB in the mail, under the usual 10 MB limit
-const RATE_SECS = 30;      // one send per IP per this many seconds
+const RATE_SECS = 30;      // one send per person (IP and email) per this many seconds
 const MIN_MS    = 4000;    // a person cannot finish the form faster than this
 /* Extension fallback for when the content sniffer only says "some container". */
 const EXT_TYPES = [
@@ -70,14 +70,14 @@ if (empty($_POST) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
 
 /* Bots fill hidden fields. Humans never see this one. */
 if (trim((string)($_POST['d8x'] ?? '')) !== '') {
+    error_log(date('c') . ' onboarding submit.php honeypot hit'); // no personal data; shows a false hit
     respond(true); // look successful, deliver nothing
 }
 
-/* Time trap: the page sends ms since the visit began. Too fast to be a person. */
+/* Time check: the page sends ms since the visit began. Too fast is usually a bot, but losing a real client's
+   onboarding is far worse than one odd email: it is delivered, only marked in the subject. */
 $t = $_POST['t'] ?? null;
-if (is_string($t) && $t !== '' && is_numeric($t) && (float)$t >= 0 && (float)$t < MIN_MS) {
-    respond(true); // look successful, deliver nothing
-}
+$fast = is_string($t) && $t !== '' && is_numeric($t) && (float)$t >= 0 && (float)$t < MIN_MS;
 
 /* Strip CR and LF from anything that touches a mail header. */
 function headerSafe(string $v, int $max = 200): string {
@@ -115,13 +115,14 @@ if ($first === '' || $place === '' || $summary === '' || !filter_var($email, FIL
 /* Duplicate guard: the page sends one random id per submission. If we already sent it, say ok and stop. */
 $sid = (string)($_POST['sid'] ?? '');
 $sidFile = preg_match('/^[A-Za-z0-9-]{8,64}$/', $sid) ? sys_get_temp_dir() . '/d8ob-sid-' . sha1($sid) : '';
-if ($sidFile !== '' && is_file($sidFile)) {
+if ($sidFile !== '' && @is_file($sidFile)) {
     respond(true);
 }
 
-/* Throttle: one send per IP per RATE_SECS. Cleared again if the mail fails, so a retry is not blocked. */
-$rateFile = sys_get_temp_dir() . '/d8ob-rate-' . sha1((string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
-if (is_file($rateFile) && time() - (int)@filemtime($rateFile) < RATE_SECS) {
+/* Throttle: one send per person (IP and email) per RATE_SECS, so two people on one Wi-Fi are not blocked.
+   Cleared again if the mail fails, so a retry is not blocked. */
+$rateFile = sys_get_temp_dir() . '/d8ob-rate-' . sha1((string)($_SERVER['REMOTE_ADDR'] ?? 'unknown') . '|' . mb_strtolower($email));
+if (@is_file($rateFile) && time() - (int)@filemtime($rateFile) < RATE_SECS) {
     respond(false, 'rate', 429);
 }
 
@@ -177,7 +178,7 @@ if (isset($_FILES['files']) && is_array($_FILES['files']['name'] ?? null)) {
 
 $who = trim($first . ' ' . $last);
 $whoHdr = nameSafe($who); // for headers: no < > " , ; : and backslash
-$subject = 'Onboarding: ' . $place . ' (' . $who . ')';
+$subject = ($fast ? '[check: fast] ' : '') . 'Onboarding: ' . $place . ' (' . $who . ')';
 
 $lines = [
     'A new client finished onboarding at domin8temedia.com/onboarding.',
