@@ -253,3 +253,6 @@ html[data-v="editorial"] .vid__again{background:#fff;color:#1F2128;border:1px so
 /* the header's "Free checkup" stays on desktop: the site hides it while the phone's sticky bar is on, but that
    bar is only ever shown under 761px */
 @media (min-width:761px){html[data-v="editorial"].story:has(.ctabar.is-on) .nav__cta{opacity:1;visibility:visible}}
+
+/* the eyebrow stays on one line on the narrowest phones */
+@media (max-width:359px){.vsl-eyebrow{font-size:9.5px;gap:5px}}
