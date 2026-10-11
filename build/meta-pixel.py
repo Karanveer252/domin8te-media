@@ -33,7 +33,8 @@ src="https://www.facebook.com/tr?id=%s&amp;ev=PageView&amp;noscript=1"></noscrip
 PAGES = ['index.html', '404/index.html', 'about/index.html', 'privacy/index.html',
          'blog/index.html', 'blog/restaurant-google-business-profile-checklist/index.html', 'blog/why-pdf-menus-hurt-restaurant-seo/index.html',
          'services/index.html', 'services/website/index.html', 'services/seo/index.html', 'services/social/index.html', 'services/ads/index.html',
-         'work/index.html', 'work/freddys/index.html', 'work/lecookie/index.html']
+         'work/index.html', 'work/freddys/index.html', 'work/lecookie/index.html',
+         'marketing/index.html']  # the ad landing page (Karan, 2026-10-11: Pixel confirmed for his ad account)
 NEVER = ['dashboard/index.html', 'dashboard/demo/index.html', 'console/index.html', 'onboarding/index.html', 'work/lecookie/live/index.html']
 
 def add(html):
