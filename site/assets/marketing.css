@@ -256,3 +256,6 @@ html[data-v="editorial"] .vid__again{background:#fff;color:#1F2128;border:1px so
 
 /* the eyebrow stays on one line on the narrowest phones */
 @media (max-width:359px){.vsl-eyebrow{font-size:9.5px;gap:5px}}
+
+/* "Try the demo" under the What you get film text */
+.vsl-demo-link{margin:14px 0 0}
