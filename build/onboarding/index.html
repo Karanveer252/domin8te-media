@@ -12,13 +12,15 @@
 </head>
 <body>
 <a class="skip" href="#stage">Skip to the question</a>
+<!-- honeypot: humans never see it, form-filling bots do. submit.php drops anything that fills it -->
+<div class="hp" aria-hidden="true"><input type="text" id="company_url" name="company_url" tabindex="-1" autocomplete="off"></div>
 
 <header class="top">
   <a class="brand" href="/" aria-label="Domin8te Media home">
     <img src="assets/mark-120.webp" alt="" width="40" height="20">
     <span>Domin8te</span>
   </a>
-  <div class="top-mid" id="topChapter" aria-hidden="true"></div>
+  <div class="top-mid" id="topChapter"></div>
   <div class="top-right">
     <span class="saved" id="saved" aria-live="polite"></span>
     <button class="ghost" type="button" id="laterBtn">Finish later</button>

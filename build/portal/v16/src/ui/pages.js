@@ -748,6 +748,7 @@
         loadAsks(el);
       } catch (x) {
         if (x && /** @type {any} */ (x).code === '23505') { status.textContent = 'You already asked for that email. We are on it.'; form.reset(); loadAsks(el); }
+        else if (x && /** @type {any} */ (x).code === '54000') { status.textContent = 'You already have 10 logins waiting. We will set those up first.'; }
         else {
           err.innerHTML = icon('alert') + esc("We couldn't send that. Try again soon, or message us.");
           err.hidden = false;

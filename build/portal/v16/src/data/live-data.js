@@ -262,7 +262,11 @@
       if (!session.tenantId) { tenant = null; return; }
       const sb = await db();
       const t = await sb.from('tenants').select('id, name, doc').eq('clerk_org_id', session.tenantId).limit(1);
-      if (t.error) throw dbFail(t.error);
+      if (t.error) {
+        // With no sign-in the request goes out without a token and is refused (not an empty answer): say the session ended.
+        if (!PREVIEW && ['42501', 'PGRST301', 'PGRST302'].includes(t.error.code) && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
+        throw dbFail(t.error);
+      }
       const row = t.data && t.data[0];
       if (!row) {
         // No row can also mean the sign-in ended (the request then went out without a token): say so, not "no portal".

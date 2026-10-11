@@ -11,7 +11,9 @@
   const DEMO = (LOCAL && !/[?&]live\b/.test(location.search)) || /[?&]demo\b/.test(location.search);
   const prefill = DEMO ? window.ONB.prefill : { _from: [] };
   const KEY = DEMO ? 'd8-onboarding-v2' : 'd8-onboarding-live-v1';
-  const MAX_UPLOAD = 10 * 1024 * 1024;
+  const MAX_UPLOAD = 6 * 1024 * 1024; // matches submit.php MAX_TOTAL
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const PHONE_RE = /^[+()\d\s.-]{7,20}$/;
   const PORTAL = 'https://domin8temedia.com/dashboard/';
   const TIMES = ['09:30', '10:00', '10:30', '14:30', '15:00', '15:30', '16:00'];
   const PASSIVE = ['done'];
@@ -29,18 +31,25 @@
   };
 
   /* ---------- state ---------- */
-  const fresh = () => ({ d: JSON.parse(JSON.stringify(prefill)), at: steps[0].id, done: {}, skipped: {}, savedAt: 0 });
+  const fresh = () => ({ d: JSON.parse(JSON.stringify(prefill)), at: steps[0].id, done: {}, skipped: {}, savedAt: 0, born: Date.now() });
   function load() {
     try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.d) return Object.assign(fresh(), j); } catch (e) { /* private window */ }
     return fresh();
   }
   let S = load();
+  /* A saved call slot whose day has passed is no use. Drop it so the picker starts clean. */
+  (function () {
+    const sl = S.d.slot, n = new Date();
+    const today = n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+    if (sl && sl.date && sl.date < today) delete S.d.slot;
+  })();
   const thumbs = {}, fileObjs = {};
   let sending = false;
   let saveT = 0, savedT = 0, autoT = 0;
   function save(quiet) {
     S.savedAt = Date.now();
-    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* still works, just not across reloads */ }
+    /* once sent the key is cleared and must stay cleared, so nothing writes it back */
+    if (!S.sent) try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* still works, just not across reloads */ }
     if (!quiet) flashSaved();
   }
   const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(save, 350); };
@@ -91,7 +100,8 @@
     const sl = S.d.slot || {};
     if (!sl.date || !sl.time) return '';
     const day = isoToDate(sl.date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
-    return day + ' at ' + fmtTime(sl.time) + (S.d.callType ? (S.d.callType === 'video' ? ', video call' : ', phone call') : '');
+    let tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* old browser */ }
+    return day + ' at ' + fmtTime(sl.time) + (S.d.callType ? (S.d.callType === 'video' ? ', video call' : ', phone call') : '') + (tz ? ' (' + tz + ')' : '');
   }
   function ensureChecks(s) {
     if (!S.d.checks) { S.d.checks = {}; s.items.forEach(it => { S.d.checks[it.k] = !!it.def; }); }
@@ -121,7 +131,7 @@
   function chips(key, opts, o) {
     o = o || {};
     const val = S.d[key];
-    return '<div class="chips" role="group">' + opts.map(op => {
+    return '<div class="chips" role="group" aria-labelledby="' + (o.by || 'qh') + '">' + opts.map(op => {
       const on = o.single ? val === op.v : arr(val).includes(op.v);
       return '<button type="button" class="chip' + (o.compact ? ' compact' : '') + '" aria-pressed="' + on + '" data-chip="' + esc(key) + '" data-v="' + esc(op.v) + '"' +
         (o.single ? ' data-single="1"' : '') + (op.solo ? ' data-solo="1"' : '') + '>' + I.check + esc(op.l) + '</button>';
@@ -139,7 +149,8 @@
   }
   const unsureLink = s => (s.unsure ? '<button type="button" class="link unsure" data-act="unsure">' + esc(s.unsure) + '</button>' : '');
   function sample(s) {
-    const o = s.opts.find(x => x.v === S.d[s.key]) || s.opts[0];
+    const o = s.opts.find(x => x.v === S.d[s.key]);
+    if (!o) return '<div class="sample-slot" aria-live="polite"></div>'; // nothing to show until a choice is made
     const name = S.d.rname || 'Your place';
     return '<div class="sample" aria-live="polite"><header><span class="av" aria-hidden="true">' + esc(name.trim()[0] || 'B') + '</span>' +
       '<span class="who">' + esc(name) + '<span>' + esc(o.l) + '</span></span><span class="from tagx">Sample</span></header><p>' + esc(o.ex) + '</p></div>';
@@ -193,7 +204,7 @@
     fields(s) {
       const fromHere = s.fields.some(f => arr(S.d._from).includes(f.k) && S.d[f.k] === prefill[f.k]);
       return '<div class="body">' + (fromHere ? '<p class="from" style="margin:0 0 28px">Filled in from your enquiry</p>' : '') +
-        '<div class="fields">' + s.fields.map(field).join('') + '</div><p class="err" id="err" aria-live="polite"></p></div>';
+        '<div class="fields">' + s.fields.map(field).join('') + '</div><p class="err" id="err" role="alert"></p></div>';
     },
     upload(s) {
       const files = arr(S.d[s.key]);
@@ -227,12 +238,12 @@
     },
     slots() {
       const sl = S.d.slot || {};
-      return '<div class="body"><div class="group"><p class="label">Pick a day</p><div class="days">' +
+      return '<div class="body"><div class="group"><p class="label" id="lbl-day">Pick a day</p><div class="days" role="group" aria-labelledby="lbl-day">' +
         workdays(8).map(d => '<button type="button" class="day" aria-pressed="' + (sl.date === d.iso) + '" data-day="' + d.iso + '"><span>' + esc(d.wd) + '</span><b>' + d.dd + '</b><span>' + esc(d.mon) + '</span></button>').join('') +
-        '</div></div><div class="group"><p class="label">Pick a time</p><div class="chips">' +
+        '</div></div><div class="group"><p class="label" id="lbl-time">Pick a time</p><div class="chips" role="group" aria-labelledby="lbl-time">' +
         TIMES.map(t => '<button type="button" class="chip compact" aria-pressed="' + (sl.time === t) + '" data-time="' + t + '">' + I.check + esc(fmtTime(t)) + '</button>').join('') +
         '</div><p class="small" style="margin:12px 0 0">Your local time. Mornings before you open, or the afternoon lull. Never during service.</p></div>' +
-        '<div class="group"><p class="label">Phone or video?</p>' + chips('callType', [{ v: 'phone', l: 'Phone call' }, { v: 'video', l: 'Video call' }], { single: true }) + '</div>' +
+        '<div class="group"><p class="label" id="lbl-call">Phone or video?</p>' + chips('callType', [{ v: 'phone', l: 'Phone call' }, { v: 'video', l: 'Video call' }], { single: true, by: 'lbl-call' }) + '</div>' +
         '<p class="slotsum" id="slotsum" aria-live="polite">' + (slotText() ? 'You picked: <b>' + esc(slotText()) + '</b>. We’ll confirm it with you.' : 'Pick a day and a time.') + '</p></div>';
     },
     done() {
@@ -247,7 +258,7 @@
         '<li><div><h3>Within one business day</h3><p>We confirm your call time, check every invite and connection, and tell you if anything is missing.</p></div></li>' +
         '<li><div><h3>' + (slot ? 'Kickoff call: ' + esc(slot) : 'Your kickoff call') + '</h3><p>We walk you through the plan and finish anything you skipped.</p></div></li>' +
         '<li><div><h3>First drafts in your portal</h3><p>Website, posts and ads arrive for you to approve, one tap each.</p></div></li>' +
-        '<li><div><h3>Then we keep it running</h3><p>Every week. You run the restaurant.</p></div></li></ol>' +
+        '<li><div><h3>Then we keep it running</h3><p>Every week. You run the place.</p></div></li></ol>' +
         '<div class="done-acts">' + (slot ? '<button type="button" class="ghost line" data-act="ics">Add the call to my calendar</button>' : '') +
         '<button type="button" class="ghost line" data-act="download">Download my answers</button></div>' +
         (DEMO ? '<p class="restart small"><button type="button" class="link" data-act="restart">Start over (demo)</button>' + (LOCAL ? ' &nbsp;·&nbsp; <a class="link" href="map.html">See the whole flow</a>' : '') + '</p>' : '');
@@ -294,7 +305,7 @@
     const lead = S.d.how === 'call' && s.leadCall ? s.leadCall : s.lead;
     const stage = $('#stage');
     stage.innerHTML = '<div class="step' + (opts.anim === false ? '' : ' enter') + '" data-id="' + s.id + '">' +
-      '<h1 class="q" tabindex="-1">' + fill(s.q) + '</h1>' +
+      '<h1 class="q" id="qh" tabindex="-1">' + fill(s.q) + '</h1>' +
       (lead ? '<p class="lead">' + fill(lead) + '</p>' : '') +
       (s.why ? '<details class="why"><summary>Why we ask</summary><p>' + fill(s.why) + '</p></details>' : '') +
       R[s.type](s) + '</div>';
@@ -320,7 +331,9 @@
   }
   function dock(v, i, s) {
     const back = $('#backBtn'), skip = $('#skipBtn'), nx = $('#nextBtn');
-    back.disabled = i === 0;
+    back.disabled = i === 0 || sending;
+    skip.disabled = sending;
+    nx.disabled = sending;
     back.hidden = s.type === 'done';
     skip.hidden = s.skip === false || PASSIVE.includes(s.type);
     nx.querySelector('span').textContent = sending ? 'Sending…' : s.type === 'done' ? (DEMO ? 'Open your portal' : 'Back to the website') : (s.cta || 'Continue');
@@ -339,7 +352,7 @@
       '<a href="mailto:' + STUDIO_EMAIL + '?subject=' + encodeURIComponent('Setup help: ' + plain(s.q)) + '"><span>Email the studio<span>' + STUDIO_EMAIL + '. We reply within one business day.</span></span>' + I.arrow + '</a>' +
       '<button type="button" data-act="bookcall"><span>Book a setup call now<span>30 minutes, around service, not during it.</span></span>' + I.arrow + '</button></div>' +
       '<div class="qa"><p class="label" style="margin-bottom:6px">Common questions</p>' +
-      qa('Do you need my passwords?', 'No. You add us through each platform’s own invite button, and you can remove us any time.') +
+      qa('Do you need my passwords?', 'No, and please don’t type them anywhere here. You add us through each platform’s own invite button, and you can remove us any time.') +
       qa('Can I change my answers later?', 'Yes. Everything here can be changed in your portal or on the kickoff call.') +
       qa('What if I don’t have something?', 'Tap Skip for now. It goes on a short list we go through with you on the call.') +
       qa('Will anything go live straight away?', 'No. First drafts come to your portal for your OK before anything is published.') +
@@ -353,28 +366,56 @@
     const v = visible(); const i = v.findIndex(x => x.id === s.id);
     return (v[i + 1] || v[i] || v[0]).id;
   }
-  function validate(s) {
-    if (!s.req) return true;
-    const bad = s.req.filter(k => {
+  /* Trim what a step collected. A menu link without http(s):// gets https:// so it opens as a link. */
+  function tidy(s) {
+    (s.fields || []).forEach(f => { if (typeof S.d[f.k] === 'string') S.d[f.k] = S.d[f.k].trim(); });
+    if (s.link && s.link.k && typeof S.d[s.link.k] === 'string') {
+      let u = S.d[s.link.k].trim(); if (u && !/^https?:\/\//i.test(u)) u = 'https://' + u;
+      S.d[s.link.k] = u;
+    }
+  }
+  /* Keys on this step that are empty or invalid. Shared by validate() and the gate before sending. */
+  function badKeys(s) {
+    tidy(s);
+    const bad = (s.req || []).filter(k => {
       const val = String(S.d[k] || '').trim();
-      return !val || (k === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val));
+      return !val || (k === 'email' && !EMAIL_RE.test(val));
     });
+    const ph = String(S.d.mobile || '').trim();
+    if ((s.fields || []).some(f => f.k === 'mobile') && ph && !PHONE_RE.test(ph)) bad.push('mobile');
+    return bad;
+  }
+  function validate(s) {
+    const bad = badKeys(s);
     if (!bad.length) return true;
-    bad.forEach(k => { const inp = $('[data-k="' + k + '"]'); if (inp) inp.closest('.field').classList.add('bad'); });
+    bad.forEach(k => {
+      const inp = $('[data-k="' + k + '"]'); if (!inp) return;
+      inp.closest('.field').classList.add('bad');
+      /* tell screen readers which field is wrong and where the message is */
+      inp.setAttribute('aria-invalid', 'true');
+      const by = (inp.getAttribute('aria-describedby') || '').split(' ').filter(Boolean);
+      if (!by.includes('err')) by.push('err');
+      inp.setAttribute('aria-describedby', by.join(' '));
+    });
     const first = $('[data-k="' + bad[0] + '"]'); if (first) first.focus();
     const err = $('#err');
-    if (err) err.textContent = s.reqMsg || (bad[0] === 'email' ? 'We need a working email. It’s how you sign in to your portal.' : 'We need this one to set things up.');
+    if (err) err.textContent = s.reqMsg || (bad[0] === 'email' ? 'We need a working email. It’s how you sign in to your portal.'
+      : bad[0] === 'mobile' ? 'That number doesn’t look right. Check it, or leave it blank.' : 'We need this one to set things up.');
     return false;
   }
   function next() {
+    if (sending) return;
     clearTimeout(autoT);
     const { s } = cur();
     if (s.type === 'done') { if (DEMO) window.open(PORTAL, '_blank', 'noopener'); else location.href = '/'; return; }
     if (!validate(s)) return;
+    /* nothing chosen on a connect or call step: count it as skipped so it lands on the call list */
+    if ((s.type === 'connect' && !S.d[s.key]) || (s.type === 'slots' && !(S.d.slot && S.d.slot.date && S.d.slot.time))) return skip();
     delete S.skipped[s.id]; S.done[s.id] = true;
     advance(afterId(s));
   }
   function skip(reason) {
+    if (sending) return;
     const { s } = cur();
     S.skipped[s.id] = reason || 'skip'; delete S.done[s.id];
     toast(reason === 'call' ? 'Added to the list for your call.' : 'Skipped. It’s on the list for your call.');
@@ -384,8 +425,18 @@
   async function advance(target) {
     if (target === 'done' && !DEMO) {
       if (sending) return;
+      /* Jumping around the chapter list can leave a required answer empty. Fix it before anything is sent. */
+      for (const x of visible()) {
+        if (badKeys(x).length) { toast('One answer is missing or needs fixing. Please check it, then continue.', 6000); go(x.id); validate(x); return; }
+      }
+      /* A chosen file is lost on reload (only its name is saved). */
+      const lost = visible().find(x => x.type === 'upload' && arr(S.d[x.key]).some(f => !fileObjs[x.key + '/' + f.name]));
+      if (lost) { go(lost.id); toast(sendError('refile'), 9000); return; }
       sending = true; refreshDock();
-      try { await submit(); S.sent = true; }
+      try {
+        await submit(); S.sent = true;
+        try { localStorage.removeItem(KEY); } catch (e) { /* private window */ } // sent: don't keep their answers on this device
+      }
       catch (e) { sending = false; refreshDock(); toast(sendError(e.message), 9000); return; }
       sending = false;
     }
@@ -398,7 +449,11 @@
     fd.append('summary', answersText());
     const raw = Object.assign({}, d); delete raw._from;
     fd.append('answers', JSON.stringify(raw));
-    fd.append('company_url', '');
+    fd.append('company_url', ($('#company_url') || {}).value || ''); // honeypot
+    /* timing trap and duplicate guard: t = ms since the visit began, sid = one id per submission, kept across retries */
+    if (!S.sid) { S.sid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 12); save(true); }
+    fd.append('sid', S.sid);
+    fd.append('t', String(Date.now() - (S.born || Date.now())));
     steps.filter(x => x.type === 'upload').forEach(x => arr(d[x.key]).forEach(f => { const o = fileObjs[x.key + '/' + f.name]; if (o) fd.append('files[]', o, o.name); }));
     let res;
     try { res = await fetch('submit.php', { method: 'POST', body: fd, headers: { Accept: 'application/json' } }); }
@@ -407,13 +462,16 @@
     if (!res.ok || !j.ok) throw new Error(j.error || 'send');
   }
   function sendError(code) {
-    if (code === 'toobig') return 'That file is too big to send. Remove it and email it to ' + STUDIO_EMAIL + ' instead.';
+    if (code === 'toobig') return 'Your files are too large to send. Remove them and email them to ' + STUDIO_EMAIL + ' instead.';
+    if (code === 'refile') return 'Please add your menu file again. It was chosen before the page reloaded.';
+    if (code === 'rate') return 'That was a little quick. Wait a few seconds and try again.';
     if (code === 'filetype') return 'We can only take photos, PDFs or Word files. Remove that file and try again.';
     if (code === 'missing') return 'We’re missing your name, email or the name of your place. Go back and fill them in.';
     if (code === 'offline') return 'No connection right now. Your answers are saved, so try again when you have signal.';
     return 'Something went wrong sending it. Try again, or email ' + STUDIO_EMAIL + '.';
   }
   function back() {
+    if (sending) return;
     clearTimeout(autoT);
     const { v, i } = cur();
     if (i > 0) go(v[i - 1].id);
@@ -445,7 +503,11 @@
     if (!t.dataset.k) return;
     S.d[t.dataset.k] = t.value; saveSoon();
     const f = t.closest('.field');
-    if (f && f.classList.contains('bad') && t.value.trim()) { f.classList.remove('bad'); const err = $('#err'); if (err && !$('.field.bad', stage)) err.textContent = ''; }
+    if (f && f.classList.contains('bad') && t.value.trim()) {
+      f.classList.remove('bad'); t.removeAttribute('aria-invalid');
+      const by = (t.getAttribute('aria-describedby') || '').split(' ').filter(x => x && x !== 'err');
+      if (by.length) t.setAttribute('aria-describedby', by.join(' ')); else t.removeAttribute('aria-describedby');
+      const err = $('#err'); if (err && !$('.field.bad', stage)) err.textContent = ''; }
   });
   stage.addEventListener('change', e => { const t = e.target; if (t.dataset.file) { addFiles(t.dataset.file, t.files); t.value = ''; } });
   stage.addEventListener('dragover', e => { const z = e.target.closest('.drop'); if (z) { e.preventDefault(); z.classList.add('over'); } });
@@ -456,8 +518,8 @@
     S.d[s.key] = el.dataset.v;
     $$('.opt', stage).forEach(o => o.setAttribute('aria-checked', o === el));
     save();
-    if (s.opts.some(o => o.ex)) { const box = $('.sample', stage); if (box) box.outerHTML = sample(s); }
-    if (s.auto !== false) { clearTimeout(autoT); autoT = setTimeout(next, 320); }
+    if (s.opts.some(o => o.ex)) { const box = $('.sample, .sample-slot', stage); if (box) box.outerHTML = sample(s); }
+    if (s.auto !== false && s.type !== 'connect') { clearTimeout(autoT); autoT = setTimeout(next, 320); }
   }
   function onChip(el, s) {
     const key = el.dataset.chip, v = el.dataset.v;
@@ -503,10 +565,10 @@
       fileObjs[key + '/' + f.name] = f;
       if (/^image\//.test(f.type)) thumbs[key + '/' + f.name] = URL.createObjectURL(f);
     });
-    if (!files.length && big.length) { toast(big[0] + ' is over 10 MB. Try a photo of it instead, or email it to ' + STUDIO_EMAIL + '.', 7000); return; }
+    if (!files.length && big.length) { toast(big[0] + ' is over 6 MB. Try a photo of it instead, or email it to ' + STUDIO_EMAIL + '.', 7000); return; }
     S.d[key] = files; if (files.length) S.d[key + 'Alt'] = null;
     save(); render({ anim: false, focus: false });
-    if (big.length) toast(big[0] + ' is over 10 MB. Try a photo of it instead, or email it to ' + STUDIO_EMAIL + '.', 7000);
+    if (big.length) toast(big[0] + ' is over 6 MB. Try a photo of it instead, or email it to ' + STUDIO_EMAIL + '.', 7000);
     else toast(list.length === 1 ? 'Got it: ' + list[0].name : 'Got ' + list.length + ' files.');
   }
   function act(a, el, s) {

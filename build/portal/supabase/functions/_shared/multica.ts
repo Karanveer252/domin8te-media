@@ -90,6 +90,34 @@ export function issueUnchanged(task: TaskRow, issue: any): boolean {
     && task.multica_revision != null && Number(task.multica_revision) === (issue.revision ?? null);
 }
 
+// The client's project id, remembered with compare-and-set: only an empty multica_project_id is filled, so two first
+// pushes at once cannot both win. The loser re-reads the winner and removes its own extra project (best effort; it is
+// logged by id if Multica refuses). `admin` must be the service-role client: browsers cannot write this column.
+export async function claimProject(admin: any, tenantId: string, projectId: string): Promise<string> {
+  const u = await admin.from("tenants").update({ multica_project_id: projectId }).eq("id", tenantId).is("multica_project_id", null).select("id");
+  if (!u.error && u.data?.length) return projectId;
+  // Zero rows (or an error): someone else linked one first, or the write failed. Either way ours is not the link.
+  const cur = await admin.from("tenants").select("multica_project_id").eq("id", tenantId).maybeSingle();
+  const winner: string = cur.data?.multica_project_id || "";
+  if (winner !== projectId) {
+    const d = await multica(`/api/projects/${encodeURIComponent(projectId)}`, { method: "DELETE" });
+    if (!d.ok) console.log(`multica: extra project ${projectId} for tenant ${tenantId} left behind (delete answered ${d.status})`);
+  }
+  if (cur.error || !winner) throw new Error("The Multica project was created but could not be remembered. Try again.");
+  return winner;
+}
+
+// A newly created issue is linked to its card only if the card has no issue yet. When another push won (or the card
+// is gone), the new issue is set to cancelled so Multica is not left with a duplicate, and the caller answers 409.
+// A failed write cancels it too ("error"), so a retry starts clean instead of leaving an unlinked issue behind.
+export async function linkNewIssue(db: any, taskId: string, issue: any, fields: Record<string, unknown>, link: Record<string, unknown>): Promise<"linked" | "conflict" | "error"> {
+  const s = await db.from("tasks").update(link).eq("id", taskId).is("multica_issue_id", null).select("id");
+  if (!s.error && s.data?.length) return "linked";
+  const c = await multica(`/api/issues/${encodeURIComponent(issue.id)}`, { method: "PUT", body: JSON.stringify({ ...fields, status: "cancelled" }) });
+  if (!c.ok) console.log(`multica: duplicate issue ${issue.id} for card ${taskId} could not be cancelled (${c.status})`);
+  return s.error ? "error" : "conflict";
+}
+
 // All issues of one client project, paginated. Stops on offset >= total, a short page, or 20 pages.
 export async function listProjectIssues(projectId: string): Promise<{ ok: boolean; issues: any[]; calls: number }> {
   const out: any[] = [];

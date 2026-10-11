@@ -22,7 +22,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { CUSTOMER_ID, safeCustomer, stripe, stripeError, stripeMode, withCustomerId } from "../_shared/stripe.ts";
 
-const ALLOWED = ["https://domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
+const ALLOWED = ["https://domin8temedia.com", "https://www.domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
 const RETURN_URL = "https://domin8temedia.com/dashboard/#/billing";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -65,8 +65,9 @@ async function setCustomer(db: any, tenantId: string, id: string | null, expectC
   return { error: "conflict" };
 }
 
+// Back to the site the client came from, but only an allowed one (www and localhost included); anything else, the apex.
 function portalReturn(origin: string | null) {
-  return origin && origin.startsWith("http://localhost:") && ALLOWED.includes(origin) ? `${origin}/dashboard/#/billing` : RETURN_URL;
+  return origin && ALLOWED.includes(origin) ? `${origin}/dashboard/#/billing` : RETURN_URL;
 }
 
 Deno.serve(async (req) => {

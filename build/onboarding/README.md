@@ -1,7 +1,7 @@
 # Domin8te onboarding
 
 The setup flow a new Domin8te Media client goes through after they sign on:
-20 short screens that collect what the studio needs to start work, mainly
+19 short screens (plus the finish screen) that collect what the studio needs to start work, mainly
 manager access to their Google listing, Facebook, Instagram and ads.
 
 Live at **https://domin8temedia.com/onboarding/**. Add `?demo` to the address
@@ -32,7 +32,7 @@ add `?live` to try the real sending path against the local stand-in.
 ## How it behaves
 
 - Answers save in the visitor's browser as they go, so they can stop and come back.
-- Name, email and the name of the place are required. Everything else can be skipped,
+- Name, email and the name of the place are required (the place name is asked on the "do it all on a call" path too). Everything else can be skipped,
   and skipped items are listed on the finish screen and in the email as "to sort on the call".
 - Moving on from the last question sends everything to the studio. Nothing is sent in demo mode.
 - Account access uses each platform's own manager invite (paste our email). It never asks for passwords.

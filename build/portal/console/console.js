@@ -569,10 +569,13 @@
     if (PREVIEWING) return;
     const C = await D8.live.clerk();
     if (!C || !C.user) return;
-    const wanted = (D8.live.config && D8.live.config.teamOrgId) || '';
+    // The team id may be a comma-separated list (as the data layer reads it).
+    const wanted = String((D8.live.config && D8.live.config.teamOrgId) || '').split(',').map((x) => x.trim()).filter(Boolean);
     const ms = C.user.organizationMemberships || [];
-    const team = ms.find((/** @type {any} */ m) => m.organization && (wanted ? m.organization.id === wanted : (m.organization.slug === 'domin8te-team' || /^domin8te team$/i.test(m.organization.name || ''))));
-    if (team && (!C.organization || C.organization.id !== team.organization.id)) await C.setActive({ organization: team.organization.id });
+    const team = ms.find((/** @type {any} */ m) => m.organization && (wanted.length ? wanted.includes(m.organization.id) : (m.organization.slug === 'domin8te-team' || /^domin8te team$/i.test(m.organization.name || ''))));
+    if (team && (!C.organization || C.organization.id !== team.organization.id)) {
+      try { await C.setActive({ organization: team.organization.id }); } catch (e) { /* tokens name the team organisation anyway */ }
+    }
   }
   /**
    * The sign-in can end, or change to another person, in another tab (Clerk keeps one person signed in
@@ -3452,6 +3455,9 @@
         : /super-admin-only/.test(raw) ? 'Only an owner can do this.'
         : /gates-incomplete/.test(raw) ? 'All four safety checks must be recorded first.'
         : /^hidden/.test(raw) ? 'This was hidden from the client.'
+        : /nothing-to-approve/.test(raw) ? 'There is nothing new to approve here. Reloaded.'
+        : /evidence-must-be-a-link/.test(raw) ? 'Paste a link (https://...) to the proof for this check.'
+        : /^not-staff/.test(raw) ? 'Your sign-in is not on the Domin8te team. Sign out and in again.'
         : raw;
       throw new Error(text);
     }
@@ -3464,7 +3470,8 @@
     const r = (all && all.reviews) || { items: [], invoices: [], exceptions: [] };
     const row = r.items.find((/** @type {any} */ x) => x.id === card.getAttribute('data-dm-item')) || r.invoices.find((/** @type {any} */ x) => x.id === card.getAttribute('data-dm-invoice')) || r.exceptions.find((/** @type {any} */ x) => x.id === card.getAttribute('data-dm-exception'));
     const t = $('.dm-title', card);
-    return { who: row ? clientName(row.tenant_id) : 'the client', title: (t && t.textContent) || 'this' };
+    // The row's updated_at is what Karan saw: the database refuses the approval if it changed since ("stale").
+    return { who: row ? clientName(row.tenant_id) : 'the client', title: (t && t.textContent) || 'this', seen: (row && row.updated_at) || null };
   }
 
   /** Approve, reject, edit, hide and resolve, wherever the block is shown. */
@@ -3488,7 +3495,7 @@
       return;
     }
     // Nothing goes live, or is turned down, on one stray click: ask first, naming the client and the item.
-    const { who, title } = dmWho(card);
+    const { who, title, seen } = dmWho(card);
     const remoteNow = card.getAttribute('data-remote') || '';
     /** @type {string[]|null} */ let q = null;
     if (act === 'approve') q = [`Publish to ${who}?`, `“${title}” goes live on their dashboard now.`, 'Publish'];
@@ -3500,10 +3507,10 @@
     const done = busy(b, 'Saving');
     try {
       if (itemId && (act === 'approve' || act === 'reject')) {
-        dmCheck(await client.rpc('review_dashboard_item', { p_item_id: itemId, p_decision: act, p_note: null }));
+        dmCheck(await client.rpc('review_dashboard_item', { p_item_id: itemId, p_decision: act, p_note: null, p_expected: seen }));
         toast(act === 'approve' ? 'Approved. It is on their portal now.' : 'Rejected. Nothing changed on their portal.');
       } else if (invId && (act === 'inv-approve' || act === 'inv-reject')) {
-        dmCheck(await client.rpc('review_billing_invoice', { p_invoice_id: invId, p_decision: act === 'inv-approve' ? 'approve' : 'reject', p_note: null }));
+        dmCheck(await client.rpc('review_billing_invoice', { p_invoice_id: invId, p_decision: act === 'inv-approve' ? 'approve' : 'reject', p_note: null, p_expected: seen }));
         toast(act === 'inv-approve' ? 'Invoice approved. It is on their portal now.' : 'Invoice rejected.');
       } else if (excId && act === 'resolve') {
         dmCheck(await client.rpc('resolve_dashboard_exception', { p_id: excId, p_status: 'resolved', p_note: null }));
@@ -3541,7 +3548,7 @@
     const card = /** @type {HTMLElement} */ (f.closest('.dm-card'));
     const itemId = card.getAttribute('data-dm-item') || '';
     const isEdit = f.classList.contains('dm-edit');
-    const { who, title } = dmWho(card);
+    const { who, title, seen } = dmWho(card);
     /** The whole proposed content, with only the fields the person changed replaced. The database swaps the content for
      *  whatever is sent, so the untouched fields (and any null or nested value) go back exactly as they were. @type {any} */
     let content = null;
@@ -3581,8 +3588,8 @@
         const client = await db();
         // Nothing changed: it is a plain approval of what was proposed.
         dmCheck(await client.rpc('review_dashboard_item', changed
-          ? { p_item_id: itemId, p_decision: 'approve', p_note: 'edited before approval', p_content: content }
-          : { p_item_id: itemId, p_decision: 'approve', p_note: null }));
+          ? { p_item_id: itemId, p_decision: 'approve', p_note: 'edited before approval', p_content: content, p_expected: seen }
+          : { p_item_id: itemId, p_decision: 'approve', p_note: null, p_expected: seen }));
         toast(changed ? 'Edited and approved. It is on their portal now.' : 'Approved. It is on their portal now.');
       } else {
         await callFn('dashboard-recovery', { action: 'hide', targetType: 'dashboard-item', itemId, reason });

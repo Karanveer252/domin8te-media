@@ -1689,6 +1689,9 @@ if (plan) {
    sender's own address as Reply-To when they gave one.
    ============================================================ */
 
+/* page-load time, sent as `ts` so send.php can spot instant bot posts */
+window.__t0 = Date.now();
+
 var form = document.getElementById('leadform');
 if (form) {
   var status = document.getElementById('formstatus');
@@ -1747,10 +1750,15 @@ if (form) {
     var web = form.elements.website;
     if (web && web.value.trim() && !/^https?:\/\//i.test(web.value.trim())) data.set('website', 'https://' + web.value.trim());
 
+    data.set('ts', String(window.__t0));
+
     submit.disabled = true;
     submit.textContent = MSG.sending;
 
-    fetch(form.action, { method: 'POST', body: data, headers: { Accept: 'application/json' } })
+    /* a stalled request aborts after 20 s and falls into the .catch below */
+    var opts = { method: 'POST', body: data, headers: { Accept: 'application/json' } };
+    if (window.AbortSignal && AbortSignal.timeout) opts.signal = AbortSignal.timeout(20000);
+    fetch(form.action, opts)
       .then(function (r) { return r.json() })
       .then(function (d) {
         if (!d || d.ok !== true) throw new Error('send');

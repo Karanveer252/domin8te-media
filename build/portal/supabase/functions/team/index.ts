@@ -18,7 +18,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const CLERK = "https://api.clerk.com/v1";
-const ALLOWED = ["https://domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
+const ALLOWED = ["https://domin8temedia.com", "https://www.domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
+// Ids go into Clerk API paths: plain shapes only, and every segment encoded, so no value can walk to another object.
+const USER_ID = /^user_[A-Za-z0-9]+$/;
+const seg = encodeURIComponent;
 
 function cors(origin: string | null) {
   const allow = origin && ALLOWED.includes(origin) ? origin : ALLOWED[0];
@@ -55,10 +58,19 @@ function subject(token: string): string {
   }
 }
 
+// Every member, page by page: the last-admin and is-a-member checks need the whole team, not the first page.
 async function members(team: string) {
-  const r = await clerk(`/organizations/${team}/memberships?limit=200`);
-  if (!r.ok) throw new Error("Clerk would not list the team.");
-  return (r.data?.data || []).map((m: any) => ({
+  const rows: any[] = [];
+  for (let offset = 0, page = 0; ; page++) {
+    if (page >= 20) throw new Error("The team is too large to list.");
+    const r = await clerk(`/organizations/${seg(team)}/memberships?limit=200&offset=${offset}`);
+    if (!r.ok) throw new Error("Clerk would not list the team.");
+    const got = r.data?.data || [];
+    rows.push(...got);
+    offset += got.length;
+    if (!got.length || offset >= (r.data?.total_count ?? 0)) break;
+  }
+  return rows.map((m: any) => ({
     userId: m.public_user_data?.user_id || "",
     name: [m.public_user_data?.first_name, m.public_user_data?.last_name].filter(Boolean).join(" "),
     email: m.public_user_data?.identifier || "",
@@ -97,23 +109,23 @@ Deno.serve(async (req) => {
       let userId = "";
       const found = await clerk(`/users?email_address=${encodeURIComponent(email)}`);
       if (found.ok && Array.isArray(found.data) && found.data.length) {
-        userId = found.data[0].id;
+        userId = String(found.data[0].id || "");
         // Only the console decides who belongs where: no one can start an organisation of their own.
-        await clerk(`/users/${userId}`, { method: "PATCH", body: JSON.stringify({ create_organization_enabled: false }) });
+        await clerk(`/users/${seg(userId)}`, { method: "PATCH", body: JSON.stringify({ create_organization_enabled: false }) });
       }
       else {
         const u = await clerk("/users", { method: "POST", body: JSON.stringify({ email_address: [email], first_name: firstName || undefined, skip_password_requirement: true, create_organization_enabled: false }) });
         if (!u.ok) return reply(origin, 502, { error: "clerk-user", message: "Clerk would not create the login.", detail: u.data?.errors?.[0]?.message || u.status });
         userId = u.data.id;
       }
-      const m = await clerk(`/organizations/${team}/memberships`, { method: "POST", body: JSON.stringify({ user_id: userId, role: clerkRole(String(body.role || "member")) }) });
+      const m = await clerk(`/organizations/${seg(team)}/memberships`, { method: "POST", body: JSON.stringify({ user_id: userId, role: clerkRole(String(body.role || "member")) }) });
       const already = !m.ok && JSON.stringify(m.data || "").includes("already");
       if (!m.ok && !already) return reply(origin, 502, { error: "clerk-membership", message: "Clerk would not add them to the team.", detail: m.data?.errors?.[0]?.message || m.status });
       return reply(origin, 200, { ok: true, already, members: await members(team) });
     }
 
     const userId = String(body.userId || "");
-    if (!userId) return reply(origin, 400, { error: "bad-request", message: "Say who." });
+    if (!USER_ID.test(userId)) return reply(origin, 400, { error: "bad-request", message: "Say who." });
     const list = await members(team);
     const target = list.find((x: any) => x.userId === userId);
     if (!target) return reply(origin, 404, { error: "not-member", message: "That person is not on the team." });
@@ -122,7 +134,7 @@ Deno.serve(async (req) => {
     if (action === "role") {
       const role = String(body.role || "member");
       if (target.role === "super_admin" && role !== "super_admin" && admins <= 1) return reply(origin, 409, { error: "last-admin", message: "The team needs at least one super admin. Make someone else a super admin first." });
-      const u = await clerk(`/organizations/${team}/memberships/${userId}`, { method: "PATCH", body: JSON.stringify({ role: clerkRole(role) }) });
+      const u = await clerk(`/organizations/${seg(team)}/memberships/${seg(userId)}`, { method: "PATCH", body: JSON.stringify({ role: clerkRole(role) }) });
       if (!u.ok) return reply(origin, 502, { error: "clerk-role", message: "Clerk would not change the role.", detail: u.data?.errors?.[0]?.message || u.status });
       return reply(origin, 200, { ok: true, members: await members(team) });
     }
@@ -130,7 +142,7 @@ Deno.serve(async (req) => {
     if (action === "remove") {
       if (userId === me) return reply(origin, 409, { error: "self", message: "You cannot remove yourself. Another super admin can." });
       if (target.role === "super_admin" && admins <= 1) return reply(origin, 409, { error: "last-admin", message: "The team needs at least one super admin." });
-      const d = await clerk(`/organizations/${team}/memberships/${userId}`, { method: "DELETE" });
+      const d = await clerk(`/organizations/${seg(team)}/memberships/${seg(userId)}`, { method: "DELETE" });
       if (!d.ok) return reply(origin, 502, { error: "clerk-remove", message: "Clerk would not remove them.", detail: d.data?.errors?.[0]?.message || d.status });
       return reply(origin, 200, { ok: true, members: await members(team) });
     }

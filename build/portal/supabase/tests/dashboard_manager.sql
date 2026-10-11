@@ -86,9 +86,28 @@ begin
   begin perform set_tenant_auto_publish(a, false); out := out || 'FAIL member-cannot-switch-auto-publish' || chr(10);
   exception when others then out := out || 'PASS member-cannot-switch-auto-publish' || chr(10); end;
 
-  -- review-approves: as staff; the verifier is the token's sub.
-  select * into r from review_dashboard_item(i, 'approve', 'test');
+  -- stale-approve-refused: the row changed after the console drew it (20261010120000).
+  begin
+    perform review_dashboard_item(i, 'approve', null, null, (select updated_at - interval '1 second' from client_dashboard_items where id = i));
+    out := out || 'FAIL stale-approve-refused' || chr(10);
+  exception when others then out := out || case when sqlerrm = 'stale: changed since you opened it' then 'PASS' else 'FAIL' end || ' stale-approve-refused (' || sqlerrm || ')' || chr(10); end;
+  begin
+    perform review_billing_invoice(inv, 'approve', null, now() - interval '1 day');
+    out := out || 'FAIL stale-invoice-approve-refused' || chr(10);
+  exception when others then out := out || case when sqlerrm like 'stale%' and not (select client_visible from client_billing_invoices where id = inv) then 'PASS' else 'FAIL' end || ' stale-invoice-approve-refused' || chr(10); end;
+  begin
+    perform review_dashboard_item(i, null);
+    out := out || 'FAIL null-decision-refused' || chr(10);
+  exception when others then out := out || case when sqlerrm = 'bad-decision' then 'PASS' else 'FAIL' end || ' null-decision-refused' || chr(10); end;
+
+  -- review-approves: as staff; the verifier is the token's sub. With the matching p_expected it goes through.
+  select * into r from review_dashboard_item(i, 'approve', 'test', null, (select updated_at from client_dashboard_items where id = i));
   out := out || case when r.client_visible and r.verified_by = 'user_TEST_staff' and r.published_by = 'user_TEST_staff' and r.verification_status = 'verified' then 'PASS' else 'FAIL' end || ' review-approves' || chr(10);
+  -- nothing-to-approve: a live row with no revision waiting.
+  begin
+    perform review_dashboard_item(i, 'approve');
+    out := out || 'FAIL nothing-to-approve' || chr(10);
+  exception when others then out := out || case when sqlerrm = 'nothing-to-approve' then 'PASS' else 'FAIL' end || ' nothing-to-approve (' || sqlerrm || ')' || chr(10); end;
   -- review-rejects
   select * into r from review_dashboard_item(j, 'reject', 'test');
   out := out || case when not r.client_visible and r.verification_status = 'rejected' then 'PASS' else 'FAIL' end || ' review-rejects' || chr(10);
@@ -111,6 +130,8 @@ begin
 
   -- hidden-stays-hidden
   perform hide_client_dashboard_item(i, 'user_TEST_staff', 'test', null);
+  out := out || case when exists (select 1 from audit_log where action = 'dashboard.item.hidden' and detail->>'item' = i::text and actor = 'user_TEST_staff' and detail->>'reason' = 'test')
+    then 'PASS' else 'FAIL' end || ' hide-is-audited' || chr(10);
   perform set_config('request.jwt.claims', staff, true);
   begin perform review_dashboard_item(i, 'approve'); out := out || 'FAIL hidden-stays-hidden (approve)' || chr(10);
   exception when others then out := out || 'PASS hidden-stays-hidden (approve refused)' || chr(10); end;
@@ -122,7 +143,9 @@ begin
 
   -- auto-publish-evidence-required: four gates and the switch, for this transaction only.
   perform set_config('request.jwt.claims', admin, true);
-  perform record_publish_gate(g, 'dm test') from unnest(array['a_test_project_tests','b_field_evidence_checks','c_tenant_authorization','d_test_client_backfill']) g;
+  begin perform record_publish_gate('a_test_project_tests', 'dm test'); out := out || 'FAIL gate-evidence-must-be-a-link' || chr(10);
+  exception when others then out := out || case when sqlerrm = 'evidence-must-be-a-link' then 'PASS' else 'FAIL' end || ' gate-evidence-must-be-a-link' || chr(10); end;
+  perform record_publish_gate(g, 'https://ci.example.test/dm-test') from unnest(array['a_test_project_tests','b_field_evidence_checks','c_tenant_authorization','d_test_client_backfill']) g;
   perform set_tenant_auto_publish(a, true);
   perform set_config('request.jwt.claims', '', true);
   for r in select * from (values
@@ -173,6 +196,28 @@ begin
   perform open_dashboard_exception(a, null, 'task', 'task-1', 'warning', 'multica_conflict', 'x');
   select count(*) into n from dashboard_exceptions where tenant_id = a and reason_code = 'multica_conflict';
   out := out || case when n = 1 then 'PASS' else 'FAIL' end || ' exceptions-deduplicated' || chr(10);
+
+  -- 20261010120000: staff resolve only through the RPC, and the note is audited; an edited approval keeps both versions.
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.jwt.claims', staff, true);
+  foreach v in array array[
+    format('update dashboard_exceptions set status = ''ignored'', resolved_at = now(), resolved_by = ''x'' where tenant_id = %L', a),
+    format('update dashboard_events set status = ''discarded'' where tenant_id = %L', a)] loop
+    begin
+      execute v; get diagnostics n = row_count;
+      out := out || case when n = 0 then 'PASS' else 'FAIL' end || ' staff-cannot-write-directly: ' || left(v, 40) || chr(10);
+    exception when others then out := out || 'PASS staff-cannot-write-directly: ' || left(v, 40) || chr(10); end;
+  end loop;
+  perform set_config('role', 'none', true);
+  perform resolve_dashboard_exception((select id from dashboard_exceptions where tenant_id = a and reason_code = 'multica_conflict' and status = 'open'), 'resolved', 'fixed by hand');
+  out := out || case when exists (select 1 from audit_log where action = 'dashboard.exception.resolved' and actor = 'user_TEST_staff' and detail->>'note' = 'fixed by hand')
+    then 'PASS' else 'FAIL' end || ' resolve-note-audited' || chr(10);
+  insert into client_dashboard_items (tenant_id, item_kind, external_id, content, source_kind, source_ref, source_observed_at)
+    values (a, 'update', 'item-edit', '{"title":"Proposed"}', 'console', 'console:item-edit', now()) returning id into j;
+  perform review_dashboard_item(j, 'approve', 'edited', '{"title":"Edited"}');
+  out := out || case when exists (select 1 from audit_log where action = 'dashboard.item.approved' and detail->>'item' = j::text
+      and detail #>> '{proposed,title}' = 'Proposed' and detail #>> '{published,title}' = 'Edited') then 'PASS' else 'FAIL' end || ' edit-audits-proposed-and-published' || chr(10);
+  perform set_config('request.jwt.claims', '', true);
 
   -- sync-overlap-busy: the second taker of a live lease gets null.
   out := out || case when take_dashboard_lease('dm-test', 'one', 30) is not null and take_dashboard_lease('dm-test', 'two', 30) is null then 'PASS' else 'FAIL' end || ' sync-overlap-busy' || chr(10);

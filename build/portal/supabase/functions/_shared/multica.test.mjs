@@ -179,3 +179,85 @@ test("list pull: a failed page reports not ok", async () => {
   const r = await listProjectIssues("p1");
   assert.equal(r.ok, false);
 });
+
+// Compare-and-set stubs for claimProject / linkNewIssue: update().eq().is().select() and select().eq().maybeSingle().
+function casDb(rows, { fail = false } = {}) {
+  return {
+    from: () => ({
+      update(patch) {
+        const filters = [];
+        const q = {
+          eq(k, v) { filters.push((r) => r[k] === v); return q; },
+          is(k, v) { filters.push((r) => (r[k] ?? null) === v); return q; },
+          select() {
+            if (fail) return Promise.resolve({ error: { message: "boom" }, data: null });
+            const hit = rows.filter((r) => filters.every((f) => f(r)));
+            for (const r of hit) Object.assign(r, patch);
+            return Promise.resolve({ error: null, data: hit.map((r) => ({ id: r.id })) });
+          },
+        };
+        return q;
+      },
+      select() {
+        const filters = [];
+        const q = {
+          eq(k, v) { filters.push((r) => r[k] === v); return q; },
+          maybeSingle() { return Promise.resolve({ error: null, data: rows.find((r) => filters.every((f) => f(r))) || null }); },
+        };
+        return q;
+      },
+    }),
+  };
+}
+const { claimProject, linkNewIssue } = await import("./multica.ts");
+
+test("claimProject: first link wins and keeps its project", async () => {
+  reset({});
+  const rows = [{ id: "ten", multica_project_id: null }];
+  assert.equal(await claimProject(casDb(rows), "ten", "p-new"), "p-new");
+  assert.equal(rows[0].multica_project_id, "p-new");
+  assert.equal(calls.length, 0);
+});
+
+test("claimProject: losing a race uses the winner and deletes the extra project", async () => {
+  reset({ "/api/projects/": () => [200, {}] });
+  const rows = [{ id: "ten", multica_project_id: "p-winner" }];
+  assert.equal(await claimProject(casDb(rows), "ten", "p-extra"), "p-winner");
+  assert.equal(rows[0].multica_project_id, "p-winner");
+  assert.deepEqual(calls, ["/api/projects/p-extra"]);
+});
+
+test("claimProject: a failed write with no winner throws (and removes the orphan)", async () => {
+  reset({ "/api/projects/": () => [200, {}] });
+  const rows = [{ id: "ten", multica_project_id: null }];
+  await assert.rejects(claimProject(casDb(rows, { fail: true }), "ten", "p-orphan"), /could not be remembered/);
+  assert.deepEqual(calls, ["/api/projects/p-orphan"]);
+});
+
+test("linkNewIssue: links an unlinked card", async () => {
+  reset({});
+  const rows = [{ id: "t1", multica_issue_id: null }];
+  assert.equal(await linkNewIssue(casDb(rows), "t1", { id: "i9" }, { title: "x" }, { multica_issue_id: "i9" }), "linked");
+  assert.equal(rows[0].multica_issue_id, "i9");
+  assert.equal(calls.length, 0);
+});
+
+test("linkNewIssue: pushed twice keeps the first link and cancels the new issue", async () => {
+  let sent = null;
+  reset({ "/api/issues/": () => [200, {}] });
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => { sent = JSON.parse(init.body); return realFetch(url, init); };
+  try {
+    const rows = [{ id: "t1", multica_issue_id: "i1" }];
+    assert.equal(await linkNewIssue(casDb(rows), "t1", { id: "i9" }, { title: "x", status: "todo" }, { multica_issue_id: "i9" }), "conflict");
+    assert.equal(rows[0].multica_issue_id, "i1");
+    assert.deepEqual(calls, ["/api/issues/i9"]);
+    assert.equal(sent.status, "cancelled");
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test("linkNewIssue: a deleted card is a conflict, not ok; a failed write is an error", async () => {
+  reset({ "/api/issues/": () => [200, {}] });
+  assert.equal(await linkNewIssue(casDb([]), "t1", { id: "i9" }, {}, { multica_issue_id: "i9" }), "conflict");
+  assert.equal(await linkNewIssue(casDb([{ id: "t1", multica_issue_id: null }], { fail: true }), "t1", { id: "i9" }, {}, { multica_issue_id: "i9" }), "error");
+});

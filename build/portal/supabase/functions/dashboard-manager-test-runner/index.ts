@@ -19,6 +19,9 @@ export const CHECKS = [
 ];
 
 Deno.serve(async (request) => {
+  // Hard lock: this runner creates and deletes tenants, so it refuses to run anywhere but the test project, whatever
+  // the flags and secrets say.
+  if (!(Deno.env.get("SUPABASE_URL") || "").startsWith("https://leuvzsouqsdpdpyjspjr.supabase.co")) return json(403, { error: "test-project-only" });
   if (request.method !== "POST") return json(405, { error: "method" });
   if (!secretMatches(request.headers.get("x-dashboard-manager-secret"), Deno.env.get("DASHBOARD_MANAGER_CRON_SECRET"))) return json(401, { error: "unauthorized" });
   if (Deno.env.get("DASHBOARD_TEST_RUNNER_ENABLED") !== "true") return json(503, { error: "disabled" });

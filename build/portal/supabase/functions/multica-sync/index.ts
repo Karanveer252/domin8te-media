@@ -21,9 +21,9 @@
 // is Clerk's, not Supabase's; the staff check is the guard.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { multica, multicaError, multicaConfigured, pullTask, TASK_COLUMNS, apiUrl, type TaskRow } from "../_shared/multica.ts";
+import { multica, multicaError, multicaConfigured, pullTask, claimProject, linkNewIssue, TASK_COLUMNS, apiUrl, type TaskRow } from "../_shared/multica.ts";
 
-const ALLOWED = ["https://domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
+const ALLOWED = ["https://domin8temedia.com", "https://www.domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
 
 function cors(origin: string | null) {
   const allow = origin && ALLOWED.includes(origin) ? origin : ALLOWED[0];
@@ -55,14 +55,12 @@ function describe(task: any, tenant: any) {
   return lines.join("\n");
 }
 
-/** The client's Multica project, created on first use and remembered on the tenant row. */
-async function projectFor(db: any, tenant: any) {
+/** The client's Multica project, created on first use and remembered on the tenant row (service role, compare-and-set). */
+async function projectFor(admin: any, tenant: any) {
   if (tenant.multica_project_id) return tenant.multica_project_id;
   const p = await multica("/api/projects", { method: "POST", body: JSON.stringify({ title: tenant.name.slice(0, 120), description: `Work for ${tenant.name}, mirrored from the Domin8te console.` }) });
   if (!p.ok || !p.data?.id) throw new Error(multicaError(p, "create the client's project"));
-  const link = await db.from("tenants").update({ multica_project_id: p.data.id }).eq("id", tenant.id);
-  if (link.error) throw new Error("The Multica project was created but could not be remembered. Try again.");
-  return p.data.id as string;
+  return await claimProject(admin, tenant.id, String(p.data.id));
 }
 
 Deno.serve(async (req) => {
@@ -76,13 +74,15 @@ Deno.serve(async (req) => {
   const who = await db.rpc("console_me");
   if (who.error || !who.data || !who.data.staff) return reply(origin, 403, { error: "not-staff", message: "Only the Domin8te team can do this." });
   const staff = { data: { name: who.data.name || "Domin8te" } };
+  // Only after the staff check: tenants.multica_project_id is written with the service role (browsers cannot).
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
   let body: any;
   try { body = await req.json(); } catch { return reply(origin, 400, { error: "bad-request", message: "Send an action." }); }
   const action = String(body?.action || "");
 
   if (action === "status") {
-    return reply(origin, 200, { configured: configured(), workspace: env("MULTICA_WORKSPACE") || null, server: configured() ? new URL(apiUrl()).host : null, agent: !!env("MULTICA_AGENT_ID") });
+    return reply(origin, 200, { ok: true, configured: configured(), workspace: env("MULTICA_WORKSPACE") || null, server: configured() ? new URL(apiUrl()).host : null, agent: !!env("MULTICA_AGENT_ID") });
   }
   if (!configured()) {
     return reply(origin, 503, { error: "not-configured", message: "Multica is not set up on the server yet (Supabase: Edge Functions > Secrets > MULTICA_TOKEN and MULTICA_WORKSPACE). The card is saved here." });
@@ -95,22 +95,31 @@ Deno.serve(async (req) => {
       const task = t.data;
       const ten = await db.from("tenants").select("id, name, multica_project_id").eq("id", task.tenant_id).maybeSingle();
       if (ten.error || !ten.data) return reply(origin, 404, { error: "no-tenant", message: "That client was not found." });
-      const projectId = await projectFor(db, ten.data);
+      const projectId = await projectFor(admin, ten.data);
       const fields: Record<string, unknown> = { title: task.title.slice(0, 200), description: describe(task, ten.data), status: task.status, priority: task.priority || "none", project_id: projectId, due_date: task.due || null };
+      const stampOf = (issue: any) => {
+        const now = new Date().toISOString();
+        return { multica_issue_id: issue.id, multica_identifier: issue.identifier || null, multica_status: issue.status || task.status, multica_synced_at: now, multica_updated_at: issue.updated_at || now, multica_revision: issue.revision ?? null };
+      };
       let issue: any;
       if (task.multica_issue_id) {
         const u = await multica(`/api/issues/${encodeURIComponent(task.multica_issue_id)}`, { method: "PUT", body: JSON.stringify(fields) });
         if (!u.ok) throw new Error(multicaError(u, "update the issue"));
         issue = u.data;
+        // Same issue only: a card relinked or deleted meanwhile must not be stamped, nor reported as pushed.
+        const saved = await db.from("tasks").update(stampOf(issue)).eq("id", task.id).eq("multica_issue_id", task.multica_issue_id).select("id");
+        if (saved.error) throw new Error("The issue was saved in Multica but the link could not be recorded here. Try again.");
+        if (!saved.data?.length) return reply(origin, 409, { error: "conflict", message: "The card changed or was deleted while it was pushed; refresh." });
       } else {
         if (env("MULTICA_AGENT_ID")) { fields.assignee_type = "agent"; fields.assignee_id = env("MULTICA_AGENT_ID"); }
         const c = await multica("/api/issues", { method: "POST", body: JSON.stringify(fields) });
         if (!c.ok || !c.data?.id) throw new Error(multicaError(c, "create the issue"));
         issue = c.data;
+        // Compare-and-set on an empty multica_issue_id: a second push at the same time cancels its own new issue.
+        const linked = await linkNewIssue(db, task.id, issue, fields, stampOf(issue));
+        if (linked === "error") throw new Error("The issue was made in Multica but could not be linked here, so it was cancelled. Try again.");
+        if (linked === "conflict") return reply(origin, 409, { error: "conflict", message: "Pushed twice; refresh." });
       }
-      const now = new Date().toISOString();
-      const saved = await db.from("tasks").update({ multica_issue_id: issue.id, multica_identifier: issue.identifier || null, multica_status: issue.status || task.status, multica_synced_at: now, multica_updated_at: issue.updated_at || now, multica_revision: issue.revision ?? null }).eq("id", task.id).select("id").maybeSingle();
-      if (saved.error) throw new Error("The issue was saved in Multica but the link could not be recorded here. Try again.");
       return reply(origin, 200, { ok: true, issue: { id: issue.id, identifier: issue.identifier, status: issue.status, url: issue.identifier ? issueLink(issue.identifier) : null } });
     }
 
@@ -118,7 +127,7 @@ Deno.serve(async (req) => {
       // A new client gets its own board (a Multica project) straight away.
       const ten = await db.from("tenants").select("id, name, multica_project_id").eq("id", String(body.tenantId || "")).maybeSingle();
       if (ten.error || !ten.data) return reply(origin, 404, { error: "no-tenant", message: "That client was not found." });
-      const projectId = await projectFor(db, ten.data);
+      const projectId = await projectFor(admin, ten.data);
       return reply(origin, 200, { ok: true, projectId });
     }
 

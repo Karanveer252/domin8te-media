@@ -71,7 +71,7 @@ window.ONB = (function () {
       ] },
 
     /* ---------- Your place ---------- */
-    { id: 'rname', ch: 'place', type: 'fields', req: ['rname'], skip: false, t: 8, sum: 'Name of the place',
+    { id: 'rname', ch: 'place', type: 'fields', core: true, req: ['rname'], skip: false, t: 8, sum: 'Name of the place',
       q: 'What’s the *place* called?',
       fields: [
         { k: 'rname', l: 'Name of the place', ac: 'organization', hint: 'Exactly as it’s written on your sign.' }

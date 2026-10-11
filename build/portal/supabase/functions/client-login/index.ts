@@ -19,7 +19,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const CLERK = "https://api.clerk.com/v1";
-const ALLOWED = ["https://domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
+const ALLOWED = ["https://domin8temedia.com", "https://www.domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
+// Clerk ids go into API paths: only the plain shapes are accepted, and every path segment is encoded anyway, so a
+// body value like "../../users/user_X" can never point the secret key at another Clerk object.
+const USER_ID = /^user_[A-Za-z0-9]+$/;
+const ORG_ID = /^org_[A-Za-z0-9]+$/;
+const seg = encodeURIComponent;
 
 function cors(origin: string | null) {
   const allow = origin && ALLOWED.includes(origin) ? origin : ALLOWED[0];
@@ -47,12 +52,25 @@ async function clerk(path: string, init: RequestInit = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
+/** Every membership of an organisation, page by page (Clerk answers at most 500 at a time). */
+async function memberships(org: string) {
+  const out: any[] = [];
+  for (let offset = 0, page = 0; page < 20; page++) {
+    const r = await clerk(`/organizations/${seg(org)}/memberships?limit=100&offset=${offset}`);
+    if (!r.ok) return { ok: false, data: out, more: false };
+    const rows = r.data?.data || [];
+    out.push(...rows);
+    offset += rows.length;
+    if (!rows.length || offset >= (r.data?.total_count ?? 0)) return { ok: true, data: out, more: false };
+  }
+  return { ok: true, data: out, more: true };  // stopped at 20 pages: say so instead of pretending this is everyone
+}
 
 Deno.serve(async (req) => {
   const origin = req.headers.get("Origin");
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });
   if (req.method !== "POST") return reply(origin, 405, { error: "method", message: "Use POST." });
-  if (!Deno.env.get("CLERK_SECRET_KEY")) {
+  if (!Deno.env.get("CLERK_SECRET_KEY") || !Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
     return reply(origin, 503, { error: "not-configured", message: "The Clerk secret key is not set on the server yet (Supabase: Edge Functions > Secrets > CLERK_SECRET_KEY)." });
   }
 
@@ -62,7 +80,11 @@ Deno.serve(async (req) => {
   // 1. Staff only. The database checks the token and answers only for staff.
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { accessToken: async () => token });
   const who = await db.rpc("console_me");
-  if (who.error || !who.data || !who.data.staff) return reply(origin, 403, { error: "not-staff", message: "Only the Domin8te team can do this." });
+  if (who.error || !who.data || !who.data.staff || !who.data.team) return reply(origin, 403, { error: "not-staff", message: "Only the Domin8te team can do this." });
+  // The team's own organisation(s) must never be treated as a client's (a comma list while dev and prod overlap).
+  const teamOrgs = String(who.data.team).split(",").map((s) => s.trim()).filter(Boolean);
+  // clerk_org_id is written with the service role only: the browser role cannot update that column.
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
   let body: any;
   try { body = await req.json(); } catch { return reply(origin, 400, { error: "bad-request", message: "Send tenantId, email and firstName." }); }
@@ -75,21 +97,23 @@ Deno.serve(async (req) => {
     if (t0.error || !t0.data) return reply(origin, 404, { error: "no-tenant", message: "That client was not found." });
     const org = t0.data.clerk_org_id;
     if (!org) return reply(origin, 200, { ok: true, people: [] });
+    if (!ORG_ID.test(org)) return reply(origin, 409, { error: "bad-org", message: "This client's login setup is broken." });
+    if (teamOrgs.includes(org)) return reply(origin, 403, { error: "team-org", message: "That is the Domin8te team, not a client." });
     if (action === "remove") {
       const userId = String(body?.userId || "");
-      if (!userId) return reply(origin, 400, { error: "bad-request", message: "Say who." });
-      const d = await clerk(`/organizations/${org}/memberships/${userId}`, { method: "DELETE" });
+      if (!USER_ID.test(userId)) return reply(origin, 400, { error: "bad-request", message: "Say who." });
+      const d = await clerk(`/organizations/${seg(org)}/memberships/${seg(userId)}`, { method: "DELETE" });
       if (!d.ok && d.status !== 404) return reply(origin, 502, { error: "clerk-remove", message: "Clerk would not remove that login.", detail: d.data?.errors?.[0]?.message || d.status });
     }
-    const r = await clerk(`/organizations/${org}/memberships?limit=100`);
+    const r = await memberships(org);
     if (!r.ok) return reply(origin, 502, { error: "clerk-list", message: "Clerk would not list the logins." });
-    const people = (r.data?.data || []).map((m: any) => ({
+    const people = r.data.map((m: any) => ({
       userId: m.public_user_data?.user_id || "",
       name: [m.public_user_data?.first_name, m.public_user_data?.last_name].filter(Boolean).join(" "),
       email: m.public_user_data?.identifier || "",
       since: m.created_at ? new Date(m.created_at).toISOString() : null,
     }));
-    return reply(origin, 200, { ok: true, people });
+    return reply(origin, 200, { ok: true, people, more: r.more });
   }
 
   const email = String(body?.email || "").trim().toLowerCase();
@@ -104,19 +128,29 @@ Deno.serve(async (req) => {
   if (!orgId) {
     const org = await clerk("/organizations", { method: "POST", body: JSON.stringify({ name: t.data.name.slice(0, 100) }) });
     if (!org.ok) return reply(origin, 502, { error: "clerk-org", message: "Clerk would not create the organisation.", detail: org.data?.errors?.[0]?.message || org.status });
-    orgId = org.data.id;
-    const link = await db.from("tenants").update({ clerk_org_id: orgId }).eq("id", tenantId);
-    if (link.error) return reply(origin, 500, { error: "link", message: "The organisation was created but could not be linked. Try again." });
+    orgId = String(org.data?.id || "");
+    // Compare-and-set: only an unlinked tenant takes the new org, so two clicks at once cannot leave the client with
+    // two organisations. The loser deletes the org it just made and uses the one that won.
+    const link = await admin.from("tenants").update({ clerk_org_id: orgId }).eq("id", tenantId).is("clerk_org_id", null).select("id");
+    if (link.error || !link.data?.length) {
+      const again = await admin.from("tenants").select("clerk_org_id").eq("id", tenantId).maybeSingle();
+      const winner: string = again.data?.clerk_org_id || "";
+      if (winner !== orgId && ORG_ID.test(orgId)) await clerk(`/organizations/${seg(orgId)}`, { method: "DELETE" });
+      orgId = winner;
+      if (again.error || !orgId) return reply(origin, 500, { error: "link", message: "The organisation was created but could not be linked. Try again." });
+    }
   }
+  if (!ORG_ID.test(orgId)) return reply(origin, 409, { error: "bad-org", message: "This client's login setup is broken." });
+  if (teamOrgs.includes(orgId)) return reply(origin, 403, { error: "team-org", message: "That is the Domin8te team, not a client." });
 
   // 3. The person, without a password.
   let userId = "";
   let created = false;
   const found = await clerk(`/users?email_address=${encodeURIComponent(email)}`);
   if (found.ok && Array.isArray(found.data) && found.data.length) {
-    userId = found.data[0].id;
+    userId = String(found.data[0].id || "");
     // Only the console decides who belongs where: no one can start an organisation of their own.
-    await clerk(`/users/${userId}`, { method: "PATCH", body: JSON.stringify({ create_organization_enabled: false }) });
+    await clerk(`/users/${seg(userId)}`, { method: "PATCH", body: JSON.stringify({ create_organization_enabled: false }) });
   } else {
     const u = await clerk("/users", { method: "POST", body: JSON.stringify({ email_address: [email], first_name: firstName || undefined, skip_password_requirement: true, create_organization_enabled: false }) });
     if (!u.ok) return reply(origin, 502, { error: "clerk-user", message: "Clerk would not create the login.", detail: u.data?.errors?.[0]?.message || u.status });
@@ -125,7 +159,7 @@ Deno.serve(async (req) => {
   }
 
   // 4. Membership (already a member is fine).
-  const m = await clerk(`/organizations/${orgId}/memberships`, { method: "POST", body: JSON.stringify({ user_id: userId, role: "org:member" }) });
+  const m = await clerk(`/organizations/${seg(orgId)}/memberships`, { method: "POST", body: JSON.stringify({ user_id: userId, role: "org:member" }) });
   const already = !m.ok && JSON.stringify(m.data || "").includes("already");
   if (!m.ok && !already) return reply(origin, 502, { error: "clerk-membership", message: "Clerk would not add the person to the restaurant.", detail: m.data?.errors?.[0]?.message || m.status });
 
