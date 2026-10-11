@@ -172,47 +172,6 @@ function init(root){
 document.querySelectorAll('.rot[data-rotate]').forEach(init);
 })();
 
-/* VSL: coming-soon state until data-vsl-src is set; then a click-to-load facade (nothing heavy loads before the tap). */
-(function () {
-'use strict';
-var slot = document.getElementById('vsl'); if (!slot) return;
-var provider = slot.getAttribute('data-vsl-provider'), src = slot.getAttribute('data-vsl-src');
-var soon = slot.querySelector('[data-vsl-soon]'), play = slot.querySelector('[data-vsl-play]');
-if (!provider || !src) return;                 // stay in the coming-soon state
-soon.hidden = true; play.hidden = false;
-var capLine = slot.closest('figure') && slot.closest('figure').querySelector('.vsl-cap'); if (capLine) capLine.hidden = false;
-function track(name, extra) {                   // Pixel custom events + optional dataLayer
-  if (typeof window.fbq === 'function') fbq('trackCustom', name, Object.assign({ video: 'vsl' }, extra || {}));
-  (window.dataLayer = window.dataLayer || []).push(Object.assign({ event: name, video: 'vsl' }, extra || {}));
-}
-play.addEventListener('click', function () {
-  var el, title = slot.getAttribute('data-vsl-title') || 'Video';
-  if (provider === 'native') {
-    el = document.createElement('video');
-    el.src = src; el.controls = true; el.playsInline = true; el.autoplay = true; el.preload = 'none';
-    var cap = slot.getAttribute('data-vsl-captions');
-    if (cap) { var t = document.createElement('track'); t.kind = 'captions'; t.srclang = 'en'; t.label = 'English'; t.src = cap; t.default = true; el.appendChild(t); }
-    var marks = { 25: false, 50: false, 75: false };
-    el.addEventListener('timeupdate', function () {
-      if (!el.duration) return; var pct = el.currentTime / el.duration * 100;
-      [25, 50, 75].forEach(function (m) { if (!marks[m] && pct >= m) { marks[m] = true; track('VSLProgress', { percent: m }) } });
-    });
-    el.addEventListener('ended', function () { track('VSLComplete') });
-  } else {
-    var url = provider === 'youtube' ? 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(src) + '?autoplay=1&rel=0&cc_load_policy=1&playsinline=1'
-            : provider === 'vimeo'   ? 'https://player.vimeo.com/video/' + encodeURIComponent(src) + '?autoplay=1&texttrack=en&dnt=1'
-            : provider === 'wistia'  ? 'https://fast.wistia.net/embed/iframe/' + encodeURIComponent(src) + '?autoPlay=true&playbar=true'
-            : null;
-    if (!url) return;
-    el = document.createElement('iframe');
-    el.src = url; el.title = title; el.allow = 'autoplay; fullscreen; picture-in-picture'; el.allowFullscreen = true;
-  }
-  slot.innerHTML = ''; slot.appendChild(el);
-  track('VSLPlay', { provider: provider });
-  if (el.focus) el.focus();
-}, { once: true });
-})();
-
 /* The checkup form's Pixel "Lead" and thank-you panel. The form itself is assets/site.js (shared with the
    homepage); this page adds, without touching it: an event_id on every send (set in the capture phase, so it
    is in the form before site.js reads it), and "Lead" fired ONLY when site.js shows the button as "Sent",
@@ -240,4 +199,53 @@ new MutationObserver(function () {
     }, { eventID: eventId });
   }
 }).observe(btn, { childList: true, characterData: true, subtree: true });
+})();
+
+/* The films (founder, Lecookie build, what you get). Mirrors the dashboard film in dash.js: nothing loads before
+   the tap; the tap gives the <video> its file (data-vid) and plays it with sound; the player bar shows only once it
+   plays; starting one pauses any other; at the end the end card's "Book a discovery call" becomes a real button.
+   To swap a film (for example the founder voiceover), replace its file and change data-vid's ?v= token. */
+(function () {
+'use strict';
+var d = document, figs = [].slice.call(d.querySelectorAll('.vid[data-vid]'));
+if (!figs.length) return;
+function track(name, fig, extra) {                 /* Pixel custom events (only if the Pixel is on the page) + dataLayer */
+  var o = Object.assign({ video: fig.getAttribute('data-vid-name') || '' }, extra || {});
+  if (typeof window.fbq === 'function') window.fbq('trackCustom', name, o);
+  (window.dataLayer = window.dataLayer || []).push(Object.assign({ event: name }, o));
+}
+figs.forEach(function (fig) {
+  var v = fig.querySelector('video'), btn = fig.querySelector('.vid__play'), end = fig.querySelector('.vid__end');
+  var img = fig.querySelector('.vid__poster'), again = fig.querySelector('.vid__again');
+  if (!v || !btn) return;
+  var half = false, started = false;
+  v.controls = false;
+  btn.addEventListener('click', function () {
+    if (!v.getAttribute('src')) {
+      if (img && img.currentSrc) v.setAttribute('poster', img.currentSrc);
+      v.preload = 'auto';
+      v.src = fig.getAttribute('data-vid');
+    }
+    v.muted = false; v.controls = true;
+    var p = v.play();
+    if (p && p.catch) p.catch(function () { fig.classList.remove('is-playing'); });
+  });
+  if (again) again.addEventListener('click', function () { v.currentTime = 0; v.controls = true; v.play(); });
+  v.addEventListener('play', function () {
+    figs.forEach(function (f) { var o = f.querySelector('video'); if (o && o !== v && !o.paused) o.pause(); });
+    var dm = d.getElementById('dxMaster'); if (dm && !dm.paused) dm.pause();
+    fig.classList.add('is-on', 'is-playing'); fig.classList.remove('is-ended');
+    if (end) end.hidden = true;
+    if (!started) { started = true; track('VideoPlay', fig); }
+  });
+  v.addEventListener('timeupdate', function () {
+    if (!half && v.duration && v.currentTime / v.duration >= .5) { half = true; track('VideoProgress', fig, { percent: 50 }); }
+  });
+  v.addEventListener('ended', function () {
+    fig.classList.remove('is-playing'); fig.classList.add('is-ended');
+    v.controls = false;                             /* the player bar would sit on the end card's buttons */
+    if (end) end.hidden = false;
+    track('VideoComplete', fig);
+  });
+});
 })();
