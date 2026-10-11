@@ -3074,6 +3074,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
 
     let ready = load();
     /** @type {Promise<any>|null} */ let loading = null;
+    /** @type {Promise<any>|null} */ let queued = null;
     return {
       get ready() { return ready; },
       tenant: () => tenant,
@@ -3113,9 +3114,13 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
         return stored;
       },
       reload() {
-        // One refresh at a time (a slow one must not finish after a newer one and overwrite it).
-        if (loading) return loading;
-        const p = load();
+        // One refresh at a time (a slow one must not finish after a newer one and overwrite it). A refresh asked for
+        // while one runs waits for it and then loads again, so what changed in between (a message just sent) is read.
+        if (loading) return (queued = queued || loading.then(() => {}, () => {}).then(() => { queued = null; return this.reload(); }));
+        const t0 = Date.now();
+        // gives up only after 30 real seconds (the elapsed check keeps instant test timers from firing it early)
+        const hang = new Promise((_, no) => setTimeout(() => { if (Date.now() - t0 >= 29000) no(fail('source-error', "We couldn't reach your account just now. Try again in a moment.")); }, 30000));
+        const p = Promise.race([load(), hang]);
         loading = p;
         const done = () => { loading = null; };
         p.then(done, done);
@@ -3154,7 +3159,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       });
       j = await res.json().catch(() => ({}));
     } catch (e) { throw notSet(); } // the billing function is not there (or the browser was refused): retrying never helps
-    if (res.status === 404 || j.code === 'NOT_FOUND') throw notSet();
+    if ((res.status === 404 && !j.error) || j.code === 'NOT_FOUND') throw notSet();
     if (res.ok && j.url) return j.url;
     const e = /** @type {any} */ (new Error(j.error === 'not-configured' || j.error === 'no-customer' || j.error === 'live-key-refused'
       ? 'Online billing is not set up for your account yet. Press Message us and we sort it out.'
@@ -3361,6 +3366,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       const client = await db();
       const look = { ...(accountLook || {}), console: prefs };
       check(await client.from('user_prefs').upsert({ clerk_user_id: me.userId, appearance: look }).select('clerk_user_id').maybeSingle());
+      writes++;
       accountLook = look;
       return true;
     } catch (e) {
@@ -4369,21 +4375,23 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
    * so two people never quietly overwrite each other. @param {any} patch
    */
   async function save(patch) {
+    // The client being saved, read now: `current` can be another client by the time the update comes back.
+    const target = current.id;
+    const stamp = current.updated_at;
     const client = await db();
-    const res = await client.from('tenants').update(patch).eq('id', current.id).eq('updated_at', current.updated_at).select('updated_at, name, status, doc');
+    const res = await client.from('tenants').update(patch).eq('id', target).eq('updated_at', stamp).select('updated_at, name, status, doc');
     const rows = check(res) || [];
     if (!rows.length) {
       // Pull their version in first, so the next Save starts from it instead of failing the same way.
       await loadAll().catch(() => { /* the message below still tells them */ });
-      throw new Error('Someone else saved this client since you opened it. Their changes are loaded now. Check the page, then press Save again.');
+      // The form on screen still shows these edits, not theirs, so say how to see theirs.
+      throw new Error('Someone else saved this client since you opened it. Their changes are loaded, but this page still shows yours. Reload the page to see theirs before you save again.');
     }
     writes++;
-    current.updated_at = rows[0].updated_at;
-    current.name = rows[0].name;
-    current.status = rows[0].status;
-    current.doc = D8.data.normalize(rows[0].doc, () => Date.now());
-    const i = all.tenants.findIndex((/** @type {any} */ x) => x.id === current.id);
-    if (i >= 0) all.tenants[i] = { ...all.tenants[i], updated_at: current.updated_at, name: current.name, status: current.status, doc: current.doc };
+    const saved = { updated_at: rows[0].updated_at, name: rows[0].name, status: rows[0].status, doc: D8.data.normalize(rows[0].doc, () => Date.now()) };
+    if (current && current.id === target) Object.assign(current, saved);
+    const i = all.tenants.findIndex((/** @type {any} */ x) => x.id === target);
+    if (i >= 0) all.tenants[i] = { ...all.tenants[i], ...saved };
     renderSide();
   }
   /** Saves the record with one change made to a copy of it. @param {(doc: any) => void} change */
@@ -4888,6 +4896,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
         try {
           const client = await db();
           check(await client.from('login_requests').update({ status: 'declined', decided_at: new Date().toISOString() }).eq('id', askId).select('id').single());
+          writes++;
           all.loginAsks = (all.loginAsks || []).filter((/** @type {any} */ x) => x.id !== askId);
           toast('Declined.');
           route();
@@ -4973,9 +4982,10 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   }
   /** @param {any} task */
   async function pushCard(task) {
-    const st = await multicaStatus();
-    if (!st.configured) return;
+    // The status check sits inside the try: a rejected push would make every later push queued for this card skip.
     try {
+      const st = await multicaStatus();
+      if (!st.configured) return;
       const r = await multica({ action: 'push', taskId: task.id });
       Object.assign(task, { multica_issue_id: r.issue.id, multica_identifier: r.issue.identifier, multica_status: r.issue.status, multica_synced_at: new Date().toISOString() });
       const el = $(`[data-task="${task.id}"] .card-sync`);
@@ -5110,7 +5120,16 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       }
     });
 
-    wireBoard(box, (id) => (current.tasks || []).find((/** @type {any} */ x) => x.id === id), () => redraw());
+    // After a move or delete only the columns are drawn again, so text typed in the add-card form stays and the board
+    // still shows the truth (redraw() alone only toasted while that form was unsaved). An open card editor with unsaved
+    // edits, or another client on screen, still goes through redraw().
+    const forId = current.id;
+    const boardAfter = () => {
+      const cols = $('#board', box);
+      if (!cols || !current || current.id !== forId || Array.from(dirty.keys()).some((x) => x !== f)) { redraw(); return; }
+      cols.innerHTML = boardColumns(tasks(), (t) => card(t));
+    };
+    wireBoard(box, (id) => (current.tasks || []).find((/** @type {any} */ x) => x.id === id), boardAfter);
     box.addEventListener('click', async (e) => {
       const target = /** @type {HTMLElement} */ (e.target);
       if (target.closest('[data-action="board-sync"]')) {
@@ -5121,9 +5140,14 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     });
   }
 
-  /** Swaps a card for its editor: every field, the column it sits in, and its Multica link. @param {HTMLElement} li @param {any} t */
-  function editCard(li, t) {
+  /**
+   * Swaps a card for its editor: every field, the column it sits in, and its Multica link.
+   * `after` is the board's own redraw (it keeps text typed in the add-card form); route() only when there is none.
+   * @param {HTMLElement} li @param {any} t @param {() => void} [after]
+   */
+  function editCard(li, t, after) {
     if (!t) return;
+    const back = after || route;
     const owner = current && current.id === t.tenant_id ? current : tenant(t.tenant_id);
     const services = ((owner && owner.doc.package.services) || []).filter((/** @type {string} */ s) => SERVICES[s]);
     li.classList.add('editing');
@@ -5171,13 +5195,13 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
         Object.assign(t, { ...row, status: t.status });
         clean(f);
         // A new column goes through moveTask, as a drag does (it mirrors to Multica); otherwise the card is mirrored here.
-        if (status && status !== t.status) { await moveTask(t, status); route(); }
-        else { toast('Card saved.'); route(); mirror(t); }
+        if (status && status !== t.status) { await moveTask(t, status); back(); }
+        else { toast('Card saved.'); back(); mirror(t); }
       } catch (x) { done(); toast(message(x), true); }
     });
     f.addEventListener('click', async (e) => {
       const target = /** @type {HTMLElement} */ (e.target);
-      if (target.closest('[data-cancel]')) { clean(f); route(); return; }
+      if (target.closest('[data-cancel]')) { clean(f); back(); return; }
       const send = /** @type {HTMLButtonElement} */ (target.closest('[data-send]'));
       if (send) {
         const done = busy(send, 'Adding');
@@ -5198,7 +5222,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
         return;
       }
       if (target.closest('[data-remove-card]')) {
-        if (await deleteCard(t)) { clean(f); route(); }
+        if (await deleteCard(t)) { clean(f); back(); }
       }
     });
   }
@@ -5230,6 +5254,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     try {
       const client = await db();
       check(await client.from('tasks').delete().eq('id', t.id).select('id'));
+      writes++;
       if (current && current.tasks) current.tasks = current.tasks.filter((/** @type {any} */ x) => x.id !== t.id);
       if (all && all.tasks) all.tasks = all.tasks.filter((/** @type {any} */ x) => x.id !== t.id);
       toast('Card deleted.');
@@ -5264,7 +5289,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     box.addEventListener('click', (e) => {
       const edit = /** @type {HTMLElement} */ (e.target).closest('[data-edit]');
       if (!edit) return;
-      editCard(/** @type {HTMLElement} */ (edit.closest('.card')), find(edit.getAttribute('data-edit') || ''));
+      editCard(/** @type {HTMLElement} */ (edit.closest('.card')), find(edit.getAttribute('data-edit') || ''), after);
     }, on);
     box.addEventListener('keydown', (e) => {
       const li = /** @type {HTMLElement} */ (e.target).closest('.card');
@@ -5319,6 +5344,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
 
   /** When each client's cards were last checked against Multica. @type {Record<string, number>} */
   const pulledAt = {};
+  /** The last conflict set told about, by client, so the 90-second check does not repeat the same toast. @type {Record<string, string>} */
+  const conflictSeen = {};
   let pullTimer = 0;
   /** Checks one client's cards against Multica; moves cards Hermes moved; tells only when something moved. @param {string} tenantId @param {boolean} [loud] */
   async function pullQuietly(tenantId, loud) {
@@ -5338,7 +5365,9 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       toast(r.changed.length === 1 ? `Multica moved “${titleOf(r.changed[0])}” to ${TASK_STATUS_LABEL[r.changed[0].to] || r.changed[0].to}.` : `${r.changed.length} cards moved by Multica.`);
     }
     else if (loud && !(r.conflicts && r.conflicts.length)) toast(`Checked ${plural(r.checked || 0, 'card')}: nothing moved in Multica.`);
-    if (r.conflicts && r.conflicts.length) toast(`${plural(r.conflicts.length, 'card')} moved in both places. Check ${r.conflicts.length === 1 ? 'it' : 'them'} in Multica.`, true);
+    const sig = (r.conflicts || []).map((/** @type {any} */ c) => `${c.taskId}:${c.local}:${c.remote}`).sort().join('|');
+    if (sig && (loud || sig !== conflictSeen[tenantId])) toast(`${plural(r.conflicts.length, 'card')} moved in both places. Check ${r.conflicts.length === 1 ? 'it' : 'them'} in Multica.`, true);
+    conflictSeen[tenantId] = sig;
     return r;
   }
   function stopPulling() { if (pullTimer) { clearInterval(pullTimer); pullTimer = 0; } }
@@ -5374,7 +5403,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     'dashboard.invoice.approved': (/** @type {any} */ d) => `approved invoice ${d.number || ''} for their billing page`.replace('  ', ' '),
     'dashboard.invoice.rejected': (/** @type {any} */ d) => `turned down invoice ${d.number || ''}`.replace('  ', ' '),
     'dashboard.invoice.hidden': (/** @type {any} */ d) => `hid invoice ${d.number || ''} from their billing page`.replace('  ', ' '),
-    'dashboard.exception.resolved': () => 'marked a dashboard problem as fixed'
+    'dashboard.exception.resolved': () => 'marked a dashboard problem as fixed',
+    'dashboard.daily': () => 'ran the daily check' // "The system ran the daily check", not the raw "dashboard daily"
   };
 
   /**
@@ -5666,6 +5696,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
   async function saveProfile(id, tier, level) {
     const client = await db();
     const row = check(await client.from('client_profile').upsert({ tenant_id: id, tier: tier || null, approval_level: level || null }).select('*').single());
+    writes++;
     if (all) { all.profiles = all.profiles || {}; all.profiles[id] = row; }
     return row;
   }
@@ -5969,7 +6000,12 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     if (billingState.filter === 'late') shown = late;
     if (billingState.filter === 'unset') shown = unset;
     shown = shown.slice().sort((x, y) => String(x.b.renews || '9999').localeCompare(String(y.b.renews || '9999')) || x.t.name.localeCompare(y.t.name));
-    if (!stripeState) stripeStatus().then(() => { if (location.hash === '#/billing') billingPage(); });
+    // A failed look is tried again on each visit; it redraws only when the answer is new, so two failures in a row
+    // do not keep redrawing (and asking) in a loop.
+    if (!stripeState || stripeState.failed) {
+      const was = stripeState;
+      stripeStatus().then((st) => { if (location.hash === '#/billing' && !(was && st.failed)) billingPage(); });
+    }
     const stripeLine = !stripeState ? ''
       : stripeReady() ? ` Stripe is connected (${stripeModeText()}): linked clients get their dates from it.`
       : stripeState.refused ? ' Stripe is off: the server has a live key and live mode is off.'
@@ -6537,7 +6573,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     const source = revision ? it.pending_source_ref : it.source_ref;
     dmOriginal.set(it.id, proposed || {});
     const fields = Object.entries(proposed || {}).map(([k, v]) => `<div class="field"><label for="dm-${esc(it.id)}-${esc(k)}">${esc(dmField(k))}</label><input id="dm-${esc(it.id)}-${esc(k)}" name="${esc(k)}" data-type="${typeof v}" value="${esc(dmText(v))}" maxlength="2000"></div>`).join('');
-    return `<li class="dm-card" data-dm-item="${esc(it.id)}">
+    return `<li class="dm-card" data-dm-item="${esc(it.id)}" data-stamp="${esc(it.updated_at)}">
       <div class="dm-line"><p class="g-top">${showClient ? `<span class="client">${esc(clientName(it.tenant_id))}</span>` : ''}<span class="chip you">${esc(DM_KIND[it.item_kind] || it.item_kind)}</span>${revision ? '<span class="chip info" title="They keep seeing the old version until you approve">Replaces what they see</span>' : ''}${it.hidden_at ? '<span class="chip">Hidden</span>' : ''}<span class="dm-title">${esc(dmHeadline(proposed))}</span><span class="meta">${esc(ago(it.pending_at || it.updated_at))}</span></p>
         <div class="actions dm-buttons">${it.hidden_at ? '' : '<button class="btn btn-sm" type="button" data-dm="approve">Approve</button>'}${it.client_visible && me.role === 'super_admin' ? '<button class="btn btn-quiet btn-sm" type="button" data-dm="hide">Hide</button>' : ''}</div></div>
       <details class="dm-ids"><summary>Details</summary>
@@ -6555,7 +6591,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     const p = inv.pending_at ? inv.pending_row || {} : null;
     const view = (/** @type {any} */ r) => ({ number: r.invoice_number, amount: r.amount_minor === undefined || r.amount_minor === null ? '' : `${(Number(r.amount_minor) / 100).toFixed(2)} ${r.currency || ''}`, status: r.status, issued: r.issued_at, due: r.due_at, paid: r.paid_at, link: r.hosted_payment_url });
     const now = view(p ? { ...inv, ...p } : inv);
-    return `<li class="dm-card" data-dm-invoice="${esc(inv.id)}">
+    return `<li class="dm-card" data-dm-invoice="${esc(inv.id)}" data-stamp="${esc(inv.updated_at)}">
       <div class="dm-line"><p class="g-top">${showClient ? `<span class="client">${esc(clientName(inv.tenant_id))}</span>` : ''}<span class="chip you">Invoice</span>${p ? '<span class="chip info" title="They keep seeing the old version until you approve">Replaces what they see</span>' : ''}<span class="dm-title">${esc([now.number, now.amount].filter(Boolean).join(', ') || 'Invoice')}</span><span class="meta">${esc(ago(inv.pending_at || inv.updated_at))}</span></p>
         <div class="actions dm-buttons"><button class="btn btn-sm" type="button" data-dm="inv-approve">Approve</button><button class="btn btn-quiet btn-sm" type="button" data-dm="inv-reject">Reject</button></div></div>
       <details class="dm-ids"><summary>Details</summary>${dmDiff(p ? view(inv) : null, now)}<p class="meta">${esc(dmMadeBy(inv.provider || String(inv.source_ref || '').split(':')[0]))}${inv.source_ref ? ` · ${esc(inv.source_ref)}` : ''}</p></details></li>`;
@@ -6638,8 +6674,9 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     const r = (all && all.reviews) || { items: [], invoices: [], exceptions: [] };
     const row = r.items.find((/** @type {any} */ x) => x.id === card.getAttribute('data-dm-item')) || r.invoices.find((/** @type {any} */ x) => x.id === card.getAttribute('data-dm-invoice')) || r.exceptions.find((/** @type {any} */ x) => x.id === card.getAttribute('data-dm-exception'));
     const t = $('.dm-title', card);
-    // The row's updated_at is what Karan saw: the database refuses the approval if it changed since ("stale").
-    return { who: row ? clientName(row.tenant_id) : 'the client', title: (t && t.textContent) || 'this', seen: (row && row.updated_at) || null };
+    // The stamp drawn on the card is what Karan saw: a background reload may already hold a newer row, and the
+    // database refuses the approval if the row changed since that stamp ("stale").
+    return { who: row ? clientName(row.tenant_id) : 'the client', title: (t && t.textContent) || 'this', seen: card.getAttribute('data-stamp') || null };
   }
 
   /** Approve, reject, edit, hide and resolve, wherever the block is shown. */
@@ -6793,7 +6830,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
       <dl class="facts">${GATES.map(([k, l, tech]) => `<dt>${esc(l)}<span class="gate-tech">${esc(tech)}</span></dt><dd>${passed[k] ? `<span class="chip good">Passed</span> <span class="meta">${esc(ago(passed[k].passed_at))}: ${esc(passed[k].evidence_ref)}</span>` : '<span class="chip warn">Not yet</span>'}</dd>`).join('')}</dl>
       <form id="gate-form" novalidate><h3 class="panel-sub">Record a safety check <span class="meta">Add a link to the evidence: the CI run, test report or sign-off.</span></h3>
         <div class="grid-3"><div class="field"><label for="g-gate">Safety check</label><select id="g-gate" name="gate">${GATES.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</select></div>
-          <div class="field"><label for="g-ev">Evidence</label><input id="g-ev" name="evidence" maxlength="1000" required></div></div>
+          <div class="field"><label for="g-ev">Evidence</label><input id="g-ev" name="evidence" type="url" pattern="https://.+" placeholder="https://" maxlength="1000" required></div></div>
         <div class="actions"><button class="btn" type="submit">Record the check</button></div></form>
       <h3 class="panel-sub">Each client's own switch <span class="meta">${allPassed ? 'Only items the team asked to publish, and only when the database\'s evidence rules pass. Everything else still waits for you.' : 'You can turn these on once all 4 safety checks are recorded.'}</span></h3>
       ${all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived').map((/** @type {any} */ t) => `<label class="switch-row"><input type="checkbox" role="switch" data-dm-auto="${esc(t.id)}"${on[t.id] ? ' checked' : ''}${allPassed || on[t.id] ? '' : ' disabled'}><span><span class="pick-t">${esc(t.name)}</span><span class="pick-d">${on[t.id] ? 'On here. Also needs the owner\'s switch (AUTO_PUBLISH_ENABLED on the server).' : 'Off. Everything waits for approval.'}</span></span></label>`).join('')}`);
@@ -6801,7 +6838,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
       const evidence = val(f, 'evidence');
-      if (!evidence) { toast('Add the evidence: a link or reference.', true); return; }
+      // The form is novalidate and the database only takes an https:// link, so check it here first.
+      if (!/^https:\/\/\S/.test(evidence)) { toast('Add the evidence: a link that starts with https://.', true); return; }
       const gate = GATES.find(([k]) => k === val(f, 'gate'));
       if (!await ask('Record this safety check?', `This says “${gate ? gate[1] : 'the check'}” has passed, with this evidence: ${evidence}. Once all four are recorded, an owner can switch on automatic publishing.`, 'Record')) return;
       const done = busy($('button[type=submit]', f), 'Recording');

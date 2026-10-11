@@ -33,7 +33,8 @@
   /* ---------- state ---------- */
   const fresh = () => ({ d: JSON.parse(JSON.stringify(prefill)), at: steps[0].id, done: {}, skipped: {}, savedAt: 0, born: Date.now() });
   function load() {
-    try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.d) return Object.assign(fresh(), j); } catch (e) { /* private window */ }
+    // older saves have no born: treat them as long ago (born 0), never as a visit that started just now
+    try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.d) return Object.assign(fresh(), { born: 0 }, j); } catch (e) { /* private window */ }
     return fresh();
   }
   let S = load();
@@ -449,11 +450,11 @@
     fd.append('summary', answersText());
     const raw = Object.assign({}, d); delete raw._from;
     fd.append('answers', JSON.stringify(raw));
-    fd.append('company_url', ($('#company_url') || {}).value || ''); // honeypot
+    fd.append('d8x', ($('#d8x') || {}).value || ''); // honeypot (a name autofill has no meaning for)
     /* timing trap and duplicate guard: t = ms since the visit began, sid = one id per submission, kept across retries */
     if (!S.sid) { S.sid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 12); save(true); }
     fd.append('sid', S.sid);
-    fd.append('t', String(Date.now() - (S.born || Date.now())));
+    fd.append('t', String(S.born ? Math.max(0, Date.now() - S.born) : 600000)); // no start time known: not a bot
     steps.filter(x => x.type === 'upload').forEach(x => arr(d[x.key]).forEach(f => { const o = fileObjs[x.key + '/' + f.name]; if (o) fd.append('files[]', o, o.name); }));
     let res;
     try { res = await fetch('submit.php', { method: 'POST', body: fd, headers: { Accept: 'application/json' } }); }

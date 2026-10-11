@@ -1706,7 +1706,8 @@ if (form) {
     contactBad: ds.msgContactBad || 'That email or number looks incomplete. Please check it.',
     sending: ds.msgSending || 'Sending',
     success: ds.msgSuccess || 'Got it. We’ll reply within one business day.',
-    fail: ds.msgFail || 'That didn’t go through. Email karanhelps@domin8temedia.com and we’ll take it from there.'
+    fail: ds.msgFail || 'That didn’t go through. Email karanhelps@domin8temedia.com and we’ll take it from there.',
+    rate: ds.msgRate || 'We already have your message from a moment ago. We’ll reply within one business day.'
   };
 
   var errFor = function (input) { return document.getElementById('e-' + input.id.replace('f-', '')) };
@@ -1750,7 +1751,7 @@ if (form) {
     var web = form.elements.website;
     if (web && web.value.trim() && !/^https?:\/\//i.test(web.value.trim())) data.set('website', 'https://' + web.value.trim());
 
-    data.set('ts', String(window.__t0));
+    data.set('te', String(Math.max(0, Date.now() - window.__t0)));
 
     submit.disabled = true;
     submit.textContent = MSG.sending;
@@ -1761,7 +1762,7 @@ if (form) {
     fetch(form.action, opts)
       .then(function (r) { return r.json() })
       .then(function (d) {
-        if (!d || d.ok !== true) throw new Error('send');
+        if (!d || d.ok !== true) throw new Error(d && d.error === 'rate' ? 'rate' : 'send');
         form.reset();
         submit.textContent = 'Sent';
         status.textContent = MSG.success;
@@ -1770,11 +1771,13 @@ if (form) {
         status.focus({ preventScroll: true });
         setTimeout(function () { submit.disabled = false; submit.textContent = submitLabel }, 6000);
       })
-      .catch(function () {
+      .catch(function (e) {
         submit.disabled = false;
         submit.textContent = submitLabel;
-        status.textContent = MSG.fail;
-        status.className = 'formstatus bad';
+        // a resend within seconds of a sent one is not a failure: the first one arrived
+        var again = e && e.message === 'rate';
+        status.textContent = again ? MSG.rate : MSG.fail;
+        status.className = again ? 'formstatus ok' : 'formstatus bad';
       });
   });
 }

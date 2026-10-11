@@ -4932,6 +4932,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
     let ready = load();
     /** @type {Promise<any>|null} */ let loading = null;
+    /** @type {Promise<any>|null} */ let queued = null;
     return {
       get ready() { return ready; },
       tenant: () => tenant,
@@ -4971,9 +4972,13 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         return stored;
       },
       reload() {
-        // One refresh at a time (a slow one must not finish after a newer one and overwrite it).
-        if (loading) return loading;
-        const p = load();
+        // One refresh at a time (a slow one must not finish after a newer one and overwrite it). A refresh asked for
+        // while one runs waits for it and then loads again, so what changed in between (a message just sent) is read.
+        if (loading) return (queued = queued || loading.then(() => {}, () => {}).then(() => { queued = null; return this.reload(); }));
+        const t0 = Date.now();
+        // gives up only after 30 real seconds (the elapsed check keeps instant test timers from firing it early)
+        const hang = new Promise((_, no) => setTimeout(() => { if (Date.now() - t0 >= 29000) no(fail('source-error', "We couldn't reach your account just now. Try again in a moment.")); }, 30000));
+        const p = Promise.race([load(), hang]);
         loading = p;
         const done = () => { loading = null; };
         p.then(done, done);
@@ -5012,7 +5017,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       });
       j = await res.json().catch(() => ({}));
     } catch (e) { throw notSet(); } // the billing function is not there (or the browser was refused): retrying never helps
-    if (res.status === 404 || j.code === 'NOT_FOUND') throw notSet();
+    if ((res.status === 404 && !j.error) || j.code === 'NOT_FOUND') throw notSet();
     if (res.ok && j.url) return j.url;
     const e = /** @type {any} */ (new Error(j.error === 'not-configured' || j.error === 'no-customer' || j.error === 'live-key-refused'
       ? 'Online billing is not set up for your account yet. Press Message us and we sort it out.'
@@ -5890,7 +5895,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const number = trigger && trigger.getAttribute('data-number');
     // An invoice that already carries its own payment page opens straight away; no billing function needed.
     const direct = trigger && trigger.getAttribute('data-url');
-    if (kind === 'invoice' && direct && /^https:\/\/[^/]*stripe\.com\//.test(direct)) { root.open(direct, '_blank', 'noopener'); return; }
+    if (kind === 'invoice' && direct && /^https:\/\/([a-z0-9-]+\.)*stripe\.com\//i.test(direct)) { root.open(direct, '_blank', 'noopener'); if (b) b.disabled = false; return; }
     // Live: sign-in and security is Clerk's own profile window.
     if (kind === 'clerk-account' && D8.live) {
       if (b) b.disabled = true;
@@ -6032,7 +6037,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         toast('Sent. We will confirm soon.');
       }).catch((/** @type {any} */ err) => {
         setBusy(false, done);
-        formError(`That did not send. ${err.message || ''} Try again.`);
+        formError(err.code === 'slow' ? err.message : `That did not send. ${err.message || ''} Try again.`);
       });
     });
   }
@@ -6082,7 +6087,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         toast(isRequest ? 'Request sent.' : 'Message sent.');
       }).catch((err) => {
         setBusy(false, btn);
-        if (!(err.field && fieldError(err.field, err.message))) formError(`That did not send. ${err.message || ''} Try again.`);
+        if (!(err.field && fieldError(err.field, err.message))) formError(err.code === 'slow' ? err.message : `That did not send. ${err.message || ''} Try again.`);
       });
     });
   }

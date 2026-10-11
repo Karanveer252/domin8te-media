@@ -288,7 +288,7 @@
     const number = trigger && trigger.getAttribute('data-number');
     // An invoice that already carries its own payment page opens straight away; no billing function needed.
     const direct = trigger && trigger.getAttribute('data-url');
-    if (kind === 'invoice' && direct && /^https:\/\/[^/]*stripe\.com\//.test(direct)) { root.open(direct, '_blank', 'noopener'); return; }
+    if (kind === 'invoice' && direct && /^https:\/\/([a-z0-9-]+\.)*stripe\.com\//i.test(direct)) { root.open(direct, '_blank', 'noopener'); if (b) b.disabled = false; return; }
     // Live: sign-in and security is Clerk's own profile window.
     if (kind === 'clerk-account' && D8.live) {
       if (b) b.disabled = true;
@@ -430,7 +430,7 @@
         toast('Sent. We will confirm soon.');
       }).catch((/** @type {any} */ err) => {
         setBusy(false, done);
-        formError(`That did not send. ${err.message || ''} Try again.`);
+        formError(err.code === 'slow' ? err.message : `That did not send. ${err.message || ''} Try again.`);
       });
     });
   }
@@ -480,7 +480,7 @@
         toast(isRequest ? 'Request sent.' : 'Message sent.');
       }).catch((err) => {
         setBusy(false, btn);
-        if (!(err.field && fieldError(err.field, err.message))) formError(`That did not send. ${err.message || ''} Try again.`);
+        if (!(err.field && fieldError(err.field, err.message))) formError(err.code === 'slow' ? err.message : `That did not send. ${err.message || ''} Try again.`);
       });
     });
   }

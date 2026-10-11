@@ -309,6 +309,7 @@
 
     let ready = load();
     /** @type {Promise<any>|null} */ let loading = null;
+    /** @type {Promise<any>|null} */ let queued = null;
     return {
       get ready() { return ready; },
       tenant: () => tenant,
@@ -348,9 +349,13 @@
         return stored;
       },
       reload() {
-        // One refresh at a time (a slow one must not finish after a newer one and overwrite it).
-        if (loading) return loading;
-        const p = load();
+        // One refresh at a time (a slow one must not finish after a newer one and overwrite it). A refresh asked for
+        // while one runs waits for it and then loads again, so what changed in between (a message just sent) is read.
+        if (loading) return (queued = queued || loading.then(() => {}, () => {}).then(() => { queued = null; return this.reload(); }));
+        const t0 = Date.now();
+        // gives up only after 30 real seconds (the elapsed check keeps instant test timers from firing it early)
+        const hang = new Promise((_, no) => setTimeout(() => { if (Date.now() - t0 >= 29000) no(fail('source-error', "We couldn't reach your account just now. Try again in a moment.")); }, 30000));
+        const p = Promise.race([load(), hang]);
         loading = p;
         const done = () => { loading = null; };
         p.then(done, done);
@@ -389,7 +394,7 @@
       });
       j = await res.json().catch(() => ({}));
     } catch (e) { throw notSet(); } // the billing function is not there (or the browser was refused): retrying never helps
-    if (res.status === 404 || j.code === 'NOT_FOUND') throw notSet();
+    if ((res.status === 404 && !j.error) || j.code === 'NOT_FOUND') throw notSet();
     if (res.ok && j.url) return j.url;
     const e = /** @type {any} */ (new Error(j.error === 'not-configured' || j.error === 'no-customer' || j.error === 'live-key-refused'
       ? 'Online billing is not set up for your account yet. Press Message us and we sort it out.'

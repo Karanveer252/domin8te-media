@@ -1,4 +1,4 @@
--- Debug pass hardening (2026-10-10). DRAFT: tried on the test project inside a rolled-back transaction; not applied to prod.
+-- Debug pass hardening (2026-10-10). APPLIED to prod 2026-10-11 06:35 UTC by Karan (SQL Editor, begin/commit); tried first on the test project.
 --   1. review_dashboard_item / review_billing_invoice: optional p_expected (the row's updated_at when the console drew it):
 --      a changed row raises 'stale: changed since you opened it'; approving a row with nothing pending raises
 --      'nothing-to-approve'; a null decision is 'bad-decision' (it used to fall through to reject). Existing calls keep

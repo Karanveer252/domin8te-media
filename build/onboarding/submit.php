@@ -69,13 +69,13 @@ if (empty($_POST) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
 }
 
 /* Bots fill hidden fields. Humans never see this one. */
-if (trim((string)($_POST['company_url'] ?? '')) !== '') {
+if (trim((string)($_POST['d8x'] ?? '')) !== '') {
     respond(true); // look successful, deliver nothing
 }
 
 /* Time trap: the page sends ms since the visit began. Too fast to be a person. */
 $t = $_POST['t'] ?? null;
-if (is_string($t) && $t !== '' && is_numeric($t) && (float)$t < MIN_MS) {
+if (is_string($t) && $t !== '' && is_numeric($t) && (float)$t >= 0 && (float)$t < MIN_MS) {
     respond(true); // look successful, deliver nothing
 }
 
@@ -124,7 +124,6 @@ $rateFile = sys_get_temp_dir() . '/d8ob-rate-' . sha1((string)($_SERVER['REMOTE_
 if (is_file($rateFile) && time() - (int)@filemtime($rateFile) < RATE_SECS) {
     respond(false, 'rate', 429);
 }
-@touch($rateFile);
 
 /* Attached files: images, PDFs and Word documents only, checked by content. */
 function detectType(string $path, string $claimed, string $origName): string {
@@ -168,6 +167,10 @@ if (isset($_FILES['files']) && is_array($_FILES['files']['name'] ?? null)) {
         $name = preg_replace('/[^A-Za-z0-9._-]+/', '-', (string)$_FILES['files']['name'][$i]) ?? '';
         $name = mb_substr(trim($name, '-.'), 0, 80);
         if ($name === '') $name = 'file-' . ($i + 1);
+        $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif', 'image/heic' => 'heic',
+                'image/heif' => 'heif', 'image/avif' => 'avif', 'application/pdf' => 'pdf', 'application/msword' => 'doc',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx'][$type] ?? 'bin';
+        $name = preg_replace('/\.[A-Za-z0-9]+$/', '', $name) . '.' . $ext;
         $attach[] = ['name' => $name, 'type' => $type, 'data' => (string)file_get_contents($tmp)];
     }
 }
@@ -226,6 +229,7 @@ if (!$attach) {
     $body .= '--' . $b . "--\r\n";
 }
 
+@touch($rateFile);
 $sent = @mail(
     MAIL_TO,
     '=?UTF-8?B?' . base64_encode($subject) . '?=',
