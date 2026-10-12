@@ -68,16 +68,21 @@ if (empty($_POST) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
     respond(false, 'toobig', 413);
 }
 
-/* Bots fill hidden fields. Humans never see this one. */
-if (trim((string)($_POST['d8x'] ?? '')) !== '') {
-    error_log(date('c') . ' onboarding submit.php honeypot hit'); // no personal data; shows a false hit
-    respond(true); // look successful, deliver nothing
-}
-
 /* Time check: the page sends ms since the visit began. Too fast is usually a bot, but losing a real client's
    onboarding is far worse than one odd email: it is delivered, only marked in the subject. */
 $t = $_POST['t'] ?? null;
-$fast = is_string($t) && $t !== '' && is_numeric($t) && (float)$t >= 0 && (float)$t < MIN_MS;
+$hasT = is_string($t) && $t !== '' && is_numeric($t);
+$fast = $hasT && (float)$t >= 0 && (float)$t < MIN_MS;
+
+/* Hidden field. Bots fill it, but a browser's autofill can too, so a filled field alone must never lose a real
+   client's onboarding. It is dropped only when the post ALSO looks like a bot (the page's script never sent a time,
+   or it was faster than a person); anyone else is delivered, marked in the subject. Hits are logged (no personal data). */
+$trap = trim((string)($_POST['d8x'] ?? '')) !== '';
+if ($trap) {
+    $bot = !$hasT || $fast;
+    error_log(date('c') . ' onboarding submit.php hidden field filled; ' . ($bot ? 'dropped (looks like a bot)' : 'delivered, tagged'));
+    if ($bot) respond(true); // look successful, deliver nothing
+}
 
 /* Strip CR and LF from anything that touches a mail header. */
 function headerSafe(string $v, int $max = 200): string {
@@ -178,7 +183,7 @@ if (isset($_FILES['files']) && is_array($_FILES['files']['name'] ?? null)) {
 
 $who = trim($first . ' ' . $last);
 $whoHdr = nameSafe($who); // for headers: no < > " , ; : and backslash
-$subject = ($fast ? '[check: fast] ' : '') . 'Onboarding: ' . $place . ' (' . $who . ')';
+$subject = ($trap ? '[check: hidden field] ' : '') . ($fast ? '[check: fast] ' : '') . 'Onboarding: ' . $place . ' (' . $who . ')';
 
 $lines = [
     'A new client finished onboarding at domin8temedia.com/onboarding.',
