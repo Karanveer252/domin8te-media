@@ -16,4 +16,5 @@ BUNDLE while you sweep:
 
 states.py keeps hover/focus/pseudo-element rules whose base element exists, every @font-face and @keyframes.
 A NEW element or state on the page must be exercised in states.py too, or its rules get trimmed.
-Needs: postcss (npm), playwright (python), Pillow.
+Needs: postcss (installed under the user's own node_modules folder, so run the node steps with
+NODE_PATH=C:/Users/kvsd1/node_modules), playwright (python), Pillow.

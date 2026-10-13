@@ -936,7 +936,7 @@ html[data-v="editorial"] .vsl-hero .lede::before{display:none}
 .vid__end[hidden]{display:none}
 html[data-v="editorial"] .vid__again{background:#fff;color:#1F2128;border:1px solid rgba(31,33,40,.18);border-radius:999px;padding:0 22px;text-decoration:none;
   box-shadow:0 8px 20px -10px rgba(31,33,40,.35)}
-.vid--hero{margin:0}
+.vid--hero{max-width:880px;margin:clamp(28px,4.2vh,48px) auto 0}
 .vid-row{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:clamp(20px,3vw,44px);align-items:center}
 .vid-sec{padding:clamp(56px,10vh,120px) 0 0}
 .vid-copy{text-align:left;max-width:52ch}
@@ -944,11 +944,9 @@ html[data-v="editorial"] .vid__again{background:#fff;color:#1F2128;border:1px so
 .vid-copy p{margin:0 0 12px;font-size:17px;line-height:1.6;color:var(--ink-2)}
 .vid-copy .btn{margin-top:8px}
 .vid-copy .dx-note{font-size:14px;margin:4px 0 0}
-.vid-row--hero{margin:clamp(28px,4.2vh,48px) 0 0}
-.vid-row--hero .vid--hero{max-width:none;margin:0}
 @media (max-width:767px){
   .vid__box{border-radius:16px}
-  .vid-row--hero{margin-top:28px}
+  .vid--hero{margin-top:28px}
   .vid-row{grid-template-columns:1fr}
   .vid__btn{width:64px;height:64px;box-shadow:0 10px 24px -10px rgba(212,69,10,.75),0 0 0 6px rgba(255,255,255,.55)}.vid__btn svg{width:24px;height:24px}
   .vid__promise{font-size:13px;padding:7px 12px}
@@ -1012,4 +1010,14 @@ html.mkt[data-v="editorial"] .live__mode,html.mkt[data-v="editorial"] .live__clo
   html.mkt[data-v="editorial"] .contact{padding-top:24px}
   html.mkt[data-v="editorial"] .contact .sec-head{margin-bottom:14px}
   html.mkt[data-v="editorial"] .contact .sec-head .lede{margin-top:8px}
+}
+@media (min-width:1024px){
+  html.mkt[data-v="editorial"] .vsl-hero{padding-bottom:100px}
+  html.mkt[data-v="editorial"] .vsl-how,
+  html.mkt[data-v="editorial"] .contact,
+  html.mkt[data-v="editorial"] .vid-sec,
+  html.mkt[data-v="editorial"] .faq{padding-top:100px;padding-bottom:100px}
+  html.mkt[data-v="editorial"] .vsl-proof{padding-top:100px;padding-bottom:100px}
+  html.mkt[data-v="editorial"] .vsl-proof .vsl-live{padding-top:140px}
+  html.mkt[data-v="editorial"] .vsl-book{padding-top:100px;padding-bottom:120px}
 }
