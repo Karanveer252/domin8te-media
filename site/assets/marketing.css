@@ -210,7 +210,10 @@ html[data-v="editorial"] .vid__again{background:#fff;color:#1F2128;border:1px so
 @media (max-width:900px){.vsl-steps{grid-template-columns:1fr}}
 
 /* ===== the checkup form: visible field boxes, a clear thank-you panel ===== */
-.mkt .form input[type=text],.mkt .form select,.mkt .form textarea{border:1px solid rgba(14,20,32,.28);border-radius:12px;background:#fff;padding:12px 14px}
+.mkt .form input[type=text],.mkt .form select,.mkt .form textarea{border:1px solid rgba(14,20,32,.28);border-radius:12px;background-color:#fff;padding:12px 14px}
+/* the dropdown keeps the site's single arrow picture: colour only above (a "background" shorthand reset the
+   arrow's no-repeat and position, and the light theme's more specific rule kept the picture, so it tiled) */
+.mkt .form select{background-repeat:no-repeat;background-position:right 16px center;padding-right:44px}
 .mkt .form input[type=text]:focus,.mkt .form select:focus,.mkt .form textarea:focus{border-color:#CA4A14;outline:2px solid rgba(202,74,20,.25);outline-offset:1px}
 .mkt .formstatus.ok{margin-top:18px;padding:18px 20px;border-radius:16px;background:#fff;box-shadow:var(--card-shadow);border-left:4px solid #FF5B1F;
   font-size:17px;font-weight:600;color:#1F2128}
