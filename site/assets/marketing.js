@@ -108,6 +108,14 @@ document.addEventListener('click', function (e) {
   if (a && !frame) load();
 });
 if (location.hash === '#bookCal') load();
+/* and on its own, no tap needed: once the visitor scrolls within about two screens of it. Nothing loads at the
+   start, so the first screen stays fast, and someone who leaves early never downloads it. */
+if ('IntersectionObserver' in window) {
+  var io = new IntersectionObserver(function (es) {
+    if (es.some(function (x) { return x.isIntersecting; })) { io.disconnect(); if (!frame) load(); }
+  }, { rootMargin: '1600px 0px' });
+  if (document.readyState === 'complete') io.observe(cal); else window.addEventListener('load', function () { io.observe(cal); });
+}
 })();
 
 /* the phone's sticky bar (the homepage's .ctabar look): on once the hero is behind the reader,

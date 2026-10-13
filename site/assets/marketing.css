@@ -260,8 +260,6 @@ html.mkt[data-v="editorial"] .live__mode,html.mkt[data-v="editorial"] .live__clo
 }
 
 /* audit v4 (2026-10-13) */
-/* the founding-client line, right above the checkup button */
-.mkt .form__founding{margin:18px 0 12px;font-size:15px;line-height:1.5;color:var(--ink-2)}
 /* the inline email link under the button: a 44px tap target without moving the text */
 .mkt .form__note a{display:inline-block;padding:12px 0;margin:-12px 0}
 /* a checkup link under Freddy's live window, like the Le Cookie block */
@@ -283,3 +281,17 @@ html.mkt[data-v="editorial"] .live__mode,html.mkt[data-v="editorial"] .live__clo
    the play button and its label sit in the empty bottom-right corner so they don't cover the question */
 html.mkt #vsl .vid__play{background:none;place-content:end;justify-items:end;padding:0 5% 7%}
 @media (max-width:760px){html.mkt #vsl .vid__play{padding:0 4% 6%}html.mkt #vsl .vid__promise{display:none}}
+
+/* How it works as three cards (the client cards' white and shadow): a short title per step beside its number */
+.vsl-steps li{background:#fff;border-radius:22px;box-shadow:var(--card-shadow);padding:22px 24px 24px 76px;font-size:16px}
+.vsl-steps li::before{left:24px;top:20px}
+.vsl-steps li b{display:block;margin:4px 0 6px;font:600 19px/1.25 "Be Vietnam Pro",system-ui,sans-serif;letter-spacing:-.01em;color:#1F2128}
+@media (max-width:900px){.vsl-steps{gap:12px}.vsl-steps li{padding:18px 18px 20px 68px}.vsl-steps li::before{left:18px;top:17px}}
+
+/* Try the sites: each client in its own light panel, so Freddy's and Le Cookie read as two separate blocks.
+   The panels take their room from the gaps that were there, so the section is no taller. */
+.vsl-case{background:rgba(255,255,255,.55);border:1px solid rgba(60,40,20,.08);border-radius:30px;padding:22px}
+.vsl-case + .vsl-case{margin-top:32px}
+.vsl-case .live__cta{margin:16px 0 0}
+.vsl-live .vsl-case #lecookie-film{margin:0 0 24px}
+@media (max-width:760px){.vsl-case{padding:10px 10px 14px;border-radius:24px}.vsl-case + .vsl-case{margin-top:20px}.vsl-live .vsl-case #lecookie-film{margin:0 0 16px}}
