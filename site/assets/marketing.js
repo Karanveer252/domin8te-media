@@ -249,3 +249,17 @@ figs.forEach(function (fig) {
   });
 });
 })();
+
+/* The live sites open by themselves: each window loads its site once the visitor is close to it (one screen
+   ahead), so nobody has to find "Try the live site". The photo stays until then, so the page stays light. */
+(function () {
+'use strict';
+var lives = [].slice.call(document.querySelectorAll('.live[data-src]'));
+if (!lives.length) return;
+function start(live) { var go = live.querySelector('.live__go'); if (go && !live.querySelector('iframe')) go.click(); }
+if (!('IntersectionObserver' in window)) { lives.forEach(start); return; }
+var io = new IntersectionObserver(function (es) {
+  es.forEach(function (e) { if (e.isIntersecting) { io.unobserve(e.target); start(e.target); } });
+}, { rootMargin: '400px 0px' });
+lives.forEach(function (l) { io.observe(l); });
+})();

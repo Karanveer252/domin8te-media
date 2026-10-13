@@ -26,27 +26,6 @@
   .vsl-hint__arrow{right:auto;left:40%}
 }
 
-/* the cookie picker before the Lecookie window */
-.vsl-bake{display:grid;grid-template-columns:clamp(150px,18vw,240px) 1fr;gap:clamp(20px,3vw,44px);align-items:center;
-  margin:clamp(40px,7vh,80px) 0 clamp(20px,3vh,32px);padding:clamp(20px,2.6vw,36px);
-  background:#fff;border-radius:var(--r-card,20px);box-shadow:var(--card-shadow)}
-.vsl-bake__pic{aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 50% 45%,#F7EFE6,#EADFD2);display:grid;place-items:center}
-.vsl-bake__pic img{width:86%;height:auto}
-.vsl-bake__ttl{margin:0 0 18px;font-size:clamp(20px,1.8vw,26px);font-weight:600;line-height:1.25}
-.vsl-bake__ttl em{color:#AE3A0B;font-weight:800}
-.vsl-bake__row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px}
-.vsl-bake__n{flex:0 0 100%;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#3A4E7A;margin-bottom:2px}
-.vsl-bake__opt{font:inherit;font-size:15px;padding:8px 16px;border-radius:999px;cursor:pointer;
-  border:1.5px solid rgba(14,20,32,.16);background:#fff;color:#0E1420;transition:border-color .15s,background .15s}
-.vsl-bake__opt:hover{border-color:#CA4A14}
-.vsl-bake__opt[aria-pressed="true"]{border-color:#FF5B1F;background:#FFE9DF;font-weight:600}
-.vsl-bake__opt:focus-visible{outline:2px solid #0E1420;outline-offset:2px}
-.vsl-bake__foot{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:18px 0 0}
-.vsl-bake__left{color:#3A4E7A;font-size:15px}
-@media (max-width:760px){
-  .vsl-bake{grid-template-columns:1fr}
-  .vsl-bake__pic{width:150px;margin:0 auto}
-}
 
 /* book a call (the secondary option): the calendar full width */
 .vsl-book{padding:clamp(56px,10vh,120px) 0 clamp(24px,4vh,48px)}
@@ -154,28 +133,22 @@ html[data-v="editorial"] .vsl-hero .lede::before{display:none}
 .vid__end[hidden]{display:none}
 html[data-v="editorial"] .vid__again{background:#fff;color:#1F2128;border:1px solid rgba(31,33,40,.18);border-radius:999px;padding:0 22px;text-decoration:none;
   box-shadow:0 8px 20px -10px rgba(31,33,40,.35)}
-.vid--hero{max-width:880px;margin:clamp(28px,4.2vh,48px) auto 0}
+.vid--hero{margin:0}
 .vid-row{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:clamp(20px,3vw,44px);align-items:center}
 .wk-grid .vid-row{grid-column:1 / -1}
 .vid-sec{padding:clamp(56px,10vh,120px) 0 0}
-/* "Don't want to watch?" */
-.vid-alt{max-width:58ch;text-align:left}
-.vid--hero + .vid-alt{margin:22px auto 0;max-width:880px}
-.vid-alt__h{margin:0 0 10px;font:600 13px/1.2 "Be Vietnam Pro",system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#B5470E}
-.vid-alt__list{margin:0;padding:0;list-style:none;display:grid;gap:8px}
-.vid-alt__list li{position:relative;padding-left:24px;font-size:16px;line-height:1.5;color:#1F2128}
-.vid-alt__list li::before{content:"";position:absolute;left:2px;top:.5em;width:10px;height:6px;border-left:2px solid #D4450A;border-bottom:2px solid #D4450A;transform:rotate(-45deg)}
-.vid-alt__tx{margin-top:14px;border-top:1px solid rgba(31,33,40,.12);padding-top:12px}
-.vid-alt__tx summary{cursor:pointer;font-weight:600;color:#C2410C;text-decoration:underline;text-underline-offset:3px;min-height:44px;display:flex;align-items:center;list-style:none}
-.vid-alt__tx summary::-webkit-details-marker{display:none}
-.vid-alt__tx summary::after{content:"+";margin-left:8px;text-decoration:none}
-.vid-alt__tx[open] summary::after{content:"\2212"}
-.vid-alt__tx p{margin:10px 0 0;font-size:15px;line-height:1.6;color:#3B3D45}
-@media (min-width:768px){.vid--hero + .vid-alt{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:36px}
-  .vid--hero + .vid-alt .vid-alt__h{grid-column:1 / -1}.vid--hero + .vid-alt .vid-alt__tx{margin-top:0;border-top:0;padding-top:0}}
+/* the words beside each film */
+.vid-copy{text-align:left;max-width:52ch}
+.vid-copy__h{margin:0 0 12px;font:600 clamp(24px,2.3vw,34px)/1.15 "Be Vietnam Pro",system-ui,sans-serif;letter-spacing:-.02em;color:#1F2128}
+.vid-copy p{margin:0 0 12px;font-size:17px;line-height:1.6;color:var(--ink-2)}
+.vid-copy .btn{margin-top:8px}
+.vid-copy .dx-note{font-size:14px;margin:4px 0 0}
+/* the founder film in the hero: beside its words on a wide screen, the words under it on a phone */
+.vid-row--hero{margin:clamp(28px,4.2vh,48px) 0 0}
+.vid-row--hero .vid--hero{max-width:none;margin:0}
 @media (max-width:767px){
   .vid__box{border-radius:16px}
-  .vid--hero{margin-top:28px}
+  .vid-row--hero{margin-top:28px}
   .vid-row{grid-template-columns:1fr}
   .vid__btn{width:64px;height:64px;box-shadow:0 10px 24px -10px rgba(212,69,10,.75),0 0 0 6px rgba(255,255,255,.55)}.vid__btn svg{width:24px;height:24px}
   .vid__promise{font-size:13px;padding:7px 12px}
@@ -218,10 +191,6 @@ html[data-v="editorial"] .vid__again{background:#fff;color:#1F2128;border:1px so
 .mkt .formstatus.ok{margin-top:18px;padding:18px 20px;border-radius:16px;background:#fff;box-shadow:var(--card-shadow);border-left:4px solid #FF5B1F;
   font-size:17px;font-weight:600;color:#1F2128}
 
-/* ===== founder ===== */
-.founder{padding:clamp(56px,10vh,120px) 0}
-.founder .wrap{max-width:780px}
-.founder p{margin:0 0 14px;font-size:18px;line-height:1.6;color:var(--ink-2)}
 
 /* ===== FAQ ===== */
 .faq{padding:clamp(56px,10vh,120px) 0}
@@ -237,18 +206,9 @@ html[data-v="editorial"] .vid__again{background:#fff;color:#1F2128;border:1px so
 
 /* ===== clients: the cards are no longer links; "Read the story" is a small text link ===== */
 .mkt .cl a.cl__go{color:inherit;text-decoration:underline;text-underline-offset:3px}
-/* the live sites and the cookie picker, collapsed under the client cards */
-.vsl-more{margin-top:clamp(24px,4vh,40px)}
-.vsl-more > summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:10px;padding:12px 20px;border-radius:999px;
-  background:#fff;box-shadow:var(--card-shadow);font-weight:600;color:#1F2128}
-.vsl-more > summary::-webkit-details-marker{display:none}
-.vsl-more > summary::after{content:"+";color:#CA4A14;font-size:20px;line-height:1}
-.vsl-more[open] > summary::after{content:"\2212"}
-.vsl-more .vsl-live{padding-top:clamp(28px,5vh,48px)}
 @media (hover:none){.vsl-hint{display:none}}
 
 @media (max-width:374px){html[data-v="editorial"] .vsl-ctas .btn--primary{font-size:12.5px;letter-spacing:.06em}}
-.founder .hl{margin:0 0 18px}
 
 /* the dashboard film's "Try the demo" link */
 .vsl-watch-demo{margin:18px 0 0;text-align:center}
@@ -262,3 +222,7 @@ html[data-v="editorial"] .vid__again{background:#fff;color:#1F2128;border:1px so
 
 /* "Try the demo" under the What you get film text */
 .vsl-demo-link{margin:14px 0 0}
+
+/* the live sites, always open under the client cards; the Le Cookie film sits above the Le Cookie website */
+.vsl-proof .vsl-live{padding-top:clamp(40px,7vh,80px)}
+.vsl-live #lecookie-film{margin:clamp(40px,7vh,80px) 0 clamp(24px,4vh,40px)}

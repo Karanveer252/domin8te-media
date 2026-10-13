@@ -26,7 +26,7 @@
 <link rel="stylesheet" href="/assets/v3.css?v=163301698a">
 <link rel="stylesheet" href="/assets/work.css?v=9cb8c46efb">
 <link rel="stylesheet" href="/assets/seo.css?v=87006be486">
-<link rel="stylesheet" href="/assets/marketing.css?v=c86fa9368d">
+<link rel="stylesheet" href="/assets/marketing.css?v=b414612b6f">
 <link rel="preload" as="image" href="/assets/vsl/vsl-founder-16x9.webp?v=a1ce0f7fbb" fetchpriority="high">
 <!-- Meta Pixel Code -->
 <script>
@@ -77,6 +77,7 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
     <p class="vsl-small">Free. No call needed. We reply within one business day.</p>
 
     <!-- the founder film: click to play with sound, nothing loads before the tap (assets/marketing.js) -->
+    <div class="vid-row vid-row--hero">
     <figure class="vid vid--hero" id="vsl" data-vid="/assets/vsl/vsl-founder-16x9.mp4?v=49c8940846" data-vid-name="founder">
       <div class="vid__box">
         <img class="vid__poster" src="/assets/vsl/vsl-founder-16x9.webp?v=a1ce0f7fbb" width="1280" height="720" alt="" fetchpriority="high" decoding="async">
@@ -88,19 +89,11 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
         <div class="vid__end" hidden><a class="btn btn--primary" href="#bookCal">Book a discovery call</a><button class="btn btn--ghost vid__again" type="button">Watch again</button></div>
       </div>
     </figure>
-    <div class="vid-alt">
-      <p class="vid-alt__h">Don’t want to watch?</p>
-      <ul class="vid-alt__list">
-        <li>You work directly with Karan, the person doing the work.</li>
-        <li>He started coding in grade nine, then learned the trade at an agency serving clients in Canada and the US.</li>
-        <li>Domin8te Media is now all he does, and he takes on only three new restaurants at a time.</li>
-      </ul>
-      <details class="vid-alt__tx">
-        <summary>Read the transcript</summary>
-        <p>Ever hired an agency and never once talked to the person doing the work? I’m Karan.</p>
-        <p>I got my first computer in grade nine and started coding. Then I put it aside. Around 2021, in India, an old friend from the gym got me an interview at an agency serving Canada and the US. I learned the work there, and I wanted my own. It took me a while. Now I’m all in.</p>
-        <p>With Domin8te Media, you work directly with me. Only three restaurants at a time. Book a discovery call.</p>
-      </details>
+    <div class="vid-copy">
+      <h3 class="vid-copy__h">The person in the video does the work.</h3>
+      <p>No account managers and no handoffs. Karan builds your website, runs your Google listing, posts and ads, and answers your messages himself. That’s why we only take three new restaurants at a time.</p>
+      <a class="btn btn--primary" href="#bookCal">Book a discovery call</a>
+    </div>
     </div>
 
     <ul class="promise" aria-label="How we work">
@@ -218,35 +211,6 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
         </div>
       </article>
 
-      <!-- the Le Cookie build film: under the Le Cookie card, the full width of the grid, before "Your place, next." -->
-      <div class="vid-row" id="lecookie-film">
-        <figure class="vid" data-vid="/assets/vsl/vsl-lecookie-16x9.mp4?v=ff20b0350e" data-vid-name="lecookie">
-          <div class="vid__box">
-            <img class="vid__poster" src="/assets/vsl/vsl-lecookie-16x9.webp?v=472cf5dc28" width="1280" height="720" alt="" loading="lazy" decoding="async">
-            <button class="vid__play" type="button" aria-label="Play the 24 second video of the Le Cookie build, with sound and captions">
-              <span class="vid__btn" aria-hidden="true"><svg viewBox="0 0 16 16" width="30" height="30" focusable="false"><path d="M4 2.2v11.6L13.6 8z"/></svg></span>
-              <span class="vid__promise" aria-hidden="true">See the Le Cookie build</span>
-            </button>
-            <video playsinline preload="none" aria-label="How we built the Le Cookie website: pick a shape, icing and topping, then watch the cookie get made. 24 seconds, captions on screen."></video>
-            <div class="vid__end" hidden><a class="btn btn--primary" href="#bookCal">Book a discovery call</a><button class="btn btn--ghost vid__again" type="button">Watch again</button></div>
-          </div>
-        </figure>
-        <div class="vid-alt">
-          <p class="vid-alt__h">Don’t want to watch?</p>
-          <ul class="vid-alt__list">
-            <li>Le Cookie makes every cookie to order, so we built a website that orders the same way.</li>
-            <li>Three quick questions: shape, icing and topping.</li>
-            <li>Then you watch your cookie get baked, iced, signed and boxed. Different answers, different cookie.</li>
-          </ul>
-          <details class="vid-alt__tx">
-            <summary>Read the transcript</summary>
-            <p>What if ordering online felt like ordering at the counter?</p>
-            <p>Every cookie at Le Cookie is made to order, so we built them a website that works the same way. Three quick questions. Shape, icing, topping. Then you watch your cookie get baked, iced, signed and boxed. Different answers? Different cookie.</p>
-            <p>Your place has a story like this. Let’s build around it. Book a discovery call.</p>
-          </details>
-        </div>
-      </div>
-
       <aside class="cl cl--next rv" aria-labelledby="proof-next-h">
         <img class="cl__mark" src="/assets/mark-720.webp" width="720" height="397" alt="" loading="lazy" decoding="async">
         <h3 id="proof-next-h" class="cl__next"><span>Your place,</span> <em>next.</em></h3>
@@ -255,8 +219,6 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
       </aside>
     </div>
 
-    <details class="vsl-more">
-      <summary>See the sites we built, live</summary>
 <section class="vsl-live" aria-labelledby="live-h">
   <div class="wrap">
     <header class="sec-head rv">
@@ -285,18 +247,26 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
       </div>
     </figure>
 
-    <!-- COOKIE PICKER: the visitor designs a cookie here, then the Le Cookie window below opens and bakes it
-         (assets/vsl.js; the live copy reads lecookie.v6.design from sessionStorage, same origin) -->
-    <div class="vsl-bake rv" id="bake">
-      <div class="vsl-bake__pic"><img id="bakeImg" src="/work/lecookie/live/img/cookie/thumb/base_circle.webp?v=57" width="300" height="300" alt="" decoding="async"></div>
-      <div class="vsl-bake__body">
-        <h3 class="vsl-bake__ttl">Design a cookie first. <em>Then watch Le Cookie bake it.</em></h3>
-        <div class="vsl-bake__row" role="group" aria-label="Shape"><span class="vsl-bake__n">1 · Shape</span><button type="button" class="vsl-bake__opt" data-q="shape" data-a="circle" aria-pressed="false">Classic round</button><button type="button" class="vsl-bake__opt" data-q="shape" data-a="heart" aria-pressed="false">Heart</button><button type="button" class="vsl-bake__opt" data-q="shape" data-a="square" aria-pressed="false">Square</button><button type="button" class="vsl-bake__opt" data-q="shape" data-a="star" aria-pressed="false">Star</button></div>
-        <div class="vsl-bake__row" role="group" aria-label="Icing"><span class="vsl-bake__n">2 · Icing</span><button type="button" class="vsl-bake__opt" data-q="icing" data-a="ivory" aria-pressed="false">Ivory</button><button type="button" class="vsl-bake__opt" data-q="icing" data-a="mauve" aria-pressed="false">Mauve</button><button type="button" class="vsl-bake__opt" data-q="icing" data-a="grey" aria-pressed="false">Dove grey</button><button type="button" class="vsl-bake__opt" data-q="icing" data-a="peach" aria-pressed="false">Peach</button></div>
-        <div class="vsl-bake__row" role="group" aria-label="Topping"><span class="vsl-bake__n">3 · Topping</span><button type="button" class="vsl-bake__opt" data-q="top" data-a="garland" aria-pressed="false">Flower garland</button><button type="button" class="vsl-bake__opt" data-q="top" data-a="bow" aria-pressed="false">Piped bow</button><button type="button" class="vsl-bake__opt" data-q="top" data-a="pearls" aria-pressed="false">Pearls and gold</button></div>
-        <p class="vsl-bake__foot"><button type="button" class="btn btn--primary" id="bakeGo" disabled>Bake it on the live site</button> <span class="vsl-bake__left" id="bakeLeft">Pick all three to bake it.</span></p>
+      <!-- the Le Cookie build film: right above the Le Cookie website and its cookie picker -->
+    <div class="vid-row" id="lecookie-film">
+      <figure class="vid" data-vid="/assets/vsl/vsl-lecookie-16x9.mp4?v=ff20b0350e" data-vid-name="lecookie">
+        <div class="vid__box">
+          <img class="vid__poster" src="/assets/vsl/vsl-lecookie-16x9.webp?v=472cf5dc28" width="1280" height="720" alt="" loading="lazy" decoding="async">
+          <button class="vid__play" type="button" aria-label="Play the 24 second video of the Le Cookie build, with sound and captions">
+            <span class="vid__btn" aria-hidden="true"><svg viewBox="0 0 16 16" width="30" height="30" focusable="false"><path d="M4 2.2v11.6L13.6 8z"/></svg></span>
+            <span class="vid__promise" aria-hidden="true">See the Le Cookie build</span>
+          </button>
+          <video playsinline preload="none" aria-label="How we built the Le Cookie website: pick a shape, icing and topping, then watch the cookie get made. 24 seconds, captions on screen."></video>
+          <div class="vid__end" hidden><a class="btn btn--primary" href="#bookCal">Book a discovery call</a><button class="btn btn--ghost vid__again" type="button">Watch again</button></div>
+        </div>
+      </figure>
+      <div class="vid-copy">
+        <h3 class="vid-copy__h">A website built the way they sell.</h3>
+        <p>Le Cookie bakes every set to order, so ordering online should feel like ordering at the counter. Visitors design their cookie first, then watch it get baked, iced, signed and boxed.</p>
+        <a class="btn btn--ghost" href="#contact">Get my free checkup</a>
       </div>
     </div>
+
     <figure class="live rv" id="lecookieLive" data-src="/work/lecookie/live/" data-mode="desktop" data-title="Le Cookie, the live website">
       <div class="live__bar">
         <i></i><i></i><i></i>
@@ -318,16 +288,6 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
     </figure>
   </div>
 </section>
-    </details>
-  </div>
-</section>
-
-<!-- ============ 5. FOUNDER ============ -->
-<section class="founder" aria-labelledby="founder-h">
-  <div class="wrap rv">
-    <h2 id="founder-h" class="hl hl--sec">You’ll work with Karan.</h2>
-    <p>I got my first computer in grade 9 and started teaching myself to code, then set it aside for a few years. Around 2021, a friend from the gym got me an interview at an agency in India that did marketing for businesses in Canada and the US. That’s where I learned how this work really gets done, and where I decided to start my own.</p>
-    <p>Domin8te Media is now all I do. I take on only three new restaurants at a time so I can do the work properly, and I reply within one business day.</p>
   </div>
 </section>
 
@@ -349,19 +309,9 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
           <div class="vid__end" hidden><a class="btn btn--primary" href="#bookCal">Book a discovery call</a><button class="btn btn--ghost vid__again" type="button">Watch again</button></div>
         </div>
       </figure>
-      <div class="vid-alt">
-        <p class="vid-alt__h">Don’t want to watch?</p>
-        <ul class="vid-alt__list">
-          <li>Next week’s posts arrive written and designed. You approve them in one tap.</li>
-          <li>A weekly update without the meeting, and every project with the step it’s on.</li>
-          <li>Real people, one message away, in the same dashboard. No meetings to book, no agency to chase.</li>
-        </ul>
-        <details class="vid-alt__tx">
-          <summary>Read the transcript</summary>
-          <p>Running a restaurant is already a full-time job. Marketing shouldn’t be a second one.</p>
-          <p>Here’s what you get. Next week’s posts, written and designed, you approve them in one tap. A weekly update, without the meeting. Every project, and the step we’re on. And real people, one message away.</p>
-          <p>What you never have to do? Book meetings. Chase an agency. It’s all on one dashboard. Book a discovery call.</p>
-        </details>
+      <div class="vid-copy">
+        <h3 class="vid-copy__h">Your marketing, on one screen.</h3>
+        <p>Approve next week’s posts in one tap. Get a weekly update without the meeting. See what every project is up to, and message us whenever you need something.</p>
         <p class="dx-note">Demo dashboard with a sample restaurant.</p>
         <p class="vsl-demo-link"><a class="btn btn--ghost" href="/dashboard/demo/">Try the demo</a></p>
       </div>
@@ -437,7 +387,7 @@ if(src){var q=['utm_source','utm_medium','utm_campaign','utm_content','utm_term'
 </script>
 <script src="/assets/site.js?v=7430d5f89e" defer></script>
 <script src="/assets/work.js?v=45ab9605c2" defer></script>
-<script src="/assets/marketing.js?v=b6a04c2738" defer></script>
+<script src="/assets/marketing.js?v=bcea32ec97" defer></script>
 <script>/* the growth cursor only where there is a mouse */
 if (matchMedia('(pointer: fine)').matches) { var c = document.createElement('script'); c.src = '/assets/v3-cursor.js?v=136c753635'; c.defer = true; document.body.appendChild(c) }</script>
 </body>
