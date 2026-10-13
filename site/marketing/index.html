@@ -21,15 +21,19 @@
 <link rel="preload" href="/assets/fonts/bvp-200.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/marketing.lean.css?v=be73ba3e56">
 <link rel="preload" as="image" href="/assets/vsl/vsl-founder-16x9.webp?v=976f11b022" imagesrcset="/assets/vsl/vsl-founder-16x9-480.webp?v=258599f8c5 480w, /assets/vsl/vsl-founder-16x9-800.webp?v=9500164a95 800w, /assets/vsl/vsl-founder-16x9.webp?v=976f11b022 1280w" imagesizes="(max-width: 760px) calc(100vw - 40px), 880px" fetchpriority="high">
-<!-- Meta Pixel Code -->
+<!-- Meta Pixel Code (Meta's snippet; only the moment fbevents.js is fetched changed: after the page has loaded,
+     or at the visitor's first tap, key or scroll if sooner. fbq() queues every call until then.) -->
 <script>
 !function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
+n.queue=[];var go=function(){if(t)return;t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
+s.parentNode.insertBefore(t,s)},ev=['pointerdown','keydown','scroll','touchstart'],i;
+for(i=0;i<ev.length;i++)f.addEventListener(ev[i],go,{once:!0,passive:!0});
+var later=function(){f.requestIdleCallback?f.requestIdleCallback(go,{timeout:1500}):setTimeout(go,300)};
+b.readyState==='complete'?later():f.addEventListener('load',later)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '2195448994715770');
 fbq('track', 'PageView');

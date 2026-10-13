@@ -5,6 +5,7 @@
 # "30 seconds" no longer said twice; founding-client line above the button (card kept); email link 44px tap target;
 # "Get my free checkup" link under Freddy's live window. Rotator, labels and hero buttons unchanged (Karan's choices).
 # CHANGED: marketing/index.html, marketing.css/.lean.css/.js, the 3 founder posters. Roll back = redeploy v86.
+# + Meta Pixel: fbevents.js now fetched after the page has loaded (or on first tap/key/scroll); fbq queue unchanged, so PageView/Lead/Schedule still send. Karan: "delay the pixel", "do it".
 import zipfile, os, re, hashlib
 BASE = r'C:\Work\domin8te-v86.zip'; OUT = r'C:\Work\domin8te-v87.zip'; SITE = r'C:\Work\domin8te-media'
 CHANGED = ['marketing/index.html', 'assets/marketing.css', 'assets/marketing.lean.css', 'assets/marketing.js',
