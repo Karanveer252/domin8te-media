@@ -1021,3 +1021,19 @@ html.mkt[data-v="editorial"] .live__mode,html.mkt[data-v="editorial"] .live__clo
   html.mkt[data-v="editorial"] .vsl-proof .vsl-live{padding-top:140px}
   html.mkt[data-v="editorial"] .vsl-book{padding-top:100px;padding-bottom:120px}
 }
+.mkt .form__founding{margin:18px 0 12px;font-size:15px;line-height:1.5;color:var(--ink-2)}
+.mkt .form__note a{display:inline-block;padding:12px 0;margin:-12px 0}
+.mkt .live__cta{margin:18px 0 0;text-align:center}
+@media (max-width:760px){
+  html.mkt[data-v="editorial"] .live__url:has(.live__tag){display:inline-flex;align-items:center;margin-right:auto;min-width:0}
+  html.mkt[data-v="editorial"] .live__url:has(.live__tag) b{display:none}
+  html.mkt[data-v="editorial"] .live__url .live__tag{margin-left:0}
+  html.mkt[data-v="editorial"] .live__bar:has(.live__tag){justify-content:space-between}
+  html.mkt[data-v="editorial"] .live__bar:has(.live__tag) .live__tools{width:auto}
+  html.mkt[data-v="editorial"] .live__url .live__tag{flex:none}
+  html.mkt[data-v="editorial"] .live.is-on .live__bar:has(.live__tag){flex-wrap:wrap;row-gap:2px;height:auto;padding-top:8px}
+  html.mkt[data-v="editorial"] .live.is-on .live__url:has(.live__tag){flex:0 0 100%}
+  html.mkt[data-v="editorial"] .live.is-on .live__bar:has(.live__tag) .live__tools{width:100%}
+}
+html.mkt #vsl .vid__play{background:none;place-content:end;justify-items:end;padding:0 5% 7%}
+@media (max-width:760px){html.mkt #vsl .vid__play{padding:0 4% 6%}html.mkt #vsl .vid__promise{display:none}}

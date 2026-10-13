@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "mcp__honcho__add_messages_to_session",
-      "mcp__honcho__create_conclusions"
+      "mcp__honcho__create_conclusions",
+      "Bash(cat /c/Users/kvsd1/.claude/honcho-sync/state.json 2>&1 | head -c 3000; ls /c/Users/kvsd1/.claude/honcho-sync 2>&1)",
+      "Read(//c/Users/kvsd1/AppData/Local/Temp/claude/C--Work-domin8te-media/81252625-995d-40cb-83f3-4c88ed712821/scratchpad/**)",
+      "Bash(python -c ' *)",
+      "mcp__honcho__create_session",
+      "mcp__honcho__add_peers_to_session"
     ]
   }
 }

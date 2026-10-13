@@ -252,3 +252,15 @@ figs.forEach(function (fig) {
   });
 });
 })();
+
+/* a link to /marketing/#contact (or #bookCal) can land at the top: Hostinger's browser check swaps the page in
+   after the browser has already tried the jump. Once the page is ready, and again once it has loaded, finish the
+   jump if the visitor is still at the top (the header offset comes from scroll-padding-top). */
+(function () {
+  function jump() {
+    var id = location.hash.slice(1), el = id && document.getElementById(id);
+    if (el && window.scrollY < 10) el.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', jump); else jump();
+  window.addEventListener('load', jump);
+})();
