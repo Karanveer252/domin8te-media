@@ -35,6 +35,7 @@ for(i=0;i<ev.length;i++)f.addEventListener(ev[i],go,{once:!0,passive:!0});
 var later=function(){f.requestIdleCallback?f.requestIdleCallback(go,{timeout:1500}):setTimeout(go,300)};
 b.readyState==='complete'?later():f.addEventListener('load',later)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
+fbq('set', 'autoConfig', false, '2195448994715770');
 fbq('init', '2195448994715770');
 fbq('track', 'PageView');
 </script>
