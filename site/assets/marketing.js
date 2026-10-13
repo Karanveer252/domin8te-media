@@ -69,7 +69,7 @@ go.addEventListener('click', function () {
 update();
 })();
 
-/* the booking calendar: Calendly's inline page in an iframe, loaded only when the section is close.
+/* the booking calendar: Calendly's inline page in an iframe, loaded on "Show available times" (or a link to it).
    Calendly posts its own height to this page (calendly.page_height), so the box fits it exactly and
    never scrolls inside itself. Colours match the page: white ground, the site's orange, navy ink. */
 (function () {
@@ -100,11 +100,14 @@ window.addEventListener('message', function (e) {
     fbq('track', 'Schedule', { content_name: 'discovery_call' });
   }
 });
-if (!('IntersectionObserver' in window)) { load(); return }
-var io = new IntersectionObserver(function (es) {
-  if (es.some(function (e) { return e.isIntersecting })) { io.disconnect(); load() }
-}, { rootMargin: '600px 0px' });
-io.observe(cal);
+/* the calendar loads on "Show available times", or when a "Book a discovery call" link brings the visitor here */
+var show = cal.querySelector('.vsl-cal__show');
+if (show) show.addEventListener('click', function () { if (!frame) load(); });
+document.addEventListener('click', function (e) {
+  var a = e.target.closest && e.target.closest('a[href="#bookCal"]');
+  if (a && !frame) load();
+});
+if (location.hash === '#bookCal') load();
 })();
 
 /* the phone's sticky bar (the homepage's .ctabar look): on once the hero is behind the reader,
@@ -248,18 +251,4 @@ figs.forEach(function (fig) {
     track('VideoComplete', fig);
   });
 });
-})();
-
-/* The live sites open by themselves: each window loads its site once the visitor is close to it (one screen
-   ahead), so nobody has to find "Try the live site". The photo stays until then, so the page stays light. */
-(function () {
-'use strict';
-var lives = [].slice.call(document.querySelectorAll('.live[data-src]'));
-if (!lives.length) return;
-function start(live) { var go = live.querySelector('.live__go'); if (go && !live.querySelector('iframe')) go.click(); }
-if (!('IntersectionObserver' in window)) { lives.forEach(start); return; }
-var io = new IntersectionObserver(function (es) {
-  es.forEach(function (e) { if (e.isIntersecting) { io.unobserve(e.target); start(e.target); } });
-}, { rootMargin: '400px 0px' });
-lives.forEach(function (l) { io.observe(l); });
 })();

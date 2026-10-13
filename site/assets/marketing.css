@@ -206,7 +206,7 @@ html[data-v="editorial"] .vid__again{background:#fff;color:#1F2128;border:1px so
 
 /* ===== clients: the cards are no longer links; "Read the story" is a small text link ===== */
 .mkt .cl a.cl__go{color:inherit;text-decoration:underline;text-underline-offset:3px}
-@media (hover:none){.vsl-hint{display:none}}
+@media (hover:none),(pointer:coarse){.vsl-hint{display:none}}
 
 @media (max-width:374px){html[data-v="editorial"] .vsl-ctas .btn--primary{font-size:12.5px;letter-spacing:.06em}}
 
@@ -226,3 +226,25 @@ html[data-v="editorial"] .vid__again{background:#fff;color:#1F2128;border:1px so
 /* the live sites, always open under the client cards; the Le Cookie film sits above the Le Cookie website */
 .vsl-proof .vsl-live{padding-top:clamp(40px,7vh,80px)}
 .vsl-live #lecookie-film{margin:clamp(40px,7vh,80px) 0 clamp(24px,4vh,40px)}
+
+/* ===== audit v3 (2026-10-13) ===== */
+/* the client strip under the hero's reassurance line */
+.vsl-clients{margin:8px auto 0;font-size:14px;font-weight:600;letter-spacing:.02em;color:#3A4E7A}
+@media (max-width:760px){.vsl-clients{margin-left:0;text-align:left}}
+/* "Prototype" beside the Freddy's window name */
+.live__tag{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:999px;background:#FFE9DF;color:#B5470E;
+  font:700 11px/1.5 "Be Vietnam Pro",system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;vertical-align:middle}
+/* the checkup: the ticks and the founding card now follow the form */
+@media (max-width:900px){.contact__side{margin-top:28px}}
+/* the calendar opens on a tap */
+.vsl-cal__wait .vsl-cal__show{margin-top:4px}
+/* tap targets at least 44px tall */
+.mkt .cl a.cl__go,.mkt .foot__line a,.mkt .foot__nav a{display:inline-flex;align-items:center;min-height:44px}
+html.mkt[data-v="editorial"] .live__mode,html.mkt[data-v="editorial"] .live__close{min-height:44px}
+.mkt .live__mode,.mkt .live__close{min-height:44px}
+/* on a phone the first checkup field starts within 250px of the section's top (audit v3 #5) */
+@media (max-width:760px){
+  html.mkt[data-v="editorial"] .contact{padding-top:24px}
+  html.mkt[data-v="editorial"] .contact .sec-head{margin-bottom:14px}
+  html.mkt[data-v="editorial"] .contact .sec-head .lede{margin-top:8px}
+}

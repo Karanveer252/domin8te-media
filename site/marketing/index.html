@@ -19,15 +19,8 @@
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preload" href="/assets/fonts/bvp-200.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/site.css?v=68195a0b8e">
-<link rel="stylesheet" href="/assets/v-editorial.css?v=9aa20f5d3c">
-<link rel="stylesheet" href="/assets/dash.css?v=85df72a141">
-<link rel="stylesheet" href="/assets/light.css?v=f2976391df">
-<link rel="stylesheet" href="/assets/v3.css?v=163301698a">
-<link rel="stylesheet" href="/assets/work.css?v=9cb8c46efb">
-<link rel="stylesheet" href="/assets/seo.css?v=87006be486">
-<link rel="stylesheet" href="/assets/marketing.css?v=b414612b6f">
-<link rel="preload" as="image" href="/assets/vsl/vsl-founder-16x9.webp?v=a1ce0f7fbb" fetchpriority="high">
+<link rel="stylesheet" href="/assets/marketing.lean.css?v=66d363ec91">
+<link rel="preload" as="image" href="/assets/vsl/vsl-founder-16x9.webp?v=a1ce0f7fbb" imagesrcset="/assets/vsl/vsl-founder-16x9-480.webp?v=dee3c3b19d 480w, /assets/vsl/vsl-founder-16x9-800.webp?v=083c51e900 800w, /assets/vsl/vsl-founder-16x9.webp?v=a1ce0f7fbb 1280w" imagesizes="(max-width: 760px) calc(100vw - 40px), (max-width: 1100px) 60vw, 780px" fetchpriority="high">
 <!-- Meta Pixel Code -->
 <script>
 !function(f,b,e,v,n,t,s)
@@ -67,7 +60,7 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
 <!-- ============ 1. HERO (U01): eyebrow, rotating headline, CTAs, the video frame, the promise strip ============ -->
 <section class="vsl-hero" id="hero" aria-labelledby="vsl-h">
   <div class="wrap">
-    <p class="vsl-eyebrow"><img class="vsl-eyebrow__mark" src="/assets/mark-120.webp" alt="" width="28" height="16"><span>Only taking three new restaurants at a time</span></p>
+    <p class="vsl-eyebrow"><img class="vsl-eyebrow__mark" src="/assets/mark-120.webp" alt="" width="28" height="16"><span>Just taking about 3 new restaurants at a time</span></p>
     <h1 id="vsl-h" class="hl"><span class="ln"><span class="vsl-hi">Restaurant</span> marketing agency,</span> <span class="ln ln--acc"><em class="rot" data-rotate="reimagined.|done for you.|made simple." data-fx="slide" data-hold="3000" data-pad="1.45"><span class="rot__txt dec">reimagined.</span></em></span></h1>
     <p class="lede">We run your website, Google listing, social posts and ads. You approve what goes out and get back to the kitchen.</p>
     <div class="vsl-ctas">
@@ -75,13 +68,14 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
       <a class="btn btn--ghost btn--lg" href="#bookCal">Book a discovery call</a>
     </div>
     <p class="vsl-small">Free. No call needed. We reply within one business day.</p>
+    <p class="vsl-clients">Clients: Freddy’s Fanpage · Le Cookie</p>
 
     <!-- the founder film: click to play with sound, nothing loads before the tap (assets/marketing.js) -->
     <div class="vid-row vid-row--hero">
     <figure class="vid vid--hero" id="vsl" data-vid="/assets/vsl/vsl-founder-16x9.mp4?v=49c8940846" data-vid-name="founder">
       <div class="vid__box">
-        <img class="vid__poster" src="/assets/vsl/vsl-founder-16x9.webp?v=a1ce0f7fbb" width="1280" height="720" alt="" fetchpriority="high" decoding="async">
-        <button class="vid__play" type="button" aria-label="Play the 29 second video about who is behind Domin8te, with sound and captions">
+        <img class="vid__poster" src="/assets/vsl/vsl-founder-16x9.webp?v=a1ce0f7fbb" srcset="/assets/vsl/vsl-founder-16x9-480.webp?v=dee3c3b19d 480w, /assets/vsl/vsl-founder-16x9-800.webp?v=083c51e900 800w, /assets/vsl/vsl-founder-16x9.webp?v=a1ce0f7fbb 1280w" sizes="(max-width: 760px) calc(100vw - 40px), (max-width: 1100px) 60vw, 780px" width="1280" height="720" alt="" fetchpriority="high" decoding="async">
+        <button class="vid__play" type="button" aria-label="29 sec: who’s behind Domin8te. Play the video with sound and captions">
           <span class="vid__btn" aria-hidden="true"><svg viewBox="0 0 16 16" width="30" height="30" focusable="false"><path d="M4 2.2v11.6L13.6 8z"/></svg></span>
           <span class="vid__promise" aria-hidden="true">29 sec: who’s behind Domin8te</span>
         </button>
@@ -90,8 +84,8 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
       </div>
     </figure>
     <div class="vid-copy">
-      <h3 class="vid-copy__h">The person in the video does the work.</h3>
-      <p>No account managers and no handoffs. Karan builds your website, runs your Google listing, posts and ads, and answers your messages himself. That’s why we only take three new restaurants at a time.</p>
+      <h2 class="vid-copy__h">The person in the video does the work.</h2>
+      <p>No account managers and no handoffs. Karan builds your website, runs your Google listing, posts and ads, and answers your messages himself. That’s why we take on about 3 new restaurants at a time.</p>
       <a class="btn btn--primary" href="#bookCal">Book a discovery call</a>
     </div>
     </div>
@@ -122,20 +116,8 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
   <div class="wrap contact__in">
     <header class="sec-head rv">
       <h2 id="contact-h" class="hl hl--sec"><span class="ln">Get a free online checkup</span> <span class="ln ln--2">of your restaurant.</span></h2>
-      <p class="lede">We check your website, Google listing, reviews, menu and photos, using AI tools to do the legwork. Karan reads every report before it goes out. You get plain-English notes on what to fix first, within one business day. No call, no contract, no pitch deck.</p>
+      <p class="lede">Plain-English notes on what to fix first, within one business day.</p>
     </header>
-
-    <div class="contact__side">
-      <ul class="promise rv" aria-label="How we work">
-        <li>We reply within one business day</li>
-        <li>Month to month. No minimum term.</li>
-        <li>We take on only three new restaurants at a time</li>
-      </ul>
-      <aside class="founding rv" aria-labelledby="founding-h">
-      <h3 id="founding-h">Founding-client terms</h3>
-      <p>Our first few new restaurants get founding-client terms, in exchange for letting us share how it goes, only with your permission. Ask about them in your checkup reply.</p>
-      </aside>
-    </div>
 
     <p class="sent-note" id="sent" tabindex="-1">Got it. Karan will send your checkup within one business day.</p>
     <p class="sent-note sent-note--bad" id="notsent" tabindex="-1">That didn’t go through. Try again, or email karanhelps@domin8temedia.com and we’ll take it from there.</p>
@@ -170,11 +152,23 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
       <p class="hp" aria-hidden="true"><label for="f-hp">Field 9</label><input id="f-hp" name="d8x" type="text" tabindex="-1" autocomplete="off"></p>
 
       <div class="form__foot">
-        <button class="btn btn--primary btn--lg" type="submit" id="submitbtn">Send my free checkup</button>
+        <button class="btn btn--primary btn--lg" type="submit" id="submitbtn">Get my free checkup</button>
         <p class="form__note">Three fields. Takes about 30 seconds. Or email <a href="mailto:karanhelps@domin8temedia.com">karanhelps@domin8temedia.com</a></p>
       </div>
       <p class="formstatus" id="formstatus" role="status"></p>
     </form>
+
+    <div class="contact__side">
+      <ul class="promise rv" aria-label="What to expect">
+        <li>We reply within one business day</li>
+        <li>Month to month. No minimum term.</li>
+        <li>We take on about 3 new restaurants at a time</li>
+      </ul>
+      <aside class="founding rv" aria-labelledby="founding-h">
+      <h3 id="founding-h">Founding-client terms</h3>
+      <p>Our first few new restaurants get founding-client terms, in exchange for letting us share how it goes, only with your permission. Ask about them in your checkup reply.</p>
+      </aside>
+    </div>
   </div>
 </section>
 
@@ -193,7 +187,7 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
           <p class="cl__line">Built for the regulars at Canada’s first Freddy’s: food photos, menu votes and a weekly free meal challenge, with every photo approved by the store.</p>
           <div class="cl__foot">
             <ul class="cl__tags" aria-label="What we did"><li>Website</li><li>Community</li><li>Social</li></ul>
-            <a class="cl__go" href="/work/freddys/">Read the story</a>
+            <a class="cl__go" href="/work/freddys/" target="_blank" rel="noopener">Read the story</a>
           </div>
         </div>
       </article>
@@ -206,7 +200,7 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
           <p class="cl__line">The whole studio on one page, so planning an order is a scroll away instead of a maze of clicks.</p>
           <div class="cl__foot">
             <ul class="cl__tags" aria-label="What we did"><li>Website</li><li>Application</li></ul>
-            <a class="cl__go" href="/work/lecookie/">Read the story</a>
+            <a class="cl__go" href="/work/lecookie/" target="_blank" rel="noopener">Read the story</a>
           </div>
         </div>
       </article>
@@ -222,15 +216,15 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
 <section class="vsl-live" aria-labelledby="live-h">
   <div class="wrap">
     <header class="sec-head rv">
-      <h2 id="live-h" class="hl hl--sec"><span class="ln">Don’t take our word for it.</span> <span class="ln ln--2">Try the real sites.</span></h2>
+      <h2 id="live-h" class="hl hl--sec"><span class="ln">Don’t take our word for it.</span> <span class="ln ln--2">Try the sites we built.</span></h2>
       <p class="vsl-hint"><span><b>Side note:</b> try clicking with the cursor on each site. It does a little something.</span>
         <svg class="vsl-hint__arrow" viewBox="0 0 120 110" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M96 6C104 46 82 82 26 96"/><path d="M42 82 24 97l21 8"/></svg>
       </p>
     </header>
-    <figure class="live rv" data-src="https://steakburger-winnipeg.vercel.app/" data-mode="desktop" data-title="Freddy’s Fanpage, the live website">
+    <figure class="live rv" data-src="https://steakburger-winnipeg.vercel.app/" data-mode="desktop" data-title="Freddy’s Fanpage, a prototype on sample data">
       <div class="live__bar">
         <i></i><i></i><i></i>
-        <span class="live__url"><b>Freddy’s Fanpage</b></span>
+        <span class="live__url"><b>Freddy’s Fanpage</b> <span class="live__tag">Prototype</span></span>
         <div class="live__tools">
           <div class="live__modes" role="group" aria-label="Screen size">
             <button class="live__mode" type="button" data-mode="desktop" aria-pressed="true">Desktop</button>
@@ -252,7 +246,7 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
       <figure class="vid" data-vid="/assets/vsl/vsl-lecookie-16x9.mp4?v=ff20b0350e" data-vid-name="lecookie">
         <div class="vid__box">
           <img class="vid__poster" src="/assets/vsl/vsl-lecookie-16x9.webp?v=472cf5dc28" width="1280" height="720" alt="" loading="lazy" decoding="async">
-          <button class="vid__play" type="button" aria-label="Play the 24 second video of the Le Cookie build, with sound and captions">
+          <button class="vid__play" type="button" aria-label="See the Le Cookie build. Play the 24 second video with sound and captions">
             <span class="vid__btn" aria-hidden="true"><svg viewBox="0 0 16 16" width="30" height="30" focusable="false"><path d="M4 2.2v11.6L13.6 8z"/></svg></span>
             <span class="vid__promise" aria-hidden="true">See the Le Cookie build</span>
           </button>
@@ -301,7 +295,7 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
       <figure class="vid" data-vid="/assets/vsl/vsl-whatyouget-16x9.mp4?v=4bd09f4822" data-vid-name="whatyouget">
         <div class="vid__box">
           <img class="vid__poster" src="/assets/vsl/vsl-whatyouget-16x9.webp?v=4b22709309" width="1280" height="720" alt="" loading="lazy" decoding="async">
-          <button class="vid__play" type="button" aria-label="Play the 26 second video of what you get, with sound and captions">
+          <button class="vid__play" type="button" aria-label="What you get, in 26 sec. Play the video with sound and captions">
             <span class="vid__btn" aria-hidden="true"><svg viewBox="0 0 16 16" width="30" height="30" focusable="false"><path d="M4 2.2v11.6L13.6 8z"/></svg></span>
             <span class="vid__promise" aria-hidden="true">What you get, in 26 sec</span>
           </button>
@@ -313,7 +307,7 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
         <h3 class="vid-copy__h">Your marketing, on one screen.</h3>
         <p>Approve next week’s posts in one tap. Get a weekly update without the meeting. See what every project is up to, and message us whenever you need something.</p>
         <p class="dx-note">Demo dashboard with a sample restaurant.</p>
-        <p class="vsl-demo-link"><a class="btn btn--ghost" href="/dashboard/demo/">Try the demo</a></p>
+        <p class="vsl-demo-link"><a class="btn btn--ghost" href="/dashboard/demo/" target="_blank" rel="noopener">Try the demo</a></p>
       </div>
     </div>
   </div>
@@ -326,11 +320,8 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
     <details><summary>Is the online checkup really free?</summary><p>Yes. Tell us your restaurant’s name and how to reach you. We check your website, Google listing, reviews, menu and photos and send back what we’d fix first, within one business day. Nothing to sign.</p></details>
     <details><summary>Is it done by AI or a person?</summary><p>Both. AI tools do the legwork of checking your listings and site. Karan reads every report before it goes out, and a real person does the work if you hire us.</p></details>
     <details><summary>I’m not good with tech. Is that a problem?</summary><p>No. We do the work. You reply to messages and tap approve on posts when you want to. Everything is in plain English.</p></details>
-    <details><summary>How much does it cost?</summary><p>Plans are monthly and depend on how much you need. After the checkup we’ll give you a clear number before you agree to anything.</p></details>
-    <details><summary>Is ad spend included?</summary><p>No. You pay your ad spend straight to Meta and Google, so you always see exactly what goes to the ads.</p></details>
+    <details><summary>How much does it cost?</summary><p>Plans are monthly and depend on how much you need. After the checkup we’ll give you a clear number before you agree to anything. Ad spend is separate: you pay it straight to Meta and Google.</p></details>
     <details><summary>Is there a contract?</summary><p>No minimum term. Plans are month to month.</p></details>
-    <details><summary>Why only three new restaurants at a time?</summary><p>So Karan can do the work properly himself. When we’re full, we’ll tell you when the next opening is.</p></details>
-    <details><summary>What are founding-client terms?</summary><p>Our first few new restaurants get better starting terms in exchange for letting us share how it goes, only with your permission. We’ll explain them in your checkup reply.</p></details>
     <details><summary>Can you promise more customers?</summary><p>No one can honestly promise that. We’ll tell you what we’d change and why, and your dashboard shows what we did and what came of it every month.</p></details>
   </div>
 </section>
@@ -343,7 +334,8 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
     </header>
     <div class="vsl-cal" id="bookCal" data-src="https://calendly.com/kvsd100/30min">
       <div class="vsl-cal__wait">
-        <p class="vsl-cal__lbl">Loading the calendar…</p>
+        <p class="vsl-cal__lbl">Free, 30 minutes, on Google Meet.</p>
+        <button class="btn btn--primary vsl-cal__show" type="button">Show available times</button>
       </div>
     </div>
   </div>
@@ -363,15 +355,18 @@ src="https://www.facebook.com/tr?id=2195448994715770&amp;ev=PageView&amp;noscrip
 <aside aria-label="Get my free checkup"><a class="ctabar" id="vslBar" href="#contact">Get my free checkup</a></aside>
 
 <script>
-/* where the visitor came from (ad UTMs, Facebook's click id, the ad name in "v"): kept for the visit,
+/* where the visitor came from (ad UTMs, Facebook and Google click ids, the ad name in "v"): kept for the visit,
    sent with the checkup form, and passed to the Calendly booking */
 (function(){
-var KEYS=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid','v'];
+var KEYS=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid','gclid','gbraid','wbraid','v'];
 var p=new URLSearchParams(location.search), a={};
 try{a=JSON.parse(sessionStorage.getItem('d8_attr')||'{}')}catch(e){}
 if(!a.landing_page){
   KEYS.forEach(function(k){var x=p.get(k); if(x) a[k]=x.slice(0,200)});
-  a.landing_page=location.pathname+location.search; a.referrer=document.referrer||'';
+  a.landing_page=location.pathname+location.search;
+  /* Hostinger's browser check reloads the page, which makes the page its own referrer: keep only outside ones */
+  var r=document.referrer||''; try{ if(r && new URL(r).host===location.host) r=''; }catch(e){ r=''; }
+  a.referrer=r;
   try{sessionStorage.setItem('d8_attr',JSON.stringify(a))}catch(e){}
 }
 var f=document.getElementById('leadform');
@@ -387,7 +382,7 @@ if(src){var q=['utm_source','utm_medium','utm_campaign','utm_content','utm_term'
 </script>
 <script src="/assets/site.js?v=7430d5f89e" defer></script>
 <script src="/assets/work.js?v=45ab9605c2" defer></script>
-<script src="/assets/marketing.js?v=bcea32ec97" defer></script>
+<script src="/assets/marketing.js?v=89e6337833" defer></script>
 <script>/* the growth cursor only where there is a mouse */
 if (matchMedia('(pointer: fine)').matches) { var c = document.createElement('script'); c.src = '/assets/v3-cursor.js?v=136c753635'; c.defer = true; document.body.appendChild(c) }</script>
 </body>
