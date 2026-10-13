@@ -210,6 +210,31 @@ test('the record comes from the database and shows the signed-in person', async 
   assert.equal(msgs[0].by, 'Karan');
 });
 
+test("times from the database show on the restaurant's own clock (2026-10-12)", async () => {
+  const tables = withBayleaf();
+  tables.messages.push({ id: 'm2', tenant_id: 'tnt_row_1', about: 'general', body: 'Late one', from_staff: true, by_name: 'Karan', at: '2026-09-30T02:30:00+00:00' });
+  // clocks going back (1 Nov 2026 02:00 -> 01:00 in Winnipeg), fractional seconds, a bare offset, and values that are not instants
+  for (const [id, stamp] of [['d1', '2026-11-02T05:30:00.456789Z'], ['d2', '2026-11-01T06:30:00-00'], ['d3', '2026-11-01T11:00:00+05:30'], ['d4', '2026-09-29'], ['d5', '2026-09-29T09:00']]) {
+    tables.messages.push({ id, tenant_id: 'tnt_row_1', about: 'general', body: id, from_staff: true, by_name: 'Karan', at: stamp });
+  }
+  const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  const at = Object.fromEntries((await c.getMessages()).map((m) => [m.id, m.at]));
+  assert.equal(at.m1, '2026-09-29T04:00', '09:00 UTC is 04:00 in Winnipeg (summer time)');
+  assert.equal(at.m2, '2026-09-29T21:30', 'a night-time UTC stamp stays on the restaurant\'s evening, not the next day');
+  const dst = Object.fromEntries((await c.getMessages()).map((m) => [m.id, m.at]));
+  assert.equal(dst.d1, '2026-11-01T23:30', 'after the clocks go back it is UTC-6');
+  assert.equal(dst.d2, '2026-11-01T01:30', 'before the change it is still UTC-5');
+  assert.equal(dst.d3, '2026-11-01T00:30', 'a stamp with another offset is placed correctly');
+  assert.equal(dst.d4, '2026-09-29', 'a bare date is left alone');
+  assert.equal(dst.d5, '2026-09-29T09:00', 'a time with no zone is already the restaurant\'s clock');
+  const t2 = withBayleaf();
+  t2.tenants[0].doc = { ...t2.tenants[0].doc, timezone: 'America/Toronto' };
+  const z = live({ tables: t2, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const m1 = (await z.D8.data.connect(await z.D8.auth.getSession()).getMessages()).find((m) => m.id === 'm1');
+  assert.equal(m1.at, '2026-09-29T05:00', 'the zone comes from the record when it has one');
+});
+
 test('an answer is written to the database before it counts, once', async () => {
   const tables = withBayleaf();
   const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });

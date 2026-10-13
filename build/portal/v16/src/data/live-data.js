@@ -261,7 +261,22 @@
     /** @type {any} */ let tenant = null;
     /** @type {string|null} */ let rowId = null;
     /** @type {any} */ let st = {};
-    const now = () => Date.now();
+    // The restaurant's own clock. The database keeps real instants (UTC); the portal's time helpers read the first 16
+    // characters as wall-clock time, so a server timestamp is moved to the restaurant's zone before it is used, and
+    // "now" is the restaurant's wall clock too. Zone: tenant doc.timezone, else Winnipeg (both clients are there).
+    let zone = 'America/Winnipeg';
+    const wallMs = (/** @type {number} */ ms) => {
+      /** @type {any} */ const p = {};
+      for (const x of new Intl.DateTimeFormat('en-GB', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(ms))) p[x.type] = x.value;
+      return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute);
+    };
+    const toWall = (/** @type {any} */ v) => {
+      if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(v) || !/(?:Z|[+-]\d{2}(?::?\d{2})?)$/i.test(v)) return v; // not an instant: leave it
+      // Postgres may write the offset short ("+00", "+0530"); JavaScript only reads "+00:00"
+      const ms = Date.parse(v.replace(/([+-]\d{2})(\d{2})$/, '$1:$2').replace(/([+-]\d{2})$/, '$1:00'));
+      return isNaN(ms) ? v : T.isoTime(wallMs(ms));
+    };
+    const now = () => { const t = Date.now(); return wallMs(t) + (t % 60000); };
 
     let loads = 0;
     async function load() {
@@ -280,6 +295,8 @@
         if (!PREVIEW && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
         tenant = null; return;
       }
+      zone = 'America/Winnipeg';
+      if (row.doc && typeof row.doc.timezone === 'string') { try { new Intl.DateTimeFormat('en-GB', { timeZone: row.doc.timezone }); zone = row.doc.timezone; } catch (e) { /* unknown zone: keep Winnipeg */ } }
       const [d, m, r, p, items, inv, cards] = await Promise.all([
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
@@ -301,18 +318,20 @@
       for (const x of [items, inv, cards]) if (x.error && !missing(x.error)) throw dbFail(x.error);
       if (mine !== loads && tenant) return; // a newer load started (after a 30 s give-up): it has the say
       /** @type {any} */ const next = {};
-      for (const x of d.data || []) apply(next, 'decision', { approvalId: x.approval_id, decision: x.decision, comment: x.comment, at: x.at, by: x.by_name });
-      for (const x of m.data || []) apply(next, 'message', { id: x.id, about: x.about, text: x.body, at: x.at, fromTeam: x.from_staff, by: x.by_name });
-      for (const x of r.data || []) apply(next, 'request', { id: x.id, service: x.service, text: x.body, at: x.at, status: x.status });
-      if (p.data && p.data.notifications) apply(next, 'notifications', { prefs: p.data.notifications, at: p.data.notifications_saved_at });
+      for (const x of d.data || []) apply(next, 'decision', { approvalId: x.approval_id, decision: x.decision, comment: x.comment, at: toWall(x.at), by: x.by_name });
+      for (const x of m.data || []) apply(next, 'message', { id: x.id, about: x.about, text: x.body, at: toWall(x.at), fromTeam: x.from_staff, by: x.by_name });
+      for (const x of r.data || []) apply(next, 'request', { id: x.id, service: x.service, text: x.body, at: toWall(x.at), status: x.status });
+      if (p.data && p.data.notifications) apply(next, 'notifications', { prefs: p.data.notifications, at: toWall(p.data.notifications_saved_at) });
       if (p.data && p.data.appearance) apply(next, 'appearance', { look: p.data.appearance });
       st = next;
       rowId = row.id;
       // A projection that cannot be read (tables not there yet) leaves the record as it is.
-      const merged = mergeProjections(normalize(row.doc, now), items.error ? [] : items.data || [], inv.error ? [] : inv.data || []);
+      const itemRows = (items.error ? [] : items.data || []).map((/** @type {any} */ x) => ({ ...x, source_observed_at: toWall(x.source_observed_at), published_at: toWall(x.published_at) }));
+      const invRows = (inv.error ? [] : inv.data || []).map((/** @type {any} */ x) => ({ ...x, issued_at: toWall(x.issued_at), due_at: toWall(x.due_at), paid_at: toWall(x.paid_at) }));
+      const merged = mergeProjections(normalize(row.doc, now), itemRows, invRows);
       tenant = { ...merged, tenantId: row.id, name: row.name };
       // A function that is not there yet (before its migration) leaves the cards out and the record as it is.
-      if (!cards.error && Array.isArray(cards.data)) tenant.cards = cards.data.map((/** @type {any} */ c) => ({ id: c.id, service: c.service, title: c.title, status: c.status, due: c.due, updatedAt: c.updated_at, createdAt: c.created_at }));
+      if (!cards.error && Array.isArray(cards.data)) tenant.cards = cards.data.map((/** @type {any} */ c) => ({ id: c.id, service: c.service, title: c.title, status: c.status, due: c.due, updatedAt: toWall(c.updated_at), createdAt: toWall(c.created_at) }));
     }
 
     /** A load that gives up after 30 real seconds (the elapsed check keeps instant test timers from firing it early). */
@@ -359,7 +378,7 @@
           throw dbFail(res.error);
         }
         const row = res.data || {};
-        const stored = { ...rec, id: row.id || rec.id, at: row.at || row.notifications_saved_at || T.isoTime(now()) };
+        const stored = { ...rec, id: row.id || rec.id, at: toWall(row.at || row.notifications_saved_at) || T.isoTime(now()) };
         if (row.status) stored.status = row.status;
         apply(st, kind, stored);
         // A refresh already running read the rows before this write: keep the write when that refresh lands.

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__honcho__add_messages_to_session",
+      "mcp__honcho__create_conclusions"
+    ]
+  }
+}
