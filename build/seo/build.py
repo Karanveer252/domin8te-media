@@ -269,7 +269,7 @@ WORK_CARDS = {
                        '<div class="cl__foot"><span class="cl__go">Read the story <i>' + ARROW_R + '</i></span></div></div>\n      </a>'),
     '/work/lecookie/': ('      <a class="cl cs-next rv" href="/work/lecookie/">\n'
                         '        <div class="cl__pic"><img src="/assets/cl-lecookie.webp" srcset="/assets/cl-lecookie-s.webp 520w, /assets/cl-lecookie.webp 960w" sizes="(max-width: 640px) 100vw, 30vw" width="960" height="660" alt="Decorated sugar cookies with iced flowers" loading="lazy" decoding="async"></div>\n'
-                        '        <div class="cl__body"><p class="cl__kind">Our work</p><h2 class="cl__name cl__name--lecookie">Le<em>cookie</em></h2>'
+                        '        <div class="cl__body"><p class="cl__kind">Our work</p><h2 class="cl__name cl__name--lecookie">Le <em>Cookie</em></h2>'
                         '<p class="cl__line">The whole studio on one page, so planning an order is a scroll away.</p>'
                         '<div class="cl__foot"><span class="cl__go">Read the story <i>' + ARROW_R + '</i></span></div></div>\n      </a>'),
 }
