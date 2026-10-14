@@ -1,0 +1,35 @@
+/*
+ * Bot chat (2026-10-14): the list reuses the queue's rows (.q-row), the filter the console's glass pills (.seg), the card the
+ * console's panel, and the status the console's chips (Pending = you, Approved = good, Rejected = bad, Expired = off).
+ * Only spacing and the draft's marked phrases are new here. Colours come from the console's tokens.
+ */
+
+.bot-filter { margin-bottom: 14px; }
+.q-row .bot-kind { color: var(--ink-3); font-weight: 600; }
+.q-row .bot-kind::after { content: " ·"; }
+
+.bot-card { display: grid; gap: 18px; }
+.bot-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; }
+.bot-head h2 { font-size: 20px; }
+.bot-head .meta { margin-top: 4px; }
+.bot-part h3 { margin-bottom: 8px; color: var(--ink-2); font-size: 13.5px; font-weight: 650; }
+.bot-part blockquote { margin: 0; padding: 10px 14px; border-left: 2px solid var(--line-2); color: var(--ink-2); white-space: pre-wrap; }
+.bot-text { padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); white-space: pre-wrap; }
+.bot-text mark { padding: 1px 3px; border-radius: 4px; background: var(--warn-bg); color: var(--ink); }
+.bot-note { padding: 11px 14px; border-radius: 10px; background: var(--surface-2); color: var(--ink-2); }
+.bot-note strong { color: var(--ink); }
+.bot-part .thread { margin: 0; }
+.bot-actions, .bot-form .actions, .bot-after .actions { margin-top: 0; }
+.bot-form { display: grid; gap: 12px; }
+.bot-after { display: grid; gap: 12px; }
+.bot-after blockquote { margin: 0; padding: 10px 14px; border-left: 2px solid rgba(179, 38, 30, 0.35); color: var(--ink-2); white-space: pre-wrap; }
+
+/* The client's Bot tab. */
+.bot-tab { display: grid; gap: 14px; }
+.bot-tab-head h2 { font-size: 17px; }
+.bot-tab-head .meta { margin-top: 4px; }
+.bot-tab .crumb { margin-bottom: 0; }
+
+/* The block on Needs you. */
+.bot-needs .q-client-h { display: flex; align-items: baseline; gap: 12px; }
+.bot-needs .bot-all { margin-left: auto; font-size: 13px; font-weight: 600; }

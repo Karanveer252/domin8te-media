@@ -62,7 +62,7 @@ insert into r select 'client: reads no other restaurant''s months', 'none', coun
 insert into r select 'client: reads no reminders', 'none', count(*)::text from public.billing_reminders;
 insert into r select 'client: reads no visibility history', 'none', count(*)::text from public.client_visibility_history;
 insert into r select 'client: reads no plans it is not on', 'none', count(*)::text from public.plans;
-select pg_temp.t('client: picks without a running month', 'blocked', $q$select public.set_next_cycle_picks('growth', '{social,website}')$q$);
+select pg_temp.t('client: picks without a running month', 'blocked', $q$select public.set_next_cycle_picks('growth', '{advertising,social,website}')$q$);
 select pg_temp.t('client: shows a card itself', 'blocked', $q$select public.set_task_visibility(gen_random_uuid(), true)$q$);
 select pg_temp.t('client: counts usage', 'blocked', $q$insert into public.usage_events (tenant_id, cycle_id, service, metric) values ('5c047f41-9a29-4769-9673-b4865eeec8c3', gen_random_uuid(), 'social', 'social_posts')$q$);
 select pg_temp.t('client: writes a Home section', 'blocked', $q$insert into public.client_home_sections (tenant_id, section, content) values ('5c047f41-9a29-4769-9673-b4865eeec8c3', 'note', '{"body":"x"}')$q$);

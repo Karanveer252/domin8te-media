@@ -11,8 +11,8 @@
  * the audit line for both). "Suggest ..." only opens a draft in Messages: nothing is ever sent from here.
  *
  * Reads: dashboard_exceptions, requests, tasks, client_dashboard_items (through D8C.all), tenant_plan_cycles, plan_caps, plans,
- * tenant_usage_current, billing_reminders (through D8C.plans).
- * Writes: usage_events (insert), requests (status), tasks (due), billing_reminders (to_email, status), tenants (doc.user.email only),
+ * tenant_usage_current, billing_reminders (through D8C.plans), message_notifications (the one row an action works on).
+ * Writes: usage_events (insert), requests (status), tasks (due), billing_reminders and message_notifications (to_email, status), tenants (doc.user.email only),
  * and the functions override_plan_cycle, review_dashboard_item, resolve_dashboard_exception.
  */
 (function () {
@@ -26,7 +26,7 @@
 
   /* ---- what each kind of item is ----------------------------------------------------------------------- */
 
-  const CODES = ['plan_mismatch', 'over_cap', 'over_cap_request', 'service_not_picked', 'picks_unconfirmed', 'reminder_failed', 'result_outlier', 'plan_backfill_needed'];
+  const CODES = ['plan_mismatch', 'over_cap', 'over_cap_request', 'service_not_picked', 'picks_unconfirmed', 'reminder_failed', 'notification_failed', 'result_outlier', 'plan_backfill_needed'];
   /** f is the filter chip the item belongs to; rank orders the list (0 first). @type {Record<string, {f: string, label: string, tone: string, icon: string, rank: number}>} */
   const KINDS = {
     plan_mismatch: { f: 'mismatch', label: 'Plan mismatch', tone: 'bad', icon: 'alert', rank: 0 },
@@ -36,7 +36,8 @@
     over_cap_request: { f: 'limit', label: 'Over limit', tone: 'you', icon: 'plus', rank: 0 },
     service_not_picked: { f: 'limit', label: 'Not in plan', tone: 'you', icon: 'slash', rank: 1 },
     picks_unconfirmed: { f: 'deadline', label: 'Picks not confirmed', tone: 'warn', icon: 'clock', rank: 1 },
-    reminder_failed: { f: 'email', label: 'Reminder failed', tone: 'bad', icon: 'mail', rank: 1 }
+    reminder_failed: { f: 'email', label: 'Reminder failed', tone: 'bad', icon: 'mail', rank: 1 },
+    notification_failed: { f: 'email', label: 'Message email failed', tone: 'bad', icon: 'mail', rank: 1 }
   };
   const FILTERS = [['all', 'All'], ['mismatch', 'Mismatches'], ['limit', 'Over limit'], ['deadline', 'Pick deadlines'], ['email', 'Failed emails'], ['approval', 'Client approvals']];
   /** The chip in use stays when the page is drawn again after an action. */
@@ -96,8 +97,8 @@
     const list = SERVICE_ORDER.filter((s) => (picks || []).includes(s)).map(svcName);
     return list.length < 2 ? list.join('') || 'No services' : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
   }
-  /** The services a month holds (Domin8te has every one). @param {any} cycle */
-  const picksOfCycle = (cycle) => (cycle ? (cycle.plan_id === 'domin8te' ? SERVICE_ORDER.slice() : cycle.picks || []) : []);
+  /** The services a month holds: its picks, which include Ads on every plan. @param {any} cycle */
+  const picksOfCycle = (cycle) => (cycle ? cycle.picks || [] : []);
   /** The monthly limit of one metric on one plan, as of today. @param {string} planId @param {string} metric */
   function capOf(planId, metric) {
     const day = C().today();
@@ -288,7 +289,7 @@
     const cp = (con && con.picks) || (dash && dash.picks) ? [con ? con.picks : null, dash ? dash.picks : null] : [null, null];
     if (cp[0] || cp[1]) rows.push(['Services', cp[0] ? picksText(cp[0]) : '', cp[1] ? picksText(cp[1]) : '']);
     if (con && dash) {
-      const metrics = Array.from(new Set(c.plans.caps.filter((/** @type {any} */ k) => (k.plan_id === con.plan || k.plan_id === dash.plan) && (!(con.picks || dash.picks) || (con.picks || dash.picks || []).includes(k.service) || con.plan === 'domin8te' || dash.plan === 'domin8te')).map((/** @type {any} */ k) => k.metric)));
+      const metrics = Array.from(new Set(c.plans.caps.filter((/** @type {any} */ k) => (k.plan_id === con.plan || k.plan_id === dash.plan) && (!(con.picks || dash.picks) || (con.picks || dash.picks || []).includes(k.service))).map((/** @type {any} */ k) => k.metric)));
       /** @type {string[][]} */ const diff = [];
       for (const m of metrics) {
         const a = capOf(con.plan, m);
@@ -452,6 +453,12 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     const stale = service && pl.now && picksOfCycle(pl.now).includes(service) ? `${svc} is in this month's plan now.` : '';
     const nextStart = pl.now ? pl.now.period_end : '';
     const deadline = nextStart ? addDays(nextStart, -1) : '';
+    // Every plan is Ads plus picks. When all the picks are in use, adding a service means swapping one out, or moving up.
+    const rowNow = pl.nowPlan;
+    const slots = rowNow && rowNow.picks_allowed != null ? Number(rowNow.picks_allowed) : null;
+    const inUse = pl.now && rowNow ? (pl.now.picks || []).filter((/** @type {string} */ x) => !(rowNow.required_services || []).includes(x)).length : 0;
+    const packed = slots !== null && inUse >= slots;
+    const up = packed ? upgradeOf(cx) : null;
     /** @type {Action[]} */ const actions = [
       {
         id: 'suggest', label: 'Suggest for next month', tone: 'primary',
@@ -459,7 +466,10 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
           lead: `<strong>Draft a message about ${esc(svc)} for next month?</strong> It opens in Messages for you to read and edit. Nothing is sent. This item closes as "suggested".`,
           confirm: 'Open the draft',
           run: async (f, note) => {
-            const text = letter(cx, `Thanks for your request about ${svc}. ${svc} is not part of your ${planNm} plan this month, so we have not started it.\n\nYou can add it for next month: open Billing in your dashboard and choose it${deadline ? ` before the end of ${dayText(deadline)}` : ''}. Plan changes start from your next bill date${nextStart ? `, ${dayText(nextStart)}` : ''}. Reply here if you would like help choosing.`);
+            const text = packed ? letter(cx, `Thanks for your request about ${svc}. ${svc} is not one of your picks this month, so we have not started it.
+
+Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and ${slots === 1 ? 'it is' : 'they are all'} in use. For next month you can swap ${svc} in for one of your current picks${up ? `, or move up to ${up.name}, which is Ads plus ${Number(up.picks_allowed)} picks` : ''}. Open Billing in your dashboard${deadline ? ` before the end of ${dayText(deadline)}` : ''} to choose. Plan changes start from your next bill date${nextStart ? `, ${dayText(nextStart)}` : ''}. Reply here if you would like help choosing.`)
+            : letter(cx, `Thanks for your request about ${svc}. ${svc} is not part of your ${planNm} plan this month, so we have not started it.\n\nYou can add it for next month: open Billing in your dashboard and choose it${deadline ? ` before the end of ${dayText(deadline)}` : ''}. Plan changes start from your next bill date${nextStart ? `, ${dayText(nextStart)}` : ''}. Reply here if you would like help choosing.`);
             return { status: 'resolved', note: withNote(`Suggested ${svc} for next month (a draft was opened in Messages, not sent).`, note), toast: 'Draft ready. Read it, edit it, then press Send. Nothing has been sent.', draft: { tid, text } };
           }
         }
@@ -596,6 +606,52 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
   }
 
   /** @param {any} cx @returns {Model} */
+  function modelNotification(cx) {
+    const { ex } = cx;
+    const toTeam = /to the team/.test(String(ex.message || ''));
+    const who = toTeam ? 'the team' : cx.first || cx.name || 'the client';
+    const where = toTeam ? 'The team did not get the email about a client message.' : `${cx.first || cx.name || 'The client'} did not get the email about your reply.`;
+    /** The queue row behind this item, read when an action runs (the item names it). */
+    const rowOf = async (/** @type {any} */ client) => { const rows = got(await client.from('message_notifications').select('id, to_email, status').eq('id', String(ex.entity_id || '')).limit(1)) || []; return rows[0] || null; };
+    /** @type {Action[]} */ const actions = [
+      {
+        id: 'again', label: 'Send again', tone: 'primary',
+        sheet: {
+          lead: `<strong>Send the email again?</strong> It goes back in the queue and is sent within the minute. ${toTeam ? 'If the team address is wrong, fix it in Settings first.' : 'If their address is wrong, put the right one below.'}`,
+          fields: `<div class="field nx-email"><label for="nx-email">Send it to a different address <span class="optional">(optional)</span></label><input id="nx-email" name="email" type="email" maxlength="200" autocomplete="off" inputmode="email" placeholder="name@restaurant.com"></div>`,
+          confirm: 'Send again',
+          run: async (f, note) => {
+            const mail = C().val(f, 'email').toLowerCase();
+            if (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) throw new Error('That email address does not look right.');
+            const client = await cx.c.db();
+            const row = await rowOf(client);
+            if (!row) throw new Error('The email record was not found. Reload the page.');
+            /** @type {any} */ const patch = { status: 'scheduled' };
+            if (mail && mail !== String(row.to_email).toLowerCase()) patch.to_email = mail;
+            got(await client.from('message_notifications').update(patch).eq('id', row.id).select('id'));
+            return { status: 'resolved', note: withNote(`Put the message email ${toTeam ? 'to the team' : 'to the client'} back in the queue${patch.to_email ? ` with a new address (${mask(mail)})` : ''}.`, note), toast: 'Queued. It goes out within the minute.' };
+          }
+        }
+      },
+      {
+        id: 'handled', label: 'Mark as handled', tone: 'quiet',
+        sheet: {
+          lead: `<strong>Mark as handled?</strong> You have already answered ${esc(who)} another way, so nothing is sent. This item closes.`,
+          fields: '', confirm: 'Mark as handled',
+          run: async (f, note) => ({ status: 'resolved', note: withNote('Handled another way: the message email did not need to be sent.', note), toast: 'Marked as handled.' })
+        }
+      }
+    ];
+    return {
+      title: toTeam ? 'Email about a client message failed' : 'Email about your reply failed',
+      wrong: `${where} ${String(ex.message || '')}.`,
+      sees: toTeam ? 'The message itself is saved and shows in Messages. Only the email did not go out.' : 'Your reply is saved and shows on their Messages page. Only the email telling them about it did not go out.',
+      fix: toTeam ? 'Send it again, or open Messages and read it there.' : 'Send it again, or tell them by phone.',
+      actions
+    };
+  }
+
+  /** @param {any} cx @returns {Model} */
   function modelOutlier(cx) {
     const { c, ex, v, tid } = cx;
     const item = ((c.all.reviews && c.all.reviews.items) || []).find((/** @type {any} */ i) => i.id === ex.entity_id) || null;
@@ -667,7 +723,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
   }
 
   /** @type {Record<string, (cx: any) => Model>} */
-  const MODEL = { plan_mismatch: modelPlanMismatch, over_cap: modelOverCap, over_cap_request: modelOverCap, service_not_picked: modelNotPicked, picks_unconfirmed: modelPicks, reminder_failed: modelReminder, result_outlier: modelOutlier, plan_backfill_needed: modelBackfill };
+  const MODEL = { plan_mismatch: modelPlanMismatch, over_cap: modelOverCap, over_cap_request: modelOverCap, service_not_picked: modelNotPicked, picks_unconfirmed: modelPicks, reminder_failed: modelReminder, notification_failed: modelNotification, result_outlier: modelOutlier, plan_backfill_needed: modelBackfill };
 
   /** The model of one item, with the single "Close" action when it has been dealt with elsewhere. @param {any} ex */
   function modelOf(ex) {

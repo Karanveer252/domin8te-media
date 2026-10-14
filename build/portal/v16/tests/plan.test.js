@@ -13,7 +13,7 @@ const plain = (v) => JSON.parse(JSON.stringify(v));
 const eq = (a, b, m) => assert.deepEqual(plain(a), b, m);
 
 test('the three plans in the three demo situations: names, services, and no prices anywhere in the demo', async () => {
-  const want = { bayleaf: ['Growth', 'social,website'], cornerbean: ['Starter', 'advertising,local'], domin8te: ['Domin8te', 'advertising,social,website,local,email'] };
+  const want = { bayleaf: ['Growth', 'advertising,social,website'], cornerbean: ['Starter', 'advertising,local'], domin8te: ['Domin8te', 'advertising,social,website,local'] };
   for (const [id, [name, picks]] of Object.entries(want)) {
     const { client: c } = await client(id);
     const p = await c.getPlan();
@@ -27,7 +27,7 @@ test('the three plans in the three demo situations: names, services, and no pric
   }
 });
 
-test('limits come from the plan table: Growth posts 12 (3 a week), Starter website is a choice, Domin8te has everything', async () => {
+test('limits come from the plan table: Growth posts 12 (3 a week), Starter website is a choice, Domin8te has the highest', async () => {
   const g = (await (await client('bayleaf')).client.getPlan()).now;
   const social = g.services.find((s) => s.id === 'social');
   assert.equal(social.lines[0].cap, 12);
@@ -39,8 +39,9 @@ test('limits come from the plan table: Growth posts 12 (3 a week), Starter websi
   assert.equal(starter.services.find((s) => s.id === 'website').summary, '1 new page or 2 page edits a month', 'Starter chooses one: a page or edits');
   assert.equal(starter.services.find((s) => s.id === 'social').lines.some((l) => l.metric === 'social_stories'), false, 'a limit of none is not listed');
   const d = (await (await client('domin8te')).client.getPlan()).now;
-  assert.equal(d.services.length, 5);
-  assert.equal(d.services.find((s) => s.id === 'email').lines[0].cap, 4);
+  assert.equal(d.services.length, 4, 'Domin8te is Ads plus three picks, not every service');
+  assert.equal(d.services.find((s) => s.id === 'local').lines[0].cap, 8);
+  assert.equal(m.find((x) => x.id === 'domin8te').services.find((s) => s.id === 'email').lines[0].cap, 4, 'the menu still lists every service for Domin8te to pick from');
 });
 
 test('usage: a bar for each limit, amber from 85 percent, full at the limit', async () => {
@@ -57,9 +58,9 @@ test('usage: a bar for each limit, amber from 85 percent, full at the limit', as
 
 test('Work: every service in the plan carries its usage, and the services not in the plan are listed', async () => {
   const w = await (await client('bayleaf')).client.getWork();
-  eq(w.services.map((s) => s.id), ['website', 'social']);
+  eq(w.services.map((s) => s.id), ['website', 'social', 'advertising']);
   for (const s of w.services) assert.ok(s.usage.length > 0 && s.usage[0].cap > 0, `${s.id} has a limit to show`);
-  eq(w.off.map((s) => s.id), ['advertising', 'local', 'email']);
+  eq(w.off.map((s) => s.id), ['local', 'email']);
   assert.ok(w.plan.now.end && w.plan.lastDay);
 });
 
@@ -83,7 +84,7 @@ test('next month: carried over by itself is not a confirmed choice; a client pic
   const b = await (await client('change')).client.getPlan();
   assert.equal(b.confirmed, true);
   assert.equal(b.changes.differs, true);
-  eq(plain(b.changes), { differs: true, planChanged: false, keeps: ['social'], adds: ['advertising'], stops: ['website'], optionChanged: false });
+  eq(plain(b.changes), { differs: true, planChanged: false, keeps: ['advertising', 'social'], adds: ['local'], stops: ['website'], optionChanged: false });
   assert.equal(b.next.confirmedAt, '2026-09-23T14:14');
 });
 
@@ -98,47 +99,77 @@ test('the rule for a choice: the same one the database enforces', async () => {
   assert.equal(ok('starter', ['advertising', 'website']).code, 'website-option', 'Starter website: a page or edits');
   assert.equal(ok('starter', ['advertising', 'website'], 'page').ok, true);
   assert.equal(ok('starter', ['advertising', 'website'], 'both').code, 'website-option');
-  assert.equal(ok('growth', ['advertising', 'email']).ok, true, 'Growth may pick Ads as one of its two');
-  assert.equal(ok('growth', ['social']).code, 'count');
-  assert.equal(ok('growth', ['social', 'website', 'local']).code, 'count');
-  assert.equal(ok('growth', ['social', 'social']).code, 'bad-service');
-  assert.equal(ok('growth', ['social', 'tiktok']).ok, false);
-  assert.equal(ok('domin8te', ['advertising', 'social', 'website', 'local', 'email']).code, 'ask-karan', 'Domin8te is set up with Karan');
+  // Growth is Ads plus two picks
+  assert.equal(ok('growth', ['advertising', 'social', 'website']).ok, true);
+  assert.equal(ok('growth', ['advertising', 'email', 'local']).ok, true, 'any two besides Ads');
+  assert.equal(ok('growth', ['social', 'website']).code, 'needs-fixed', 'Growth always includes Ads');
+  assert.equal(ok('growth', ['advertising', 'email']).code, 'count', 'Ads is not one of the two picks');
+  assert.equal(ok('growth', ['advertising']).code, 'count');
+  assert.equal(ok('growth', ['advertising', 'social', 'website', 'local']).code, 'count');
+  assert.equal(ok('growth', ['advertising', 'social', 'social']).code, 'bad-service');
+  assert.equal(ok('growth', ['advertising', 'social', 'tiktok']).ok, false);
+  // Domin8te is Ads plus three picks, and a normal choice (no more "ask Karan")
+  assert.equal(ok('domin8te', ['advertising', 'social', 'website', 'local']).ok, true);
+  assert.equal(ok('domin8te', ['advertising', 'website', 'local', 'email']).ok, true);
+  assert.equal(ok('domin8te', ['advertising', 'social', 'website']).code, 'count', 'Ads plus two is Growth');
+  assert.equal(ok('domin8te', ['advertising', 'social', 'website', 'local', 'email']).code, 'count', 'every service is no longer Domin8te');
+  assert.equal(ok('domin8te', ['social', 'website', 'local']).code, 'needs-fixed');
+  assert.match(ok('domin8te', ['advertising', 'social', 'website']).error, /Pick 1 more service for Domin8te/);
+  assert.match(ok('domin8te', ['advertising', 'social', 'website', 'local', 'email']).error, /Domin8te has 4 services\. Untick 1/);
+  // an owner locked Domin8te: nobody new can choose it, a client already on it can choose it again
+  const lockedMenu = { plans: menu.plans.map((p) => (p.id === 'domin8te' ? { ...p, locked: true } : p)) };
+  assert.equal(D8.planModel.validate(lockedMenu, 'domin8te', ['advertising', 'social', 'website', 'local'], null).code, 'plan-locked');
+  const keepsMenu = { plans: menu.plans.map((p) => (p.id === 'domin8te' ? { ...p, locked: true, current: true } : p)) };
+  assert.equal(D8.planModel.validate(keepsMenu, 'domin8te', ['advertising', 'social', 'website', 'local'], null).ok, true);
+  assert.equal(D8.planModel.validate(lockedMenu, 'growth', ['advertising', 'social', 'website'], null).ok, true, 'a locked Domin8te does not stop the other plans');
   assert.equal(ok('nope', []).code, 'bad-plan');
 });
 
 test('the check-your-changes preview: what stays, what arrives, what stops', async () => {
   const { D8, client: c } = await client('bayleaf');
   const model = await c.getPlan();
-  const pv = D8.planModel.preview(model, { planId: 'growth', picks: ['advertising', 'social'] });
+  const pv = D8.planModel.preview(model, { planId: 'growth', picks: ['advertising', 'social', 'email'] });
   assert.equal(pv.valid, true);
-  eq(plain(pv.change), { differs: true, planChanged: false, keeps: ['social'], adds: ['advertising'], stops: ['website'], optionChanged: false });
-  assert.equal(pv.draft.services.find((s) => s.id === 'advertising').summary, 'Up to 3 campaigns live at a time · 4 new ad designs · 2 platforms');
+  eq(plain(pv.change), { differs: true, planChanged: false, keeps: ['advertising', 'social'], adds: ['email'], stops: ['website'], optionChanged: false });
+  assert.equal(pv.draft.services.find((s) => s.id === 'email').summary, 'Up to 3 email campaigns a month · 1 automation');
   eq(plain(pv.lock), { from: '2026-10-22', to: '2026-11-21' });
-  const same = D8.planModel.preview(model, { planId: 'growth', picks: ['website', 'social'] });
+  const same = D8.planModel.preview(model, { planId: 'growth', picks: ['website', 'social', 'advertising'] });
   assert.equal(same.same, true, 'the same picks in another order is no change');
   const down = D8.planModel.preview(model, { planId: 'starter', picks: ['advertising', 'social'] });
   assert.equal(down.change.planChanged, true);
   eq(down.change.stops, ['website']);
+  const up = D8.planModel.preview(model, { planId: 'domin8te', picks: ['advertising', 'social', 'website', 'local'] });
+  assert.equal(up.valid, true, 'Domin8te previews like any plan');
+  eq([up.change.planChanged, plain(up.change.adds), plain(up.change.stops)], [true, ['local'], []]);
+  assert.equal(up.draft.picks.length, 4, 'Ads plus three, not every service');
   assert.equal(D8.planModel.preview(model, { planId: 'growth', picks: ['social'] }).valid, false);
+  assert.equal(D8.planModel.preview(model, { planId: 'growth', picks: ['social', 'website'] }).code, 'needs-fixed', 'Growth without Ads is not valid');
 });
 
 test('saving the choice: validated, kept, and the plan then shows it as confirmed', async () => {
   const { client: c } = await client('bayleaf');
-  await assert.rejects(() => c.savePicks('growth', ['social']), (e) => e.code === 'count');
-  await assert.rejects(() => c.savePicks('domin8te', []), (e) => e.code === 'ask-karan');
+  await assert.rejects(() => c.savePicks('growth', ['advertising', 'social']), (e) => e.code === 'count');
+  await assert.rejects(() => c.savePicks('growth', ['social', 'website']), (e) => e.code === 'needs-fixed');
+  await assert.rejects(() => c.savePicks('domin8te', ['advertising', 'social', 'website']), (e) => e.code === 'count');
+  await assert.rejects(() => c.savePicks('domin8te', ['advertising', 'social', 'website', 'local', 'email']), (e) => e.code === 'count');
   await assert.rejects(() => c.savePicks('starter', ['advertising', 'website']), (e) => e.code === 'website-option');
-  const r = await c.savePicks('growth', ['email', 'advertising']);
+  const r = await c.savePicks('growth', ['email', 'advertising', 'local']);
   assert.equal(r.next.source, 'client_picker');
   assert.ok(r.next.confirmedAt);
   const p = await c.getPlan();
   assert.equal(p.confirmed, true);
-  eq(p.next.picks, ['advertising', 'email'], 'kept in the catalog order');
-  eq(plain(p.changes.adds), ['advertising', 'email']);
+  eq(p.next.picks, ['advertising', 'local', 'email'], 'kept in the catalog order');
+  eq(plain(p.changes.adds), ['local', 'email']);
   eq(plain(p.changes.stops), ['social', 'website']);
-  const again = await c.savePicks('growth', ['website', 'social']);
+  const again = await c.savePicks('growth', ['website', 'social', 'advertising']);
   assert.equal((await c.getPlan()).changes.differs, false, 'changing it back is allowed until the last day');
   assert.ok(again.next.confirmedAt >= r.next.confirmedAt);
+  // Domin8te is a plain choice now: Ads plus three
+  const dom = await c.savePicks('domin8te', ['local', 'advertising', 'website', 'social']);
+  assert.equal(dom.next.planId, 'domin8te');
+  const dp = await c.getPlan();
+  eq(dp.next.picks, ['advertising', 'social', 'website', 'local']);
+  assert.equal(dp.changes.planChanged, true);
   // a Starter choice with a website keeps its page-or-edits option
   await c.savePicks('starter', ['advertising', 'website'], 'edits');
   assert.equal((await c.getPlan()).next.websiteOption, 'edits');
@@ -151,13 +182,13 @@ test('after the last day to change nothing can be saved, in the demo or live', a
   D8.demoFixtures.tenants.tnt_demo_bayleaf.plan.now.end = '2026-09-24'; // the bill is today
   const c = D8.data.connect(await D8.auth.getSession());
   assert.equal((await c.getPlan()).open, false);
-  await assert.rejects(() => c.savePicks('growth', ['social', 'website']), (e) => e.code === 'locked');
+  await assert.rejects(() => c.savePicks('growth', ['advertising', 'social', 'website']), (e) => e.code === 'locked');
 });
 
 test('the public demo is view-only for picks too', async () => {
   const D8 = load('bayleaf', { readOnly: true });
   const c = D8.data.connect(await D8.auth.getSession());
-  await assert.rejects(() => c.savePicks('growth', ['advertising', 'social']), (e) => e.code === 'demo-readonly' && /This is a demo/.test(e.message));
+  await assert.rejects(() => c.savePicks('growth', ['advertising', 'social', 'email']), (e) => e.code === 'demo-readonly' && /This is a demo/.test(e.message));
   assert.equal((await c.getPlan()).confirmed, false, 'nothing was kept');
 });
 
@@ -169,7 +200,7 @@ test('a request against a limit: more than the plan allows is still allowed, mar
   const over = D8.planModel.askPreview(model, 'social', 'social_posts', 4);
   eq([over.would, over.over, over.extra], [13, true, 1]);
   assert.equal(D8.planModel.askPreview(model, 'website', 'web_pages', 2).over, true, '1 of 2 pages used: 2 more would be 3');
-  assert.equal(D8.planModel.askPreview(model, 'advertising', 'ads_live_campaigns', 1).notPicked, true, 'a service that is not in the plan goes to Karan');
+  assert.equal(D8.planModel.askPreview(model, 'local', 'seo_google_posts', 1).notPicked, true, 'a service that is not in the plan goes to Karan');
   await c.sendRequest('social', '4 extra posts for the weekend', { metric: 'social_posts', estQty: 4 });
   await c.sendRequest('social', 'Swap the photo', { metric: 'social_posts', estQty: 1 });
   await c.sendRequest('', 'We close early on Monday', { urgent: true });
@@ -179,7 +210,7 @@ test('a request against a limit: more than the plan allows is still allowed, mar
   eq(reqs.map((r) => r.urgent), [false, false, true]);
   assert.equal(reqs[2].service, 'website', 'an urgent fix is filed on the website (or Google), never on a limit');
   assert.match(reqs[2].text, /^Urgent fix: /);
-  await assert.rejects(() => c.sendRequest('advertising', 'Run an ad', { metric: 'ads_new_creatives', estQty: 1 }), (e) => e.code === 'bad-service', 'a service outside the plan cannot be asked for from the form');
+  await assert.rejects(() => c.sendRequest('email', 'Send an email', { metric: 'email_campaigns', estQty: 1 }), (e) => e.code === 'bad-service', 'a service outside the plan cannot be asked for from the form');
 });
 
 test('Home numbers carry their period, their source and a status; Billing has one state per bill and no made-up plan name', async () => {

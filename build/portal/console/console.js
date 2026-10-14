@@ -330,6 +330,8 @@
     }
     // The plan release's tables (2026-10-13). A database without them yet answers with nothing and the console carries on.
     try { await loadPlans(); } catch (e) { all.plans = all.plans || emptyPlans(); }
+    // Bot chat's drafts (mod-bot.js, 2026-10-14); a database without the table carries on with none.
+    { const B = partOf('bot'); if (B) await B.load(); }
     if (current) {
       // Everything comes from the fresh rows (the cards too: leaving them out made the next "Add the card" fail with
       // "Cannot read properties of undefined (reading 'push')" after the card was already saved, 2026-10-08), so the
@@ -517,7 +519,7 @@
     return `<div class="page-fresh is-${st}">${at ? `<span class="pf-part"><strong>Last updated</strong> ${esc(at)}</span>` : ''}<span class="pf-part"><strong>Source:</strong> ${esc(o.source)}</span><span class="pf-chip is-${st}"><span class="pf-dot" aria-hidden="true"></span>${esc(o.label || chip)}</span>${o.note ? `<p class="pf-note">${esc(o.note)}</p>` : ''}</div>`;
   }
   /** Where each page's numbers come from, for the freshness line a page does not draw itself. */
-  const FRESH_SOURCE = { queue: 'Console and the database', messages: 'Messages from the portal', clients: 'Console and the database', board: 'Console and Multica', billing: 'Stripe and console', settings: 'Console', new: 'Console', client: 'Console and the database' };
+  const FRESH_SOURCE = { queue: 'Console and the database', messages: 'Messages from the portal', clients: 'Console and the database', board: 'Console and Multica', billing: 'Stripe and console', settings: 'Console', new: 'Console', bot: 'Bot chat drafts in the console', client: 'Console and the database' };
   /** Every page ends up with exactly one freshness line: a page that draws its own keeps it; the others get this one under their title. */
   function ensureFresh() {
     if ($('.page-fresh', main) || !all) return;
@@ -566,6 +568,8 @@
     const pastDue = all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived' && billingOf(t).status === 'past_due').length;
     const blb = $('#billing-badge');
     if (blb) { blb.textContent = String(pastDue); blb.hidden = !pastDue; }
+    // Bot chat counts the drafts that are still Pending (mod-bot.js).
+    { const B = partOf('bot'); if (B) B.sideBadge(); }
     const page = (location.hash || '#/queue').split('/')[1] || 'queue';
     for (const a of $$('.nav a[data-nav]')) {
       if (a.getAttribute('data-nav') === page) a.setAttribute('aria-current', 'page');
@@ -635,7 +639,8 @@
     const out = TABS.map((x) => [x[0], x[1]]);
     // A part may name a tab that another part adds later in the load order (Client view goes after Home), so a tab whose
     // neighbour is not there yet waits for another pass; what is still waiting at the end goes last.
-    let rest = Object.entries(/** @type {Record<string, any>} */ (ext)).filter(([key]) => !out.some((x) => x[0] === key));
+    // A tab marked first is placed last, so it lands straight after its neighbour, ahead of the others that follow the same tab.
+    let rest = Object.entries(/** @type {Record<string, any>} */ (ext)).filter(([key]) => !out.some((x) => x[0] === key)).sort((a, b) => Number(!!a[1].first) - Number(!!b[1].first));
     while (rest.length) {
       const left = rest.filter(([key, def]) => {
         const at = out.findIndex((x) => x[0] === (def.after || 'talk'));
@@ -671,6 +676,7 @@
       const out = [
         { name: 'Needs you', hint: 'Page', href: '#/queue', icon: 'inbox' },
         { name: 'Messages', hint: 'Page', href: '#/messages', icon: 'chat' },
+        { name: 'Bot chat', hint: 'Page', href: '#/bot', icon: 'bot' },
         { name: 'Clients', hint: 'Page', href: '#/clients', icon: 'users' },
         { name: 'All work (every client\'s team cards)', hint: 'Page', href: '#/board', icon: 'board' },
         { name: 'Billing', hint: 'Page', href: '#/billing', icon: 'card' },
@@ -950,7 +956,7 @@
     saveBar();
     // Needs you is always the first page (the old Opening page setting, prefs.start, is no longer read).
     const parts = (location.hash || '#/queue').replace(/^#\//, '').split('/');
-    document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'settings', 'messages'].includes(parts[0]) ? parts[0] : 'queue';
+    document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'settings', 'messages', 'bot'].includes(parts[0]) ? parts[0] : 'queue';
     stopInbox();
     main.onclick = null;
     main.onchange = null;
@@ -962,6 +968,7 @@
     else if (parts[0] === 'billing') billingPage(parts[1] || '');   // #/billing/<client id> opens that client's plan drawer (2026-10-13)
     else if (parts[0] === 'settings') settingsPage('');
     else if (parts[0] === 'messages') messagesPage(parts[1] || '');
+    else if (parts[0] === 'bot' && partOf('bot')) partOf('bot').page(parts[1] || '');   // Bot chat (mod-bot.js, 2026-10-14)
     else queuePage();
     if (parts[0] !== 'client') stopPulling();
     renderSide();
@@ -1053,6 +1060,7 @@
       <section class="q-group" id="q-needs"><h2>Do now <span class="meta">${doNow}</span></h2>
         ${N ? N.cards(typed) : ''}
         ${dm}
+        ${partOf('bot') ? partOf('bot').needsBlock() : ''}
         ${needs.length ? (plain.length ? grouped(plain, 'other') : '') : `<div class="empty"><p><strong>Nothing needs you right now.</strong></p><p>New requests, messages, change requests and late dates show up here.</p></div>`}
       </section>
       ${waiting.length ? `<details class="q-group q-fold" id="q-waiting" data-qf="other"><summary><h2>Waiting on clients <span class="meta">${waiting.length}</span></h2></summary>
@@ -1163,6 +1171,7 @@
     const f = /** @type {HTMLFormElement} */ ($('#convo-reply'));
     if (f && shown) {
       track(f, 'Reply');
+      { const B = partOf('bot'); if (B) B.fillReply(shown.id); }   // an approved Bot chat draft handed over to send by hand
       const ta = /** @type {HTMLTextAreaElement} */ ($('#convo-body', f));
       ta.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); const sub = /** @type {HTMLButtonElement|null} */ (f.querySelector('button[type=submit]')); if (sub && sub.disabled) return; f.requestSubmit(); } });
       f.addEventListener('submit', async (e) => {

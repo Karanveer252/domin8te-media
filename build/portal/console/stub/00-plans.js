@@ -16,9 +16,10 @@
     const { day, stamp } = S;
     db.plans = [
       { id: 'starter', name: 'Starter', price_minor: price(99900), currency: 'USD', picks_allowed: 1, required_services: ['advertising'], max_clients: null, locked: false, locked_at: null, locked_by: null, sort: 1 },
-      { id: 'growth', name: 'Growth', price_minor: price(199900), currency: 'USD', picks_allowed: 2, required_services: [], max_clients: null, locked: false, locked_at: null, locked_by: null, sort: 2 },
+      { id: 'growth', name: 'Growth', price_minor: price(199900), currency: 'USD', picks_allowed: 2, required_services: ['advertising'], max_clients: null, locked: false, locked_at: null, locked_by: null, sort: 2 },
+      // The plan rules (Karan, 14 Oct): Starter is Ads + 1 pick, Growth Ads + 2 picks, Domin8te Ads + 3 picks. Ads is always in and is not a pick.
       // Domin8te is unlocked with no client limit (Karan, 13 Oct: "unlock the Domin8te tier"); staff switch the lock in Settings (rpc set_plan_locked)
-      { id: 'domin8te', name: 'Domin8te', price_minor: price(349900), currency: 'USD', picks_allowed: null, required_services: [], max_clients: null, locked: false, locked_at: null, locked_by: null, sort: 3 }
+      { id: 'domin8te', name: 'Domin8te', price_minor: price(349900), currency: 'USD', picks_allowed: 3, required_services: ['advertising'], max_clients: null, locked: false, locked_at: null, locked_by: null, sort: 3 }
     ];
     db.service_catalog = [
       { id: 'advertising', label: 'Ads', pickable: true, sort: 1 }, { id: 'social', label: 'Social media', pickable: true, sort: 2 }, { id: 'website', label: 'Website', pickable: true, sort: 3 },
@@ -51,19 +52,19 @@
     // Each client's months. Bayleaf holds the one Domin8te place; Marlow's next month was carried over and nobody confirmed it.
     const cyc = (tenant, plan, picks, start, end, o) => ({ id: `cyc_${tenant}_${start}`, tenant_id: tenant, period_start: start, period_end: end, plan_id: plan, picks, website_option: null, state: 'active', confirmed_at: stamp(-30, 0), confirmed_by: 'user_preview_karan', locked_at: stamp(-20, 0), source: 'console', override_reason: null, created_at: stamp(-30, 0), updated_at: stamp(-20, 0), ...o });
     db.tenant_plan_cycles = [
-      cyc('tnt_preview_bayleaf', 'domin8te', ['advertising', 'email', 'local', 'social', 'website'], day(-22), day(8)),
-      cyc('tnt_preview_bayleaf', 'domin8te', ['advertising', 'email', 'local', 'social', 'website'], day(8), day(38), { state: 'confirmed', source: 'client_picker', locked_at: null, confirmed_at: stamp(-2, 0) }),
-      cyc('tnt_preview_osteria', 'growth', ['local', 'website'], day(-9), day(21)),
-      cyc('tnt_preview_marlow', 'growth', ['advertising', 'social'], day(-27), day(3)),
-      cyc('tnt_preview_marlow', 'growth', ['advertising', 'social'], day(3), day(33), { state: 'confirmed', source: 'auto_carry', locked_at: null, confirmed_at: stamp(-4, 0), confirmed_by: 'system' }),
+      cyc('tnt_preview_bayleaf', 'domin8te', ['advertising', 'local', 'social', 'website'], day(-22), day(8)),
+      cyc('tnt_preview_bayleaf', 'domin8te', ['advertising', 'local', 'social', 'website'], day(8), day(38), { state: 'confirmed', source: 'client_picker', locked_at: null, confirmed_at: stamp(-2, 0) }),
+      cyc('tnt_preview_osteria', 'growth', ['advertising', 'local', 'website'], day(-9), day(21)),
+      cyc('tnt_preview_marlow', 'growth', ['advertising', 'email', 'social'], day(-27), day(3)),
+      cyc('tnt_preview_marlow', 'growth', ['advertising', 'email', 'social'], day(3), day(33), { state: 'confirmed', source: 'auto_carry', locked_at: null, confirmed_at: stamp(-4, 0), confirmed_by: 'system' }),
       cyc('tnt_preview_corner', 'starter', ['advertising', 'website'], day(-5), day(25), { website_option: 'edits' })
     ];
 
     // What is used of each limit this month (a row for every limit of a plan the client has).
     const USED = {
-      tnt_preview_bayleaf: { social_posts: 14, social_reels: 2, social_stories: 6, ads_live_campaigns: 3, ads_new_creatives: 4, ads_platforms: 2, web_pages: 1, web_edits: 9, seo_google_posts: 5, seo_photos: 7, seo_review_replies: 22, seo_jobs: 2, email_campaigns: 2, email_automations: 1 },
-      tnt_preview_osteria: { seo_google_posts: 2, seo_photos: 3, seo_review_replies: 11, seo_jobs: 1, web_pages: 1, web_edits: 2 },
-      tnt_preview_marlow: { social_posts: 11, social_reels: 1, social_stories: 3, ads_live_campaigns: 3, ads_new_creatives: 3, ads_platforms: 1 },
+      tnt_preview_bayleaf: { social_posts: 14, social_reels: 2, social_stories: 6, ads_live_campaigns: 3, ads_new_creatives: 4, ads_platforms: 2, web_pages: 1, web_edits: 9, seo_google_posts: 5, seo_photos: 7, seo_review_replies: 22, seo_jobs: 2 },
+      tnt_preview_osteria: { ads_live_campaigns: 1, ads_new_creatives: 2, ads_platforms: 1, seo_google_posts: 2, seo_photos: 3, seo_review_replies: 11, seo_jobs: 1, web_pages: 1, web_edits: 2 },
+      tnt_preview_marlow: { social_posts: 11, social_reels: 1, social_stories: 3, ads_live_campaigns: 3, ads_new_creatives: 3, ads_platforms: 1, email_campaigns: 1, email_automations: 0 },
       tnt_preview_corner: { ads_live_campaigns: 1, ads_new_creatives: 1, ads_platforms: 1, web_edits: 1 }
     };
     db.tenant_usage_current = [];

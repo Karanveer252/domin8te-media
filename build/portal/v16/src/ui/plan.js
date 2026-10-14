@@ -42,11 +42,15 @@
   };
   /** Ad spend is separate from the plan fee (release default 18): change the sentence here. */
   const AD_SPEND = 'Ad spend is paid to Meta and Google directly and is not part of your plan.';
-  /** What a plan is, in a line. @param {any} p a menu plan */
+  /** A small number as a word ("two"), for the plan lines. @param {number} n */
+  const numWord = (n) => ['no', 'one', 'two', 'three', 'four', 'five'][n] || String(n);
+  /** What a plan is, in a line: "Ads, plus two services you choose". @param {any} p a menu plan */
   function blurb(p) {
-    if (p.id === 'domin8te') return p.locked && !p.current ? 'Every service, set up with Karan. Not open to new clients right now.' : p.full ? 'Every service, set up with Karan. Taken right now.' : 'Every service, set up with Karan.';
-    if (p.rule.fixed.length) return `${F.list(p.rule.fixed.map((/** @type {string} */ x) => svc(x).label))}, plus ${p.rule.choose === 1 ? 'one service' : p.rule.choose + ' services'} you choose`;
-    return `Any ${p.rule.choose === 2 ? 'two' : p.rule.choose} services you choose`;
+    const n = p.rule.choose;
+    const some = n === 1 ? 'one service' : `${numWord(n)} services`;
+    if (p.rule.all) return 'Every service';
+    if (p.rule.fixed.length) return `${F.list(p.rule.fixed.map((/** @type {string} */ x) => svc(x).label))}, plus ${some} you choose`;
+    return `Any ${some} you choose`;
   }
   /** @param {string[]} picks */
   const chips = (picks) => `<ul class="chips">${picks.map((/** @type {string} */ id) => `<li class="chip">${esc(svc(id).label)}</li>`).join('')}</ul>`;

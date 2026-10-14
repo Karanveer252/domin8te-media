@@ -49,14 +49,14 @@ html[data-variant="18h"] .page :is(.po-card, .svc-opt, .pick-help, .pick-count) 
 .pk-input:checked + .po-card .po-mark { background: var(--p-accent-ink); box-shadow: none; color: var(--p-bg); }
 .po-title { padding-right: 38px; font-size: 20px; font-weight: 700; line-height: 1.2; letter-spacing: -0.012em; }
 .po-cost { font-size: 15px; color: var(--p-ink-3); }
-.po-cost strong { font-size: 30px; font-weight: 700; letter-spacing: -0.025em; color: var(--p-ink); font-variant-numeric: tabular-nums; }
+.po-cost strong { font-size: 30px; font-weight: 700; letter-spacing: -0.025em; color: var(--p-ink); font-variant-numeric: proportional-nums; }
 .po-blurb { font-size: 15px; line-height: 1.45; color: var(--p-ink-2); }
 .po-card .chip-now { margin-top: auto; }
 .po-card .po-blurb + .chip-now, .po-card .po-blurb + .btn { margin-top: 8px; }
-.plan-opt.is-ask .po-card { background: var(--p-glass-soft); box-shadow: inset 0 0 0 1px var(--p-line-2); }
-.plan-opt.is-ask:hover .po-card { transform: none; box-shadow: inset 0 0 0 1px var(--p-line-2); }
-.plan-opt.is-full .po-card { opacity: 0.75; }
-.plan-opt.is-ask { cursor: default; }
+.plan-opt.is-shut { cursor: not-allowed; }
+.plan-opt.is-shut .po-card { background: var(--p-glass-soft); box-shadow: inset 0 0 0 1px var(--p-line-2); opacity: 0.8; }
+.plan-opt.is-shut:hover .po-card { transform: none; box-shadow: inset 0 0 0 1px var(--p-line-2); }
+.plan-opt.is-shut .po-mark { display: none; }
 
 /* the services */
 .svc-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -95,7 +95,7 @@ html[data-variant="18h"] .page :is(.po-card, .svc-opt, .pick-help, .pick-count) 
 .pk-name { font-size: 18px; font-weight: 700; line-height: 1.25; }
 .pk-svcs { margin-top: 2px; font-size: 14.5px; color: var(--p-ink-2); }
 .pk-cost { flex: none; text-align: right; font-size: 14px; color: var(--p-ink-3); }
-.pk-cost strong { display: block; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--p-ink); font-variant-numeric: tabular-nums; }
+.pk-cost strong { display: block; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--p-ink); font-variant-numeric: proportional-nums; }
 .pk-down { display: grid; place-items: center; margin: 6px 0; color: var(--p-ink-3); }
 .pk-same { margin-top: 14px; }
 .chg-list.is-panel { gap: 2px; margin-top: 14px; }

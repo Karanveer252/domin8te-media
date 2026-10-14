@@ -50,7 +50,7 @@
       // a new card nobody has decided on: hidden from the client until staff say so
       card({ id: 'kw_reviews', tenant_id: 'tnt_preview_osteria', service: 'local', title: 'Reply to this week’s Google reviews', status: 'todo', due: day(2), created_at: stamp(0, 1) }),
       card({ id: 'kw_gpost', tenant_id: 'tnt_preview_osteria', service: 'local', title: 'Google post: patio hours', status: 'done', created_at: stamp(-6, 0), updated_at: stamp(-3, 0), ...shown }),
-      card({ id: 'kw_email', tenant_id: 'tnt_preview_bayleaf', service: 'email', title: 'Fall menu email', status: 'in_progress', assignee: 'Sam', created_at: stamp(-3, 0), ...shown }),
+      card({ id: 'kw_email', tenant_id: 'tnt_preview_bayleaf', service: 'local', title: 'Google post: fall menu', status: 'in_progress', assignee: 'Sam', created_at: stamp(-3, 0), ...shown }),
       card({ id: 'kw_ad', tenant_id: 'tnt_preview_marlow', service: 'advertising', title: 'Weekend special ad: two versions', status: 'in_review', created_at: stamp(-2, 0), ...shown })
     );
 

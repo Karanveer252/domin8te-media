@@ -86,11 +86,13 @@
   /* ---- plans and limits (2026-10-13) --------------------------------------------------------------------
      The same numbers the database holds (plan_caps). The public demo shows no prices: priceMinor is null here, and the
      prices live only in the database, for the signed-in portal. */
-  const ALL = ['advertising', 'social', 'website', 'local', 'email'];
+  // Every plan is Ads plus picks: Starter one, Growth two, Domin8te three (2026-10-14). The picks come from Social media, Website,
+  // SEO and Google Maps and Email.
+  const DOMIN8TE_PICKS = ['advertising', 'social', 'website', 'local'];
   const DEMO_PLANS = [
     { id: 'starter', name: 'Starter', priceMinor: null, currency: null, picksAllowed: 1, required: ['advertising'], maxClients: null, full: false, locked: false },
-    { id: 'growth', name: 'Growth', priceMinor: null, currency: null, picksAllowed: 2, required: [], maxClients: null, full: false, locked: false },
-    { id: 'domin8te', name: 'Domin8te', priceMinor: null, currency: null, picksAllowed: null, required: [], maxClients: null, full: false, locked: false }
+    { id: 'growth', name: 'Growth', priceMinor: null, currency: null, picksAllowed: 2, required: ['advertising'], maxClients: null, full: false, locked: false },
+    { id: 'domin8te', name: 'Domin8te', priceMinor: null, currency: null, picksAllowed: 3, required: ['advertising'], maxClients: null, full: false, locked: false }
   ];
   // service, metric, label, the cap on Starter, Growth and Domin8te, and the weekly hint for each
   const CAP_ROWS = [
@@ -113,14 +115,14 @@
   /** What was used so far this month, in the demo (sample numbers). */
   const use = (service, metric, used) => ({ service, metric, used });
   const USAGE = {
-    growth: [use('social', 'social_posts', 9), use('social', 'social_reels', 1), use('social', 'social_stories', 3), use('website', 'web_pages', 1), use('website', 'web_edits', 3)],
+    growth: [use('advertising', 'ads_live_campaigns', 0), use('advertising', 'ads_new_creatives', 2), use('advertising', 'ads_platforms', 1),
+      use('social', 'social_posts', 9), use('social', 'social_reels', 1), use('social', 'social_stories', 3), use('website', 'web_pages', 1), use('website', 'web_edits', 3)],
     starter: [use('advertising', 'ads_live_campaigns', 1), use('advertising', 'ads_new_creatives', 2), use('advertising', 'ads_platforms', 1),
       use('local', 'seo_google_posts', 3), use('local', 'seo_photos', 3), use('local', 'seo_review_replies', 17), use('local', 'seo_jobs', 0)],
     domin8te: [use('advertising', 'ads_live_campaigns', 3), use('advertising', 'ads_new_creatives', 4), use('advertising', 'ads_platforms', 2),
       use('social', 'social_posts', 12), use('social', 'social_reels', 2), use('social', 'social_stories', 7),
       use('website', 'web_pages', 1), use('website', 'web_edits', 5),
-      use('local', 'seo_google_posts', 5), use('local', 'seo_photos', 6), use('local', 'seo_review_replies', 22), use('local', 'seo_jobs', 2),
-      use('email', 'email_campaigns', 2), use('email', 'email_automations', 1)]
+      use('local', 'seo_google_posts', 5), use('local', 'seo_photos', 6), use('local', 'seo_review_replies', 22), use('local', 'seo_jobs', 2)]
   };
   /**
    * One month of a plan. The month runs from `start` to the day before `end` (the bill date). `next` is what happens
@@ -151,7 +153,7 @@
     return `${ny}-${String(nm).padStart(2, '0')}-${String(Math.min(d, days)).padStart(2, '0')}`;
   }
 
-  /* ---- tenant: Bayleaf Kitchen (a busy week; on the Growth plan: Social media and Website) ------------------ */
+  /* ---- tenant: Bayleaf Kitchen (a busy week; on the Growth plan: Ads, Social media and Website) ------------------ */
 
   const BAYLEAF = {
     tenantId: 'tnt_demo_bayleaf',
@@ -161,7 +163,7 @@
     user: { firstName: 'Dani', email: 'dani@bayleaf-kitchen.example', role: 'Owner' },
     // This month's plan decides the services (the plan below), so the record itself names none (2026-10-13).
     package: { services: [], billing: 'Billed monthly on the 22nd' },
-    plan: planOf({ planId: 'growth', picks: ['social', 'website'], start: '2026-09-22', end: '2026-10-22' }),
+    plan: planOf({ planId: 'growth', picks: ['advertising', 'social', 'website'], start: '2026-09-22', end: '2026-10-22' }),
     // the team's board cards for the website, as the console's board holds them (2026-10-08: cards show on the Work page)
     cards: [
       { id: 'card_hours', service: 'website', title: 'Update the autumn opening hours across the site', status: 'in_review', due: '2026-10-01', updatedAt: '2026-09-23T16:20' },
@@ -604,8 +606,8 @@
 
   /* The same restaurant on another plan or in another month (2026-10-13). A patch changes only what the plan changes. */
   const EVERYTHING = {
-    services: ALL,
-    plan: () => planOf({ planId: 'domin8te', picks: ALL, start: '2026-09-22', end: '2026-10-22' }),
+    services: DOMIN8TE_PICKS,
+    plan: () => planOf({ planId: 'domin8te', picks: DOMIN8TE_PICKS, start: '2026-09-22', end: '2026-10-22' }),
     strip: ['bookings', 'calls', 'directions', 'visits'],
     // the written summary for the plan that includes Google: it mentions calls
     summaries: [{
@@ -614,12 +616,12 @@
     }]
   };
   const PATCHES = {
-    // Domin8te: every service, the same busy week
+    // Domin8te: Ads plus three services (Social media, Website, SEO and Google Maps), the same busy week
     everything: EVERYTHING,
-    // Growth with next month already chosen: Ads and Social media instead of Social media and Website, nothing else waiting
+    // Growth with next month already chosen: SEO and Google Maps instead of Website (Ads and Social media stay), nothing else waiting
     change: {
-      plan: () => planOf({ planId: 'growth', picks: ['social', 'website'], start: '2026-09-22', end: '2026-10-22',
-        next: { planId: 'growth', picks: ['advertising', 'social'], source: 'client_picker', confirmedAt: '2026-09-23T14:14', confirmedBy: 'Dani' } }),
+      plan: () => planOf({ planId: 'growth', picks: ['advertising', 'social', 'website'], start: '2026-09-22', end: '2026-10-22',
+        next: { planId: 'growth', picks: ['advertising', 'social', 'local'], source: 'client_picker', confirmedAt: '2026-09-23T14:14', confirmedBy: 'Dani' } }),
       actions: [],
       billing: { subscription: { status: 'active', nextBilling: '2026-10-22' }, paymentMethod: { brand: 'Visa', last4: '4412' } }
     }
@@ -647,10 +649,10 @@
     // Demo scenarios exist for development only. Each one picks a tenant and, optionally,
     // simulates a failing source or a slow connection. They never mix tenants.
     scenarios: [
-      { id: 'bayleaf', tenantId: 'tnt_demo_bayleaf', label: 'Busy week', about: 'Growth plan (Social media and Website): four things to do, a disconnected account and a payment problem.' },
+      { id: 'bayleaf', tenantId: 'tnt_demo_bayleaf', label: 'Busy week', about: 'Growth plan (Ads, Social media and Website): four things to do, a disconnected account and a payment problem.' },
       { id: 'cornerbean', tenantId: 'tnt_demo_cornerbean', label: 'All caught up', about: 'Starter plan (Ads and SEO and Google Maps): nothing to do, and online orders not connected yet.' },
-      { id: 'domin8te', tenantId: 'tnt_demo_bayleaf', label: 'All services', about: 'Domin8te plan: all five services, in the same busy week.', patch: 'everything' },
-      { id: 'change', tenantId: 'tnt_demo_bayleaf', label: 'Plan change confirmed', about: 'Growth now, and next month already chosen: Ads and Social media. Nothing waiting.', patch: 'change' },
+      { id: 'domin8te', tenantId: 'tnt_demo_bayleaf', label: 'Domin8te plan', about: 'Domin8te plan (Ads, Social media, Website and SEO and Google Maps): the same busy week.', patch: 'everything' },
+      { id: 'change', tenantId: 'tnt_demo_bayleaf', label: 'Plan change confirmed', about: 'Growth now, and next month already chosen: Ads, Social media and SEO and Google Maps. Nothing waiting.', patch: 'change' },
       { id: 'google-down', tenantId: 'tnt_demo_bayleaf', label: 'Google figures failing', about: 'Google Business Profile does not load. Everything else still works.', fail: ['gbp'], patch: 'everything' },
       { id: 'slow', tenantId: 'tnt_demo_bayleaf', label: 'Slow connection', about: 'Every section takes about two seconds, so you can see the loading states.', latency: 2000 }
     ],

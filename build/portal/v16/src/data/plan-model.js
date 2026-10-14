@@ -46,10 +46,14 @@
     return { name: cap1(f[1]), unit: noun, state: false, cap: `Up to ${n} ${noun} a month`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} used`, short: `${n} ${noun}` };
   }
 
-  /** The services a month holds: Domin8te has every one, the others what was picked. @param {any} c a cycle */
-  const picksOf = (c) => (c && c.planId === 'domin8te' ? ORDER.slice() : ordered((c && c.picks) || []));
+  /** The services a month holds: what was picked, with Ads (which every plan includes) among them. @param {any} c a cycle */
+  const picksOf = (c) => ordered((c && c.picks) || []);
 
-  /** How many of the services a plan lets a client choose, and which are fixed. @param {any} plan */
+  /**
+   * How many of the services a plan lets a client choose, and which are fixed. Every plan is Ads plus a number of picks
+   * (Starter 1, Growth 2, Domin8te 3): `fixed` is Ads, `choose` the picks, `total` both. A plan with no pick count at all
+   * (an old record) reads as every service. @param {any} plan
+   */
   function rule(plan) {
     if (!plan || plan.picksAllowed === null || plan.picksAllowed === undefined) return { all: true, fixed: ORDER.slice(), choose: 0, total: ORDER.length };
     const fixed = ordered(plan.required || []);
@@ -84,7 +88,8 @@
   function validate(menu, planId, picks, websiteOption) {
     const plan = ((menu && menu.plans) || []).find((/** @type {any} */ p) => p.id === planId);
     if (!plan) return { ok: false, code: 'bad-plan', error: 'Choose one of the plans.' };
-    if (planId === 'domin8te') return { ok: false, code: 'ask-karan', error: 'Domin8te is set up with Karan. Message him and we will arrange it.' };
+    // An owner locked the plan: nobody new can start on it (a client already on it keeps it, and can pick it again)
+    if (plan.locked && !plan.current) return { ok: false, code: 'plan-locked', error: `${plan.name} is locked right now and is not taking new clients. Message Karan and we will help.` };
     const list = ordered(picks);
     if ((picks || []).length !== list.length) return { ok: false, code: 'bad-service', error: 'One of those is not a service we offer, or it was picked twice.' };
     const r = rule(plan);
@@ -179,7 +184,7 @@
     out.moreMinor = out.pricesShown && next ? Number(next.priceMinor) - Number(now.priceMinor) : null;
     const plans = (p.menu.plans || []);
     out.menu = plans.map((pl) => ({
-      ...pl, rule: rule(pl), askKaran: pl.id === 'domin8te', current: pl.id === now.planId,
+      ...pl, rule: rule(pl), current: pl.id === now.planId,
       services: ORDER.map((id) => { const ls = lines(p.menu.caps || [], pl.id, id, null); return { id, label: svc(id).label, icon: svc(id).icon, lines: ls, summary: summary(ls, pl.id) }; })
     }));
     return out;
@@ -195,7 +200,7 @@
     const v = validate(menu, d.planId, d.picks, d.websiteOption || null);
     const pl = model.menu.find((/** @type {any} */ x) => x.id === d.planId);
     if (!pl) return { valid: false, error: v.error, code: v.code };
-    const picks = d.planId === 'domin8te' ? ORDER.slice() : ordered(d.picks);
+    const picks = ordered(d.picks);
     const caps = model.menu.flatMap((/** @type {any} */ m) => m.services.flatMap((/** @type {any} */ s) => s.lines.map((/** @type {any} */ l) => ({ planId: m.id, service: s.id, metric: l.metric, label: l.label, cap: l.cap, weeklyHint: l.weeklyHint }))));
     const draft = cycle({ menu: { plans: model.menu, caps } }, { planId: d.planId, picks, websiteOption: d.websiteOption || null, start: model.bill, end: T.addMonths(model.bill, 1), source: 'client_picker' });
     const change = diff(model.now, draft);

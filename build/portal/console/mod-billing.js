@@ -134,7 +134,7 @@
     const price = pl && pl.price_minor != null ? C().money(pl.price_minor, pl.currency) : '';
     return `<strong class="bl-plan">${esc(pl ? pl.name : cap1(c.plan_id))}</strong>${price ? `<span class="sub">${esc(price)} / mo</span>` : ''}${!r.now || r.notStarted ? `<span class="sub">Starts ${esc(dayShort(c.period_start))}</span>` : ''}`;
   }
-  /** Is this plan "every service"? @param {any} plan */
+  /** Is this plan "every service"? None is now (every plan is Ads plus picks); a row with no pick count would still read that way. @param {any} plan */
   const takesAll = (plan) => !!plan && (plan.picks_allowed === null || plan.picks_allowed === undefined);
   /** @param {any} cycle @param {any} plan */
   function chipsOf(cycle, plan) {
@@ -249,7 +249,7 @@
    */
   function tierCard(plans) {
     const c = C();
-    const feat = plans.find((/** @type {any} */ p) => p.max_clients != null) || plans.find((/** @type {any} */ p) => p.id === 'domin8te') || plans.find(takesAll);
+    const feat = plans.find((/** @type {any} */ p) => p.max_clients != null) || plans.find((/** @type {any} */ p) => p.locked) || plans.find((/** @type {any} */ p) => p.id === 'domin8te') || plans[plans.length - 1];
     if (!feat) return '';
     const today = c.today();
     const slot = PP().slotOf(feat.id, null, today, addDays(today, 1));
@@ -413,7 +413,7 @@
   function historyLine(r, staff) {
     const d = r.detail || {};
     const plan = (/** @type {string} */ id) => ((C().plans.plans || []).find((/** @type {any} */ p) => p.id === id) || {}).name || cap1(String(id || ''));
-    const picks = (/** @type {string[]} */ list, /** @type {string} */ planId) => (planId === 'domin8te' ? 'every service' : PP().andList(PM().ordered(list || []).map((/** @type {string} */ s) => PP().label(s))) || 'no services');
+    const picks = (/** @type {string[]} */ list, /** @type {string} */ planId) => (takesAll((C().plans.plans || []).find((/** @type {any} */ p) => p.id === planId)) ? 'every service' : PP().andList(PM().ordered(list || []).map((/** @type {string} */ s) => PP().label(s))) || 'no services');
     const sys = !r.actor || !/^user_/.test(String(r.actor));
     const bySource = /^plan_cycle_/.test(String(r.action)) ? (d.source === 'client_picker' ? 'The client' : d.source === 'auto_carry' ? 'System' : '') : '';
     const who = bySource || staff[r.actor] || (sys ? 'System' : 'A team member');

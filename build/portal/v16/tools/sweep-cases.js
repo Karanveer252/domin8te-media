@@ -144,6 +144,11 @@ cases.push(flow('Billing: a rule-breaking choice cannot be confirmed', [
   st(`click('input[name="plan"][value="starter"]'); var boxes = $$('input[name="svc"]').filter(function (b) { return !b.disabled && !b.checked; }); note('left to pick', boxes.length);`),
   st(`var on = $$('input[name="svc"]:checked:not(:disabled)'); on.forEach(function (b) { b.click(); }); var b = $('.pk-confirm'); note('confirm disabled', b.disabled); if (!b.disabled) throw new Error('nothing picked, but it can be confirmed');`)
 ], { route: 'billing/change', gap: 700, expect: { page: 'billing' } }));
+// Domin8te is Ads plus three picks (2026-10-14): a plain choice in the picker, not "ask Karan".
+cases.push(flow('Billing: Domin8te is a choice (Ads plus three), and the fourth pick completes it', [
+  st(`if ($('.picker').textContent.indexOf('Ask Karan') >= 0) throw new Error('Ask Karan is back'); click('input[name="plan"][value="domin8te"]'); var c = $('#pick-count').textContent.trim(); note('count', c); if (c.indexOf('3 of 4') < 0) throw new Error('count says ' + c); if (!$('.pk-confirm').disabled) throw new Error('confirm is open with a pick missing');`),
+  st(`click('input[name="svc"][value="local"]'); var c = $('#pick-count').textContent.trim(); note('count', c); var b = $('.pk-confirm'); if (c.indexOf('4 of 4') < 0 || b.disabled || b.textContent.indexOf('switch to Domin8te') < 0) throw new Error('not ready: ' + c + ' / ' + b.textContent); note('blocked', $$('.svc-opt.is-blocked').length);`)
+], { route: 'billing/change', gap: 800, expect: { page: 'billing' } }));
 // Ask for a change shows how it fits this month's limit before it is sent (2026-10-13).
 cases.push(flow('Ask for a change over the limit goes to Karan for a decision', [
   st(`click('.page-head [data-action="compose"]');`),

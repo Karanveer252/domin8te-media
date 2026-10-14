@@ -889,7 +889,7 @@
 
   /* Help (2026-10-09): the common questions, and a card that leads to Messages, where the conversation lives.
      2026-10-13: the answers cover plans, picks, limits and where the numbers come from. Change HELP_UPDATED with the words. */
-  const HELP_UPDATED = '2026-10-13';
+  const HELP_UPDATED = '2026-10-14';
   const PROMISES = [
     'We only publish posts, pages and ads you have approved.',
     'We never change your ad budget without asking you first.',
@@ -898,6 +898,7 @@
     'Only people you invite can see your account.'
   ];
   const FAQ = [
+    ['What does my plan include?', 'Every plan includes Ads. Starter adds one service you choose, Growth adds two, and Domin8te adds three. You choose from Social media, Website, SEO and Google Maps, and Email.'],
     ['How do I change my plan or my services?', 'Go to Billing and pick for next month. Your choice starts on your next bill date. This month stays as it is.'],
     ['When can I change my picks?', 'Any time up to the last day shown in Billing, which is the day before your next bill. We email you 7 days and 3 days before, so you never miss it. Pick again as often as you like until then.'],
     ['What happens to a service I stop?', 'We keep your work saved. You can add the service back for a later month.'],

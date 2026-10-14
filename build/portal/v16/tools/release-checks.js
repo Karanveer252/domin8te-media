@@ -60,7 +60,8 @@ report('T10a no plan price in the demo dashboard or the demo console', hits(demo
 const sources = [
   ...walk(path.join(PORTAL, 'v16', 'src'), (f) => /\.(js|css|html)$/.test(f)),
   ...walk(path.join(PORTAL, 'console'), (f) => /\.(js|css|html)$/.test(f)),
-  ...walk(path.join(PORTAL, 'supabase', 'functions', 'billing-reminders'), (f) => /\.(ts|mjs)$/.test(f))
+  ...walk(path.join(PORTAL, 'supabase', 'functions', 'billing-reminders'), (f) => /\.(ts|mjs)$/.test(f)),
+  ...walk(path.join(PORTAL, 'supabase', 'functions', 'message-notifications'), (f) => /\.(ts|mjs)$/.test(f))
 ];
 report('T10a no plan price in the source files either', hits(sources.filter((f) => !/[\\/]stub[\\/]/.test(f) && !/supabase[\\/]functions/.test(f)), PRICE), 'the preview stand-ins are checked through their built page above; a reminder email to a client names the price on purpose');
 report('T10b no long dash in the source, the reminder emails or the built pages', hits([...sources, ...demoPages, ...(fs.existsSync(livePage) ? [livePage] : [])], DASH));

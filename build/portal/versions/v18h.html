@@ -1813,7 +1813,7 @@ html[data-variant="18h"][data-variant] .page .bill-help.bill-help { text-shadow:
 .po-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px 24px; }
 .po-head > .badge { flex: none; margin-top: 2px; }
 .po-name { margin-top: 6px; font-size: 30px; font-weight: 700; line-height: 1.15; letter-spacing: -0.025em; }
-.po-price { font-weight: 500; letter-spacing: -0.01em; color: var(--p-ink-3); font-variant-numeric: tabular-nums; }
+.po-price { font-weight: 500; letter-spacing: -0.01em; color: var(--p-ink-3); font-variant-numeric: proportional-nums; }
 .po-sub { margin-top: 8px; color: var(--p-ink-2); }
 .po-head .chips { margin-top: 14px; }
 .po-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 40px; }
@@ -1879,7 +1879,7 @@ html[data-theme="dark"] .pcf-ok { color: #0D1F14; }
 .pcf-box.is-next .eyebrow { color: var(--p-accent-ink); }
 .pcf-plan { margin-top: 4px; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.012em; }
 .pcf-price { margin-top: 4px; font-size: 15px; color: var(--p-ink-3); }
-.pcf-price strong { font-size: 28px; font-weight: 700; letter-spacing: -0.025em; color: var(--p-ink); font-variant-numeric: tabular-nums; }
+.pcf-price strong { font-size: 28px; font-weight: 700; letter-spacing: -0.025em; color: var(--p-ink); font-variant-numeric: proportional-nums; }
 .pcf-svcs { margin-top: 4px; font-size: 15px; line-height: 1.45; color: var(--p-ink-2); }
 .pcf-arrow { display: grid; place-items: center; align-self: center; width: 32px; height: 32px; border-radius: 50%; background: var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line); color: var(--p-ink-2); }
 .pcf-arrow .i { width: 16px; height: 16px; }
@@ -1922,7 +1922,7 @@ html[data-theme="dark"] .pay-ico { background: var(--p-surface-2); box-shadow: 0
 .bills.has-amount .th-due { width: 20%; }
 .bill-num { display: block; font-size: 15.5px; font-weight: 700; line-height: 1.3; letter-spacing: -0.005em; font-variant-numeric: tabular-nums; }
 .bill-month { display: block; margin-top: 1px; font-size: 13.5px; font-weight: 500; line-height: 1.4; color: var(--p-ink-3); }
-.bill-amt { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bill-amt { font-weight: 600; font-variant-numeric: proportional-nums; white-space: nowrap; }
 .bill-due { white-space: nowrap; }
 .bill-paid { display: block; margin-top: 1px; font-size: 13.5px; line-height: 1.4; color: var(--p-ink-3); }
 .bill-act { padding-right: 0; text-align: right; }
@@ -2054,14 +2054,14 @@ html[data-variant="18h"] .page :is(.po-card, .svc-opt, .pick-help, .pick-count) 
 .pk-input:checked + .po-card .po-mark { background: var(--p-accent-ink); box-shadow: none; color: var(--p-bg); }
 .po-title { padding-right: 38px; font-size: 20px; font-weight: 700; line-height: 1.2; letter-spacing: -0.012em; }
 .po-cost { font-size: 15px; color: var(--p-ink-3); }
-.po-cost strong { font-size: 30px; font-weight: 700; letter-spacing: -0.025em; color: var(--p-ink); font-variant-numeric: tabular-nums; }
+.po-cost strong { font-size: 30px; font-weight: 700; letter-spacing: -0.025em; color: var(--p-ink); font-variant-numeric: proportional-nums; }
 .po-blurb { font-size: 15px; line-height: 1.45; color: var(--p-ink-2); }
 .po-card .chip-now { margin-top: auto; }
 .po-card .po-blurb + .chip-now, .po-card .po-blurb + .btn { margin-top: 8px; }
-.plan-opt.is-ask .po-card { background: var(--p-glass-soft); box-shadow: inset 0 0 0 1px var(--p-line-2); }
-.plan-opt.is-ask:hover .po-card { transform: none; box-shadow: inset 0 0 0 1px var(--p-line-2); }
-.plan-opt.is-full .po-card { opacity: 0.75; }
-.plan-opt.is-ask { cursor: default; }
+.plan-opt.is-shut { cursor: not-allowed; }
+.plan-opt.is-shut .po-card { background: var(--p-glass-soft); box-shadow: inset 0 0 0 1px var(--p-line-2); opacity: 0.8; }
+.plan-opt.is-shut:hover .po-card { transform: none; box-shadow: inset 0 0 0 1px var(--p-line-2); }
+.plan-opt.is-shut .po-mark { display: none; }
 
 /* the services */
 .svc-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -2100,7 +2100,7 @@ html[data-variant="18h"] .page :is(.po-card, .svc-opt, .pick-help, .pick-count) 
 .pk-name { font-size: 18px; font-weight: 700; line-height: 1.25; }
 .pk-svcs { margin-top: 2px; font-size: 14.5px; color: var(--p-ink-2); }
 .pk-cost { flex: none; text-align: right; font-size: 14px; color: var(--p-ink-3); }
-.pk-cost strong { display: block; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--p-ink); font-variant-numeric: tabular-nums; }
+.pk-cost strong { display: block; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--p-ink); font-variant-numeric: proportional-nums; }
 .pk-down { display: grid; place-items: center; margin: 6px 0; color: var(--p-ink-3); }
 .pk-same { margin-top: 14px; }
 .chg-list.is-panel { gap: 2px; margin-top: 14px; }
@@ -4381,10 +4381,14 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     return { name: cap1(f[1]), unit: noun, state: false, cap: `Up to ${n} ${noun} a month`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} used`, short: `${n} ${noun}` };
   }
 
-  /** The services a month holds: Domin8te has every one, the others what was picked. @param {any} c a cycle */
-  const picksOf = (c) => (c && c.planId === 'domin8te' ? ORDER.slice() : ordered((c && c.picks) || []));
+  /** The services a month holds: what was picked, with Ads (which every plan includes) among them. @param {any} c a cycle */
+  const picksOf = (c) => ordered((c && c.picks) || []);
 
-  /** How many of the services a plan lets a client choose, and which are fixed. @param {any} plan */
+  /**
+   * How many of the services a plan lets a client choose, and which are fixed. Every plan is Ads plus a number of picks
+   * (Starter 1, Growth 2, Domin8te 3): `fixed` is Ads, `choose` the picks, `total` both. A plan with no pick count at all
+   * (an old record) reads as every service. @param {any} plan
+   */
   function rule(plan) {
     if (!plan || plan.picksAllowed === null || plan.picksAllowed === undefined) return { all: true, fixed: ORDER.slice(), choose: 0, total: ORDER.length };
     const fixed = ordered(plan.required || []);
@@ -4419,7 +4423,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   function validate(menu, planId, picks, websiteOption) {
     const plan = ((menu && menu.plans) || []).find((/** @type {any} */ p) => p.id === planId);
     if (!plan) return { ok: false, code: 'bad-plan', error: 'Choose one of the plans.' };
-    if (planId === 'domin8te') return { ok: false, code: 'ask-karan', error: 'Domin8te is set up with Karan. Message him and we will arrange it.' };
+    // An owner locked the plan: nobody new can start on it (a client already on it keeps it, and can pick it again)
+    if (plan.locked && !plan.current) return { ok: false, code: 'plan-locked', error: `${plan.name} is locked right now and is not taking new clients. Message Karan and we will help.` };
     const list = ordered(picks);
     if ((picks || []).length !== list.length) return { ok: false, code: 'bad-service', error: 'One of those is not a service we offer, or it was picked twice.' };
     const r = rule(plan);
@@ -4514,7 +4519,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     out.moreMinor = out.pricesShown && next ? Number(next.priceMinor) - Number(now.priceMinor) : null;
     const plans = (p.menu.plans || []);
     out.menu = plans.map((pl) => ({
-      ...pl, rule: rule(pl), askKaran: pl.id === 'domin8te', current: pl.id === now.planId,
+      ...pl, rule: rule(pl), current: pl.id === now.planId,
       services: ORDER.map((id) => { const ls = lines(p.menu.caps || [], pl.id, id, null); return { id, label: svc(id).label, icon: svc(id).icon, lines: ls, summary: summary(ls, pl.id) }; })
     }));
     return out;
@@ -4530,7 +4535,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const v = validate(menu, d.planId, d.picks, d.websiteOption || null);
     const pl = model.menu.find((/** @type {any} */ x) => x.id === d.planId);
     if (!pl) return { valid: false, error: v.error, code: v.code };
-    const picks = d.planId === 'domin8te' ? ORDER.slice() : ordered(d.picks);
+    const picks = ordered(d.picks);
     const caps = model.menu.flatMap((/** @type {any} */ m) => m.services.flatMap((/** @type {any} */ s) => s.lines.map((/** @type {any} */ l) => ({ planId: m.id, service: s.id, metric: l.metric, label: l.label, cap: l.cap, weeklyHint: l.weeklyHint }))));
     const draft = cycle({ menu: { plans: model.menu, caps } }, { planId: d.planId, picks, websiteOption: d.websiteOption || null, start: model.bill, end: T.addMonths(model.bill, 1), source: 'client_picker' });
     const change = diff(model.now, draft);
@@ -4647,11 +4652,13 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   /* ---- plans and limits (2026-10-13) --------------------------------------------------------------------
      The same numbers the database holds (plan_caps). The public demo shows no prices: priceMinor is null here, and the
      prices live only in the database, for the signed-in portal. */
-  const ALL = ['advertising', 'social', 'website', 'local', 'email'];
+  // Every plan is Ads plus picks: Starter one, Growth two, Domin8te three (2026-10-14). The picks come from Social media, Website,
+  // SEO and Google Maps and Email.
+  const DOMIN8TE_PICKS = ['advertising', 'social', 'website', 'local'];
   const DEMO_PLANS = [
     { id: 'starter', name: 'Starter', priceMinor: null, currency: null, picksAllowed: 1, required: ['advertising'], maxClients: null, full: false, locked: false },
-    { id: 'growth', name: 'Growth', priceMinor: null, currency: null, picksAllowed: 2, required: [], maxClients: null, full: false, locked: false },
-    { id: 'domin8te', name: 'Domin8te', priceMinor: null, currency: null, picksAllowed: null, required: [], maxClients: null, full: false, locked: false }
+    { id: 'growth', name: 'Growth', priceMinor: null, currency: null, picksAllowed: 2, required: ['advertising'], maxClients: null, full: false, locked: false },
+    { id: 'domin8te', name: 'Domin8te', priceMinor: null, currency: null, picksAllowed: 3, required: ['advertising'], maxClients: null, full: false, locked: false }
   ];
   // service, metric, label, the cap on Starter, Growth and Domin8te, and the weekly hint for each
   const CAP_ROWS = [
@@ -4674,14 +4681,14 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   /** What was used so far this month, in the demo (sample numbers). */
   const use = (service, metric, used) => ({ service, metric, used });
   const USAGE = {
-    growth: [use('social', 'social_posts', 9), use('social', 'social_reels', 1), use('social', 'social_stories', 3), use('website', 'web_pages', 1), use('website', 'web_edits', 3)],
+    growth: [use('advertising', 'ads_live_campaigns', 0), use('advertising', 'ads_new_creatives', 2), use('advertising', 'ads_platforms', 1),
+      use('social', 'social_posts', 9), use('social', 'social_reels', 1), use('social', 'social_stories', 3), use('website', 'web_pages', 1), use('website', 'web_edits', 3)],
     starter: [use('advertising', 'ads_live_campaigns', 1), use('advertising', 'ads_new_creatives', 2), use('advertising', 'ads_platforms', 1),
       use('local', 'seo_google_posts', 3), use('local', 'seo_photos', 3), use('local', 'seo_review_replies', 17), use('local', 'seo_jobs', 0)],
     domin8te: [use('advertising', 'ads_live_campaigns', 3), use('advertising', 'ads_new_creatives', 4), use('advertising', 'ads_platforms', 2),
       use('social', 'social_posts', 12), use('social', 'social_reels', 2), use('social', 'social_stories', 7),
       use('website', 'web_pages', 1), use('website', 'web_edits', 5),
-      use('local', 'seo_google_posts', 5), use('local', 'seo_photos', 6), use('local', 'seo_review_replies', 22), use('local', 'seo_jobs', 2),
-      use('email', 'email_campaigns', 2), use('email', 'email_automations', 1)]
+      use('local', 'seo_google_posts', 5), use('local', 'seo_photos', 6), use('local', 'seo_review_replies', 22), use('local', 'seo_jobs', 2)]
   };
   /**
    * One month of a plan. The month runs from `start` to the day before `end` (the bill date). `next` is what happens
@@ -4712,7 +4719,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     return `${ny}-${String(nm).padStart(2, '0')}-${String(Math.min(d, days)).padStart(2, '0')}`;
   }
 
-  /* ---- tenant: Bayleaf Kitchen (a busy week; on the Growth plan: Social media and Website) ------------------ */
+  /* ---- tenant: Bayleaf Kitchen (a busy week; on the Growth plan: Ads, Social media and Website) ------------------ */
 
   const BAYLEAF = {
     tenantId: 'tnt_demo_bayleaf',
@@ -4722,7 +4729,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     user: { firstName: 'Dani', email: 'dani@bayleaf-kitchen.example', role: 'Owner' },
     // This month's plan decides the services (the plan below), so the record itself names none (2026-10-13).
     package: { services: [], billing: 'Billed monthly on the 22nd' },
-    plan: planOf({ planId: 'growth', picks: ['social', 'website'], start: '2026-09-22', end: '2026-10-22' }),
+    plan: planOf({ planId: 'growth', picks: ['advertising', 'social', 'website'], start: '2026-09-22', end: '2026-10-22' }),
     // the team's board cards for the website, as the console's board holds them (2026-10-08: cards show on the Work page)
     cards: [
       { id: 'card_hours', service: 'website', title: 'Update the autumn opening hours across the site', status: 'in_review', due: '2026-10-01', updatedAt: '2026-09-23T16:20' },
@@ -5165,8 +5172,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
   /* The same restaurant on another plan or in another month (2026-10-13). A patch changes only what the plan changes. */
   const EVERYTHING = {
-    services: ALL,
-    plan: () => planOf({ planId: 'domin8te', picks: ALL, start: '2026-09-22', end: '2026-10-22' }),
+    services: DOMIN8TE_PICKS,
+    plan: () => planOf({ planId: 'domin8te', picks: DOMIN8TE_PICKS, start: '2026-09-22', end: '2026-10-22' }),
     strip: ['bookings', 'calls', 'directions', 'visits'],
     // the written summary for the plan that includes Google: it mentions calls
     summaries: [{
@@ -5175,12 +5182,12 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     }]
   };
   const PATCHES = {
-    // Domin8te: every service, the same busy week
+    // Domin8te: Ads plus three services (Social media, Website, SEO and Google Maps), the same busy week
     everything: EVERYTHING,
-    // Growth with next month already chosen: Ads and Social media instead of Social media and Website, nothing else waiting
+    // Growth with next month already chosen: SEO and Google Maps instead of Website (Ads and Social media stay), nothing else waiting
     change: {
-      plan: () => planOf({ planId: 'growth', picks: ['social', 'website'], start: '2026-09-22', end: '2026-10-22',
-        next: { planId: 'growth', picks: ['advertising', 'social'], source: 'client_picker', confirmedAt: '2026-09-23T14:14', confirmedBy: 'Dani' } }),
+      plan: () => planOf({ planId: 'growth', picks: ['advertising', 'social', 'website'], start: '2026-09-22', end: '2026-10-22',
+        next: { planId: 'growth', picks: ['advertising', 'social', 'local'], source: 'client_picker', confirmedAt: '2026-09-23T14:14', confirmedBy: 'Dani' } }),
       actions: [],
       billing: { subscription: { status: 'active', nextBilling: '2026-10-22' }, paymentMethod: { brand: 'Visa', last4: '4412' } }
     }
@@ -5208,10 +5215,10 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     // Demo scenarios exist for development only. Each one picks a tenant and, optionally,
     // simulates a failing source or a slow connection. They never mix tenants.
     scenarios: [
-      { id: 'bayleaf', tenantId: 'tnt_demo_bayleaf', label: 'Busy week', about: 'Growth plan (Social media and Website): four things to do, a disconnected account and a payment problem.' },
+      { id: 'bayleaf', tenantId: 'tnt_demo_bayleaf', label: 'Busy week', about: 'Growth plan (Ads, Social media and Website): four things to do, a disconnected account and a payment problem.' },
       { id: 'cornerbean', tenantId: 'tnt_demo_cornerbean', label: 'All caught up', about: 'Starter plan (Ads and SEO and Google Maps): nothing to do, and online orders not connected yet.' },
-      { id: 'domin8te', tenantId: 'tnt_demo_bayleaf', label: 'All services', about: 'Domin8te plan: all five services, in the same busy week.', patch: 'everything' },
-      { id: 'change', tenantId: 'tnt_demo_bayleaf', label: 'Plan change confirmed', about: 'Growth now, and next month already chosen: Ads and Social media. Nothing waiting.', patch: 'change' },
+      { id: 'domin8te', tenantId: 'tnt_demo_bayleaf', label: 'Domin8te plan', about: 'Domin8te plan (Ads, Social media, Website and SEO and Google Maps): the same busy week.', patch: 'everything' },
+      { id: 'change', tenantId: 'tnt_demo_bayleaf', label: 'Plan change confirmed', about: 'Growth now, and next month already chosen: Ads, Social media and SEO and Google Maps. Nothing waiting.', patch: 'change' },
       { id: 'google-down', tenantId: 'tnt_demo_bayleaf', label: 'Google figures failing', about: 'Google Business Profile does not load. Everything else still works.', fail: ['gbp'], patch: 'everything' },
       { id: 'slow', tenantId: 'tnt_demo_bayleaf', label: 'Slow connection', about: 'Every section takes about two seconds, so you can see the loading states.', latency: 2000 }
     ],
@@ -6677,7 +6684,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const code = error && error.code;
     if (code === '23505') return fail('already-decided', 'You already answered this one.');
     const said = String((error && error.message) || '');
-    if (/ask-karan/.test(said)) return fail('ask-karan', 'Domin8te is set up with Karan. Message him and we will arrange it.');
+    if (/plan-locked/.test(said)) return fail('plan-locked', 'That plan is locked right now and is not taking new clients. Message Karan and we will help.');
     if (/month-locked|next-month-locked/.test(said)) return fail('locked', 'It is too late to change next month. Message us and we will help.');
     if (/no-current-cycle/.test(said) || code === 'P0002') return fail('no-plan', 'Your plan is not set up yet. Message us and we will sort it out.');
     if (code === '23P01' || /plan-full/.test(said)) return fail('plan-full', 'That plan is taken right now. Message Karan and we will help.');
@@ -7611,11 +7618,15 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   };
   /** Ad spend is separate from the plan fee (release default 18): change the sentence here. */
   const AD_SPEND = 'Ad spend is paid to Meta and Google directly and is not part of your plan.';
-  /** What a plan is, in a line. @param {any} p a menu plan */
+  /** A small number as a word ("two"), for the plan lines. @param {number} n */
+  const numWord = (n) => ['no', 'one', 'two', 'three', 'four', 'five'][n] || String(n);
+  /** What a plan is, in a line: "Ads, plus two services you choose". @param {any} p a menu plan */
   function blurb(p) {
-    if (p.id === 'domin8te') return p.locked && !p.current ? 'Every service, set up with Karan. Not open to new clients right now.' : p.full ? 'Every service, set up with Karan. Taken right now.' : 'Every service, set up with Karan.';
-    if (p.rule.fixed.length) return `${F.list(p.rule.fixed.map((/** @type {string} */ x) => svc(x).label))}, plus ${p.rule.choose === 1 ? 'one service' : p.rule.choose + ' services'} you choose`;
-    return `Any ${p.rule.choose === 2 ? 'two' : p.rule.choose} services you choose`;
+    const n = p.rule.choose;
+    const some = n === 1 ? 'one service' : `${numWord(n)} services`;
+    if (p.rule.all) return 'Every service';
+    if (p.rule.fixed.length) return `${F.list(p.rule.fixed.map((/** @type {string} */ x) => svc(x).label))}, plus ${some} you choose`;
+    return `Any ${some} you choose`;
   }
   /** @param {string[]} picks */
   const chips = (picks) => `<ul class="chips">${picks.map((/** @type {string} */ id) => `<li class="chip">${esc(svc(id).label)}</li>`).join('')}</ul>`;
@@ -7835,7 +7846,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     const changing = m.confirmed && m.changes.differs;
     const eyebrow = changing || o.compact ? 'Your plan this month' : 'Your plan';
     const status = m.confirmed && m.changes.differs ? '' : `<span class="badge tone-success">${icon('check')}Active · no changes coming</span>`;
-    const head = `<header class="po-head"><div><p class="eyebrow">${eyebrow}</p><h2 class="po-name" id="h-plan">${esc(c.name)}${perMonth(c) ? `<span class="po-price"> · ${esc(perMonth(c))}</span>` : ''}</h2>${c.planId === 'domin8te' ? `<p class="po-sub">All ${c.services.length} services</p>` : chips(c.picks)}</div>${o.compact ? '' : status}</header>`;
+    const head = `<header class="po-head"><div><p class="eyebrow">${eyebrow}</p><h2 class="po-name" id="h-plan">${esc(c.name)}${perMonth(c) ? `<span class="po-price"> · ${esc(perMonth(c))}</span>` : ''}</h2>${chips(c.picks)}</div>${o.compact ? '' : status}</header>`;
     if (o.compact || changing) {
       return `<section class="card plan-overview is-compact" aria-labelledby="h-plan">${head}<div class="po-facts">${facts(m)}</div></section>`;
     }
@@ -7984,16 +7995,11 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     // The dearest plan first, as in the designs
     return m.menu.slice().reverse().map((/** @type {any} */ p) => {
       const pr = price(p);
-      // A plan an owner locked takes nobody new: its card says so (a client already on it sees the usual card)
-      const shut = !p.current && !!p.locked;
-      const tag = p.current ? '<span class="chip-now">Your plan now</span>' : shut ? `<span class="chip-now">${icon('lock')}Locked right now</span>` : '';
-      if (p.askKaran) {
-        return `<div class="plan-opt is-ask${p.full ? ' is-full' : ''}${shut ? ' is-locked' : ''}">
-          <div class="po-card"><p class="po-title">${esc(p.name)}</p>${pr ? `<p class="po-cost"><strong>${esc(pr)}</strong>/month</p>` : ''}<p class="po-blurb">${esc(blurb(p))}</p>${tag}
-          ${p.full || shut ? '' : `<a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Ask Karan</a>`}</div>
-        </div>`;
-      }
-      return `<label class="plan-opt" data-plan="${esc(p.id)}"><input class="pk-input" type="radio" name="plan" value="${esc(p.id)}"${st.planId === p.id ? ' checked' : ''}>
+      // A plan an owner locked, or one with a client limit that is full, takes nobody new: its card says so and cannot be chosen
+      // (a client already on it sees the usual card and can pick it again)
+      const shut = !p.current && (!!p.locked || !!p.full);
+      const tag = p.current ? '<span class="chip-now">Your plan now</span>' : p.locked ? `<span class="chip-now">${icon('lock')}Locked right now</span>` : p.full ? '<span class="chip-now">Taken right now</span>' : '';
+      return `<label class="plan-opt${shut ? ' is-shut' : ''}" data-plan="${esc(p.id)}"><input class="pk-input" type="radio" name="plan" value="${esc(p.id)}"${st.planId === p.id ? ' checked' : ''}${shut ? ' disabled' : ''}>
         <span class="po-card"><span class="po-mark" aria-hidden="true">${icon('check')}</span><span class="po-title">${esc(p.name)}</span>${pr ? `<span class="po-cost"><strong>${esc(pr)}</strong>/month</span>` : ''}<span class="po-blurb">${esc(blurb(p))}</span>${tag}</span></label>`;
     }).join('');
   }
@@ -8064,14 +8070,13 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   }
 
   /**
-   * Where the picker starts: what is already chosen for next month, or this month. A client on Domin8te starts from
-   * Growth with their first two services (Domin8te itself is set up with Karan). @param {any} m
+   * Where the picker starts: what is already chosen for next month, or this month. A month from before the Ads-plus rules
+   * (more services than the plan lets a client pick) is trimmed to Ads and the first services that fit. @param {any} m
    * @returns {{planId: string, picks: string[], option: string|null}}
    */
   function startState(m) {
     const start = m.next || m.now;
-    const down = start.planId === 'domin8te';
-    const st = { planId: down ? 'growth' : start.planId, picks: down ? start.picks.slice(0, 2) : start.picks.slice(), option: start.websiteOption || null };
+    const st = { planId: start.planId, picks: start.picks.slice(), option: start.websiteOption || null };
     fitState(m, st);
     return st;
   }
@@ -9842,7 +9847,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
   /* Help (2026-10-09): the common questions, and a card that leads to Messages, where the conversation lives.
      2026-10-13: the answers cover plans, picks, limits and where the numbers come from. Change HELP_UPDATED with the words. */
-  const HELP_UPDATED = '2026-10-13';
+  const HELP_UPDATED = '2026-10-14';
   const PROMISES = [
     'We only publish posts, pages and ads you have approved.',
     'We never change your ad budget without asking you first.',
@@ -9851,6 +9856,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     'Only people you invite can see your account.'
   ];
   const FAQ = [
+    ['What does my plan include?', 'Every plan includes Ads. Starter adds one service you choose, Growth adds two, and Domin8te adds three. You choose from Social media, Website, SEO and Google Maps, and Email.'],
     ['How do I change my plan or my services?', 'Go to Billing and pick for next month. Your choice starts on your next bill date. This month stays as it is.'],
     ['When can I change my picks?', 'Any time up to the last day shown in Billing, which is the day before your next bill. We email you 7 days and 3 days before, so you never miss it. Pick again as often as you like until then.'],
     ['What happens to a service I stop?', 'We keep your work saved. You can add the service back for a later month.'],

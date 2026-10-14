@@ -78,8 +78,8 @@ test("emails: no em dashes, no results claims, the right words per kind", () => 
   const kinds = [
     renderReminder(ROW),
     renderReminder({ ...ROW, kind: "d3" }),
-    renderReminder({ ...ROW, kind: "d3", next_source: "client_picker", plan_next: "growth", plan_next_name: "Growth", picks_next: ["website", "local"], price_next_minor: 199900 }),
-    renderReminder({ ...ROW, kind: "picks_confirmed", next_source: "client_picker", plan_next: "growth", plan_next_name: "Growth", picks_next: ["social", "email"], price_next_minor: 199900 }),
+    renderReminder({ ...ROW, kind: "d3", next_source: "client_picker", plan_next: "growth", plan_next_name: "Growth", picks_next: ["advertising", "website", "local"], price_next_minor: 199900 }),
+    renderReminder({ ...ROW, kind: "picks_confirmed", next_source: "client_picker", plan_next: "growth", plan_next_name: "Growth", picks_next: ["advertising", "social", "email"], price_next_minor: 199900 }),
     renderReminder({ ...ROW, plan_next: "starter", picks_next: ["advertising", "website"], website_option_next: "page", next_source: "client_picker", kind: "d7" }),
   ];
   for (const m of kinds) {
@@ -91,8 +91,8 @@ test("emails: no em dashes, no results claims, the right words per kind", () => 
   assert.equal(kinds[1].subject, "3 days left to change your services");
   assert.match(kinds[1].html, /Last day to change: Sat 21 Nov, 11:59 PM Central/);
   assert.match(kinds[1].html, /Do nothing and you keep Ads and Social media/);
-  assert.match(kinds[2].html, /Next month is Growth with Website and SEO and Google Maps/);
-  assert.match(kinds[3].subject, /^Confirmed: Growth with Social media and Email from Sun 22 Nov$/);
+  assert.match(kinds[2].html, /Next month is Growth with Ads, Website and SEO and Google Maps/);
+  assert.match(kinds[3].subject, /^Confirmed: Growth with Ads, Social media and Email from Sun 22 Nov$/);
   assert.match(kinds[4].html, /1 new page a month/);
   assert.equal(day("2026-11-01"), "Sun 1 Nov", "a calendar date never shifts a day");
   assert.equal(mask("x"), "no address");

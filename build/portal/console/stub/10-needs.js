@@ -126,9 +126,9 @@
       if (list.some((/** @type {any} */ c) => mine(c) && c.state === 'ended')) throw refuse('42501', 'month-ended');
       const all = rows('service_catalog').filter((/** @type {any} */ s) => s.pickable).map((/** @type {any} */ s) => s.id);
       const picks = (a.p_picks || []).slice().sort();
-      const fits = a.p_plan === 'starter' ? picks.includes('advertising') && picks.length === 2
-        : a.p_plan === 'growth' ? picks.length === 2
-        : a.p_plan === 'domin8te' ? all.every((/** @type {string} */ s) => picks.includes(s)) : false;
+      const planRow = rows('plans').find((/** @type {any} */ p) => p.id === a.p_plan);
+      const req = (planRow && planRow.required_services) || [];
+      const fits = !!planRow && req.every((/** @type {string} */ s) => picks.includes(s)) && (planRow.picks_allowed == null ? all.every((/** @type {string} */ s) => picks.includes(s)) : picks.length === req.length + Number(planRow.picks_allowed));
       if (!fits || picks.some((/** @type {string} */ s) => !all.includes(s)) || new Set(picks).size !== picks.length) throw refuse('23514', `picks-do-not-fit: {${picks.join(',')}} does not fit the ${a.p_plan} plan`);
       const plan = rows('plans').find((/** @type {any} */ p) => p.id === a.p_plan);
       // A locked plan takes nobody new (a client already on it keeps it: this month's row is on it, or the month before is).
@@ -185,7 +185,7 @@
     const oCyc = cyc(T.osteria, 'active');
     const mNext = cyc(T.marlow, 'confirmed');
     const mRem = db.billing_reminders.find((/** @type {any} */ r) => r.tenant_id === T.marlow && r.kind === 'd3');
-    add({ id: 'dex_needs_1', t: T.osteria, type: 'plan_cycle', entity: oCyc ? oCyc.id : 'cycle', code: 'plan_mismatch', hours: 30, msg: 'The client dashboard shows a different plan from the console.', v: { console: { plan: 'growth', picks: ['local', 'website'], since: day(-9) }, dashboard: { plan: 'starter', picks: ['advertising', 'website'] } } });
+    add({ id: 'dex_needs_1', t: T.osteria, type: 'plan_cycle', entity: oCyc ? oCyc.id : 'cycle', code: 'plan_mismatch', hours: 30, msg: 'The client dashboard shows a different plan from the console.', v: { console: { plan: 'growth', picks: ['advertising', 'local', 'website'], since: day(-9) }, dashboard: { plan: 'starter', picks: ['advertising', 'website'] } } });
     add({ id: 'dex_needs_2', t: T.marlow, type: 'client_dashboard_item', entity: 'cdi_needs_1', code: 'result_outlier', hours: 4, msg: 'New Leads from ads value 320 is more than 40% away from the last verified 200.', v: { value: 200, period_end: day(-31) } });
     add({ id: 'dex_needs_3', t: T.marlow, type: 'request', entity: 'r4', code: 'over_cap_request', hours: 7, msg: 'Over cap: Social media posts 14 of 12 (Growth).', v: { used: 11, asked: 3, cap: 12, metric: 'social_posts' } });
     add({ id: 'dex_needs_4', t: T.bayleaf, type: 'request', entity: 'r1', code: 'over_cap_request', hours: 3, msg: 'Over cap: Website edits 10 of 8 (Domin8te).', v: { used: 9, asked: 1, cap: 8, metric: 'web_edits' } });

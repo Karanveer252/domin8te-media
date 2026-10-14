@@ -44,6 +44,7 @@
     name: 'Osteria Nove', kind: 'Italian restaurant', first: 'Marco', email: 'marco@osterianove.example', pkg: 'Growth',
     services: {
       website: { status: 'in_progress', objective: 'A menu people can read on their phone, and a booking button that works.', now: 'Building the new menu page', next: { who: 'domin8te', text: 'Send the draft menu page for approval' }, expected: { date: day(4), text: 'Draft menu page ready to review' }, proof: null, milestones: [{ title: 'Kickoff call', date: day(-9), state: 'done' }, { title: 'Draft menu page', date: day(4), state: 'current' }, { title: 'Site live', date: day(18), state: 'next' }], completed: [{ date: day(-9), text: 'Agreed the plan on the kickoff call' }], files: [] },
+      advertising: { status: 'planned', objective: 'A small Meta ad that fills quiet weeknights.', now: 'Choosing the first offer', next: { who: 'domin8te', text: 'Draft the first ad for approval' }, expected: null, proof: null, milestones: [], completed: [], files: [] },
       local: { status: 'planned', objective: 'The right hours and photos when someone nearby searches for dinner.', now: 'Waiting for access to the Google profile', next: { who: 'client', text: 'Add us as a manager on your Google Business Profile' }, expected: null, proof: null, milestones: [], completed: [], files: [] }
     },
     meeting: { at: day(2) + 'T15:00', title: 'Menu page walkthrough', length: '20 minutes', status: 'confirmed' }
@@ -52,7 +53,8 @@
     name: 'Marlow & Finch', kind: 'Wine bar', first: 'Priya', email: 'priya@marlowfinch.example', pkg: 'Growth',
     services: {
       social: { status: 'in_progress', objective: 'Three posts a week that make people book a table.', now: "Scheduling this week's posts", next: { who: 'domin8te', text: "Draft next week's posts" }, expected: { date: day(6), text: "Next week's posts drafted" }, proof: { date: day(-3), text: '3 posts published' }, milestones: [{ title: 'Content plan agreed', date: day(-20), state: 'done' }, { title: 'October posts drafted', date: day(6), state: 'current' }], completed: [{ date: day(-3), text: 'Published 3 posts' }], files: [] },
-      advertising: { status: 'waiting', objective: 'Fill Thursday evenings.', now: 'Thursday ad is ready for your approval', next: { who: 'client', text: 'Approve the Thursday ad' }, expected: { date: day(-2), text: 'Thursday ad live on Meta' }, proof: null, milestones: [{ title: 'Ad copy and image ready', date: day(-4), state: 'done' }, { title: 'Ad live on Meta', date: day(-2), state: 'current' }], completed: [{ date: day(-4), text: 'Prepared the Thursday ad' }], files: [] }
+      advertising: { status: 'waiting', objective: 'Fill Thursday evenings.', now: 'Thursday ad is ready for your approval', next: { who: 'client', text: 'Approve the Thursday ad' }, expected: { date: day(-2), text: 'Thursday ad live on Meta' }, proof: null, milestones: [{ title: 'Ad copy and image ready', date: day(-4), state: 'done' }, { title: 'Ad live on Meta', date: day(-2), state: 'current' }], completed: [{ date: day(-4), text: 'Prepared the Thursday ad' }], files: [] },
+      email: { status: 'planned', objective: 'A monthly email to regulars about what is on.', now: 'Setting up the list', next: { who: 'client', text: 'Send us your guest list' }, expected: null, proof: null, milestones: [], completed: [], files: [] }
     },
     approvals: { apv_thu: { id: 'apv_thu', actionId: 'act_thu', service: 'advertising', title: 'Thursday evening ad', due: day(-3), intro: 'One image, one line of copy. Please check the offer wording.', preview: { type: 'link', url: 'https://example.com/draft', label: 'Open the draft' }, approve: { label: 'Approve', done: 'Approved.' }, change: { label: 'Request changes', done: 'Thanks.' }, effects: {} } },
     updates: [{ id: 'upd_mf1', date: day(-3), service: 'social', author: 'team', title: "This week's posts are out", completed: 'Published 3 posts on Instagram and Facebook.', next: "Draft next week's posts by " + day(6) + '.' }]
@@ -454,9 +456,10 @@
     const { day, stamp } = S;
     db.plans = [
       { id: 'starter', name: 'Starter', price_minor: price(99900), currency: 'USD', picks_allowed: 1, required_services: ['advertising'], max_clients: null, locked: false, locked_at: null, locked_by: null, sort: 1 },
-      { id: 'growth', name: 'Growth', price_minor: price(199900), currency: 'USD', picks_allowed: 2, required_services: [], max_clients: null, locked: false, locked_at: null, locked_by: null, sort: 2 },
+      { id: 'growth', name: 'Growth', price_minor: price(199900), currency: 'USD', picks_allowed: 2, required_services: ['advertising'], max_clients: null, locked: false, locked_at: null, locked_by: null, sort: 2 },
+      // The plan rules (Karan, 14 Oct): Starter is Ads + 1 pick, Growth Ads + 2 picks, Domin8te Ads + 3 picks. Ads is always in and is not a pick.
       // Domin8te is unlocked with no client limit (Karan, 13 Oct: "unlock the Domin8te tier"); staff switch the lock in Settings (rpc set_plan_locked)
-      { id: 'domin8te', name: 'Domin8te', price_minor: price(349900), currency: 'USD', picks_allowed: null, required_services: [], max_clients: null, locked: false, locked_at: null, locked_by: null, sort: 3 }
+      { id: 'domin8te', name: 'Domin8te', price_minor: price(349900), currency: 'USD', picks_allowed: 3, required_services: ['advertising'], max_clients: null, locked: false, locked_at: null, locked_by: null, sort: 3 }
     ];
     db.service_catalog = [
       { id: 'advertising', label: 'Ads', pickable: true, sort: 1 }, { id: 'social', label: 'Social media', pickable: true, sort: 2 }, { id: 'website', label: 'Website', pickable: true, sort: 3 },
@@ -489,19 +492,19 @@
     // Each client's months. Bayleaf holds the one Domin8te place; Marlow's next month was carried over and nobody confirmed it.
     const cyc = (tenant, plan, picks, start, end, o) => ({ id: `cyc_${tenant}_${start}`, tenant_id: tenant, period_start: start, period_end: end, plan_id: plan, picks, website_option: null, state: 'active', confirmed_at: stamp(-30, 0), confirmed_by: 'user_preview_karan', locked_at: stamp(-20, 0), source: 'console', override_reason: null, created_at: stamp(-30, 0), updated_at: stamp(-20, 0), ...o });
     db.tenant_plan_cycles = [
-      cyc('tnt_preview_bayleaf', 'domin8te', ['advertising', 'email', 'local', 'social', 'website'], day(-22), day(8)),
-      cyc('tnt_preview_bayleaf', 'domin8te', ['advertising', 'email', 'local', 'social', 'website'], day(8), day(38), { state: 'confirmed', source: 'client_picker', locked_at: null, confirmed_at: stamp(-2, 0) }),
-      cyc('tnt_preview_osteria', 'growth', ['local', 'website'], day(-9), day(21)),
-      cyc('tnt_preview_marlow', 'growth', ['advertising', 'social'], day(-27), day(3)),
-      cyc('tnt_preview_marlow', 'growth', ['advertising', 'social'], day(3), day(33), { state: 'confirmed', source: 'auto_carry', locked_at: null, confirmed_at: stamp(-4, 0), confirmed_by: 'system' }),
+      cyc('tnt_preview_bayleaf', 'domin8te', ['advertising', 'local', 'social', 'website'], day(-22), day(8)),
+      cyc('tnt_preview_bayleaf', 'domin8te', ['advertising', 'local', 'social', 'website'], day(8), day(38), { state: 'confirmed', source: 'client_picker', locked_at: null, confirmed_at: stamp(-2, 0) }),
+      cyc('tnt_preview_osteria', 'growth', ['advertising', 'local', 'website'], day(-9), day(21)),
+      cyc('tnt_preview_marlow', 'growth', ['advertising', 'email', 'social'], day(-27), day(3)),
+      cyc('tnt_preview_marlow', 'growth', ['advertising', 'email', 'social'], day(3), day(33), { state: 'confirmed', source: 'auto_carry', locked_at: null, confirmed_at: stamp(-4, 0), confirmed_by: 'system' }),
       cyc('tnt_preview_corner', 'starter', ['advertising', 'website'], day(-5), day(25), { website_option: 'edits' })
     ];
 
     // What is used of each limit this month (a row for every limit of a plan the client has).
     const USED = {
-      tnt_preview_bayleaf: { social_posts: 14, social_reels: 2, social_stories: 6, ads_live_campaigns: 3, ads_new_creatives: 4, ads_platforms: 2, web_pages: 1, web_edits: 9, seo_google_posts: 5, seo_photos: 7, seo_review_replies: 22, seo_jobs: 2, email_campaigns: 2, email_automations: 1 },
-      tnt_preview_osteria: { seo_google_posts: 2, seo_photos: 3, seo_review_replies: 11, seo_jobs: 1, web_pages: 1, web_edits: 2 },
-      tnt_preview_marlow: { social_posts: 11, social_reels: 1, social_stories: 3, ads_live_campaigns: 3, ads_new_creatives: 3, ads_platforms: 1 },
+      tnt_preview_bayleaf: { social_posts: 14, social_reels: 2, social_stories: 6, ads_live_campaigns: 3, ads_new_creatives: 4, ads_platforms: 2, web_pages: 1, web_edits: 9, seo_google_posts: 5, seo_photos: 7, seo_review_replies: 22, seo_jobs: 2 },
+      tnt_preview_osteria: { ads_live_campaigns: 1, ads_new_creatives: 2, ads_platforms: 1, seo_google_posts: 2, seo_photos: 3, seo_review_replies: 11, seo_jobs: 1, web_pages: 1, web_edits: 2 },
+      tnt_preview_marlow: { social_posts: 11, social_reels: 1, social_stories: 3, ads_live_campaigns: 3, ads_new_creatives: 3, ads_platforms: 1, email_campaigns: 1, email_automations: 0 },
       tnt_preview_corner: { ads_live_campaigns: 1, ads_new_creatives: 1, ads_platforms: 1, web_edits: 1 }
     };
     db.tenant_usage_current = [];
@@ -657,9 +660,9 @@
       if (list.some((/** @type {any} */ c) => mine(c) && c.state === 'ended')) throw refuse('42501', 'month-ended');
       const all = rows('service_catalog').filter((/** @type {any} */ s) => s.pickable).map((/** @type {any} */ s) => s.id);
       const picks = (a.p_picks || []).slice().sort();
-      const fits = a.p_plan === 'starter' ? picks.includes('advertising') && picks.length === 2
-        : a.p_plan === 'growth' ? picks.length === 2
-        : a.p_plan === 'domin8te' ? all.every((/** @type {string} */ s) => picks.includes(s)) : false;
+      const planRow = rows('plans').find((/** @type {any} */ p) => p.id === a.p_plan);
+      const req = (planRow && planRow.required_services) || [];
+      const fits = !!planRow && req.every((/** @type {string} */ s) => picks.includes(s)) && (planRow.picks_allowed == null ? all.every((/** @type {string} */ s) => picks.includes(s)) : picks.length === req.length + Number(planRow.picks_allowed));
       if (!fits || picks.some((/** @type {string} */ s) => !all.includes(s)) || new Set(picks).size !== picks.length) throw refuse('23514', `picks-do-not-fit: {${picks.join(',')}} does not fit the ${a.p_plan} plan`);
       const plan = rows('plans').find((/** @type {any} */ p) => p.id === a.p_plan);
       // A locked plan takes nobody new (a client already on it keeps it: this month's row is on it, or the month before is).
@@ -716,7 +719,7 @@
     const oCyc = cyc(T.osteria, 'active');
     const mNext = cyc(T.marlow, 'confirmed');
     const mRem = db.billing_reminders.find((/** @type {any} */ r) => r.tenant_id === T.marlow && r.kind === 'd3');
-    add({ id: 'dex_needs_1', t: T.osteria, type: 'plan_cycle', entity: oCyc ? oCyc.id : 'cycle', code: 'plan_mismatch', hours: 30, msg: 'The client dashboard shows a different plan from the console.', v: { console: { plan: 'growth', picks: ['local', 'website'], since: day(-9) }, dashboard: { plan: 'starter', picks: ['advertising', 'website'] } } });
+    add({ id: 'dex_needs_1', t: T.osteria, type: 'plan_cycle', entity: oCyc ? oCyc.id : 'cycle', code: 'plan_mismatch', hours: 30, msg: 'The client dashboard shows a different plan from the console.', v: { console: { plan: 'growth', picks: ['advertising', 'local', 'website'], since: day(-9) }, dashboard: { plan: 'starter', picks: ['advertising', 'website'] } } });
     add({ id: 'dex_needs_2', t: T.marlow, type: 'client_dashboard_item', entity: 'cdi_needs_1', code: 'result_outlier', hours: 4, msg: 'New Leads from ads value 320 is more than 40% away from the last verified 200.', v: { value: 200, period_end: day(-31) } });
     add({ id: 'dex_needs_3', t: T.marlow, type: 'request', entity: 'r4', code: 'over_cap_request', hours: 7, msg: 'Over cap: Social media posts 14 of 12 (Growth).', v: { used: 11, asked: 3, cap: 12, metric: 'social_posts' } });
     add({ id: 'dex_needs_4', t: T.bayleaf, type: 'request', entity: 'r1', code: 'over_cap_request', hours: 3, msg: 'Over cap: Website edits 10 of 8 (Domin8te).', v: { used: 9, asked: 1, cap: 8, metric: 'web_edits' } });
@@ -782,7 +785,7 @@
       // a new card nobody has decided on: hidden from the client until staff say so
       card({ id: 'kw_reviews', tenant_id: 'tnt_preview_osteria', service: 'local', title: 'Reply to this week’s Google reviews', status: 'todo', due: day(2), created_at: stamp(0, 1) }),
       card({ id: 'kw_gpost', tenant_id: 'tnt_preview_osteria', service: 'local', title: 'Google post: patio hours', status: 'done', created_at: stamp(-6, 0), updated_at: stamp(-3, 0), ...shown }),
-      card({ id: 'kw_email', tenant_id: 'tnt_preview_bayleaf', service: 'email', title: 'Fall menu email', status: 'in_progress', assignee: 'Sam', created_at: stamp(-3, 0), ...shown }),
+      card({ id: 'kw_email', tenant_id: 'tnt_preview_bayleaf', service: 'local', title: 'Google post: fall menu', status: 'in_progress', assignee: 'Sam', created_at: stamp(-3, 0), ...shown }),
       card({ id: 'kw_ad', tenant_id: 'tnt_preview_marlow', service: 'advertising', title: 'Weekend special ad: two versions', status: 'in_review', created_at: stamp(-2, 0), ...shown })
     );
 
@@ -1015,10 +1018,13 @@
     if (!Array.isArray(picks)) return false;
     const distinct = new Set(picks).size === picks.length;
     const inCatalog = picks.every((x) => cat.includes(x));
+    // the generic rule (14 Oct 2026): what the plan requires is in, and the count is required plus picks_allowed; a row with no pick count means every service
+    const row = planRow(plan);
     let fits = false;
-    if (plan === 'starter') fits = picks.includes('advertising') && picks.filter((x) => x !== 'advertising').length === 1;
-    else if (plan === 'growth') fits = picks.length === 2;
-    else if (plan === 'domin8te') fits = cat.every((/** @type {string} */ x) => picks.includes(x));
+    if (row) {
+      const req = row.required_services || [];
+      fits = req.every((/** @type {string} */ x) => picks.includes(x)) && (row.picks_allowed === null || row.picks_allowed === undefined ? cat.every((/** @type {string} */ x) => picks.includes(x)) : picks.length === req.length + Number(row.picks_allowed));
+    }
     return fits && inCatalog && distinct;
   }
 
@@ -1200,7 +1206,7 @@
     // Osteria's client has already picked next cycle's services (Local search out, Social in), so the orange and struck picks show.
     const osteriaNow = (db.tenant_plan_cycles || []).find((/** @type {any} */ c) => c.tenant_id === 'tnt_preview_osteria' && c.state === 'active');
     if (osteriaNow && !(db.tenant_plan_cycles || []).some((/** @type {any} */ c) => c.tenant_id === 'tnt_preview_osteria' && c.period_start === osteriaNow.period_end)) {
-      db.tenant_plan_cycles.push({ id: 'cyc_tnt_preview_osteria_next', tenant_id: 'tnt_preview_osteria', period_start: osteriaNow.period_end, period_end: addMonth(osteriaNow.period_end), plan_id: 'growth', picks: ['social', 'website'], website_option: null,
+      db.tenant_plan_cycles.push({ id: 'cyc_tnt_preview_osteria_next', tenant_id: 'tnt_preview_osteria', period_start: osteriaNow.period_end, period_end: addMonth(osteriaNow.period_end), plan_id: 'growth', picks: ['advertising', 'social', 'website'], website_option: null,
         state: 'confirmed', confirmed_at: stamp(-1, 0), confirmed_by: 'user_preview_osteria', locked_at: null, source: 'client_picker', override_reason: null, created_at: stamp(-1, 0), updated_at: stamp(-1, 0) });
     }
     // What the history shows: the plans set and changed, a pick the client made, a carry-over, an approved link.
@@ -1673,6 +1679,91 @@
       services: services.map((/** @type {any} */ s) => ({ id: s.id, label: s.label, pickable: !!s.pickable })),
       mismatch: (db.dashboard_exceptions || []).some((/** @type {any} */ e) => e.tenant_id === t && e.reason_code === 'plan_mismatch' && e.status === 'open')
     };
+  };
+})();
+</script>
+<script>
+/* stub/70-notify.js */
+// LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). The message emails' stand-ins for the database
+// (2026-10-14): the queue table message_notifications with some seed rows, the rule that puts a failed email back in the queue,
+// the two team-address functions, and the trigger that queues a row when a message is written. The real rules are in
+// portal/supabase/migrations/20261014030000_message_notifications.sql (guard_message_notification_update,
+// queue_message_notification, set_notify_team_email, get_notify_team_email). A refusal here has the same code and words as the
+// database's. Who is an owner is the console's own answer (D8C.me.role), so the owner-only rule can be tried by changing it.
+(function () {
+  'use strict';
+  const S = /** @type {any} */ (window).D8STUB;
+  if (!S) return;
+  /** @param {string} code @param {string} message */
+  const err = (code, message) => ({ code, message });
+  const MAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const WHO = 'user_preview_karan';
+  const GRANT = ['status', 'attempts', 'error', 'to_email', 'send_at'];
+  const isOwner = () => { const c = /** @type {any} */ (window).D8C; return !(c && c.me) || c.me.role === 'super_admin'; };
+  const mask = (/** @type {string} */ e) => (String(e || '').indexOf('@') < 1 ? 'no address' : `${e[0]}***${e.slice(e.indexOf('@'))}`);
+  /** app.settings notify_team_email: the preview starts with an address set, so the panel shows it (an owner can clear it). @type {string|null} */
+  let TEAM = 'team@domin8temedia.example';
+
+  /* ---- seed rows ------------------------------------------------------------------------------------------ */
+  S.seeds.push((/** @type {any} */ db) => {
+    const { stamp } = S;
+    const T = { bayleaf: 'tnt_preview_bayleaf', osteria: 'tnt_preview_osteria', marlow: 'tnt_preview_marlow', corner: 'tnt_preview_corner' };
+    const row = (/** @type {string} */ id, /** @type {string} */ tenant, /** @type {string} */ direction, /** @type {string} */ to, /** @type {any} */ o) => ({
+      id, tenant_id: tenant, message_id: null, message_ids: [], direction, send_at: stamp(0, 1), to_email: to, status: 'sent', attempts: 0, burst_open: true,
+      provider_id: null, error: null, sent_at: null, created_at: stamp(0, 1), updated_at: stamp(0, 1), ...o });
+    db.message_notifications = [
+      row('mn_1', T.bayleaf, 'to_team', 'team@domin8temedia.example', { status: 'sent', provider_id: 're_preview_m1', sent_at: stamp(0, 3), send_at: stamp(0, 3), created_at: stamp(0, 3), updated_at: stamp(0, 3) }),
+      row('mn_2', T.osteria, 'to_client', 'marco@osterianove.example', { status: 'sent', provider_id: 're_preview_m2', sent_at: stamp(-1, 2), send_at: stamp(-1, 2), created_at: stamp(-1, 2), updated_at: stamp(-1, 2) }),
+      row('mn_3', T.marlow, 'to_team', 'team@domin8temedia.example', { status: 'scheduled', send_at: new Date(Date.now() + 90000).toISOString(), created_at: stamp(0, 0), updated_at: stamp(0, 0) }),
+      row('mn_4', T.marlow, 'to_client', 'priya@marlowfinch.example', { status: 'failed', attempts: 3, error: 'resend 422 validation_error', created_at: stamp(0, 7), updated_at: stamp(0, 6) }),
+      row('mn_5', T.corner, 'to_client', 'sam@cornerbean.example', { status: 'skipped', error: 'client is paused', created_at: stamp(-2, 0), updated_at: stamp(-2, 0) }),
+      row('mn_6', T.osteria, 'to_team', 'team@domin8temedia.example', { status: 'failed', attempts: 3, error: 'network: fetch failed', created_at: stamp(-41, 0), updated_at: stamp(-41, 0) })
+    ];
+    // finish_message_notification opened an item for the failure of the Marlow email (the console's Needs you draws it).
+    db.dashboard_exceptions = db.dashboard_exceptions || [];
+    db.dashboard_exceptions.push({ id: 'dex_notify_1', tenant_id: T.marlow, event_id: null, entity_type: 'message_notification', entity_id: 'mn_4', severity: 'warning',
+      reason_code: 'notification_failed', message: 'Message email to the client (p***@marlowfinch.example) failed', last_verified_value: null, status: 'open',
+      detected_at: stamp(0, 6), resolved_at: null, resolved_by: null, resolution_note: null });
+  });
+
+  /* ---- message_notifications: staff may only put a failed or skipped one back in the queue ------------------- */
+  S.hooks.update.message_notifications = (/** @type {any} */ rec, /** @type {any} */ before) => {
+    const revert = () => { for (const k of Object.keys(rec)) delete rec[k]; Object.assign(rec, before); };
+    const cols = Object.keys(rec).filter((k) => k !== 'updated_at' && JSON.stringify(rec[k]) !== JSON.stringify(before[k]));
+    if (cols.some((k) => !GRANT.includes(k))) { revert(); throw err('42501', 'permission denied for table message_notifications'); }
+    if (!(['failed', 'skipped'].includes(before.status) && rec.status === 'scheduled')) { revert(); throw err('42501', 'only-requeue: a staff member can only re-queue a failed or skipped message email'); }
+    if (!MAIL.test(String(rec.to_email || ''))) { revert(); throw err('22023', 'bad-email'); }
+    rec.attempts = 0; rec.error = null; rec.burst_open = false;
+    rec.send_at = new Date(Math.max(Date.now(), new Date(rec.send_at).getTime())).toISOString();
+    S.audit(rec.tenant_id, 'message_email_requeued', { notification: rec.id, direction: rec.direction, email_changed: rec.to_email !== before.to_email });
+  };
+
+  /* ---- the team address: owners set it, staff read it --------------------------------------------------------- */
+  S.rpcs.get_notify_team_email = () => TEAM;
+  S.rpcs.set_notify_team_email = (/** @type {any} */ a) => {
+    if (!isOwner()) throw err('42501', 'owners-only: only an owner can set the team address');
+    const e = String(a.p_email || '').trim().toLowerCase();
+    if (e && (!MAIL.test(e) || e.length > 200)) throw err('22023', 'bad-email');
+    const old = TEAM;
+    TEAM = e || null;
+    if (old !== TEAM) S.audit(null, 'notify_team_email_set', { old: old ? mask(old) : null, new: TEAM ? mask(TEAM) : null });
+    return { team_email: TEAM };
+  };
+
+  /* ---- the trigger on messages: one waiting row for each client and direction, 2 minutes ahead ------------------ */
+  S.hooks.insert.messages = (/** @type {any} */ rec) => {
+    const db = S.db;
+    const t = (db.tenants || []).find((/** @type {any} */ x) => x.id === rec.tenant_id);
+    if (!t) return;
+    const dir = rec.from_staff ? 'to_client' : 'to_team';
+    const mail = rec.from_staff ? String((t.doc && t.doc.user && t.doc.user.email) || '').trim().toLowerCase() || null : TEAM;
+    const skip = t.status !== 'active' ? `client is ${t.status}` : !mail ? (rec.from_staff ? 'no email on file' : 'no team address') : null;
+    const list = db.message_notifications = db.message_notifications || [];
+    const at = new Date().toISOString();
+    const waiting = skip ? null : list.find((/** @type {any} */ r) => r.tenant_id === t.id && r.direction === dir && r.status === 'scheduled' && r.burst_open);
+    if (waiting) { waiting.message_ids.push(rec.id); waiting.to_email = mail; return; }
+    list.push({ id: `mn_${S.id()}`, tenant_id: t.id, message_id: rec.id, message_ids: [rec.id], direction: dir, send_at: skip ? at : new Date(Date.now() + 120000).toISOString(), to_email: mail || '',
+      status: skip ? 'skipped' : 'scheduled', attempts: 0, burst_open: true, provider_id: null, error: skip, sent_at: null, created_at: at, updated_at: at });
   };
 })();
 </script>
@@ -3724,6 +3815,10 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
   .pl-avail-note { max-width: none; }
 }
 
+/* Message emails: the team address form (2026-10-14) */
+.mn-team { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-bottom: 6px; }
+.mn-team .field { flex: 1 1 220px; min-width: 0; }
+
 /* css/50-visible.css */
 /*
  * The Visible tab (2026-10-13): one list of everything a client sees or could see, a switch for each, and the history beside it.
@@ -4118,6 +4213,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
 <svg hidden aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
   <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/></symbol>
   <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4.5 5h15a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-5 4v-4h-.5A1.5 1.5 0 0 1 3 15.5v-9A1.5 1.5 0 0 1 4.5 5z"/><path d="M8 10h8M8 13h5"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24"><rect x="4.5" y="8" width="15" height="11" rx="3"/><path d="M12 4.5V8"/><circle cx="12" cy="3.6" r="1"/><path d="M9.5 12.5v1M14.5 12.5v1"/><path d="M2.5 12.5v3M21.5 12.5v3"/></symbol>
   <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M17.5 13.6A6.5 6.5 0 0 1 21.5 20"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
@@ -4150,6 +4246,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
     <ul class="nav">
       <li><a href="#/queue" data-nav="queue"><svg class="ic"><use href="#i-inbox"/></svg>Needs you<span class="badge" id="queue-badge" hidden></span></a></li>
       <li><a href="#/messages" data-nav="messages"><svg class="ic"><use href="#i-chat"/></svg>Messages<span class="badge" id="msg-badge" hidden title="Waiting for your reply"></span></a></li>
+      <li><a href="#/bot" data-nav="bot"><svg class="ic"><use href="#i-bot"/></svg>Bot chat<span class="badge" id="bot-badge" hidden title="Pending drafts"></span></a></li>
       <li><a href="#/clients" data-nav="clients"><svg class="ic"><use href="#i-users"/></svg>Clients</a></li>
       <li><a href="#/board" data-nav="board" title="Every client's team cards on one board"><svg class="ic"><use href="#i-board"/></svg>All work</a></li>
       <li><a href="#/billing" data-nav="billing"><svg class="ic"><use href="#i-card"/></svg>Billing<span class="badge" id="billing-badge" hidden title="Past due"></span></a></li>
@@ -4422,10 +4519,14 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
     return { name: cap1(f[1]), unit: noun, state: false, cap: `Up to ${n} ${noun} a month`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} used`, short: `${n} ${noun}` };
   }
 
-  /** The services a month holds: Domin8te has every one, the others what was picked. @param {any} c a cycle */
-  const picksOf = (c) => (c && c.planId === 'domin8te' ? ORDER.slice() : ordered((c && c.picks) || []));
+  /** The services a month holds: what was picked, with Ads (which every plan includes) among them. @param {any} c a cycle */
+  const picksOf = (c) => ordered((c && c.picks) || []);
 
-  /** How many of the services a plan lets a client choose, and which are fixed. @param {any} plan */
+  /**
+   * How many of the services a plan lets a client choose, and which are fixed. Every plan is Ads plus a number of picks
+   * (Starter 1, Growth 2, Domin8te 3): `fixed` is Ads, `choose` the picks, `total` both. A plan with no pick count at all
+   * (an old record) reads as every service. @param {any} plan
+   */
   function rule(plan) {
     if (!plan || plan.picksAllowed === null || plan.picksAllowed === undefined) return { all: true, fixed: ORDER.slice(), choose: 0, total: ORDER.length };
     const fixed = ordered(plan.required || []);
@@ -4460,7 +4561,8 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
   function validate(menu, planId, picks, websiteOption) {
     const plan = ((menu && menu.plans) || []).find((/** @type {any} */ p) => p.id === planId);
     if (!plan) return { ok: false, code: 'bad-plan', error: 'Choose one of the plans.' };
-    if (planId === 'domin8te') return { ok: false, code: 'ask-karan', error: 'Domin8te is set up with Karan. Message him and we will arrange it.' };
+    // An owner locked the plan: nobody new can start on it (a client already on it keeps it, and can pick it again)
+    if (plan.locked && !plan.current) return { ok: false, code: 'plan-locked', error: `${plan.name} is locked right now and is not taking new clients. Message Karan and we will help.` };
     const list = ordered(picks);
     if ((picks || []).length !== list.length) return { ok: false, code: 'bad-service', error: 'One of those is not a service we offer, or it was picked twice.' };
     const r = rule(plan);
@@ -4555,7 +4657,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
     out.moreMinor = out.pricesShown && next ? Number(next.priceMinor) - Number(now.priceMinor) : null;
     const plans = (p.menu.plans || []);
     out.menu = plans.map((pl) => ({
-      ...pl, rule: rule(pl), askKaran: pl.id === 'domin8te', current: pl.id === now.planId,
+      ...pl, rule: rule(pl), current: pl.id === now.planId,
       services: ORDER.map((id) => { const ls = lines(p.menu.caps || [], pl.id, id, null); return { id, label: svc(id).label, icon: svc(id).icon, lines: ls, summary: summary(ls, pl.id) }; })
     }));
     return out;
@@ -4571,7 +4673,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
     const v = validate(menu, d.planId, d.picks, d.websiteOption || null);
     const pl = model.menu.find((/** @type {any} */ x) => x.id === d.planId);
     if (!pl) return { valid: false, error: v.error, code: v.code };
-    const picks = d.planId === 'domin8te' ? ORDER.slice() : ordered(d.picks);
+    const picks = ordered(d.picks);
     const caps = model.menu.flatMap((/** @type {any} */ m) => m.services.flatMap((/** @type {any} */ s) => s.lines.map((/** @type {any} */ l) => ({ planId: m.id, service: s.id, metric: l.metric, label: l.label, cap: l.cap, weeklyHint: l.weeklyHint }))));
     const draft = cycle({ menu: { plans: model.menu, caps } }, { planId: d.planId, picks, websiteOption: d.websiteOption || null, start: model.bill, end: T.addMonths(model.bill, 1), source: 'client_picker' });
     const change = diff(model.now, draft);
@@ -6055,7 +6157,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
     const code = error && error.code;
     if (code === '23505') return fail('already-decided', 'You already answered this one.');
     const said = String((error && error.message) || '');
-    if (/ask-karan/.test(said)) return fail('ask-karan', 'Domin8te is set up with Karan. Message him and we will arrange it.');
+    if (/plan-locked/.test(said)) return fail('plan-locked', 'That plan is locked right now and is not taking new clients. Message Karan and we will help.');
     if (/month-locked|next-month-locked/.test(said)) return fail('locked', 'It is too late to change next month. Message us and we will help.');
     if (/no-current-cycle/.test(said) || code === 'P0002') return fail('no-plan', 'Your plan is not set up yet. Message us and we will sort it out.');
     if (code === '23P01' || /plan-full/.test(said)) return fail('plan-full', 'That plan is taken right now. Message Karan and we will help.');
@@ -6942,11 +7044,15 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
   };
   /** Ad spend is separate from the plan fee (release default 18): change the sentence here. */
   const AD_SPEND = 'Ad spend is paid to Meta and Google directly and is not part of your plan.';
-  /** What a plan is, in a line. @param {any} p a menu plan */
+  /** A small number as a word ("two"), for the plan lines. @param {number} n */
+  const numWord = (n) => ['no', 'one', 'two', 'three', 'four', 'five'][n] || String(n);
+  /** What a plan is, in a line: "Ads, plus two services you choose". @param {any} p a menu plan */
   function blurb(p) {
-    if (p.id === 'domin8te') return p.locked && !p.current ? 'Every service, set up with Karan. Not open to new clients right now.' : p.full ? 'Every service, set up with Karan. Taken right now.' : 'Every service, set up with Karan.';
-    if (p.rule.fixed.length) return `${F.list(p.rule.fixed.map((/** @type {string} */ x) => svc(x).label))}, plus ${p.rule.choose === 1 ? 'one service' : p.rule.choose + ' services'} you choose`;
-    return `Any ${p.rule.choose === 2 ? 'two' : p.rule.choose} services you choose`;
+    const n = p.rule.choose;
+    const some = n === 1 ? 'one service' : `${numWord(n)} services`;
+    if (p.rule.all) return 'Every service';
+    if (p.rule.fixed.length) return `${F.list(p.rule.fixed.map((/** @type {string} */ x) => svc(x).label))}, plus ${some} you choose`;
+    return `Any ${some} you choose`;
   }
   /** @param {string[]} picks */
   const chips = (picks) => `<ul class="chips">${picks.map((/** @type {string} */ id) => `<li class="chip">${esc(svc(id).label)}</li>`).join('')}</ul>`;
@@ -7247,7 +7353,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
     const price = pl && pl.price_minor != null ? C().money(pl.price_minor, pl.currency) : '';
     return `<strong class="bl-plan">${esc(pl ? pl.name : cap1(c.plan_id))}</strong>${price ? `<span class="sub">${esc(price)} / mo</span>` : ''}${!r.now || r.notStarted ? `<span class="sub">Starts ${esc(dayShort(c.period_start))}</span>` : ''}`;
   }
-  /** Is this plan "every service"? @param {any} plan */
+  /** Is this plan "every service"? None is now (every plan is Ads plus picks); a row with no pick count would still read that way. @param {any} plan */
   const takesAll = (plan) => !!plan && (plan.picks_allowed === null || plan.picks_allowed === undefined);
   /** @param {any} cycle @param {any} plan */
   function chipsOf(cycle, plan) {
@@ -7362,7 +7468,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
    */
   function tierCard(plans) {
     const c = C();
-    const feat = plans.find((/** @type {any} */ p) => p.max_clients != null) || plans.find((/** @type {any} */ p) => p.id === 'domin8te') || plans.find(takesAll);
+    const feat = plans.find((/** @type {any} */ p) => p.max_clients != null) || plans.find((/** @type {any} */ p) => p.locked) || plans.find((/** @type {any} */ p) => p.id === 'domin8te') || plans[plans.length - 1];
     if (!feat) return '';
     const today = c.today();
     const slot = PP().slotOf(feat.id, null, today, addDays(today, 1));
@@ -7526,7 +7632,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
   function historyLine(r, staff) {
     const d = r.detail || {};
     const plan = (/** @type {string} */ id) => ((C().plans.plans || []).find((/** @type {any} */ p) => p.id === id) || {}).name || cap1(String(id || ''));
-    const picks = (/** @type {string[]} */ list, /** @type {string} */ planId) => (planId === 'domin8te' ? 'every service' : PP().andList(PM().ordered(list || []).map((/** @type {string} */ s) => PP().label(s))) || 'no services');
+    const picks = (/** @type {string[]} */ list, /** @type {string} */ planId) => (takesAll((C().plans.plans || []).find((/** @type {any} */ p) => p.id === planId)) ? 'every service' : PP().andList(PM().ordered(list || []).map((/** @type {string} */ s) => PP().label(s))) || 'no services');
     const sys = !r.actor || !/^user_/.test(String(r.actor));
     const bySource = /^plan_cycle_/.test(String(r.action)) ? (d.source === 'client_picker' ? 'The client' : d.source === 'auto_carry' ? 'System' : '') : '';
     const who = bySource || staff[r.actor] || (sys ? 'System' : 'A team member');
@@ -7736,6 +7842,319 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
 })();
 </script>
 <script>
+/* mod-bot.js */
+// @ts-check
+/*
+ * Bot chat (2026-10-14): finished drafts dropped in from Grok, Claude or Hermes, each one an approval card for the team.
+ *
+ * Where it shows: the page #/bot (every client, a filter by client) and #/bot/<item id> (one card); the client tab "Bot"
+ * (#/client/<id>/bot[/<item id>]) right after Talk, with only that client's queue; a "Bot outputs waiting" block on Needs you;
+ * and the Pending count on the sidebar item. Clients never see any of it (the table has no client policy).
+ *
+ * Statuses: Pending, Approved, Rejected, Expired (a Pending card past its expires_at shows Expired). Actions on a Pending card:
+ * Approve (the draft as it is), Edit (the draft becomes a text field, then Save & Approve), Reject (a short reason, kept with
+ * the card) and Respond (a note for another round; the card stays Pending). Every change goes through the database function
+ * bot_output_decide. Approving sends nothing: the card then offers Copy and "Put in reply to <client>", which opens their
+ * conversation in Messages with the text in the reply box, for the team to send by hand.
+ *
+ * Cards come in through the bot-drop function (portal/supabase/functions/bot-drop). The console never calls a model.
+ */
+(function () {
+  'use strict';
+  const W = /** @type {any} */ (window);
+  W.D8C_EXT = W.D8C_EXT || {};
+  const EXT = W.D8C_EXT;
+  EXT.tabs = EXT.tabs || {};
+  const C = () => W.D8C;
+
+  /** Every bot output the console has loaded, newest first. @type {any[]} */
+  let rows = [];
+  let loaded = false;
+  /** The page's own state: the client filter, and which card has a field open (edit, reject or respond). */
+  const state = { filter: 'all', mode: '', modeFor: '' };
+  /** Text a person handed to Messages: the reply box picks it up once. @type {{tenantId: string, text: string}|null} */
+  let handoff = null;
+
+  const STATUS = {
+    pending: { label: 'Pending', tone: 'you' },
+    approved: { label: 'Approved', tone: 'good' },
+    rejected: { label: 'Rejected', tone: 'bad' },
+    expired: { label: 'Expired', tone: 'off' }
+  };
+  /** A Pending card past its expiry reads Expired. @param {any} r @returns {'pending'|'approved'|'rejected'|'expired'} */
+  const statusOf = (r) => (r.status === 'pending' && r.expires_at && new Date(r.expires_at).getTime() < Date.now() ? 'expired' : r.status in STATUS ? r.status : 'pending');
+  /** @param {any} r */
+  const pill = (r) => { const s = STATUS[statusOf(r)]; return `<span class="chip ${s.tone}">${s.label}</span>`; };
+  const pending = () => rows.filter((r) => statusOf(r) === 'pending' && liveTenant(r.tenant_id));
+  /** @param {string} id */
+  const liveTenant = (id) => { const t = C().tenant(id); return t && t.status !== 'archived' ? t : null; };
+  /** @param {any} r */
+  const clientName = (r) => { const t = C().tenant(r.tenant_id); return t ? t.name : 'Unknown client'; };
+  /** @param {string} s @param {number} n */
+  const short = (s, n) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t; };
+  /** Where a card opens: on the Bot chat page, or inside the client's Bot tab. @param {any} r @param {string} [inTab] */
+  const hrefOf = (r, inTab) => (inTab ? `#/client/${inTab}/bot/${r.id}` : `#/bot/${r.id}`);
+
+  /** The database's refusals in plain words. @param {any} x */
+  function say(x) {
+    const m = String((x && (x.message || x.code)) || x || '');
+    if (/already-decided/.test(m)) return 'Someone already decided this one. Reload to see it.';
+    if (/note-needed/.test(m)) return 'Write a short note first.';
+    if (/empty-text/.test(m)) return 'The text is empty.';
+    if (/not-staff|42501/.test(m)) return 'Only the Domin8te team can do this.';
+    if (/not-found|P0002/.test(m)) return 'That item was not found. Reload the page.';
+    return C().message(x);
+  }
+
+  /* ---- data ------------------------------------------------------------------------------------------------------ */
+
+  /** Loads every bot output (console.js calls this with the rest of the console's data). A database without the table carries on with none. */
+  async function load() {
+    try {
+      const c = await C().db();
+      const r = await c.from('bot_outputs').select('*').order('created_at', { ascending: false }).limit(500);
+      rows = r && !r.error ? r.data || [] : [];
+    } catch (e) { rows = []; }
+    loaded = true;
+  }
+  /** @param {string} id @param {'approve'|'reject'|'respond'} action @param {{text?: string, note?: string}} [o] */
+  async function decide(id, action, o) {
+    const c = await C().db();
+    const r = await c.rpc('bot_output_decide', { p_id: id, p_action: action, p_text: (o && o.text) || null, p_note: (o && o.note) || null });
+    if (r.error) throw r.error;
+    const row = Array.isArray(r.data) ? r.data[0] : r.data;
+    if (row) { const i = rows.findIndex((x) => x.id === id); if (i >= 0) rows[i] = row; else rows.unshift(row); }
+    return row;
+  }
+
+  /* ---- drawing ----------------------------------------------------------------------------------------------------- */
+
+  /** One row of the list; the whole row is the card's link. @param {any} r @param {string} [inTab] */
+  function row(r, inTab) {
+    const C0 = C();
+    return `<li><a class="q-row${inTab ? ' no-client' : ''}" href="${C0.esc(hrefOf(r, inTab))}">
+      ${inTab ? '' : `<span class="client">${C0.esc(clientName(r))}</span>`}
+      <span>${pill(r)}</span>
+      <span class="text"><span class="bot-kind">${C0.esc(r.kind || 'General')}</span> ${C0.esc(short(r.final_text || r.draft, 140))}</span>
+      <span class="when"><time datetime="${C0.esc(r.created_at)}" title="${C0.esc(C0.when(r.created_at))}">${C0.esc(C0.ago(r.created_at))}</time></span>
+      <span class="go" aria-hidden="true">${C0.icon('arrow')}</span></a></li>`;
+  }
+
+  /** The draft with the changed phrases marked. @param {any} r */
+  function marked(r) {
+    const esc = C().esc;
+    const text = String(r.draft || '');
+    const hl = (Array.isArray(r.highlights) ? r.highlights : []).filter((/** @type {any} */ h) => typeof h === 'string' && h && text.includes(h));
+    if (!hl.length) return esc(text);
+    // One pass over the text, longest phrase first, so overlapping phrases never nest.
+    const sorted = hl.slice().sort((a, b) => b.length - a.length);
+    let out = '';
+    let i = 0;
+    while (i < text.length) {
+      const h = sorted.find((/** @type {string} */ p) => text.startsWith(p, i));
+      if (h) { out += `<mark>${esc(h)}</mark>`; i += h.length; } else { out += esc(text[i]); i += 1; }
+    }
+    return out;
+  }
+
+  /** The approval card. @param {any} r @param {string} [inTab] the client's id when it is drawn inside their Bot tab */
+  function card(r, inTab) {
+    const C0 = C();
+    const { esc, icon } = C0;
+    const st = statusOf(r);
+    const open = st === 'pending' && state.modeFor === r.id ? state.mode : '';
+    const t = C0.tenant(r.tenant_id);
+    const notes = Array.isArray(r.notes) ? r.notes : [];
+    const by = r.source && r.source !== 'console' ? `From ${esc(r.source.charAt(0).toUpperCase() + r.source.slice(1))}` : 'Added in the console';
+    const back = inTab ? `#/client/${inTab}/bot` : '#/bot';
+    const draftBlock = open === 'edit'
+      ? `<form class="bot-form" id="bot-edit" novalidate>
+          <div class="field"><label for="bot-edit-text">AI draft, edit before you approve</label><textarea id="bot-edit-text" name="text" rows="7" maxlength="20000">${esc(r.draft)}</textarea></div>
+          <div class="actions"><button class="btn" type="submit">${icon('check')}Save &amp; Approve</button><button class="btn btn-quiet" type="button" data-bot="cancel">Cancel</button></div>
+        </form>`
+      : `<div class="bot-text">${st === 'approved' && r.final_text && r.final_text !== r.draft ? esc(r.final_text) : marked(r)}</div>`;
+    const field = (/** @type {string} */ id, /** @type {string} */ label, /** @type {string} */ ph, /** @type {string} */ ok, /** @type {string} */ cls) => `<form class="bot-form" id="${id}" novalidate>
+        <div class="field"><label for="${id}-note">${label}</label><textarea id="${id}-note" name="note" rows="3" maxlength="2000" placeholder="${ph}"></textarea></div>
+        <div class="actions"><button class="btn btn-quiet" type="button" data-bot="cancel">${icon('back')}Back</button><button class="btn${cls}" type="submit">${ok}</button></div>
+      </form>`;
+    const actions = st !== 'pending' ? ''
+      : open === 'reject' ? field('bot-reject', 'Why it is rejected (kept with this item)', 'For example: the offer wording is wrong, they asked for Sunday not Saturday.', 'Confirm reject', ' btn-danger')
+      : open === 'respond' ? field('bot-respond', 'Notes for another round', 'What should change in the next draft?', 'Add note', '')
+      : open === 'edit' ? ''
+      : `<div class="actions bot-actions">
+          <button class="btn" type="button" data-bot="approve">${icon('check')}Approve</button>
+          <button class="btn btn-quiet" type="button" data-bot="edit">Edit</button>
+          <button class="btn btn-quiet" type="button" data-bot="reject">${icon('x')}Reject</button>
+          <button class="btn btn-quiet" type="button" data-bot="respond">${icon('chat')}Respond</button>
+        </div>`;
+    const decided = st === 'approved' ? `<div class="bot-after"><p class="meta">Approved${r.decided_by_name ? ` by ${esc(r.decided_by_name)}` : ''}, ${esc(C0.when(r.decided_at))}${r.final_text && r.final_text !== r.draft ? '. Edited before approval.' : '.'} Nothing has been sent; send it yourself.</p>
+          <div class="actions"><button class="btn" type="button" data-bot="to-messages"${t ? '' : ' disabled'}>${icon('chat')}Put in reply to ${esc(t ? t.name : 'the client')}</button><button class="btn btn-quiet" type="button" data-bot="copy">Copy text</button></div></div>`
+      : st === 'rejected' ? `<div class="bot-after"><p class="meta">Rejected${r.decided_by_name ? ` by ${esc(r.decided_by_name)}` : ''}, ${esc(C0.when(r.decided_at))}.</p>${r.reject_note ? `<blockquote>${esc(r.reject_note)}</blockquote>` : ''}</div>`
+      : st === 'expired' ? `<div class="bot-after"><p class="meta">Nobody decided this before ${esc(C0.when(r.expires_at))}, so it expired. Ask the bot for a fresh draft if it is still needed.</p></div>` : '';
+    return `<a class="crumb" href="${esc(back)}">${icon('back')}${inTab ? 'All of their bot outputs' : 'All bot chat'}</a>
+      <article class="panel bot-card" data-bot-id="${esc(r.id)}" aria-labelledby="bot-h">
+        <div class="bot-head"><div><h2 id="bot-h">Change request · ${esc(r.kind || 'General')}</h2>
+          <p class="meta">${inTab ? '' : `<a href="#/client/${esc(r.tenant_id)}">${esc(clientName(r))}</a> · `}${by} · <time datetime="${esc(r.created_at)}">${esc(C0.when(r.created_at))}</time></p></div>${pill(r)}</div>
+        <section class="bot-part"><h3>Original client request</h3>${r.request ? `<blockquote>${esc(r.request)}</blockquote>` : '<p class="meta">None was sent with this draft.</p>'}</section>
+        <section class="bot-part"><h3>AI draft</h3>${draftBlock}</section>
+        ${r.change_note ? `<p class="bot-note"><strong>What changed:</strong> ${esc(r.change_note)}</p>` : ''}
+        ${notes.length ? `<section class="bot-part"><h3>Notes for another round</h3><ul class="thread">${notes.map((/** @type {any} */ n) => `<li class="msg team"><p>${esc(n.body)}</p><p class="meta">${esc(n.by_name || 'Team')} · ${esc(C0.when(n.at))}</p></li>`).join('')}</ul></section>` : ''}
+        ${actions}${decided}
+      </article>`;
+  }
+
+  /** The list with the client filter. @param {string} [inTab] the client's id inside their Bot tab (no filter then) */
+  function list(inTab) {
+    const C0 = C();
+    const { esc } = C0;
+    const mine = rows.filter((r) => (inTab ? r.tenant_id === inTab : !!C0.tenant(r.tenant_id)));
+    if (!inTab) {
+      const ids = Array.from(new Set(mine.map((r) => r.tenant_id)));
+      if (state.filter !== 'all' && !ids.includes(state.filter)) state.filter = 'all';
+      const shown = state.filter === 'all' ? mine : mine.filter((r) => r.tenant_id === state.filter);
+      const count = (/** @type {any[]} */ xs) => xs.filter((r) => statusOf(r) === 'pending').length;
+      const chip = (/** @type {string} */ key, /** @type {string} */ label, /** @type {number} */ n) => `<button type="button" data-bot-filter="${esc(key)}" aria-pressed="${state.filter === key}">${esc(label)}${n ? `<span class="count">${n}</span>` : ''}</button>`;
+      const chips = ids.length > 1 ? `<div class="seg bot-filter" role="group" aria-label="Show">${chip('all', 'All clients', count(mine))}${ids.map((id) => { const t = C0.tenant(id); return chip(id, t ? t.name : id, count(mine.filter((r) => r.tenant_id === id))); }).sort((a, b) => a.localeCompare(b)).join('')}</div>` : '';
+      return `${chips}${shown.length ? `<ul class="q bot-list">${shown.map((r) => row(r)).join('')}</ul>` : `<div class="empty"><p><strong>No bot outputs yet.</strong></p><p>Tell Grok, Claude or Hermes "drop this in the bot chat for" a client, and the draft shows up here as a Pending card.</p></div>`}`;
+    }
+    return mine.length ? `<ul class="q bot-list">${mine.map((r) => row(r, inTab)).join('')}</ul>`
+      : `<div class="empty"><p><strong>No bot outputs for them yet.</strong></p><p>Drafts dropped in for ${esc((C0.tenant(inTab) || {}).name || 'this client')} show up here as Pending cards.</p></div>`;
+  }
+
+  /** Clicks and forms of a card, wherever it is drawn. @param {HTMLElement} box @param {() => void} again draws the same place afresh */
+  function wire(box, again) {
+    const C0 = C();
+    box.onclick = async (e) => {
+      const el = /** @type {HTMLElement} */ (e.target);
+      const f = el.closest && el.closest('[data-bot-filter]');
+      if (f) { state.filter = f.getAttribute('data-bot-filter') || 'all'; again(); return; }
+      const b = /** @type {HTMLButtonElement|null} */ (el.closest && el.closest('button[data-bot]'));
+      if (!b) return;
+      const cardEl = b.closest('[data-bot-id]');
+      const id = cardEl ? cardEl.getAttribute('data-bot-id') || '' : '';
+      const r = rows.find((x) => x.id === id);
+      if (!r) return;
+      const what = b.getAttribute('data-bot');
+      if (what === 'edit' || what === 'reject' || what === 'respond') {
+        state.mode = what; state.modeFor = id; again();
+        const ta = /** @type {HTMLTextAreaElement|null} */ (box.querySelector('.bot-form textarea'));
+        if (ta) { ta.focus(); if (what === 'edit') ta.setSelectionRange(ta.value.length, ta.value.length); }
+      } else if (what === 'cancel') {
+        for (const form of Array.from(box.querySelectorAll('.bot-form'))) C0.clean(/** @type {HTMLFormElement} */ (form));
+        state.mode = ''; state.modeFor = ''; again();
+      } else if (what === 'approve') {
+        const done = C0.busy(b, 'Approving');
+        try { await decide(id, 'approve'); C0.toast('Approved. Nothing was sent; put it in a reply when you are ready.'); afterChange(again); }
+        catch (x) { done(); C0.toast(say(x), true); }
+      } else if (what === 'copy') {
+        const text = r.final_text || r.draft;
+        try { await navigator.clipboard.writeText(text); C0.toast('Copied.'); }
+        catch (x) { C0.toast('Could not copy here. Select the text and copy it.', true); }
+      } else if (what === 'to-messages') {
+        handoff = { tenantId: r.tenant_id, text: r.final_text || r.draft };
+        location.hash = `#/messages/${r.tenant_id}`;
+      }
+    };
+    for (const form of Array.from(box.querySelectorAll('.bot-form'))) {
+      const f = /** @type {HTMLFormElement} */ (form);
+      const label = f.id === 'bot-edit' ? 'Bot draft' : f.id === 'bot-reject' ? 'Reject note' : 'Bot note';
+      C0.track(f, label);
+      f.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = state.modeFor;
+        const sub = /** @type {HTMLButtonElement} */ (f.querySelector('button[type=submit]'));
+        if (sub.disabled) return;
+        const v = C0.val(f, f.id === 'bot-edit' ? 'text' : 'note');
+        if (!v) { C0.toast(f.id === 'bot-edit' ? 'The text is empty.' : 'Write a short note first.', true); return; }
+        const done = C0.busy(sub, f.id === 'bot-edit' ? 'Approving' : 'Saving');
+        try {
+          if (f.id === 'bot-edit') await decide(id, 'approve', { text: v });
+          else if (f.id === 'bot-reject') await decide(id, 'reject', { note: v });
+          else await decide(id, 'respond', { note: v });
+          C0.clean(f);
+          C0.toast(f.id === 'bot-edit' ? 'Saved and approved. Nothing was sent.' : f.id === 'bot-reject' ? 'Rejected. The note is kept with it.' : 'Note added. It stays Pending for another round.');
+          afterChange(again);
+        } catch (x) { done(); C0.toast(say(x), true); }
+      });
+    }
+  }
+  /** After a decision: close the field, update the badges and draw the place again. @param {() => void} again */
+  function afterChange(again) {
+    state.mode = ''; state.modeFor = '';
+    const C0 = C();
+    if (C0.dirty.size) { C0.toast('Saved. Other unsaved edits on this page are kept.'); return; }
+    again();
+    sideBadge();
+  }
+
+  /** The sidebar's Pending count. */
+  function sideBadge() {
+    const b = document.getElementById('bot-badge');
+    if (!b) return;
+    const n = pending().length;
+    b.textContent = String(n);
+    b.hidden = !n;
+  }
+
+  /* ---- the page, the client tab and the Needs you block ------------------------------------------------------------------ */
+
+  /** #/bot and #/bot/<item id>. @param {string} openId */
+  function page(openId) {
+    const C0 = C();
+    const { esc, main } = C0;
+    if (state.modeFor && state.modeFor !== openId) { state.mode = ''; state.modeFor = ''; }
+    const r = openId ? rows.find((x) => x.id === openId) : null;
+    const n = pending().length;
+    document.title = (r ? `${r.kind || 'Change request'} · ` : '') + 'Bot chat · Domin8te console';
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Bot chat</h1><p>Drafts the bots dropped in, waiting for a yes. ${n ? `${C0.plural(n, 'draft')} pending.` : 'Nothing is pending.'} Clients never see this page.</p></div>
+      <div class="btns updated"><span class="meta">Updated ${esc(C0.ago(new Date((C0.all && C0.all.at) || Date.now()).toISOString()))}</span><button class="icon-btn icon-btn-sm" type="button" data-action="refresh" aria-label="Reload" title="Reload">${C0.icon('refresh')}</button></div></div>
+      <div id="bot-box">${openId ? (r ? card(r) : `<a class="crumb" href="#/bot">${C0.icon('back')}All bot chat</a><p class="notice">That item was not found. The link may be old.</p>`) : list()}</div>`;
+    const box = /** @type {HTMLElement} */ (document.getElementById('bot-box'));
+    wire(box, () => page(openId));
+  }
+
+  /** The client's Bot tab: their queue, or one of their cards (#/client/<id>/bot/<item id>). @param {any} C0 @param {HTMLElement} box @param {string} part */
+  function render(C0, box, part) {
+    const id = C0.current ? String(C0.current.id) : '';
+    if (!id) return;
+    if (state.modeFor && state.modeFor !== part) { state.mode = ''; state.modeFor = ''; }
+    const r = part ? rows.find((x) => x.id === part && x.tenant_id === id) : null;
+    const n = rows.filter((x) => x.tenant_id === id && statusOf(x) === 'pending').length;
+    box.innerHTML = `${C0.pageFresh({ updatedAt: (C0.all && C0.all.at) || Date.now(), source: 'Bot chat in the console', status: 'ok' })}
+      <section class="bot-tab" aria-labelledby="bot-tab-h"><div class="bot-tab-head"><h2 id="bot-tab-h">Approval queue</h2><p class="meta">Bot drafts for ${C0.esc(C0.current.name)} only. ${n ? `${C0.plural(n, 'draft')} pending.` : 'Nothing is pending.'} They never see this tab.</p></div>
+      ${part ? (r ? card(r, id) : `<a class="crumb" href="#/client/${C0.esc(id)}/bot">${C0.icon('back')}All of their bot outputs</a><p class="notice">That item was not found.</p>`) : list(id)}</section>`;
+    wire(box, () => render(C0, box, part));
+  }
+
+  /** The block on Needs you: every Pending draft, newest first, the first 3 open. */
+  function needsBlock() {
+    const p = pending();
+    if (!p.length) return '';
+    return `<div class="q-client bot-needs" data-qf="other"><h3 class="q-client-h">Bot outputs waiting · ${p.length} <a class="bot-all" href="#/bot">Open Bot chat</a></h3>
+      <ul class="q">${p.slice(0, 3).map((r) => row(r)).join('')}</ul>
+      ${p.length > 3 ? `<details class="reveal q-more"><summary>Show ${p.length - 3} more</summary><ul class="q">${p.slice(3).map((r) => row(r)).join('')}</ul></details>` : ''}</div>`;
+  }
+
+  /** Messages calls this once its reply box is drawn: fills the box with text handed over from an approved card (the person still sends it). @param {string} tenantId */
+  function fillReply(tenantId) {
+    if (!handoff || handoff.tenantId !== tenantId) return;
+    const ta = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('convo-body'));
+    if (!ta) return;
+    const max = Number(ta.maxLength) > 0 ? ta.maxLength : 2000;
+    const cut = handoff.text.length > max;
+    ta.value = handoff.text.slice(0, max);
+    handoff = null;
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    ta.focus();
+    C().toast(cut ? `Only the first ${max} characters fit in a reply. Read it and trim before you press Send.` : 'The approved text is in the reply box. Read it, then press Send.', cut);
+  }
+
+  EXT.bot = { load, page, needsBlock, sideBadge, fillReply, pendingCount: () => pending().length, get loaded() { return loaded; } };
+  // first: true puts it straight after Talk, ahead of the other tabs that also follow Talk.
+  EXT.tabs.bot = { label: 'Bot', after: 'talk', first: true, render };
+})();
+</script>
+<script>
 /* mod-clients.js */
 // @ts-check
 /*
@@ -7781,10 +8200,9 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
   /** @param {string} iso */
   function daysTo(iso) { return Math.round((new Date(`${String(iso).slice(0, 10)}T00:00`).getTime() - new Date(`${C().today()}T00:00`).getTime()) / 86400000); }
 
-  /** The services of one plan month, in catalog order: "Social + Ads", "All services", "Ads + Website (2 edits)". @param {any} cycle */
+  /** The services of one plan month, in catalog order: "Ads + Social", "Ads + Social + Website + SEO and Google Maps", "Ads + Website (2 edits)". @param {any} cycle */
   function picksLine(cycle) {
     if (!cycle) return '';
-    if (cycle.plan_id === 'domin8te') return 'All services';
     const list = SERVICE_ORDER.filter((s) => (cycle.picks || []).includes(s)).map((s) => SHORT[s] || svcName(s));
     const opt = cycle.plan_id === 'starter' && (cycle.picks || []).includes('website') ? cycle.website_option : '';
     const text = list.join(' + ');
@@ -8428,9 +8846,8 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
   function suggestion(C, id) {
     const po = C.planOf(id);
     if (!po.now || !po.next) return null;
-    const pm = W.D8 && W.D8.planModel;
     /** @param {any} c */
-    const picks = (c) => (pm ? pm.picksOf({ planId: c.plan_id, picks: c.picks || [] }) : c.picks || []);
+    const picks = (c) => c.picks || [];   // a month's picks already include Ads on every plan
     const a = picks(po.now);
     const b = picks(po.next);
     const adds = b.filter((/** @type {string} */ x) => !a.includes(x));
@@ -8971,8 +9388,8 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
  * the audit line for both). "Suggest ..." only opens a draft in Messages: nothing is ever sent from here.
  *
  * Reads: dashboard_exceptions, requests, tasks, client_dashboard_items (through D8C.all), tenant_plan_cycles, plan_caps, plans,
- * tenant_usage_current, billing_reminders (through D8C.plans).
- * Writes: usage_events (insert), requests (status), tasks (due), billing_reminders (to_email, status), tenants (doc.user.email only),
+ * tenant_usage_current, billing_reminders (through D8C.plans), message_notifications (the one row an action works on).
+ * Writes: usage_events (insert), requests (status), tasks (due), billing_reminders and message_notifications (to_email, status), tenants (doc.user.email only),
  * and the functions override_plan_cycle, review_dashboard_item, resolve_dashboard_exception.
  */
 (function () {
@@ -8986,7 +9403,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
 
   /* ---- what each kind of item is ----------------------------------------------------------------------- */
 
-  const CODES = ['plan_mismatch', 'over_cap', 'over_cap_request', 'service_not_picked', 'picks_unconfirmed', 'reminder_failed', 'result_outlier', 'plan_backfill_needed'];
+  const CODES = ['plan_mismatch', 'over_cap', 'over_cap_request', 'service_not_picked', 'picks_unconfirmed', 'reminder_failed', 'notification_failed', 'result_outlier', 'plan_backfill_needed'];
   /** f is the filter chip the item belongs to; rank orders the list (0 first). @type {Record<string, {f: string, label: string, tone: string, icon: string, rank: number}>} */
   const KINDS = {
     plan_mismatch: { f: 'mismatch', label: 'Plan mismatch', tone: 'bad', icon: 'alert', rank: 0 },
@@ -8996,7 +9413,8 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
     over_cap_request: { f: 'limit', label: 'Over limit', tone: 'you', icon: 'plus', rank: 0 },
     service_not_picked: { f: 'limit', label: 'Not in plan', tone: 'you', icon: 'slash', rank: 1 },
     picks_unconfirmed: { f: 'deadline', label: 'Picks not confirmed', tone: 'warn', icon: 'clock', rank: 1 },
-    reminder_failed: { f: 'email', label: 'Reminder failed', tone: 'bad', icon: 'mail', rank: 1 }
+    reminder_failed: { f: 'email', label: 'Reminder failed', tone: 'bad', icon: 'mail', rank: 1 },
+    notification_failed: { f: 'email', label: 'Message email failed', tone: 'bad', icon: 'mail', rank: 1 }
   };
   const FILTERS = [['all', 'All'], ['mismatch', 'Mismatches'], ['limit', 'Over limit'], ['deadline', 'Pick deadlines'], ['email', 'Failed emails'], ['approval', 'Client approvals']];
   /** The chip in use stays when the page is drawn again after an action. */
@@ -9056,8 +9474,8 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
     const list = SERVICE_ORDER.filter((s) => (picks || []).includes(s)).map(svcName);
     return list.length < 2 ? list.join('') || 'No services' : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
   }
-  /** The services a month holds (Domin8te has every one). @param {any} cycle */
-  const picksOfCycle = (cycle) => (cycle ? (cycle.plan_id === 'domin8te' ? SERVICE_ORDER.slice() : cycle.picks || []) : []);
+  /** The services a month holds: its picks, which include Ads on every plan. @param {any} cycle */
+  const picksOfCycle = (cycle) => (cycle ? cycle.picks || [] : []);
   /** The monthly limit of one metric on one plan, as of today. @param {string} planId @param {string} metric */
   function capOf(planId, metric) {
     const day = C().today();
@@ -9248,7 +9666,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
     const cp = (con && con.picks) || (dash && dash.picks) ? [con ? con.picks : null, dash ? dash.picks : null] : [null, null];
     if (cp[0] || cp[1]) rows.push(['Services', cp[0] ? picksText(cp[0]) : '', cp[1] ? picksText(cp[1]) : '']);
     if (con && dash) {
-      const metrics = Array.from(new Set(c.plans.caps.filter((/** @type {any} */ k) => (k.plan_id === con.plan || k.plan_id === dash.plan) && (!(con.picks || dash.picks) || (con.picks || dash.picks || []).includes(k.service) || con.plan === 'domin8te' || dash.plan === 'domin8te')).map((/** @type {any} */ k) => k.metric)));
+      const metrics = Array.from(new Set(c.plans.caps.filter((/** @type {any} */ k) => (k.plan_id === con.plan || k.plan_id === dash.plan) && (!(con.picks || dash.picks) || (con.picks || dash.picks || []).includes(k.service))).map((/** @type {any} */ k) => k.metric)));
       /** @type {string[][]} */ const diff = [];
       for (const m of metrics) {
         const a = capOf(con.plan, m);
@@ -9412,6 +9830,12 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     const stale = service && pl.now && picksOfCycle(pl.now).includes(service) ? `${svc} is in this month's plan now.` : '';
     const nextStart = pl.now ? pl.now.period_end : '';
     const deadline = nextStart ? addDays(nextStart, -1) : '';
+    // Every plan is Ads plus picks. When all the picks are in use, adding a service means swapping one out, or moving up.
+    const rowNow = pl.nowPlan;
+    const slots = rowNow && rowNow.picks_allowed != null ? Number(rowNow.picks_allowed) : null;
+    const inUse = pl.now && rowNow ? (pl.now.picks || []).filter((/** @type {string} */ x) => !(rowNow.required_services || []).includes(x)).length : 0;
+    const packed = slots !== null && inUse >= slots;
+    const up = packed ? upgradeOf(cx) : null;
     /** @type {Action[]} */ const actions = [
       {
         id: 'suggest', label: 'Suggest for next month', tone: 'primary',
@@ -9419,7 +9843,10 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
           lead: `<strong>Draft a message about ${esc(svc)} for next month?</strong> It opens in Messages for you to read and edit. Nothing is sent. This item closes as "suggested".`,
           confirm: 'Open the draft',
           run: async (f, note) => {
-            const text = letter(cx, `Thanks for your request about ${svc}. ${svc} is not part of your ${planNm} plan this month, so we have not started it.\n\nYou can add it for next month: open Billing in your dashboard and choose it${deadline ? ` before the end of ${dayText(deadline)}` : ''}. Plan changes start from your next bill date${nextStart ? `, ${dayText(nextStart)}` : ''}. Reply here if you would like help choosing.`);
+            const text = packed ? letter(cx, `Thanks for your request about ${svc}. ${svc} is not one of your picks this month, so we have not started it.
+
+Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and ${slots === 1 ? 'it is' : 'they are all'} in use. For next month you can swap ${svc} in for one of your current picks${up ? `, or move up to ${up.name}, which is Ads plus ${Number(up.picks_allowed)} picks` : ''}. Open Billing in your dashboard${deadline ? ` before the end of ${dayText(deadline)}` : ''} to choose. Plan changes start from your next bill date${nextStart ? `, ${dayText(nextStart)}` : ''}. Reply here if you would like help choosing.`)
+            : letter(cx, `Thanks for your request about ${svc}. ${svc} is not part of your ${planNm} plan this month, so we have not started it.\n\nYou can add it for next month: open Billing in your dashboard and choose it${deadline ? ` before the end of ${dayText(deadline)}` : ''}. Plan changes start from your next bill date${nextStart ? `, ${dayText(nextStart)}` : ''}. Reply here if you would like help choosing.`);
             return { status: 'resolved', note: withNote(`Suggested ${svc} for next month (a draft was opened in Messages, not sent).`, note), toast: 'Draft ready. Read it, edit it, then press Send. Nothing has been sent.', draft: { tid, text } };
           }
         }
@@ -9556,6 +9983,52 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
   }
 
   /** @param {any} cx @returns {Model} */
+  function modelNotification(cx) {
+    const { ex } = cx;
+    const toTeam = /to the team/.test(String(ex.message || ''));
+    const who = toTeam ? 'the team' : cx.first || cx.name || 'the client';
+    const where = toTeam ? 'The team did not get the email about a client message.' : `${cx.first || cx.name || 'The client'} did not get the email about your reply.`;
+    /** The queue row behind this item, read when an action runs (the item names it). */
+    const rowOf = async (/** @type {any} */ client) => { const rows = got(await client.from('message_notifications').select('id, to_email, status').eq('id', String(ex.entity_id || '')).limit(1)) || []; return rows[0] || null; };
+    /** @type {Action[]} */ const actions = [
+      {
+        id: 'again', label: 'Send again', tone: 'primary',
+        sheet: {
+          lead: `<strong>Send the email again?</strong> It goes back in the queue and is sent within the minute. ${toTeam ? 'If the team address is wrong, fix it in Settings first.' : 'If their address is wrong, put the right one below.'}`,
+          fields: `<div class="field nx-email"><label for="nx-email">Send it to a different address <span class="optional">(optional)</span></label><input id="nx-email" name="email" type="email" maxlength="200" autocomplete="off" inputmode="email" placeholder="name@restaurant.com"></div>`,
+          confirm: 'Send again',
+          run: async (f, note) => {
+            const mail = C().val(f, 'email').toLowerCase();
+            if (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) throw new Error('That email address does not look right.');
+            const client = await cx.c.db();
+            const row = await rowOf(client);
+            if (!row) throw new Error('The email record was not found. Reload the page.');
+            /** @type {any} */ const patch = { status: 'scheduled' };
+            if (mail && mail !== String(row.to_email).toLowerCase()) patch.to_email = mail;
+            got(await client.from('message_notifications').update(patch).eq('id', row.id).select('id'));
+            return { status: 'resolved', note: withNote(`Put the message email ${toTeam ? 'to the team' : 'to the client'} back in the queue${patch.to_email ? ` with a new address (${mask(mail)})` : ''}.`, note), toast: 'Queued. It goes out within the minute.' };
+          }
+        }
+      },
+      {
+        id: 'handled', label: 'Mark as handled', tone: 'quiet',
+        sheet: {
+          lead: `<strong>Mark as handled?</strong> You have already answered ${esc(who)} another way, so nothing is sent. This item closes.`,
+          fields: '', confirm: 'Mark as handled',
+          run: async (f, note) => ({ status: 'resolved', note: withNote('Handled another way: the message email did not need to be sent.', note), toast: 'Marked as handled.' })
+        }
+      }
+    ];
+    return {
+      title: toTeam ? 'Email about a client message failed' : 'Email about your reply failed',
+      wrong: `${where} ${String(ex.message || '')}.`,
+      sees: toTeam ? 'The message itself is saved and shows in Messages. Only the email did not go out.' : 'Your reply is saved and shows on their Messages page. Only the email telling them about it did not go out.',
+      fix: toTeam ? 'Send it again, or open Messages and read it there.' : 'Send it again, or tell them by phone.',
+      actions
+    };
+  }
+
+  /** @param {any} cx @returns {Model} */
   function modelOutlier(cx) {
     const { c, ex, v, tid } = cx;
     const item = ((c.all.reviews && c.all.reviews.items) || []).find((/** @type {any} */ i) => i.id === ex.entity_id) || null;
@@ -9627,7 +10100,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
   }
 
   /** @type {Record<string, (cx: any) => Model>} */
-  const MODEL = { plan_mismatch: modelPlanMismatch, over_cap: modelOverCap, over_cap_request: modelOverCap, service_not_picked: modelNotPicked, picks_unconfirmed: modelPicks, reminder_failed: modelReminder, result_outlier: modelOutlier, plan_backfill_needed: modelBackfill };
+  const MODEL = { plan_mismatch: modelPlanMismatch, over_cap: modelOverCap, over_cap_request: modelOverCap, service_not_picked: modelNotPicked, picks_unconfirmed: modelPicks, reminder_failed: modelReminder, notification_failed: modelNotification, result_outlier: modelOutlier, plan_backfill_needed: modelBackfill };
 
   /** The model of one item, with the single "Close" action when it has been dealt with elsewhere. @param {any} ex */
   function modelOf(ex) {
@@ -10178,7 +10651,9 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
  * The plan rule widget (2026-10-13): the one place in the console that knows how a plan and its picks are chosen. The Billing
  * override drawer and Add client both mount it, so staff see the same rule the database enforces (app.picks_valid, a locked plan
  * and a plan's client limit) in the same words. The rule itself is D8.planModel.validate(), the one the client's picker uses; this
- * widget adds what only staff may do (set Domin8te while it is unlocked; a client already on it keeps it) and the staff voice.
+ * widget adds what only staff may do (set any plan that is not locked; a client already on a locked plan keeps it) and the staff voice.
+ * Since 14 Oct 2026 every plan reads the same way: Ads is always in (plans.required_services) and the client adds picks
+ * (plans.picks_allowed): Starter Ads + 1, Growth Ads + 2, Domin8te Ads + 3. No plan id is named here; the plan rows decide.
  *
  * It reads plan data from window.D8C.plans and writes nothing: the page that mounts it decides what to do with the value.
  *
@@ -10293,10 +10768,16 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     return out;
   }
 
+  /** A plan with no pick count (picks_allowed none) would mean every service. No plan is like that now; the old reading stays so a bad row cannot break the page. @param {string} planId */
+  function takesEvery(planId) {
+    const p = plansRows().find((/** @type {any} */ x) => x.id === planId);
+    return !!p && (p.picks_allowed === null || p.picks_allowed === undefined);
+  }
+
   /** What changes from one choice to another, in words. @param {any} a @param {any} b each { planId, picks, websiteOption } */
   function diffWords(a, b) {
     const all = pickableIds();
-    const norm = (/** @type {any} */ v) => ({ planId: v.planId, picks: v.planId === 'domin8te' ? all : PM().ordered(v.picks || []), websiteOption: v.websiteOption || null });
+    const norm = (/** @type {any} */ v) => ({ planId: v.planId, picks: takesEvery(v.planId) ? all : PM().ordered(v.picks || []), websiteOption: v.websiteOption || null });
     const A = norm(a), B = norm(b);
     const d = PM().diff(A, B);
     const name = (/** @type {string} */ id) => ((plansRows().find((/** @type {any} */ p) => p.id === id) || {}).name) || id;
@@ -10419,7 +10900,8 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
       if (slot.locked) return { ok: false, code: 'plan-locked', error: `${p.name} is locked. An owner can unlock it in Settings.` };
       if (slot.limited && slot.taken) return { ok: false, code: 'plan-full', error: `${p.name} is taken right now.` };
       if (PM().rule(p).all) return { ok: true, code: '', error: '' };
-      const v = PM().validate(m, p.id, st.picks, st.websiteOption);
+      // the lock was settled above for this client (slot.locked), so the model is told this plan is theirs to take
+      const v = PM().validate({ plans: m.plans.map((/** @type {any} */ x) => (x.id === p.id ? { ...x, current: true } : x)), caps: m.caps }, p.id, st.picks, st.websiteOption);
       if (!v.ok && v.code === 'website-option') {
         const ls = PM().lines(m.caps, p.id, 'website', null);
         const a = ls.find((/** @type {any} */ l) => l.metric === 'web_pages'), b = ls.find((/** @type {any} */ l) => l.metric === 'web_edits');
@@ -10985,15 +11467,17 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
 /* mod-settings.js */
 // @ts-check
 /*
- * The Settings page's own parts (2026-10-13): Plans and limits, Picks and lock, Change history, Reminder emails, the Hermes row,
+ * The Settings page's own parts (2026-10-13): Plans and limits, Picks and lock, Change history, Reminder emails, Message emails, the Hermes row,
  * and the raw data editor with its checks. console.js calls into window.D8C_EXT.settings from settingsPage and record;
  * everything else it needs comes from window.D8C (read when used, because console.js builds it after this file loads).
  *
  * Reads:  plans, plan_caps, service_catalog, tenant_plan_cycles, billing_reminders (all through D8C.plans), audit_log
- *         (plan_cap_version, plan_updated), staff (names), dashboard_exceptions (through D8C.all.reviews).
+ *         (plan_cap_version, plan_updated), staff (names), dashboard_exceptions (through D8C.all.reviews), message_notifications and the
+ *         rpc get_notify_team_email (read by the Message emails panel itself).
  * Writes: plan_caps (insert: a limit change is a NEW version), plans (update: name and price), billing_reminders (update: put
  *         a failed one back in the queue), tenants (the raw data editor, through D8C.save), the rpcs resolve_dashboard_exception
- *         and record_raw_edit (the raw edit's audit row; see the report: it needs a migration).
+ *         and record_raw_edit (the raw edit's audit row; see the report: it needs a migration), set_notify_team_email (owners only),
+ *         message_notifications (update: put a failed message email back in the queue).
  */
 (function () {
   'use strict';
@@ -11069,7 +11553,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     return { plans, services, cell, version, since, scheduled, last: stamps[0] || null };
   }
 
-  /** The words for what a plan includes: "Ads + 1 pick", "2 picks", "All services". @param {any} pl */
+  /** The words for what a plan includes: "Ads + 1 pick", "Ads + 2 picks", "Ads + 3 picks" (from the plan row: its required services, then its pick count). @param {any} pl */
   function ruleOf(pl) {
     if (pl.picks_allowed === null || pl.picks_allowed === undefined) return 'All services';
     const req = (pl.required_services || []).map((/** @type {string} */ id) => { const s = D().plans.services.find((/** @type {any} */ x) => x.id === id); return s ? s.label : id; });
@@ -11143,8 +11627,8 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     const name = String(pl.name);
     const said = pl.locked_at ? `${locked ? 'Locked' : 'Unlocked'} ${D().clockTime(pl.locked_at)}${pl.locked_by ? ` by ${nameOf(pl.locked_by)}` : ''}.` : '';
     const words = locked
-      ? `No new client can be put on ${name} and the client's picker shows it as locked. Clients already on ${name} keep it.`
-      : `New clients can be put on ${name}, and the client's picker shows it as open. Clients already on ${name} keep it either way.`;
+      ? `No new client can be put on ${name}, and a client cannot pick it themselves. Clients already on ${name} keep it.`
+      : `New clients can be put on ${name}, and a client can pick it themselves in their dashboard. Clients already on ${name} keep it either way.`;
     const act = !owner ? `<p class="meta pl-avail-note">Only an owner can lock or unlock ${esc(name)}.</p>`
       : ST.editing ? '<p class="meta pl-avail-note">Save or cancel your edits to change this.</p>'
         : `<button class="btn btn-quiet" type="button" data-pl-lock="${locked ? 'unlock' : 'lock'}">${locked ? 'Unlock' : 'Lock'} ${esc(name)}</button>`;
@@ -11319,7 +11803,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     const el = dlg;
     const name = esc(pl.name);
     el.innerHTML = `<form method="dialog" novalidate><h2 id="pl-lock-h">${want ? 'Lock' : 'Unlock'} ${name}?</h2>
-      <p>${want ? `Locked: no new client can be put on ${name} and the client's picker shows it as locked. Clients already on ${name} keep it.` : `Unlocked: new clients can be put on ${name} again.`}</p>
+      <p>${want ? `Locked: no new client can be put on ${name}, and a client cannot pick it themselves. Clients already on ${name} keep it.` : `Unlocked: new clients can be put on ${name} again, and a client can pick it themselves.`}</p>
       <div class="field"><label for="pl-lock-why">Reason (optional)</label><textarea id="pl-lock-why" name="why" maxlength="500" rows="3" placeholder="${want ? 'For example: no room for new clients this month' : 'For example: there is room again'}"></textarea><p class="hint">Kept in the history.</p></div>
       <div class="actions"><button class="btn btn-quiet" type="submit" value="cancel" formnovalidate>Cancel</button><button class="btn" type="submit" value="ok">${want ? 'Lock' : 'Unlock'} ${name}</button></div></form>`;
     return new Promise((resolve) => {
@@ -11665,6 +12149,156 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     box.innerHTML = remindersHtml();
   }
 
+  /* ---- Message emails (2026-10-14) -------------------------------------------------------------------- */
+  /*
+   * The emails sent when a message is written: one to the team when a client writes, one to the client when staff reply.
+   * Reads: message_notifications (staff read) and the rpc get_notify_team_email. Writes: the rpc set_notify_team_email (owners only)
+   * and message_notifications (put a failed email back in the queue). The job is the message-notifications function.
+   */
+  const MN = { loaded: false, ok: true, rows: /** @type {any[]} */ ([]), team: /** @type {string|null} */ (null), token: 0 };
+  const WHERE = { to_team: 'to the team', to_client: 'to the client' };
+
+  /** What the rows say about the job: newest sent, waiting, skipped and failed in the last 30 days, and whether sending works. */
+  function mnStats() {
+    const rows = MN.rows;
+    const now = Date.now();
+    const t = (/** @type {any} */ x) => new Date(x).getTime();
+    const sent = rows.filter((/** @type {any} */ r) => r.status === 'sent' && r.provider_id).sort((/** @type {any} */ a, /** @type {any} */ b) => t(b.sent_at) - t(a.sent_at));
+    const waiting = rows.filter((/** @type {any} */ r) => r.status === 'scheduled').sort((/** @type {any} */ a, /** @type {any} */ b) => t(a.send_at) - t(b.send_at));
+    const fails = rows.filter((/** @type {any} */ r) => r.status === 'failed' && now - t(r.updated_at) <= 30 * DAY).sort((/** @type {any} */ a, /** @type {any} */ b) => t(b.updated_at) - t(a.updated_at));
+    const skipped = rows.filter((/** @type {any} */ r) => r.status === 'skipped' && now - t(r.updated_at) <= 30 * DAY);
+    // Due for more than 10 minutes and never tried: the job leaves it alone when it has no key or no sender.
+    const overdue = waiting.filter((/** @type {any} */ r) => t(r.send_at) < now - 10 * 60000 && !Number(r.attempts));
+    return { sent, waiting, fails, skipped, overdue, key: sent.length ? 'set' : overdue.length ? 'not set' : 'unknown' };
+  }
+
+  function notifyHtml() {
+    const head = '<div class="panel-head"><div class="pl-head-txt"><h2 id="s-notify">Message emails</h2><p>Sent with Resend. An email that cannot be sent opens an item in Needs you.</p></div></div>';
+    if (!MN.loaded) return `${head}<p class="meta">Loading.</p>`;
+    if (!MN.ok) return `${head}<p class="meta">The message email table is not on this database yet.</p>`;
+    const R = mnStats();
+    const last = R.sent[0];
+    const lastText = last ? `${esc(D().clockTime(last.sent_at))}. Sent an email ${esc(/** @type {any} */ (WHERE)[last.direction] || '')} about ${esc(clientOf(last.tenant_id))}.` : 'Nothing has been sent yet.';
+    const next = R.waiting[0];
+    const waitText = next ? `${esc(plural(R.waiting.length, 'email'))}. The next goes ${esc(D().clockTime(next.send_at))}, ${esc(/** @type {any} */ (WHERE)[next.direction] || '')}, about ${esc(clientOf(next.tenant_id))}.` : 'Nothing is waiting right now.';
+    const reasons = new Map();
+    for (const r of R.skipped) reasons.set(r.error || 'skipped', (reasons.get(r.error || 'skipped') || 0) + 1);
+    const skipText = R.skipped.length ? `${esc(plural(R.skipped.length, 'email'))} in the last 30 days: ${esc(Array.from(reasons).map(([why, n]) => `${why} (${n})`).join(', '))}.` : '';
+    const key = R.key === 'set'
+      ? `<p class="rm-key is-set"><strong>Resend key: set.</strong> An email went out through Resend on ${esc(D().clockTime(R.sent[0].sent_at))}, so sending works. The console never sees the key itself.</p>`
+      : R.key === 'not set'
+        ? `<p class="rm-key is-off"><strong>Resend key: not set.</strong> ${esc(plural(R.overdue.length, 'email'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no key or no sender. Add them to the server's secrets.</p>`
+        : '<p class="rm-key"><strong>Resend key: not confirmed yet.</strong> No email has been due, so nothing shows whether it is set. The console never sees the key itself.</p>';
+    const team = MN.team;
+    const addr = isOwner()
+      ? `<form class="mn-team" id="mn-team" novalidate><div class="field"><label class="sr-only" for="mn-email">Team email address</label><input id="mn-email" name="email" type="email" maxlength="200" autocomplete="off" inputmode="email" spellcheck="false" value="${esc(team || '')}" placeholder="name@yourdomain.com"></div><button class="btn btn-sm" type="submit">${team ? 'Save address' : 'Set address'}</button></form>
+          <span class="meta rm-sub">${team ? 'Clear it and save to stop team emails. Only an owner can change it.' : 'Not set. Until it is, client messages are saved but nobody is emailed.'}</span>`
+      : `${team ? esc(team) : 'Not set'}<span class="meta rm-sub">Only an owner can change it.</span>`;
+    const fail = (/** @type {any} */ r) => `<li class="rm-fail" data-mn="${esc(r.id)}">
+        <div class="rm-who"><strong>${esc(clientOf(r.tenant_id))}</strong><span class="meta">${esc(/** @type {any} */ (WHERE)[r.direction] || r.direction)} · to ${esc(mask(r.to_email))}</span></div>
+        <p class="rm-err">Failed ${esc(D().clockTime(r.updated_at))} after ${esc(plural(Number(r.attempts) || 0, 'try', 'tries'))}${r.error ? `: ${esc(r.error)}` : ''}</p>
+        <div class="rm-acts"><button class="btn btn-quiet btn-sm" type="button" data-mn-again="${esc(r.id)}">Send again</button></div>
+      </li>`;
+    return `${head}<div class="rm-grid"><div class="rm-info">
+        <dl class="facts rm-facts"><dt>What is sent</dt><dd>One email to the team when a client writes in their dashboard, and one to the client when you reply in the console.</dd>
+          <dt>When</dt><dd>The job runs every minute. Messages sent within 2 minutes of each other go out as one email.</dd>
+          <dt>Team address</dt><dd>${addr}</dd>
+          <dt>Last sent</dt><dd>${lastText}</dd>
+          <dt>Waiting</dt><dd>${waitText}</dd>
+          ${skipText ? `<dt>Skipped</dt><dd>${skipText}<span class="meta rm-sub">Paused and archived clients get no email.</span></dd>` : ''}
+          <dt>Sender</dt><dd>The address in NOTIFY_FROM on the server. The console cannot read it.</dd></dl>
+        ${key}</div>
+      <div class="rm-fails"><h3 class="rm-h">Failed in the last 30 days <span class="chip ${R.fails.length ? 'warn' : 'good'}">${R.fails.length ? R.fails.length : 'None'}</span></h3>
+        ${R.fails.length ? `<ul class="rm-list">${R.fails.map(fail).join('')}</ul>` : '<p class="meta">No message email has failed in the last 30 days.</p>'}</div></div>`;
+  }
+
+  function drawNotify() {
+    const box = document.getElementById('sec-notify');
+    if (!box) return;
+    // Keep what is being typed in the address box while the rest redraws.
+    const typing = /** @type {HTMLInputElement|null} */ (document.getElementById('mn-email'));
+    const keep = typing && document.activeElement === typing ? typing.value : null;
+    box.innerHTML = notifyHtml();
+    const again = /** @type {HTMLInputElement|null} */ (document.getElementById('mn-email'));
+    if (keep !== null && again) { again.value = keep; again.focus(); }
+  }
+
+  /** Reads the queue and the team address. A table that is not there yet shows as such, not as an error. */
+  async function loadNotify() {
+    const mine = ++MN.token;
+    try {
+      const db = await D().db();
+      const q = await db.from('message_notifications').select('id, tenant_id, direction, to_email, status, attempts, error, provider_id, send_at, sent_at, created_at, updated_at').order('created_at', { ascending: false }).limit(300);
+      if (mine !== MN.token) return;
+      MN.ok = !q.error;
+      MN.rows = q.error ? [] : (q.data || []);
+      if (!q.error) {
+        const t = await db.rpc('get_notify_team_email');
+        MN.team = t.error ? null : (t.data || null);
+      }
+    } catch (x) { MN.ok = false; MN.rows = []; }
+    MN.loaded = true;
+    drawNotify();
+  }
+
+  /** Puts a failed message email back in the queue, then settles the Needs you item about it. @param {HTMLElement} btn @param {string} id */
+  async function mnAgain(btn, id) {
+    const r = MN.rows.find((/** @type {any} */ x) => x.id === id);
+    if (!r) return;
+    if (!await D().ask(`Send the email ${/** @type {any} */ (WHERE)[r.direction] || ''} about ${clientOf(r.tenant_id)} again?`, `It goes to ${mask(r.to_email)} within the minute.`, 'Send again')) return;
+    const done = D().busy(btn, 'Queuing');
+    try {
+      const db = await D().db();
+      const res = await db.from('message_notifications').update({ status: 'scheduled' }).eq('id', id).select('id, status');
+      if (res.error) {
+        const said = String(res.error.message || '');
+        throw new Error(/only-requeue/.test(said) || res.error.code === '42501' ? 'Only a failed or skipped email can be sent again. Nothing was changed.' : `${said || 'The server did not answer.'} Nothing was changed.`);
+      }
+      if (!(res.data || []).length) throw new Error('Nothing was changed: the email is not there any more.');
+      let tail = '';
+      try {
+        const open = ((D().all && D().all.reviews && D().all.reviews.exceptions) || []).filter((/** @type {any} */ x) => x.entity_type === 'message_notification' && String(x.entity_id) === String(id) && x.status === 'open');
+        for (const x of open) { const q = await db.rpc('resolve_dashboard_exception', { p_id: x.id, p_status: 'resolved', p_note: 'sent again from Settings' }); if (q.error) throw new Error(q.error.message); }
+      } catch (x) { tail = ' The item in Needs you is still open: close it there.'; }
+      await D().loadAll().catch(() => { /* the toast still says it is queued */ });
+      await loadNotify();
+      D().toast(`Queued. It goes out within the minute.${tail}`, !!tail);
+    } catch (x) {
+      done();
+      D().toast(/** @type {any} */ (x).message, true);
+    }
+  }
+
+  /** @param {HTMLElement} box */
+  function wireNotify(box) {
+    box.addEventListener('click', (e) => {
+      const again = /** @type {HTMLElement|null} */ (/** @type {HTMLElement} */ (e.target).closest('[data-mn-again]'));
+      if (again) mnAgain(again, again.getAttribute('data-mn-again') || '');
+    });
+    box.addEventListener('submit', async (e) => {
+      const f = /** @type {HTMLFormElement|null} */ (/** @type {HTMLElement} */ (e.target).closest('#mn-team'));
+      if (!f) return;
+      e.preventDefault();
+      const email = String((/** @type {any} */ (f.elements.namedItem('email'))).value || '').trim();
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { D().toast('That does not look like an email address. Nothing was changed.', true); /** @type {any} */ (f.elements.namedItem('email')).focus(); return; }
+      const done = D().busy(/** @type {HTMLElement} */ ($('button[type=submit]', f)), 'Saving');
+      try {
+        const db = await D().db();
+        const res = await db.rpc('set_notify_team_email', { p_email: email });
+        if (res.error) {
+          const said = String(res.error.message || '');
+          throw new Error(/owners-only/.test(said) ? 'Only an owner can change the team address. Nothing was changed.' : /bad-email/.test(said) ? 'That does not look like an email address. Nothing was changed.' : `${said || 'The server did not answer.'} Nothing was changed.`);
+        }
+        MN.team = (res.data && res.data.team_email) || null;
+        drawNotify();
+        D().toast(MN.team ? `Saved. New client messages are emailed to ${MN.team}.` : 'Cleared. Nobody is emailed about new client messages.');
+      } catch (x) {
+        done();
+        D().toast(/** @type {any} */ (x).message, true);
+      }
+    });
+  }
+
   /* ---- the Hermes row, and the top of the page ------------------------------------------------------ */
 
   /** The read-only Hermes row. Off, it says so and names the switch; it shows set or not set, never a value. @param {{hint: string}} o */
@@ -11682,7 +12316,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
   }
   /** The freshness line and a row of links to the parts of this long page. */
   function top() {
-    const links = [['sec-plans', 'Plans and limits'], ['sec-reminders', 'Reminder emails'], ['team-box', 'Team'], ['sec-access', 'Access details'], ['sec-stripe', 'Stripe'], ['sec-multica', 'Multica'], ['sec-look', 'Preferences']];
+    const links = [['sec-plans', 'Plans and limits'], ['sec-reminders', 'Reminder emails'], ['sec-notify', 'Message emails'], ['team-box', 'Team'], ['sec-access', 'Access details'], ['sec-stripe', 'Stripe'], ['sec-multica', 'Multica'], ['sec-look', 'Preferences']];
     return `${freshHtml()}
       <nav class="set-index" aria-label="On this page">${links.map(([id, t]) => `<button type="button" data-action="jump" data-to="${id}">${esc(t)}</button>`).join('')}</nav>`;
   }
@@ -11690,7 +12324,8 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
   function sections() {
     return `<section class="panel pl-panel" id="sec-plans" aria-labelledby="s-plans"></section>
       <div class="set-duo"><section class="panel" id="sec-picks" aria-labelledby="s-picks"></section><section class="panel" id="sec-hist" aria-labelledby="s-hist"></section></div>
-      <section class="panel rm-panel" id="sec-reminders" aria-labelledby="s-reminders"></section>`;
+      <section class="panel rm-panel" id="sec-reminders" aria-labelledby="s-reminders"></section>
+      <section class="panel rm-panel" id="sec-notify" aria-labelledby="s-notify"></section>`;
   }
   /** Called once the page is drawn. */
   function mount() {
@@ -11701,6 +12336,10 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     drawReminders();
     const rem = document.getElementById('sec-reminders');
     if (rem) wireReminders(rem);
+    drawNotify();
+    const mn = document.getElementById('sec-notify');
+    if (mn) wireNotify(mn);
+    loadNotify();
     loadHistory();
   }
 
@@ -13570,6 +14209,8 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     }
     // The plan release's tables (2026-10-13). A database without them yet answers with nothing and the console carries on.
     try { await loadPlans(); } catch (e) { all.plans = all.plans || emptyPlans(); }
+    // Bot chat's drafts (mod-bot.js, 2026-10-14); a database without the table carries on with none.
+    { const B = partOf('bot'); if (B) await B.load(); }
     if (current) {
       // Everything comes from the fresh rows (the cards too: leaving them out made the next "Add the card" fail with
       // "Cannot read properties of undefined (reading 'push')" after the card was already saved, 2026-10-08), so the
@@ -13757,7 +14398,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     return `<div class="page-fresh is-${st}">${at ? `<span class="pf-part"><strong>Last updated</strong> ${esc(at)}</span>` : ''}<span class="pf-part"><strong>Source:</strong> ${esc(o.source)}</span><span class="pf-chip is-${st}"><span class="pf-dot" aria-hidden="true"></span>${esc(o.label || chip)}</span>${o.note ? `<p class="pf-note">${esc(o.note)}</p>` : ''}</div>`;
   }
   /** Where each page's numbers come from, for the freshness line a page does not draw itself. */
-  const FRESH_SOURCE = { queue: 'Console and the database', messages: 'Messages from the portal', clients: 'Console and the database', board: 'Console and Multica', billing: 'Stripe and console', settings: 'Console', new: 'Console', client: 'Console and the database' };
+  const FRESH_SOURCE = { queue: 'Console and the database', messages: 'Messages from the portal', clients: 'Console and the database', board: 'Console and Multica', billing: 'Stripe and console', settings: 'Console', new: 'Console', bot: 'Bot chat drafts in the console', client: 'Console and the database' };
   /** Every page ends up with exactly one freshness line: a page that draws its own keeps it; the others get this one under their title. */
   function ensureFresh() {
     if ($('.page-fresh', main) || !all) return;
@@ -13806,6 +14447,8 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     const pastDue = all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived' && billingOf(t).status === 'past_due').length;
     const blb = $('#billing-badge');
     if (blb) { blb.textContent = String(pastDue); blb.hidden = !pastDue; }
+    // Bot chat counts the drafts that are still Pending (mod-bot.js).
+    { const B = partOf('bot'); if (B) B.sideBadge(); }
     const page = (location.hash || '#/queue').split('/')[1] || 'queue';
     for (const a of $$('.nav a[data-nav]')) {
       if (a.getAttribute('data-nav') === page) a.setAttribute('aria-current', 'page');
@@ -13875,7 +14518,8 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     const out = TABS.map((x) => [x[0], x[1]]);
     // A part may name a tab that another part adds later in the load order (Client view goes after Home), so a tab whose
     // neighbour is not there yet waits for another pass; what is still waiting at the end goes last.
-    let rest = Object.entries(/** @type {Record<string, any>} */ (ext)).filter(([key]) => !out.some((x) => x[0] === key));
+    // A tab marked first is placed last, so it lands straight after its neighbour, ahead of the others that follow the same tab.
+    let rest = Object.entries(/** @type {Record<string, any>} */ (ext)).filter(([key]) => !out.some((x) => x[0] === key)).sort((a, b) => Number(!!a[1].first) - Number(!!b[1].first));
     while (rest.length) {
       const left = rest.filter(([key, def]) => {
         const at = out.findIndex((x) => x[0] === (def.after || 'talk'));
@@ -13911,6 +14555,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
       const out = [
         { name: 'Needs you', hint: 'Page', href: '#/queue', icon: 'inbox' },
         { name: 'Messages', hint: 'Page', href: '#/messages', icon: 'chat' },
+        { name: 'Bot chat', hint: 'Page', href: '#/bot', icon: 'bot' },
         { name: 'Clients', hint: 'Page', href: '#/clients', icon: 'users' },
         { name: 'All work (every client\'s team cards)', hint: 'Page', href: '#/board', icon: 'board' },
         { name: 'Billing', hint: 'Page', href: '#/billing', icon: 'card' },
@@ -14190,7 +14835,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     saveBar();
     // Needs you is always the first page (the old Opening page setting, prefs.start, is no longer read).
     const parts = (location.hash || '#/queue').replace(/^#\//, '').split('/');
-    document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'settings', 'messages'].includes(parts[0]) ? parts[0] : 'queue';
+    document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'settings', 'messages', 'bot'].includes(parts[0]) ? parts[0] : 'queue';
     stopInbox();
     main.onclick = null;
     main.onchange = null;
@@ -14202,6 +14847,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     else if (parts[0] === 'billing') billingPage(parts[1] || '');   // #/billing/<client id> opens that client's plan drawer (2026-10-13)
     else if (parts[0] === 'settings') settingsPage('');
     else if (parts[0] === 'messages') messagesPage(parts[1] || '');
+    else if (parts[0] === 'bot' && partOf('bot')) partOf('bot').page(parts[1] || '');   // Bot chat (mod-bot.js, 2026-10-14)
     else queuePage();
     if (parts[0] !== 'client') stopPulling();
     renderSide();
@@ -14293,6 +14939,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
       <section class="q-group" id="q-needs"><h2>Do now <span class="meta">${doNow}</span></h2>
         ${N ? N.cards(typed) : ''}
         ${dm}
+        ${partOf('bot') ? partOf('bot').needsBlock() : ''}
         ${needs.length ? (plain.length ? grouped(plain, 'other') : '') : `<div class="empty"><p><strong>Nothing needs you right now.</strong></p><p>New requests, messages, change requests and late dates show up here.</p></div>`}
       </section>
       ${waiting.length ? `<details class="q-group q-fold" id="q-waiting" data-qf="other"><summary><h2>Waiting on clients <span class="meta">${waiting.length}</span></h2></summary>
@@ -14403,6 +15050,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     const f = /** @type {HTMLFormElement} */ ($('#convo-reply'));
     if (f && shown) {
       track(f, 'Reply');
+      { const B = partOf('bot'); if (B) B.fillReply(shown.id); }   // an approved Bot chat draft handed over to send by hand
       const ta = /** @type {HTMLTextAreaElement} */ ($('#convo-body', f));
       ta.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); const sub = /** @type {HTMLButtonElement|null} */ (f.querySelector('button[type=submit]')); if (sub && sub.disabled) return; f.requestSubmit(); } });
       f.addEventListener('submit', async (e) => {

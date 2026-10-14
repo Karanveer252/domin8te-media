@@ -133,42 +133,59 @@ test('the bills table: one state for each bill, and a link to Stripe only when s
   assert.match(demo.plan.bills([], m), /No bills yet/);
 });
 
-test('the picker: plans and services as cards, Domin8te by asking Karan, and "Taken" when the one place is held', async () => {
+test('the picker: plans and services as cards, Domin8te a plain choice (Ads plus three), "Locked right now" when an owner locked it', async () => {
   const { client: c } = await client('bayleaf');
   const m = plain(await c.getPlan());
   const ui = load('bayleaf', { ui: true });
   const h = ui.plan.picker(m);
   const t = text(h);
   assert.match(t, /Step 1\. Choose a plan/);
-  assert.match(t, /Step 2\. Pick 2 services/);
-  assert.match(t, /2 of 2 picked/);
-  assert.ok(h.indexOf('data-plan="growth"') > -1 && h.indexOf('data-plan="starter"') > -1, 'Starter and Growth are choices');
-  assert.doesNotMatch(h, /data-plan="domin8te"/, 'Domin8te is not a radio: it is set up with Karan');
-  assert.match(h, /Ask Karan/);
+  assert.match(t, /Step 2\. Pick 2 more services/);
+  assert.match(t, /3 of 3 picked/, 'Ads plus two picks');
+  for (const id of ['starter', 'growth', 'domin8te']) assert.ok(h.indexOf(`data-plan="${id}"`) > -1 && h.indexOf(`value="${id}"`) > -1, `${id} is a choice`);
+  assert.doesNotMatch(h, /Ask Karan/, 'Domin8te is no longer set up by asking Karan');
+  assert.match(t, /Ads, plus one service you choose/);
+  assert.match(t, /Ads, plus two services you choose/);
+  assert.match(t, /Ads, plus three services you choose/);
+  assert.doesNotMatch(t, /Every service|set up with Karan/);
+  assert.doesNotMatch(h, /<input class="pk-input" type="radio" name="plan" value="domin8te"[^>]*disabled/, 'open: Domin8te can be chosen');
   assert.match(t, /Confirm: keep Growth/);
   assert.match(t, /Locks your services for/);
   assert.match(t, /\$0/, 'nothing is charged today');
   assert.doesNotMatch(t, /\$\s?[1-9]/, 'the demo shows no price');
-  // The one Domin8te place is held by someone else: the card says Taken and offers no button, and never says who.
+  assert.doesNotMatch(t, /Locked right now|Taken right now/, 'open by default: no lock, no Taken');
+  // The Domin8te places are all held (a client limit, if one is ever switched on): the card says Taken, cannot be chosen, never says who.
   const full = JSON.parse(JSON.stringify(m));
   full.menu.find((p) => p.id === 'domin8te').full = true;
-  const taken = text(ui.plan.picker(full));
-  assert.match(taken, /Taken right now/);
-  assert.doesNotMatch(ui.plan.picker(full), /Ask Karan/);
-  // An owner locked Domin8te: its card says so and offers no way in (a client already on it sees the usual card).
+  const taken = ui.plan.picker(full);
+  assert.match(text(taken), /Taken right now/);
+  assert.match(taken, /<input class="pk-input" type="radio" name="plan" value="domin8te"[^>]*disabled/);
+  // An owner locked Domin8te: its card says so and cannot be chosen (a client already on it sees the usual card).
   const locked = JSON.parse(JSON.stringify(m));
   locked.menu.find((p) => p.id === 'domin8te').locked = true;
-  const shut = text(ui.plan.picker(locked));
-  assert.match(shut, /Locked right now/);
-  assert.match(shut, /Not open to new clients right now/);
-  assert.doesNotMatch(ui.plan.picker(locked), /Ask Karan/);
+  const shutHtml = ui.plan.picker(locked);
+  assert.match(text(shutHtml), /Locked right now/);
+  assert.match(shutHtml, /<input class="pk-input" type="radio" name="plan" value="domin8te"[^>]*disabled/);
+  assert.doesNotMatch(shutHtml, /<input class="pk-input" type="radio" name="plan" value="growth"[^>]*disabled/, 'the other plans stay open');
+  assert.doesNotMatch(shutHtml, /Ask Karan/);
   const keeps = JSON.parse(JSON.stringify(locked));
   keeps.menu.find((p) => p.id === 'domin8te').current = true;
   assert.doesNotMatch(text(ui.plan.picker(keeps)), /Locked right now/, 'a client already on Domin8te is not told it is locked');
   assert.match(text(ui.plan.picker(keeps)), /Your plan now/);
-  // Open by default: no lock, no Taken, an Ask Karan way in.
-  assert.match(ui.plan.picker(m), /Ask Karan/);
-  assert.doesNotMatch(text(ui.plan.picker(m)), /Locked right now|Taken right now/);
+  assert.doesNotMatch(ui.plan.picker(keeps), /<input class="pk-input" type="radio" name="plan" value="domin8te"[^>]*disabled/, 'and can pick it again');
+  // A client on Domin8te sees Ads (included) plus three picks, and the counter says 4 of 4.
+  const dom = JSON.parse(JSON.stringify(m));
+  dom.now.planId = 'domin8te';
+  dom.now.picks = ['advertising', 'social', 'website', 'local'];
+  dom.next = null;
+  const dh = ui.plan.picker(dom);
+  assert.match(text(dh), /Step 2\. Pick 3 more services/);
+  assert.match(text(dh), /4 of 4 picked/);
+  assert.match(text(dh), /Confirm: keep Domin8te/);
+  // A month from before the Ads-plus rules (every service) is trimmed to Ads and the first three picks, never left invalid.
+  const old = JSON.parse(JSON.stringify(dom));
+  old.now.picks = ['advertising', 'social', 'website', 'local', 'email'];
+  assert.match(text(ui.plan.picker(old)), /4 of 4 picked/);
   // Starter picks its website time too: a page or edits.
   const starter = JSON.parse(JSON.stringify(m));
   starter.now.planId = 'starter';
@@ -189,12 +206,12 @@ test('Billing: what comes with each plan, and ad spend is said to be separate fr
   assert.ok(INCLUDED.growth.some((x) => /15 minute call/.test(x)), 'Growth adds a 15 minute call');
   assert.ok(INCLUDED.domin8te.some((x) => /30 minute call/.test(x)) && INCLUDED.domin8te.some((x) => /video walkthrough/.test(x)), 'Domin8te adds a 30 minute call and a video walkthrough');
   assert.equal(AD_SPEND, 'Ad spend is paid to Meta and Google directly and is not part of your plan.');
-  // Growth in the demo is Social and Website: the card says what is included and has no ad spend line.
+  // Growth in the demo is Ads, Social and Website: the card says what is included, and the ad spend line sits under Ads once.
   const { client: cg } = await client('bayleaf');
   const growth = text(ui.plan.overview(plain(await cg.getPlan())));
   assert.match(growth, /Also included/);
   assert.match(growth, /A 15 minute call each month/);
-  assert.doesNotMatch(growth, /Ad spend/);
+  assert.equal((growth.match(/Ad spend is paid to Meta and Google directly/g) || []).length, 1);
   // Starter in the demo has Ads: the line sits under it, once.
   const { client: cs } = await client('cornerbean');
   const starter = text(ui.plan.overview(plain(await cs.getPlan())));
@@ -206,7 +223,8 @@ test('Billing: what comes with each plan, and ad spend is said to be separate fr
 test('Help: the questions are about plans, picks and limits, and "message us to change your plan" is gone', () => {
   const src = fs.readFileSync(path.join(SRC, 'ui', 'pages.js'), 'utf8');
   const faq = src.slice(src.indexOf('const FAQ = ['), src.indexOf('const help = {'));
-  for (const q of ['How do I change my plan or my services?', 'When can I change my picks?', 'What happens to a service I stop?', 'What if I need more posts or changes this month?', 'Do urgent fixes count?', 'Where do the numbers come from?']) assert.ok(faq.includes(q), q);
+  for (const q of ['What does my plan include?', 'How do I change my plan or my services?', 'When can I change my picks?', 'What happens to a service I stop?', 'What if I need more posts or changes this month?', 'Do urgent fixes count?', 'Where do the numbers come from?']) assert.ok(faq.includes(q), q);
+  assert.ok(faq.includes('Every plan includes Ads. Starter adds one service you choose, Growth adds two, and Domin8te adds three.'), 'the plan rule is said in plain words');
   assert.ok(faq.includes('We email you 7 days and 3 days before'), 'the reminders are named');
   assert.ok(faq.includes('Karan replies with options first. Nothing extra is charged without your OK.'), 'over the limit: Karan replies first, no charge without an OK');
   assert.ok(faq.includes('never counted'), 'urgent fixes never count');

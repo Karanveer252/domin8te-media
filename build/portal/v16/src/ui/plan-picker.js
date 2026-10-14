@@ -24,16 +24,11 @@
     // The dearest plan first, as in the designs
     return m.menu.slice().reverse().map((/** @type {any} */ p) => {
       const pr = price(p);
-      // A plan an owner locked takes nobody new: its card says so (a client already on it sees the usual card)
-      const shut = !p.current && !!p.locked;
-      const tag = p.current ? '<span class="chip-now">Your plan now</span>' : shut ? `<span class="chip-now">${icon('lock')}Locked right now</span>` : '';
-      if (p.askKaran) {
-        return `<div class="plan-opt is-ask${p.full ? ' is-full' : ''}${shut ? ' is-locked' : ''}">
-          <div class="po-card"><p class="po-title">${esc(p.name)}</p>${pr ? `<p class="po-cost"><strong>${esc(pr)}</strong>/month</p>` : ''}<p class="po-blurb">${esc(blurb(p))}</p>${tag}
-          ${p.full || shut ? '' : `<a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Ask Karan</a>`}</div>
-        </div>`;
-      }
-      return `<label class="plan-opt" data-plan="${esc(p.id)}"><input class="pk-input" type="radio" name="plan" value="${esc(p.id)}"${st.planId === p.id ? ' checked' : ''}>
+      // A plan an owner locked, or one with a client limit that is full, takes nobody new: its card says so and cannot be chosen
+      // (a client already on it sees the usual card and can pick it again)
+      const shut = !p.current && (!!p.locked || !!p.full);
+      const tag = p.current ? '<span class="chip-now">Your plan now</span>' : p.locked ? `<span class="chip-now">${icon('lock')}Locked right now</span>` : p.full ? '<span class="chip-now">Taken right now</span>' : '';
+      return `<label class="plan-opt${shut ? ' is-shut' : ''}" data-plan="${esc(p.id)}"><input class="pk-input" type="radio" name="plan" value="${esc(p.id)}"${st.planId === p.id ? ' checked' : ''}${shut ? ' disabled' : ''}>
         <span class="po-card"><span class="po-mark" aria-hidden="true">${icon('check')}</span><span class="po-title">${esc(p.name)}</span>${pr ? `<span class="po-cost"><strong>${esc(pr)}</strong>/month</span>` : ''}<span class="po-blurb">${esc(blurb(p))}</span>${tag}</span></label>`;
     }).join('');
   }
@@ -104,14 +99,13 @@
   }
 
   /**
-   * Where the picker starts: what is already chosen for next month, or this month. A client on Domin8te starts from
-   * Growth with their first two services (Domin8te itself is set up with Karan). @param {any} m
+   * Where the picker starts: what is already chosen for next month, or this month. A month from before the Ads-plus rules
+   * (more services than the plan lets a client pick) is trimmed to Ads and the first services that fit. @param {any} m
    * @returns {{planId: string, picks: string[], option: string|null}}
    */
   function startState(m) {
     const start = m.next || m.now;
-    const down = start.planId === 'domin8te';
-    const st = { planId: down ? 'growth' : start.planId, picks: down ? start.picks.slice(0, 2) : start.picks.slice(), option: start.websiteOption || null };
+    const st = { planId: start.planId, picks: start.picks.slice(), option: start.websiteOption || null };
     fitState(m, st);
     return st;
   }

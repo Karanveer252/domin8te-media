@@ -35,23 +35,31 @@ insert into public.tenants (id, name, clerk_org_id, doc) values
   ('cccccccc-0000-0000-0000-00000000000c', 'Plan test C', 'org_TEST_c', '{"user":{"email":"c.owner@example.test"}}'),
   ('dddddddd-0000-0000-0000-00000000000d', 'Plan test D', 'org_TEST_d', '{}');
 insert into public.tenant_plan_cycles (id, tenant_id, period_start, period_end, plan_id, picks, state, source) values
-  ('a1000000-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today() - 10, pg_temp.today() + 21, 'growth', '{social,website}', 'active', 'migration');
+  ('a1000000-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today() - 10, pg_temp.today() + 21, 'growth', '{advertising,social,website}', 'active', 'migration');
 
 -- T1 pick rules ----------------------------------------------------------------------------------------------------
 select pg_temp.v('T1 starter: ads + social fits', 'true', app.picks_valid('starter', '{advertising,social}')::text);
 select pg_temp.v('T1 starter: social alone does not', 'false', app.picks_valid('starter', '{social}')::text);
 select pg_temp.v('T1 starter: ads alone does not', 'false', app.picks_valid('starter', '{advertising}')::text);
 select pg_temp.v('T1 starter: ads + 2 does not', 'false', app.picks_valid('starter', '{advertising,social,website}')::text);
-select pg_temp.v('T1 growth: 2 picks fit', 'true', app.picks_valid('growth', '{social,website}')::text);
-select pg_temp.v('T1 growth: ads can be one of the 2', 'true', app.picks_valid('growth', '{advertising,email}')::text);
-select pg_temp.v('T1 growth: 1 pick does not', 'false', app.picks_valid('growth', '{social}')::text);
-select pg_temp.v('T1 growth: 3 picks do not', 'false', app.picks_valid('growth', '{social,website,local}')::text);
-select pg_temp.v('T1 growth: the same pick twice does not', 'false', app.picks_valid('growth', '{social,social}')::text);
-select pg_temp.v('T1 domin8te: every service fits', 'true', app.picks_valid('domin8te', '{advertising,social,website,local,email}')::text);
-select pg_temp.v('T1 domin8te: one missing does not', 'false', app.picks_valid('domin8te', '{advertising,social,website,local}')::text);
-select pg_temp.v('T1 unknown service does not', 'false', app.picks_valid('growth', '{social,tiktok}')::text);
+select pg_temp.v('T1 growth: ads + 2 picks fit', 'true', app.picks_valid('growth', '{advertising,social,website}')::text);
+select pg_temp.v('T1 growth: ads is not one of the 2 picks', 'false', app.picks_valid('growth', '{advertising,email}')::text);
+select pg_temp.v('T1 growth: 2 picks without ads do not', 'false', app.picks_valid('growth', '{social,website}')::text);
+select pg_temp.v('T1 growth: ads + 1 does not', 'false', app.picks_valid('growth', '{advertising,social}')::text);
+select pg_temp.v('T1 growth: ads + 3 does not', 'false', app.picks_valid('growth', '{advertising,social,website,local}')::text);
+select pg_temp.v('T1 growth: the same pick twice does not', 'false', app.picks_valid('growth', '{advertising,social,social}')::text);
+select pg_temp.v('T1 domin8te: ads + 3 picks fit', 'true', app.picks_valid('domin8te', '{advertising,social,website,local}')::text);
+select pg_temp.v('T1 domin8te: any other 3 picks fit', 'true', app.picks_valid('domin8te', '{advertising,website,local,email}')::text);
+select pg_temp.v('T1 domin8te: ads + 2 does not', 'false', app.picks_valid('domin8te', '{advertising,social,website}')::text);
+select pg_temp.v('T1 domin8te: ads + 4 (every service) does not', 'false', app.picks_valid('domin8te', '{advertising,social,website,local,email}')::text);
+select pg_temp.v('T1 domin8te: 3 picks without ads do not', 'false', app.picks_valid('domin8te', '{social,website,local}')::text);
+select pg_temp.v('T1 domin8te: 4 picks without ads do not', 'false', app.picks_valid('domin8te', '{social,website,local,email}')::text);
+select pg_temp.v('T1 unknown service does not', 'false', app.picks_valid('growth', '{advertising,social,tiktok}')::text);
+select pg_temp.v('T1 unknown plan does not', 'false', app.picks_valid('platinum', '{advertising,social}')::text);
+select pg_temp.v('T1 null picks do not', 'false', app.picks_valid('starter', null)::text);
+select pg_temp.v('T1 the plans rows say ads + 1/2/3', '1,2,3/advertising', (select string_agg(picks_allowed::text, ',' order by sort) || '/' || min(array_to_string(required_services, ',')) from public.plans));
 select pg_temp.e('T1 a month that breaks the rule is refused', '23514',
-  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('cccccccc-0000-0000-0000-00000000000c', pg_temp.today() + 100, pg_temp.today() + 130, 'growth', '{social}')$q$);
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('cccccccc-0000-0000-0000-00000000000c', pg_temp.today() + 100, pg_temp.today() + 130, 'growth', '{advertising,social}')$q$);
 
 -- T2 Starter website option -------------------------------------------------------------------------------------------
 select pg_temp.e('T2 starter + website with no page/edits choice is refused', '23514',
@@ -68,20 +76,20 @@ select pg_temp.v('T2 non-starter keeps no website option', 'null',
 -- T3 the client limit (Domin8te has none now: it is unlocked; a number in plans.max_clients still holds, so it is switched on here) ----
 update public.plans set max_clients = 1 where id = 'domin8te';
 insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks, state, source) values
-  ('cccccccc-0000-0000-0000-00000000000c', pg_temp.today() - 5, pg_temp.today() + 26, 'domin8te', '{advertising,social,website,local,email}', 'active', 'migration');
+  ('cccccccc-0000-0000-0000-00000000000c', pg_temp.today() - 5, pg_temp.today() + 26, 'domin8te', '{advertising,social,website,local}', 'active', 'migration');
 select pg_temp.e('T3 a second Domin8te client in the same months is refused', '23P01',
-  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('dddddddd-0000-0000-0000-00000000000d', pg_temp.today(), pg_temp.today() + 30, 'domin8te', '{advertising,social,website,local,email}')$q$);
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('dddddddd-0000-0000-0000-00000000000d', pg_temp.today(), pg_temp.today() + 30, 'domin8te', '{advertising,social,website,local}')$q$);
 update public.tenants set status = 'paused' where id = 'cccccccc-0000-0000-0000-00000000000c';
 select pg_temp.e('T3 a paused holder still holds the slot', '23P01',
-  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('dddddddd-0000-0000-0000-00000000000d', pg_temp.today(), pg_temp.today() + 30, 'domin8te', '{advertising,social,website,local,email}')$q$);
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('dddddddd-0000-0000-0000-00000000000d', pg_temp.today(), pg_temp.today() + 30, 'domin8te', '{advertising,social,website,local}')$q$);
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"user_TEST_owner","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:admin"}}';
 select pg_temp.w('T3 an owner archives the holder', 'allowed', $q$update public.tenants set status = 'archived' where id = 'cccccccc-0000-0000-0000-00000000000c'$q$);
 reset role;
 select pg_temp.e('T3 archiving the holder frees the slot', 'ok',
-  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('dddddddd-0000-0000-0000-00000000000d', pg_temp.today(), pg_temp.today() + 30, 'domin8te', '{advertising,social,website,local,email}')$q$);
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('dddddddd-0000-0000-0000-00000000000d', pg_temp.today(), pg_temp.today() + 30, 'domin8te', '{advertising,social,website,local}')$q$);
 select pg_temp.e('T3 months of one client never overlap', '23P01',
-  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today(), pg_temp.today() + 30, 'growth', '{social,website}')$q$);
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today(), pg_temp.today() + 30, 'growth', '{advertising,social,website}')$q$);
 
 update public.plans set max_clients = null where id = 'domin8te';
 
@@ -104,26 +112,38 @@ select pg_temp.v('lock: the lock is not logged as a plan edit', '0', (select cou
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"user_TEST_a","role":"authenticated","o":{"id":"org_TEST_a"}}';
 select pg_temp.v('lock: the client menu says Domin8te is locked', 'true', (select e ->> 'locked' from jsonb_array_elements(public.plan_menu() -> 'plans') e where e ->> 'id' = 'domin8te'));
+select pg_temp.e('lock: a client cannot pick the locked Domin8te in the picker', '23P01', $q$select public.set_next_cycle_picks('domin8te', '{advertising,social,website,local}')$q$);
 reset role;
 select pg_temp.e('lock: a Starter client cannot move onto a locked Domin8te', '23P01',
-  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('bbbbbbbb-0000-0000-0000-00000000000b', pg_temp.today() + 21, pg_temp.today() + 51, 'domin8te', '{advertising,social,website,local,email}')$q$);
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('bbbbbbbb-0000-0000-0000-00000000000b', pg_temp.today() + 21, pg_temp.today() + 51, 'domin8te', '{advertising,social,website,local}')$q$);
 select pg_temp.e('lock: a brand new client cannot start on it', '23P01',
-  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('cccccccc-0000-0000-0000-00000000000c', pg_temp.today() + 100, pg_temp.today() + 130, 'domin8te', '{advertising,social,website,local,email}')$q$);
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('cccccccc-0000-0000-0000-00000000000c', pg_temp.today() + 100, pg_temp.today() + 130, 'domin8te', '{advertising,social,website,local}')$q$);
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"user_TEST_staff","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:member"}}';
 select pg_temp.e('lock: a staff override onto a locked Domin8te is refused too', '23P01',
-  $q$select public.override_plan_cycle('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today() + 21, 'domin8te', '{advertising,social,website,local,email}', null, 'lock test')$q$);
+  $q$select public.override_plan_cycle('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today() + 21, 'domin8te', '{advertising,social,website,local}', null, 'lock test')$q$);
 reset role;
 select pg_temp.e('lock: a client already on Domin8te keeps it next month', 'ok',
-  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('dddddddd-0000-0000-0000-00000000000d', pg_temp.today() + 30, pg_temp.today() + 60, 'domin8te', '{advertising,social,website,local,email}')$q$);
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('dddddddd-0000-0000-0000-00000000000d', pg_temp.today() + 30, pg_temp.today() + 60, 'domin8te', '{advertising,social,website,local}')$q$);
 delete from public.tenant_plan_cycles where tenant_id = 'dddddddd-0000-0000-0000-00000000000d' and period_start = pg_temp.today() + 30;
+-- D is on Domin8te: through the picker, while it is locked, D keeps it and can re-pick other services (its month is made 'active' just for this)
+update public.tenant_plan_cycles set state = 'active' where tenant_id = 'dddddddd-0000-0000-0000-00000000000d' and period_start = pg_temp.today();
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_d","role":"authenticated","o":{"id":"org_TEST_d"}}';
+select pg_temp.e('lock: a client already on Domin8te can re-pick it in the picker while it is locked', 'ok',
+  $q$select public.set_next_cycle_picks('domin8te', '{advertising,email,local,website}')$q$);
+reset role;
+select pg_temp.v('lock: and the re-pick is saved as Domin8te', 'domin8te/advertising,email,local,website',
+  (select plan_id || '/' || array_to_string(picks, ',') from public.tenant_plan_cycles where tenant_id = 'dddddddd-0000-0000-0000-00000000000d' and period_start = pg_temp.today() + 30));
+delete from public.tenant_plan_cycles where tenant_id = 'dddddddd-0000-0000-0000-00000000000d' and period_start = pg_temp.today() + 30;
+update public.tenant_plan_cycles set state = 'draft' where tenant_id = 'dddddddd-0000-0000-0000-00000000000d' and period_start = pg_temp.today();
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"user_TEST_owner","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:admin"}}';
 select pg_temp.e('lock: an owner unlocks Domin8te', 'ok', $q$select public.set_plan_locked('domin8te', false, 'room again')$q$);
 reset role;
 select pg_temp.v('lock: one unlock line', '1', (select count(*)::text from public.audit_log where action = 'plan_unlocked' and detail ->> 'plan' = 'domin8te'));
 select pg_temp.e('lock: unlocked, a Starter client can be put on Domin8te', 'ok',
-  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('bbbbbbbb-0000-0000-0000-00000000000b', pg_temp.today() + 21, pg_temp.today() + 51, 'domin8te', '{advertising,social,website,local,email}')$q$);
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('bbbbbbbb-0000-0000-0000-00000000000b', pg_temp.today() + 21, pg_temp.today() + 51, 'domin8te', '{advertising,social,website,local}')$q$);
 delete from public.tenant_plan_cycles where tenant_id = 'bbbbbbbb-0000-0000-0000-00000000000b' and period_start = pg_temp.today() + 21;
 
 -- T4 caps -------------------------------------------------------------------------------------------------------------
@@ -140,7 +160,7 @@ select pg_temp.e('T4 with a one-off approval it is counted', 'ok',
 select pg_temp.e('T4 an urgent fix (not counted) never blocks', 'ok',
   $q$insert into public.usage_events (tenant_id, cycle_id, service, metric, counted, note) values ('aaaaaaaa-0000-0000-0000-00000000000a','a1000000-0000-0000-0000-000000000001','social','social_posts',false,'holiday hours')$q$);
 select pg_temp.e('T4 usage for a service not picked is refused', '23514',
-  $q$insert into public.usage_events (tenant_id, cycle_id, service, metric) values ('aaaaaaaa-0000-0000-0000-00000000000a','a1000000-0000-0000-0000-000000000001','advertising','ads_live_campaigns')$q$);
+  $q$insert into public.usage_events (tenant_id, cycle_id, service, metric) values ('aaaaaaaa-0000-0000-0000-00000000000a','a1000000-0000-0000-0000-000000000001','email','email_campaigns')$q$);
 select pg_temp.v('T4 used shows 13 of 12', '13/12',
   (select used || '/' || monthly_cap from public.tenant_usage_current where tenant_id = 'aaaaaaaa-0000-0000-0000-00000000000a' and metric = 'social_posts'));
 select pg_temp.e('T4 usage rows cannot be edited, only voided', '42501',
@@ -162,7 +182,7 @@ select pg_temp.e('T4 client: an ask past the cap is stored too', 'ok',
 select pg_temp.e('T4 client: an urgent fix', 'ok',
   $q$insert into public.requests (tenant_id, service, body, urgent_fix) values ('aaaaaaaa-0000-0000-0000-00000000000a','local','Closed Monday for the holiday',true)$q$);
 select pg_temp.e('T4 client: an ask for a service not in the plan', 'ok',
-  $q$insert into public.requests (tenant_id, service, body) values ('aaaaaaaa-0000-0000-0000-00000000000a','advertising','Run an ad for Thanksgiving')$q$);
+  $q$insert into public.requests (tenant_id, service, body) values ('aaaaaaaa-0000-0000-0000-00000000000a','email','Email blast for Thanksgiving')$q$);
 select pg_temp.e('T4 client: cannot mark its own ask as not over the cap', '42501',
   $q$insert into public.requests (tenant_id, service, body, over_cap) values ('aaaaaaaa-0000-0000-0000-00000000000a','social','x',false)$q$);
 reset role;
@@ -172,20 +192,27 @@ select pg_temp.v('T4 the within-cap ask is not flagged', 'false', (select over_c
 select pg_temp.v('T4 Needs you has the past-cap ask', '1',
   (select count(*)::text from public.dashboard_exceptions e join public.requests q on q.id::text = e.entity_id where q.body = '12 extra posts' and e.reason_code = 'over_cap_request' and e.status = 'open'));
 select pg_temp.v('T4 Needs you has the not-picked ask', '1',
-  (select count(*)::text from public.dashboard_exceptions e join public.requests q on q.id::text = e.entity_id where q.body = 'Run an ad for Thanksgiving' and e.reason_code = 'service_not_picked'));
+  (select count(*)::text from public.dashboard_exceptions e join public.requests q on q.id::text = e.entity_id where q.body = 'Email blast for Thanksgiving' and e.reason_code = 'service_not_picked'));
 select pg_temp.v('T4 the urgent fix touches nothing', 'false/0',
   (select q.over_cap || '/' || (select count(*) from public.dashboard_exceptions e where e.entity_id = q.id::text) from public.requests q where q.body = 'Closed Monday for the holiday'));
 
 -- T5 the monthly lock ---------------------------------------------------------------------------------------------------
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"user_TEST_a","role":"authenticated","o":{"id":"org_TEST_a"}}';
-select pg_temp.e('T5 client picks next month', 'ok', $q$select public.set_next_cycle_picks('growth', '{advertising,social}')$q$);
+select pg_temp.e('T5 client picks next month', 'ok', $q$select public.set_next_cycle_picks('growth', '{advertising,social,email}')$q$);
+select pg_temp.e('T5 client picks Domin8te next month (it is open)', 'ok', $q$select public.set_next_cycle_picks('domin8te', '{advertising,social,website,local}')$q$);
+select pg_temp.v('T5 next month now holds Domin8te with ads + 3 picks', 'domin8te/advertising,local,social,website',
+  (select plan_id || '/' || array_to_string(picks, ',') from public.tenant_plan_cycles where tenant_id = 'aaaaaaaa-0000-0000-0000-00000000000a' and period_start = pg_temp.today() + 21));
 select pg_temp.e('T5 client re-picks before the deadline', 'ok', $q$select public.set_next_cycle_picks('starter', '{advertising,local}')$q$);
-select pg_temp.e('T5 client picks that do not fit are refused', '23514', $q$select public.set_next_cycle_picks('growth', '{social}')$q$);
-select pg_temp.e('T5 client cannot pick Domin8te itself', '42501', $q$select public.set_next_cycle_picks('domin8te', '{advertising,social,website,local,email}')$q$);
-select pg_temp.w('T5 client cannot change the running month', 'blocked', $q$update public.tenant_plan_cycles set picks = '{local,email}' where id = 'a1000000-0000-0000-0000-000000000001'$q$);
+select pg_temp.e('T5 client picks that do not fit are refused', '23514', $q$select public.set_next_cycle_picks('growth', '{advertising,social}')$q$);
+select pg_temp.e('T5 Growth without Ads is refused', '23514', $q$select public.set_next_cycle_picks('growth', '{social,website}')$q$);
+select pg_temp.e('T5 Growth with Ads + 3 is refused', '23514', $q$select public.set_next_cycle_picks('growth', '{advertising,social,website,local}')$q$);
+select pg_temp.e('T5 Domin8te with Ads + 2 is refused', '23514', $q$select public.set_next_cycle_picks('domin8te', '{advertising,social,website}')$q$);
+select pg_temp.e('T5 Domin8te with Ads + 4 (every service) is refused', '23514', $q$select public.set_next_cycle_picks('domin8te', '{advertising,social,website,local,email}')$q$);
+select pg_temp.e('T5 Domin8te without Ads is refused', '23514', $q$select public.set_next_cycle_picks('domin8te', '{social,website,local}')$q$);
+select pg_temp.w('T5 client cannot change the running month', 'blocked', $q$update public.tenant_plan_cycles set picks = '{advertising,local,email}' where id = 'a1000000-0000-0000-0000-000000000001'$q$);
 select pg_temp.e('T5 client cannot add a month directly', '42501',
-  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today() + 200, pg_temp.today() + 230, 'growth', '{social,email}')$q$);
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today() + 200, pg_temp.today() + 230, 'growth', '{advertising,social,email}')$q$);
 reset role;
 select pg_temp.v('T5 next month holds the last pick, confirmed by the client', 'starter/advertising,local/client_picker/confirmed',
   (select plan_id || '/' || array_to_string(picks, ',') || '/' || source || '/' || state from public.tenant_plan_cycles
@@ -195,13 +222,13 @@ select pg_temp.v('T5 a "picks confirmed" email is queued', 'scheduled/a.owner@ex
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"user_TEST_staff","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:member"}}';
 select pg_temp.e('T5 staff without a reason cannot change the running month', '42501',
-  $q$update public.tenant_plan_cycles set picks = '{local,social}' where id = 'a1000000-0000-0000-0000-000000000001'$q$);
+  $q$update public.tenant_plan_cycles set picks = '{advertising,local,social}' where id = 'a1000000-0000-0000-0000-000000000001'$q$);
 select pg_temp.e('T5 the override needs a reason', '22023',
-  $q$select public.override_plan_cycle('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today() - 10, 'growth', '{local,social}', null, ' ')$q$);
+  $q$select public.override_plan_cycle('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today() - 10, 'growth', '{advertising,local,social}', null, ' ')$q$);
 select pg_temp.e('T5 staff with a reason can', 'ok',
-  $q$select public.override_plan_cycle('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today() - 10, 'growth', '{local,social}', null, 'Owner asked by phone')$q$);
+  $q$select public.override_plan_cycle('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today() - 10, 'growth', '{advertising,local,social}', null, 'Owner asked by phone')$q$);
 select pg_temp.e('T5 the same old reason does not unlock it again', '42501',
-  $q$update public.tenant_plan_cycles set picks = '{email,social}' where id = 'a1000000-0000-0000-0000-000000000001'$q$);
+  $q$update public.tenant_plan_cycles set picks = '{advertising,email,social}' where id = 'a1000000-0000-0000-0000-000000000001'$q$);
 reset role;
 select pg_temp.v('T5 the change is in the audit log with its reason', 'Owner asked by phone',
   (select detail ->> 'reason' from public.audit_log where action = 'plan_cycle_update' and tenant_id = 'aaaaaaaa-0000-0000-0000-00000000000a'
@@ -236,7 +263,7 @@ select pg_temp.t('T6 anon reads no months', 'blocked', $q$select 1 from public.t
 select pg_temp.t('T6 anon reads no usage', 'blocked', $q$select 1 from public.tenant_usage_current$q$);
 select pg_temp.t('T6 anon reads no results view', 'blocked', $q$select 1 from public.client_results_current()$q$);
 select pg_temp.t('T6 anon reads no catalog', 'blocked', $q$select 1 from public.service_catalog$q$);
-select pg_temp.t('T6 anon cannot pick', 'blocked', $q$select public.set_next_cycle_picks('growth', '{social,email}')$q$);
+select pg_temp.t('T6 anon cannot pick', 'blocked', $q$select public.set_next_cycle_picks('growth', '{advertising,social,email}')$q$);
 reset role;
 
 -- T7 visibility -----------------------------------------------------------------------------------------------------------
@@ -402,8 +429,8 @@ select pg_temp.e('T18 hermes cannot review an item', '42501', $q$select public.r
 select pg_temp.e('T18 hermes cannot approve an invoice link', '42501', $q$select public.review_billing_invoice_v2('a7100000-0000-0000-0000-000000000001', 'approve', null, true)$q$);
 select pg_temp.e('T18 hermes cannot hide an item', '42501', $q$select public.hide_client_dashboard_item((select id from public.client_dashboard_items limit 1), 'hermes', 'x')$q$);
 select pg_temp.e('T18 hermes cannot show a card', '42501', $q$select public.set_task_visibility('a7000000-0000-0000-0000-000000000001', true)$q$);
-select pg_temp.e('T18 hermes cannot override a plan', '42501', $q$select public.override_plan_cycle('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today(), 'growth', '{social,email}', null, 'x')$q$);
-select pg_temp.e('T18 hermes cannot pick for a client', '42501', $q$select public.set_next_cycle_picks('growth', '{social,email}')$q$);
+select pg_temp.e('T18 hermes cannot override a plan', '42501', $q$select public.override_plan_cycle('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today(), 'growth', '{advertising,social,email}', null, 'x')$q$);
+select pg_temp.e('T18 hermes cannot pick for a client', '42501', $q$select public.set_next_cycle_picks('growth', '{advertising,social,email}')$q$);
 select pg_temp.e('T18 hermes cannot lock a plan', '42501', $q$select public.set_plan_locked('domin8te', true, 'x')$q$);
 select pg_temp.e('T18 hermes cannot count usage', '42501',
   $q$insert into public.usage_events (tenant_id, cycle_id, service, metric) values ('aaaaaaaa-0000-0000-0000-00000000000a','a1000000-0000-0000-0000-000000000001','social','social_posts')$q$);

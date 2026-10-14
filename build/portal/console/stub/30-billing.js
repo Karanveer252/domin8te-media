@@ -27,10 +27,13 @@
     if (!Array.isArray(picks)) return false;
     const distinct = new Set(picks).size === picks.length;
     const inCatalog = picks.every((x) => cat.includes(x));
+    // the generic rule (14 Oct 2026): what the plan requires is in, and the count is required plus picks_allowed; a row with no pick count means every service
+    const row = planRow(plan);
     let fits = false;
-    if (plan === 'starter') fits = picks.includes('advertising') && picks.filter((x) => x !== 'advertising').length === 1;
-    else if (plan === 'growth') fits = picks.length === 2;
-    else if (plan === 'domin8te') fits = cat.every((/** @type {string} */ x) => picks.includes(x));
+    if (row) {
+      const req = row.required_services || [];
+      fits = req.every((/** @type {string} */ x) => picks.includes(x)) && (row.picks_allowed === null || row.picks_allowed === undefined ? cat.every((/** @type {string} */ x) => picks.includes(x)) : picks.length === req.length + Number(row.picks_allowed));
+    }
     return fits && inCatalog && distinct;
   }
 
@@ -212,7 +215,7 @@
     // Osteria's client has already picked next cycle's services (Local search out, Social in), so the orange and struck picks show.
     const osteriaNow = (db.tenant_plan_cycles || []).find((/** @type {any} */ c) => c.tenant_id === 'tnt_preview_osteria' && c.state === 'active');
     if (osteriaNow && !(db.tenant_plan_cycles || []).some((/** @type {any} */ c) => c.tenant_id === 'tnt_preview_osteria' && c.period_start === osteriaNow.period_end)) {
-      db.tenant_plan_cycles.push({ id: 'cyc_tnt_preview_osteria_next', tenant_id: 'tnt_preview_osteria', period_start: osteriaNow.period_end, period_end: addMonth(osteriaNow.period_end), plan_id: 'growth', picks: ['social', 'website'], website_option: null,
+      db.tenant_plan_cycles.push({ id: 'cyc_tnt_preview_osteria_next', tenant_id: 'tnt_preview_osteria', period_start: osteriaNow.period_end, period_end: addMonth(osteriaNow.period_end), plan_id: 'growth', picks: ['advertising', 'social', 'website'], website_option: null,
         state: 'confirmed', confirmed_at: stamp(-1, 0), confirmed_by: 'user_preview_osteria', locked_at: null, source: 'client_picker', override_reason: null, created_at: stamp(-1, 0), updated_at: stamp(-1, 0) });
     }
     // What the history shows: the plans set and changed, a pick the client made, a carry-over, an approved link.

@@ -111,9 +111,8 @@
   function suggestion(C, id) {
     const po = C.planOf(id);
     if (!po.now || !po.next) return null;
-    const pm = W.D8 && W.D8.planModel;
     /** @param {any} c */
-    const picks = (c) => (pm ? pm.picksOf({ planId: c.plan_id, picks: c.picks || [] }) : c.picks || []);
+    const picks = (c) => c.picks || [];   // a month's picks already include Ads on every plan
     const a = picks(po.now);
     const b = picks(po.next);
     const adds = b.filter((/** @type {string} */ x) => !a.includes(x));

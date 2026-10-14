@@ -163,3 +163,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
   .pl-avail > .btn { width: 100%; }
   .pl-avail-note { max-width: none; }
 }
+
+/* Message emails: the team address form (2026-10-14) */
+.mn-team { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-bottom: 6px; }
+.mn-team .field { flex: 1 1 220px; min-width: 0; }

@@ -30,7 +30,7 @@ const CONSOLE_PAGES = [['needs-you', 'queue'], ['messages', 'messages'], ['clien
   ['client-overview', `client/${T}/overview`], ['client-work', `client/${T}/work`], ['client-results', `client/${T}/results`], ['client-talk', `client/${T}/talk`], ['client-home-editor', `client/${T}/home`], ['client-visibility', `client/${T}/visible`], ['client-setup', `client/${T}/setup`], ['client-advanced', `client/${T}/advanced`],
   ['client-growth-overview', 'client/tnt_preview_marlow/overview'], ['client-starter-visibility', 'client/tnt_preview_corner/visible']];
 const PAGES = CONSOLE ? CONSOLE_PAGES : [['home', 'home'], ['work', 'work'], ['results', 'results'], ['billing', 'billing'], ['billing-change', 'billing/change'], ['settings', 'settings'], ['help', 'help'], ['messages', 'messages']];
-// The demo's situations: the default (Growth), a Starter, Domin8te (every service) and a plan change already chosen.
+// The demo's situations: the default (Growth), a Starter, Domin8te (Ads plus three) and a plan change already chosen.
 const SCENARIOS = CONSOLE ? [['console', '']] : [['demo', ''], ['starter', 'demo=cornerbean'], ['domin8te', 'demo=domin8te'], ['change', 'demo=change']];
 
 const jobs = [];

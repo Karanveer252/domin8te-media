@@ -1,14 +1,16 @@
 // @ts-check
 /*
- * The Settings page's own parts (2026-10-13): Plans and limits, Picks and lock, Change history, Reminder emails, the Hermes row,
+ * The Settings page's own parts (2026-10-13): Plans and limits, Picks and lock, Change history, Reminder emails, Message emails, the Hermes row,
  * and the raw data editor with its checks. console.js calls into window.D8C_EXT.settings from settingsPage and record;
  * everything else it needs comes from window.D8C (read when used, because console.js builds it after this file loads).
  *
  * Reads:  plans, plan_caps, service_catalog, tenant_plan_cycles, billing_reminders (all through D8C.plans), audit_log
- *         (plan_cap_version, plan_updated), staff (names), dashboard_exceptions (through D8C.all.reviews).
+ *         (plan_cap_version, plan_updated), staff (names), dashboard_exceptions (through D8C.all.reviews), message_notifications and the
+ *         rpc get_notify_team_email (read by the Message emails panel itself).
  * Writes: plan_caps (insert: a limit change is a NEW version), plans (update: name and price), billing_reminders (update: put
  *         a failed one back in the queue), tenants (the raw data editor, through D8C.save), the rpcs resolve_dashboard_exception
- *         and record_raw_edit (the raw edit's audit row; see the report: it needs a migration).
+ *         and record_raw_edit (the raw edit's audit row; see the report: it needs a migration), set_notify_team_email (owners only),
+ *         message_notifications (update: put a failed message email back in the queue).
  */
 (function () {
   'use strict';
@@ -84,7 +86,7 @@
     return { plans, services, cell, version, since, scheduled, last: stamps[0] || null };
   }
 
-  /** The words for what a plan includes: "Ads + 1 pick", "2 picks", "All services". @param {any} pl */
+  /** The words for what a plan includes: "Ads + 1 pick", "Ads + 2 picks", "Ads + 3 picks" (from the plan row: its required services, then its pick count). @param {any} pl */
   function ruleOf(pl) {
     if (pl.picks_allowed === null || pl.picks_allowed === undefined) return 'All services';
     const req = (pl.required_services || []).map((/** @type {string} */ id) => { const s = D().plans.services.find((/** @type {any} */ x) => x.id === id); return s ? s.label : id; });
@@ -158,8 +160,8 @@
     const name = String(pl.name);
     const said = pl.locked_at ? `${locked ? 'Locked' : 'Unlocked'} ${D().clockTime(pl.locked_at)}${pl.locked_by ? ` by ${nameOf(pl.locked_by)}` : ''}.` : '';
     const words = locked
-      ? `No new client can be put on ${name} and the client's picker shows it as locked. Clients already on ${name} keep it.`
-      : `New clients can be put on ${name}, and the client's picker shows it as open. Clients already on ${name} keep it either way.`;
+      ? `No new client can be put on ${name}, and a client cannot pick it themselves. Clients already on ${name} keep it.`
+      : `New clients can be put on ${name}, and a client can pick it themselves in their dashboard. Clients already on ${name} keep it either way.`;
     const act = !owner ? `<p class="meta pl-avail-note">Only an owner can lock or unlock ${esc(name)}.</p>`
       : ST.editing ? '<p class="meta pl-avail-note">Save or cancel your edits to change this.</p>'
         : `<button class="btn btn-quiet" type="button" data-pl-lock="${locked ? 'unlock' : 'lock'}">${locked ? 'Unlock' : 'Lock'} ${esc(name)}</button>`;
@@ -334,7 +336,7 @@
     const el = dlg;
     const name = esc(pl.name);
     el.innerHTML = `<form method="dialog" novalidate><h2 id="pl-lock-h">${want ? 'Lock' : 'Unlock'} ${name}?</h2>
-      <p>${want ? `Locked: no new client can be put on ${name} and the client's picker shows it as locked. Clients already on ${name} keep it.` : `Unlocked: new clients can be put on ${name} again.`}</p>
+      <p>${want ? `Locked: no new client can be put on ${name}, and a client cannot pick it themselves. Clients already on ${name} keep it.` : `Unlocked: new clients can be put on ${name} again, and a client can pick it themselves.`}</p>
       <div class="field"><label for="pl-lock-why">Reason (optional)</label><textarea id="pl-lock-why" name="why" maxlength="500" rows="3" placeholder="${want ? 'For example: no room for new clients this month' : 'For example: there is room again'}"></textarea><p class="hint">Kept in the history.</p></div>
       <div class="actions"><button class="btn btn-quiet" type="submit" value="cancel" formnovalidate>Cancel</button><button class="btn" type="submit" value="ok">${want ? 'Lock' : 'Unlock'} ${name}</button></div></form>`;
     return new Promise((resolve) => {
@@ -680,6 +682,156 @@
     box.innerHTML = remindersHtml();
   }
 
+  /* ---- Message emails (2026-10-14) -------------------------------------------------------------------- */
+  /*
+   * The emails sent when a message is written: one to the team when a client writes, one to the client when staff reply.
+   * Reads: message_notifications (staff read) and the rpc get_notify_team_email. Writes: the rpc set_notify_team_email (owners only)
+   * and message_notifications (put a failed email back in the queue). The job is the message-notifications function.
+   */
+  const MN = { loaded: false, ok: true, rows: /** @type {any[]} */ ([]), team: /** @type {string|null} */ (null), token: 0 };
+  const WHERE = { to_team: 'to the team', to_client: 'to the client' };
+
+  /** What the rows say about the job: newest sent, waiting, skipped and failed in the last 30 days, and whether sending works. */
+  function mnStats() {
+    const rows = MN.rows;
+    const now = Date.now();
+    const t = (/** @type {any} */ x) => new Date(x).getTime();
+    const sent = rows.filter((/** @type {any} */ r) => r.status === 'sent' && r.provider_id).sort((/** @type {any} */ a, /** @type {any} */ b) => t(b.sent_at) - t(a.sent_at));
+    const waiting = rows.filter((/** @type {any} */ r) => r.status === 'scheduled').sort((/** @type {any} */ a, /** @type {any} */ b) => t(a.send_at) - t(b.send_at));
+    const fails = rows.filter((/** @type {any} */ r) => r.status === 'failed' && now - t(r.updated_at) <= 30 * DAY).sort((/** @type {any} */ a, /** @type {any} */ b) => t(b.updated_at) - t(a.updated_at));
+    const skipped = rows.filter((/** @type {any} */ r) => r.status === 'skipped' && now - t(r.updated_at) <= 30 * DAY);
+    // Due for more than 10 minutes and never tried: the job leaves it alone when it has no key or no sender.
+    const overdue = waiting.filter((/** @type {any} */ r) => t(r.send_at) < now - 10 * 60000 && !Number(r.attempts));
+    return { sent, waiting, fails, skipped, overdue, key: sent.length ? 'set' : overdue.length ? 'not set' : 'unknown' };
+  }
+
+  function notifyHtml() {
+    const head = '<div class="panel-head"><div class="pl-head-txt"><h2 id="s-notify">Message emails</h2><p>Sent with Resend. An email that cannot be sent opens an item in Needs you.</p></div></div>';
+    if (!MN.loaded) return `${head}<p class="meta">Loading.</p>`;
+    if (!MN.ok) return `${head}<p class="meta">The message email table is not on this database yet.</p>`;
+    const R = mnStats();
+    const last = R.sent[0];
+    const lastText = last ? `${esc(D().clockTime(last.sent_at))}. Sent an email ${esc(/** @type {any} */ (WHERE)[last.direction] || '')} about ${esc(clientOf(last.tenant_id))}.` : 'Nothing has been sent yet.';
+    const next = R.waiting[0];
+    const waitText = next ? `${esc(plural(R.waiting.length, 'email'))}. The next goes ${esc(D().clockTime(next.send_at))}, ${esc(/** @type {any} */ (WHERE)[next.direction] || '')}, about ${esc(clientOf(next.tenant_id))}.` : 'Nothing is waiting right now.';
+    const reasons = new Map();
+    for (const r of R.skipped) reasons.set(r.error || 'skipped', (reasons.get(r.error || 'skipped') || 0) + 1);
+    const skipText = R.skipped.length ? `${esc(plural(R.skipped.length, 'email'))} in the last 30 days: ${esc(Array.from(reasons).map(([why, n]) => `${why} (${n})`).join(', '))}.` : '';
+    const key = R.key === 'set'
+      ? `<p class="rm-key is-set"><strong>Resend key: set.</strong> An email went out through Resend on ${esc(D().clockTime(R.sent[0].sent_at))}, so sending works. The console never sees the key itself.</p>`
+      : R.key === 'not set'
+        ? `<p class="rm-key is-off"><strong>Resend key: not set.</strong> ${esc(plural(R.overdue.length, 'email'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no key or no sender. Add them to the server's secrets.</p>`
+        : '<p class="rm-key"><strong>Resend key: not confirmed yet.</strong> No email has been due, so nothing shows whether it is set. The console never sees the key itself.</p>';
+    const team = MN.team;
+    const addr = isOwner()
+      ? `<form class="mn-team" id="mn-team" novalidate><div class="field"><label class="sr-only" for="mn-email">Team email address</label><input id="mn-email" name="email" type="email" maxlength="200" autocomplete="off" inputmode="email" spellcheck="false" value="${esc(team || '')}" placeholder="name@yourdomain.com"></div><button class="btn btn-sm" type="submit">${team ? 'Save address' : 'Set address'}</button></form>
+          <span class="meta rm-sub">${team ? 'Clear it and save to stop team emails. Only an owner can change it.' : 'Not set. Until it is, client messages are saved but nobody is emailed.'}</span>`
+      : `${team ? esc(team) : 'Not set'}<span class="meta rm-sub">Only an owner can change it.</span>`;
+    const fail = (/** @type {any} */ r) => `<li class="rm-fail" data-mn="${esc(r.id)}">
+        <div class="rm-who"><strong>${esc(clientOf(r.tenant_id))}</strong><span class="meta">${esc(/** @type {any} */ (WHERE)[r.direction] || r.direction)} · to ${esc(mask(r.to_email))}</span></div>
+        <p class="rm-err">Failed ${esc(D().clockTime(r.updated_at))} after ${esc(plural(Number(r.attempts) || 0, 'try', 'tries'))}${r.error ? `: ${esc(r.error)}` : ''}</p>
+        <div class="rm-acts"><button class="btn btn-quiet btn-sm" type="button" data-mn-again="${esc(r.id)}">Send again</button></div>
+      </li>`;
+    return `${head}<div class="rm-grid"><div class="rm-info">
+        <dl class="facts rm-facts"><dt>What is sent</dt><dd>One email to the team when a client writes in their dashboard, and one to the client when you reply in the console.</dd>
+          <dt>When</dt><dd>The job runs every minute. Messages sent within 2 minutes of each other go out as one email.</dd>
+          <dt>Team address</dt><dd>${addr}</dd>
+          <dt>Last sent</dt><dd>${lastText}</dd>
+          <dt>Waiting</dt><dd>${waitText}</dd>
+          ${skipText ? `<dt>Skipped</dt><dd>${skipText}<span class="meta rm-sub">Paused and archived clients get no email.</span></dd>` : ''}
+          <dt>Sender</dt><dd>The address in NOTIFY_FROM on the server. The console cannot read it.</dd></dl>
+        ${key}</div>
+      <div class="rm-fails"><h3 class="rm-h">Failed in the last 30 days <span class="chip ${R.fails.length ? 'warn' : 'good'}">${R.fails.length ? R.fails.length : 'None'}</span></h3>
+        ${R.fails.length ? `<ul class="rm-list">${R.fails.map(fail).join('')}</ul>` : '<p class="meta">No message email has failed in the last 30 days.</p>'}</div></div>`;
+  }
+
+  function drawNotify() {
+    const box = document.getElementById('sec-notify');
+    if (!box) return;
+    // Keep what is being typed in the address box while the rest redraws.
+    const typing = /** @type {HTMLInputElement|null} */ (document.getElementById('mn-email'));
+    const keep = typing && document.activeElement === typing ? typing.value : null;
+    box.innerHTML = notifyHtml();
+    const again = /** @type {HTMLInputElement|null} */ (document.getElementById('mn-email'));
+    if (keep !== null && again) { again.value = keep; again.focus(); }
+  }
+
+  /** Reads the queue and the team address. A table that is not there yet shows as such, not as an error. */
+  async function loadNotify() {
+    const mine = ++MN.token;
+    try {
+      const db = await D().db();
+      const q = await db.from('message_notifications').select('id, tenant_id, direction, to_email, status, attempts, error, provider_id, send_at, sent_at, created_at, updated_at').order('created_at', { ascending: false }).limit(300);
+      if (mine !== MN.token) return;
+      MN.ok = !q.error;
+      MN.rows = q.error ? [] : (q.data || []);
+      if (!q.error) {
+        const t = await db.rpc('get_notify_team_email');
+        MN.team = t.error ? null : (t.data || null);
+      }
+    } catch (x) { MN.ok = false; MN.rows = []; }
+    MN.loaded = true;
+    drawNotify();
+  }
+
+  /** Puts a failed message email back in the queue, then settles the Needs you item about it. @param {HTMLElement} btn @param {string} id */
+  async function mnAgain(btn, id) {
+    const r = MN.rows.find((/** @type {any} */ x) => x.id === id);
+    if (!r) return;
+    if (!await D().ask(`Send the email ${/** @type {any} */ (WHERE)[r.direction] || ''} about ${clientOf(r.tenant_id)} again?`, `It goes to ${mask(r.to_email)} within the minute.`, 'Send again')) return;
+    const done = D().busy(btn, 'Queuing');
+    try {
+      const db = await D().db();
+      const res = await db.from('message_notifications').update({ status: 'scheduled' }).eq('id', id).select('id, status');
+      if (res.error) {
+        const said = String(res.error.message || '');
+        throw new Error(/only-requeue/.test(said) || res.error.code === '42501' ? 'Only a failed or skipped email can be sent again. Nothing was changed.' : `${said || 'The server did not answer.'} Nothing was changed.`);
+      }
+      if (!(res.data || []).length) throw new Error('Nothing was changed: the email is not there any more.');
+      let tail = '';
+      try {
+        const open = ((D().all && D().all.reviews && D().all.reviews.exceptions) || []).filter((/** @type {any} */ x) => x.entity_type === 'message_notification' && String(x.entity_id) === String(id) && x.status === 'open');
+        for (const x of open) { const q = await db.rpc('resolve_dashboard_exception', { p_id: x.id, p_status: 'resolved', p_note: 'sent again from Settings' }); if (q.error) throw new Error(q.error.message); }
+      } catch (x) { tail = ' The item in Needs you is still open: close it there.'; }
+      await D().loadAll().catch(() => { /* the toast still says it is queued */ });
+      await loadNotify();
+      D().toast(`Queued. It goes out within the minute.${tail}`, !!tail);
+    } catch (x) {
+      done();
+      D().toast(/** @type {any} */ (x).message, true);
+    }
+  }
+
+  /** @param {HTMLElement} box */
+  function wireNotify(box) {
+    box.addEventListener('click', (e) => {
+      const again = /** @type {HTMLElement|null} */ (/** @type {HTMLElement} */ (e.target).closest('[data-mn-again]'));
+      if (again) mnAgain(again, again.getAttribute('data-mn-again') || '');
+    });
+    box.addEventListener('submit', async (e) => {
+      const f = /** @type {HTMLFormElement|null} */ (/** @type {HTMLElement} */ (e.target).closest('#mn-team'));
+      if (!f) return;
+      e.preventDefault();
+      const email = String((/** @type {any} */ (f.elements.namedItem('email'))).value || '').trim();
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { D().toast('That does not look like an email address. Nothing was changed.', true); /** @type {any} */ (f.elements.namedItem('email')).focus(); return; }
+      const done = D().busy(/** @type {HTMLElement} */ ($('button[type=submit]', f)), 'Saving');
+      try {
+        const db = await D().db();
+        const res = await db.rpc('set_notify_team_email', { p_email: email });
+        if (res.error) {
+          const said = String(res.error.message || '');
+          throw new Error(/owners-only/.test(said) ? 'Only an owner can change the team address. Nothing was changed.' : /bad-email/.test(said) ? 'That does not look like an email address. Nothing was changed.' : `${said || 'The server did not answer.'} Nothing was changed.`);
+        }
+        MN.team = (res.data && res.data.team_email) || null;
+        drawNotify();
+        D().toast(MN.team ? `Saved. New client messages are emailed to ${MN.team}.` : 'Cleared. Nobody is emailed about new client messages.');
+      } catch (x) {
+        done();
+        D().toast(/** @type {any} */ (x).message, true);
+      }
+    });
+  }
+
   /* ---- the Hermes row, and the top of the page ------------------------------------------------------ */
 
   /** The read-only Hermes row. Off, it says so and names the switch; it shows set or not set, never a value. @param {{hint: string}} o */
@@ -697,7 +849,7 @@
   }
   /** The freshness line and a row of links to the parts of this long page. */
   function top() {
-    const links = [['sec-plans', 'Plans and limits'], ['sec-reminders', 'Reminder emails'], ['team-box', 'Team'], ['sec-access', 'Access details'], ['sec-stripe', 'Stripe'], ['sec-multica', 'Multica'], ['sec-look', 'Preferences']];
+    const links = [['sec-plans', 'Plans and limits'], ['sec-reminders', 'Reminder emails'], ['sec-notify', 'Message emails'], ['team-box', 'Team'], ['sec-access', 'Access details'], ['sec-stripe', 'Stripe'], ['sec-multica', 'Multica'], ['sec-look', 'Preferences']];
     return `${freshHtml()}
       <nav class="set-index" aria-label="On this page">${links.map(([id, t]) => `<button type="button" data-action="jump" data-to="${id}">${esc(t)}</button>`).join('')}</nav>`;
   }
@@ -705,7 +857,8 @@
   function sections() {
     return `<section class="panel pl-panel" id="sec-plans" aria-labelledby="s-plans"></section>
       <div class="set-duo"><section class="panel" id="sec-picks" aria-labelledby="s-picks"></section><section class="panel" id="sec-hist" aria-labelledby="s-hist"></section></div>
-      <section class="panel rm-panel" id="sec-reminders" aria-labelledby="s-reminders"></section>`;
+      <section class="panel rm-panel" id="sec-reminders" aria-labelledby="s-reminders"></section>
+      <section class="panel rm-panel" id="sec-notify" aria-labelledby="s-notify"></section>`;
   }
   /** Called once the page is drawn. */
   function mount() {
@@ -716,6 +869,10 @@
     drawReminders();
     const rem = document.getElementById('sec-reminders');
     if (rem) wireReminders(rem);
+    drawNotify();
+    const mn = document.getElementById('sec-notify');
+    if (mn) wireNotify(mn);
+    loadNotify();
     loadHistory();
   }
 

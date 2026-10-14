@@ -2,7 +2,9 @@
  * The plan rule widget (2026-10-13): the one place in the console that knows how a plan and its picks are chosen. The Billing
  * override drawer and Add client both mount it, so staff see the same rule the database enforces (app.picks_valid, a locked plan
  * and a plan's client limit) in the same words. The rule itself is D8.planModel.validate(), the one the client's picker uses; this
- * widget adds what only staff may do (set Domin8te while it is unlocked; a client already on it keeps it) and the staff voice.
+ * widget adds what only staff may do (set any plan that is not locked; a client already on a locked plan keeps it) and the staff voice.
+ * Since 14 Oct 2026 every plan reads the same way: Ads is always in (plans.required_services) and the client adds picks
+ * (plans.picks_allowed): Starter Ads + 1, Growth Ads + 2, Domin8te Ads + 3. No plan id is named here; the plan rows decide.
  *
  * It reads plan data from window.D8C.plans and writes nothing: the page that mounts it decides what to do with the value.
  *
@@ -117,10 +119,16 @@
     return out;
   }
 
+  /** A plan with no pick count (picks_allowed none) would mean every service. No plan is like that now; the old reading stays so a bad row cannot break the page. @param {string} planId */
+  function takesEvery(planId) {
+    const p = plansRows().find((/** @type {any} */ x) => x.id === planId);
+    return !!p && (p.picks_allowed === null || p.picks_allowed === undefined);
+  }
+
   /** What changes from one choice to another, in words. @param {any} a @param {any} b each { planId, picks, websiteOption } */
   function diffWords(a, b) {
     const all = pickableIds();
-    const norm = (/** @type {any} */ v) => ({ planId: v.planId, picks: v.planId === 'domin8te' ? all : PM().ordered(v.picks || []), websiteOption: v.websiteOption || null });
+    const norm = (/** @type {any} */ v) => ({ planId: v.planId, picks: takesEvery(v.planId) ? all : PM().ordered(v.picks || []), websiteOption: v.websiteOption || null });
     const A = norm(a), B = norm(b);
     const d = PM().diff(A, B);
     const name = (/** @type {string} */ id) => ((plansRows().find((/** @type {any} */ p) => p.id === id) || {}).name) || id;
@@ -243,7 +251,8 @@
       if (slot.locked) return { ok: false, code: 'plan-locked', error: `${p.name} is locked. An owner can unlock it in Settings.` };
       if (slot.limited && slot.taken) return { ok: false, code: 'plan-full', error: `${p.name} is taken right now.` };
       if (PM().rule(p).all) return { ok: true, code: '', error: '' };
-      const v = PM().validate(m, p.id, st.picks, st.websiteOption);
+      // the lock was settled above for this client (slot.locked), so the model is told this plan is theirs to take
+      const v = PM().validate({ plans: m.plans.map((/** @type {any} */ x) => (x.id === p.id ? { ...x, current: true } : x)), caps: m.caps }, p.id, st.picks, st.websiteOption);
       if (!v.ok && v.code === 'website-option') {
         const ls = PM().lines(m.caps, p.id, 'website', null);
         const a = ls.find((/** @type {any} */ l) => l.metric === 'web_pages'), b = ls.find((/** @type {any} */ l) => l.metric === 'web_edits');

@@ -275,7 +275,7 @@
     const code = error && error.code;
     if (code === '23505') return fail('already-decided', 'You already answered this one.');
     const said = String((error && error.message) || '');
-    if (/ask-karan/.test(said)) return fail('ask-karan', 'Domin8te is set up with Karan. Message him and we will arrange it.');
+    if (/plan-locked/.test(said)) return fail('plan-locked', 'That plan is locked right now and is not taking new clients. Message Karan and we will help.');
     if (/month-locked|next-month-locked/.test(said)) return fail('locked', 'It is too late to change next month. Message us and we will help.');
     if (/no-current-cycle/.test(said) || code === 'P0002') return fail('no-plan', 'Your plan is not set up yet. Message us and we will sort it out.');
     if (code === '23P01' || /plan-full/.test(said)) return fail('plan-full', 'That plan is taken right now. Message Karan and we will help.');

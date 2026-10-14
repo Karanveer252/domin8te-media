@@ -53,7 +53,7 @@
     const changing = m.confirmed && m.changes.differs;
     const eyebrow = changing || o.compact ? 'Your plan this month' : 'Your plan';
     const status = m.confirmed && m.changes.differs ? '' : `<span class="badge tone-success">${icon('check')}Active · no changes coming</span>`;
-    const head = `<header class="po-head"><div><p class="eyebrow">${eyebrow}</p><h2 class="po-name" id="h-plan">${esc(c.name)}${perMonth(c) ? `<span class="po-price"> · ${esc(perMonth(c))}</span>` : ''}</h2>${c.planId === 'domin8te' ? `<p class="po-sub">All ${c.services.length} services</p>` : chips(c.picks)}</div>${o.compact ? '' : status}</header>`;
+    const head = `<header class="po-head"><div><p class="eyebrow">${eyebrow}</p><h2 class="po-name" id="h-plan">${esc(c.name)}${perMonth(c) ? `<span class="po-price"> · ${esc(perMonth(c))}</span>` : ''}</h2>${chips(c.picks)}</div>${o.compact ? '' : status}</header>`;
     if (o.compact || changing) {
       return `<section class="card plan-overview is-compact" aria-labelledby="h-plan">${head}<div class="po-facts">${facts(m)}</div></section>`;
     }

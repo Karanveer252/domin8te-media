@@ -478,8 +478,8 @@ const dayFromNow = (n) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/
 const MENU = () => ({
   plans: [
     { id: 'starter', name: 'Starter', price_minor: 99900, currency: 'USD', picks_allowed: 1, required_services: ['advertising'], max_clients: null, full: false },
-    { id: 'growth', name: 'Growth', price_minor: 199900, currency: 'USD', picks_allowed: 2, required_services: [], max_clients: null, full: false },
-    { id: 'domin8te', name: 'Domin8te', price_minor: 349900, currency: 'USD', picks_allowed: null, required_services: [], max_clients: 1, full: true }
+    { id: 'growth', name: 'Growth', price_minor: 199900, currency: 'USD', picks_allowed: 2, required_services: ['advertising'], max_clients: null, full: false },
+    { id: 'domin8te', name: 'Domin8te', price_minor: 349900, currency: 'USD', picks_allowed: 3, required_services: ['advertising'], max_clients: 1, full: true, locked: false }
   ],
   caps: [
     { plan_id: 'growth', service: 'social', metric: 'social_posts', label: 'posts', monthly_cap: 12, weekly_hint: '3 a week' },
@@ -491,10 +491,10 @@ const MENU = () => ({
   ],
   services: [], mismatch: false
 });
-/** Growth (Social media and Website) this month, from 10 days ago to 21 days ahead, with usage so far. */
+/** Growth (Ads, Social media and Website) this month, from 10 days ago to 21 days ahead, with usage so far. */
 const withPlan = (extra) => ({
   ...withBayleaf(),
-  tenant_plan_cycles: [{ id: 'cyc1', tenant_id: 'tnt_row_1', plan_id: 'growth', picks: ['social', 'website'], website_option: null, period_start: dayFromNow(-10), period_end: dayFromNow(21), state: 'active', source: 'console', confirmed_at: '2026-09-21T15:00:00Z', confirmed_by: 'user_k' }],
+  tenant_plan_cycles: [{ id: 'cyc1', tenant_id: 'tnt_row_1', plan_id: 'growth', picks: ['advertising', 'social', 'website'], website_option: null, period_start: dayFromNow(-10), period_end: dayFromNow(21), state: 'active', source: 'console', confirmed_at: '2026-09-21T15:00:00Z', confirmed_by: 'user_k' }],
   'rpc:plan_menu': MENU(),
   tenant_usage_current: [{ tenant_id: 'tnt_row_1', service: 'social', metric: 'social_posts', used: 9 }, { tenant_id: 'tnt_row_1', service: 'website', metric: 'web_edits', used: 3 }],
   ...extra
@@ -508,20 +508,37 @@ test('the plan comes from the database: this month, next month, what is used, an
   assert.equal(p.now.name, 'Growth');
   assert.equal(p.now.priceMinor, 199900, 'prices come from the database');
   assert.equal(p.pricesShown, true);
-  assert.deepEqual(p.now.picks, ['social', 'website']);
+  assert.deepEqual(p.now.picks, ['advertising', 'social', 'website']);
   assert.equal(p.now.services.find((s) => s.id === 'social').lines[0].used, 9);
   assert.equal(p.now.services.find((s) => s.id === 'social').lines[0].weeklyHint, '3 a week');
   assert.equal(p.next, null, 'next month is not there until it is carried over or chosen');
   assert.equal(p.menu.find((m) => m.id === 'domin8te').full, true, 'the Domin8te place shows as taken, with no name');
   assert.equal(p.open, true);
   // the picks decide what the client has: the record's own package (four services) no longer does
-  assert.deepEqual(plain(await c.getWork()).services.map((s) => s.id), ['website', 'social']);
-  assert.equal(plain(await c.getAccount()).package.services.length, 2);
+  assert.deepEqual(plain(await c.getWork()).services.map((s) => s.id), ['website', 'social', 'advertising']);
+  assert.equal(plain(await c.getAccount()).package.services.length, 3);
+});
+
+test('a month from before the Ads-plus rules (Growth without Ads, Domin8te with every service) still reads as stored', async () => {
+  const tables = withPlan();
+  tables.tenant_plan_cycles[0].picks = ['social', 'website'];
+  const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  const p = plain(await c.getPlan());
+  assert.equal(p.state, 'ok');
+  assert.deepEqual(p.now.picks, ['social', 'website'], 'the month is shown as it is stored');
+  const old = withPlan();
+  old.tenant_plan_cycles[0].plan_id = 'domin8te';
+  old.tenant_plan_cycles[0].picks = ['advertising', 'social', 'website', 'local', 'email'];
+  const b = live({ tables: old, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const cb = b.D8.data.connect(await b.D8.auth.getSession());
+  const pb = plain(await cb.getPlan());
+  assert.equal(pb.now.services.length, 5, 'every service the old month had is still listed');
 });
 
 test('next month: the database month after this one, and a refresh keeps what the client has just chosen', async () => {
   const tables = withPlan();
-  tables.tenant_plan_cycles.push({ id: 'cyc2', tenant_id: 'tnt_row_1', plan_id: 'growth', picks: ['social', 'website'], website_option: null, period_start: dayFromNow(21), period_end: dayFromNow(52), state: 'confirmed', source: 'auto_carry', confirmed_at: '2026-10-05T10:00:00Z', confirmed_by: 'system' });
+  tables.tenant_plan_cycles.push({ id: 'cyc2', tenant_id: 'tnt_row_1', plan_id: 'growth', picks: ['advertising', 'social', 'website'], website_option: null, period_start: dayFromNow(21), period_end: dayFromNow(52), state: 'confirmed', source: 'auto_carry', confirmed_at: '2026-10-05T10:00:00Z', confirmed_by: 'system' });
   // what the database returns when the client picks: the written month
   tables['rpc:set_next_cycle_picks'] = (a) => ({ id: 'cyc2', tenant_id: 'tnt_row_1', plan_id: a.p_plan, picks: a.p_picks, website_option: a.p_website_option, period_start: dayFromNow(21), period_end: dayFromNow(52), state: 'confirmed', source: 'client_picker', confirmed_at: '2026-10-12T19:14:00+00:00', confirmed_by: 'user_dani' });
   const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
@@ -529,32 +546,32 @@ test('next month: the database month after this one, and a refresh keeps what th
   let p = plain(await c.getPlan());
   assert.equal(p.next.source, 'auto_carry');
   assert.equal(p.confirmed, false);
-  const r = plain(await c.savePicks('growth', ['email', 'advertising']));
-  assert.deepEqual(plain(tables.__rpcCalls.filter((x) => x[0] === 'set_next_cycle_picks').map((x) => x[1])), [{ p_plan: 'growth', p_picks: ['advertising', 'email'], p_website_option: null }], 'the database gets the picks in catalog order');
+  const r = plain(await c.savePicks('growth', ['email', 'advertising', 'local']));
+  assert.deepEqual(plain(tables.__rpcCalls.filter((x) => x[0] === 'set_next_cycle_picks').map((x) => x[1])), [{ p_plan: 'growth', p_picks: ['advertising', 'local', 'email'], p_website_option: null }], 'the database gets the picks in catalog order');
   assert.equal(r.next.source, 'client_picker');
   p = plain(await c.getPlan());
   assert.equal(p.confirmed, true);
-  assert.deepEqual(p.next.picks, ['advertising', 'email']);
-  assert.deepEqual(p.changes.adds, ['advertising', 'email']);
+  assert.deepEqual(p.next.picks, ['advertising', 'local', 'email']);
+  assert.deepEqual(p.changes.adds, ['local', 'email']);
   // the database now holds the written month: a refresh reads it, and it still shows
-  Object.assign(tables.tenant_plan_cycles[1], { picks: ['advertising', 'email'], source: 'client_picker', confirmed_at: '2026-10-12T19:14:00+00:00' });
+  Object.assign(tables.tenant_plan_cycles[1], { picks: ['advertising', 'local', 'email'], source: 'client_picker', confirmed_at: '2026-10-12T19:14:00+00:00' });
   await c.refresh();
   p = plain(await c.getPlan());
-  assert.deepEqual(p.next.picks, ['advertising', 'email']);
+  assert.deepEqual(p.next.picks, ['advertising', 'local', 'email']);
   assert.equal(p.confirmed, true);
 });
 
 test('a refresh that read the rows before a pick was written does not undo it', async () => {
   const tables = withPlan();
-  tables.tenant_plan_cycles.push({ id: 'cyc2', tenant_id: 'tnt_row_1', plan_id: 'growth', picks: ['social', 'website'], website_option: null, period_start: dayFromNow(21), period_end: dayFromNow(52), state: 'confirmed', source: 'auto_carry', confirmed_at: '2026-10-05T10:00:00Z', confirmed_by: 'system' });
+  tables.tenant_plan_cycles.push({ id: 'cyc2', tenant_id: 'tnt_row_1', plan_id: 'growth', picks: ['advertising', 'social', 'website'], website_option: null, period_start: dayFromNow(21), period_end: dayFromNow(52), state: 'confirmed', source: 'auto_carry', confirmed_at: '2026-10-05T10:00:00Z', confirmed_by: 'system' });
   // the stand-in database keeps returning the old month: what a read that began before the write sees
   tables['rpc:set_next_cycle_picks'] = (a) => ({ id: 'cyc2', tenant_id: 'tnt_row_1', plan_id: a.p_plan, picks: a.p_picks, website_option: a.p_website_option, period_start: dayFromNow(21), period_end: dayFromNow(52), state: 'confirmed', source: 'client_picker', confirmed_at: '2026-10-12T19:14:00+00:00', confirmed_by: 'user_dani' });
   const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
   const c = D8.data.connect(await D8.auth.getSession());
   await c.getPlan();
-  await Promise.all([c.refresh(), c.savePicks('growth', ['advertising', 'email'])]);
+  await Promise.all([c.refresh(), c.savePicks('growth', ['advertising', 'local', 'email'])]);
   const p = plain(await c.getPlan());
-  assert.deepEqual(p.next.picks, ['advertising', 'email'], 'the newer choice holds');
+  assert.deepEqual(p.next.picks, ['advertising', 'local', 'email'], 'the newer choice holds');
   assert.equal(p.confirmed, true);
 });
 
@@ -566,13 +583,13 @@ test('picks the database refuses are explained in the portal\'s words, and a mon
   const ask = async (error) => {
     const { D8 } = mk(error);
     const c = D8.data.connect(await D8.auth.getSession());
-    return c.savePicks('growth', ['advertising', 'social']);
+    return c.savePicks('growth', ['advertising', 'social', 'email']);
   };
   await assert.rejects(ask({ code: '42501', message: 'next-month-locked' }), (e) => e.code === 'locked' && /too late/.test(e.message));
   await assert.rejects(ask({ code: '23514', message: 'picks-do-not-fit: {social} does not fit the growth plan' }), (e) => e.code === 'bad-picks');
   await assert.rejects(ask({ code: '23P01', message: 'plan-full: domin8te is taken right now' }), (e) => e.code === 'plan-full');
   await assert.rejects(ask({ code: 'P0002', message: 'no-current-cycle' }), (e) => e.code === 'no-plan');
-  await assert.rejects(ask({ code: '42501', message: 'ask-karan: Domin8te is set up with Karan' }), (e) => e.code === 'ask-karan');
+  await assert.rejects(ask({ code: '23P01', message: 'plan-locked: domin8te is locked right now' }), (e) => e.code === 'plan-locked' && /locked right now/.test(e.message));
   // the last day has passed: refused in the portal, no call made
   const tables = withPlan();
   tables.tenant_plan_cycles[0].period_start = dayFromNow(-30);
@@ -584,7 +601,7 @@ test('picks the database refuses are explained in the portal\'s words, and a mon
   const b = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
   const cb = b.D8.data.connect(await b.D8.auth.getSession());
   assert.equal(plain(await cb.getPlan()).open, false, 'the bill is today: it is too late');
-  await assert.rejects(cb.savePicks('growth', ['advertising', 'social']), (e) => e.code === 'locked');
+  await assert.rejects(cb.savePicks('growth', ['advertising', 'social', 'email']), (e) => e.code === 'locked');
   assert.equal((tables.__rpcCalls || []).filter((x) => x[0] === 'set_next_cycle_picks').length, 0, 'nothing is sent to the database');
 });
 

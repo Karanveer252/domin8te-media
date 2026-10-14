@@ -42,10 +42,9 @@
   /** @param {string} iso */
   function daysTo(iso) { return Math.round((new Date(`${String(iso).slice(0, 10)}T00:00`).getTime() - new Date(`${C().today()}T00:00`).getTime()) / 86400000); }
 
-  /** The services of one plan month, in catalog order: "Social + Ads", "All services", "Ads + Website (2 edits)". @param {any} cycle */
+  /** The services of one plan month, in catalog order: "Ads + Social", "Ads + Social + Website + SEO and Google Maps", "Ads + Website (2 edits)". @param {any} cycle */
   function picksLine(cycle) {
     if (!cycle) return '';
-    if (cycle.plan_id === 'domin8te') return 'All services';
     const list = SERVICE_ORDER.filter((s) => (cycle.picks || []).includes(s)).map((s) => SHORT[s] || svcName(s));
     const opt = cycle.plan_id === 'starter' && (cycle.picks || []).includes('website') ? cycle.website_option : '';
     const text = list.join(' + ');
