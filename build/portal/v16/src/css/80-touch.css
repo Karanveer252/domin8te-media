@@ -1,0 +1,24 @@
+/*
+ * Phone tap targets (2026-10-14): at 600px and under every button, tab, summary row, switch and icon button is at least 44px
+ * tall, and inline links get a padded hit area that does not change how their words look. Desktop sizes are untouched.
+ */
+@media (max-width: 600px) {
+  /* buttons, tabs and segmented controls */
+  .btn, .btn-sm, .btn-text, .link-btn, .work-tab, .seg span, .icon-btn, .topbar-brand { min-height: 44px; }
+  .main button.lg-dock-min, button.lg-dock-min { width: 44px; height: 44px; }
+  /* fields */
+  .main input:not([type="checkbox"]):not([type="radio"]), .main select { min-height: 44px; }
+  /* folds: every summary line is a 44px row (the page rules above set 36 and 40 on a desktop) */
+  .main summary, .main .fold > summary, .page-billing .banner .fold > summary, .page-settings .fold > summary, .update-more > summary, .steps-earlier > summary { min-height: 44px; }
+  /* the switch: the same 46 by 28 track and knob, inside a 44px tall box so a thumb lands on it. The extra height is a clear
+     border above and below; the fill, the inset ring, the knob and the lock all stay inside the padding box (the track). */
+  .switch { height: 44px; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-radius: 14px / 22px; background-clip: padding-box; }
+  /* inline links keep their look; the hit area grows above and below the words */
+  .main a.link:not(.link-more):not(.crumb .link), .run-name a, .main p > a:not(.btn):not(.badge), .main li > a:not(.btn):not(.badge), .main td a:not(.btn) { padding-top: 13px; padding-bottom: 13px; }
+  .run-name a { padding-top: 12px; padding-bottom: 12px; }
+  .crumb .link { min-height: 44px; margin-top: -11px; margin-bottom: -11px; }
+  .link-more { min-height: 44px; margin-top: 5px; margin-bottom: -11px; }
+}
+@media (max-width: 600px) and (forced-colors: active) {
+  .switch { border-color: transparent; border-width: 8px 0; box-shadow: inset 0 0 0 1px CanvasText; }
+}

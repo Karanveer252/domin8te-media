@@ -77,7 +77,6 @@ table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; fon
 .pk-facts { grid-template-columns: minmax(0, 1fr); gap: 2px; margin-top: 8px; }
 .pk-facts dt { margin-top: 14px; font-size: 13px; font-weight: 600; }
 .pk-facts dd { color: var(--ink); }
-.hx-list { display: grid; margin: 0; padding: 0; list-style: none; }
 .hx-item { display: grid; gap: 4px; }
 .hx-when { color: var(--ink-3); font-size: 13px; font-weight: 600; line-height: 20px; }
 .hx-when strong { margin-right: 8px; padding: 1px 8px; border-radius: 999px; background: var(--surface-3); color: var(--ink); font-size: 12.5px; }

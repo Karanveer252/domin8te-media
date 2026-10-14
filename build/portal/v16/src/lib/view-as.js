@@ -31,11 +31,16 @@
     return true;
   }
 
-  /** Posts to the console (same origin only). @param {any} msg */
+  /**
+   * Posts to the console, only at a real origin that the parent shares (2026-10-14). A page with no real origin (a file: page
+   * says 'null') sends nothing at all, rather than posting to any window ('*'). @param {any} msg
+   */
   function toParent(msg) {
     if (!D8.data || !D8.data.viewAs) return false;
     try {
-      root.parent.postMessage(msg, root.location.origin === 'null' ? '*' : root.location.origin);
+      const origin = root.location.origin;
+      if (!origin || origin === 'null' || root.parent.location.origin !== origin) return false;
+      root.parent.postMessage(msg, origin);
       return true;
     } catch (e) { return false; /* the console is gone */ }
   }

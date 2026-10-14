@@ -30,7 +30,8 @@ export function day(iso: string): string {
 export const zoneName = (tz: string) => ZONE[tz] || tz.split("/").pop()!.replace(/_/g, " ") + " time";
 export const services = (picks: string[] | null) =>
   [...(picks || [])].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b)).map((p) => LABEL[p] || p);
-const list = (xs: string[]) => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
+// A name that already holds "and" ("SEO and Google Maps") would read "Ads and SEO and Google Maps", so commas only then.
+const list = (xs: string[]) => xs.length < 2 ? xs.join("") : xs.some((x) => / and /.test(x)) ? xs.join(", ") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
 export function money(minor: number | null, currency: string | null): string {
   if (minor == null) return "";
   const n = minor / 100;
@@ -40,7 +41,8 @@ export function money(minor: number | null, currency: string | null): string {
 const sameAsNow = (r: ReminderRow) => r.plan_now === r.plan_next &&
   JSON.stringify([...(r.picks_now || [])].sort()) === JSON.stringify([...(r.picks_next || [])].sort());
 
-export function renderReminder(r: ReminderRow): { subject: string; preview: string; html: string; text: string } {
+// canReply: true only when REMINDERS_REPLY_TO is set. Without it a reply goes nowhere, so the sign-off sends people to the dashboard instead.
+export function renderReminder(r: ReminderRow, canReply = false): { subject: string; preview: string; html: string; text: string } {
   const bill = day(r.bill_date), by = day(r.change_by), zone = zoneName(r.tz);
   const name = r.first_name ? esc(r.first_name.split(" ")[0]) : "there";
   const price = money(r.price_next_minor, r.currency);
@@ -56,7 +58,7 @@ export function renderReminder(r: ReminderRow): { subject: string; preview: stri
     intro = `Hi ${name}, thanks. This is what starts on <strong>${esc(bill)}</strong>.`;
     note = `Picked the wrong thing? You can change it until ${esc(by)}, 11:59 PM ${esc(zone)}.`;
     after = `<strong>You pay nothing extra today.</strong> The new month starts on ${esc(bill)}${price ? ` at ${esc(price)} a month` : ""}.`;
-    button = "See my Billing page"; sign = "Questions? Just reply to this email.";
+    button = "See my Billing page"; sign = canReply ? "Questions? Just reply to this email." : "Questions? Send us a message in your dashboard.";
   } else if (r.kind === "d7") {
     subject = carried ? `Your ${r.plan_next_name} plan renews ${bill}: no action needed` : `Your plan changes to ${r.plan_next_name} on ${bill}`;
     preview = `Keep your plan as is, or change it by ${by}.`;
@@ -66,7 +68,7 @@ export function renderReminder(r: ReminderRow): { subject: string; preview: stri
     after = carried
       ? "<strong>Happy with it? You don't need to do anything.</strong> Your plan carries over as it is, at the same price."
       : `<strong>You already chose next month:</strong> ${esc(r.plan_next_name)} with ${esc(list(next))}${esc(site)}. You can still change it until ${esc(by)}.`;
-    button = "Review my services"; sign = "Questions? Just reply to this email. I reply within one business day.";
+    button = "Review my services"; sign = canReply ? "Questions? Just reply to this email. I reply within one business day." : "Questions? Send us a message in your dashboard.";
   } else {
     subject = `3 days left to change your services`;
     preview = carried ? `Last day is ${by}. Do nothing and you keep your plan.` : `Last day is ${by}. Next month is ${r.plan_next_name}.`;
@@ -76,7 +78,7 @@ export function renderReminder(r: ReminderRow): { subject: string; preview: stri
     after = carried
       ? `<strong>Do nothing and you keep ${esc(list(next))}</strong>${price ? ` at ${esc(price)} a month` : ""}. If you change, you pay nothing extra today. The new plan starts on ${esc(bill)}.`
       : `<strong>Next month is ${esc(r.plan_next_name)} with ${esc(list(next))}${esc(site)}</strong>${price ? ` at ${esc(price)} a month` : ""}. You pay nothing extra today.`;
-    button = "Change my services"; sign = "Not sure what to pick? Reply and I will help you choose.";
+    button = "Change my services"; sign = canReply ? "Not sure what to pick? Reply and I will help you choose." : "Not sure what to pick? Send us a message in your dashboard and I will help you choose.";
   }
   const rows: [string, string][] = r.kind === "picks_confirmed"
     ? [["Plan", r.plan_next_name], ["Services", list(next) + site], ["Starts", bill], ...(price ? [["Monthly", price] as [string, string]] : [])]

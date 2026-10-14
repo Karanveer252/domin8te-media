@@ -31,7 +31,7 @@ export async function runReminders(d: Deps): Promise<Record<string, unknown>> {
     if (d.env("REMINDERS_DRY_RUN") === "1") {
       const due = await d.db.rpc("peek_billing_reminders", { p_limit: 20 });
       if (due.error) throw new Error("peek: " + short(due.error));
-      const emails = (due.data || []).map((r: ReminderRow) => ({ id: r.id, kind: r.kind, to: mask(r.to_email), ...renderReminder(r) }));
+      const emails = (due.data || []).map((r: ReminderRow) => ({ id: r.id, kind: r.kind, to: mask(r.to_email), ...renderReminder(r, !!d.env("REMINDERS_REPLY_TO")) }));
       log(`billing-reminders dry run: planned ${planned.planned ?? 0}, would send ${emails.length}`);
       return { ok: true, dryRun: true, planned, emails };
     }
@@ -44,7 +44,7 @@ export async function runReminders(d: Deps): Promise<Record<string, unknown>> {
     if (claim.error) throw new Error("claim: " + short(claim.error));
     let sent = 0, failed = 0;
     for (const r of (claim.data || []) as ReminderRow[]) {
-      const m = renderReminder(r);
+      const m = renderReminder(r, !!d.env("REMINDERS_REPLY_TO"));
       let ok = false, providerId: string | null = null, error: string | null = null;
       try {
         const res = await d.fetch("https://api.resend.com/emails", {

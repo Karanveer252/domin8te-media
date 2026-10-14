@@ -588,6 +588,10 @@ test('picks the database refuses are explained in the portal\'s words, and a mon
   await assert.rejects(ask({ code: '42501', message: 'next-month-locked' }), (e) => e.code === 'locked' && /too late/.test(e.message));
   await assert.rejects(ask({ code: '23514', message: 'picks-do-not-fit: {social} does not fit the growth plan' }), (e) => e.code === 'bad-picks');
   await assert.rejects(ask({ code: '23P01', message: 'plan-full: domin8te is taken right now' }), (e) => e.code === 'plan-full');
+  // the same codes mean other things too: read by message, not by code alone
+  await assert.rejects(ask({ code: '23P01', message: 'overlaps-another-month' }), (e) => e.code === 'overlap' && /overlaps another month/.test(e.message));
+  await assert.rejects(ask({ code: '23P01', message: 'something else' }), (e) => e.code === 'conflict');
+  await assert.rejects(ask({ code: '23505', message: 'duplicate key value violates unique constraint "tenant_plan_cycles_tenant_id_period_start_key"' }), (e) => e.code === 'already-saved');
   await assert.rejects(ask({ code: 'P0002', message: 'no-current-cycle' }), (e) => e.code === 'no-plan');
   await assert.rejects(ask({ code: '23P01', message: 'plan-locked: domin8te is locked right now' }), (e) => e.code === 'plan-locked' && /locked right now/.test(e.message));
   // the last day has passed: refused in the portal, no call made
@@ -691,4 +695,23 @@ test('what staff wrote for Home shows once it is visible', async () => {
   assert.deepEqual(a.homeSections.map((x) => x.section), ['note'], 'a section that is not visible never reaches the portal');
   assert.equal(a.homeSections[0].content.title, 'A note from Karan');
   assert.deepEqual(a.homeSections[0].content.items, ['Brunch', 'Dinner']);
+});
+
+test('a new client whose first bill date is ahead: the confirmed first month comes through with the day it starts', async () => {
+  const tables = withPlan({ tenant_usage_current: [] });
+  Object.assign(tables.tenant_plan_cycles[0], { period_start: dayFromNow(5), period_end: dayFromNow(36), bill_day: Number(dayFromNow(5).slice(8, 10)), state: 'confirmed', source: 'console' });
+  const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  const p = plain(await c.getPlan());
+  assert.equal(p.state, 'upcoming', 'not "not set up yet"');
+  assert.equal(p.starts, dayFromNow(5));
+  assert.equal(p.upcoming.name, 'Growth');
+  assert.equal(p.upcoming.billDay, Number(dayFromNow(5).slice(8, 10)), 'the bill day is read with the month');
+  assert.ok(p.upcoming.services.every((s) => s.lines.every((l) => l.used === 0)), 'no limits counted yet');
+  assert.deepEqual(plain(await c.getWork()).services.map((s) => s.id).sort(), ['advertising', 'social', 'website']);
+  assert.equal(plain(await c.getBilling()).plan.state, 'upcoming');
+  // a month that is only a draft is not a plan yet
+  tables.tenant_plan_cycles[0].state = 'draft';
+  await c.refresh();
+  assert.equal(plain(await c.getPlan()).state, 'none');
 });

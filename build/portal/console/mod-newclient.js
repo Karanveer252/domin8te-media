@@ -4,7 +4,8 @@
  * counter and a block message. 4 First billing date with the reminder dates and the first lock period. 5 What the client sees on each
  * dashboard page. 6 The Stripe customer.
  *
- * Write order on "Add the client": tenants, then tenant_plan_cycles (state active, source console), then the Home sections and the
+ * Write order on "Add the client": tenants, then tenant_plan_cycles (state active, or confirmed when the first billing date is
+ * still to come, so the daily roll starts it; source console), then the Home sections and the
  * sign-off level, then Stripe, then the Multica board. A refused plan (locked just now, or its client limit used up) says so in plain
  * words and opens the Billing drawer for the client that was just added. The plan rule is the shared widget in mod-planpick.js.
  *
@@ -34,7 +35,7 @@
   /* ---- the draft: kept on this computer only -------------------------------------------------------------- */
 
   function readDraft() { try { const v = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); return v && typeof v === 'object' ? v : null; } catch (e) { return null; } }
-  function writeDraft(/** @type {any} */ d) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); return true; } catch (e) { return false; } }
+  function writeDraft(/** @type {any} */ d) { if (W.D8DEMO_SITE && d && d.s) d = { ...d, s: { ...d.s, logo: '' } }; try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); return true; } catch (e) { return false; } }
   function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* nothing to clear */ } }
 
   /** "2nd", "12th". @param {number} n */
@@ -61,6 +62,13 @@
       ...(draft && draft.s ? draft.s : {})
     };
     S.pages = { ...Object.fromEntries(PAGES.map((p) => [p[0], p[2]])), ...(S.pages || {}) };
+    // The card colour starts at the one the fewest active clients use (mod-color.js), so colours spread out; staff can change it here.
+    const K = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.color;
+    if (S.cardColor === undefined) S.cardColor = K ? K.leastUsed() : '';
+    const colorPicker = K ? `<div class="field nc-color"><span class="label" id="n-color-l">Card colour</span>${K.picker('', { name: 'cardColor', value: S.cardColor })}<p class="hint">Their cards on All work carry this colour. We started you on the one the fewest clients use. The team sees it, never the client.</p></div>` : '';
+    // The logo (optional) waits in the form as a small data URL until the client is added; the shared row is in mod-color.js.
+    if (typeof S.logo !== 'string' || S.logo.length > 60000 || !/^data:image\/(png|jpeg|webp);base64,/.test(S.logo)) S.logo = '';
+    const logoBlock = K ? `<div class="field nc-logo">${K.logoRow('', { draft: true, value: S.logo, color: S.cardColor, name: S.name })}</div>` : '';
     const levels = c.APPROVAL_LEVELS || {};
     const approvalPicker = `<fieldset class="pick-set seg-set"><legend>Sign-off level</legend>
         <div class="seg seg-radio">${Object.entries(levels).map(([k, v]) => `<label><input type="radio" name="approval" value="${esc(k)}"${S.approval === k ? ' checked' : ''}><span>${esc(/** @type {any} */ (v)[0])}</span></label>`).join('')}</div>
@@ -80,6 +88,8 @@
             <div class="field"><label for="n-email">Contact's email</label><input id="n-email" name="email" type="email" maxlength="200" autocomplete="off" value="${esc(S.email)}" aria-describedby="n-email-h"><p class="hint" id="n-email-h">You can give them a login later. Bill reminders go to this address.</p></div>
           </div>
           <p class="field-error" id="n-email-err" role="alert" hidden>That email does not look right. Fix it or leave it empty.</p>
+          ${colorPicker}
+          ${logoBlock}
           <details class="reveal fold-more"><summary>More (optional): kind of place, sign-off level</summary>
             <div class="field"><label for="n-kind">Kind of place</label><input id="n-kind" name="kind" type="text" placeholder="Restaurant, cafe, bar, bakery" maxlength="60" autocomplete="off" value="${esc(S.kind)}"></div>
             ${approvalPicker}
@@ -147,6 +157,8 @@
       S.name = $('#n-name').value; S.first = $('#n-first').value; S.email = $('#n-email').value.trim(); S.kind = $('#n-kind').value;
       const ap = /** @type {HTMLInputElement|null} */ (form.querySelector('input[name="approval"]:checked'));
       S.approval = ap ? ap.value : '';
+      const cc = /** @type {HTMLInputElement|null} */ (form.querySelector('input[name="cardColor"]:checked'));
+      if (cc) S.cardColor = cc.value;
       S.date = $('#n-date').value;
       S.stripe = $('#n-stripe').checked;
       for (const p of PAGES) S.pages[p[0]] = /** @type {HTMLInputElement} */ (form.querySelector(`[data-vis="${p[0]}"]`)).checked;
@@ -199,6 +211,8 @@
       for (const p of PAGES) $(`[data-vis-t="${p[0]}"]`).textContent = S.pages[p[0]] ? 'Visible' : 'Hidden';
       $('#n-email-err').hidden = !S.email || EMAIL.test(S.email);
       $('#n-date-err').hidden = dateOk(S.date) || !S.date;
+      const logoRowEl = form.querySelector('[data-cc-logo-draft]');
+      if (logoRowEl && K) K.paintDraftLogo(logoRowEl, { url: S.logo, color: S.cardColor, name: S.name });
     }
     let timer = 0;
     const keepDraft = () => {
@@ -212,6 +226,7 @@
       keepDraft();
     });
     form.addEventListener('change', () => { refresh(); keepDraft(); });
+    form.addEventListener('cc-logo-draft', (e) => { S.logo = String(/** @type {CustomEvent} */ (e).detail.url || ''); refresh(); keepDraft(); });
     refresh();
 
     // The step you are on is the chosen pill in the rail (ink, like every other selected pill): the one you jumped to, typed in, or scrolled to.
@@ -296,13 +311,14 @@
         // 1. the client
         row = c.check(await client.from('tenants').insert({ name, doc }).select('id').single());
         /** @type {string[]} */ const notes = [];
-        // 2. their first month: the plan and the picks, active, from the console
+        // 2. their first month: the plan and the picks, from the console. A month that has started is active now; one that
+        //    starts later is confirmed, and the daily roll makes it active on its first day (so no limit counts before it).
         let planErr = '';
         try {
           const start = S.date;
           const res = await client.from('tenant_plan_cycles').insert({
             tenant_id: row.id, period_start: start, period_end: endOf(start), plan_id: v.planId, picks: v.picks, website_option: v.websiteOption,
-            state: 'active', confirmed_at: new Date().toISOString(), confirmed_by: c.me.userId, source: 'console'
+            state: start <= today ? 'active' : 'confirmed', confirmed_at: new Date().toISOString(), confirmed_by: c.me.userId, source: 'console'
           }).select('id').single();
           if (res.error) throw res.error;
         } catch (x) { planErr = PP().say(x); }
@@ -317,6 +333,12 @@
         }
         if (S.approval) {
           try { await c.saveProfile(row.id, S.approval); } catch (x) { notes.push(` The sign-off level was not saved: ${c.message(x)}`); }
+        }
+        if (S.cardColor) {
+          try { await c.saveCardColor(row.id, S.cardColor); } catch (x) { notes.push(` The card colour was not saved: ${c.message(x)}`); }
+        }
+        if (S.logo) {
+          try { await c.saveCardLogo(row.id, S.logo); } catch (x) { notes.push(` The logo was not saved (${c.message(x)}). You can add it on the client’s page.`); }
         }
         // 4. Stripe, when it is set up (owners only). If it fails, the client is still added.
         let stripeNote = '';

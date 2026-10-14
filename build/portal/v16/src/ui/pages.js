@@ -198,10 +198,10 @@
         }, () => { count = -1; summary(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
         // The plan this month, what is used, and what comes next.
         plan: () => section(el, '#home-plan', () => Promise.all([ctx.client.getPlan(), ctx.client.getWorkSummary(), ctx.client.getAttention().catch(() => [])]), ([m, list, acts]) => {
-          if (m.state !== 'ok') return D8.plan.notSetUp();
+          if (m.state !== 'ok') return D8.plan.notSetUp(m);
           const changing = m.confirmed && m.changes.differs;
           const note = staffSection('note');
-          return `<div class="home-cols">${D8.plan.runningNow(m, { summary: list, actions: acts, staff: staffSection('running_now') })}${changing ? D8.plan.whatChanges(m, staffSection('next_month')) : D8.plan.comingUp(m, staffSection('next_month'))}</div>${note && D8.plan.staffNote(note) ? `<section class="card home-note" aria-label="A note from Domin8te">${D8.plan.staffNote(note)}</section>` : ''}`;
+          return `<div class="home-cols">${D8.plan.runningNow(m, { summary: list, actions: acts, staff: staffSection('running_now') })}${changing ? D8.plan.whatChanges(m, staffSection('next_month')) : D8.plan.comingUp(m, staffSection('next_month'), ctx.account.user.email)}</div>${note && D8.plan.staffNote(note) ? `<section class="card home-note" aria-label="A note from Domin8te">${D8.plan.staffNote(note)}</section>` : ''}`;
         }, () => ({ title: "We couldn't load your plan.", text: 'The rest of this page works.', retry: 'plan' }))
       };
       Object.values(loaders).forEach((load) => load());
@@ -321,7 +321,7 @@
         const m = w.plan;
         const fresh = UI.PageFresh({
           updatedAt: w.updatedAt || D8.time.isoTime(ctx.client.now()), source: 'Domin8te console', zone: ctx.account.zoneAbbr,
-          status: m.mismatch ? 'kept' : 'ok', extra: m.state === 'ok' ? `Plan: ${m.now.name} · picks locked until ${F.date(m.lastDay)}` : '',
+          status: m.mismatch ? 'kept' : 'ok', extra: m.state === 'ok' ? `Plan: ${m.now.name} · picks locked until ${F.date(m.lastDay)}` : m.state === 'upcoming' ? `Plan: ${m.upcoming.name} · starts ${F.date(m.starts)}` : '',
           note: m.mismatch ? 'Showing the last checked update. We could not confirm a newer change from our task tool. Karan has been told and nothing is lost.' : ''
         });
         const body = w.services.length
@@ -609,7 +609,7 @@
     const fresh = billFresh(b, ctx);
     const help = '<p class="bill-help">Question about a charge? <a class="link" href="#/messages">Message us</a></p>';
     // A new client has no month of a plan yet: say so, never a "could not load". Any bills they do have still show.
-    if (m.state !== 'ok') return `${fresh}${D8.plan.notSetUp()}${b.invoices.length ? D8.plan.bills(b.invoices, m) : ''}${help}`;
+    if (m.state !== 'ok') return `${fresh}${D8.plan.notSetUp(m)}${b.invoices.length ? D8.plan.bills(b.invoices, m) : ''}${help}`;
     const changing = m.confirmed && m.changes.differs;
     return `${fresh}
       ${b.subscription && b.subscription.status === 'past_due' ? payBanner(b) : ''}
@@ -631,7 +631,7 @@
   /** @param {any} m the plan model @param {any} ctx */
   function changeBody(m, ctx) {
     const fresh = UI.PageFresh({ updatedAt: D8.time.isoTime(ctx.client.now()), zone: ctx.account.zoneAbbr, source: 'Domin8te console', status: 'ok' });
-    if (m.state !== 'ok') return fresh + D8.plan.notSetUp();
+    if (m.state !== 'ok') return fresh + D8.plan.notSetUp(m);
     if (!m.open) {
       return `${fresh}<section class="card plan-locked" aria-labelledby="h-locked">
         <div class="empty">${icon('lock', 'empty-icon')}<div><h2 id="h-locked" class="empty-title">Next month is set.</h2><p class="empty-text">The last day to change it, ${esc(day(m.lastDay))}, has passed. Message us if something is wrong.</p><a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a></div></div>
@@ -653,7 +653,7 @@
           .then((m) => {
             if (!m || m.state !== 'ok' || !m.open) return;
             D8.plan.mountPicker(el, ctx, m, () => {
-              D8.dialogs.toast(`Confirmed. A copy is on its way to ${ctx.account.user.email || 'your email'}.`);
+              D8.dialogs.toast('Confirmed. Your choice is saved.');
               root.location.hash = '#/billing';
             });
           });
@@ -847,7 +847,14 @@
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (!dirty()) return;
-      if (D8.data.READ_ONLY) { status.textContent = D8.data.DEMO_NOTE; D8.dialogs.toast(D8.data.viewAs ? D8.data.DEMO_NOTE : 'This is a demo, so nothing is saved.'); return; }
+      if (D8.data.READ_ONLY) {
+        // Nothing was saved, so the switches go back to what is saved (2026-10-14): the page never shows a choice it did not keep.
+        for (const c of s.categories) { const box = /** @type {HTMLInputElement|null} */ (form.elements.namedItem(c.id)); if (box) box.checked = !!saved[c.id]; }
+        btn.disabled = true;
+        status.textContent = D8.data.DEMO_NOTE;
+        D8.dialogs.toast(D8.data.viewAs ? D8.data.DEMO_NOTE : 'This is a demo, so nothing is saved.');
+        return;
+      }
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner" aria-hidden="true"></span>Saving';
       err.hidden = true;

@@ -122,6 +122,8 @@
   /** 'a, b and c' @param {string[]} items */
   function list(items) {
     if (items.length < 2) return items.join('');
+    // "Ads, SEO and Google Maps": a name that already holds "and" would read "Ads and SEO and Google Maps", so commas only
+    if (items.some((x) => / and /.test(x))) return items.join(', ');
     return items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1];
   }
   /** @param {string} s lower-cases the first letter, for "You: confirm your hours" */

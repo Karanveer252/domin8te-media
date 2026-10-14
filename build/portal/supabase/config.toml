@@ -1,0 +1,47 @@
+# Supabase CLI settings for the portal's Edge Functions (2026-10-14). Public settings only: no keys, no secrets here.
+# Every function runs with verify_jwt off, as each one is deployed today (checked on prod and TEST on 14 Oct 2026).
+# None of them is called with a Supabase user token, so the gateway must not ask for one; each checks its caller itself:
+#   - the cron jobs (billing-reminders, message-notifications) and bot-drop: a shared secret header, compared in constant time;
+#   - client-login, team, stripe-billing, multica-sync, dashboard-recovery: the caller's Clerk token, checked through the database;
+#   - stripe-webhook: Stripe's signature; dashboard-event: the bot allowlist and secret;
+#   - dashboard-manager, dashboard-manager-test-runner: their own service checks.
+# With this file, `supabase functions deploy <name>` keeps verify_jwt off. The deploy lines in RESUME.md still pass
+# --no-verify-jwt as well, so a deploy run from another folder cannot turn it on by mistake.
+
+project_id = "domin8te-portal"
+
+[functions.billing-reminders]
+verify_jwt = false
+
+[functions.message-notifications]
+verify_jwt = false
+
+[functions.bot-drop]
+verify_jwt = false
+
+[functions.client-login]
+verify_jwt = false
+
+[functions.team]
+verify_jwt = false
+
+[functions.multica-sync]
+verify_jwt = false
+
+[functions.stripe-billing]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.dashboard-event]
+verify_jwt = false
+
+[functions.dashboard-manager]
+verify_jwt = false
+
+[functions.dashboard-manager-test-runner]
+verify_jwt = false
+
+[functions.dashboard-recovery]
+verify_jwt = false

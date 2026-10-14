@@ -72,12 +72,15 @@ html[data-theme="dark"] { --p-fill-ok: var(--p-accent); --p-fill-warn: #F2B544; 
 .usage-hint { color: var(--p-ink-3); }
 .bar { position: relative; height: 8px; overflow: hidden; border-radius: 999px; background: var(--p-well); box-shadow: inset 0 0 0 1px var(--p-line); }
 .bar > span { display: block; height: 100%; border-radius: inherit; background: var(--p-fill-ok); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28); transition: width var(--m-slow) var(--ease); }
+/* Three clear states (2026-10-14): amber near the limit, a calm ink bar with "Limit reached" at it, red with "Over by N" only past it. */
 .usage.is-warn .bar > span { background: var(--p-fill-warn); }
-.usage.is-full .bar > span { background: var(--p-fill-full); }
+.usage.is-full .bar > span { background: var(--p-ink-3); }
+.usage.is-over .bar > span { background: var(--p-fill-full); }
 .usage-word { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 650; }
 .usage-word::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .usage.is-warn .usage-word { color: var(--p-warning); }
-.usage.is-full .usage-word { color: var(--p-error); }
+.usage.is-full .usage-word { color: var(--p-ink-2); }
+.usage.is-over .usage-word { color: var(--p-error); }
 .usage-reset { margin-top: 2px; font-size: 13.5px; color: var(--p-ink-3); }
 .chip-sample { display: inline-flex; align-items: center; padding: 1px 9px; border-radius: 999px; background: linear-gradient(var(--p-neutral-bg), var(--p-neutral-bg)), var(--p-surface); color: var(--p-ink-3); font-size: 12.5px; font-weight: 600; line-height: 1.5; white-space: nowrap; }
 

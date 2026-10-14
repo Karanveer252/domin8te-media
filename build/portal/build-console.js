@@ -33,22 +33,29 @@ const DIR_MODULES = () => (fs.readdirSync(DIR).filter((f) => /^mod-.*\.js$/.test
 const listDir = (dir, ext) => (fs.existsSync(path.join(DIR, dir)) ? fs.readdirSync(path.join(DIR, dir)).filter((f) => f.endsWith(ext)).sort() : []);
 /** Keeps a script from closing its own tag. @param {string} s */
 const safe = (s) => s.replace(/<\/script/gi, '<\\/script');
+// The demo console carries no plan price (2026-10-14): in a --demo-site build the stand-ins' price numbers (minor units) become null,
+// so they are not in the file at all (the stand-ins show no price there anyway). The build stops if any price is left.
+const PRICE_NUMBERS = /\b(99900|199900|349900)\b/g;
+const DEMO_PRICE = /\b(99900|199900|349900)\b|\$\s?(999|1,999|3,499)\b|\b(999|1999|3499)\.00\b/;
+/** @param {string} s */
+const noPrices = (s) => (demoSite ? s.replace(PRICE_NUMBERS, 'null') : s);
 let html = fs.readFileSync(path.join(DIR, 'console.html'), 'utf8');
 const mark = 'data:image/webp;base64,' + fs.readFileSync(path.join(__dirname, 'v16', 'src', 'assets', 'mark.webp')).toString('base64');
 html = html.split('src="MARK"').join(`src="${mark}"`);
 let head = `<script>window.D8CONFIG = ${JSON.stringify({ ...cfg, app: 'console' })};</script>`;
 if (preview) {
-  const seed = fs.readFileSync(path.join(__dirname, 'v16', 'tests', 'fixture-bayleaf.json'), 'utf8');
+  const seed = noPrices(fs.readFileSync(path.join(__dirname, 'v16', 'tests', 'fixture-bayleaf.json'), 'utf8'));
   head += `
 <script>window.D8PREVIEW_SEED = ${safe(seed)};</script>${demoSite ? `
 <script>window.D8DEMO_SITE = true;</script>` : ''}
 <script>
-${safe(fs.readFileSync(path.join(DIR, 'preview-stub.js'), 'utf8'))}</script>`;
+${safe(noPrices(fs.readFileSync(path.join(DIR, 'preview-stub.js'), 'utf8')))}</script>`;
   // The preview's stand-ins for the plan release live in stub/*.js (one file for each part), in name order.
-  for (const f of listDir('stub', '.js')) head += `
+  // Revenue is not part of the demo (mod-revenue.js shows no page there), so its money stand-ins stay out of the demo file.
+  for (const f of listDir('stub', '.js').filter((x) => !(demoSite && /revenue/.test(x)))) head += `
 <script>
 /* stub/${f} */
-${safe(fs.readFileSync(path.join(DIR, 'stub', f), 'utf8'))}</script>`;
+${safe(noPrices(fs.readFileSync(path.join(DIR, 'stub', f), 'utf8')))}</script>`;
   head += `
 <style>body::after{content:"${demoSite ? 'Demo console: sample clients, nothing is saved or sent' : 'Preview: in-memory data, nothing is saved or sent'}";position:fixed;left:0;right:0;bottom:0;z-index:99;padding:6px;background:#FF5B1F;color:#1D1A16;font:600 13px/1.4 system-ui;text-align:center}</style>`;
 }
@@ -72,6 +79,11 @@ html = html.replace('<meta charset="utf-8">', () => '<meta charset="utf-8">\n' +
 if (html.split('</body>').length !== 2) throw new Error('growth cursor: expected one </body>');
 html = html.replace('</body>', () => require('./growth-cursor')() + '</body>');
 
+if (demoSite) {
+  // The pictures (data: addresses) are left out of the search: their letters are not words on the page.
+  const left = html.replace(/data:[a-z]+\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+/gi, '').match(DEMO_PRICE);
+  if (left) throw new Error(`the demo console still holds a plan price ("${left[0]}"); nothing was written.`);
+}
 // D8_OUT_SUFFIX=name writes versions/console-preview-name.html instead, so people working side by side do not overwrite each other's build.
 const suffix = process.env.D8_OUT_SUFFIX ? '-' + String(process.env.D8_OUT_SUFFIX).replace(/[^a-z0-9-]/gi, '') : '';
 const out = path.join(__dirname, 'versions', (demoSite ? 'console-demo' : preview ? 'console-preview' : 'console') + suffix + '.html');

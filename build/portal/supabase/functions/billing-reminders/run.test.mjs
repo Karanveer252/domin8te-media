@@ -91,7 +91,7 @@ test("emails: no em dashes, no results claims, the right words per kind", () => 
   assert.equal(kinds[1].subject, "3 days left to change your services");
   assert.match(kinds[1].html, /Last day to change: Sat 21 Nov, 11:59 PM Central/);
   assert.match(kinds[1].html, /Do nothing and you keep Ads and Social media/);
-  assert.match(kinds[2].html, /Next month is Growth with Ads, Website and SEO and Google Maps/);
+  assert.match(kinds[2].html, /Next month is Growth with Ads, Website, SEO and Google Maps/);
   assert.match(kinds[3].subject, /^Confirmed: Growth with Ads, Social media and Email from Sun 22 Nov$/);
   assert.match(kinds[4].html, /1 new page a month/);
   assert.equal(day("2026-11-01"), "Sun 1 Nov", "a calendar date never shifts a day");
@@ -102,4 +102,15 @@ test("names from the database are escaped", () => {
   const m = renderReminder({ ...ROW, restaurant: "<script>alert(1)</script>", first_name: "<b>Sam" });
   assert.ok(!m.html.includes("<script>alert"));
   assert.ok(!m.html.includes("<b>Sam"));
+});
+
+test("the sign-off says 'just reply' only when a reply address is set", () => {
+  for (const kind of ["d7", "d3", "picks_confirmed"]) {
+    const plain = renderReminder({ ...ROW, kind });
+    assert.ok(!/reply/i.test(plain.text.split("Karan, Domin8te Media")[0].split("\n").slice(-3).join(" ")), `${kind}: no reply promise without an address`);
+    assert.match(plain.text, /message in your dashboard/);
+    const withReply = renderReminder({ ...ROW, kind }, true);
+    assert.match(withReply.text, /[Rr]eply/);
+    assert.ok(!/message in your dashboard/.test(withReply.text));
+  }
 });

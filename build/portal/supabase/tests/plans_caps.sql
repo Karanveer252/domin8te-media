@@ -180,7 +180,7 @@ select pg_temp.e('T4 client: an ask within the cap is stored', 'ok',
 select pg_temp.e('T4 client: an ask past the cap is stored too', 'ok',
   $q$insert into public.requests (tenant_id, service, body, metric, est_qty) values ('aaaaaaaa-0000-0000-0000-00000000000a','social','12 extra posts','social_posts',12)$q$);
 select pg_temp.e('T4 client: an urgent fix', 'ok',
-  $q$insert into public.requests (tenant_id, service, body, urgent_fix) values ('aaaaaaaa-0000-0000-0000-00000000000a','local','Closed Monday for the holiday',true)$q$);
+  $q$insert into public.requests (tenant_id, service, body, urgent_fix) values ('aaaaaaaa-0000-0000-0000-00000000000a','website','Closed Monday for the holiday',true)$q$);   -- a service in the plan (20261014110100: urgent no longer skips the checks)
 select pg_temp.e('T4 client: an ask for a service not in the plan', 'ok',
   $q$insert into public.requests (tenant_id, service, body) values ('aaaaaaaa-0000-0000-0000-00000000000a','email','Email blast for Thanksgiving')$q$);
 select pg_temp.e('T4 client: cannot mark its own ask as not over the cap', '42501',
@@ -455,6 +455,143 @@ select pg_temp.e('raw edit: signed out cannot call it', '42501', $q$select publi
 reset role;
 select pg_temp.v('raw edit: exactly one history row, by the staff member', '1/user_TEST_staff',
   (select count(*)::text || '/' || max(actor) from public.audit_log where action = 'tenant.raw_edit' and tenant_id = 'aaaaaaaa-0000-0000-0000-00000000000a'));
+
+-- The roll keeps going and bill dates keep their day (20261014100000, critic items 1, 4 and 6) ---------------------------------
+-- L: a month that fitted the old rules ends today and the next one starts (both updates used to raise 23514 and stop the roll).
+-- M: a month due to start. Y: a month that cannot start (the one Domin8te place is D's), so the roll fails for Y alone.
+-- K: bill day 31, due to carry. F: a new client whose first month starts in 10 days.
+set local request.jwt.claims = '{"role":"service_role"}';
+create temp table roll_out (n serial, j jsonb) on commit drop;
+insert into public.tenants (id, name, clerk_org_id, doc) values
+  ('e1000000-0000-0000-0000-0000000000e1', 'Plan test L', 'org_TEST_l', '{}'),
+  ('e2000000-0000-0000-0000-0000000000e2', 'Plan test M', 'org_TEST_m', '{}'),
+  ('e3000000-0000-0000-0000-0000000000e3', 'Plan test Y', 'org_TEST_y', '{}'),
+  ('e4000000-0000-0000-0000-0000000000e4', 'Plan test K', 'org_TEST_k', '{}'),
+  ('e5000000-0000-0000-0000-0000000000e5', 'Plan test N', 'org_TEST_n', '{}'),
+  ('e6000000-0000-0000-0000-0000000000e6', 'Plan test R', 'org_TEST_r', '{}'),
+  ('e8000000-0000-0000-0000-0000000000e8', 'Plan test F', 'org_TEST_f', '{}');
+insert into public.tenant_plan_cycles (id, tenant_id, period_start, period_end, plan_id, picks, state, source) values
+  ('e1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-0000000000e1', pg_temp.today() - 31, pg_temp.today(), 'growth', '{advertising,social,website}', 'active', 'migration'),
+  ('e1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-0000000000e1', pg_temp.today(), pg_temp.today() + 30, 'growth', '{advertising,social,website}', 'confirmed', 'migration'),
+  ('e2000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-0000000000e2', pg_temp.today() - 1, pg_temp.today() + 29, 'starter', '{advertising,social}', 'confirmed', 'console'),
+  ('e3000000-0000-0000-0000-000000000001', 'e3000000-0000-0000-0000-0000000000e3', pg_temp.today() - 1, pg_temp.today() + 29, 'domin8te', '{advertising,social,website,local}', 'confirmed', 'console'),
+  ('e8000000-0000-0000-0000-000000000001', 'e8000000-0000-0000-0000-0000000000e8', pg_temp.today() + 10, pg_temp.today() + 40, 'starter', '{advertising,social}', 'confirmed', 'console');
+insert into public.tenant_plan_cycles (id, tenant_id, period_start, period_end, bill_day, plan_id, picks, state, source) values
+  ('e4000000-0000-0000-0000-000000000001', 'e4000000-0000-0000-0000-0000000000e4', pg_temp.today() - 25, pg_temp.today() + 5, 31, 'starter', '{advertising,social}', 'active', 'console');
+update public.plans set picks_allowed = 3 where id = 'growth';      -- the rule moves on: L's (and A's) Growth months no longer fit
+update public.plans set max_clients = 1 where id = 'domin8te';      -- and D holds the one Domin8te place
+select pg_temp.e('ROLL a month that no longer fits does not stop the roll', 'ok', $q$insert into roll_out (j) select public.roll_plan_cycles()$q$);
+select pg_temp.v('ROLL the legacy client''s old month ended and the next one started', 'ended/active',
+  (select string_agg(state, '/' order by period_start) from public.tenant_plan_cycles where tenant_id = 'e1000000-0000-0000-0000-0000000000e1'));
+select pg_temp.v('ROLL its picks were not rewritten', 'advertising,social,website',
+  (select array_to_string(picks, ',') from public.tenant_plan_cycles where id = 'e1000000-0000-0000-0000-000000000002'));
+select pg_temp.v('ROLL the month that no longer fits is in Needs you as plan_mismatch', '1',
+  (select count(*)::text from public.dashboard_exceptions where tenant_id = 'e1000000-0000-0000-0000-0000000000e1' and reason_code = 'plan_mismatch'
+     and status = 'open' and entity_type = 'plan_cycle' and entity_id = 'e1000000-0000-0000-0000-000000000002'));
+select pg_temp.v('ROLL other clients still roll: M''s month started', 'active',
+  (select state from public.tenant_plan_cycles where id = 'e2000000-0000-0000-0000-000000000001'));
+select pg_temp.v('ROLL the client whose month cannot start is left as it was', 'confirmed',
+  (select state from public.tenant_plan_cycles where id = 'e3000000-0000-0000-0000-000000000001'));
+select pg_temp.v('ROLL and that client is in Needs you, with the reason', '1/true',
+  (select count(*)::text || '/' || bool_and(message ~ 'plan-full')::text from public.dashboard_exceptions where tenant_id = 'e3000000-0000-0000-0000-0000000000e3'
+     and reason_code = 'plan_mismatch' and status = 'open' and entity_type = 'tenant'));
+select pg_temp.v('ROLL the result counts one failed client', '1', (select j ->> 'failed' from roll_out order by n desc limit 1));
+select pg_temp.v('ROLL K is carried to its bill day (31, or the last day) of next month', 'ok',
+  (select case when period_end = app.bill_after(pg_temp.today() + 5, 31) and bill_day = 31 and source = 'auto_carry' then 'ok' else period_end::text || '/' || bill_day end
+     from public.tenant_plan_cycles where tenant_id = 'e4000000-0000-0000-0000-0000000000e4' and period_start = pg_temp.today() + 5));
+select pg_temp.v('NEW a first month that starts later stays confirmed', 'confirmed',
+  (select state from public.tenant_plan_cycles where id = 'e8000000-0000-0000-0000-000000000001'));
+select pg_temp.v('NEW no limit counts before it starts', '0',
+  (select count(*)::text from public.tenant_usage_current where tenant_id = 'e8000000-0000-0000-0000-0000000000e8'));
+select pg_temp.e('ROLL a second run works too', 'ok', $q$insert into roll_out (j) select public.roll_plan_cycles()$q$);
+select pg_temp.v('ROLL a second run opens no second item', '1/1',
+  (select count(*) filter (where tenant_id = 'e1000000-0000-0000-0000-0000000000e1')::text || '/' || count(*) filter (where tenant_id = 'e3000000-0000-0000-0000-0000000000e3')::text
+     from public.dashboard_exceptions where reason_code = 'plan_mismatch' and status = 'open'));
+select pg_temp.v('FLAG every month that no longer fits has an open item', '0',
+  (select count(*)::text from public.tenant_plan_cycles c join public.tenants t on t.id = c.tenant_id
+    where c.state <> 'ended' and t.status <> 'archived' and not app.picks_valid(c.plan_id, c.picks)
+      and not exists (select 1 from public.dashboard_exceptions x where x.entity_id = c.id::text and x.reason_code = 'plan_mismatch' and x.status = 'open')));
+select pg_temp.v('FLAG the check finds nothing new on a second look', '0', app.flag_unfit_months()::text);
+select pg_temp.e('FLAG (setup) Karan ignores the item', 'ok',
+  $q$update public.dashboard_exceptions set status = 'ignored', resolved_at = now(), resolved_by = 'user_TEST_owner' where entity_id = 'e1000000-0000-0000-0000-000000000002' and reason_code = 'plan_mismatch'$q$);
+select pg_temp.v('FLAG an ignored item is not opened again', '0', app.flag_unfit_months('e1000000-0000-0000-0000-0000000000e1')::text);
+select pg_temp.e('GUARD changing only the lock time of a month that no longer fits is fine', 'ok',
+  $q$update public.tenant_plan_cycles set locked_at = now() where id = 'e1000000-0000-0000-0000-000000000002'$q$);
+select pg_temp.e('GUARD changing its picks still checks them', '23514',
+  $q$update public.tenant_plan_cycles set picks = '{advertising,email}' where id = 'e1000000-0000-0000-0000-000000000002'$q$);
+update public.plans set picks_allowed = 2 where id = 'growth';
+update public.plans set max_clients = null where id = 'domin8te';
+update public.tenant_plan_cycles set period_start = pg_temp.today(), period_end = pg_temp.today() + 30 where id = 'e8000000-0000-0000-0000-000000000001';
+select pg_temp.e('NEW (setup) the first day comes', 'ok', $q$insert into roll_out (j) select public.roll_plan_cycles()$q$);
+select pg_temp.v('NEW on its first day the roll starts it and its limits count', 'active/true',
+  (select state || '/' || (exists (select 1 from public.tenant_usage_current u where u.cycle_id = c.id))::text from public.tenant_plan_cycles c where id = 'e8000000-0000-0000-0000-000000000001'));
+
+-- bill dates: the anchor day in the next month, clamped (lib/time.js addMonths from the first bill)
+select pg_temp.v('BILL 31 Jan is followed by 28 Feb', '2027-02-28', app.bill_after('2027-01-31', 31)::text);
+select pg_temp.v('BILL and then 31 Mar, not 28 Mar', '2027-03-31', app.bill_after('2027-02-28', 31)::text);
+select pg_temp.v('BILL a leap year gives 29 Feb', '2028-02-29', app.bill_after('2028-01-31', 31)::text);
+select pg_temp.v('BILL the 30th stays the 30th', '2027-05-30', app.bill_after('2027-04-30', 30)::text);
+select pg_temp.v('BILL December goes into January', '2028-01-31', app.bill_after('2027-12-31', 31)::text);
+select pg_temp.v('BILL the 15th stays the 15th', '2027-04-15', app.bill_after('2027-03-15', 15)::text);
+select pg_temp.v('BILL 31 Jan to 28 Feb is a 31st month', '31', app.bill_day_of('2027-01-31', '2027-02-28')::text);
+select pg_temp.v('BILL 15 Mar to 15 Apr is a 15th month', '15', app.bill_day_of('2027-03-15', '2027-04-15')::text);
+select pg_temp.v('BILL every month has a bill day', '0', (select count(*)::text from public.tenant_plan_cycles where bill_day is null));
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_staff","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:member"}}';
+select pg_temp.e('BILL staff set a month from 31 Jan', 'ok',
+  $q$select public.override_plan_cycle('e5000000-0000-0000-0000-0000000000e5', '2027-01-31', 'starter', '{advertising,social}', null, 'bill day test')$q$);
+select pg_temp.e('BILL and the month after it', 'ok',
+  $q$select public.override_plan_cycle('e5000000-0000-0000-0000-0000000000e5', '2027-02-28', 'starter', '{advertising,social}', null, 'bill day test')$q$);
+reset role;
+set local request.jwt.claims = '{"role":"service_role"}';
+select pg_temp.v('BILL the staff months end on 28 Feb and 31 Mar, both on the 31st', '2027-02-28/31/confirmed,2027-03-31/31/confirmed',
+  (select string_agg(period_end::text || '/' || bill_day || '/' || state, ',' order by period_start) from public.tenant_plan_cycles where tenant_id = 'e5000000-0000-0000-0000-0000000000e5'));
+select pg_temp.v('BILL the client''s pick for next month ends on their bill day', 'ok',
+  (select case when n.period_end = app.bill_after(n.period_start, c.bill_day) and n.bill_day = c.bill_day then 'ok' else n.period_end::text || '/' || n.bill_day || ' vs ' || c.bill_day end
+     from public.tenant_plan_cycles n join public.tenant_plan_cycles c on c.id = 'a1000000-0000-0000-0000-000000000001'
+    where n.tenant_id = 'aaaaaaaa-0000-0000-0000-00000000000a' and n.period_start = pg_temp.today() + 21));
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_a","role":"authenticated","o":{"id":"org_TEST_a"}}';
+select pg_temp.v('BILL the picker hands the client no staff-only columns', 'null/null/null/null/true',
+  (select coalesce(x.override_reason, 'null') || '/' || coalesce(x.created_by, 'null') || '/' || coalesce(x.updated_by, 'null') || '/' || coalesce(x.confirmed_by, 'null')
+          || '/' || (x.bill_day is not null)::text from public.set_next_cycle_picks('starter', '{advertising,local}') x));
+select pg_temp.v('BILL the client can read the bill day of its months', 'true',
+  (select bool_and(bill_day between 1 and 31)::text from public.tenant_plan_cycles));
+reset role;
+set local request.jwt.claims = '{"role":"service_role"}';
+-- the backfill: a run that already slipped (31 Jan, 28 Feb, 28 Mar) gets its 31st back and its last month moves to 31 Mar
+insert into public.tenant_plan_cycles (id, tenant_id, period_start, period_end, plan_id, picks, state, source) values
+  ('e6000000-0000-0000-0000-000000000001', 'e6000000-0000-0000-0000-0000000000e6', '2027-01-31', '2027-02-28', 'starter', '{advertising,social}', 'confirmed', 'console'),
+  ('e6000000-0000-0000-0000-000000000002', 'e6000000-0000-0000-0000-0000000000e6', '2027-02-28', '2027-03-28', 'starter', '{advertising,social}', 'confirmed', 'console');
+select pg_temp.v('BILL (setup) the old way slipped to the 28th', '31,28',
+  (select string_agg(bill_day::text, ',' order by period_start) from public.tenant_plan_cycles where tenant_id = 'e6000000-0000-0000-0000-0000000000e6'));
+select pg_temp.v('BILL the repair fixes one day and moves one end', '1/1',
+  (select (j ->> 'anchored') || '/' || (j ->> 'moved') from (select app.repair_bill_days('e6000000-0000-0000-0000-0000000000e6') j) x));
+select pg_temp.v('BILL after it the run is on the 31st and ends 31 Mar', '31/2027-02-28,31/2027-03-31',
+  (select string_agg(bill_day || '/' || period_end::text, ',' order by period_start) from public.tenant_plan_cycles where tenant_id = 'e6000000-0000-0000-0000-0000000000e6'));
+select pg_temp.v('BILL repairing again changes nothing', '0/0',
+  (select (j ->> 'anchored') || '/' || (j ->> 'moved') from (select app.repair_bill_days('e6000000-0000-0000-0000-0000000000e6') j) x));
+
+-- SQL leftovers (20261014100100) ---------------------------------------------------------------------------------------------
+-- a re-run of 20261013010400's one-off "old cards were decided" line leaves a card made after its first run undecided
+insert into public.tasks (id, tenant_id, title, service, created_at) values
+  ('e7000000-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-00000000000a', 'Newer card', 'social', (select value::timestamptz from app.settings where key = 'tasks_decided_mark_at') + interval '1 second'),
+  ('e7000000-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-00000000000a', 'Older card', 'social', (select value::timestamptz from app.settings where key = 'tasks_decided_mark_at') - interval '1 day');
+update public.tasks set visibility_decided_at = now(), visibility_decided_by = 'migration-2026-10'
+ where visibility_decided_at is null and created_at < now();
+select pg_temp.v('LEFT a re-run of the old mark leaves a newer card undecided', 'null/false',
+  (select coalesce(visibility_decided_by, 'null') || '/' || client_visible from public.tasks where id = 'e7000000-0000-0000-0000-000000000001'));
+select pg_temp.v('LEFT it still marks a card from before its first run', 'migration-2026-10',
+  (select visibility_decided_by from public.tasks where id = 'e7000000-0000-0000-0000-000000000002'));
+-- the "picks confirmed" email: nothing new, no email; a new confirmation, an email
+update public.billing_reminders set status = 'sent' where tenant_id = 'aaaaaaaa-0000-0000-0000-00000000000a' and kind = 'picks_confirmed';
+update public.tenant_plan_cycles set locked_at = now() where tenant_id = 'aaaaaaaa-0000-0000-0000-00000000000a' and period_start = pg_temp.today() + 21;
+select pg_temp.v('LEFT a client''s month changed in nothing that matters sends no new email', 'sent',
+  (select status from public.billing_reminders where tenant_id = 'aaaaaaaa-0000-0000-0000-00000000000a' and kind = 'picks_confirmed'));
+update public.tenant_plan_cycles set confirmed_at = now() - interval '1 minute' where tenant_id = 'aaaaaaaa-0000-0000-0000-00000000000a' and period_start = pg_temp.today() + 21;
+select pg_temp.v('LEFT a new confirmation queues the email again', 'scheduled',
+  (select status from public.billing_reminders where tenant_id = 'aaaaaaaa-0000-0000-0000-00000000000a' and kind = 'picks_confirmed'));
+reset role;
 
 select n, case when result = expect then 'PASS' else 'FAIL' end as outcome, check_name, expect, result from r order by n;
 rollback;

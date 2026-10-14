@@ -26,7 +26,7 @@
       row({ id: 'bo_3', tenant_id: T.osteria, kind: 'Website', created_at: stamp(0, 1.2),
         request: 'Please add our new opening hours to the menu page.',
         draft: 'Open Tuesday to Sunday, 12 to 3 and 6 to 10. Closed Mondays.', change_note: 'New hours line for the menu page.' }),
-      row({ id: 'bo_4', tenant_id: T.marlow, kind: 'Ad copy', source: 'hermes', created_at: stamp(0, 3),
+      row({ id: 'bo_4', tenant_id: T.marlow, kind: 'Ad copy', source: 'grok', created_at: stamp(0, 3),
         request: 'Something for quiet Thursday evenings.', draft: 'Thursdays at Marlow & Finch: half price on bottles from the cellar list, 5 to 8.',
         notes: [{ at: stamp(0, 2), by_name: 'Karan', body: 'Check the offer with Priya first, she may want 6 to 9.' }] }),
       row({ id: 'bo_5', tenant_id: T.bayleaf, kind: 'Message', created_at: stamp(-1, 2), status: 'approved', decided_at: stamp(-1, 1), decided_by_name: 'Karan',

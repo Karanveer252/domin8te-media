@@ -109,7 +109,7 @@
     const t = r.t;
     /** @type {{tone: string, text: string, sub?: string}[]} */ const out = [];
     if (t.status === 'archived') return [{ tone: '', text: 'Archived' }];
-    if (t.status === 'paused') out.push({ tone: 'warn', text: 'Paused', sub: r.pl.nowPlan && r.pl.nowPlan.max_clients ? `Keeps its ${r.pl.nowPlan.name} place` : 'Work and billing are on hold' });
+    if (t.status === 'paused') out.push({ tone: 'warn', text: 'Paused', sub: r.pl.nowPlan && r.pl.nowPlan.max_clients ? `Keeps its ${r.pl.nowPlan.name} spot` : 'Work and billing are on hold' });
     if (r.over.length) {
       const l = r.over[0];
       out.push({ tone: 'bad', text: `${BAR_NAME[l.metric] || l.label} over by ${l.used - l.cap}` });
@@ -132,8 +132,8 @@
     return out;
   }
 
-  /** The client's card colour as a small dot before the name (nothing while it has none; mod-color.js). @param {string} id */
-  const colorDot = (id) => { const k = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.color; return k ? k.dot(id) : ''; };
+  /** The client's tag badge, in its card colour, before the name (mod-color.js). @param {string} id */
+  const colorDot = (id) => { const k = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.color; return k ? k.badge(id) : ''; };
   /** The line under the client's name: what is next for its plan, else what it is. @param {any} r */
   function noteOf(r) {
     const c = C();
@@ -146,7 +146,7 @@
       lines.push(`Next: ${picksLine(pl.next)} from ${c.when(pl.next.period_start)}`);
     }
     // Only a plan with a client limit has places to hold; with no limit nothing is said (the lock is on the card above the list).
-    if (pl.nowPlan && pl.nowPlan.max_clients && t.status !== 'archived') lines.push(t.status === 'paused' ? `Holds the ${pl.nowPlan.name} place while paused` : `Holds the ${pl.nowPlan.name} place`);
+    if (pl.nowPlan && pl.nowPlan.max_clients && t.status !== 'archived') lines.push(t.status === 'paused' ? `Holds the ${pl.nowPlan.name} spot while paused` : `Holds the ${pl.nowPlan.name} spot`);
     if (!lines.length && t.doc.business.kind) lines.push(String(t.doc.business.kind));
     return lines.slice(0, 2);
   }
@@ -197,8 +197,8 @@
     if (limit !== null) {
       const held = holdersOf(plan);
       const names = held.map((/** @type {any} */ t) => t.name).join(', ');
-      return `<div class="cl-card"><span class="cl-dot ${locked || held.length >= limit ? 'is-taken' : 'is-free'}" aria-hidden="true"></span><div><p class="cl-card-t">${locked ? `${name} is locked: ${held.length} of ${limit} ${limit === 1 ? 'place' : 'places'} taken` : `${name} ${limit === 1 ? 'place' : 'places'}: ${held.length} of ${limit} taken`}</p>
-        <p class="cl-card-s">${held.length ? `${esc(names)} ${held.length === 1 ? 'holds' : 'hold'} it. Paused clients keep their place; only archiving frees it.` : `Free. A ${name} sign-up can go ahead.`}${lock}</p></div></div>`;
+      return `<div class="cl-card"><span class="cl-dot ${locked || held.length >= limit ? 'is-taken' : 'is-free'}" aria-hidden="true"></span><div><p class="cl-card-t">${locked ? `${name} is locked: ${held.length} of ${limit} ${limit === 1 ? 'spot' : 'spots'} taken` : `${name} ${limit === 1 ? 'spot' : 'spots'}: ${held.length} of ${limit} taken`}</p>
+        <p class="cl-card-s">${held.length ? `${esc(names)} ${held.length === 1 ? 'holds' : 'hold'} it. Paused clients keep their spot; only archiving frees it.` : `Free. A ${name} sign-up can go ahead.`}${lock}</p></div></div>`;
     }
     const who = on.length && on.length <= 3 ? `: ${esc(on.map((/** @type {any} */ t) => t.name).join(', '))}` : '';
     const count = on.length ? `${c.plural(on.length, 'client')} on it${who}.` : 'No clients on it yet.';
@@ -289,7 +289,7 @@
     return `<div class="table-wrap cl-table"><table class="grid"><thead><tr>
         ${th('name', 'Client')}${th('plan', 'Plan')}<th scope="col">Picks this cycle</th>${th('usage', 'Usage this month')}${th('needs', 'Needs you')}<th scope="col">Status</th><th scope="col">Freshness</th>
       </tr></thead><tbody>${rows.map(fmt).join('')}</tbody></table></div>
-      <p class="meta cl-foot">${c.plural(rows.length, 'client')}${rows.length !== all.length ? ` of ${all.length}` : ''}. Click a column name to sort. A bar turns amber from 85 percent of a limit and red at the limit.</p>`;
+      <p class="meta cl-foot">${c.plural(rows.length, 'client')}${rows.length !== all.length ? ` of ${all.length}` : ''}. Click a column name to sort. A bar turns amber from 85 percent of a limit, says At limit when it is full, and turns red only when it is over.</p>`;
   }
 
   /** The plan a client has this month, for the About line and the Setup tab; empty when none is set. @param {string} id */
@@ -311,7 +311,7 @@
       ${block('This month', pl.now, pl.nowPlan)}
       ${block('Next month', pl.next, pl.nextPlan)}
     </div>
-    <p class="cl-plan-link"><a class="btn btn-quiet btn-sm" href="#/billing/${esc(id)}">Change plan and picks in Billing</a><span class="meta">${t && t.status === 'paused' && pl.nowPlan && pl.nowPlan.max_clients ? `Paused: a ${esc(pl.nowPlan.name)} place stays held until the client is archived. ` : ''}Picks lock when the billing month starts; changes apply from next month.</span></p>
+    <p class="cl-plan-link"><a class="btn btn-quiet btn-sm" href="#/billing/${esc(id)}">Change plan and picks in Billing</a><span class="meta">${t && t.status === 'paused' && pl.nowPlan && pl.nowPlan.max_clients ? `Paused: a ${esc(pl.nowPlan.name)} spot stays held until the client is archived. ` : ''}Picks lock when the billing month starts; changes apply from next month.</span></p>
     ${pl.nowPlan && pl.nowPlan.locked ? `<p class="meta cl-plan-lock">${esc(pl.nowPlan.name)} is locked. This client keeps it. ${lockedLine(pl.nowPlan)}</p>` : ''}`;
   }
 

@@ -9,6 +9,8 @@
  *            caps:  [{ planId, service, metric, label, cap, weeklyHint|null }] }
  *   now:   { planId, picks: [], websiteOption|null, start, end (the bill date), source, confirmedAt|null, state } | null
  *   next:  the same, for the month that starts on now.end | null
+ *   upcoming: the first month when it has not started yet (a new client whose first bill date is ahead; now is null then) | null
+ *   (each month may carry billDay, 1 to 31: the day of the month its bills fall on; the month after ends on that day)
  *   usage: [{ service, metric, used }]   what was used this month
  *   mismatch: boolean   an open plan_mismatch item for this restaurant
  * Dates are the restaurant's own calendar days ('YYYY-MM-DD'); times of day are its wall clock (see lib/time.js).
@@ -41,7 +43,8 @@
   function words(metric, label, n) {
     const f = /** @type {any} */ (NOUN)[metric] || [label, label];
     const noun = n === 1 ? f[0] : f[1];
-    if (metric === 'ads_live_campaigns') return { name: 'Campaigns live', unit: `${noun} live`, state: true, cap: `Up to ${n} ${noun} live at a time`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} live`, short: `${n} live` };
+    // "Live at a time" limits are a count of what runs now (it carries into the next month), not a month's total: "2 of 3 live now", "1 of 2 platforms in use".
+    if (metric === 'ads_live_campaigns') return { name: 'Campaigns live', unit: `${noun} live`, state: true, cap: `Up to ${n} ${noun} live at a time`, used: (/** @type {number} */ u) => `${u} of ${n} live now`, short: `${n} live` };
     if (metric === 'ads_platforms') return { name: 'Ad platforms', unit: `${noun} in use`, state: true, cap: `${n} ad ${noun}`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} in use`, short: `${n} ${noun}` };
     return { name: cap1(f[1]), unit: noun, state: false, cap: `Up to ${n} ${noun} a month`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} used`, short: `${n} ${noun}` };
   }
@@ -52,12 +55,12 @@
   /**
    * How many of the services a plan lets a client choose, and which are fixed. Every plan is Ads plus a number of picks
    * (Starter 1, Growth 2, Domin8te 3): `fixed` is Ads, `choose` the picks, `total` both. A plan with no pick count at all
-   * (an old record) reads as every service. @param {any} plan
+   * (a bad record, which the database refuses) reads as the fixed services alone. @param {any} plan
    */
   function rule(plan) {
-    if (!plan || plan.picksAllowed === null || plan.picksAllowed === undefined) return { all: true, fixed: ORDER.slice(), choose: 0, total: ORDER.length };
-    const fixed = ordered(plan.required || []);
-    return { all: false, fixed, choose: Number(plan.picksAllowed), total: fixed.length + Number(plan.picksAllowed) };
+    const fixed = ordered((plan && plan.required) || []);
+    const choose = plan && plan.picksAllowed != null ? Number(plan.picksAllowed) : 0;
+    return { fixed, choose, total: fixed.length + choose };
   }
 
   /**
@@ -106,6 +109,22 @@
 
   /** 'YYYY-MM-DD' of the last day of a month that starts on `start`. @param {string} start */
   const lastDayOf = (start) => T.isoDay(T.dayNum(T.addMonths(start, 1)) - 1);
+  /**
+   * The bill date in the month after `start`'s month: day `billDay`, or that month's last day when it is shorter (31 Jan,
+   * 28 Feb, 31 Mar). Without a bill day, `start`'s own day. The same as the database's app.bill_after.
+   * @param {string} start 'YYYY-MM-DD' @param {number|null} [billDay]
+   */
+  function billAfter(start, billDay) {
+    const y = Number(String(start).slice(0, 4));
+    const m = Number(String(start).slice(5, 7));
+    if (!y || !m) return '';
+    const ny = m === 12 ? y + 1 : y;
+    const nm = m === 12 ? 1 : m + 1;
+    const last = new Date(Date.UTC(ny, nm, 0)).getUTCDate();
+    const want = Number(billDay) || Number(String(start).slice(8, 10)) || 1;
+    const d = Math.min(Math.max(want, 1), last);
+    return `${ny}-${String(nm).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
 
   /** @param {any} p the plan record @param {any} st the state kept for this tenant (the demo's browser copy, the live source's memory) */
   function nextOf(p, st) {
@@ -130,13 +149,14 @@
         const u = used.get(id + '/' + l.metric) || 0;
         const w = words(l.metric, l.label, l.cap);
         const pct = l.cap ? Math.min(100, Math.round((u / l.cap) * 100)) : 0;
-        return { ...l, used: u, pct, tone: u >= l.cap ? 'full' : pct >= 85 ? 'warn' : 'ok', usedText: w.used(u), tail: `${u} of ${l.cap}` };
+        // tone: ok with room, warn from 85 percent, full at the limit, over only past it (over is drawn red; full is calm, 2026-10-14)
+        return { ...l, used: u, pct, tone: u > l.cap ? 'over' : u >= l.cap ? 'full' : pct >= 85 ? 'warn' : 'ok', usedText: w.used(u), tail: `${u} of ${l.cap}` };
       });
       return { id, label: svc(id).label, icon: svc(id).icon, lines: ls, summary: summary(ls, c.planId) };
     });
     return {
       planId: c.planId, name: pl.name, priceMinor: pl.priceMinor === undefined ? null : pl.priceMinor, currency: pl.currency || null,
-      picks, services, websiteOption: c.websiteOption || null, start: c.start, end: c.end,
+      picks, services, websiteOption: c.websiteOption || null, start: c.start, end: c.end, billDay: c.billDay ? Number(c.billDay) : null,
       lastDay: c.end ? lastDayOf(c.start) : '', source: c.source || '', state: c.state || '', confirmedAt: c.confirmedAt || null, confirmedBy: c.confirmedBy || ''
     };
   }
@@ -162,8 +182,14 @@
     const out = {
       state: 'none', tz, zone: F.zoneName(tz), zoneAbbr: F.zoneAbbr(tz), today: T.isoDay(todayNum), mismatch: !!(p && p.mismatch),
       now: null, next: null, changes: diff(null, null), confirmed: false, open: false, daysLeft: 0, lastDay: '', bill: '', lock: null,
-      reminders: [], moreMinor: null, menu: [], pricesShown: false
+      reminders: [], moreMinor: null, menu: [], pricesShown: false, upcoming: null, starts: ''
     };
+    // A first month that has not started yet (its first bill date is ahead): the plan shows with the day it starts, and nothing
+    // is counted until then (no usage, no picker: the month is already chosen).
+    if (p && p.menu && !p.now && p.upcoming) {
+      const up = cycle(p, p.upcoming);
+      return { ...out, state: 'upcoming', upcoming: up, starts: up ? up.start : '', pricesShown: !!up && up.priceMinor !== null };
+    }
     if (!p || !p.menu || !p.now) return out;
     const now = cycle(p, p.now, { now: true });
     const nextRec = nextOf(p, st);
@@ -177,7 +203,8 @@
     out.lastDay = T.isoDay(T.dayNum(now.end) - 1);
     out.open = todayNum < T.dayNum(now.end);
     out.daysLeft = Math.max(0, T.dayNum(out.lastDay) - todayNum);
-    out.lock = { from: now.end, to: lastDayOf(now.end) };
+    // next month's own end when the database has it (it keeps the bill day: 28 Feb to 30 Mar for a 31st), else a month on
+    out.lock = { from: now.end, to: T.isoDay(T.dayNum(next && next.start === now.end && next.end ? next.end : billAfter(now.end, now.billDay)) - 1) };
     out.reminders = [7, 3].map((n) => { const d = T.isoDay(T.dayNum(now.end) - n); return { kind: n === 7 ? 'd7' : 'd3', date: d, past: todayNum > T.dayNum(d) }; });
     const pn = next || now;
     out.pricesShown = pn.priceMinor !== null && now.priceMinor !== null;
@@ -202,7 +229,7 @@
     if (!pl) return { valid: false, error: v.error, code: v.code };
     const picks = ordered(d.picks);
     const caps = model.menu.flatMap((/** @type {any} */ m) => m.services.flatMap((/** @type {any} */ s) => s.lines.map((/** @type {any} */ l) => ({ planId: m.id, service: s.id, metric: l.metric, label: l.label, cap: l.cap, weeklyHint: l.weeklyHint }))));
-    const draft = cycle({ menu: { plans: model.menu, caps } }, { planId: d.planId, picks, websiteOption: d.websiteOption || null, start: model.bill, end: T.addMonths(model.bill, 1), source: 'client_picker' });
+    const draft = cycle({ menu: { plans: model.menu, caps } }, { planId: d.planId, picks, websiteOption: d.websiteOption || null, start: model.bill, end: billAfter(model.bill, model.now.billDay), billDay: model.now.billDay, source: 'client_picker' });
     const change = diff(model.now, draft);
     const more = model.pricesShown && model.now.priceMinor !== null && draft.priceMinor !== null ? Number(draft.priceMinor) - Number(model.now.priceMinor) : null;
     return { valid: v.ok, error: v.error, code: v.code, draft, change, moreMinor: more, same: !change.differs, lock: model.lock };
@@ -224,5 +251,5 @@
     return { known: true, over: would > line.cap, service, metric, line, used: line.used, cap: line.cap, qty: n, would, extra: Math.max(0, would - line.cap), pct: Math.min(100, Math.round((would / line.cap) * 100)) };
   }
 
-  D8.planModel = { ORDER, ordered, picksOf, rule, lines, summary, validate, build, preview, diff, words, lastDayOf, askPreview };
+  D8.planModel = { ORDER, ordered, picksOf, rule, lines, summary, validate, build, preview, diff, words, lastDayOf, billAfter, askPreview };
 })(typeof window !== 'undefined' ? window : globalThis);

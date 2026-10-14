@@ -59,7 +59,8 @@ html[data-variant="18h"] .page :is(.po-card, .svc-opt, .pick-help, .pick-count) 
 .plan-opt.is-shut .po-mark { display: none; }
 
 /* the services */
-.svc-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+/* Each service card is as tall as its own words (align-items: start), so a short card does not stretch beside a neighbour that wraps (2026-10-14). */
+.svc-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; }
 .svc-opt { position: relative; min-width: 0; border-radius: 20px; background: var(--p-glass-strong); box-shadow: inset 0 0 0 1px var(--p-line-2); transition: box-shadow var(--m-fast) var(--ease), background-color var(--m-fast) var(--ease); }
 .svc-opt:hover:not(.is-blocked):not(.is-fixed) { box-shadow: inset 0 0 0 1.5px var(--p-control); }
 .svc-opt.is-on { background: var(--p-surface); box-shadow: inset 0 0 0 2.5px var(--p-accent-ink), 0 14px 28px -18px rgba(174, 58, 11, 0.5); }

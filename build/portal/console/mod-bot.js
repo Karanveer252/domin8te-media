@@ -169,7 +169,7 @@
       const count = (/** @type {any[]} */ xs) => xs.filter((r) => statusOf(r) === 'pending').length;
       const chip = (/** @type {string} */ key, /** @type {string} */ label, /** @type {number} */ n) => `<button type="button" data-bot-filter="${esc(key)}" aria-pressed="${state.filter === key}">${esc(label)}${n ? `<span class="count">${n}</span>` : ''}</button>`;
       const chips = ids.length > 1 ? `<div class="seg bot-filter" role="group" aria-label="Show">${chip('all', 'All clients', count(mine))}${ids.map((id) => { const t = C0.tenant(id); return chip(id, t ? t.name : id, count(mine.filter((r) => r.tenant_id === id))); }).sort((a, b) => a.localeCompare(b)).join('')}</div>` : '';
-      return `${chips}${shown.length ? `<ul class="q bot-list">${shown.map((r) => row(r)).join('')}</ul>` : `<div class="empty"><p><strong>No bot outputs yet.</strong></p><p>Tell Grok, Claude or Hermes "drop this in the bot chat for" a client, and the draft shows up here as a Pending card.</p></div>`}`;
+      return `${chips}${shown.length ? `<ul class="q bot-list">${shown.map((r) => row(r)).join('')}</ul>` : `<div class="empty"><p><strong>No bot outputs yet.</strong></p><p>Tell Grok or Claude "drop this in the bot chat for" a client, and the draft shows up here as a Pending card.</p></div>`}`;
     }
     return mine.length ? `<ul class="q bot-list">${mine.map((r) => row(r, inTab)).join('')}</ul>`
       : `<div class="empty"><p><strong>No bot outputs for them yet.</strong></p><p>Drafts dropped in for ${esc((C0.tenant(inTab) || {}).name || 'this client')} show up here as Pending cards.</p></div>`;

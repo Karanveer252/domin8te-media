@@ -348,8 +348,10 @@
    * @param {any} t a normalize()d record
    */
   function planPackage(t) {
-    if (t.plan && t.plan.now && D8.planModel) {
-      t.package = { ...t.package, services: D8.planModel.picksOf(t.plan.now) };
+    // a first month that has not started yet counts too: its picks are what the restaurant has chosen
+    const month = t.plan && (t.plan.now || t.plan.upcoming);
+    if (month && D8.planModel) {
+      t.package = { ...t.package, services: D8.planModel.picksOf(month) };
       // A service they just picked may have nothing on record yet: it starts as "getting started", never missing.
       for (const id of t.package.services) {
         if (!t.services[id]) t.services[id] = { status: 'planned', objective: '', now: '', next: null, expected: null, proof: null, milestones: [], completed: [], files: [] };
@@ -1012,13 +1014,14 @@
     function savePicks(planId, picks, websiteOption) {
       return call(() => {
         const m = plan();
+        if (m.state === 'upcoming') throw fail('not-started', `Your plan starts on ${F.date(m.starts)}. You can change it once it has started, or message us.`);
         if (m.state !== 'ok') throw fail('no-plan', 'Your plan is not set up yet. Message us and we will sort it out.');
         if (!m.open) throw fail('locked', 'It is too late to change next month. Message us and we will help.');
         const list = D8.planModel.ordered(picks);
         const opt = planId === 'starter' && list.includes('website') ? websiteOption || null : null;
         const v = D8.planModel.validate({ plans: m.menu }, planId, list, opt);
         if (!v.ok) throw fail(v.code, v.error);
-        const next = { planId, picks: list, websiteOption: opt, start: m.bill, end: T.addMonths(m.bill, 1), source: 'client_picker', state: 'confirmed', confirmedBy: session.firstName || '' };
+        const next = { planId, picks: list, websiteOption: opt, start: m.bill, end: D8.planModel.billAfter(m.bill, m.now.billDay), billDay: m.now.billDay, source: 'client_picker', state: 'confirmed', confirmedBy: session.firstName || '' };
         return src.put('picks', { next, planId, picks: list, websiteOption: opt, by: session.firstName }).then((/** @type {any} */ r) => ({ next: r.next, at: r.at }));
       }, 700);
     }

@@ -52,12 +52,12 @@
   async function loadInvoices(force) {
     if (!force && state.invoices && Date.now() - state.invoicesAt < 60000) return state.invoices;
     try {
-      const client = await C().db();
-      const res = await client.from('client_billing_invoices')
+      // A changed link waits in pending_row, which only staff read (list_billing_invoices, 20261014130000); newest first.
+      const res = await C().staffRows('list_billing_invoices', {}, (/** @type {any} */ k) => k.from('client_billing_invoices')
         .select('id, tenant_id, invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url, pending_row, pending_at, verification_status, client_visible, payment_link_approved_at, payment_link_approved_url, updated_at')
-        .order('issued_at', { ascending: false }).limit(1000);
+        .order('issued_at', { ascending: false }).limit(1000));
       if (res.error) throw res.error;
-      state.invoices = res.data || [];
+      state.invoices = (res.data || []).slice().sort((/** @type {any} */ a, /** @type {any} */ b) => String(b.issued_at || '').localeCompare(String(a.issued_at || '')));
       state.invoicesError = '';
     } catch (e) {
       state.invoices = state.invoices || [];
@@ -134,11 +134,8 @@
     const price = pl && pl.price_minor != null ? C().money(pl.price_minor, pl.currency) : '';
     return `<strong class="bl-plan">${esc(pl ? pl.name : cap1(c.plan_id))}</strong>${price ? `<span class="sub">${esc(price)} / mo</span>` : ''}${!r.now || r.notStarted ? `<span class="sub">Starts ${esc(dayShort(c.period_start))}</span>` : ''}`;
   }
-  /** Is this plan "every service"? None is now (every plan is Ads plus picks); a row with no pick count would still read that way. @param {any} plan */
-  const takesAll = (plan) => !!plan && (plan.picks_allowed === null || plan.picks_allowed === undefined);
   /** @param {any} cycle @param {any} plan */
   function chipsOf(cycle, plan) {
-    if (takesAll(plan)) return `<span class="bchip">All services · ${esc(plan.name)} limits</span>`;
     const caps = PP().capsNow();
     return PM().ordered(cycle.picks || []).map((/** @type {string} */ s) => `<span class="bchip">${esc(PP().chipText(cycle.plan_id, s, cycle.website_option, caps))}</span>`).join('');
   }
@@ -170,13 +167,11 @@
   function nextCell(r) {
     if (!r.next) return `<span class="sub">Not set up yet.</span>${r.bill ? `<span class="sub">Carries over on ${esc(dayShort(addDays(r.bill, -7)))} if nothing changes.</span>` : ''}`;
     const n = r.next, d = r.change;
-    const all = takesAll(r.P.nextPlan);
     /** @type {string[]} */ const chips = [];
     if (d && d.planChanged) chips.push(`<span class="bchip is-plan">${esc(r.P.nowPlan ? r.P.nowPlan.name : '')} to ${esc(r.P.nextPlan ? r.P.nextPlan.name : '')}</span>`);
-    if (all) chips.push(`<span class="bchip${d && d.planChanged ? ' is-add' : ''}">All services</span>`);
-    else {
+    {
       const caps = PP().capsNow();
-      const before = r.now && !takesAll(r.P.nowPlan) ? r.now.picks || [] : r.now ? PP().pickableIds() : [];
+      const before = r.now ? r.now.picks || [] : [];
       for (const s of PM().ordered(Array.from(new Set([...(n.picks || []), ...before])))) {
         const inNext = (n.picks || []).includes(s), inNow = before.includes(s);
         if (inNext) chips.push(`<span class="bchip${r.now && !inNow ? ' is-add' : ''}">${esc(PP().chipText(n.plan_id, s, n.website_option, caps))}</span>`);
@@ -274,9 +269,9 @@
     const locked = !!feat.locked;
     const full = slot.limited && slot.taken;
     const dot = locked ? 'is-lock' : full ? 'is-used' : 'is-free';
-    const title = locked ? `${feat.name} is locked` : slot.limited ? `${feat.name} place: ${full ? `${slot.used} of ${slot.max} used` : 'free'}` : `${feat.name}: open to new clients`;
+    const title = locked ? `${feat.name} is locked` : slot.limited ? `${feat.name} ${slot.max === 1 ? 'spot' : 'spots'}: ${full ? `${slot.used} of ${slot.max} taken` : 'free'}` : `${feat.name}: open to new clients`;
     const sub = locked ? `${esc(count)} New clients and plan changes to ${esc(feat.name)} are refused until an owner unlocks it. <a href="#/settings">Open Settings</a>`
-      : slot.limited ? (full ? `${esc(count)} ${placeNote ? esc(placeNote) : `New ${esc(feat.name)} sign-ups are blocked until this place frees up.`}` : `${esc(count)} ${placeNote ? esc(placeNote) : `A client can take it now. Only ${slot.max} ${slot.max === 1 ? 'client' : 'clients'} at a time.`}`)
+      : slot.limited ? (full ? `${esc(count)} ${placeNote ? esc(placeNote) : `New ${esc(feat.name)} sign-ups are blocked until this spot frees up.`}` : `${esc(count)} ${placeNote ? esc(placeNote) : `A client can take it now. Only ${slot.max} ${slot.max === 1 ? 'client' : 'clients'} at a time.`}`)
       : esc(count);
     return `<div class="bl-card"><strong><span class="bl-dot ${dot}" aria-hidden="true"></span>${esc(title)}</strong><span>${sub}</span></div>`;
   }
@@ -290,7 +285,7 @@
     const total = priced ? live.reduce((n, r) => n + Number(r.P.nowPlan.price_minor), 0) : null;
     const currency = (live[0] && live[0].P.nowPlan && live[0].P.nowPlan.currency) || 'USD';
     const mix = plans.map((/** @type {any} */ p) => ({ p, n: live.filter((r) => r.now && r.now.plan_id === p.id).length })).filter((x) => x.n).map((x) => `${x.p.name} ${x.n}`).join(', ');
-    const plansText = `${live.length} active ${live.length === 1 ? 'plan' : 'plans'}`;
+    const plansText = `${live.length} ${live.length === 1 ? 'client' : 'clients'} on a plan`;
     const changes = rows.filter((r) => r.change && r.change.differs);
     const first = changes.slice(0, 2).map((r) => `${r.t.name}: ${r.change.text}${r.next ? ` from ${dayShort(r.next.period_start)}` : ''}`);
     return `<div class="bl-summary">
@@ -413,7 +408,7 @@
   function historyLine(r, staff) {
     const d = r.detail || {};
     const plan = (/** @type {string} */ id) => ((C().plans.plans || []).find((/** @type {any} */ p) => p.id === id) || {}).name || cap1(String(id || ''));
-    const picks = (/** @type {string[]} */ list, /** @type {string} */ planId) => (takesAll((C().plans.plans || []).find((/** @type {any} */ p) => p.id === planId)) ? 'every service' : PP().andList(PM().ordered(list || []).map((/** @type {string} */ s) => PP().label(s))) || 'no services');
+    const picks = (/** @type {string[]} */ list, /** @type {string} */ planId) => (PP().andList(PM().ordered(list || []).map((/** @type {string} */ s) => PP().label(s))) || 'no services');
     const sys = !r.actor || !/^user_/.test(String(r.actor));
     const bySource = /^plan_cycle_/.test(String(r.action)) ? (d.source === 'client_picker' ? 'The client' : d.source === 'auto_carry' ? 'System' : '') : '';
     const who = bySource || staff[r.actor] || (sys ? 'System' : 'A team member');
@@ -484,7 +479,7 @@
     dlg.className = 'bill-drawer';
     dlg.id = 'bl-drawer';
     dlg.setAttribute('aria-labelledby', 'bd-h');
-    const nowBits = r.now && plan ? `${esc(plan.name)}${plan.price_minor != null ? ` · ${esc(c.money(plan.price_minor, plan.currency))} / mo` : ''} · ${takesAll(plan) ? 'every service' : esc(PP().andList(PM().ordered(r.now.picks || []).map((/** @type {string} */ s) => PP().label(s))))}` : '';
+    const nowBits = r.now && plan ? `${esc(plan.name)}${plan.price_minor != null ? ` · ${esc(c.money(plan.price_minor, plan.currency))} / mo` : ''} · ${esc(PP().andList(PM().ordered(r.now.picks || []).map((/** @type {string} */ s) => PP().label(s))))}` : '';
     const usage = r.P.lines || [];
     const confirmedNote = r.next && r.next.source === 'client_picker' ? `The client already confirmed these picks on ${esc(dayShort(dayOfStamp(r.next.confirmed_at)))}. Saving replaces them.` : '';
     dlg.innerHTML = `<form class="bd-form" id="bd-form" novalidate>

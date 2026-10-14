@@ -270,15 +270,19 @@
     return dbReady;
   }
 
-  /** Database errors, in the portal's words. @param {any} error */
-  function dbFail(error) {
+  /** Database errors, in the portal's words. @param {any} error @param {string} [kind] the write it came from (put's kind) */
+  function dbFail(error, kind) {
     const code = error && error.code;
-    if (code === '23505') return fail('already-decided', 'You already answered this one.');
+    if (code === 'demo-readonly') return fail('demo-readonly', String(error.message || 'This is a demo. Nothing is saved or sent.'));   // the demo console's refusal (console.js)
     const said = String((error && error.message) || '');
+    // A duplicate is "answered already" only for an answer (decisions, one per approval); anything else was simply saved before.
+    if (code === '23505') return kind === 'decision' || /decisions_/.test(said) ? fail('already-decided', 'You already answered this one.') : fail('already-saved', 'That was already saved. Reload to see it.');
+    if (/overlaps-another-month/.test(said)) return fail('overlap', 'That month overlaps another month of your plan. Message Karan and we will sort it out.');
     if (/plan-locked/.test(said)) return fail('plan-locked', 'That plan is locked right now and is not taking new clients. Message Karan and we will help.');
     if (/month-locked|next-month-locked/.test(said)) return fail('locked', 'It is too late to change next month. Message us and we will help.');
     if (/no-current-cycle/.test(said) || code === 'P0002') return fail('no-plan', 'Your plan is not set up yet. Message us and we will sort it out.');
-    if (code === '23P01' || /plan-full/.test(said)) return fail('plan-full', 'That plan is taken right now. Message Karan and we will help.');
+    if (/plan-full/.test(said)) return fail('plan-full', 'That plan is taken right now. Message Karan and we will help.');
+    if (code === '23P01') return fail('conflict', 'That clashes with something already saved. Reload and try again.');
     if (/picks-do-not-fit/.test(said)) return fail('bad-picks', 'Those services do not fit that plan. Check your picks and try again.');
     if (code === '42501' || code === 'PGRST301') return fail('forbidden', "We couldn't save that for your account. Sign out and in again, then try once more.");
     if (code === '23514') return fail('invalid', "That wasn't saved: something in it is too long or missing.");
@@ -294,8 +298,8 @@
   /** A plan month from the database, in the shape the portal reads. @param {any} c */
   const cycleOf = (c) => ({
     id: c.id, planId: c.plan_id, picks: c.picks || [], websiteOption: c.website_option || null,
-    start: String(c.period_start).slice(0, 10), end: String(c.period_end).slice(0, 10), state: c.state, source: c.source,
-    confirmedAt: c.confirmed_at || null, confirmedBy: c.confirmed_by || ''
+    start: String(c.period_start).slice(0, 10), end: String(c.period_end).slice(0, 10), billDay: c.bill_day == null ? null : Number(c.bill_day), state: c.state, source: c.source,
+    confirmedAt: c.confirmed_at || null, confirmedBy: ''   // who confirmed is staff-only (20261014110000): never read
   });
   /** Where a figure came from, in words, when the person who entered it named no source. @param {string} ref */
   const sourceName = (ref) => ({ console: 'Domin8te console', stripe: 'Stripe', multica: 'Multica', zernio: 'Zernio' }[String(ref || '').split(':')[0]] || 'Domin8te');
@@ -361,7 +365,7 @@
         // The team's board cards for this client (2026-10-08): only their visible cards with a service, safe fields only
         typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('client_work_cards', { p_tenant: row.id }) : sb.rpc('client_work_cards')) : Promise.resolve(none),
         // The plan (2026-10-13): this month and next, what each plan allows, what is used, what staff verified, what staff wrote for Home
-        sb.from('tenant_plan_cycles').select('id, plan_id, picks, website_option, period_start, period_end, state, source, confirmed_at, confirmed_by').eq('tenant_id', row.id).order('period_start'),
+        sb.from('tenant_plan_cycles').select('id, plan_id, picks, website_option, period_start, period_end, bill_day, state, source, confirmed_at').eq('tenant_id', row.id).order('period_start'),
         typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('plan_menu', { p_tenant: row.id }) : sb.rpc('plan_menu')) : Promise.resolve(none),
         sb.from('tenant_usage_current').select('service, metric, used').eq('tenant_id', row.id),
         typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('client_results_current', { p_tenant: row.id }) : sb.rpc('client_results_current')) : Promise.resolve(none),
@@ -393,13 +397,16 @@
       const nowC = cycles.find((/** @type {any} */ c) => c.start <= today && c.end > today && c.state !== 'ended')
         || cycles.filter((/** @type {any} */ c) => c.start <= today && c.state !== 'ended').sort((/** @type {any} */ a, /** @type {any} */ b) => b.start.localeCompare(a.start))[0] || null;
       const nextC = nowC ? cycles.find((/** @type {any} */ c) => c.start === nowC.end && c.state !== 'ended') || null : null;
+      // A new client whose first bill date is ahead: its first month is chosen (confirmed) and starts on that day (the roll makes it active then)
+      const upC = nowC ? null : cycles.filter((/** @type {any} */ c) => c.start > today && (c.state === 'confirmed' || c.state === 'active'))
+        .sort((/** @type {any} */ a, /** @type {any} */ b) => a.start.localeCompare(b.start))[0] || null;
       const mn = menu.error || !menu.data ? null : menu.data;
-      const planRec = nowC && mn ? {
+      const planRec = (nowC || upC) && mn ? {
         menu: {
           plans: (mn.plans || []).map((/** @type {any} */ x) => ({ id: x.id, name: x.name, priceMinor: x.price_minor, currency: x.currency, picksAllowed: x.picks_allowed, required: x.required_services || [], maxClients: x.max_clients, full: !!x.full, locked: !!x.locked })),
           caps: (mn.caps || []).map((/** @type {any} */ x) => ({ planId: x.plan_id, service: x.service, metric: x.metric, label: x.label, cap: Number(x.monthly_cap), weeklyHint: x.weekly_hint || null }))
         },
-        now: nowC, next: nextC,
+        now: nowC, next: nextC, upcoming: upC,
         usage: usage.error ? [] : (usage.data || []).map((/** @type {any} */ u) => ({ service: u.service, metric: u.metric, used: Number(u.used) || 0 })),
         mismatch: !!mn.mismatch
       } : null;
@@ -463,9 +470,9 @@
           // Answered already (another tab or device): show what was saved, not "nothing changed".
           if (kind === 'decision' && res.error.code === '23505') {
             try { await this.reload(); } catch (e) { /* the answer below is still true */ }
-            throw Object.assign(dbFail(res.error), { previous: st.decisions && st.decisions[rec.approvalId] });
+            throw Object.assign(dbFail(res.error, kind), { previous: st.decisions && st.decisions[rec.approvalId] });
           }
-          throw dbFail(res.error);
+          throw dbFail(res.error, kind);
         }
         const row = res.data || {};
         const stored = { ...rec, id: row.id || rec.id, at: toWall(row.at || row.notifications_saved_at || row.confirmed_at) || T.isoTime(now()) };

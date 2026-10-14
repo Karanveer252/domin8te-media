@@ -29,6 +29,8 @@
 
   const LIMIT = { title: 120, body: 2000, items: 12, line: 200, source: 80 };
   const DEFAULT_SOURCE = 'Domin8te console';
+  /** The columns a save asks back (the readable ones; who saved, published or hid it comes from list_home_sections). */
+  const HOME_COLS = 'id, tenant_id, section, content, source, client_visible, published_at, hidden_at, updated_at';
   /** The four sections, in the order the client's Home shows them (the message first). */
   const SECS = [
     { key: 'running_now', name: 'Running now', lead: 'Sits at the top of the Running now card on their Home. The usage bars below it are drawn from the plan.', fields: ['title', 'body', 'items'],
@@ -44,7 +46,7 @@
   /* ---- small helpers ------------------------------------------------------------------------------------------ */
 
   /** @param {string[]} list */
-  const andList = (list) => (list.length < 2 ? list.join('') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`);
+  const andList = (list) => (list.length < 2 ? list.join('') : list.some((/** @type {string} */ x) => / and /.test(x)) ? list.join(', ') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`);
   /** The day before a calendar day. @param {string} iso */
   const dayBefore = (iso) => { const d = new Date(iso.slice(0, 10) + 'T00:00'); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
@@ -249,10 +251,12 @@
       const rd = async (label, q) => { try { const r = await q; if (r && r.error) { st.errors.push(label); return []; } return (r && r.data) || []; } catch (e) { st.errors.push(label); return []; } };
       st.errors = [];
       const [rows, hist, staff, results] = await Promise.all([
-        rd('Home sections', client2.from('client_home_sections').select('*').eq('tenant_id', id)),
+        // Whole rows (who saved, published or hid them) through the staff list function; a client cannot read those columns (20261014130000).
+        rd('Home sections', C.staffRows('list_home_sections', { p_tenant: id }, (/** @type {any} */ k) => k.from('client_home_sections').select('*').eq('tenant_id', id))),
         rd('history', client2.from('client_visibility_history').select('*').eq('tenant_id', id).order('at', { ascending: false }).limit(150)),
         rd('team names', client2.from('staff').select('clerk_user_id, name')),
-        rd('results', client2.from('client_dashboard_items').select('*').eq('tenant_id', id).eq('item_kind', 'result').eq('client_visible', true))
+        // The numbers strip needs only what the client sees, so the columns are named.
+        rd('results', client2.from('client_dashboard_items').select('id, external_id, content, verification_status, verified_at, reporting_period_start, reporting_period_end, hidden_at').eq('tenant_id', id).eq('item_kind', 'result').eq('client_visible', true))
       ]);
       // What the client's numbers strip shows: the newest verified result of each kind that is not hidden (as client_results_current picks them).
       /** @type {Map<string, any>} */ const newest = new Map();
@@ -472,9 +476,10 @@
       const { content, source } = fromWork(workOf(k));
       const row = st.rows[k];
       /** @type {any} */ let saved;
-      if (!row) saved = V().ok(await client2.from('client_home_sections').insert({ tenant_id: id, section: k, content, source, client_visible: !!publish }).select('*').single());
-      else saved = V().ok(await client2.from('client_home_sections').update(publish && !row.client_visible ? { content, source, client_visible: true } : { content, source }).eq('id', row.id).select('*').single());
-      st.rows[k] = saved;
+      // The row back by named columns: "every column" is refused since the staff-only ones left the API (20261014130000). after() reads it whole again.
+      if (!row) saved = V().ok(await client2.from('client_home_sections').insert({ tenant_id: id, section: k, content, source, client_visible: !!publish }).select(HOME_COLS).single());
+      else saved = V().ok(await client2.from('client_home_sections').update(publish && !row.client_visible ? { content, source, client_visible: true } : { content, source }).eq('id', row.id).select(HOME_COLS).single());
+      st.rows[k] = Object.assign({}, row || {}, saved);
       st.work[k] = toWork(saved.content, saved.source);
       writeDraft(k, null);
       return saved;
@@ -537,7 +542,7 @@
       if (!row) return;
       const client2 = await C.db();
       try {
-        V().ok(await client2.from('client_home_sections').update({ client_visible: false, hidden_reason: reason }).eq('id', row.id).select('*').single());
+        V().ok(await client2.from('client_home_sections').update({ client_visible: false, hidden_reason: reason }).eq('id', row.id).select('id').single());
         u.prompt = '';
         C.toast('Hidden. It leaves their Home page on their next load. The history keeps it.');
         await after(k, '[data-hp="toggle"]');

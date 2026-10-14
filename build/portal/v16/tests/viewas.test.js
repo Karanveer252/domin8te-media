@@ -260,6 +260,17 @@ test('it tells the console where it is, to the console only', async () => {
   assert.equal(off.D8.viewAs.listen(() => {}), false);
 });
 
+test('with no real origin (a file: page says "null") or a parent that moved away, it sends nothing, never to "*"', () => {
+  const f = frame();
+  f.ctx.location.origin = 'null';
+  f.ctx.parent.location.origin = 'null';
+  assert.equal(f.D8.viewAs.toParent({ type: 'd8:ready', route: '#/home' }), false);
+  const g = frame();
+  g.ctx.parent.location.origin = 'https://elsewhere.example.com';
+  assert.equal(g.D8.viewAs.toParent({ type: 'd8:route', route: '#/work' }), false);
+  assert.deepEqual(plain(f.posted).concat(plain(g.posted)), [], 'nothing was posted');
+});
+
 test('the shell: a banner at the very top, no sign-out, and the new script is loaded', () => {
   const html = fs.readFileSync(path.join(SRC, 'index.html'), 'utf8');
   assert.ok(/id="viewas-bar"[^>]*role="status"[^>]*hidden/.test(html), 'a status line that starts hidden');

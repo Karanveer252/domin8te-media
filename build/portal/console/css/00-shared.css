@@ -18,18 +18,24 @@ html[data-scene="scenes"] .page-fresh { background: rgba(255, 255, 255, 0.9); }
 html[data-theme="dark"] .page-fresh { background: var(--glass); border-color: var(--glass-edge); }
 html[data-theme="dark"][data-scene="scenes"][data-page] .page-fresh { background: var(--glass-strong); }
 
-/* A usage bar: orange with room, amber from 85 percent, red at the limit; the figures say the same in words. */
+/* A usage bar in three clear states (2026-10-14): orange with room (amber from 85 percent), a calm ink bar with a small
+   "At limit" tag when full but not over, and red with "over by N" only when a one-off went past the limit. The figures say the same in words. */
 .cusage { display: grid; gap: 3px; min-width: 0; }
 .cu-line { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
 .cu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cu-fig { font-variant-numeric: proportional-nums; font-weight: 600; color: var(--ink); white-space: nowrap; }
-.cu-over { margin-left: 6px; padding: 0 7px; border-radius: 999px; background: var(--bad-bg); color: var(--bad); font-size: 11.5px; font-weight: 650; }
+.cu-over, .cu-at { margin-left: 6px; padding: 0 7px; border-radius: 999px; font-size: 11.5px; font-weight: 650; }
+.cu-over { background: var(--bad-bg); color: var(--bad); }
+.cu-at { background: var(--warn-bg); color: var(--warn); }
 .cbar { height: 6px; overflow: hidden; border-radius: 999px; background: var(--surface-3); }
 .cbar > i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
 .cusage.is-warn .cbar > i { background: #E39A0B; }
-.cusage.is-full .cbar > i { background: #D43B2F; }
+.cusage.is-full .cbar > i { background: var(--ink-3); }
+.cusage.is-over .cbar > i { background: #D43B2F; }
 .cusage.is-warn .cu-fig { color: var(--warn); }
-.cusage.is-full .cu-fig { color: var(--bad); }
+.cusage.is-full .cu-fig { color: var(--ink); }
+.cusage.is-over .cu-fig { color: var(--bad); }
+html[data-theme="dark"] .cusage.is-over .cbar > i { background: #FF7A6E; }
 
 /* The history timelines (Settings > Change history, Visible > History, the Billing drawer's history), one look (2026-10-14).
    A solid dot for each line sits exactly on a thin rail; the rail joins one dot to the next and stops at the last one; the newest

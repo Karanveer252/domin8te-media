@@ -69,3 +69,7 @@
 html[data-theme="dark"] .nc-pill[aria-current="step"] { background-color: #F1EFEA; color: #1D1A16; }
 html[data-theme="dark"] .nc-pill[aria-current="step"]:hover { background-color: #FFFFFF; color: #1D1A16; }
 html[data-theme="dark"] .nc-pill[aria-current="step"] .nc-pill-n, html[data-theme="dark"] .nc-pill[aria-current="step"].is-done .nc-pill-n { background: rgba(29, 26, 22, 0.12); color: #1D1A16; }
+
+/* On the moving sky the step pills get a solid ground so their words keep their contrast (2026-10-14) */
+html[data-scene="scenes"]:not([data-theme="dark"]) .nc-pill:not([aria-current="step"]) { background-color: rgba(255, 255, 255, 0.92); color: var(--ink); }
+html[data-scene="scenes"][data-theme="dark"] .nc-pill:not([aria-current="step"]) { background-color: var(--glass-strong); color: var(--ink); }

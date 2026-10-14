@@ -28,8 +28,20 @@ const runner = `<script>${fs.readFileSync(AXE, 'utf8').replace(/<\/script/gi, '<
 (function () {
   var tries = 0;
   function ready() { return document.getElementById('page-title') && !document.querySelector('[aria-busy="true"]'); }
+  // ?a11yopen=N (Revenue, 2026-10-14): open the first N rows of Previous months before axe looks, and also load the older months.
+  var opened = !/[?&]a11yopen=[0-9]/.test(location.search);
   function go() {
     if (!ready() && tries++ < 80) return setTimeout(go, 100);
+    if (!opened) {
+      var n = Number((/[?&]a11yopen=([0-9]+)/.exec(location.search) || [])[1]);
+      var btns = document.querySelectorAll('.rv-pm-btn');
+      if (!btns.length && tries++ < 80) return setTimeout(go, 100);
+      opened = true;
+      for (var i = 0; i < Math.min(n, btns.length); i++) btns[i].click();
+      var more = document.querySelector('[data-rv-more]');
+      if (more) more.click();
+      return setTimeout(go, 600);
+    }
     axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] } }).then(function (r) {
       var out = r.violations.map(function (v) { return { id: v.id, impact: v.impact, n: v.nodes.length, help: v.help, at: v.nodes.slice(0, 3).map(function (n) { return n.target.join(' '); }) }; });
       document.documentElement.setAttribute('data-axe', JSON.stringify(out));
@@ -42,6 +54,8 @@ const tmp = path.join(os.tmpdir(), 'd8-a11y-' + BUILD + '.html');
 fs.writeFileSync(tmp, fs.readFileSync(BUILT, 'utf8').replace('</body>', runner + '</body>'));
 const FILE = tmp.split(path.sep).join('/');
 
+// This month on Karan's clock (Winnipeg), for the Revenue cases.
+const MONTH_NOW = (() => { const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Winnipeg', year: 'numeric', month: '2-digit' }).formatToParts(new Date()); return `${p.find((x) => x.type === 'year').value}-${p.find((x) => x.type === 'month').value}`; })();
 let CASES = [];
 for (const route of ['home', 'work', 'results', 'updates', 'billing', 'billing/change', 'settings', 'messages', 'help']) CASES.push({ route, w: 1440 });
 CASES.push({ route: 'messages', w: 390 }, { route: 'messages', w: 1440, query: 'theme=dark' }, { route: 'messages', w: 1440, query: 'demo=cornerbean' });
@@ -67,10 +81,15 @@ if (/v18h/.test(BUILD)) {
     { route: 'messages', w: 1440 }, { route: 'messages/tnt_preview_osteria', w: 1440, query: 'theme=dark' }, { route: 'messages/tnt_preview_bayleaf', w: 500 }, { route: 'messages', w: 500 }, { route: 'messages', w: 1440, query: 'scene=scenes' }];
   // The plan release's console pages (2026-10-13): a client's plan drawer, the tabs it added, the plan columns, the stepped Add client form.
   const B = 'tnt_preview_bayleaf';
+  // Revenue, the business dashboard (2026-10-14): the overview with its charts at 1440, 500, dark and the scenes look, and both editors open.
+  CASES = CASES.concat([{ route: 'revenue', w: 1440 }, { route: 'revenue', w: 500 }, { route: 'revenue', w: 1440, query: 'theme=dark' }, { route: 'revenue', w: 1440, query: 'scene=scenes' }, { route: 'revenue', w: 1440, query: 'scene=scenes&theme=dark' },
+    { route: `revenue/${MONTH_NOW}/costs`, w: 1440 }, { route: `revenue/${MONTH_NOW}/costs`, w: 500 }, { route: `revenue/${MONTH_NOW}/costs`, w: 1440, query: 'theme=dark' }, { route: `revenue/${MONTH_NOW}/income`, w: 1440 }, { route: `revenue/${MONTH_NOW}/income`, w: 500, query: 'theme=dark' },
+    // Previous months at the bottom of the Overview, with two rows open and the older months loaded
+    { route: 'revenue', w: 1440, query: 'a11yopen=2' }, { route: 'revenue', w: 500, query: 'a11yopen=2' }, { route: 'revenue', w: 1440, query: 'theme=dark&a11yopen=2' }, { route: 'revenue', w: 1440, query: 'scene=scenes&a11yopen=1' }]);
   CASES = CASES.concat([{ route: `billing/${B}`, w: 1440 }, { route: `billing/${B}`, w: 500 }, { route: `billing/${B}`, w: 1440, query: 'theme=dark' }, { route: 'billing', w: 500 },
     { route: `client/${B}/results`, w: 1440 }, { route: `client/${B}/talk`, w: 1440 }, { route: `client/${B}/home`, w: 1440 }, { route: `client/${B}/home`, w: 500 }, { route: `client/${B}/visible`, w: 1440 }, { route: `client/${B}/visible`, w: 500 }, { route: `client/${B}/visible`, w: 1440, query: 'theme=dark' }, { route: `client/${B}/view`, w: 1440 }, { route: `client/${B}/view`, w: 500 }, { route: `client/${B}/view`, w: 1440, query: 'theme=dark' }, { route: `client/${B}/view`, w: 1440, query: 'theme=dark&scene=scenes' },
     { route: `client/${B}/setup`, w: 1440 }, { route: `client/${B}/advanced`, w: 1440 }, { route: `client/${B}/work`, w: 1440 }, { route: 'client/tnt_preview_marlow/overview', w: 1440 }, { route: 'client/tnt_preview_corner/visible', w: 1440 },
-    { route: 'new', w: 500 }, { route: 'new', w: 1440, query: 'theme=dark' }, { route: 'clients', w: 500 }, { route: 'clients', w: 1440, query: 'theme=dark' }, { route: 'board', w: 1440 }, { route: 'board', w: 500 }, { route: 'settings', w: 500 }]);
+    { route: 'new', w: 500 }, { route: 'new', w: 1440, query: 'theme=dark' }, { route: 'clients', w: 500 }, { route: 'clients', w: 1440, query: 'theme=dark' }, { route: 'board', w: 1440 }, { route: 'board', w: 500 }, { route: 'settings', w: 500 }, { route: 'new', w: 1440, query: 'scene=scenes' }]);
 } else if (BUILD !== 'v16') {
   // Variants: every main page in light, then dark, a phone width and the all-caught-up state.
   CASES = ['home', 'work', 'results', 'billing', 'settings'].map((route) => ({ route, w: 1440 }))

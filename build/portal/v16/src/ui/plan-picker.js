@@ -33,6 +33,11 @@
     }).join('');
   }
 
+  /** How many of the picks the client has made: Ads (and anything else the plan includes) is not a pick. @param {any} r a plan rule @param {string[]} picks */
+  const pickedOf = (r, picks) => picks.filter((/** @type {string} */ x) => !r.fixed.includes(x)).length;
+  /** The step's heading: only the picks are counted, Ads is shown as included. @param {any} r a plan rule */
+  const stepTitle = (r) => `Step 2. Choose ${r.choose} ${r.choose === 1 ? 'service' : 'services'}`;
+
   /** The services to pick from, for the plan chosen. @param {any} m @param {{planId: string, picks: string[], option: string|null}} st */
   function serviceCards(m, st) {
     const plan = m.menu.find((/** @type {any} */ p) => p.id === st.planId);
@@ -77,7 +82,7 @@
     }).join('');
     const more = pv.moreMinor !== null && pv.moreMinor !== undefined && pv.moreMinor !== 0 ? `<span class="pk-more${pv.moreMinor < 0 ? ' is-less' : ''}">${esc(F.money(Math.abs(pv.moreMinor), d.currency))} ${pv.moreMinor > 0 ? 'more' : 'less'}</span>` : '';
     const tl = timeline([
-      { state: 'todo', title: 'Today: you confirm', text: `We email you a copy. Nothing is charged today.` },
+      { state: 'todo', title: 'Today: you confirm', text: `Your choice is saved. Nothing is charged today.` },
       { state: 'todo', title: `Until ${esc(day(m.lastDay))}`, text: `${esc(F.list(c.services.map((/** @type {any} */ s) => s.label)))} keep running as normal.` },
       { state: 'todo', title: esc(day(m.bill)), text: `${esc(d.name)} starts.${will ? ` Your bill is ${esc(will)}.` : ''}` }
     ]);
@@ -89,12 +94,12 @@
       <p class="pk-down" aria-hidden="true">${icon('arrow-right')}</p>
       <div class="pk-from"><p class="eyebrow">From ${esc(day(m.bill))}</p><div class="pk-line"><div><p class="pk-name">${esc(d.name)}</p><p class="pk-svcs">${esc(F.list(d.services.map((/** @type {any} */ s) => s.label)))}</p></div>${will ? `<p class="pk-cost"><strong>${esc(will)}</strong>/month</p>` : ''}</div></div>
       ${rows ? `<ul class="chg-list is-panel">${rows}</ul>` : '<p class="meta pk-same">This is the same as this month.</p>'}
-      <div class="pk-today"><p class="pk-row"><span>Today</span><strong>$0</strong></p><p class="pk-row is-next"><span>${esc(day(m.bill))} and each month after</span>${will ? '' : `<strong>${esc(d.name)}</strong>`}</p>${will ? `<p class="pk-big"><strong>${esc(will)}</strong>${more}</p>` : ''}</div>
+      <div class="pk-today"><p class="pk-row"><span>Nothing today</span></p><p class="pk-row is-next"><span>${esc(day(m.bill))} and each month after</span>${will ? '' : `<strong>${esc(d.name)}</strong>`}</p>${will ? `<p class="pk-big"><strong>${esc(will)}</strong>${more}</p>` : ''}</div>
       <h3 class="po-h">What happens next</h3>${tl}
       <p class="form-error" id="pk-error" role="alert"${err ? '' : ' hidden'}>${err ? icon('alert') + '<span>' + esc(err) + '</span>' : ''}</p>
       <button class="btn btn-primary btn-block pk-confirm" type="button" data-pick="confirm"${pv.valid ? '' : ' disabled'}>${icon('lock')}${esc(verb)}</button>
       <p class="pk-lock">Locks your services for ${esc(day(m.lock.from))} to ${esc(day(m.lock.to))}.</p>
-      <a class="btn btn-glass btn-block" href="#/billing">Keep my current plan</a>
+      ${pv.same ? '' : '<a class="btn btn-glass btn-block" href="#/billing">Keep my current plan</a>'}
     </div>`;
   }
 
@@ -138,13 +143,13 @@
     const pv = D8.planModel.preview(m, { planId: st.planId, picks: st.picks, websiteOption: st.option });
     const plan = m.menu.find((/** @type {any} */ p) => p.id === st.planId);
     const r = plan.rule;
-    const total = r.total;
-    const have = st.picks.length;
+    const total = r.choose;
+    const have = pickedOf(r, st.picks);
     return `<div class="picker" id="picker">
       <div class="pk-main">
         <section class="pk-step" aria-labelledby="step1"><h2 class="step-h" id="step1" tabindex="-1">Step 1. Choose a plan</h2>
           <fieldset class="plan-choices"><legend class="sr-only">Your plan for next month</legend>${planCards(m, st)}</fieldset></section>
-        <section class="pk-step" aria-labelledby="step2"><div class="step-head"><h2 class="step-h" id="step2">Step 2. ${r.fixed.length ? `Pick ${r.choose} ${r.choose === 1 ? 'more service' : 'more services'}` : `Pick ${r.choose} services`}</h2><span class="pick-count${have === total ? ' is-done' : ''}" id="pick-count" aria-live="polite">${icon('check')}${have} of ${total} picked</span></div>
+        <section class="pk-step" aria-labelledby="step2"><div class="step-head"><h2 class="step-h" id="step2">${stepTitle(r)}</h2><span class="pick-count${have === total ? ' is-done' : ''}" id="pick-count" aria-live="polite">${icon('check')}${have} of ${total} picked</span></div>
           <fieldset class="svc-choices" id="svc-choices"><legend class="sr-only">Services for next month</legend>${serviceCards(m, st)}</fieldset>
           <p class="pick-help">${icon('info')}<span>Not sure? <a class="link" href="#/messages">Message Karan</a> and we will help you choose. You can change your picks as many times as you like until ${esc(day(m.lastDay))}.</span></p></section>
       </div>
@@ -177,11 +182,11 @@
       html('#svc-choices').innerHTML = serviceCards(m, st);
       html('#pk-panel').innerHTML = panel(m, pv, st);
       const r = plan().rule;
-      const have = st.picks.length;
+      const have = pickedOf(r, st.picks);
       const count = html('#pick-count');
-      count.className = 'pick-count' + (have === r.total ? ' is-done' : '');
-      count.innerHTML = `${icon('check')}${have} of ${r.total} picked`;
-      html('#step2').textContent = r.fixed.length ? `Step 2. Pick ${r.choose} ${r.choose === 1 ? 'more service' : 'more services'}` : `Step 2. Pick ${r.choose} services`;
+      count.className = 'pick-count' + (have === r.choose ? ' is-done' : '');
+      count.innerHTML = `${icon('check')}${have} of ${r.choose} picked`;
+      html('#step2').textContent = stepTitle(r);
       root_.querySelectorAll('.plan-opt[data-plan]').forEach((n) => {
         n.classList.toggle('is-on', n.getAttribute('data-plan') === st.planId);
         n.classList.toggle('is-just', !!just && just.kind === 'plan' && n.getAttribute('data-plan') === just.id);
@@ -190,7 +195,7 @@
       if (just && just.kind === 'web') { const w = root_.querySelector(`.web-choice .pk-input[value="${just.id}"]`); if (w && w.parentElement) w.parentElement.classList.add('is-just'); }
       const d = pv && pv.draft;
       html('#pk-bar-name').textContent = d ? `${d.name}${price(d) ? ` · ${price(d)}/month` : ''}` : '';
-      html('#pk-bar-sub').textContent = d ? `From ${day(m.bill)} · $0 today` : '';
+      html('#pk-bar-sub').textContent = d ? `From ${day(m.bill)} · Nothing today` : '';
       // Focus follows the card, without scrolling the page to it: the client is already there.
       if (focus) { const f = /** @type {HTMLElement|null} */ (root_.querySelector(focus)); if (f) f.focus({ preventScroll: true }); }
     }

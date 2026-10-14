@@ -48,7 +48,6 @@
   function blurb(p) {
     const n = p.rule.choose;
     const some = n === 1 ? 'one service' : `${numWord(n)} services`;
-    if (p.rule.all) return 'Every service';
     if (p.rule.fixed.length) return `${F.list(p.rule.fixed.map((/** @type {string} */ x) => svc(x).label))}, plus ${some} you choose`;
     return `Any ${some} you choose`;
   }
@@ -136,15 +135,17 @@
     return `<ol class="tl">${items.map((x) => `<li class="tl-item is-${x.state}"><span class="tl-dot" aria-hidden="true">${x.state === 'done' ? icon('check') : ''}</span><div><p class="tl-title">${x.title}</p>${x.text ? `<p class="tl-text">${x.text}</p>` : ''}</div></li>`).join('')}</ol>`;
   }
 
-  /** What is coming: the month that started, the last day to change, the reminders, the next bill. @param {any} m @param {any} [staff] */
-  function comingUp(m, staff) {
+  /** What is coming: the month that started, the last day to change, the reminders, the next bill. @param {any} m @param {any} [staff] @param {string} [email] */
+  function comingUp(m, staff, email) {
     const c = m.now;
     const p = price(m.next || c);
-    const [d7, d3] = m.reminders;
+    // Only dates still ahead, and only when there is an address to send to: the line must not promise a reminder that cannot happen.
+    const ahead = (m.reminders || []).filter((/** @type {any} */ r) => !r.past).map((/** @type {any} */ r) => esc(day(r.date)));
+    const reminder = email && ahead.length ? ` We email you on ${F.list(ahead)}.` : '';
     const items = [
       { state: 'done', title: `${esc(day(c.start))}: month started`, text: `Your ${esc(c.name)} services are running.` },
       m.open
-        ? { state: 'todo', title: `${esc(day(m.lastDay))}: last day to change next month`, text: `Do nothing and it stays the same. We email you on ${esc(day(d7.date))} and ${esc(day(d3.date))}.` }
+        ? { state: 'todo', title: `${esc(day(m.lastDay))}: last day to change next month`, text: `Do nothing and it stays the same.${reminder}` }
         : { state: 'todo', title: 'Next month is set', text: 'The last day to change it has passed. Message us if something is wrong.' },
       { state: 'todo', title: `${esc(day(m.bill))}: next bill`, text: p ? `Next bill: ${esc(p)}.` : `${esc((m.next || c).name)} renews for another month.` }
     ];
@@ -179,8 +180,19 @@
     </section>`;
   }
 
-  /** Home, when no month of a plan is set up yet. */
-  function notSetUp() {
+  /**
+   * Home, Billing and the picker, when no month of a plan is running. A new client whose first month is chosen but starts
+   * later (its first bill date is ahead) sees that plan and the day it starts, and nothing is counted until then.
+   * @param {any} [m] the plan model
+   */
+  function notSetUp(m) {
+    const u = m && m.state === 'upcoming' ? m.upcoming : null;
+    if (u) {
+      const names = F.list(u.services.map((/** @type {any} */ s) => s.label));
+      return `<section class="card plan-card plan-none plan-upcoming" aria-labelledby="h-upcoming">
+      <div class="empty">${icon('calendar', 'empty-icon')}<div><h2 id="h-upcoming" class="empty-title">Your plan starts on ${esc(day(u.start))}.</h2><p class="empty-text">${esc(u.name)}${names ? `: ${esc(names)}` : ''}. Nothing is counted until it starts.</p><a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a></div></div>
+    </section>`;
+    }
     return `<section class="card plan-card plan-none" aria-labelledby="h-none">
       <div class="empty">${icon('card', 'empty-icon')}<div><h2 id="h-none" class="empty-title">Your plan is not set up yet.</h2><p class="empty-text">Message us and we will sort it out. Nothing is lost.</p><a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a></div></div>
     </section>`;

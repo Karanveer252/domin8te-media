@@ -64,6 +64,19 @@
   };
   /** @param {string} metric @param {string} [fallback] */
   const metricName = (metric, fallback) => METRIC_NAME[metric] || fallback || String(metric || 'work').replace(/_/g, ' ');
+  /** The two limits that count what is running now, not a month's work: they read "at once" and "in use", never "a month". @type {Record<string, string>} */
+  const NOW_UNIT = { ads_live_campaigns: 'at once', ads_platforms: 'in use' };
+  /** "8 page edits a month", "3 live campaigns at once". @param {string} metric @param {string} name */
+  const perPeriod = (metric, name) => `${name} ${NOW_UNIT[metric] || 'a month'}`;
+  /** Whether a limit counts what is live now (a snapshot that carries into the next month, 20261014110100), not a month's work. @param {string} metric */
+  const isLive = (metric) => Object.prototype.hasOwnProperty.call(NOW_UNIT, metric);
+  /** "used", or for a live limit "live now" / "in use". @param {string} metric */
+  const usedWord = (metric) => (metric === 'ads_platforms' ? 'in use' : isLive(metric) ? 'live now' : 'used');
+  /** A client's own words in quotes, ending in one full stop (a stop already at the end of their text is not doubled). @param {any} text @param {number} max */
+  const quoted = (text, max) => {
+    const t = String(text == null ? '' : text).trim().slice(0, max).replace(/[\s.,;:]+$/, '');
+    return `“${t}”${/[!?]$/.test(t) ? '' : '.'}`;
+  };
 
   /** True for the items this part draws; console.js leaves them out of the older "Check before it goes live" list. @param {any} x */
   const handles = (x) => !!x && CODES.includes(x.reason_code);
@@ -294,7 +307,7 @@
       for (const m of metrics) {
         const a = capOf(con.plan, m);
         const b = capOf(dash.plan, m);
-        if (a !== b) diff.push([`${metricName(m)} a month`, a === null ? 'None' : String(a), b === null ? 'None' : String(b)]);
+        if (a !== b) diff.push([perPeriod(m, metricName(m)), a === null ? 'None' : String(a), b === null ? 'None' : String(b)]);
       }
       for (const r of diff.slice(0, 3)) rows.push(r);
       if (diff.length > 3) rows.push([`${diff.length - 3} more limits differ`, '', '']);
@@ -343,8 +356,8 @@
     const title = known ? `Over cap: ${metricName(L.metric, L.label)} ${L.would} of ${L.cap} (${planNm})` : String(ex.message || 'Over cap').replace(/\.$/, '');
     const who = L.req && L.req.by_name ? L.req.by_name : cx.first || 'The client';
     const wrong = isReq
-      ? `${who} asked${L.req ? ` ${c.ago(L.req.at)}` : ''}${L.req ? `: “${String(L.req.body).slice(0, 140)}”` : ' for more than the plan allows'}. ${known ? `${planNm} allows ${L.cap} ${L.label} a month and ${L.used} ${L.used === 1 ? 'is' : 'are'} used, so this would make ${L.would}.` : String(ex.message || '')}`
-      : `${known ? `${planNm} allows ${L.cap} ${L.label} a month and ${L.used} ${L.used === 1 ? 'is' : 'are'} used. Counting this work would take it to ${L.would}.` : String(ex.message || '')}${L.task ? ` Card: “${String(L.task.title).slice(0, 100)}”.` : ''}`;
+      ? `${who} asked${L.req ? ` ${c.ago(L.req.at)}` : ''}${L.req ? `: ${quoted(L.req.body, 140)}` : ' for more than the plan allows.'} ${known ? `${planNm} allows ${L.cap} ${perPeriod(L.metric, L.label)} and ${L.used} ${L.used === 1 ? 'is' : 'are'} ${usedWord(L.metric)}, so this would make ${L.would}.` : String(ex.message || '')}`
+      : `${known ? `${planNm} allows ${L.cap} ${perPeriod(L.metric, L.label)} and ${L.used} ${L.used === 1 ? 'is' : 'are'} ${usedWord(L.metric)}. Counting this work would take it to ${L.would}.` : String(ex.message || '')}${L.task ? ` Card: ${quoted(L.task.title, 100)}` : ''}`;
     const sees = isReq
       ? 'Their request is waiting for you. Nothing is scheduled or counted until you decide.'
       : known ? `Their usage bar reads ${L.used} of ${L.cap} ${L.label}. This work is not counted yet.` : 'Their usage bar does not count this work yet.';
@@ -356,16 +369,22 @@
     const why = !cycle ? 'There is no running month for this client. Set the plan in Billing first.' : !known ? 'This item does not say which limit it is about.' : '';
     const usageLine = known ? { label: metricName(L.metric, L.label), used: L.used, cap: L.cap, pct: Math.min(100, Math.round((L.used / L.cap) * 100)), tone: C().usageTone(L.used, L.cap) } : null;
     const detail = usageLine ? `<div class="nx-usage">${C().usageBar(usageLine)}<p class="nx-usage-note">${L.over ? `Counting this would make ${L.would} of ${L.cap}, ${L.over} over.` : `Counting this would make ${L.would} of ${L.cap}.`}</p></div>` : '';
-    /** Adds the usage row and, for a request, starts it. @param {string} metric @param {boolean} oneOff @param {number} qty @param {string} note */
-    const count = async (metric, oneOff, qty, note) => {
+    /**
+     * Adds the usage row, starts the request (when it is waiting) and resolves this item, all in one database call (count_needs_usage,
+     * 20261014110100): a failure leaves nothing half done, and a retry after it went through counts nothing twice. Resolves false when the
+     * item was already dealt with (nothing was counted now). A live limit is sent as the new total (what is live once this starts).
+     * @param {string} metric @param {boolean} oneOff @param {number} qty @param {string} note @param {string} closeNote
+     */
+    const count = async (metric, oneOff, qty, note, closeNote) => {
       const client = await c.db();
-      /** @type {any} */ const row = { tenant_id: tid, cycle_id: cycle.id, service: L.service, metric, qty, counted: true, note: String(note || (oneOff ? 'One-off approved over the monthly limit' : 'Counted as a different kind of work')).slice(0, 500) };
-      if (L.task) row.task_id = L.task.id;
-      if (L.req) row.request_id = L.req.id;
-      if (oneOff) row.over_cap_approved_at = new Date().toISOString();
-      got(await client.from('usage_events').insert(row).select('id').single());
-      if (L.req && L.req.status === 'review') got(await client.from('requests').update({ status: 'in_progress' }).eq('id', L.req.id).select('id').single());
+      const out = got(await client.rpc('count_needs_usage', {
+        p_exception: ex.id, p_tenant: tid, p_cycle: cycle.id, p_service: L.service, p_metric: metric, p_qty: isLive(metric) ? Math.min(100, L.used + qty) : qty,
+        p_one_off: oneOff, p_note: String(note || (oneOff ? 'One-off approved over the limit' : 'Counted as a different kind of work')).slice(0, 500),
+        p_task: L.task ? L.task.id : null, p_request: L.req ? L.req.id : null, p_close_note: String(closeNote || '').slice(0, 2000)
+      }));
+      return !!(out && out.done);
     };
+    const already = 'This was already done, so nothing was counted again.';
     /** @type {Action[]} */ const actions = [];
     if (alt) {
       actions.push({
@@ -374,8 +393,9 @@
           lead: `<strong>Count it as ${esc(alt.label)} instead?</strong> It fits the plan (${alt.used + L.qty} of ${alt.cap} ${esc(alt.label)}), so no one-off is needed. ${L.req && L.req.status === 'review' ? 'The request moves to In progress.' : ''}`,
           confirm: 'Count it',
           run: async (f, note) => {
-            await count(alt.metric, false, L.qty, withNote(`Counted as ${alt.label} instead of ${L.label}.`, note));
-            return { status: 'resolved', note: withNote(`Counted as ${alt.used + L.qty} of ${alt.cap} ${alt.label} instead of ${L.label}.`, note), toast: `Counted as ${alt.label}.` };
+            const closing = withNote(`Counted as ${alt.used + L.qty} of ${alt.cap} ${alt.label} instead of ${L.label}.`, note);
+            const done = await count(alt.metric, false, L.qty, withNote(`Counted as ${alt.label} instead of ${L.label}.`, note), closing);
+            return { status: 'resolved', note: closing, toast: done ? `Counted as ${alt.label}.` : already, keepOpen: true };
           }
         }
       });
@@ -384,12 +404,13 @@
       id: 'oneoff', label: 'Approve one-off', tone: alt ? 'quiet' : 'primary', disabled: noMonth, hint: why,
       sheet: {
         lead: `<strong>Approve a one-off over the limit?</strong> This adds to ${esc(L.label)} for ${esc(cx.name)}: ${L.used} of ${L.cap} becomes ${L.would}, past the cap. It is recorded as approved by you. Nothing is charged automatically.${L.req && L.req.status === 'review' ? ' The request moves to In progress.' : ''}`,
-        fields: `<div class="field nx-qty"><label for="nx-qty">How many to count</label><input id="nx-qty" name="qty" type="number" min="1" max="100" step="1" value="${L.qty}" inputmode="numeric"></div>`,
+        fields: `<div class="field nx-qty"><label for="nx-qty">${isLive(L.metric) ? 'How many more go live' : 'How many to count'}</label><input id="nx-qty" name="qty" type="number" min="1" max="100" step="1" value="${L.qty}" inputmode="numeric"></div>`,
         confirm: 'Approve one-off',
         run: async (f, note) => {
           const qty = Math.min(100, Math.max(1, Math.round(Number(C().val(f, 'qty')) || L.qty)));
-          await count(L.metric, true, qty, withNote('One-off approved over the monthly limit.', note));
-          return { status: 'resolved', note: withNote(`Approved one-off on ${L.label}: ${qty} counted past the limit (${L.used} of ${L.cap} becomes ${L.used + qty}).`, note), toast: `Counted ${qty} on ${L.label} as a one-off.` };
+          const closing = withNote(`Approved one-off on ${L.label}: ${qty} counted past the limit (${L.used} of ${L.cap} becomes ${L.used + qty}).`, note);
+          const done = await count(L.metric, true, qty, withNote(isLive(L.metric) ? 'One-off approved over the limit.' : 'One-off approved over the monthly limit.', note), closing);
+          return { status: 'resolved', note: closing, toast: done ? `Counted ${qty} on ${L.label} as a one-off.` : already, keepOpen: true };
         }
       }
     });
@@ -420,9 +441,10 @@
             const upCap = L.metric ? capOf(up.id, L.metric) : null;
             const bill = cycle ? dayText(cycle.period_end) : '';
             const are = L.used === 1 ? 'is' : 'are';
-            const text = letter(cx, `${isReq ? `Thanks for asking about more ${L.label}.` : `Your ${L.label} for this month are at the limit.`} ${planNm} includes up to ${L.cap || 'a set number of'} ${L.label} a month and ${L.used} ${are} used.
+            const live = isLive(L.metric);
+            const text = letter(cx, `${isReq ? `Thanks for asking about more ${L.label}.` : live ? `Your ${L.label} are at the limit right now.` : `Your ${L.label} for this month are at the limit.`} ${planNm} includes up to ${L.cap || 'a set number of'} ${perPeriod(L.metric, L.label)} and ${L.used} ${are} ${usedWord(L.metric)}.
 
-Two ways forward: we can do the extra work next month, or you can move up to ${up.name}${upCap ? `, which includes up to ${upCap} ${L.label} a month` : ''}. A plan change starts from your next bill date${bill ? `, ${bill}` : ''}. Tell us which you would like and we will take it from there.`);
+Two ways forward: ${live ? 'we can start the new one when one that is running now ends' : 'we can do the extra work next month'}, or you can move up to ${up.name}${upCap ? `, which includes up to ${upCap} ${perPeriod(L.metric, L.label)}` : ''}. A plan change starts from your next bill date${bill ? `, ${bill}` : ''}. Tell us which you would like and we will take it from there.`);
             return { status: 'resolved', note: withNote(`Suggested ${up.name} (a draft was opened in Messages, not sent).`, note), toast: 'Draft ready. Read it, edit it, then press Send. Nothing has been sent.', draft: { tid, text } };
           }
         }
@@ -489,7 +511,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const who = (req && req.by_name) || cx.first || 'The client';
     return {
       title: `Request for ${svc}, which is not in this month's plan`,
-      wrong: `${who} asked${req ? ` ${c.ago(req.at)}: “${String(req.body).slice(0, 140)}”` : ''}. ${svc} is not part of ${planNm} this month.`,
+      wrong: `${who} asked${req ? ` ${c.ago(req.at)}: ${quoted(req.body, 140)}` : '.'} ${svc} is not part of ${planNm} this month.`,
       sees: 'Their request is waiting for you. Nothing is scheduled and nothing is counted.',
       fix: 'Suggest it for next month: a draft opens in Messages. Nothing is sent.',
       stale, actions

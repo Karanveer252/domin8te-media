@@ -84,7 +84,7 @@
     return first ? `${shortLabel(service)} · ${first.cap} ${unit}` : shortLabel(service);
   }
   /** "Ads and Email", "Ads, Social and Email". @param {string[]} list */
-  const andList = (list) => (list.length < 2 ? list.join('') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`);
+  const andList = (list) => (list.length < 2 ? list.join('') : list.some((/** @type {string} */ x) => / and /.test(x)) ? list.join(', ') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`);
 
   /**
    * Who is on a plan over a stretch of days, and whether this client may be put on it. Two things can stop that, both the
@@ -119,16 +119,9 @@
     return out;
   }
 
-  /** A plan with no pick count (picks_allowed none) would mean every service. No plan is like that now; the old reading stays so a bad row cannot break the page. @param {string} planId */
-  function takesEvery(planId) {
-    const p = plansRows().find((/** @type {any} */ x) => x.id === planId);
-    return !!p && (p.picks_allowed === null || p.picks_allowed === undefined);
-  }
-
   /** What changes from one choice to another, in words. @param {any} a @param {any} b each { planId, picks, websiteOption } */
   function diffWords(a, b) {
-    const all = pickableIds();
-    const norm = (/** @type {any} */ v) => ({ planId: v.planId, picks: takesEvery(v.planId) ? all : PM().ordered(v.picks || []), websiteOption: v.websiteOption || null });
+    const norm = (/** @type {any} */ v) => ({ planId: v.planId, picks: PM().ordered(v.picks || []), websiteOption: v.websiteOption || null });
     const A = norm(a), B = norm(b);
     const d = PM().diff(A, B);
     const name = (/** @type {string} */ id) => ((plansRows().find((/** @type {any} */ p) => p.id === id) || {}).name) || id;
@@ -186,18 +179,18 @@
     const caps = capsNow();
     const r = PM().rule(p);
     const chosen = (st.picks || []).filter((/** @type {string} */ x) => !r.fixed.includes(x));
-    const noPicks = !r.all && chosen.length === 0;
+    const noPicks = chosen.length === 0;
     let proposed = false;
     const rows = ORDER.map((id) => {
       const line = capLine(p.id, id, st.planId === p.id ? st.websiteOption : null, caps);
       if (!line) return '';
       if (line.includes('*')) proposed = true;
-      const inPlan = r.all || r.fixed.includes(id) || (st.picks || []).includes(id);
+      const inPlan = r.fixed.includes(id) || (st.picks || []).includes(id);
       if (inPlan) return `<span class="pp-cap"><b>${esc(label(id))}:</b> ${esc(line)}</span>`;
       return `<span class="pp-cap is-off"><b>${esc(label(id))}:</b> ${noPicks ? esc(line) : 'not picked'}</span>`;
     }).join('');
-    const over = !r.all && chosen.length > r.choose ? `<span class="pp-note is-warn">${esc(p.name)} takes ${r.choose} pick${r.choose === 1 ? '' : 's'}${r.fixed.length ? ` besides ${esc(andList(r.fixed.map(label)))}` : ''}. You have ${chosen.length}.</span>` : '';
-    const taken = full && !slot.locked ? `<span class="pp-note is-bad">${p.maxClients === 1 ? 'The one' : `All ${p.maxClients}`} ${esc(p.name)} ${p.maxClients === 1 ? 'place is' : 'places are'} in use. It opens when that client changes plan or leaves.</span>` : '';
+    const over = chosen.length > r.choose ? `<span class="pp-note is-warn">${esc(p.name)} takes ${r.choose} pick${r.choose === 1 ? '' : 's'}${r.fixed.length ? ` besides ${esc(andList(r.fixed.map(label)))}` : ''}. You have ${chosen.length}.</span>` : '';
+    const taken = full && !slot.locked ? `<span class="pp-note is-bad">${p.maxClients === 1 ? 'The one' : `All ${p.maxClients}`} ${esc(p.name)} ${p.maxClients === 1 ? 'spot is' : 'spots are'} taken. It opens when that client changes plan or leaves.</span>` : '';
     const lock = slot.locked ? `<span class="pp-note is-lock">${esc(p.name)} is locked. An owner can unlock it in <a class="pp-link" href="#/settings">Settings</a>.</span>` : '';
     return `<span class="pp-caps"><span class="pp-caps-h">Limits for your picks, each month</span>${rows}</span>${proposed ? '<span class="pp-star">* proposed</span>' : ''}${over}${lock}${taken}`;
   }
@@ -209,7 +202,7 @@
     return `<div class="pp-plans${compact ? ' is-compact' : ''}" role="radiogroup" aria-label="Plan">${m.plans.map((/** @type {any} */ p) => {
       const r = PM().rule(p);
       const price = p.priceMinor != null ? C().money(p.priceMinor, p.currency) : '';
-      const rule = r.all ? 'Every service' : r.fixed.length ? `${r.fixed.map(label).join(' + ')} + ${r.choose} pick${r.choose === 1 ? '' : 's'}` : `Any ${r.choose} services`;
+      const rule = r.fixed.length ? `${r.fixed.map(label).join(' + ')} + ${r.choose} pick${r.choose === 1 ? '' : 's'}` : `${r.choose} pick${r.choose === 1 ? '' : 's'}`;
       const nid = `pp-n-${ctl.id}-${p.id}`, rid = `pp-r-${ctl.id}-${p.id}`;
       return `<label class="pp-plan" data-plan="${esc(p.id)}"><input type="radio" name="pp-plan-${ctl.id}" value="${esc(p.id)}" aria-labelledby="${esc(nid)}" aria-describedby="${esc(rid)}">
         <span class="pp-plan-top"><span class="pp-plan-name" id="${esc(nid)}">${esc(p.name)}</span>${price ? `<span class="pp-plan-price">${esc(price)}<small>/mo</small></span>` : ''}</span>
@@ -250,7 +243,6 @@
       const slot = ctl.slot(p.id);
       if (slot.locked) return { ok: false, code: 'plan-locked', error: `${p.name} is locked. An owner can unlock it in Settings.` };
       if (slot.limited && slot.taken) return { ok: false, code: 'plan-full', error: `${p.name} is taken right now.` };
-      if (PM().rule(p).all) return { ok: true, code: '', error: '' };
       // the lock was settled above for this client (slot.locked), so the model is told this plan is theirs to take
       const v = PM().validate({ plans: m.plans.map((/** @type {any} */ x) => (x.id === p.id ? { ...x, current: true } : x)), caps: m.caps }, p.id, st.picks, st.websiteOption);
       if (!v.ok && v.code === 'website-option') {
@@ -264,8 +256,7 @@
     ctl.value = function () {
       const st = ctl.state;
       const p = planOf(st.planId);
-      const all = !!p && PM().rule(p).all;
-      const picks = all ? pickableIds() : PM().ordered(st.picks);
+      const picks = PM().ordered(st.picks);
       return { planId: st.planId, picks, websiteOption: st.planId === 'starter' && picks.includes('website') ? st.websiteOption || null : null };
     };
 
@@ -308,8 +299,8 @@
         for (const row of /** @type {HTMLElement[]} */ (Array.from(el.querySelectorAll('.pp-pick')))) {
           const sid = row.getAttribute('data-svc') || '';
           const input = /** @type {HTMLInputElement} */ (row.querySelector('input'));
-          const fixed = !!r && (r.all || r.fixed.includes(sid));
-          input.checked = !!r && (r.all || st.picks.includes(sid));
+          const fixed = !!r && r.fixed.includes(sid);
+          input.checked = !!r && st.picks.includes(sid);
           input.disabled = !p || fixed;
           row.classList.toggle('is-on', input.checked);
           row.classList.toggle('is-fixed', fixed);
@@ -318,11 +309,10 @@
           const line = p ? capLine(p.id, sid, input.checked ? st.websiteOption : null, caps) : '';
           /** @type {HTMLElement} */ (row.querySelector('[data-pp="cap"]')).textContent = p ? (line ? `${p.name}: ${line}` : `${p.name} has no limit set for this`) : 'Choose a plan first';
         }
-        const chosen = r && !r.all ? st.picks.filter((/** @type {string} */ x) => !r.fixed.includes(x)).length : 0;
+        const chosen = r ? st.picks.filter((/** @type {string} */ x) => !r.fixed.includes(x)).length : 0;
         /** @type {HTMLElement} */ (el.querySelector('[data-pp="rule"]')).textContent = !p ? 'Choose a plan to pick services.'
-          : r && r.all ? `${p.name}: every service is included.`
           : r && r.fixed.length ? `${p.name}: ${andList(r.fixed.map(label))} ${r.fixed.length === 1 ? 'is' : 'are'} included. Choose ${r.choose} more.` : `${p.name}: choose ${r && r.choose}.`;
-        /** @type {HTMLElement} */ (el.querySelector('[data-pp="count"]')).textContent = r && !r.all ? `${chosen} of ${r.choose} chosen` : '';
+        /** @type {HTMLElement} */ (el.querySelector('[data-pp="count"]')).textContent = r ? `${chosen} of ${r.choose} chosen` : '';
         const showOpt = st.planId === 'starter' && st.picks.includes('website');
         const opt = /** @type {HTMLElement} */ (el.querySelector('[data-pp="option"]'));
         opt.hidden = !showOpt;
@@ -337,7 +327,7 @@
         if (!p) { msg.className = 'pp-msg'; msg.innerHTML = ''; }
         else if (check.ok) {
           msg.className = 'pp-msg is-ok';
-          msg.innerHTML = `${C().icon('check')}<span>${esc(r && r.all ? `${p.name} includes every service.` : `Fits ${p.name}: ${chosen} of ${r && r.choose} chosen.`)}</span>`;
+          msg.innerHTML = `${C().icon('check')}<span>${esc(`Fits ${p.name}: ${chosen} of ${r && r.choose} chosen.`)}</span>`;
         } else {
           const soft = check.code === 'count' && /^Pick /.test(check.error) || check.code === 'website-option';
           msg.className = `pp-msg ${soft ? 'is-warn' : 'is-bad'}`;
@@ -356,9 +346,7 @@
       const p = planOf(pid);
       if (!p) return;
       const r = PM().rule(p);
-      const old = planOf(st.planId);
-      if (r.all) st.picks = pickableIds();
-      else st.picks = PM().ordered([...r.fixed, ...(old && PM().rule(old).all ? [] : st.picks)]);
+      st.picks = PM().ordered([...r.fixed, ...st.picks]);
       if (pid !== 'starter') st.websiteOption = null;
       st.planId = pid;
       ctl.changed();
@@ -367,7 +355,7 @@
       const st = ctl.state;
       const p = planOf(st.planId);
       const r = p ? PM().rule(p) : null;
-      if (!p || !r || r.all || r.fixed.includes(sid)) { ctl.paint(); return; }
+      if (!p || !r || r.fixed.includes(sid)) { ctl.paint(); return; }
       const set = new Set(st.picks);
       if (on) set.add(sid); else set.delete(sid);
       st.picks = PM().ordered(Array.from(set));

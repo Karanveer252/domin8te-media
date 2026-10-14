@@ -88,7 +88,6 @@
 
   /** The words for what a plan includes: "Ads + 1 pick", "Ads + 2 picks", "Ads + 3 picks" (from the plan row: its required services, then its pick count). @param {any} pl */
   function ruleOf(pl) {
-    if (pl.picks_allowed === null || pl.picks_allowed === undefined) return 'All services';
     const req = (pl.required_services || []).map((/** @type {string} */ id) => { const s = D().plans.services.find((/** @type {any} */ x) => x.id === id); return s ? s.label : id; });
     const picks = plural(Number(pl.picks_allowed), 'pick');
     return req.length ? `${req.join(' + ')} + ${picks}` : picks;
@@ -131,8 +130,8 @@
     if (limit !== null) {
       const who = holders(pl);
       const names = (/** @type {any[]} */ list) => list.map((t) => t.name).join(', ');
-      tags += (who.now.length ? `<span class="chip info" title="A paused client keeps the place. Only archiving frees it.">Taken by ${esc(names(who.now))}${who.now.some((/** @type {any} */ t) => t.status === 'paused') ? ' (paused)' : ''}</span>` : '')
-        + (who.next.length ? `<span class="chip info" title="Their next month is on this plan, so the place is theirs from then.">Next month: ${esc(names(who.next))}</span>` : '')
+      tags += (who.now.length ? `<span class="chip info" title="A paused client keeps the spot. Only archiving frees it.">Taken by ${esc(names(who.now))}${who.now.some((/** @type {any} */ t) => t.status === 'paused') ? ' (paused)' : ''}</span>` : '')
+        + (who.next.length ? `<span class="chip info" title="Their next month is on this plan, so the spot is theirs from then.">Next month: ${esc(names(who.next))}</span>` : '')
         + (!who.now.length && !who.next.length ? '<span class="chip good">Place free</span>' : '');
     }
     // Open or locked: Domin8te always says which; any other plan only says so if someone locked it.
@@ -292,10 +291,13 @@
 
   /** Reads plans and limits again and puts them where every other page reads them (D8C.all.plans). */
   async function reloadPlans() {
-    const c = await D().db();
     /** @param {any} q */
     const rd = async (q) => { try { const r = await q; return r && !r.error ? r.data || [] : null; } catch (e) { return null; } };
-    const [plans, caps] = await Promise.all([rd(c.from('plans').select('*').order('sort')), rd(c.from('plan_caps').select('*'))]);
+    // Whole rows (who edited, locked or set them) through the staff list functions (20261014130000).
+    const [plans, caps] = await Promise.all([
+      rd(D().staffRows('list_plans', {}, (/** @type {any} */ k) => k.from('plans').select('*').order('sort'))),
+      rd(D().staffRows('list_plan_caps', {}, (/** @type {any} */ k) => k.from('plan_caps').select('*')))
+    ]);
     const all = D().all;
     if (all && all.plans) {
       if (plans) all.plans.plans = plans;
@@ -470,7 +472,7 @@
       drawPlans();
       loadHistory();
       const again = $('[data-pl-edit]'); if (again) again.focus();
-      D().toast(c.rows.length ? `Saved. The new limits start on ${D().longDate(c.from)}.` : 'Saved.');
+      D().toast(c.rows.length ? `Saved. Months that start on or after ${D().longDate(c.from)} use the new limits.` : 'Saved.');
     });
   }
 
@@ -509,7 +511,6 @@
       const who = nameOf(g.actor);
       const dayText = new Date(g.at).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
       if (g.action === 'plan_cap_version') {
-        const v = Math.max(...g.rows.map((/** @type {any} */ d) => Number(d.version) || 1));
         // A number saved again unchanged (a starred number being confirmed) is not a change: it is counted, not listed as "4 to 4".
         let same = 0;
         const bits = g.rows.flatMap((/** @type {any} */ d) => {
@@ -522,7 +523,7 @@
         if (same) bits.push(bits.length ? `${same} more confirmed as they were` : `${same} ${same === 1 ? 'number' : 'numbers'} confirmed as they were`);
         const dates = Array.from(new Set(g.rows.map((/** @type {any} */ d) => String(d.effective_from)))).sort();
         const when = dates.length === 1 ? (dates[0] <= today ? `In force since ${shortDate(dates[0])}` : `Starts ${shortDate(dates[0])}`) : 'Start days differ';
-        return { tag: `v${v}`, day: dayText, text: `${bits.slice(0, 3).join(', ')}${bits.length > 3 ? ` and ${bits.length - 3} more` : ''}. ${when}. ${cap1(who)}.` };
+        return { tag: 'Limits', day: dayText, text: `${bits.slice(0, 3).join(', ')}${bits.length > 3 ? ` and ${bits.length - 3} more` : ''}. ${when}. ${cap1(who)}.` };
       }
       if (g.action === 'plan_locked' || g.action === 'plan_unlocked') {
         // "Locked Domin8te: no room this month." The reason is whatever the person wrote; a full stop at its end is not doubled.
@@ -838,9 +839,13 @@
 
   /* ---- the Hermes row, and the top of the page ------------------------------------------------------ */
 
-  /** The read-only Hermes row. Off, it says so and names the switch; it shows set or not set, never a value. @param {{hint: string}} o */
+  /**
+   * The read-only Hermes panel, shown only while the flag is on (2026-10-14: off, there is no Hermes word at all, and the demo
+   * console never shows it). It shows set or not set, never a value. @param {{hint: string}} o
+   */
   function hermesHtml(o) {
     const on = !!D().FLAGS.hermes;
+    if (!on || W.D8DEMO_SITE) return '';
     return `<section class="panel set-ai" id="sec-ai" aria-labelledby="s-ai"><div class="panel-head"><h2 id="s-ai">Hermes (AI assistant)</h2><span class="chip ${on ? 'good' : 'off'}">${on ? 'On' : 'Off'}</span></div>
       <p>${on ? `On. ${esc(o.hint)}` : 'Off. Turn on with HERMES_ENABLED.'}</p>
       <p class="meta">HERMES_ENABLED: ${on ? 'set' : 'not set'}. The console shows only whether it is set, never a value.</p></section>`;

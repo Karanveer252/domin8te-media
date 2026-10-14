@@ -3,7 +3,7 @@
 // holds the same value for pg_cron). verify_jwt is off; this secret is the guard.
 //
 // Settings (function secrets; names only here): BILLING_REMINDERS_CRON_SECRET, RESEND_API_KEY, REMINDERS_FROM
-// (for example "Karan at Domin8te <billing@domin8temedia.com>", a Resend-verified sender), optional REMINDERS_REPLY_TO,
+// (for example "Karan at Domin8te <billing@domin8temedia.com>", a Resend-verified sender), optional REMINDERS_REPLY_TO (the emails say "just reply" only when it is set),
 // optional REMINDERS_DRY_RUN=1 (plan and render only; use this on the test project).
 // No RESEND_API_KEY or REMINDERS_FROM: it still plans the rows, and sends nothing.
 

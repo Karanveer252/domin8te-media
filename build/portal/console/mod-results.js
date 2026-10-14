@@ -88,7 +88,7 @@
 
   /* ---- the page -------------------------------------------------------------------------------------------------------------- */
 
-  /** One tab's state, kept while it is on screen. @typedef {{tenantId: string, items: any[], now: any[], file: File|null, openId: string, savedHere: any}} Page */
+  /** One tab's state, kept while it is on screen. proof: the file already uploaded for this entry, so a retry reuses it. @typedef {{tenantId: string, items: any[], now: any[], file: File|null, openId: string, savedHere: any, proof?: {file: File, path: string}|null}} Page */
 
   /** @param {any} C @param {HTMLElement} box @param {string} part @param {any} got */
   function render(C, box, part, got) {
@@ -109,10 +109,11 @@
   async function load(C, P) {
     const db = await C.db();
     const [items, now] = await Promise.all([
-      db.from('client_dashboard_items').select('*').eq('tenant_id', P.tenantId).eq('item_kind', 'result'),
+      // Whole rows (who verified, the proof, a version waiting) through the staff list function (20261014130000).
+      C.staffRows('list_dashboard_items', { p_tenant: P.tenantId }, (/** @type {any} */ k) => k.from('client_dashboard_items').select('*').eq('tenant_id', P.tenantId).eq('item_kind', 'result')),
       db.rpc('client_results_current')
     ]);
-    P.items = (ok(items) || []).slice().sort((/** @type {any} */ a, /** @type {any} */ b) => String(b.reporting_period_end).localeCompare(String(a.reporting_period_end)));
+    P.items = (ok(items) || []).filter((/** @type {any} */ r) => r.item_kind === 'result').sort((/** @type {any} */ a, /** @type {any} */ b) => String(b.reporting_period_end).localeCompare(String(a.reporting_period_end)));
     // client_results_current gives every client's rows to staff: this page keeps its own client's
     P.now = (ok(now) || []).filter((/** @type {any} */ r) => r.tenant_id === P.tenantId);
   }
@@ -348,12 +349,12 @@
         }
         const done = C.busy(btn, publish ? 'Publishing' : keep ? 'Saving' : 'Saving draft');
         try {
-          const item = opened || await enter(C, P, r);
-          if (publish) await publishItem(C, item);
-          else if (keep) await keepHidden(C, item);
+          // One database call each (20261014110100): entering (and publishing) a new number, or publishing a draft, never half happens.
+          const item = opened ? (publish ? await publishItem(C, opened) : opened) : await enter(C, P, r, publish);
+          if (keep && !publish) await keepHidden(C, item);
           C.clean(f);
           C.toast(publish ? 'Published. The client sees it now.' : keep ? 'Kept hidden. The client keeps seeing the last verified number.' : hold ? 'Saved as a draft and held for a check. A Needs you item was opened.' : 'Saved as a draft. The client does not see it yet.');
-          P.file = null;
+          P.file = null; P.proof = null;
           await refreshAfter(C, P);
           const base = `#/client/${C.current.id}/results`;
           const go = publish || keep ? base : `${base}/${item.id}`;
@@ -365,22 +366,27 @@
     refresh();
   }
 
-  /** Saves what was typed as a pending, hidden result (add_result_item). A big jump is held there, and Needs you gets a result_outlier item. @param {any} C @param {Page} P @param {any} r */
-  async function enter(C, P, r) {
+  /**
+   * Saves what was typed as a pending, hidden result, and with `publish` also verifies and publishes it, in one call (enter_result_item: a big
+   * jump is held there and Needs you gets a result_outlier item; publishing resolves that hold). The proof file is uploaded first, once: a retry
+   * of the same file reuses the uploaded path, and the database reuses the row of a try that went through. @param {any} C @param {Page} P @param {any} r @param {boolean} [publish]
+   */
+  async function enter(C, P, r, publish) {
     const db = await C.db();
-    const proof = P.file ? await uploadProof(P.tenantId, P.file) : null;
-    const row = ok(await db.rpc('add_result_item', {
+    let proof = null;
+    if (P.file) {
+      proof = P.proof && P.proof.file === P.file ? P.proof.path : await uploadProof(P.tenantId, P.file);
+      P.proof = { file: P.file, path: proof };
+    }
+    return ok(await db.rpc('enter_result_item', {
       p_tenant: P.tenantId, p_service: r.service || null, p_metric: r.metric, p_label: r.label || r.metric, p_value: r.value, p_unit: r.unit || null,
-      p_period_start: r.start, p_period_end: r.end, p_source_name: r.source, p_read_at: r.readAt.toISOString(), p_proof_path: proof
+      p_period_start: r.start, p_period_end: r.end, p_source_name: r.source, p_read_at: r.readAt.toISOString(), p_proof_path: proof, p_publish: !!publish
     }));
-    return row;
   }
-  /** Publishes a pending result: the usual staff review, then the Needs you item for it is resolved. @param {any} C @param {any} item */
+  /** Publishes a pending result: the staff review and the resolving of its Needs you hold, in one call (publish_result_item). @param {any} C @param {any} item */
   async function publishItem(C, item) {
     const db = await C.db();
-    ok(await db.rpc('review_dashboard_item', { p_item_id: item.id, p_decision: 'approve', p_note: 'Entered and verified on the Results tab', p_content: null, p_expected: item.updated_at || null }));
-    const hold = holdOf(C, item);
-    if (hold) ok(await db.rpc('resolve_dashboard_exception', { p_id: hold.id, p_status: 'resolved', p_note: 'Verified and published from the Results tab' }));
+    return ok(await db.rpc('publish_result_item', { p_item: item.id, p_expected: item.updated_at || null }));
   }
   /** Keeps a number hidden: the item stays pending and unpublished, and its Needs you item is resolved. @param {any} C @param {any} item */
   async function keepHidden(C, item) {

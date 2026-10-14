@@ -50,7 +50,7 @@ test('usage: a bar for each limit, amber from 85 percent, full at the limit', as
   eq([by('advertising', 'ads_new_creatives').used, by('advertising', 'ads_new_creatives').cap, by('advertising', 'ads_new_creatives').tone], [2, 2, 'full']);
   assert.equal(by('local', 'seo_review_replies').tone, 'warn', '17 of 20 is 85 percent');
   assert.equal(by('local', 'seo_google_posts').tone, 'ok');
-  assert.equal(by('advertising', 'ads_live_campaigns').usedText, '1 of 1 campaign live');
+  assert.equal(by('advertising', 'ads_live_campaigns').usedText, '1 of 1 live now', 'a live limit reads what runs now, not a month');
   assert.equal(by('local', 'seo_review_replies').usedText, '17 of 20 review replies used');
   const g = (await (await client('bayleaf')).client.getPlan()).now;
   assert.equal(g.services.find((x) => x.id === 'social').lines[0].pct, 75);
@@ -257,4 +257,44 @@ test('a plan with no month set up is told so, and its services fall back to the 
   eq((await c.getWork()).services.map((s) => s.id), ['website', 'social']);
   eq((await c.getWork()).off, [], 'no plan, no "not in your plan" list');
   assert.equal((await c.getBilling()).plan.state, 'none');
+});
+
+test('a first month that starts later: the plan shows with the day it starts, nothing is counted, and it cannot be changed yet', async () => {
+  const D8 = load('bayleaf', { ui: true });
+  const t = D8.demoFixtures.tenants.tnt_demo_bayleaf;
+  t.plan.upcoming = { ...t.plan.now, start: '2026-11-02', end: '2026-12-02', state: 'confirmed', source: 'console', billDay: 2 };
+  t.plan.now = null;
+  t.plan.next = null;
+  const c = D8.data.connect(await D8.auth.getSession());
+  const p = await c.getPlan();
+  assert.equal(p.state, 'upcoming');
+  assert.equal(p.starts, '2026-11-02');
+  assert.equal(p.upcoming.name, 'Growth');
+  assert.equal(p.now, null);
+  assert.ok(p.upcoming.services.every((s) => s.lines.every((l) => l.used === 0)), 'nothing is counted before it starts');
+  eq((await c.getWork()).services.map((s) => s.id), ['website', 'social', 'advertising'], 'its picks are the services');
+  assert.equal((await c.getBilling()).plan.state, 'upcoming');
+  const html = D8.plan.notSetUp(p);
+  assert.match(html, /Your plan starts on Mon 2 Nov\./);
+  assert.match(html, /Growth: /);
+  assert.ok(!/not set up/.test(html), 'it never says the plan is not set up');
+  assert.match(D8.plan.notSetUp(null), /not set up yet/, 'with no month at all it still says so');
+  await assert.rejects(c.savePicks('growth', ['advertising', 'social', 'website']), (e) => /starts on Mon 2 Nov/.test(String(e && e.message)));
+});
+
+test('the bill day: the month after keeps it (31 Jan, 28 Feb, 31 Mar), and the lock and the picker use it', async () => {
+  const PM = load().planModel;
+  assert.equal(PM.billAfter('2026-01-31', 31), '2026-02-28');
+  assert.equal(PM.billAfter('2026-02-28', 31), '2026-03-31');
+  assert.equal(PM.billAfter('2026-11-30', 31), '2026-12-31');
+  assert.equal(PM.billAfter('2026-12-15', null), '2027-01-15', 'no bill day: the start\'s own day, into the next year');
+  const D8 = load('bayleaf');
+  const t = D8.demoFixtures.tenants.tnt_demo_bayleaf;
+  t.plan.now = { ...t.plan.now, start: '2026-09-30', end: '2026-10-31', billDay: 31 };
+  t.plan.next = null;
+  const c = D8.data.connect(await D8.auth.getSession());
+  const p = await c.getPlan();
+  eq(plain(p.lock), { from: '2026-10-31', to: '2026-11-29' }, 'next month ends on 30 Nov (the last day of a shorter month)');
+  const d = D8.planModel.preview(p, { planId: 'growth', picks: ['advertising', 'social', 'website'] });
+  assert.equal(d.draft.end, '2026-11-30');
 });

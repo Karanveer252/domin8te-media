@@ -202,13 +202,14 @@
   }
 
   /**
-   * One usage bar: what is used of one limit this month. Orange while there is room, amber from 85 percent, red at the
-   * limit, and the same in words. Home draws a compact row (name, figure); Work (plain) draws a sentence.
+   * One usage bar: what is used of one limit this month. Orange while there is room, amber from 85 percent, a calm ink bar
+   * saying "Limit reached" at the limit, and red saying "Over by N" only past it, and the same in words. Home draws a
+   * compact row (name, figure); Work (plain) draws a sentence.
    * @param {{name: string, used: number, cap: number, pct: number, tone: string, tail: string, usedText: string, weeklyHint?: string|null, atOnce?: boolean}} l
    * @param {{chip?: string, plain?: boolean}} [o]
    */
   function UsageBar(l, o = {}) {
-    const word = l.tone === 'full' ? 'Limit reached' : l.tone === 'warn' ? 'Almost used' : '';
+    const word = l.tone === 'over' ? `Over by ${l.used - l.cap}` : l.tone === 'full' ? 'Limit reached' : l.tone === 'warn' ? 'Almost used' : '';
     const m = /^(\d+ of \d+)(.*)$/.exec(l.usedText);
     const sentence = m ? `<strong>${esc(m[1])}</strong>${esc(m[2])}${l.atOnce ? '' : ' this month'}${l.weeklyHint ? ` <span class="usage-hint">(${esc(l.weeklyHint)})</span>` : ''}` : esc(l.usedText);
     const head = o.plain

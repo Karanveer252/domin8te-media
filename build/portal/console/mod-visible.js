@@ -110,10 +110,11 @@
       try { const r = await q; if (r && r.error) { errors.push(label); return []; } return (r && r.data) || []; } catch (e) { errors.push(label); return []; }
     };
     const [items, invoices, tasks, sections, history, staff, exceptions] = await Promise.all([
-      rd('results and updates', client.from('client_dashboard_items').select('*').eq('tenant_id', id)),
-      rd('invoices', client.from('client_billing_invoices').select('*').eq('tenant_id', id)),
+      // Whole rows (who published, hid or saved them, and why) through the staff list functions: a client cannot read those columns (20261014130000).
+      rd('results and updates', C.staffRows('list_dashboard_items', { p_tenant: id }, (/** @type {any} */ k) => k.from('client_dashboard_items').select('*').eq('tenant_id', id))),
+      rd('invoices', C.staffRows('list_billing_invoices', { p_tenant: id }, (/** @type {any} */ k) => k.from('client_billing_invoices').select('*').eq('tenant_id', id))),
       rd('work cards', client.from('tasks').select('*').eq('tenant_id', id)),
-      rd('Home sections', client.from('client_home_sections').select('*').eq('tenant_id', id)),
+      rd('Home sections', C.staffRows('list_home_sections', { p_tenant: id }, (/** @type {any} */ k) => k.from('client_home_sections').select('*').eq('tenant_id', id))),
       rd('history', client.from('client_visibility_history').select('*').eq('tenant_id', id).order('at', { ascending: false }).limit(150)),
       rd('team names', client.from('staff').select('clerk_user_id, name')),
       rd('open problems', client.from('dashboard_exceptions').select('*').eq('tenant_id', id).eq('status', 'open'))
@@ -491,7 +492,7 @@
         for (const list of [C.current && C.current.tasks, C.all && C.all.tasks]) { const k = (list || []).find(mine); if (k) { k.client_visible = visible; k.visibility_decided_at = new Date().toISOString(); k.visibility_decided_by = C.me && C.me.userId; } }
       } else if (row.type === 'home') {
         const visible = mode === 'show';
-        ok(await client2.from('client_home_sections').update(visible ? { client_visible: true } : { client_visible: false, hidden_reason: reason }).eq('id', src.id).select('*').single());
+        ok(await client2.from('client_home_sections').update(visible ? { client_visible: true } : { client_visible: false, hidden_reason: reason }).eq('id', src.id).select('id').single());
         said = visible ? 'Shown. It is on their Home page now.' : 'Hidden. It leaves their Home page on their next load. The history keeps it.';
       } else if (row.type === 'invoice') {
         if (mode === 'show') {

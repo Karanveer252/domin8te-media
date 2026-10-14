@@ -1,0 +1,44 @@
+/*
+ * Phone tap targets (2026-10-14): at 600px and under every button, tab, filter chip, switch, summary row and icon button is at
+ * least 44px tall, and inline links get a padded hit area that does not change how their words look. Desktop sizes are untouched.
+ */
+@media (max-width: 600px) {
+  /* buttons and pills */
+  .btn, .btn-sm, .btn-quiet, .btn-danger, .cv-reload { min-height: 44px; }
+  .icon-btn, .icon-btn.icon-btn-sm, .row .icon-btn { width: 44px; height: 44px; }
+  .tabs a, .seg a, .seg button, .cv-bar .seg button, .req-status button, .seg.role-seg button, .set-index button, .wk-chip, .wk-pill, .wk-switch, .nc-pill { min-height: 44px; }
+  /* the sign-off level radios (Setup): the whole label is the control */
+  .seg-set label:has(> input[type="radio"]) { min-height: 44px; display: inline-flex; align-items: center; }
+  .brand { min-height: 44px; }
+  .side-h a, .side-hint button { min-height: 44px; }
+  .side-hint .side-help { width: 44px; height: 44px; margin: -12px 0 -12px -8px; border-radius: 50%; }
+  .side-h a { padding: 12px 0; margin: -12px 0; }
+  /* fields */
+  main input:not([type="checkbox"]):not([type="radio"]), main select, .row input, .row select, .req-select { min-height: 44px; }
+  .cc-btn { min-width: 44px; height: 44px; }
+  .cc-sw { width: 44px; height: 44px; padding: 6px; }
+  /* the client's name on a limits card is a filter button: a taller hit box, the same place on the card */
+  button.wk-strip-name { min-height: 44px; margin: -9px -7px; padding: 9px 7px; }
+  /* sort buttons in table heads: a taller box without a taller head */
+  table.grid th button { min-height: 44px; margin: -12px 0; }
+  /* the "Client sees" switch on Visible: the same track and knob, drawn inside a 44px tall button */
+  .vz-sw { height: 44px; background: none; }
+  .vz-sw::before { content: ""; position: absolute; inset: 8px 0; border-radius: 999px; background: #8A8176; transition: background 160ms var(--ease); }
+  .vz-sw[aria-checked="true"] { background: none; }
+  .vz-sw[aria-checked="true"]::before { background: var(--good); }
+  .vz-knob { top: 11px; }
+  /* the drawer's and Add client's switches: the invisible box over the track grows to 44px, the track stays 26px */
+  .bd-switch input, .nc-switch input { top: 50%; height: 44px; translate: 0 -50%; }
+  /* folds: the summary line is a 44px row */
+  main details > summary { min-height: 44px; }
+  .q-more > summary, .fold-more > summary, .fold-raw > summary, .fold-details > summary, .dm-ids > summary, .about > summary, .bd-limits > summary { display: inline-flex; align-items: center; gap: 4px; }
+  .wk-more > summary, .wk-rest > summary { min-height: 44px; }
+  /* inline links and text buttons keep their look; the hit area grows above and below the words */
+  .linkish { padding-top: 13px; padding-bottom: 13px; margin-top: -13px; margin-bottom: -13px; }
+  .crumb { min-height: 44px; margin-top: -12px; margin-bottom: -4px; }
+  main .meta > a, .nx-who a, .convo-head h2 a, a.bl-more, a.row-link, .q-client-h a:not(.bot-all), .summary-jump, main p > a:not(.btn):not(.chip):not(.icon-btn), main li > a:not(.btn):not(.chip):not(.icon-btn), main dd > a, main td a:not(.btn):not(.chip), .msg a:not(.btn), .item-card a:not(.btn):not(.chip), .wk-flag a { padding-top: 14px; padding-bottom: 14px; }
+  .bot-needs .bot-all { min-height: 44px; }
+  a.chip, button.cc-badge { position: relative; }
+  a.chip::after, button.cc-badge::after { content: ""; position: absolute; inset: -8px 0; }
+  button.cc-badge::after { inset: -12px -6px; }
+}

@@ -133,6 +133,23 @@ test('the bills table: one state for each bill, and a link to Stripe only when s
   assert.match(demo.plan.bills([], m), /No bills yet/);
 });
 
+test('Coming up: "We email you on" names only reminder dates still ahead, and only when there is an address', async () => {
+  const { client: c } = await client('bayleaf');
+  const m = plain(await c.getPlan());
+  const ui = load('bayleaf', { ui: true });
+  const open = JSON.parse(JSON.stringify(m));
+  open.open = true;
+  open.reminders = [{ kind: 'd7', date: '2026-10-15', past: false }, { kind: 'd3', date: '2026-10-19', past: false }];
+  assert.match(text(ui.plan.comingUp(open, '', 'sam@example.com')), /We email you on .* and /, 'both dates ahead');
+  assert.doesNotMatch(text(ui.plan.comingUp(open, '', '')), /We email you/, 'no address: no promise');
+  assert.doesNotMatch(text(ui.plan.comingUp(open)), /We email you/, 'no address at all: no promise');
+  open.reminders[0].past = true;
+  const one = text(ui.plan.comingUp(open, '', 'sam@example.com'));
+  assert.match(one, /We email you on [A-Za-z]+ 19 Oct\./, 'the 7 day date has passed: only the 3 day date is named');
+  open.reminders[1].past = true;
+  assert.doesNotMatch(text(ui.plan.comingUp(open, '', 'sam@example.com')), /We email you/, 'both passed: the line is dropped');
+});
+
 test('the picker: plans and services as cards, Domin8te a plain choice (Ads plus three), "Locked right now" when an owner locked it', async () => {
   const { client: c } = await client('bayleaf');
   const m = plain(await c.getPlan());
@@ -140,8 +157,9 @@ test('the picker: plans and services as cards, Domin8te a plain choice (Ads plus
   const h = ui.plan.picker(m);
   const t = text(h);
   assert.match(t, /Step 1\. Choose a plan/);
-  assert.match(t, /Step 2\. Pick 2 more services/);
-  assert.match(t, /3 of 3 picked/, 'Ads plus two picks');
+  assert.match(t, /Step 2\. Choose 2 services/);
+  assert.match(t, /2 of 2 picked/, 'only the picks are counted: Ads is shown as Included');
+  assert.match(t, /Included/, 'Ads is a plain Included row');
   for (const id of ['starter', 'growth', 'domin8te']) assert.ok(h.indexOf(`data-plan="${id}"`) > -1 && h.indexOf(`value="${id}"`) > -1, `${id} is a choice`);
   assert.doesNotMatch(h, /Ask Karan/, 'Domin8te is no longer set up by asking Karan');
   assert.match(t, /Ads, plus one service you choose/);
@@ -150,8 +168,10 @@ test('the picker: plans and services as cards, Domin8te a plain choice (Ads plus
   assert.doesNotMatch(t, /Every service|set up with Karan/);
   assert.doesNotMatch(h, /<input class="pk-input" type="radio" name="plan" value="domin8te"[^>]*disabled/, 'open: Domin8te can be chosen');
   assert.match(t, /Confirm: keep Growth/);
+  assert.doesNotMatch(t, /Keep my current plan/, 'nothing changes: one button, not two');
   assert.match(t, /Locks your services for/);
-  assert.match(t, /\$0/, 'nothing is charged today');
+  assert.match(t, /Nothing today/, 'nothing is charged today');
+  assert.doesNotMatch(t, /\$0/, 'no $0 in the price slot');
   assert.doesNotMatch(t, /\$\s?[1-9]/, 'the demo shows no price');
   assert.doesNotMatch(t, /Locked right now|Taken right now/, 'open by default: no lock, no Taken');
   // The Domin8te places are all held (a client limit, if one is ever switched on): the card says Taken, cannot be chosen, never says who.
@@ -179,13 +199,13 @@ test('the picker: plans and services as cards, Domin8te a plain choice (Ads plus
   dom.now.picks = ['advertising', 'social', 'website', 'local'];
   dom.next = null;
   const dh = ui.plan.picker(dom);
-  assert.match(text(dh), /Step 2\. Pick 3 more services/);
-  assert.match(text(dh), /4 of 4 picked/);
+  assert.match(text(dh), /Step 2\. Choose 3 services/);
+  assert.match(text(dh), /3 of 3 picked/);
   assert.match(text(dh), /Confirm: keep Domin8te/);
   // A month from before the Ads-plus rules (every service) is trimmed to Ads and the first three picks, never left invalid.
   const old = JSON.parse(JSON.stringify(dom));
   old.now.picks = ['advertising', 'social', 'website', 'local', 'email'];
-  assert.match(text(ui.plan.picker(old)), /4 of 4 picked/);
+  assert.match(text(ui.plan.picker(old)), /3 of 3 picked/);
   // Starter picks its website time too: a page or edits.
   const starter = JSON.parse(JSON.stringify(m));
   starter.now.planId = 'starter';

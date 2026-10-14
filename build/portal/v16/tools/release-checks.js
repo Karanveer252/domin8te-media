@@ -2,7 +2,7 @@
 /*
  * The public-safety searches for the plan release (2026-10-13), as one command. They look at the built pages that would go
  * on the public site (the demo dashboard and the demo console), at the source, and for secrets.
- *   T10a  no plan price in the demo dashboard or the demo console
+ *   T10a  no plan price in the demo dashboard or the demo console (also not as the raw numbers 99900, 199900, 349900)
  *   T10b  no long dash (U+2014) in the portal source, the console source, the reminder emails or the built pages
  *   T10c  no Hermes word anywhere in the client's dashboard (live or demo)
  *   T11   no secret-looking key anywhere in the portal folder (public values only)
@@ -18,6 +18,10 @@ const arg = (k) => { const a = process.argv.find((x) => x.startsWith('--' + k + 
 const STAGED = arg('staged') ? path.resolve(arg('staged')) : path.join(PORTAL, 'versions', 'staging');
 
 const PRICE = /\$999|\$1,999|\$3,499|999\.00|1999\.00|3499\.00|\$1,000|\$2,000|\$3,500/;
+// The built demo pages must not hold the prices as raw numbers either (minor units, as the stand-ins and the database keep them),
+// 2026-10-14; build-console.js --demo-site takes them out. The pictures (data: addresses) are left out of the search.
+const PRICE_RAW = /\b(99900|199900|349900)\b|\$\s?(999|1,999|3,499)\b/;
+const noPictures = (/** @type {string} */ line) => line.replace(/data:[a-z]+\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+/gi, '');
 const DASH = /—/;
 const SECRET = /(sk_live|sk_test|whsec_|re_[A-Za-z0-9]{10,})/;
 // Text from before this release that names key shapes without holding a key: fake keys in the Stripe unit tests, the setup notes, the old logs.
@@ -35,7 +39,7 @@ function walk(dir, want) {
   }
   return out;
 }
-/** @param {string[]} files @param {RegExp} re @returns {string[]} */
+/** @param {string[]} files @param {{ test: (line: string) => boolean }} re @returns {string[]} */
 function hits(files, re) {
   const out = [];
   for (const f of files) {
@@ -57,6 +61,7 @@ const livePage = path.join(STAGED, 'dashboard', 'index.html');
 if (!demoPages.length) console.log(`note: nothing staged in ${path.relative(PORTAL, STAGED)} yet (node tools/make-staging.js), so the built pages were not searched.`);
 
 report('T10a no plan price in the demo dashboard or the demo console', hits(demoPages, PRICE));
+report('T10a no plan price as a raw number (99900, 199900, 349900) or $999 form in the demo dashboard or the demo console', hits(demoPages, { test: (line) => PRICE_RAW.test(noPictures(line)) }));
 const sources = [
   ...walk(path.join(PORTAL, 'v16', 'src'), (f) => /\.(js|css|html)$/.test(f)),
   ...walk(path.join(PORTAL, 'console'), (f) => /\.(js|css|html)$/.test(f)),

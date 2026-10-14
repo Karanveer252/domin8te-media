@@ -42,6 +42,9 @@ html[data-variant="18h"][data-scene="scenes"] {
   --p-env-dark: #B2C1C6;
   --p-env-veil: rgba(246, 242, 236, 0);
 }
+/* Green words (Verified, Paid, Up 24%, Connected) sit on tinted glass over a light sky in the light theme: one step darker than
+   the plain green so they pass 4.5:1 there too (2026-10-14). The dark theme keeps its own green. */
+html[data-variant="18h"][data-scene="scenes"]:not([data-theme="dark"]) { --p-success: #1F5A31; }
 html[data-variant="18h"][data-scene="scenes"][data-theme="dark"] {
   --p-bg: #0E0F18;
   --p-env-light: #764560;

@@ -23,6 +23,10 @@
   const RANK = /** @type {Record<string, number>} */ ({ in_progress: 0, in_review: 1, blocked: 2, todo: 3 });
   /** The limit each service's work counts against when the card does not say. */
   const DEFAULT_METRIC = /** @type {Record<string, string>} */ ({ social: 'social_posts', advertising: 'ads_new_creatives', website: 'web_edits', local: 'seo_jobs', email: 'email_campaigns' });
+  /** "Live at a time" limits (app.is_snapshot_metric, 20261014110100): a row says how many are live now; it is not added to the others and carries into the next month. */
+  const LIVE = new Set(['ads_live_campaigns', 'ads_platforms']);
+  /** The usage columns staff read (the notes and who-did-it columns are not readable through the API: 20261014110000). */
+  const USAGE_COLS = 'id, tenant_id, cycle_id, service, metric, qty, counted, task_id, request_id, over_cap_approved_at, created_at, voided_at';
   /** A limit's name on a usage bar. */
   const NAME = /** @type {Record<string, string>} */ ({
     social_posts: 'Social posts', social_reels: 'Reels', social_stories: 'Stories', ads_live_campaigns: 'Live campaigns', ads_new_creatives: 'New ad designs', ads_platforms: 'Ad platforms',
@@ -51,6 +55,8 @@
   const barName = (l) => NAME[l.metric] || cap1(l.label);
   /** Where a card lands: "Post 10 of 12", or "Would be posts 9 to 11 of 8" for several. @param {any} line @param {number} from @param {number} to */
   const landWords = (line, from, to) => (from === to ? `${cap1(singular(line.label))} ${to} of ${line.cap}` : `Would be ${lower(line.label)} ${from} to ${to} of ${line.cap}`);
+  /** A live limit after a count: "Live campaigns 2 of 3 now". @param {any} line @param {number} n */
+  const liveWords = (line, n) => `${barName(line)} ${n} of ${line.cap} now`;
 
   /* ---- reading what is used --------------------------------------------------------------------------------------------- */
 
@@ -74,7 +80,7 @@
       if (!ids.length) { store.usage = []; store.loadedAt = Date.now(); return; }
       try {
         const db = await c.db();
-        const res = await db.from('usage_events').select('*').in('cycle_id', ids).is('voided_at', null);
+        const res = await db.from('usage_events').select(USAGE_COLS).in('cycle_id', ids).is('voided_at', null);
         if (res.error) throw res.error;
         store.usage = res.data || [];
       } catch (e) { store.failed = String((e && /** @type {any} */ (e).message) || e); }
@@ -141,7 +147,7 @@
         for (const u of sameLimit) { to += Number(u.qty); if (u.id === first.id) break; }
         const qty = Number(first.qty);
         out.set(t.id, { kind: 'counted', over: false, line, from: to - qty + 1, to, qty, rows: mine, oneOff: !!first.over_cap_approved_at,
-          text: line ? `${landWords(line, to - qty + 1, to)}${first.over_cap_approved_at ? ', one-off approved' : ''}` : 'Counted this month' });
+          text: line ? `${LIVE.has(line.metric) ? liveWords(line, qty) : landWords(line, to - qty + 1, to)}${first.over_cap_approved_at ? ', one-off approved' : ''}` : 'Counted this month' });
         continue;
       }
       if (!live || !t.service) continue;
@@ -200,11 +206,12 @@
     // the client's colour (mod-color.js): a left edge on the card, and the name as a tinted pill with a dot
     const K = EXT.color;
     const tint = K ? K.cls(t.tenant_id) : '';
-    const owner = tint ? C().tenant(t.tenant_id) : null;
     const over = !!(i && i.over && OPEN.includes(t.status));
     const svc = t.service ? C().svcLabel(t.service) : '';
     const tag = svc ? `<span class="wk-tag" title="${E(svc)}">${E(svc)}</span>` : '<span class="wk-tag is-plain">General</span>';
-    const who = tint ? K.pill(t.tenant_id, client || (owner ? owner.name : '')) : client ? `<span class="wk-client">${E(client)}</span>` : '';
+    // All work: the client's tag badge (neutral without a colour) and name; the badge spotlights the client. On the client's own Work tab the board
+    // shows one client only, so the badge and name are not repeated on every card (2026-10-14).
+    const who = client ? (K ? K.who(t.tenant_id, client, true) : `<span class="wk-client">${E(client)}</span>`) : '';
     const head = `<p class="card-client wk-who">${who}${tag}</p>`;
     let land = '';
     if (i && i.kind === 'counted') land = `<p class="wk-land is-done" title="Counted against ${E(i.line ? lower(i.line.label) : 'a limit')} this month">${E(i.text)}</p>`;
@@ -304,8 +311,8 @@
         <div class="wk-box">
           <label class="wk-opt"><input type="radio" name="how" value="count" checked><span><span class="pick-t">${noPlan ? 'A counted job' : 'Count it against a limit'}</span><span class="pick-d">${noPlan ? `${E(svc)} is not in this month’s plan, so counting it needs your OK first.` : 'It uses some of this month’s allowance.'}</span></span></label>
           ${noPlan ? '' : `<div class="wk-fields">
-            <div class="field"><label for="wk-metric">What it counts as</label><select id="wk-metric" name="metric">${lines.map((/** @type {any} */ l) => `<option value="${E(l.metric)}"${guess && l.metric === guess.metric ? ' selected' : ''}>${E(barName(l))} (${l.used} of ${l.cap} used)</option>`).join('')}</select></div>
-            <div class="field wk-qty"><label for="wk-qty">How many</label><input id="wk-qty" type="number" name="qty" min="1" max="100" value="${qty}" inputmode="numeric"></div>
+            <div class="field"><label for="wk-metric">What it counts as</label><select id="wk-metric" name="metric">${lines.map((/** @type {any} */ l) => `<option value="${E(l.metric)}"${guess && l.metric === guess.metric ? ' selected' : ''}>${E(barName(l))} (${l.used} of ${l.cap} ${LIVE.has(l.metric) ? 'live now' : 'used'})</option>`).join('')}</select></div>
+            <div class="field wk-qty"><label for="wk-qty">${guess && LIVE.has(guess.metric) ? 'Live now, after this' : 'How many'}</label><input id="wk-qty" type="number" name="qty" min="${guess && LIVE.has(guess.metric) ? 0 : 1}" max="100" value="${guess && LIVE.has(guess.metric) ? Math.min(100, guess.used + qty) : qty}" inputmode="numeric"></div>
             <p class="wk-lands" data-lands aria-live="polite"></p>
           </div>`}
         </div>
@@ -326,8 +333,22 @@
         let over = noPlan && counted;
         if (land && counted) {
           const line = lines.find((/** @type {any} */ l) => l.metric === /** @type {any} */ (f.elements.namedItem('metric')).value);
-          const n = Math.max(1, Math.min(100, Math.floor(Number(/** @type {any} */ (f.elements.namedItem('qty')).value)) || 1));
-          if (line) {
+          const live = !!(line && LIVE.has(line.metric));
+          const box = /** @type {any} */ (f.elements.namedItem('qty'));
+          // a live limit asks how many are live once this is done (0 to 100, it replaces the count), any other how many this adds
+          if (live !== (box.dataset.live === '1')) {
+            box.dataset.live = live ? '1' : '';
+            box.min = live ? '0' : '1';
+            box.value = String(live && line ? Math.min(100, line.used + qty) : qty);
+            const lab = f.querySelector('label[for="wk-qty"]');
+            if (lab) lab.textContent = live ? 'Live now, after this' : 'How many';
+          }
+          const n = Math.max(live ? 0 : 1, Math.min(100, Math.floor(Number(box.value)) || 0));
+          if (line && live) {
+            over = n > line.cap;
+            land.className = `wk-lands${over ? ' is-over' : ''}`;
+            land.textContent = over ? `${liveWords(line, n)}. That is ${n - line.cap} over, so it goes to Needs you first and the card stays where it is.` : `Sets ${lower(barName(line))} to ${n} of ${line.cap} now.`;
+          } else if (line) {
             const to = line.used + n;
             over = to > line.cap;
             land.className = `wk-lands${over ? ' is-over' : ''}`;
@@ -345,7 +366,8 @@
         if (how() === 'urgent') { close({ how: 'urgent', note }); return; }
         if (noPlan) { close({ how: 'ask', note }); return; }
         const n = Math.floor(Number(/** @type {any} */ (f.elements.namedItem('qty')).value));
-        if (!(n >= 1 && n <= 100)) { /** @type {any} */ (f.elements.namedItem('qty')).focus(); C().toast('How many: a whole number from 1 to 100.', true); return; }
+        const least = /** @type {any} */ (f.elements.namedItem('qty')).dataset.live === '1' ? 0 : 1;
+        if (!(n >= least && n <= 100)) { /** @type {any} */ (f.elements.namedItem('qty')).focus(); C().toast(`How many: a whole number from ${least} to 100.`, true); return; }
         close({ how: 'count', metric: /** @type {any} */ (f.elements.namedItem('metric')).value, qty: n, note });
       });
       /** @type {HTMLElement} */ (f.querySelector('[data-wk-cancel]')).addEventListener('click', () => close(null));
@@ -407,8 +429,20 @@
     const c = C();
     const u = (c.plans.usage || []).find((/** @type {any} */ x) => x.cycle_id === row.cycle_id && x.service === row.service && x.metric === row.metric);
     if (!u || !row.counted) return;
+    // a live limit is its newest count (voiding one is read back from the database by liveAgain: the one before may be from last month)
+    if (LIVE.has(row.metric)) { if (sign > 0) u.used = Number(row.qty); return; }
     if (store.failed) { u.used = Math.max(0, Number(u.used) + sign * Number(row.qty)); return; }
     u.used = store.usage.filter((/** @type {any} */ x) => x.counted && !x.voided_at && x.cycle_id === row.cycle_id && x.service === row.service && x.metric === row.metric).reduce((/** @type {number} */ n, /** @type {any} */ x) => n + Number(x.qty), 0);
+  }
+  /** After a live count is voided: what is live now, as the database works it out (the newest count left, from any month). @param {any} db @param {any} row */
+  async function liveAgain(db, row) {
+    const u = (C().plans.usage || []).find((/** @type {any} */ x) => x.cycle_id === row.cycle_id && x.service === row.service && x.metric === row.metric);
+    if (!u) return;
+    try {
+      const res = await db.from('tenant_usage_current').select('used').eq('cycle_id', row.cycle_id).eq('service', row.service).eq('metric', row.metric).maybeSingle();
+      if (!res.error && res.data) u.used = Number(res.data.used) || 0;
+    } catch (e) { /* the next reload shows it */ }
+    forget();
   }
   /** Asks Needs you to decide (report_exception). True when it was opened now, false when one was already open. @param {any} t @param {string} reason @param {string} message @param {any} last */
   async function reportException(t, reason, message, last) {
@@ -449,7 +483,7 @@
     const db = await c.db();
     const res = await db.from('usage_events').insert({
       tenant_id: t.tenant_id, cycle_id: plan.now.id, service: t.service, metric: what.metric, qty: what.qty, counted: what.counted, task_id: t.id, request_id: t.request_id || null, note: what.note || null
-    }).select('*').single();
+    }).select(USAGE_COLS).single();
     if (!res.error) {
       const row = res.data;
       store.usage.push(row);
@@ -461,9 +495,10 @@
     if (res.error.code === '23514' && /^over_cap/.test(said)) {
       const line = plan.lines.find((/** @type {any} */ l) => l.service === t.service && l.metric === what.metric);
       if (line) {
-        const w = overWords(t, plan, line, what.qty);
+        const live = LIVE.has(line.metric);   // a live count is the new total, not an addition
+        const w = live ? overWords(t, plan, line, Math.max(1, what.qty - line.used), what.qty) : overWords(t, plan, line, what.qty);
         await reportException(t, 'over_cap', w.message, w.last);
-        c.toast(`Over the limit: ${lower(landWords(line, line.used + 1, line.used + what.qty))}. It is in Needs you now, and the card stays where it is.`, true);
+        c.toast(`Over the limit: ${lower(live ? liveWords(line, what.qty) : landWords(line, line.used + 1, line.used + what.qty))}. It is in Needs you now, and the card stays where it is.`, true);
         return { refused: true };
       }
     }
@@ -532,10 +567,11 @@
   async function voidUsage(row, reason) {
     const c = C();
     const db = await c.db();
-    const res = await db.from('usage_events').update({ voided_at: new Date().toISOString(), voided_reason: reason }).eq('id', row.id).select('*').single();
+    const res = await db.from('usage_events').update({ voided_at: new Date().toISOString(), voided_reason: reason }).eq('id', row.id).select(USAGE_COLS).single();
     ok(res);
     store.usage = store.usage.filter((/** @type {any} */ u) => u.id !== row.id);
     recount(row, -1);
+    if (LIVE.has(row.metric)) await liveAgain(db, row);
     forget();
     return true;
   }
@@ -669,7 +705,7 @@
       const taken = (c.all.tenants || []).filter((/** @type {any} */ x) => x.status !== 'archived' && (c.planOf(x.id).nowPlan || {}).id === plan.id).length;
       slot = ` · ${taken} of ${plan.max_clients}`;
     }
-    const picks = p.now ? (p.now.plan_id === 'domin8te' ? 'Every service' : (p.now.picks || []).map(shortService).join(' + ')) : '';
+    const picks = p.now ? (p.now.picks || []).map(shortService).join(' + ') : '';
     const name = o.filter
       ? `<button class="wk-strip-name" type="button" data-wk-client="${E(t.id)}" aria-pressed="${o.pressed ? 'true' : 'false'}" title="Show only ${E(t.name)}">${E(t.name)}</button>`
       : '<span class="wk-strip-name">Limits this month</span>';
@@ -721,9 +757,28 @@
     // "By client": one pill for each client that has cards, with its colour dot. Only worth a row when there is more than one.
     const K = EXT.color;
     const withCards = tenants.filter((/** @type {any} */ t) => everyCard.some((/** @type {any} */ k) => k.tenant_id === t.id));
+    if (st.spot && !withCards.some((/** @type {any} */ t) => t.id === st.spot)) st.spot = '';
     const byClient = withCards.length > 1
-      ? `<div class="wk-by" role="group" aria-label="By client"><span class="wk-by-l" aria-hidden="true">By client</span><div class="wk-by-pills">${withCards.map((/** @type {any} */ t) => `<button class="wk-chip wk-pill" type="button" data-wk-client="${E(t.id)}" data-wk-pill aria-pressed="${st.client === t.id ? 'true' : 'false'}">${K ? K.dot(t.id) : ''}${E(t.name)}</button>`).join('')}</div></div>`
+      ? `<div class="wk-by" role="group" aria-label="By client: spotlight one client"><span class="wk-by-l" aria-hidden="true">By client</span><div class="wk-by-pills">${withCards.map((/** @type {any} */ t) => `<button class="wk-chip wk-pill" type="button" data-wk-spot="${E(t.id)}" data-wk-pill aria-pressed="${st.spot === t.id ? 'true' : 'false'}">${K ? K.badge(t.id) : ''}${E(t.name)}</button>`).join('')}</div></div>`
       : '';
+    const spotChip = st.spot ? `<p class="wk-spotchip" role="status"><span>Showing <strong>${E(names[st.spot] || '')}</strong></span><span aria-hidden="true">·</span><button class="linkish" type="button" data-wk-spot-clear>Clear</button></p>` : '';
+    // "Group by client" (remembered in this browser): one lane for each client with cards, the usual columns inside each
+    if (st.group === undefined) { try { st.group = localStorage.getItem('d8c.wk.group') === '1'; } catch (e) { st.group = false; } }
+    const grouped = !!st.group;
+    const cardHtml = (/** @type {any} */ t) => o.card(t, names[t.tenant_id]);
+    const anyBlocked = shown.some((/** @type {any} */ k) => k.status === 'blocked');
+    const lane = (/** @type {any} */ t) => {
+      const mine = shown.filter((/** @type {any} */ k) => k.tenant_id === t.id);
+      if (!mine.length) return '';
+      const folded = !!(st.fold && st.fold[t.id]);
+      const plan = c.planOf(t.id).nowPlan;
+      return `<section class="wk-lane${folded ? ' is-folded' : ''}" aria-label="${E(t.name)}">
+        <h2 class="wk-lane-h"><button class="wk-lane-t" type="button" data-wk-fold="${E(t.id)}" aria-expanded="${folded ? 'false' : 'true'}" aria-controls="lane-${E(t.id)}"><span class="wk-lane-chev" aria-hidden="true"></span>${K ? K.badge(t.id) : ''}<span class="wk-lane-n">${E(t.name)}</span></button>${plan ? `<span class="chip wk-plan-s">${E(plan.name)}</span>` : ''}<span class="wk-lane-c">${c.plural(mine.length, 'card')}</span></h2>
+        <div class="wk-lane-board" id="lane-${E(t.id)}" style="--n:${anyBlocked ? 5 : 4}"${folded ? ' hidden' : ''}>${o.columns(mine, cardHtml, { doneLabel: 'Done this month', blocked: anyBlocked, noDelete: true })}</div></section>`;
+    };
+    const boardHtml = grouped
+      ? `<div class="wk-lanes" id="board">${withCards.map(lane).join('')}</div><div class="board wk-bin">${o.columns([], cardHtml, { binOnly: true })}</div>`
+      : `<div class="board" id="board">${o.columns(shown, cardHtml, { doneLabel: 'Done this month' })}</div>`;
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">All work</h1><p>Every client’s team cards on one board. Each card shows where it lands against that client’s plan limit, so nothing over the limit gets started without a decision.</p></div></div>
       ${fresh}
       ${strips.length ? `<div class="wk-strips" role="group" aria-label="Plan limits by client">${strips.slice(0, 6).map((/** @type {any} */ t) => strip(t.id, { filter: true, pressed: st.client === t.id })).join('')}</div>` : ''}
@@ -732,15 +787,57 @@
         ${chip('all', 'All clients', !st.client && !st.service && !st.over)}
         ${chip('over', 'Over limit', !!st.over, `<span class="wk-n${overN ? ' is-bad' : ''}">${overN}</span>`)}
         ${services.map((/** @type {string} */ s) => chip('service:' + s, c.svcLabel(s), st.service === s)).join('')}
-      </div>${st.client ? `<a class="btn btn-quiet btn-sm" href="#/client/${E(st.client)}/work/new">${c.icon('plus')}Add a card for ${E(names[st.client])}</a>` : ''}</div>
-      ${byClient}
+      </div><div class="wk-bar-r"><button class="wk-switch" type="button" role="switch" aria-checked="${grouped ? 'true' : 'false'}" data-wk-group><span class="wk-switch-t" aria-hidden="true"></span>Group by client</button>${st.client ? `<a class="btn btn-quiet btn-sm" href="#/client/${E(st.client)}/work/new">${c.icon('plus')}Add a card for ${E(names[st.client])}</a>` : ''}</div></div>
+      ${byClient}${spotChip}
       ${shown.length || !everyCard.length ? '' : `<p class="meta wk-empty">No cards match. <button class="linkish" type="button" data-wk-filter="all">Show everything</button></p>`}
-      <div class="board" id="board">${o.columns(shown, (/** @type {any} */ t) => o.card(t, names[t.tenant_id]), { doneLabel: 'Done this month' })}</div>
+      ${boardHtml}
       ${olderDone ? `<p class="meta wk-older">${c.plural(olderDone, 'earlier finished card is', 'earlier finished cards are')} on each client’s own Work tab.</p>` : ''}`;
     const find = (/** @type {string} */ id) => (c.all.tasks || []).find((/** @type {any} */ x) => x.id === id);
     const signal = o.wire(main, find, o.redraw);
+    // Spotlight: the clicked client's cards stay full and the rest fade (their words still read on hover and focus)
+    main.classList.toggle('has-spot', !!st.spot);
+    for (const li of main.querySelectorAll('.card[data-task]')) {
+      const t = find(li.getAttribute('data-task') || '');
+      li.classList.toggle('is-dim', !!(st.spot && t && t.tenant_id !== st.spot));
+    }
+    for (const b of main.querySelectorAll('.cc-badge[data-wk-spot]')) b.setAttribute('aria-pressed', st.spot && b.getAttribute('data-wk-spot') === st.spot ? 'true' : 'false');
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !st.spot || document.documentElement.dataset.page !== 'board' || document.querySelector('dialog[open]')) return;
+      st.spot = '';
+      st.focus = '[data-wk-filter="all"]';
+      o.redraw();
+    }, { signal });
     main.addEventListener('click', (e) => {
       const target = /** @type {HTMLElement} */ (e.target);
+      const sp = /** @type {HTMLElement|null} */ (target.closest('[data-wk-spot]'));
+      if (sp) {
+        const id = sp.getAttribute('data-wk-spot') || '';
+        const card = sp.closest('[data-task]');
+        st.spot = st.spot === id ? '' : id;
+        st.focus = card ? `[data-task="${card.getAttribute('data-task')}"] [data-wk-spot]` : `[data-wk-pill][data-wk-spot="${id}"]`;
+        o.redraw();
+        return;
+      }
+      if (target.closest('[data-wk-spot-clear]')) { st.spot = ''; st.focus = '[data-wk-filter="all"]'; o.redraw(); return; }
+      if (target.closest('[data-wk-group]')) {
+        st.group = !st.group;
+        try { localStorage.setItem('d8c.wk.group', st.group ? '1' : '0'); } catch (x) { /* a nicety */ }
+        st.focus = '[data-wk-group]';
+        o.redraw();
+        return;
+      }
+      const fold = /** @type {HTMLElement|null} */ (target.closest('[data-wk-fold]'));
+      if (fold) {
+        const id = fold.getAttribute('data-wk-fold') || '';
+        st.fold = st.fold || {};
+        st.fold[id] = !st.fold[id];
+        const lane = fold.closest('.wk-lane');
+        const body = lane && lane.querySelector('.wk-lane-board');
+        fold.setAttribute('aria-expanded', st.fold[id] ? 'false' : 'true');
+        if (lane) lane.classList.toggle('is-folded', !!st.fold[id]);
+        if (body) /** @type {HTMLElement} */ (body).hidden = !!st.fold[id];
+        return;
+      }
       const f = /** @type {HTMLElement|null} */ (target.closest('[data-wk-filter]'));
       const k = /** @type {HTMLElement|null} */ (target.closest('[data-wk-client]'));
       if (!f && !k) return;
@@ -753,7 +850,7 @@
       } else if (k) {
         const id = k.getAttribute('data-wk-client') || '';
         st.client = st.client === id ? '' : id;
-        st.focus = `${k.hasAttribute('data-wk-pill') ? '[data-wk-pill]' : ''}[data-wk-client="${id}"]`;
+        st.focus = `[data-wk-client="${id}"]`;
       }
       o.redraw();
     }, { signal });

@@ -239,6 +239,11 @@
         const next = Object.assign({}, had || {}, JSON.parse(JSON.stringify(q.payload)), { updated_at: now(), updated_by: 'user_preview_karan' });
         const CHECKS = { tier: ['bronze', 'silver', 'gold'], approval_level: ['red', 'yellow', 'green'], card_color: ['orange', 'amber', 'lime', 'green', 'teal', 'sky', 'blue', 'violet', 'pink', 'rose'] };
         for (const col of Object.keys(CHECKS)) if (next[col] != null && !CHECKS[col].includes(next[col])) throw { code: '23514', message: `new row for relation "client_profile" violates check constraint "client_profile_${col}_check"` };
+        // logo_data: a small PNG, JPEG or WebP data URL, 60000 characters at most, never SVG (23514)
+        if (next.logo_data != null && !(typeof next.logo_data === 'string' && next.logo_data.length <= 60000 && /^data:image\/(png|jpeg|webp);base64,/.test(next.logo_data))) throw { code: '23514', message: 'new row for relation "client_profile" violates check constraint "client_profile_logo_data_check"' };
+        // card_tag: 2 or 3 capital letters or digits (23514), and no two clients share a stored tag (23505, the partial unique index)
+        if (next.card_tag != null && !/^[A-Z0-9]{2,3}$/.test(next.card_tag)) throw { code: '23514', message: 'new row for relation "client_profile" violates check constraint "client_profile_card_tag_check"' };
+        if (next.card_tag != null && rows.some((r) => r !== had && r.card_tag === next.card_tag)) throw { code: '23505', message: 'duplicate key value violates unique constraint "client_profile_card_tag_key"' };
         if (had) Object.assign(had, next); else rows.push(next);
         return { data: q.one ? project(next) : [project(next)], error: null };
       }

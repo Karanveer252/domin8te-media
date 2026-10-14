@@ -90,8 +90,67 @@
     if (n < 7) return { text: new Date(date.slice(0, 10) + 'T00:00').toLocaleDateString('en-GB', { weekday: 'long' }), late: false, days: n };
     return { text: 'by ' + when(date.slice(0, 10)), late: false, days: n };
   }
+  /*
+   * The demo console is view-only (2026-10-14). build-console.js --demo-site sets D8DEMO_SITE; then every write through the database
+   * client (watchWrites), every file upload and every server function that changes something answers with this refusal, and the
+   * page says the demo note instead of "Saved" or "Sent". Write controls are also switched off where they are drawn (demoLock).
+   */
+  const DEMO_SITE = !!(/** @type {any} */ (window).D8DEMO_SITE);
+  const DEMO_NOTE = 'This is a demo. Nothing is saved or sent.';
+  let demoSaidAt = 0;
+  let demoSaying = false;
+  /**
+   * What a refused write answers: a query-like object (chainable, and awaiting it gives { data: null, error }). Says the demo
+   * note, unless quiet. @param {boolean} [quiet] @returns {any}
+   */
+  function demoRefused(quiet) {
+    if (!quiet) { const say = Date.now() - demoSaidAt > 1500; demoSaidAt = Date.now(); if (say) { demoSaying = true; try { toast(DEMO_NOTE); } finally { demoSaying = false; } } }
+    const answer = { data: null, count: null, status: 403, statusText: 'demo', error: { code: 'demo-readonly', message: DEMO_NOTE, details: null, hint: null } };
+    /** @type {any} */ const q = new Proxy(function () { /* a stand-in query */ }, {
+      get(_t, k) {
+        if (k === 'then') return (/** @type {any} */ res, /** @type {any} */ rej) => Promise.resolve(answer).then(res, rej);
+        if (k === 'catch' || k === 'finally') { const p = Promise.resolve(answer); return p[k].bind(p); }
+        return () => q;
+      },
+      apply() { return q; }
+    });
+    return q;
+  }
+  /** A refused server function in the demo: says the note and throws it. */
+  function demoThrow() {
+    demoRefused();
+    throw Object.assign(new Error(DEMO_NOTE), { code: 'demo-readonly' });
+  }
+  /** The buttons that would change something, by their words (the demo switches them off). */
+  const DEMO_WRITE_WORDS = /^(Save|Approve|Decline|Reject|Send|Respond|Remove|Hide|Show again|Show it and approve|Show to client|Mark|Publish|Unlink|Link|Lock|Unlock|Give them a login|Add this login|Add the|Add to|Create in Stripe|Count it|Void|Move to Done|Post the update|Record the check|Put (it|them) back|Use this text|Use the time now|Edit, then approve|With my edits|Ask for an|Upload logo|Replace logo|Keep the card|Keep it|Keep hidden|Keep client value|Use console value|Confirm|Count as|Fix email|Move to|Verify and publish|Suggest|Use the automatic tag|Start fresh|Decide|Set address|Undo$)|\((ours|Multica's)\)$/;
+  /**
+   * The demo console shows its write controls switched off (2026-10-14): the reply boxes and every button that would save, send or
+   * approve, each with the demo note as its tooltip. The refusal in watchWrites stays the real guard; this is so nobody is invited to try.
+   * Confirm dialogs are left alone (what opens them is off already, and their Cancel must work).
+   */
+  function demoLock() {
+    for (const el of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('button:not([disabled]), textarea:not([disabled])'))) {
+      if (el.closest('dialog, #toasts, nav, .side')) continue;
+      const ta = el.tagName === 'TEXTAREA';
+      const words = ta ? '' : String(el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (ta ? !el.closest('form') : !DEMO_WRITE_WORDS.test(words) && !el.hasAttribute('data-team-role')) continue;
+      /** @type {HTMLButtonElement} */ (el).disabled = true;
+      el.title = DEMO_NOTE;
+      if (ta && !/** @type {HTMLTextAreaElement} */ (el).value) /** @type {HTMLTextAreaElement} */ (el).placeholder = 'Sample data. This is a demo, so nothing is sent.';
+    }
+  }
+  if (DEMO_SITE) {
+    let demoQueued = false;
+    const start = () => {
+      demoLock();
+      new MutationObserver(() => { if (!demoQueued) { demoQueued = true; queueMicrotask(() => { demoQueued = false; demoLock(); }); } }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });
+    };
+    if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+  }
   /** @param {string} text @param {boolean} [bad] */
   function toast(text, bad) {
+    // The demo console (2026-10-14): right after a refused write, the demo note has said why, so no "Saved" or error words follow it.
+    if (DEMO_SITE && !demoSaying && Date.now() - demoSaidAt < 4000) return;
     const box = /** @type {HTMLElement} */ (document.getElementById('toasts'));
     const t = document.createElement('div');
     t.className = 'toast' + (bad ? ' bad' : '');
@@ -210,6 +269,18 @@
     return sb;
   }
   /**
+   * Whole rows of a table whose staff-only columns (who published, hid or verified, a hide reason, a version waiting for review)
+   * a client may not read (20261014130000): staff read them through a list_* function, answered as a table read would be.
+   * Until that migration is in (the function is missing), the old table read stands. @param {string} fn @param {any} args
+   * @param {(client: any) => any} old the table read it replaces @returns {Promise<any>}
+   */
+  async function staffRows(fn, args, old) {
+    const c = await db();
+    const r = await c.rpc(fn, args || {});
+    if (r && r.error && /PGRST202|42883|could not find the function/i.test(`${r.error.code || ''} ${r.error.message || ''}`)) return old(c);
+    return r;
+  }
+  /**
    * Tells the Client view tab (mod-clientview.js) after every write this console makes, so the client's dashboard in its frame
    * redraws at once (2026-10-14). The one place for it: the database client is wrapped here, so every part of the console is
    * covered (insert, update, upsert, delete, and every rpc that is not a plain read). A failed write tells nobody. Reads and the
@@ -238,12 +309,14 @@
     const WRITE = { insert: 1, update: 1, upsert: 1, delete: 1 };
     client.from = (/** @type {string} */ table) => {
       const b = ofrom(table);
-      if (table === 'user_prefs') return b;
+      if (table === 'user_prefs' && !DEMO_SITE) return b;
       return new Proxy(b, {
         get(t, k) {
           const v = t[k];
           if (typeof v !== 'function') return v;
           if (typeof k === 'string' && Object.prototype.hasOwnProperty.call(WRITE, k)) {
+            // The demo console is view-only: every write answers with the demo's refusal (the look stays on this computer, quietly).
+            if (DEMO_SITE) return () => demoRefused(table === 'user_prefs');
             return (/** @type {any[]} */ ...a) => {
               const row = Array.isArray(a[0]) ? a[0][0] : a[0];
               const tenant = table === 'tenants' ? (row && row.id) || null : (row && row.tenant_id) || null;
@@ -256,10 +329,21 @@
     };
     const READS = /^(console_me|client_work_cards|client_results_current|plan_menu|get_|list_|search_)/;
     client.rpc = (/** @type {string} */ name, /** @type {any} */ args, /** @type {any} */ opts) => {
+      if (DEMO_SITE && !READS.test(String(name))) return demoRefused();
       const r = orpc(name, args, opts);
       if (READS.test(String(name))) return r;
       return guard(r, (args && (args.p_tenant || args.p_tenant_id || args.tenant_id)) || null);
     };
+    // File uploads (proof files) are writes too: the demo refuses them the same way.
+    if (DEMO_SITE && client.storage && typeof client.storage.from === 'function') {
+      const st = client.storage;   // kept as one object (the library's storage can be a getter that makes a new one each time)
+      const ostorage = st.from.bind(st);
+      const FILE_WRITE = /^(upload|update|remove|move|copy|uploadToSignedUrl|createSignedUploadUrl)$/;
+      st.from = (/** @type {string} */ bucket) => new Proxy(ostorage(bucket), {
+        get(t, k) { const v = t[k]; if (typeof v !== 'function') return v; return typeof k === 'string' && FILE_WRITE.test(k) ? () => demoRefused() : v.bind(t); }
+      });
+      Object.defineProperty(client, 'storage', { configurable: true, get: () => st });
+    }
     client.__d8watch = true;
     return client;
   }
@@ -295,6 +379,23 @@
   /** The client whose logins were just added to: the main contact is checked against the logins once, on the redraw after. */
   let followFor = '';
   /** Loads every client, request, message and decision in one go. @param {number} [retries] reloads left if one of our own writes landed meanwhile */
+  /** Client logos (client_profile.logo_data) kept between reloads: tenant id to { at: the row's updated_at, data }. @type {Map<string, {at: string, data: string|null}>} */
+  const logoCache = new Map();
+  /**
+   * Puts each profile's logo on it. A logo is read from the database only for a row that is new or changed since it was last read
+   * (its updated_at moved; the table's trigger sets it on every save), so a reload costs nothing for logos that stayed the same.
+   * A failed read leaves the logos that are known (a badge then shows the tag). @param {any} client @param {any[]} rows
+   */
+  async function withLogos(client, rows) {
+    const stale = rows.filter((x) => { const k = logoCache.get(x.tenant_id); return !k || k.at !== String(x.updated_at || ''); }).map((x) => x.tenant_id);
+    if (stale.length) {
+      try {
+        const res = await client.from('client_profile').select('tenant_id, logo_data, updated_at').in('tenant_id', stale);
+        if (!res.error) for (const x of res.data || []) logoCache.set(x.tenant_id, { at: String(x.updated_at || ''), data: x.logo_data || null });
+      } catch (e) { /* the badges show the tags until the next reload */ }
+    }
+    return rows.map((x) => { const k = logoCache.get(x.tenant_id); return { ...x, logo_data: k ? k.data : null }; });
+  }
   async function loadAll(retries = 2) {
     const w = writes;
     const client = await db();
@@ -305,7 +406,8 @@
       client.from('messages').select('id, tenant_id, about, body, from_staff, by_name, at').order('at', { ascending: false }).limit(1000),
       client.from('decisions').select('tenant_id, approval_id, decision, comment, by_name, at').order('at', { ascending: false }).limit(1000),
       client.from('tasks').select('*').is('deleted_at', null).order('position'),
-      client.from('client_profile').select('*'),
+      // Every column but the logo (up to 60 KB each): logos come once and are kept (withLogos), so a reload does not fetch them all again.
+      client.from('client_profile').select('tenant_id, tier, approval_level, card_color, card_tag, updated_at, updated_by'),
       client.from('login_requests').select('*').eq('status', 'pending').order('at')
     ]);
     const next = {
@@ -314,7 +416,7 @@
       messages: (check(m) || []).slice().reverse(),
       decisions: (check(d) || []).slice().reverse(),
       tasks: check(k) || [],
-      profiles: Object.fromEntries((check(pf) || []).map((/** @type {any} */ x) => [x.tenant_id, x])),
+      profiles: Object.fromEntries((await withLogos(client, check(pf) || [])).map((/** @type {any} */ x) => [x.tenant_id, x])),
       // A table added later: if it is not there yet, the console carries on without it.
       loginAsks: la && !la.error ? la.data || [] : [],
       reviews: all && all.reviews,
@@ -457,18 +559,20 @@
     /** @param {any} q */
     const rd = async (q) => { try { const r = await q; return r && !r.error ? r.data || [] : []; } catch (e) { return []; } };
     const [plans, caps, services, cycles, usage, reminders, home] = await Promise.all([
-      rd(c.from('plans').select('*').order('sort')),
-      rd(c.from('plan_caps').select('*')),
+      // Plans, limits and Home sections: whole rows (who edited them too) through the staff list functions (20261014130000).
+      rd(staffRows('list_plans', {}, (k) => k.from('plans').select('*').order('sort'))),
+      rd(staffRows('list_plan_caps', {}, (k) => k.from('plan_caps').select('*'))),
       rd(c.from('service_catalog').select('*').order('sort')),
-      rd(c.from('tenant_plan_cycles').select('*').order('period_start')),
+      // The safe columns by name: the staff-only notes and ids are not readable through the API (20261014110000); the history comes from audit_log.
+      rd(c.from('tenant_plan_cycles').select('id, tenant_id, period_start, period_end, bill_day, plan_id, picks, website_option, state, confirmed_at, locked_at, source, created_at, updated_at').order('period_start')),
       rd(c.from('tenant_usage_current').select('*')),
       rd(c.from('billing_reminders').select('*')),
-      rd(c.from('client_home_sections').select('*'))
+      rd(staffRows('list_home_sections', {}, (k) => k.from('client_home_sections').select('*')))
     ]);
     all.plans = { ok: plans.length > 0, plans, caps, services, cycles, usage, reminders, home, at: Date.now() };
   }
-  /** The tone of one limit: orange with room, amber from 85 percent, red at the limit. @param {number} used @param {number} cap */
-  const usageTone = (used, cap) => (cap > 0 && used >= cap ? 'full' : cap > 0 && used / cap >= 0.85 ? 'warn' : 'ok');
+  /** The tone of one limit: orange with room, amber from 85 percent, neutral ink at the limit (full), red only past it (over). @param {number} used @param {number} cap */
+  const usageTone = (used, cap) => (cap > 0 && used > cap ? 'over' : cap > 0 && used >= cap ? 'full' : cap > 0 && used / cap >= 0.85 ? 'warn' : 'ok');
   /**
    * One client's plan right now: this month's and next month's cycle, the plan rows, and what is used of each limit
    * (a limit of none is left out). Everything the Billing table, the client list, the board and the drawers show about a plan comes from here.
@@ -488,12 +592,16 @@
     return { now, next, nowPlan: planRow(now), nextPlan: planRow(next), all: mine, lines, reminders: next ? p.reminders.filter((/** @type {any} */ r) => r.cycle_id === next.id) : [] };
   }
   /**
-   * One usage bar for the console: the limit's name and "used/cap", a bar that is orange with room, amber from 85 percent and red at
-   * the limit, and "over by N" when a one-off was approved past it. @param {{label: string, used: number, cap: number, pct: number, tone: string}} l
+   * One usage bar for the console: the limit's name and "used/cap", a bar that is orange with room, amber from 85 percent, neutral ink
+   * with a small "At limit" tag when full but not over, and red with "over by N" only when a one-off was approved past it (2026-10-14).
+   * @param {{label: string, used: number, cap: number, pct: number, tone: string}} l
    */
   function usageBar(l) {
-    const over = l.used > l.cap ? `<span class="cu-over">over by ${l.used - l.cap}</span>` : '';
-    return `<div class="cusage is-${l.tone}"><div class="cu-line"><span class="cu-name">${esc(l.label)}</span><span class="cu-fig">${l.used}/${l.cap}${over}</span></div><div class="cbar" role="meter" aria-label="${esc(l.label)}: ${l.used} of ${l.cap}" aria-valuemin="0" aria-valuemax="${l.cap}" aria-valuenow="${Math.min(l.used, l.cap)}"><i style="width:${l.pct}%"></i></div></div>`;
+    const over = l.used > l.cap;
+    const full = !over && l.cap > 0 && l.used >= l.cap;
+    const tag = over ? `<span class="cu-over">over by ${l.used - l.cap}</span>` : full ? '<span class="cu-at">At limit</span>' : '';
+    const said = over ? `, over by ${l.used - l.cap}` : full ? ', at the limit' : '';
+    return `<div class="cusage is-${over ? 'over' : l.tone}"><div class="cu-line"><span class="cu-name">${esc(l.label)}</span><span class="cu-fig">${l.used}/${l.cap}${tag}</span></div><div class="cbar" role="meter" aria-label="${esc(l.label)}: ${l.used} of ${l.cap}${said}" aria-valuemin="0" aria-valuemax="${l.cap}" aria-valuenow="${Math.min(l.used, l.cap)}"><i style="width:${l.pct}%"></i></div></div>`;
   }
   /** "$12.50" from the database's minor units, with the plain dollar sign. @param {number|null|undefined} minor @param {string} [currency] */
   function money(minor, currency) {
@@ -519,7 +627,7 @@
     return `<div class="page-fresh is-${st}">${at ? `<span class="pf-part"><strong>Last updated</strong> ${esc(at)}</span>` : ''}<span class="pf-part"><strong>Source:</strong> ${esc(o.source)}</span><span class="pf-chip is-${st}"><span class="pf-dot" aria-hidden="true"></span>${esc(o.label || chip)}</span>${o.note ? `<p class="pf-note">${esc(o.note)}</p>` : ''}</div>`;
   }
   /** Where each page's numbers come from, for the freshness line a page does not draw itself. */
-  const FRESH_SOURCE = { queue: 'Console and the database', messages: 'Messages from the portal', clients: 'Console and the database', board: 'Console and Multica', billing: 'Stripe and console', settings: 'Console', new: 'Console', bot: 'Bot chat drafts in the console', client: 'Console and the database' };
+  const FRESH_SOURCE = { queue: 'Console and the database', messages: 'Messages from the portal', clients: 'Console and the database', board: 'Console and Multica', billing: 'Stripe and console', revenue: 'The revenue ledger in the console', settings: 'Console', new: 'Console', bot: 'Bot chat drafts in the console', client: 'Console and the database' };
   /** Every page ends up with exactly one freshness line: a page that draws its own keeps it; the others get this one under their title. */
   function ensureFresh() {
     if ($('.page-fresh', main) || !all) return;
@@ -548,14 +656,13 @@
     const list = /** @type {HTMLElement} */ ($('#side-list'));
     let needsTotal = 0;
     for (const t of all.tenants) if (t.status !== 'archived') needsTotal += derive(t).needs.length;
-    const openId = current ? current.id : '';
+    const openId = current && document.documentElement.dataset.page === 'client' ? current.id : ''; // only while a client's own page is open
     const recent = recentIds().map((id) => tenant(id)).filter(Boolean);
     list.innerHTML = recent.map((/** @type {any} */ t) => {
       const d = derive(t);
-      const dot = d.needs.length ? 'you' : d.waiting.length ? 'them' : t.status === 'active' ? 'ok' : '';
       const title = d.needs.length ? plural(d.needs.length, 'thing needs', 'things need') + ' you' : d.waiting.length ? plural(d.waiting.length, 'thing') + ' waiting on client' : t.status === 'active' ? 'Nothing waiting' : t.status;
       return `<li><a class="side-client${t.status !== 'active' ? ' paused' : ''}" href="#/client/${esc(t.id)}"${t.id === openId ? ' aria-current="page"' : ''} title="${esc(title)}">
-        <span class="dot ${dot}" aria-hidden="true"></span><span class="name">${esc(t.name)}</span>${CC() ? CC().dot(t.id) : ''}</a></li>`;
+        ${CC() ? CC().badge(t.id) : ''}<span class="name">${esc(t.name)}</span>${d.needs.length ? `<span class="badge">${d.needs.length}</span>` : ''}</a></li>`;
     }).join('');
     $('#side-recent-h').hidden = !recent.length;
     const qb = $('#queue-badge');
@@ -570,6 +677,8 @@
     if (blb) { blb.textContent = String(pastDue); blb.hidden = !pastDue; }
     // Bot chat counts the drafts that are still Pending (mod-bot.js).
     { const B = partOf('bot'); if (B) B.sideBadge(); }
+    // Revenue is for owners only (mod-revenue.js): its sidebar item shows for them and nobody else.
+    { const R = partOf('revenue'); if (R) R.sideItem(); }
     const page = (location.hash || '#/queue').split('/')[1] || 'queue';
     for (const a of $$('.nav a[data-nav]')) {
       if (a.getAttribute('data-nav') === page) a.setAttribute('aria-current', 'page');
@@ -677,12 +786,13 @@
         { name: 'Needs you', hint: 'Page', href: '#/queue', icon: 'inbox' },
         { name: 'Messages', hint: 'Page', href: '#/messages', icon: 'chat' },
         { name: 'Bot chat', hint: 'Page', href: '#/bot', icon: 'bot' },
+        { name: 'Add a client', hint: 'Page', href: '#/new', icon: 'plus' },
         { name: 'Clients', hint: 'Page', href: '#/clients', icon: 'users' },
         { name: 'All work (every client\'s team cards)', hint: 'Page', href: '#/board', icon: 'board' },
         { name: 'Billing', hint: 'Page', href: '#/billing', icon: 'card' },
+        ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }] : []),
         { name: 'Settings', hint: 'Page', href: '#/settings', icon: 'gear' },
         { name: 'Team', hint: 'Settings', href: '#/settings', icon: 'users' },
-        { name: 'Add a client', hint: 'Page', href: '#/new', icon: 'plus' },
         { name: 'Reload everything', hint: 'Action', act: 'refresh', icon: 'refresh' },
         { name: 'Keyboard shortcuts', hint: 'Action', act: 'shortcuts', icon: 'page' }
       ];
@@ -956,7 +1066,7 @@
     saveBar();
     // Needs you is always the first page (the old Opening page setting, prefs.start, is no longer read).
     const parts = (location.hash || '#/queue').replace(/^#\//, '').split('/');
-    document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'settings', 'messages', 'bot'].includes(parts[0]) ? parts[0] : 'queue';
+    document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'revenue', 'settings', 'messages', 'bot'].includes(parts[0]) ? parts[0] : 'queue';
     stopInbox();
     main.onclick = null;
     main.onchange = null;
@@ -968,6 +1078,7 @@
     else if (parts[0] === 'billing') billingPage(parts[1] || '');   // #/billing/<client id> opens that client's plan drawer (2026-10-13)
     else if (parts[0] === 'settings') settingsPage('');
     else if (parts[0] === 'messages') messagesPage(parts[1] || '');
+    else if (parts[0] === 'revenue' && partOf('revenue')) partOf('revenue').page(parts[1] || '', parts[2] || '');   // Revenue, owners only (mod-revenue.js, 2026-10-14)
     else if (parts[0] === 'bot' && partOf('bot')) partOf('bot').page(parts[1] || '');   // Bot chat (mod-bot.js, 2026-10-14)
     else queuePage();
     if (parts[0] !== 'client') stopPulling();
@@ -1026,8 +1137,8 @@
     for (const t of all.tenants) {
       if (t.status === 'archived') continue;
       const d = derive(t);
-      for (const x of d.needs) needs.push({ ...x, client: t.name });
-      for (const x of d.waiting) waiting.push({ ...x, client: t.name });
+      for (const x of d.needs) needs.push({ ...x, client: t.name, tid: t.id });
+      for (const x of d.waiting) waiting.push({ ...x, client: t.name, tid: t.id });
       for (const x of d.soon) soon.push({ ...x, client: t.name });
     }
     const stamp = (/** @type {any} */ x) => x.dueDate || (x.at ? String(x.at).slice(0, 10) : '9999');
@@ -1038,7 +1149,7 @@
     const grouped = (items, /** @type {string} */ qf) => {
       /** @type {Map<string, any[]>} */ const by = new Map();
       for (const x of items) { if (!by.has(x.client)) by.set(x.client, []); /** @type {any[]} */ (by.get(x.client)).push(x); }
-      return Array.from(by.entries()).map(([name, list]) => `<div class="q-client"${qf ? ` data-qf="${qf}"` : ''}><h3 class="q-client-h">${esc(name)} · ${list.length}</h3>
+      return Array.from(by.entries()).map(([name, list]) => `<div class="q-client"${qf ? ` data-qf="${qf}"` : ''}><h3 class="q-client-h">${CC() && list[0].tid ? CC().badge(list[0].tid) : ''}${esc(name)} · ${list.length}</h3>
         <ul class="q">${list.slice(0, 3).map((x) => qRow(x)).join('')}</ul>
         ${list.length > 3 ? `<details class="reveal q-more"><summary>Show ${list.length - 3} more</summary><ul class="q">${list.slice(3).map((x) => qRow(x)).join('')}</ul></details>` : ''}</div>`).join('');
     };
@@ -1157,7 +1268,7 @@
     inboxState.open = shown ? shown.id : '';
     const waitingN = list.filter((/** @type {any} */ x) => x.c.waiting).length;
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Messages</h1><p>Every client's conversation in one place. ${waitingN ? `${plural(waitingN, 'client')} waiting for your reply.` : 'Nobody is waiting for a reply.'}</p></div>
-      <div class="btns updated"><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span><button class="btn btn-glass btn-sm" type="button" data-action="refresh" title="Checks for new messages now. The page also checks by itself every 10 seconds.">${icon('refresh')}Reload conversation</button></div></div>
+      <div class="btns updated"><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span><button class="icon-btn icon-btn-sm" type="button" data-action="refresh" aria-label="Reload conversation" title="Reload conversation. The page also checks by itself every 10 seconds.">${icon('refresh')}</button></div></div>
       <div class="inbox${openId ? ' has-open' : ''}">
         <section class="panel inbox-list" aria-label="Conversations">
           <input id="inbox-q" type="search" placeholder="Search by client name" aria-label="Search conversations by client name" value="${esc(inboxState.q)}" autocomplete="off">
@@ -1459,7 +1570,7 @@
   const teamStatus = (k) => (k === 'waiting' ? 'Waiting on client' : (STATUS[k] || STATUS.planned).label);
   const CHANGE_SVC_HINT = 'A client\'s services are the picks of their plan. Change them in Billing.';
   /** @param {string[]} list */
-  const andList = (list) => list.length < 2 ? list.join('') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
+  const andList = (list) => list.length < 2 ? list.join('') : list.some((/** @type {string} */ x) => / and /.test(x)) ? list.join(', ') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
 
   /** Services on the Overview: one row each (icon, name, status), and a link to what they see. @param {any} d @param {string[]} services */
   function servicesPanel(d, services) {
@@ -1793,6 +1904,9 @@
 
   /** Calls the sync service on the server with the staff token. @param {any} payload */
   async function multica(payload) {
+    // The demo console: the status can be read, a check finds nothing to move, and a push or comment is refused.
+    if (DEMO_SITE && payload && payload.action === 'pull') return { ok: true, checked: 0, changed: [] };
+    if (DEMO_SITE && !(payload && payload.action === 'status')) demoThrow();
     const token = await D8.live.token();
     const res = await fetch(`${D8.live.config.supabaseUrl}/functions/v1/multica-sync`, {
       method: 'POST',
@@ -1939,17 +2053,24 @@
       ${v ? v.land + v.flag : ''}<p class="card-meta">${cardChip(t)}${v ? v.vis : ''}<button class="linkish card-edit-btn" type="button" data-edit="${esc(t.id)}">Edit</button></p>
     </li>`;
   }
-  /** The columns, with Blocked left out while nothing is blocked. opts.doneLabel renames Done ("Done this month" on All work). @param {any[]} cards @param {(t: any) => string} draw @param {{doneLabel?: string}} [opts] */
+  /**
+   * The columns, with Blocked left out while nothing is blocked. opts.doneLabel renames Done ("Done this month" on All work); opts.blocked keeps
+   * Blocked even when empty and opts.noDelete leaves the Remove bar out (lanes on All work keep the columns lined up and have one bar for all);
+   * opts.binOnly draws only the Remove bar.
+   * @param {any[]} cards @param {(t: any) => string} draw @param {{doneLabel?: string, blocked?: boolean, noDelete?: boolean, binOnly?: boolean}} [opts]
+   */
   function boardColumns(cards, draw, opts) {
+    const bin = `<section class="col col-delete" data-col="__delete" aria-label="Remove: drop a card here to remove it"><h2 class="col-h">${icon('trash')}Remove</h2><p class="del-zone">Drop a card here to remove it. We ask why and keep its history.</p></section>`;
+    if (opts && opts.binOnly) return bin;
     return COLUMNS.map(([k, l]) => {
       const items = cards.filter((t) => t.status === k || (k === 'done' && t.status === 'cancelled'));
-      if (k === 'blocked' && !items.length) return '';
+      if (k === 'blocked' && !items.length && !(opts && opts.blocked)) return '';
       const label = k === 'done' && opts && opts.doneLabel ? opts.doneLabel : l;
       return `<section class="col" data-col="${k}" aria-label="${esc(label)}"><h2 class="col-h">${esc(label)} <span class="meta">${items.length}</span></h2><ul class="cards">${items.map(draw).join('')}</ul></section>`;
     }).join('') +
       // A bin after Done (2026-10-09, Karan: "after done there should be a delete tab ... drag and drop the cards in it
       // ... a confirmation in a dialog box"). Not a status: dropping a card here asks why, then removes it and keeps its history (2026-10-13).
-      `<section class="col col-delete" data-col="__delete" aria-label="Remove: drop a card here to remove it"><h2 class="col-h">${icon('trash')}Remove</h2><p class="del-zone">Drop a card here to remove it. We ask why and keep its history.</p></section>`;
+      (opts && opts.noDelete ? '' : bin);
   }
   /** Whether a client's own board is on screen. */
   const clientBoardOpen = () => !!document.querySelector('#tab #board');
@@ -2421,6 +2542,7 @@
 
   /** Calls one of the console's server functions with the signed-in person's token. @param {string} name @param {any} payload */
   async function callFn(name, payload) {
+    if (DEMO_SITE && !/^(list|status|search)$/.test(String(payload && payload.action))) demoThrow();   // the demo console changes nothing
     const token = await D8.live.token();
     /** @type {Response} */ let res;
     try {
@@ -2675,6 +2797,36 @@
   async function saveCardColor(id, color) {
     const client = await db();
     const row = check(await client.from('client_profile').upsert({ tenant_id: id, card_color: color || null }).select('*').single());
+    writes++;
+    if (all) { all.profiles = all.profiles || {}; all.profiles[id] = row; }
+    return row;
+  }
+  /**
+   * Saves the tag staff edited for one client (client_profile.card_tag: 2 or 3 capital letters or digits, unique; '' goes back to the tag the
+   * name makes by itself). Same upsert as the colour; only the tag is sent.
+   * @param {string} id @param {string} tag
+   */
+  async function saveCardTag(id, tag) {
+    const client = await db();
+    const res = await client.from('client_profile').upsert({ tenant_id: id, card_tag: tag || null }).select('*').single();
+    // the database's own refusals, in plain words (unique: another client has it; check: not 2 or 3 capital letters or digits)
+    if (res.error && (res.error.code === '23505' || res.error.code === '23514')) throw Object.assign(new Error(res.error.code === '23505' ? 'That tag is already used by another client. Pick a different one.' : 'A tag is 2 or 3 capital letters or digits.'), { code: res.error.code });
+    const row = check(res);
+    writes++;
+    if (all) { all.profiles = all.profiles || {}; all.profiles[id] = row; }
+    return row;
+  }
+
+  /**
+   * Saves a client's logo (client_profile.logo_data: a small PNG, JPEG or WebP data URL made in the browser, 60000 characters at most; '' removes it).
+   * Same upsert as the colour and tag; only the logo is sent.
+   * @param {string} id @param {string} logo
+   */
+  async function saveCardLogo(id, logo) {
+    const client = await db();
+    const res = await client.from('client_profile').upsert({ tenant_id: id, logo_data: logo || null }).select('*').single();
+    if (res.error && res.error.code === '23514') throw Object.assign(new Error('That logo could not be saved. It has to be a small PNG, JPG or WebP picture.'), { code: res.error.code });
+    const row = check(res);
     writes++;
     if (all) { all.profiles = all.profiles || {}; all.profiles[id] = row; }
     return row;
@@ -3431,8 +3583,9 @@
   async function loadReviews() {
     const client = await db();
     const [i, v, x, s, au] = await Promise.all([
-      client.from('client_dashboard_items').select('*').or('verification_status.eq.pending,pending_at.not.is.null').order('updated_at'),
-      client.from('client_billing_invoices').select('*').or('verification_status.eq.pending,pending_at.not.is.null').order('updated_at'),
+      // The rows waiting for a review, whole (the version waiting too), through the staff list functions (20261014130000).
+      staffRows('list_dashboard_items', { p_open: true }, (k) => k.from('client_dashboard_items').select('*').or('verification_status.eq.pending,pending_at.not.is.null').order('updated_at')),
+      staffRows('list_billing_invoices', { p_open: true }, (k) => k.from('client_billing_invoices').select('*').or('verification_status.eq.pending,pending_at.not.is.null').order('updated_at')),
       client.from('dashboard_exceptions').select('*').eq('status', 'open').order('detected_at'),
       client.from('tenant_multica_sync').select('*'),
       client.from('tenant_auto_publish').select('tenant_id, enabled')
@@ -3528,10 +3681,10 @@
   /** Invoices: approve or reject only. They are never published automatically. @param {any} inv @param {boolean} showClient */
   function dmInvoiceCard(inv, showClient) {
     const p = inv.pending_at ? inv.pending_row || {} : null;
-    const view = (/** @type {any} */ r) => ({ number: r.invoice_number, amount: r.amount_minor === undefined || r.amount_minor === null ? '' : `${(Number(r.amount_minor) / 100).toFixed(2)} ${r.currency || ''}`, status: r.status, issued: r.issued_at, due: r.due_at, paid: r.paid_at, link: r.hosted_payment_url });
+    const view = (/** @type {any} */ r) => ({ number: r.invoice_number, amount: money(r.amount_minor, r.currency), status: r.status, issued: r.issued_at, due: r.due_at, paid: r.paid_at, link: r.hosted_payment_url });
     const now = view(p ? { ...inv, ...p } : inv);
     return `<li class="dm-card" data-dm-invoice="${esc(inv.id)}" data-stamp="${esc(inv.updated_at)}">
-      <div class="dm-line"><p class="g-top">${showClient ? `<span class="client">${esc(clientName(inv.tenant_id))}</span>` : ''}<span class="chip you">Invoice</span>${p ? '<span class="chip info" title="They keep seeing the old version until you approve">Replaces what they see</span>' : ''}<span class="dm-title">${esc([now.number, now.amount].filter(Boolean).join(', ') || 'Invoice')}</span><span class="meta">${esc(ago(inv.pending_at || inv.updated_at))}</span></p>
+      <div class="dm-line"><p class="g-top">${showClient ? `<span class="client">${esc(clientName(inv.tenant_id))}</span>` : ''}<span class="chip you">Invoice</span>${p ? '<span class="chip info" title="They keep seeing the old version until you approve">Replaces what they see</span>' : ''}<span class="dm-title">${esc([now.number, now.amount].filter(Boolean).join(' · ') || 'Invoice')}</span><span class="meta">${esc(ago(inv.pending_at || inv.updated_at))}</span></p>
         <div class="actions dm-buttons"><button class="btn btn-sm" type="button" data-dm="inv-approve">Approve</button><button class="btn btn-quiet btn-sm" type="button" data-dm="inv-reject">Reject</button></div></div>
       <details class="dm-ids"><summary>Details</summary>${dmDiff(p ? view(inv) : null, now)}<p class="meta">${esc(dmMadeBy(inv.provider || String(inv.source_ref || '').split(':')[0]))}${inv.source_ref ? ` · ${esc(inv.source_ref)}` : ''}</p></details></li>`;
   }
@@ -3918,13 +4071,15 @@
   /** @type {any} */ (window).D8C = {
     esc, $, $$, icon, toast, undoToast, busy, val, message, skeleton, plural, when, ago, due, longDate, dayOf, today, localDay, newId, clone, svcLabel,
     SERVICES, SERVICE_ORDER, STATUS, FLAGS, PORTAL_URL, main,
-    db, check, ask, track, clean, redraw, afterSave, route, refreshAll, loadAll, callFn, viewAs,
+    db, staffRows, check, ask, track, clean, redraw, afterSave, route, refreshAll, loadAll, callFn, viewAs,
     tenant, derive, planOf, usageTone, usageBar, money, clockTime, pageFresh, billingOf, convo, allTabs, fromCache, loadClient, save, saveDoc,
     get all() { return all; }, get me() { return me; }, get current() { return current; }, get dirty() { return dirty; },
     get plans() { return all && all.plans ? all.plans : emptyPlans(); }
   };
   /** More of what the Billing and Add client parts need (mod-billing.js, mod-newclient.js): Stripe, Multica, the sign-off levels and the client record's starting pieces. */
-  Object.assign(/** @type {any} */ (window).D8C, { blankService, agencyAccess, saveProfile, saveCardColor, APPROVAL_LEVELS, stripeStatus, stripeReady, stripeModeText, stripeFn, stripeErr, stripeKnown, multica, multicaStatus,
+  Object.assign(/** @type {any} */ (window).D8C, { blankService, agencyAccess, saveProfile, saveCardColor, saveCardTag, saveCardLogo,
+    /** A client's tag (2 or 3 letters or digits, from its name unless staff edited it): one shared helper for every badge. @param {any} t a client or its id */
+    clientTag: (/** @type {any} */ t) => { const k = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.color; const id = t && typeof t === 'object' ? t.id : t; return k ? k.tagOf(id) : ''; }, APPROVAL_LEVELS, stripeStatus, stripeReady, stripeModeText, stripeFn, stripeErr, stripeKnown, multica, multicaStatus,
     /** A raw database refusal (error.code and error.message of an rpc or write answer) in the console's plain words; check() speaks the client portal's words. */
     say: (/** @type {any} */ err) => { const p = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.planpick; return p ? p.say(err) : message(err); } });
   /** @type {any} */ (window).D8C_EXT = /** @type {any} */ (window).D8C_EXT || {};

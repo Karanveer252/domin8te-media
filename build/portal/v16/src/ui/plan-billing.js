@@ -81,7 +81,7 @@
     const was = price(c);
     const will = price(n);
     const items = [
-      { state: 'done', title: `${esc(F.date(n.confirmedAt || m.today))}: confirmed`, text: D8.data.MODE === 'demo' ? 'In your own portal a copy goes to your email.' : 'A copy goes to your email.' },
+      { state: 'done', title: `${esc(F.date(n.confirmedAt || m.today))}: confirmed`, text: 'Your choice is saved. You can see it here any time.' },
       { state: 'todo', title: `Until ${esc(day(m.lastDay))}`, text: `${esc(F.list(c.services.map((/** @type {any} */ s) => s.label)))} keep running as normal.` },
       { state: 'todo', title: `${esc(day(m.bill))}: ${m.changes.planChanged ? 'new plan starts' : 'new services start'}`, text: `${will ? `Your bill is ${esc(will)}. ` : ''}Locked until ${esc(day(m.lock.to))}.` }
     ];
@@ -92,7 +92,7 @@
         <div><p class="eyebrow is-green">You're all set</p><h2 id="h-set">${esc(n.name)} ${m.changes.planChanged ? 'starts' : 'services start'} ${esc(day(m.bill))}</h2></div>
         ${n.confirmedAt ? `<p class="lock-chip">${icon('lock')}Confirmed ${esc(F.dateTime12(n.confirmedAt))}</p>` : ''}
       </header>
-      <p class="pcf-lede">${D8.data.MODE === 'demo' ? 'In your own portal we email you a copy.' : `A copy is on its way to ${esc(email || 'your email')}.`} Nothing is charged today.</p>
+      <p class="pcf-lede">Your choice is saved. Nothing is charged today.</p>
       <div class="rule-rainbow" aria-hidden="true"></div>
       <div class="pcf-versus">
         <div class="pcf-box"><p class="eyebrow">Now</p><p class="pcf-plan">${esc(c.name)}</p>${was ? `<p class="pcf-price"><strong>${esc(was)}</strong>/month</p>` : ''}<p class="pcf-svcs">${esc(F.list(c.services.map((/** @type {any} */ s) => s.label)))}</p></div>

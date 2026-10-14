@@ -1492,12 +1492,15 @@ html[data-theme="dark"] { --p-fill-ok: var(--p-accent); --p-fill-warn: #F2B544; 
 .usage-hint { color: var(--p-ink-3); }
 .bar { position: relative; height: 8px; overflow: hidden; border-radius: 999px; background: var(--p-well); box-shadow: inset 0 0 0 1px var(--p-line); }
 .bar > span { display: block; height: 100%; border-radius: inherit; background: var(--p-fill-ok); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28); transition: width var(--m-slow) var(--ease); }
+/* Three clear states (2026-10-14): amber near the limit, a calm ink bar with "Limit reached" at it, red with "Over by N" only past it. */
 .usage.is-warn .bar > span { background: var(--p-fill-warn); }
-.usage.is-full .bar > span { background: var(--p-fill-full); }
+.usage.is-full .bar > span { background: var(--p-ink-3); }
+.usage.is-over .bar > span { background: var(--p-fill-full); }
 .usage-word { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 650; }
 .usage-word::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .usage.is-warn .usage-word { color: var(--p-warning); }
-.usage.is-full .usage-word { color: var(--p-error); }
+.usage.is-full .usage-word { color: var(--p-ink-2); }
+.usage.is-over .usage-word { color: var(--p-error); }
 .usage-reset { margin-top: 2px; font-size: 13.5px; color: var(--p-ink-3); }
 .chip-sample { display: inline-flex; align-items: center; padding: 1px 9px; border-radius: 999px; background: linear-gradient(var(--p-neutral-bg), var(--p-neutral-bg)), var(--p-surface); color: var(--p-ink-3); font-size: 12.5px; font-weight: 600; line-height: 1.5; white-space: nowrap; }
 
@@ -2076,7 +2079,8 @@ html[data-variant="18h"] .page :is(.po-card, .svc-opt, .pick-help, .pick-count) 
 .plan-opt.is-shut .po-mark { display: none; }
 
 /* the services */
-.svc-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+/* Each service card is as tall as its own words (align-items: start), so a short card does not stretch beside a neighbour that wraps (2026-10-14). */
+.svc-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; }
 .svc-opt { position: relative; min-width: 0; border-radius: 20px; background: var(--p-glass-strong); box-shadow: inset 0 0 0 1px var(--p-line-2); transition: box-shadow var(--m-fast) var(--ease), background-color var(--m-fast) var(--ease); }
 .svc-opt:hover:not(.is-blocked):not(.is-fixed) { box-shadow: inset 0 0 0 1.5px var(--p-control); }
 .svc-opt.is-on { background: var(--p-surface); box-shadow: inset 0 0 0 2.5px var(--p-accent-ink), 0 14px 28px -18px rgba(174, 58, 11, 0.5); }
@@ -2624,6 +2628,32 @@ html[data-viewas] .side { top: calc(16px + var(--va-h)); height: calc(100vh - 32
   html[data-viewas] .topbar { top: var(--va-h); }
 }
 html[data-viewas] .nav-signout, html[data-viewas] [data-action="sign-out"] { display: none !important; }
+
+/* ================================================================ css/80-touch.css */
+/*
+ * Phone tap targets (2026-10-14): at 600px and under every button, tab, summary row, switch and icon button is at least 44px
+ * tall, and inline links get a padded hit area that does not change how their words look. Desktop sizes are untouched.
+ */
+@media (max-width: 600px) {
+  /* buttons, tabs and segmented controls */
+  .btn, .btn-sm, .btn-text, .link-btn, .work-tab, .seg span, .icon-btn, .topbar-brand { min-height: 44px; }
+  .main button.lg-dock-min, button.lg-dock-min { width: 44px; height: 44px; }
+  /* fields */
+  .main input:not([type="checkbox"]):not([type="radio"]), .main select { min-height: 44px; }
+  /* folds: every summary line is a 44px row (the page rules above set 36 and 40 on a desktop) */
+  .main summary, .main .fold > summary, .page-billing .banner .fold > summary, .page-settings .fold > summary, .update-more > summary, .steps-earlier > summary { min-height: 44px; }
+  /* the switch: the same 46 by 28 track and knob, inside a 44px tall box so a thumb lands on it. The extra height is a clear
+     border above and below; the fill, the inset ring, the knob and the lock all stay inside the padding box (the track). */
+  .switch { height: 44px; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-radius: 14px / 22px; background-clip: padding-box; }
+  /* inline links keep their look; the hit area grows above and below the words */
+  .main a.link:not(.link-more):not(.crumb .link), .run-name a, .main p > a:not(.btn):not(.badge), .main li > a:not(.btn):not(.badge), .main td a:not(.btn) { padding-top: 13px; padding-bottom: 13px; }
+  .run-name a { padding-top: 12px; padding-bottom: 12px; }
+  .crumb .link { min-height: 44px; margin-top: -11px; margin-bottom: -11px; }
+  .link-more { min-height: 44px; margin-top: 5px; margin-bottom: -11px; }
+}
+@media (max-width: 600px) and (forced-colors: active) {
+  .switch { border-color: transparent; border-width: 8px 0; box-shadow: inset 0 0 0 1px CanvasText; }
+}
 
 /* ================================================================ shared Liquid Glass layer */
 /*
@@ -3964,6 +3994,9 @@ html[data-variant="18h"][data-scene="scenes"] {
   --p-env-dark: #B2C1C6;
   --p-env-veil: rgba(246, 242, 236, 0);
 }
+/* Green words (Verified, Paid, Up 24%, Connected) sit on tinted glass over a light sky in the light theme: one step darker than
+   the plain green so they pass 4.5:1 there too (2026-10-14). The dark theme keeps its own green. */
+html[data-variant="18h"][data-scene="scenes"]:not([data-theme="dark"]) { --p-success: #1F5A31; }
 html[data-variant="18h"][data-scene="scenes"][data-theme="dark"] {
   --p-bg: #0E0F18;
   --p-env-light: #764560;
@@ -4362,6 +4395,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   /** 'a, b and c' @param {string[]} items */
   function list(items) {
     if (items.length < 2) return items.join('');
+    // "Ads, SEO and Google Maps": a name that already holds "and" would read "Ads and SEO and Google Maps", so commas only
+    if (items.some((x) => / and /.test(x))) return items.join(', ');
     return items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1];
   }
   /** @param {string} s lower-cases the first letter, for "You: confirm your hours" */
@@ -4384,6 +4419,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
  *            caps:  [{ planId, service, metric, label, cap, weeklyHint|null }] }
  *   now:   { planId, picks: [], websiteOption|null, start, end (the bill date), source, confirmedAt|null, state } | null
  *   next:  the same, for the month that starts on now.end | null
+ *   upcoming: the first month when it has not started yet (a new client whose first bill date is ahead; now is null then) | null
+ *   (each month may carry billDay, 1 to 31: the day of the month its bills fall on; the month after ends on that day)
  *   usage: [{ service, metric, used }]   what was used this month
  *   mismatch: boolean   an open plan_mismatch item for this restaurant
  * Dates are the restaurant's own calendar days ('YYYY-MM-DD'); times of day are its wall clock (see lib/time.js).
@@ -4416,7 +4453,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   function words(metric, label, n) {
     const f = /** @type {any} */ (NOUN)[metric] || [label, label];
     const noun = n === 1 ? f[0] : f[1];
-    if (metric === 'ads_live_campaigns') return { name: 'Campaigns live', unit: `${noun} live`, state: true, cap: `Up to ${n} ${noun} live at a time`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} live`, short: `${n} live` };
+    // "Live at a time" limits are a count of what runs now (it carries into the next month), not a month's total: "2 of 3 live now", "1 of 2 platforms in use".
+    if (metric === 'ads_live_campaigns') return { name: 'Campaigns live', unit: `${noun} live`, state: true, cap: `Up to ${n} ${noun} live at a time`, used: (/** @type {number} */ u) => `${u} of ${n} live now`, short: `${n} live` };
     if (metric === 'ads_platforms') return { name: 'Ad platforms', unit: `${noun} in use`, state: true, cap: `${n} ad ${noun}`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} in use`, short: `${n} ${noun}` };
     return { name: cap1(f[1]), unit: noun, state: false, cap: `Up to ${n} ${noun} a month`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} used`, short: `${n} ${noun}` };
   }
@@ -4427,12 +4465,12 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   /**
    * How many of the services a plan lets a client choose, and which are fixed. Every plan is Ads plus a number of picks
    * (Starter 1, Growth 2, Domin8te 3): `fixed` is Ads, `choose` the picks, `total` both. A plan with no pick count at all
-   * (an old record) reads as every service. @param {any} plan
+   * (a bad record, which the database refuses) reads as the fixed services alone. @param {any} plan
    */
   function rule(plan) {
-    if (!plan || plan.picksAllowed === null || plan.picksAllowed === undefined) return { all: true, fixed: ORDER.slice(), choose: 0, total: ORDER.length };
-    const fixed = ordered(plan.required || []);
-    return { all: false, fixed, choose: Number(plan.picksAllowed), total: fixed.length + Number(plan.picksAllowed) };
+    const fixed = ordered((plan && plan.required) || []);
+    const choose = plan && plan.picksAllowed != null ? Number(plan.picksAllowed) : 0;
+    return { fixed, choose, total: fixed.length + choose };
   }
 
   /**
@@ -4481,6 +4519,22 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
 
   /** 'YYYY-MM-DD' of the last day of a month that starts on `start`. @param {string} start */
   const lastDayOf = (start) => T.isoDay(T.dayNum(T.addMonths(start, 1)) - 1);
+  /**
+   * The bill date in the month after `start`'s month: day `billDay`, or that month's last day when it is shorter (31 Jan,
+   * 28 Feb, 31 Mar). Without a bill day, `start`'s own day. The same as the database's app.bill_after.
+   * @param {string} start 'YYYY-MM-DD' @param {number|null} [billDay]
+   */
+  function billAfter(start, billDay) {
+    const y = Number(String(start).slice(0, 4));
+    const m = Number(String(start).slice(5, 7));
+    if (!y || !m) return '';
+    const ny = m === 12 ? y + 1 : y;
+    const nm = m === 12 ? 1 : m + 1;
+    const last = new Date(Date.UTC(ny, nm, 0)).getUTCDate();
+    const want = Number(billDay) || Number(String(start).slice(8, 10)) || 1;
+    const d = Math.min(Math.max(want, 1), last);
+    return `${ny}-${String(nm).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
 
   /** @param {any} p the plan record @param {any} st the state kept for this tenant (the demo's browser copy, the live source's memory) */
   function nextOf(p, st) {
@@ -4505,13 +4559,14 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         const u = used.get(id + '/' + l.metric) || 0;
         const w = words(l.metric, l.label, l.cap);
         const pct = l.cap ? Math.min(100, Math.round((u / l.cap) * 100)) : 0;
-        return { ...l, used: u, pct, tone: u >= l.cap ? 'full' : pct >= 85 ? 'warn' : 'ok', usedText: w.used(u), tail: `${u} of ${l.cap}` };
+        // tone: ok with room, warn from 85 percent, full at the limit, over only past it (over is drawn red; full is calm, 2026-10-14)
+        return { ...l, used: u, pct, tone: u > l.cap ? 'over' : u >= l.cap ? 'full' : pct >= 85 ? 'warn' : 'ok', usedText: w.used(u), tail: `${u} of ${l.cap}` };
       });
       return { id, label: svc(id).label, icon: svc(id).icon, lines: ls, summary: summary(ls, c.planId) };
     });
     return {
       planId: c.planId, name: pl.name, priceMinor: pl.priceMinor === undefined ? null : pl.priceMinor, currency: pl.currency || null,
-      picks, services, websiteOption: c.websiteOption || null, start: c.start, end: c.end,
+      picks, services, websiteOption: c.websiteOption || null, start: c.start, end: c.end, billDay: c.billDay ? Number(c.billDay) : null,
       lastDay: c.end ? lastDayOf(c.start) : '', source: c.source || '', state: c.state || '', confirmedAt: c.confirmedAt || null, confirmedBy: c.confirmedBy || ''
     };
   }
@@ -4537,8 +4592,14 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     const out = {
       state: 'none', tz, zone: F.zoneName(tz), zoneAbbr: F.zoneAbbr(tz), today: T.isoDay(todayNum), mismatch: !!(p && p.mismatch),
       now: null, next: null, changes: diff(null, null), confirmed: false, open: false, daysLeft: 0, lastDay: '', bill: '', lock: null,
-      reminders: [], moreMinor: null, menu: [], pricesShown: false
+      reminders: [], moreMinor: null, menu: [], pricesShown: false, upcoming: null, starts: ''
     };
+    // A first month that has not started yet (its first bill date is ahead): the plan shows with the day it starts, and nothing
+    // is counted until then (no usage, no picker: the month is already chosen).
+    if (p && p.menu && !p.now && p.upcoming) {
+      const up = cycle(p, p.upcoming);
+      return { ...out, state: 'upcoming', upcoming: up, starts: up ? up.start : '', pricesShown: !!up && up.priceMinor !== null };
+    }
     if (!p || !p.menu || !p.now) return out;
     const now = cycle(p, p.now, { now: true });
     const nextRec = nextOf(p, st);
@@ -4552,7 +4613,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     out.lastDay = T.isoDay(T.dayNum(now.end) - 1);
     out.open = todayNum < T.dayNum(now.end);
     out.daysLeft = Math.max(0, T.dayNum(out.lastDay) - todayNum);
-    out.lock = { from: now.end, to: lastDayOf(now.end) };
+    // next month's own end when the database has it (it keeps the bill day: 28 Feb to 30 Mar for a 31st), else a month on
+    out.lock = { from: now.end, to: T.isoDay(T.dayNum(next && next.start === now.end && next.end ? next.end : billAfter(now.end, now.billDay)) - 1) };
     out.reminders = [7, 3].map((n) => { const d = T.isoDay(T.dayNum(now.end) - n); return { kind: n === 7 ? 'd7' : 'd3', date: d, past: todayNum > T.dayNum(d) }; });
     const pn = next || now;
     out.pricesShown = pn.priceMinor !== null && now.priceMinor !== null;
@@ -4577,7 +4639,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     if (!pl) return { valid: false, error: v.error, code: v.code };
     const picks = ordered(d.picks);
     const caps = model.menu.flatMap((/** @type {any} */ m) => m.services.flatMap((/** @type {any} */ s) => s.lines.map((/** @type {any} */ l) => ({ planId: m.id, service: s.id, metric: l.metric, label: l.label, cap: l.cap, weeklyHint: l.weeklyHint }))));
-    const draft = cycle({ menu: { plans: model.menu, caps } }, { planId: d.planId, picks, websiteOption: d.websiteOption || null, start: model.bill, end: T.addMonths(model.bill, 1), source: 'client_picker' });
+    const draft = cycle({ menu: { plans: model.menu, caps } }, { planId: d.planId, picks, websiteOption: d.websiteOption || null, start: model.bill, end: billAfter(model.bill, model.now.billDay), billDay: model.now.billDay, source: 'client_picker' });
     const change = diff(model.now, draft);
     const more = model.pricesShown && model.now.priceMinor !== null && draft.priceMinor !== null ? Number(draft.priceMinor) - Number(model.now.priceMinor) : null;
     return { valid: v.ok, error: v.error, code: v.code, draft, change, moreMinor: more, same: !change.differs, lock: model.lock };
@@ -4599,7 +4661,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     return { known: true, over: would > line.cap, service, metric, line, used: line.used, cap: line.cap, qty: n, would, extra: Math.max(0, would - line.cap), pct: Math.min(100, Math.round((would / line.cap) * 100)) };
   }
 
-  D8.planModel = { ORDER, ordered, picksOf, rule, lines, summary, validate, build, preview, diff, words, lastDayOf, askPreview };
+  D8.planModel = { ORDER, ordered, picksOf, rule, lines, summary, validate, build, preview, diff, words, lastDayOf, billAfter, askPreview };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script>
@@ -5619,8 +5681,10 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
    * @param {any} t a normalize()d record
    */
   function planPackage(t) {
-    if (t.plan && t.plan.now && D8.planModel) {
-      t.package = { ...t.package, services: D8.planModel.picksOf(t.plan.now) };
+    // a first month that has not started yet counts too: its picks are what the restaurant has chosen
+    const month = t.plan && (t.plan.now || t.plan.upcoming);
+    if (month && D8.planModel) {
+      t.package = { ...t.package, services: D8.planModel.picksOf(month) };
       // A service they just picked may have nothing on record yet: it starts as "getting started", never missing.
       for (const id of t.package.services) {
         if (!t.services[id]) t.services[id] = { status: 'planned', objective: '', now: '', next: null, expected: null, proof: null, milestones: [], completed: [], files: [] };
@@ -6283,13 +6347,14 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     function savePicks(planId, picks, websiteOption) {
       return call(() => {
         const m = plan();
+        if (m.state === 'upcoming') throw fail('not-started', `Your plan starts on ${F.date(m.starts)}. You can change it once it has started, or message us.`);
         if (m.state !== 'ok') throw fail('no-plan', 'Your plan is not set up yet. Message us and we will sort it out.');
         if (!m.open) throw fail('locked', 'It is too late to change next month. Message us and we will help.');
         const list = D8.planModel.ordered(picks);
         const opt = planId === 'starter' && list.includes('website') ? websiteOption || null : null;
         const v = D8.planModel.validate({ plans: m.menu }, planId, list, opt);
         if (!v.ok) throw fail(v.code, v.error);
-        const next = { planId, picks: list, websiteOption: opt, start: m.bill, end: T.addMonths(m.bill, 1), source: 'client_picker', state: 'confirmed', confirmedBy: session.firstName || '' };
+        const next = { planId, picks: list, websiteOption: opt, start: m.bill, end: D8.planModel.billAfter(m.bill, m.now.billDay), billDay: m.now.billDay, source: 'client_picker', state: 'confirmed', confirmedBy: session.firstName || '' };
         return src.put('picks', { next, planId, picks: list, websiteOption: opt, by: session.firstName }).then((/** @type {any} */ r) => ({ next: r.next, at: r.at }));
       }, 700);
     }
@@ -6719,15 +6784,19 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     return dbReady;
   }
 
-  /** Database errors, in the portal's words. @param {any} error */
-  function dbFail(error) {
+  /** Database errors, in the portal's words. @param {any} error @param {string} [kind] the write it came from (put's kind) */
+  function dbFail(error, kind) {
     const code = error && error.code;
-    if (code === '23505') return fail('already-decided', 'You already answered this one.');
+    if (code === 'demo-readonly') return fail('demo-readonly', String(error.message || 'This is a demo. Nothing is saved or sent.'));   // the demo console's refusal (console.js)
     const said = String((error && error.message) || '');
+    // A duplicate is "answered already" only for an answer (decisions, one per approval); anything else was simply saved before.
+    if (code === '23505') return kind === 'decision' || /decisions_/.test(said) ? fail('already-decided', 'You already answered this one.') : fail('already-saved', 'That was already saved. Reload to see it.');
+    if (/overlaps-another-month/.test(said)) return fail('overlap', 'That month overlaps another month of your plan. Message Karan and we will sort it out.');
     if (/plan-locked/.test(said)) return fail('plan-locked', 'That plan is locked right now and is not taking new clients. Message Karan and we will help.');
     if (/month-locked|next-month-locked/.test(said)) return fail('locked', 'It is too late to change next month. Message us and we will help.');
     if (/no-current-cycle/.test(said) || code === 'P0002') return fail('no-plan', 'Your plan is not set up yet. Message us and we will sort it out.');
-    if (code === '23P01' || /plan-full/.test(said)) return fail('plan-full', 'That plan is taken right now. Message Karan and we will help.');
+    if (/plan-full/.test(said)) return fail('plan-full', 'That plan is taken right now. Message Karan and we will help.');
+    if (code === '23P01') return fail('conflict', 'That clashes with something already saved. Reload and try again.');
     if (/picks-do-not-fit/.test(said)) return fail('bad-picks', 'Those services do not fit that plan. Check your picks and try again.');
     if (code === '42501' || code === 'PGRST301') return fail('forbidden', "We couldn't save that for your account. Sign out and in again, then try once more.");
     if (code === '23514') return fail('invalid', "That wasn't saved: something in it is too long or missing.");
@@ -6743,8 +6812,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   /** A plan month from the database, in the shape the portal reads. @param {any} c */
   const cycleOf = (c) => ({
     id: c.id, planId: c.plan_id, picks: c.picks || [], websiteOption: c.website_option || null,
-    start: String(c.period_start).slice(0, 10), end: String(c.period_end).slice(0, 10), state: c.state, source: c.source,
-    confirmedAt: c.confirmed_at || null, confirmedBy: c.confirmed_by || ''
+    start: String(c.period_start).slice(0, 10), end: String(c.period_end).slice(0, 10), billDay: c.bill_day == null ? null : Number(c.bill_day), state: c.state, source: c.source,
+    confirmedAt: c.confirmed_at || null, confirmedBy: ''   // who confirmed is staff-only (20261014110000): never read
   });
   /** Where a figure came from, in words, when the person who entered it named no source. @param {string} ref */
   const sourceName = (ref) => ({ console: 'Domin8te console', stripe: 'Stripe', multica: 'Multica', zernio: 'Zernio' }[String(ref || '').split(':')[0]] || 'Domin8te');
@@ -6810,7 +6879,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         // The team's board cards for this client (2026-10-08): only their visible cards with a service, safe fields only
         typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('client_work_cards', { p_tenant: row.id }) : sb.rpc('client_work_cards')) : Promise.resolve(none),
         // The plan (2026-10-13): this month and next, what each plan allows, what is used, what staff verified, what staff wrote for Home
-        sb.from('tenant_plan_cycles').select('id, plan_id, picks, website_option, period_start, period_end, state, source, confirmed_at, confirmed_by').eq('tenant_id', row.id).order('period_start'),
+        sb.from('tenant_plan_cycles').select('id, plan_id, picks, website_option, period_start, period_end, bill_day, state, source, confirmed_at').eq('tenant_id', row.id).order('period_start'),
         typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('plan_menu', { p_tenant: row.id }) : sb.rpc('plan_menu')) : Promise.resolve(none),
         sb.from('tenant_usage_current').select('service, metric, used').eq('tenant_id', row.id),
         typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('client_results_current', { p_tenant: row.id }) : sb.rpc('client_results_current')) : Promise.resolve(none),
@@ -6842,13 +6911,16 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       const nowC = cycles.find((/** @type {any} */ c) => c.start <= today && c.end > today && c.state !== 'ended')
         || cycles.filter((/** @type {any} */ c) => c.start <= today && c.state !== 'ended').sort((/** @type {any} */ a, /** @type {any} */ b) => b.start.localeCompare(a.start))[0] || null;
       const nextC = nowC ? cycles.find((/** @type {any} */ c) => c.start === nowC.end && c.state !== 'ended') || null : null;
+      // A new client whose first bill date is ahead: its first month is chosen (confirmed) and starts on that day (the roll makes it active then)
+      const upC = nowC ? null : cycles.filter((/** @type {any} */ c) => c.start > today && (c.state === 'confirmed' || c.state === 'active'))
+        .sort((/** @type {any} */ a, /** @type {any} */ b) => a.start.localeCompare(b.start))[0] || null;
       const mn = menu.error || !menu.data ? null : menu.data;
-      const planRec = nowC && mn ? {
+      const planRec = (nowC || upC) && mn ? {
         menu: {
           plans: (mn.plans || []).map((/** @type {any} */ x) => ({ id: x.id, name: x.name, priceMinor: x.price_minor, currency: x.currency, picksAllowed: x.picks_allowed, required: x.required_services || [], maxClients: x.max_clients, full: !!x.full, locked: !!x.locked })),
           caps: (mn.caps || []).map((/** @type {any} */ x) => ({ planId: x.plan_id, service: x.service, metric: x.metric, label: x.label, cap: Number(x.monthly_cap), weeklyHint: x.weekly_hint || null }))
         },
-        now: nowC, next: nextC,
+        now: nowC, next: nextC, upcoming: upC,
         usage: usage.error ? [] : (usage.data || []).map((/** @type {any} */ u) => ({ service: u.service, metric: u.metric, used: Number(u.used) || 0 })),
         mismatch: !!mn.mismatch
       } : null;
@@ -6912,9 +6984,9 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           // Answered already (another tab or device): show what was saved, not "nothing changed".
           if (kind === 'decision' && res.error.code === '23505') {
             try { await this.reload(); } catch (e) { /* the answer below is still true */ }
-            throw Object.assign(dbFail(res.error), { previous: st.decisions && st.decisions[rec.approvalId] });
+            throw Object.assign(dbFail(res.error, kind), { previous: st.decisions && st.decisions[rec.approvalId] });
           }
-          throw dbFail(res.error);
+          throw dbFail(res.error, kind);
         }
         const row = res.data || {};
         const stored = { ...rec, id: row.id || rec.id, at: toWall(row.at || row.notifications_saved_at || row.confirmed_at) || T.isoTime(now()) };
@@ -7019,11 +7091,16 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     return true;
   }
 
-  /** Posts to the console (same origin only). @param {any} msg */
+  /**
+   * Posts to the console, only at a real origin that the parent shares (2026-10-14). A page with no real origin (a file: page
+   * says 'null') sends nothing at all, rather than posting to any window ('*'). @param {any} msg
+   */
   function toParent(msg) {
     if (!D8.data || !D8.data.viewAs) return false;
     try {
-      root.parent.postMessage(msg, root.location.origin === 'null' ? '*' : root.location.origin);
+      const origin = root.location.origin;
+      if (!origin || origin === 'null' || root.parent.location.origin !== origin) return false;
+      root.parent.postMessage(msg, origin);
       return true;
     } catch (e) { return false; /* the console is gone */ }
   }
@@ -7237,13 +7314,14 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   }
 
   /**
-   * One usage bar: what is used of one limit this month. Orange while there is room, amber from 85 percent, red at the
-   * limit, and the same in words. Home draws a compact row (name, figure); Work (plain) draws a sentence.
+   * One usage bar: what is used of one limit this month. Orange while there is room, amber from 85 percent, a calm ink bar
+   * saying "Limit reached" at the limit, and red saying "Over by N" only past it, and the same in words. Home draws a
+   * compact row (name, figure); Work (plain) draws a sentence.
    * @param {{name: string, used: number, cap: number, pct: number, tone: string, tail: string, usedText: string, weeklyHint?: string|null, atOnce?: boolean}} l
    * @param {{chip?: string, plain?: boolean}} [o]
    */
   function UsageBar(l, o = {}) {
-    const word = l.tone === 'full' ? 'Limit reached' : l.tone === 'warn' ? 'Almost used' : '';
+    const word = l.tone === 'over' ? `Over by ${l.used - l.cap}` : l.tone === 'full' ? 'Limit reached' : l.tone === 'warn' ? 'Almost used' : '';
     const m = /^(\d+ of \d+)(.*)$/.exec(l.usedText);
     const sentence = m ? `<strong>${esc(m[1])}</strong>${esc(m[2])}${l.atOnce ? '' : ' this month'}${l.weeklyHint ? ` <span class="usage-hint">(${esc(l.weeklyHint)})</span>` : ''}` : esc(l.usedText);
     const head = o.plain
@@ -7664,7 +7742,6 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   function blurb(p) {
     const n = p.rule.choose;
     const some = n === 1 ? 'one service' : `${numWord(n)} services`;
-    if (p.rule.all) return 'Every service';
     if (p.rule.fixed.length) return `${F.list(p.rule.fixed.map((/** @type {string} */ x) => svc(x).label))}, plus ${some} you choose`;
     return `Any ${some} you choose`;
   }
@@ -7752,15 +7829,17 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     return `<ol class="tl">${items.map((x) => `<li class="tl-item is-${x.state}"><span class="tl-dot" aria-hidden="true">${x.state === 'done' ? icon('check') : ''}</span><div><p class="tl-title">${x.title}</p>${x.text ? `<p class="tl-text">${x.text}</p>` : ''}</div></li>`).join('')}</ol>`;
   }
 
-  /** What is coming: the month that started, the last day to change, the reminders, the next bill. @param {any} m @param {any} [staff] */
-  function comingUp(m, staff) {
+  /** What is coming: the month that started, the last day to change, the reminders, the next bill. @param {any} m @param {any} [staff] @param {string} [email] */
+  function comingUp(m, staff, email) {
     const c = m.now;
     const p = price(m.next || c);
-    const [d7, d3] = m.reminders;
+    // Only dates still ahead, and only when there is an address to send to: the line must not promise a reminder that cannot happen.
+    const ahead = (m.reminders || []).filter((/** @type {any} */ r) => !r.past).map((/** @type {any} */ r) => esc(day(r.date)));
+    const reminder = email && ahead.length ? ` We email you on ${F.list(ahead)}.` : '';
     const items = [
       { state: 'done', title: `${esc(day(c.start))}: month started`, text: `Your ${esc(c.name)} services are running.` },
       m.open
-        ? { state: 'todo', title: `${esc(day(m.lastDay))}: last day to change next month`, text: `Do nothing and it stays the same. We email you on ${esc(day(d7.date))} and ${esc(day(d3.date))}.` }
+        ? { state: 'todo', title: `${esc(day(m.lastDay))}: last day to change next month`, text: `Do nothing and it stays the same.${reminder}` }
         : { state: 'todo', title: 'Next month is set', text: 'The last day to change it has passed. Message us if something is wrong.' },
       { state: 'todo', title: `${esc(day(m.bill))}: next bill`, text: p ? `Next bill: ${esc(p)}.` : `${esc((m.next || c).name)} renews for another month.` }
     ];
@@ -7795,8 +7874,19 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     </section>`;
   }
 
-  /** Home, when no month of a plan is set up yet. */
-  function notSetUp() {
+  /**
+   * Home, Billing and the picker, when no month of a plan is running. A new client whose first month is chosen but starts
+   * later (its first bill date is ahead) sees that plan and the day it starts, and nothing is counted until then.
+   * @param {any} [m] the plan model
+   */
+  function notSetUp(m) {
+    const u = m && m.state === 'upcoming' ? m.upcoming : null;
+    if (u) {
+      const names = F.list(u.services.map((/** @type {any} */ s) => s.label));
+      return `<section class="card plan-card plan-none plan-upcoming" aria-labelledby="h-upcoming">
+      <div class="empty">${icon('calendar', 'empty-icon')}<div><h2 id="h-upcoming" class="empty-title">Your plan starts on ${esc(day(u.start))}.</h2><p class="empty-text">${esc(u.name)}${names ? `: ${esc(names)}` : ''}. Nothing is counted until it starts.</p><a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a></div></div>
+    </section>`;
+    }
     return `<section class="card plan-card plan-none" aria-labelledby="h-none">
       <div class="empty">${icon('card', 'empty-icon')}<div><h2 id="h-none" class="empty-title">Your plan is not set up yet.</h2><p class="empty-text">Message us and we will sort it out. Nothing is lost.</p><a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a></div></div>
     </section>`;
@@ -7914,7 +8004,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     const was = price(c);
     const will = price(n);
     const items = [
-      { state: 'done', title: `${esc(F.date(n.confirmedAt || m.today))}: confirmed`, text: D8.data.MODE === 'demo' ? 'In your own portal a copy goes to your email.' : 'A copy goes to your email.' },
+      { state: 'done', title: `${esc(F.date(n.confirmedAt || m.today))}: confirmed`, text: 'Your choice is saved. You can see it here any time.' },
       { state: 'todo', title: `Until ${esc(day(m.lastDay))}`, text: `${esc(F.list(c.services.map((/** @type {any} */ s) => s.label)))} keep running as normal.` },
       { state: 'todo', title: `${esc(day(m.bill))}: ${m.changes.planChanged ? 'new plan starts' : 'new services start'}`, text: `${will ? `Your bill is ${esc(will)}. ` : ''}Locked until ${esc(day(m.lock.to))}.` }
     ];
@@ -7925,7 +8015,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         <div><p class="eyebrow is-green">You're all set</p><h2 id="h-set">${esc(n.name)} ${m.changes.planChanged ? 'starts' : 'services start'} ${esc(day(m.bill))}</h2></div>
         ${n.confirmedAt ? `<p class="lock-chip">${icon('lock')}Confirmed ${esc(F.dateTime12(n.confirmedAt))}</p>` : ''}
       </header>
-      <p class="pcf-lede">${D8.data.MODE === 'demo' ? 'In your own portal we email you a copy.' : `A copy is on its way to ${esc(email || 'your email')}.`} Nothing is charged today.</p>
+      <p class="pcf-lede">Your choice is saved. Nothing is charged today.</p>
       <div class="rule-rainbow" aria-hidden="true"></div>
       <div class="pcf-versus">
         <div class="pcf-box"><p class="eyebrow">Now</p><p class="pcf-plan">${esc(c.name)}</p>${was ? `<p class="pcf-price"><strong>${esc(was)}</strong>/month</p>` : ''}<p class="pcf-svcs">${esc(F.list(c.services.map((/** @type {any} */ s) => s.label)))}</p></div>
@@ -8044,6 +8134,11 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     }).join('');
   }
 
+  /** How many of the picks the client has made: Ads (and anything else the plan includes) is not a pick. @param {any} r a plan rule @param {string[]} picks */
+  const pickedOf = (r, picks) => picks.filter((/** @type {string} */ x) => !r.fixed.includes(x)).length;
+  /** The step's heading: only the picks are counted, Ads is shown as included. @param {any} r a plan rule */
+  const stepTitle = (r) => `Step 2. Choose ${r.choose} ${r.choose === 1 ? 'service' : 'services'}`;
+
   /** The services to pick from, for the plan chosen. @param {any} m @param {{planId: string, picks: string[], option: string|null}} st */
   function serviceCards(m, st) {
     const plan = m.menu.find((/** @type {any} */ p) => p.id === st.planId);
@@ -8088,7 +8183,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     }).join('');
     const more = pv.moreMinor !== null && pv.moreMinor !== undefined && pv.moreMinor !== 0 ? `<span class="pk-more${pv.moreMinor < 0 ? ' is-less' : ''}">${esc(F.money(Math.abs(pv.moreMinor), d.currency))} ${pv.moreMinor > 0 ? 'more' : 'less'}</span>` : '';
     const tl = timeline([
-      { state: 'todo', title: 'Today: you confirm', text: `We email you a copy. Nothing is charged today.` },
+      { state: 'todo', title: 'Today: you confirm', text: `Your choice is saved. Nothing is charged today.` },
       { state: 'todo', title: `Until ${esc(day(m.lastDay))}`, text: `${esc(F.list(c.services.map((/** @type {any} */ s) => s.label)))} keep running as normal.` },
       { state: 'todo', title: esc(day(m.bill)), text: `${esc(d.name)} starts.${will ? ` Your bill is ${esc(will)}.` : ''}` }
     ]);
@@ -8100,12 +8195,12 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       <p class="pk-down" aria-hidden="true">${icon('arrow-right')}</p>
       <div class="pk-from"><p class="eyebrow">From ${esc(day(m.bill))}</p><div class="pk-line"><div><p class="pk-name">${esc(d.name)}</p><p class="pk-svcs">${esc(F.list(d.services.map((/** @type {any} */ s) => s.label)))}</p></div>${will ? `<p class="pk-cost"><strong>${esc(will)}</strong>/month</p>` : ''}</div></div>
       ${rows ? `<ul class="chg-list is-panel">${rows}</ul>` : '<p class="meta pk-same">This is the same as this month.</p>'}
-      <div class="pk-today"><p class="pk-row"><span>Today</span><strong>$0</strong></p><p class="pk-row is-next"><span>${esc(day(m.bill))} and each month after</span>${will ? '' : `<strong>${esc(d.name)}</strong>`}</p>${will ? `<p class="pk-big"><strong>${esc(will)}</strong>${more}</p>` : ''}</div>
+      <div class="pk-today"><p class="pk-row"><span>Nothing today</span></p><p class="pk-row is-next"><span>${esc(day(m.bill))} and each month after</span>${will ? '' : `<strong>${esc(d.name)}</strong>`}</p>${will ? `<p class="pk-big"><strong>${esc(will)}</strong>${more}</p>` : ''}</div>
       <h3 class="po-h">What happens next</h3>${tl}
       <p class="form-error" id="pk-error" role="alert"${err ? '' : ' hidden'}>${err ? icon('alert') + '<span>' + esc(err) + '</span>' : ''}</p>
       <button class="btn btn-primary btn-block pk-confirm" type="button" data-pick="confirm"${pv.valid ? '' : ' disabled'}>${icon('lock')}${esc(verb)}</button>
       <p class="pk-lock">Locks your services for ${esc(day(m.lock.from))} to ${esc(day(m.lock.to))}.</p>
-      <a class="btn btn-glass btn-block" href="#/billing">Keep my current plan</a>
+      ${pv.same ? '' : '<a class="btn btn-glass btn-block" href="#/billing">Keep my current plan</a>'}
     </div>`;
   }
 
@@ -8149,13 +8244,13 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     const pv = D8.planModel.preview(m, { planId: st.planId, picks: st.picks, websiteOption: st.option });
     const plan = m.menu.find((/** @type {any} */ p) => p.id === st.planId);
     const r = plan.rule;
-    const total = r.total;
-    const have = st.picks.length;
+    const total = r.choose;
+    const have = pickedOf(r, st.picks);
     return `<div class="picker" id="picker">
       <div class="pk-main">
         <section class="pk-step" aria-labelledby="step1"><h2 class="step-h" id="step1" tabindex="-1">Step 1. Choose a plan</h2>
           <fieldset class="plan-choices"><legend class="sr-only">Your plan for next month</legend>${planCards(m, st)}</fieldset></section>
-        <section class="pk-step" aria-labelledby="step2"><div class="step-head"><h2 class="step-h" id="step2">Step 2. ${r.fixed.length ? `Pick ${r.choose} ${r.choose === 1 ? 'more service' : 'more services'}` : `Pick ${r.choose} services`}</h2><span class="pick-count${have === total ? ' is-done' : ''}" id="pick-count" aria-live="polite">${icon('check')}${have} of ${total} picked</span></div>
+        <section class="pk-step" aria-labelledby="step2"><div class="step-head"><h2 class="step-h" id="step2">${stepTitle(r)}</h2><span class="pick-count${have === total ? ' is-done' : ''}" id="pick-count" aria-live="polite">${icon('check')}${have} of ${total} picked</span></div>
           <fieldset class="svc-choices" id="svc-choices"><legend class="sr-only">Services for next month</legend>${serviceCards(m, st)}</fieldset>
           <p class="pick-help">${icon('info')}<span>Not sure? <a class="link" href="#/messages">Message Karan</a> and we will help you choose. You can change your picks as many times as you like until ${esc(day(m.lastDay))}.</span></p></section>
       </div>
@@ -8188,11 +8283,11 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       html('#svc-choices').innerHTML = serviceCards(m, st);
       html('#pk-panel').innerHTML = panel(m, pv, st);
       const r = plan().rule;
-      const have = st.picks.length;
+      const have = pickedOf(r, st.picks);
       const count = html('#pick-count');
-      count.className = 'pick-count' + (have === r.total ? ' is-done' : '');
-      count.innerHTML = `${icon('check')}${have} of ${r.total} picked`;
-      html('#step2').textContent = r.fixed.length ? `Step 2. Pick ${r.choose} ${r.choose === 1 ? 'more service' : 'more services'}` : `Step 2. Pick ${r.choose} services`;
+      count.className = 'pick-count' + (have === r.choose ? ' is-done' : '');
+      count.innerHTML = `${icon('check')}${have} of ${r.choose} picked`;
+      html('#step2').textContent = stepTitle(r);
       root_.querySelectorAll('.plan-opt[data-plan]').forEach((n) => {
         n.classList.toggle('is-on', n.getAttribute('data-plan') === st.planId);
         n.classList.toggle('is-just', !!just && just.kind === 'plan' && n.getAttribute('data-plan') === just.id);
@@ -8201,7 +8296,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       if (just && just.kind === 'web') { const w = root_.querySelector(`.web-choice .pk-input[value="${just.id}"]`); if (w && w.parentElement) w.parentElement.classList.add('is-just'); }
       const d = pv && pv.draft;
       html('#pk-bar-name').textContent = d ? `${d.name}${price(d) ? ` · ${price(d)}/month` : ''}` : '';
-      html('#pk-bar-sub').textContent = d ? `From ${day(m.bill)} · $0 today` : '';
+      html('#pk-bar-sub').textContent = d ? `From ${day(m.bill)} · Nothing today` : '';
       // Focus follows the card, without scrolling the page to it: the client is already there.
       if (focus) { const f = /** @type {HTMLElement|null} */ (root_.querySelector(focus)); if (f) f.focus({ preventScroll: true }); }
     }
@@ -9196,10 +9291,10 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         }, () => { count = -1; summary(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
         // The plan this month, what is used, and what comes next.
         plan: () => section(el, '#home-plan', () => Promise.all([ctx.client.getPlan(), ctx.client.getWorkSummary(), ctx.client.getAttention().catch(() => [])]), ([m, list, acts]) => {
-          if (m.state !== 'ok') return D8.plan.notSetUp();
+          if (m.state !== 'ok') return D8.plan.notSetUp(m);
           const changing = m.confirmed && m.changes.differs;
           const note = staffSection('note');
-          return `<div class="home-cols">${D8.plan.runningNow(m, { summary: list, actions: acts, staff: staffSection('running_now') })}${changing ? D8.plan.whatChanges(m, staffSection('next_month')) : D8.plan.comingUp(m, staffSection('next_month'))}</div>${note && D8.plan.staffNote(note) ? `<section class="card home-note" aria-label="A note from Domin8te">${D8.plan.staffNote(note)}</section>` : ''}`;
+          return `<div class="home-cols">${D8.plan.runningNow(m, { summary: list, actions: acts, staff: staffSection('running_now') })}${changing ? D8.plan.whatChanges(m, staffSection('next_month')) : D8.plan.comingUp(m, staffSection('next_month'), ctx.account.user.email)}</div>${note && D8.plan.staffNote(note) ? `<section class="card home-note" aria-label="A note from Domin8te">${D8.plan.staffNote(note)}</section>` : ''}`;
         }, () => ({ title: "We couldn't load your plan.", text: 'The rest of this page works.', retry: 'plan' }))
       };
       Object.values(loaders).forEach((load) => load());
@@ -9319,7 +9414,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         const m = w.plan;
         const fresh = UI.PageFresh({
           updatedAt: w.updatedAt || D8.time.isoTime(ctx.client.now()), source: 'Domin8te console', zone: ctx.account.zoneAbbr,
-          status: m.mismatch ? 'kept' : 'ok', extra: m.state === 'ok' ? `Plan: ${m.now.name} · picks locked until ${F.date(m.lastDay)}` : '',
+          status: m.mismatch ? 'kept' : 'ok', extra: m.state === 'ok' ? `Plan: ${m.now.name} · picks locked until ${F.date(m.lastDay)}` : m.state === 'upcoming' ? `Plan: ${m.upcoming.name} · starts ${F.date(m.starts)}` : '',
           note: m.mismatch ? 'Showing the last checked update. We could not confirm a newer change from our task tool. Karan has been told and nothing is lost.' : ''
         });
         const body = w.services.length
@@ -9607,7 +9702,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     const fresh = billFresh(b, ctx);
     const help = '<p class="bill-help">Question about a charge? <a class="link" href="#/messages">Message us</a></p>';
     // A new client has no month of a plan yet: say so, never a "could not load". Any bills they do have still show.
-    if (m.state !== 'ok') return `${fresh}${D8.plan.notSetUp()}${b.invoices.length ? D8.plan.bills(b.invoices, m) : ''}${help}`;
+    if (m.state !== 'ok') return `${fresh}${D8.plan.notSetUp(m)}${b.invoices.length ? D8.plan.bills(b.invoices, m) : ''}${help}`;
     const changing = m.confirmed && m.changes.differs;
     return `${fresh}
       ${b.subscription && b.subscription.status === 'past_due' ? payBanner(b) : ''}
@@ -9629,7 +9724,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   /** @param {any} m the plan model @param {any} ctx */
   function changeBody(m, ctx) {
     const fresh = UI.PageFresh({ updatedAt: D8.time.isoTime(ctx.client.now()), zone: ctx.account.zoneAbbr, source: 'Domin8te console', status: 'ok' });
-    if (m.state !== 'ok') return fresh + D8.plan.notSetUp();
+    if (m.state !== 'ok') return fresh + D8.plan.notSetUp(m);
     if (!m.open) {
       return `${fresh}<section class="card plan-locked" aria-labelledby="h-locked">
         <div class="empty">${icon('lock', 'empty-icon')}<div><h2 id="h-locked" class="empty-title">Next month is set.</h2><p class="empty-text">The last day to change it, ${esc(day(m.lastDay))}, has passed. Message us if something is wrong.</p><a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a></div></div>
@@ -9651,7 +9746,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           .then((m) => {
             if (!m || m.state !== 'ok' || !m.open) return;
             D8.plan.mountPicker(el, ctx, m, () => {
-              D8.dialogs.toast(`Confirmed. A copy is on its way to ${ctx.account.user.email || 'your email'}.`);
+              D8.dialogs.toast('Confirmed. Your choice is saved.');
               root.location.hash = '#/billing';
             });
           });
@@ -9845,7 +9940,14 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (!dirty()) return;
-      if (D8.data.READ_ONLY) { status.textContent = D8.data.DEMO_NOTE; D8.dialogs.toast(D8.data.viewAs ? D8.data.DEMO_NOTE : 'This is a demo, so nothing is saved.'); return; }
+      if (D8.data.READ_ONLY) {
+        // Nothing was saved, so the switches go back to what is saved (2026-10-14): the page never shows a choice it did not keep.
+        for (const c of s.categories) { const box = /** @type {HTMLInputElement|null} */ (form.elements.namedItem(c.id)); if (box) box.checked = !!saved[c.id]; }
+        btn.disabled = true;
+        status.textContent = D8.data.DEMO_NOTE;
+        D8.dialogs.toast(D8.data.viewAs ? D8.data.DEMO_NOTE : 'This is a demo, so nothing is saved.');
+        return;
+      }
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner" aria-hidden="true"></span>Saving';
       err.hidden = true;
