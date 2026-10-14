@@ -2138,12 +2138,17 @@ select { background-color: rgba(255, 255, 255, 0.78); }
 
 /* Tabs and segmented controls become rows of separate glass pills, like the dashboard's service tabs. */
 .tabs, .seg { gap: 8px; padding: 2px; border: 0; background: none; border-radius: 0; overflow-x: auto; }
+/* A pill group keeps its shadows: it wraps instead of scrolling, so nothing cuts the glass into a box (2026-10-14). */
+.seg { flex-wrap: wrap; overflow: visible; }
+.tabs a, .seg a, .seg button { user-select: none; -webkit-user-select: none; transition: background-color 160ms var(--ease), border-color 160ms var(--ease), box-shadow 160ms var(--ease), color 160ms var(--ease), transform 160ms var(--ease); }
 .tabs a, .seg a, .seg button { min-height: 42px; padding: 9px 16px; border-radius: 999px; border: 0.67px solid var(--glass-edge); background-color: var(--glass); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); color: var(--ink); font-size: 15px; font-weight: 650; }
 .seg a, .seg button { min-height: 38px; padding: 7px 14px; font-size: 14px; }
-.tabs a:hover, .seg a:hover, .seg button:hover { background-color: rgba(255, 255, 255, 0.72); }
+.tabs a:hover, .seg a:hover, .seg button:hover { background-color: rgba(255, 255, 255, 0.9); border-color: rgba(94, 72, 50, 0.22); color: var(--ink); box-shadow: 0 6px 16px -8px rgba(60, 40, 20, 0.35), var(--glass-shadow-sm); transform: translateY(-1px); }
+.tabs a:active, .seg a:active, .seg button:active { transform: translateY(0); box-shadow: var(--glass-shadow-sm); }
+@media (prefers-reduced-motion: reduce) { .tabs a:hover, .seg a:hover, .seg button:hover { transform: none; } }
 .tabs a, .seg a, .seg button { background-color: rgba(255, 255, 255, 0.3); color: var(--ink-2); }
 .tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"] { background-color: rgba(255, 255, 255, 0.95); color: var(--ink); box-shadow: var(--pill-on), var(--glass-shadow-sm); }
-.tabs { margin-bottom: 22px; padding: 4px 2px 14px; }
+.tabs { margin: 0 -8px 10px; padding: 6px 8px 16px; }
 .req-status { border: 0; background: rgba(94, 72, 50, 0.08); border-radius: 999px; padding: 3px; }
 .req-status button { border-radius: 999px; min-height: 30px; padding: 0 12px; font-size: 13px; }
 .req-status button[aria-pressed="true"] { background: var(--glass-strong); box-shadow: var(--pill-on); }
@@ -2263,7 +2268,7 @@ html[data-theme="dark"] select option { background: #1B1E26; color: #F1EFEA; }
 html[data-theme="dark"] .chip.you { background: var(--you-bg); color: var(--you); }
 html[data-theme="dark"] .chip.info { background: rgba(80, 140, 230, 0.18); color: #9CC2F5; }
 html[data-theme="dark"] :is(.tabs a, .seg a, .seg button) { background-color: rgba(255, 255, 255, 0.04); color: var(--ink-2); }
-html[data-theme="dark"] :is(.tabs a, .seg a, .seg button):hover { background-color: rgba(255, 255, 255, 0.09); }
+html[data-theme="dark"] :is(.tabs a, .seg a, .seg button):hover { background-color: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.18); box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.7); }
 html[data-theme="dark"] :is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]) { background-color: rgba(255, 255, 255, 0.15); color: var(--ink); }
 html[data-theme="dark"] .req-status { background: rgba(255, 255, 255, 0.06); }
 html[data-theme="dark"] .req-status button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.15); }
@@ -3057,7 +3062,7 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 .wk-form input[type="number"]:disabled, .wk-form select:disabled { opacity: 0.6; }
 
 /* inside a client's tab the freshness line sits above the toolbar with room under it */
-#tab > .page-fresh { margin: 0 0 14px; }
+#tab > .page-fresh { margin: 0 0 18px; }
 
 /* Phones: each client's limits slide sideways and so do the filter chips, so the board is not four screens down. */
 @media (max-width: 760px) {
@@ -3153,7 +3158,6 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 /* a result open for its check is read, not typed: the values stay clear and dark */
 .rs-form input:disabled:not([role="switch"]), .rs-form select:disabled { background-color: rgba(255, 255, 255, 0.55); color: var(--ink); -webkit-text-fill-color: var(--ink); opacity: 1; cursor: default; }
 
-#tab > .page-fresh { margin: 0; }
 
 /* css/30-billing.css */
 /*
@@ -3654,19 +3658,22 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
  * a person: a row nobody has decided yet.
  */
 
-.vz { display: grid; gap: 16px; }
+.vz { display: grid; gap: 18px; }
 .vz > .page-fresh { margin: 0; }
 .vz-head h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.4px; }
 .vz-head p { margin-top: 5px; max-width: 66ch; color: var(--ink-3); font-size: 15.5px; }
 .vz > .notice { margin: 0; }
-.vz-cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+.vz-cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+/* the panels are solid enough that the page's dots do not show through the words */
+.vz-cols > .panel { background-color: var(--glass-strong); }
+.vz-main { container: vzlist / inline-size; }
 .vz-cols > .panel { margin-top: 0; }
 .vz-side { position: sticky; top: 16px; }
-.vz-side h3 { margin-bottom: 2px; }
+.vz-side h3 { margin-bottom: 4px; }
 .vz-count { font-variant-numeric: tabular-nums; }
 
 /* The filter: the console's own pill group, the counts quiet unless something waits for a decision. */
-.vz-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; padding: 0; }
+.vz-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 18px; padding: 0; }
 .vz-filter button { min-height: 36px; padding: 6px 14px; }
 .vz-filter .count { margin-left: 7px; padding: 0 7px; font-variant-numeric: tabular-nums; }
 .vz-filter .count.quiet { background: var(--surface-3); color: var(--ink-2); }
@@ -3675,7 +3682,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
 .vz-tablewrap { margin: 0 -10px; overflow-x: auto; }
 .vz-table { width: 100%; border-collapse: collapse; }
 .vz-table th { padding: 10px 12px; border-bottom: 1px solid var(--line-2); color: var(--ink-3); font-size: 13px; font-weight: 600; text-align: left; white-space: nowrap; }
-.vz-table td { padding: 15px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.vz-table td { padding: 18px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .vz-row { transition: background 120ms var(--ease); }
 .vz-row:hover td { background: var(--hover); }
 .vz-row.is-open td { background: rgba(255, 255, 255, 0.5); border-bottom-color: transparent; }
@@ -3686,7 +3693,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
 .vz-c-ctl { width: 134px; }
 .vz-type { display: inline-flex; align-items: center; padding: 2px 11px; border-radius: 999px; background: var(--surface-3); color: var(--ink-2); font-size: 12.5px; font-weight: 650; line-height: 1.55; white-space: nowrap; }
 .vz-title { display: block; font-size: 15.5px; font-weight: 650; line-height: 1.35; overflow-wrap: anywhere; }
-.vz-sub { display: block; margin-top: 3px; color: var(--ink-3); font-size: 13.5px; line-height: 1.5; }
+.vz-sub { display: block; margin-top: 6px; color: var(--ink-3); font-size: 13.5px; line-height: 1.5; }
 .vz-sub a { color: var(--accent-ink); font-weight: 600; }
 .vz-dot { margin: 0 4px; color: var(--line-2); }
 .vz-c-status .chip { margin-top: 0; }
@@ -3718,13 +3725,13 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
 .vz-check input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--ink); cursor: pointer; }
 
 /* The history: a quiet timeline. The person is in bold inside the sentence. */
-.vz-hist { display: grid; gap: 20px; margin: 18px 0 0; padding: 0 0 0 20px; border-left: 2px solid var(--line-2); list-style: none; }
+.vz-hist { display: grid; gap: 24px; margin: 20px 0 0 6px; padding: 0 0 0 22px; border-left: 2px solid var(--line-2); list-style: none; }
 .vz-hist li { position: relative; }
 .vz-hist li:focus { outline: none; }
-.vz-hist li::before { content: ""; position: absolute; left: -27px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 2px var(--ink-3); }
+.vz-hist li::before { content: ""; position: absolute; left: -28px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 2px var(--ink-3); }
 .vz-hist li:first-child::before { box-shadow: 0 0 0 2px var(--accent); background: var(--accent); }
-.vz-hist time { display: block; font-size: 14.5px; font-weight: 650; font-variant-numeric: normal; }
-.vz-hist p { margin-top: 2px; color: var(--ink-2); font-size: 14.5px; line-height: 1.5; }
+.vz-hist time { display: block; color: var(--ink-3); font-size: 13px; font-weight: 650; letter-spacing: 0.01em; font-variant-numeric: normal; }
+.vz-hist p { margin-top: 4px; color: var(--ink-2); font-size: 14.5px; line-height: 1.55; text-wrap: pretty; }
 .vz-hist strong { color: var(--ink); }
 .vz-more { margin-top: 16px; font-size: 14px; }
 
@@ -3735,8 +3742,8 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
 
 /* A phone: each row becomes a card, with no horizontal scroll. Top line: the type and the control (the switch or Decide). Then the
    title, the state, and the small print. The item cell gives its parts to the grid (display: contents) so the state can sit between. */
-@media (max-width: 760px) {
-  .vz-head h2 { font-size: 21px; }
+@media (max-width: 760px) { .vz-head h2 { font-size: 21px; } }
+@container vzlist (max-width: 720px) {
   .vz-tablewrap { margin: 0; overflow: visible; }
   .vz-table, .vz-table tbody { display: block; }
   .vz-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -17054,7 +17061,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
 })();
 </script>
 <style>/* the growth cursor, as on the homepage */
-@media (hover:hover) and (pointer:fine){ html, html *{ cursor:url(/assets/v3-cursor-32.png?v=f911eff871) 2 1,auto!important; cursor:-webkit-image-set(url(/assets/v3-cursor-32.png?v=f911eff871) 1x,url(/assets/v3-cursor-64.png?v=2f417793af) 2x) 2 1,auto!important; } }
+@media (hover:hover) and (pointer:fine){ html, html *{ cursor:url(/assets/v3-cursor-32.png?v=f911eff871) 2 1,default!important; cursor:-webkit-image-set(url(/assets/v3-cursor-32.png?v=f911eff871) 1x,url(/assets/v3-cursor-64.png?v=2f417793af) 2x) 2 1,default!important; } }
 .v3cur{position:fixed;left:0;top:0;z-index:2147483647;width:96px;height:96px;pointer-events:none;visibility:hidden;will-change:transform}
 .v3cur__mark{position:absolute;left:32px;top:32px;width:32px;height:32px}
 .v3cur svg{display:block;position:absolute;left:0;top:0;overflow:visible}

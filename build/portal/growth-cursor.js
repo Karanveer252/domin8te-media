@@ -16,7 +16,7 @@ module.exports = function growthCursor() {
   const p64 = v(/v3-cursor-64\.png\?v=([0-9a-f]+)/, css, 'v3-cursor-64.png');
   const u32 = `/assets/v3-cursor-32.png?v=${p32}`, u64 = `/assets/v3-cursor-64.png?v=${p64}`;
   return `<style>/* the growth cursor, as on the homepage */
-@media (hover:hover) and (pointer:fine){ html, html *{ cursor:url(${u32}) 2 1,auto!important; cursor:-webkit-image-set(url(${u32}) 1x,url(${u64}) 2x) 2 1,auto!important; } }
+@media (hover:hover) and (pointer:fine){ html, html *{ cursor:url(${u32}) 2 1,default!important; cursor:-webkit-image-set(url(${u32}) 1x,url(${u64}) 2x) 2 1,default!important; } }
 .v3cur{position:fixed;left:0;top:0;z-index:2147483647;width:96px;height:96px;pointer-events:none;visibility:hidden;will-change:transform}
 .v3cur__mark{position:absolute;left:32px;top:32px;width:32px;height:32px}
 .v3cur svg{display:block;position:absolute;left:0;top:0;overflow:visible}

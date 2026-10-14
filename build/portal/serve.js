@@ -5,8 +5,9 @@ const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 
 http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (p === '/') p = '/versions/v18h.html';
-  const f = path.normalize(path.join(root, p));
-  if (!f.startsWith(root)) { res.writeHead(403); return res.end(); }
+  // the website's own files the pages ask for (the growth cursor's script and pictures) come from the site folder
+  const f = p.startsWith('/assets/') ? path.normalize(path.join('C:/Work/domin8te-media', p)) : path.normalize(path.join(root, p));
+  if (!f.startsWith(root) && !f.startsWith(path.normalize('C:/Work/domin8te-media/assets'))) { res.writeHead(403); return res.end(); }
   fs.readFile(f, (err, data) => {
     if (err) { res.writeHead(404); return res.end('not found'); }
     res.writeHead(200, { 'Content-Type': types[path.extname(f)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
