@@ -1,0 +1,27 @@
+/*
+ * View as client (2026-10-14): the agency console shows this dashboard live and read only in a frame of its own.
+ * The line at the very top of every page, in the demo chip's look (dashed edge, eye, a bold line and a quiet one) on the
+ * cream and orange tokens, and room made for it so the sidebar and the phone bar sit under it. Nobody signs out here.
+ */
+.viewas-bar { display: none; }
+html[data-viewas] { --va-h: 40px; }
+html[data-viewas] .viewas-bar {
+  position: sticky; top: 0; z-index: 90;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  height: var(--va-h); padding: 0 16px;
+  background: var(--p-attn-bg); color: var(--p-ink);
+  border-bottom: 1px dashed var(--p-accent);
+  font-size: 14px; line-height: 1.2; overflow: hidden;
+}
+html[data-viewas] .viewas-bar[hidden] { display: none; }
+.viewas-bar .i { flex: none; width: 18px; height: 18px; color: var(--p-accent-ink); }
+.viewas-bar .va-text { display: flex; align-items: baseline; gap: 4px 10px; min-width: 0; white-space: nowrap; }
+.viewas-bar .va-title { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+.viewas-bar .va-sub { font-weight: 500; color: var(--p-ink-2); overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) { .viewas-bar .va-sub { display: none; } }
+/* The sidebar and the phone bar start below the line. */
+html[data-viewas] .side { top: calc(16px + var(--va-h)); height: calc(100vh - 32px - var(--va-h)); }
+@media (max-width: 760px) {
+  html[data-viewas] .topbar { top: var(--va-h); }
+}
+html[data-viewas] .nav-signout, html[data-viewas] [data-action="sign-out"] { display: none !important; }

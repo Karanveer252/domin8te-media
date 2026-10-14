@@ -206,8 +206,83 @@
 
 
   async function db() {
-    if (!sb) sb = await D8.live.db();
+    if (!sb) sb = watchWrites(await D8.live.db());
     return sb;
+  }
+  /**
+   * Tells the Client view tab (mod-clientview.js) after every write this console makes, so the client's dashboard in its frame
+   * redraws at once (2026-10-14). The one place for it: the database client is wrapped here, so every part of the console is
+   * covered (insert, update, upsert, delete, and every rpc that is not a plain read). A failed write tells nobody. Reads and the
+   * account look (user_prefs) do not count. The server functions are covered in callFn and multica below.
+   * @param {any} client
+   */
+  function watchWrites(client) {
+    if (!client || client.__d8watch) return client;
+    const isThen = (/** @type {any} */ x) => !!x && typeof x.then === 'function';
+    /** Wraps a pending query so its answer, when it has no error, tells the Client view. @param {any} q @param {any} tenant @returns {any} */
+    const guard = (q, tenant) => {
+      if (!isThen(q)) return q;
+      if (q instanceof Promise) return q.then((v) => { if (v && !v.error) changed(tenant); return v; });
+      const p = new Proxy(q, {
+        get(t, k) {
+          if (k === 'then') return (/** @type {any} */ res, /** @type {any} */ rej) => t.then((/** @type {any} */ v) => { if (v && !v.error) changed(tenant); return res ? res(v) : v; }, rej);
+          const v = t[k];
+          if (typeof v !== 'function') return v;
+          return (/** @type {any[]} */ ...a) => { const r = v.apply(t, a); return r === t ? p : isThen(r) ? guard(r, tenant) : r; };
+        }
+      });
+      return p;
+    };
+    const ofrom = client.from.bind(client);
+    const orpc = client.rpc.bind(client);
+    const WRITE = { insert: 1, update: 1, upsert: 1, delete: 1 };
+    client.from = (/** @type {string} */ table) => {
+      const b = ofrom(table);
+      if (table === 'user_prefs') return b;
+      return new Proxy(b, {
+        get(t, k) {
+          const v = t[k];
+          if (typeof v !== 'function') return v;
+          if (typeof k === 'string' && Object.prototype.hasOwnProperty.call(WRITE, k)) {
+            return (/** @type {any[]} */ ...a) => {
+              const row = Array.isArray(a[0]) ? a[0][0] : a[0];
+              const tenant = table === 'tenants' ? (row && row.id) || null : (row && row.tenant_id) || null;
+              return guard(v.apply(t, a), tenant);
+            };
+          }
+          return v.bind(t);
+        }
+      });
+    };
+    const READS = /^(console_me|client_work_cards|client_results_current|plan_menu|get_|list_|search_)/;
+    client.rpc = (/** @type {string} */ name, /** @type {any} */ args, /** @type {any} */ opts) => {
+      const r = orpc(name, args, opts);
+      if (READS.test(String(name))) return r;
+      return guard(r, (args && (args.p_tenant || args.p_tenant_id || args.tenant_id)) || null);
+    };
+    client.__d8watch = true;
+    return client;
+  }
+  /** Passes a change on to the Client view tab, if that part is loaded. @param {any} tenant */
+  function changed(tenant) {
+    const x = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.clientview;
+    if (x && x.changed) { try { x.changed(tenant || null); } catch (e) { /* the view of a client is a nicety: it never breaks a save */ } }
+  }
+  /**
+   * The client's dashboard as the dashboard's "view as client" mode needs it (2026-10-14): the console's own signed-in database
+   * client, the client's name, and who is looking. The dashboard in the Client view frame asks for this through window.parent.D8C.viewAs.
+   * @param {string} tenantId
+   */
+  async function viewAs(tenantId) {
+    if (!me || !all) throw new Error('Sign in to the console first.');
+    const client = await db();
+    let t = all.tenants.find((/** @type {any} */ x) => x.id === tenantId);
+    if (!t) {
+      const r = await client.from('tenants').select('id, name, clerk_org_id').eq('id', tenantId).maybeSingle();
+      t = r && !r.error ? r.data : null;
+    }
+    if (!t) throw new Error('That client was not found.');
+    return { client, tenant: { id: t.id, name: t.name, clerk_org_id: t.clerk_org_id || null }, staff: { userId: me.userId, name: me.name } };
   }
   /** @param {any} res */
   function check(res) {
@@ -558,10 +633,18 @@
   function allTabs() {
     const ext = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.tabs ? /** @type {any} */ (window).D8C_EXT.tabs : {};
     const out = TABS.map((x) => [x[0], x[1]]);
-    for (const [key, def] of Object.entries(/** @type {Record<string, any>} */ (ext))) {
-      if (out.some((x) => x[0] === key)) continue;
-      const at = out.findIndex((x) => x[0] === (def.after || 'talk'));
-      out.splice(at >= 0 ? at + 1 : out.length, 0, [key, def.label]);
+    // A part may name a tab that another part adds later in the load order (Client view goes after Home), so a tab whose
+    // neighbour is not there yet waits for another pass; what is still waiting at the end goes last.
+    let rest = Object.entries(/** @type {Record<string, any>} */ (ext)).filter(([key]) => !out.some((x) => x[0] === key));
+    while (rest.length) {
+      const left = rest.filter(([key, def]) => {
+        const at = out.findIndex((x) => x[0] === (def.after || 'talk'));
+        if (at < 0) return true;
+        out.splice(at + 1, 0, [key, def.label]);
+        return false;
+      });
+      if (left.length === rest.length) { for (const [key, def] of left) out.push([key, def.label]); break; }
+      rest = left;
     }
     return out;
   }
@@ -1708,6 +1791,7 @@
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) { const e = new Error(body.message || `The sync service answered ${res.status}.`); /** @type {any} */ (e).code = body.error || res.status; throw e; }
+    if (payload && payload.action !== 'status') changed(payload.tenantId);
     return body;
   }
   async function multicaStatus() {
@@ -2342,6 +2426,7 @@
       const e = new Error(FN_CODES[b.error] || (b.message ? `${b.message}${b.detail ? ` (${b.detail})` : ''}` : `The server answered ${res.status}.`));
       /** @type {any} */ (e).code = b.error || res.status; /** @type {any} */ (e).customer = b.customer || null; throw e;
     }
+    if (!/^(list|status|search)$/.test(String(payload && payload.action))) changed(payload && payload.tenantId);
     return body;
   }
   /** The server's error codes for hiding, in words. @type {Record<string, string>} */
@@ -3809,7 +3894,7 @@
   /** @type {any} */ (window).D8C = {
     esc, $, $$, icon, toast, undoToast, busy, val, message, skeleton, plural, when, ago, due, longDate, dayOf, today, localDay, newId, clone, svcLabel,
     SERVICES, SERVICE_ORDER, STATUS, FLAGS, PORTAL_URL, main,
-    db, check, ask, track, clean, redraw, afterSave, route, refreshAll, loadAll, callFn,
+    db, check, ask, track, clean, redraw, afterSave, route, refreshAll, loadAll, callFn, viewAs,
     tenant, derive, planOf, usageTone, usageBar, money, clockTime, pageFresh, billingOf, convo, allTabs, fromCache, loadClient, save, saveDoc,
     get all() { return all; }, get me() { return me; }, get current() { return current; }, get dirty() { return dirty; },
     get plans() { return all && all.plans ? all.plans : emptyPlans(); }

@@ -283,6 +283,8 @@
     if (String(kind).startsWith('connect-') && lastCtx) { account(String(kind).slice(8), 'reconnect', trigger, lastCtx); return; }
     const o = OUTSIDE[kind] || (String(kind).startsWith('connect-') ? { title: 'Reconnect this account', where: 'the provider', text: "You sign in on that service's own page and choose what we can use. We never see your password." } : null);
     if (!o) return;
+    // Viewing as a client (the console's read-only preview): Stripe's and the sign-in service's pages are the client's own.
+    if (D8.data.viewAs) { toast(D8.data.DEMO_NOTE, { tone: 'error' }); return; }
     const b = /** @type {HTMLButtonElement|null} */ (trigger && trigger.tagName === 'BUTTON' ? trigger : null);
     if (b) b.disabled = true;
     const number = trigger && trigger.getAttribute('data-number');

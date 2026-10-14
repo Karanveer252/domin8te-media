@@ -764,7 +764,7 @@
   /** @param {HTMLElement} el */
   async function loadAsks(el) {
     const box = /** @type {HTMLElement|null} */ (el.querySelector('#la-list'));
-    if (!box || !D8.live) return;
+    if (!box || !D8.live || D8.data.viewAs) return; // viewing as a client: the staff reader would see every client's asks
     try {
       const sb = await D8.live.db();
       const r = await sb.from('login_requests').select('first_name, email, role, status, at').order('at', { ascending: false }).limit(20);
@@ -803,6 +803,7 @@
       err.hidden = true;
       if (!first) return bad('first', 'Add their first name.');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return bad('email', 'Enter their email address, like name@restaurant.com.');
+      if (D8.data.viewAs) { status.textContent = D8.data.DEMO_NOTE; return; }
       if (!D8.live) { status.textContent = 'This is a demo, so nothing was sent. In your own portal, we would get this request.'; return; }
       const btn = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
       btn.disabled = true;
@@ -846,7 +847,7 @@
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (!dirty()) return;
-      if (D8.data.READ_ONLY) { status.textContent = D8.data.DEMO_NOTE; D8.dialogs.toast('This is a demo, so nothing is saved.'); return; }
+      if (D8.data.READ_ONLY) { status.textContent = D8.data.DEMO_NOTE; D8.dialogs.toast(D8.data.viewAs ? D8.data.DEMO_NOTE : 'This is a demo, so nothing is saved.'); return; }
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner" aria-hidden="true"></span>Saving';
       err.hidden = true;
@@ -999,12 +1000,12 @@
           <form class="msg-compose" id="msg-form" novalidate>
             <div class="field msg-about" id="msg-about-box" hidden><label for="msg-about-pick">What is it about?</label><select id="msg-about-pick" name="about"><option value="general">General</option>${pkg.map((/** @type {string} */ x) => `<option value="${esc(x)}">${esc(SVC()[x].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>
             <label class="sr-only" for="msg-new">Write a message</label>
-            <textarea id="msg-new" name="text" rows="2" maxlength="2000" placeholder="${ro ? 'Sample conversation' : 'Start a conversation, or reply to us'}"${ro ? ' disabled' : ''} aria-describedby="msg-new-err msg-keys"></textarea>
+            <textarea id="msg-new" name="text" rows="2" maxlength="2000" placeholder="${ro ? (D8.data.viewAs ? 'Read only' : 'Sample conversation') : 'Start a conversation, or reply to us'}"${ro ? ' disabled' : ''} aria-describedby="msg-new-err msg-keys"></textarea>
             <p class="field-error" id="msg-new-err" hidden></p>
             <p class="form-error" id="msg-form-err" role="alert" hidden></p>
             <div class="msg-compose-foot">
               <button class="link-btn msg-about-toggle" type="button" aria-expanded="false" aria-controls="msg-about-box"${ro ? ' disabled' : ''}>Add a topic</button>
-              <span class="hint msg-keys" id="msg-keys">${ro ? 'Sample conversation. Sign in to message us.' : 'Ctrl and Enter sends'}</span>
+              <span class="hint msg-keys" id="msg-keys">${ro ? (D8.data.viewAs ? 'Read only. Nothing here changes their account.' : 'Sample conversation. Sign in to message us.') : 'Ctrl and Enter sends'}</span>
               <button class="btn btn-solid msg-send" type="submit"${ro ? ' disabled' : ''}>Send${icon('arrow-right')}</button>
             </div>
           </form>

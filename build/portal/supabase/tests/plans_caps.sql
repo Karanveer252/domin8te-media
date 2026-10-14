@@ -371,6 +371,29 @@ select pg_temp.v('MENU the holder sees its own place as free', 'false',
 reset role;
 update public.plans set max_clients = null where id = 'domin8te';
 
+-- Client view (20261014010000): staff read a client's dashboard as that client sees it; nobody else can
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_a","role":"authenticated","o":{"id":"org_TEST_a"}}';
+select pg_temp.e('VIEW a client cannot read another client as staff (cards)', '42501', $q$select * from public.client_work_cards('bbbbbbbb-0000-0000-0000-00000000000b'::uuid)$q$);
+select pg_temp.e('VIEW a client cannot use the staff menu', '42501', $q$select public.plan_menu('bbbbbbbb-0000-0000-0000-00000000000b'::uuid)$q$);
+select pg_temp.e('VIEW a client cannot use the staff results', '42501', $q$select * from public.client_results_current('bbbbbbbb-0000-0000-0000-00000000000b'::uuid)$q$);
+select pg_temp.v('VIEW the client''s own cards (no argument) as usual', 'ok', (select case when count(*) >= 0 then 'ok' end from public.client_work_cards()));
+reset role;
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_staff","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:member"}}';
+select pg_temp.v('VIEW staff see the same cards the client sees', 'same', (select case when
+  (select coalesce(array_agg(id order by id), '{}') from public.client_work_cards('aaaaaaaa-0000-0000-0000-00000000000a'::uuid)) =
+  (select coalesce(array_agg(t.id order by t.id), '{}') from public.tasks t where t.tenant_id = 'aaaaaaaa-0000-0000-0000-00000000000a' and t.client_visible and t.visibility_decided_at is not null and t.deleted_at is null and t.service is not null and t.status <> 'cancelled')
+  then 'same' else 'different' end));
+select pg_temp.v('VIEW staff menu has the three plans', 'starter,growth,domin8te',
+  (select string_agg(p ->> 'id', ',' order by ord) from jsonb_array_elements(public.plan_menu('aaaaaaaa-0000-0000-0000-00000000000a'::uuid) -> 'plans') with ordinality as t(p, ord)));
+select pg_temp.v('VIEW staff results are only that client''s', 'true',
+  (select (count(*) filter (where tenant_id <> 'aaaaaaaa-0000-0000-0000-00000000000a') = 0)::text from public.client_results_current('aaaaaaaa-0000-0000-0000-00000000000a'::uuid)));
+reset role;
+set local role anon;
+select pg_temp.e('VIEW signed out cannot call it', '42501', $q$select * from public.client_work_cards('aaaaaaaa-0000-0000-0000-00000000000a'::uuid)$q$);
+reset role;
+
 -- T18 (database half) Hermes has no way round the gates -----------------------------------------------------------------
 select pg_temp.v('T18 Hermes is off by default', 'false', app.hermes_enabled()::text);
 set local role authenticated;

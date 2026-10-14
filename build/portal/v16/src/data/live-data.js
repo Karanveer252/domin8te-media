@@ -29,6 +29,28 @@
   const CLERK_JS = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js';
   const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
 
+  /* ---- View as client (2026-10-14) ---------------------------------------------------------------
+   * Set only when the agency console shows this dashboard in its own iframe (see dashboard-data.js, viewAsMode). Then
+   * there is no Clerk at all: the console's own signed-in staff client does every read (the tenant by id, the three
+   * one-argument staff functions), nothing is ever written, and the person is the client's contact from the record. */
+  const VIEW = /** @type {any} */ (D8.data).viewAs;
+  /** @type {Promise<any>|null} */
+  let viewReady = null;
+  /** What the console says about the client and the staff member: { client, tenant: {id, name, clerk_org_id}, staff: {userId, name} }. */
+  function viewCtx() {
+    if (!viewReady) {
+      viewReady = Promise.resolve().then(() => VIEW.parent.D8C.viewAs(VIEW.tenantId)).then((ctx) => {
+        if (!ctx || !ctx.client || !ctx.tenant || !ctx.tenant.id) throw new Error('no client');
+        VIEW.ctx = ctx;
+        VIEW.name = String(ctx.tenant.name || '');
+        return ctx;
+      }).catch((e) => { viewReady = null; throw fail('view-failed', e && e.code === 'view-failed' ? e.message : "The console couldn't open this client's dashboard. Close it and open it again."); });
+    }
+    return viewReady;
+  }
+  /** Every write the client could make stops here. */
+  const viewRefusal = () => fail('view-readonly', D8.data.DEMO_NOTE);
+
   /** Loads a script once. @param {string} src @param {Record<string, string>} [attrs] */
   function script(src, attrs) {
     return new Promise((resolve, reject) => {
@@ -53,6 +75,7 @@
   /** @type {Promise<any>|null} */
   let clerkReady = null;
   function clerk() {
+    if (VIEW) return Promise.reject(viewRefusal()); // viewing as a client never loads Clerk
     if (!clerkReady && PREVIEW) clerkReady = PREVIEW.clerk.load().then(() => PREVIEW.clerk);
     if (!clerkReady) {
       clerkReady = script(CLERK_JS, { 'data-clerk-publishable-key': cfg.clerkPublishableKey })
@@ -143,6 +166,11 @@
     live: true,
     /** The signed-in person and their restaurant, or null when signed out. */
     async getSession() {
+      if (VIEW) {
+        const ctx = await viewCtx();
+        // The client's own contact stays the person shown (no first name or email here); the staff member's id is only the reader.
+        return { userId: String((ctx.staff && ctx.staff.userId) || ''), tenantId: String(ctx.tenant.id), firstName: '', email: '', role: '' };
+      }
       const C = await clerk();
       const s = mySession(C);
       if (!s) return null;
@@ -161,7 +189,8 @@
     },
     /** Emails a 6-digit sign-in code (Clerk sends it). @param {string} email */
     async requestSignInLink(email) {
-      const e = String(email || '').trim();
+      if (VIEW) throw viewRefusal();
+      const e =String(email || '').trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw fail('bad-email', 'Enter the email address your invitation was sent to, like name@restaurant.com.', 'email');
       const C = await clerk();
       try { root.localStorage.setItem('d8.lastEmail', e); root.__d8LastEmail = e; } catch (x) { /* remembering the email is a nicety */ }
@@ -178,7 +207,8 @@
     },
     /** Checks the code and starts the session. @param {string} code */
     async verifyCode(code) {
-      const c = String(code || '').replace(/\s+/g, '');
+      if (VIEW) throw viewRefusal();
+      const c =String(code || '').replace(/\s+/g, '');
       if (!/^\d{6}$/.test(c)) throw fail('bad-code', 'Enter the 6-digit code from the email.', 'code');
       if (!pending) throw fail('no-pending', 'Ask for a new code first.', 'code');
       const C = await clerk();
@@ -192,6 +222,7 @@
       }
     },
     async signOut() {
+      if (VIEW) throw viewRefusal();
       const C = await clerk();
       // Only this page's person signs out; another person signed in on this browser stays signed in.
       const s = mySession(C);
@@ -208,6 +239,7 @@
   /** @type {Promise<any>|null} */
   let dbReady = null;
   function db() {
+    if (VIEW) return viewCtx().then((c) => c.client); // the console's signed-in staff client
     if (!dbReady && PREVIEW) dbReady = Promise.resolve(PREVIEW.supabase.createClient());
     if (!dbReady) {
       dbReady = script(SUPABASE_JS)
@@ -299,16 +331,18 @@
       const mine = ++loads;
       if (!session.tenantId) { tenant = null; return; }
       const sb = await db();
-      const t = await sb.from('tenants').select('id, name, doc').eq('clerk_org_id', session.tenantId).limit(1);
+      // Viewing as a client: the tenant row by its id, read with the console's staff client (the record a client sees is the same).
+      const t = VIEW ? await sb.from('tenants').select('id, name, doc').eq('id', session.tenantId).maybeSingle()
+        : await sb.from('tenants').select('id, name, doc').eq('clerk_org_id', session.tenantId).limit(1);
       if (t.error) {
         // With no sign-in the request goes out without a token and is refused (not an empty answer): say the session ended.
-        if (!PREVIEW && ['42501', 'PGRST301', 'PGRST302'].includes(t.error.code) && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
+        if (!VIEW && !PREVIEW && ['42501', 'PGRST301', 'PGRST302'].includes(t.error.code) && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
         throw dbFail(t.error);
       }
-      const row = t.data && t.data[0];
+      const row = VIEW ? (Array.isArray(t.data) ? t.data[0] : t.data) : t.data && t.data[0];
       if (!row) {
         // No row can also mean the sign-in ended (the request then went out without a token): say so, not "no portal".
-        if (!PREVIEW && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
+        if (!VIEW && !PREVIEW && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
         tenant = null; return;
       }
       zone = 'America/Winnipeg';
@@ -318,18 +352,19 @@
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
         sb.from('requests').select('id, service, body, status, by_name, at, over_cap, urgent_fix').eq('tenant_id', row.id).order('at'),
-        sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').eq('clerk_user_id', session.userId).maybeSingle(),
+        // Viewing as a client: staff have no preferences for this client, so the defaults stand
+        VIEW ? Promise.resolve({ data: null, error: null }) : sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').eq('clerk_user_id', session.userId).maybeSingle(),
         // What staff approved for this client. The database returns a client only client_visible rows; asking
         // for them here as well keeps a staff session previewing the portal to the same rows.
         sb.from('client_dashboard_items').select('id, item_kind, external_id, content, source_observed_at, reporting_period_start, reporting_period_end, verification_status, published_at').eq('tenant_id', row.id).eq('client_visible', true),
         sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url, payment_link_approved_at, payment_link_approved_url, verified_at').eq('tenant_id', row.id).eq('client_visible', true),
         // The team's board cards for this client (2026-10-08): only their visible cards with a service, safe fields only
-        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve(none),
+        typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('client_work_cards', { p_tenant: row.id }) : sb.rpc('client_work_cards')) : Promise.resolve(none),
         // The plan (2026-10-13): this month and next, what each plan allows, what is used, what staff verified, what staff wrote for Home
         sb.from('tenant_plan_cycles').select('id, plan_id, picks, website_option, period_start, period_end, state, source, confirmed_at, confirmed_by').eq('tenant_id', row.id).order('period_start'),
-        typeof sb.rpc === 'function' ? sb.rpc('plan_menu') : Promise.resolve(none),
+        typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('plan_menu', { p_tenant: row.id }) : sb.rpc('plan_menu')) : Promise.resolve(none),
         sb.from('tenant_usage_current').select('service, metric, used').eq('tenant_id', row.id),
-        typeof sb.rpc === 'function' ? sb.rpc('client_results_current') : Promise.resolve(none),
+        typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('client_results_current', { p_tenant: row.id }) : sb.rpc('client_results_current')) : Promise.resolve(none),
         sb.from('client_home_sections').select('section, content, source, published_at, updated_at').eq('tenant_id', row.id).eq('client_visible', true)
       ]);
       for (const x of [d, m, r, p]) if (x.error) throw dbFail(x.error);
@@ -406,6 +441,7 @@
       state: () => st,
       /** @param {string} kind @param {any} rec @returns {Promise<any>} */
       async put(kind, rec) {
+        if (VIEW) throw viewRefusal(); // read only: never a write while viewing as a client
         const sb = await db();
         let res;
         if (kind === 'decision') {
@@ -469,6 +505,7 @@
   const outside = D8.integrations.resolve;
   D8.integrations.resolve = async (/** @type {string} */ kind, /** @type {string} */ id, /** @type {string} */ number) => {
     if (kind !== 'billing-portal' && kind !== 'invoice') return outside(kind, id);
+    if (VIEW) throw viewRefusal();
     if (PREVIEW) return null;
     const notSet = () => {
       const x = /** @type {any} */ (new Error('Online billing is not switched on yet. Press Message us and we sort it out.'));

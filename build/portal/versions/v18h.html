@@ -2578,6 +2578,35 @@ html[data-variant="18h"][data-scene="scenes"]:not([data-theme="dark"]) .page-res
   .page-results :is(.fold-chart, .fold-ads) > summary { border: 1px solid CanvasText; }
 }
 
+/* ================================================================ css/70-viewas.css */
+/*
+ * View as client (2026-10-14): the agency console shows this dashboard live and read only in a frame of its own.
+ * The line at the very top of every page, in the demo chip's look (dashed edge, eye, a bold line and a quiet one) on the
+ * cream and orange tokens, and room made for it so the sidebar and the phone bar sit under it. Nobody signs out here.
+ */
+.viewas-bar { display: none; }
+html[data-viewas] { --va-h: 40px; }
+html[data-viewas] .viewas-bar {
+  position: sticky; top: 0; z-index: 90;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  height: var(--va-h); padding: 0 16px;
+  background: var(--p-attn-bg); color: var(--p-ink);
+  border-bottom: 1px dashed var(--p-accent);
+  font-size: 14px; line-height: 1.2; overflow: hidden;
+}
+html[data-viewas] .viewas-bar[hidden] { display: none; }
+.viewas-bar .i { flex: none; width: 18px; height: 18px; color: var(--p-accent-ink); }
+.viewas-bar .va-text { display: flex; align-items: baseline; gap: 4px 10px; min-width: 0; white-space: nowrap; }
+.viewas-bar .va-title { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+.viewas-bar .va-sub { font-weight: 500; color: var(--p-ink-2); overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) { .viewas-bar .va-sub { display: none; } }
+/* The sidebar and the phone bar start below the line. */
+html[data-viewas] .side { top: calc(16px + var(--va-h)); height: calc(100vh - 32px - var(--va-h)); }
+@media (max-width: 760px) {
+  html[data-viewas] .topbar { top: var(--va-h); }
+}
+html[data-viewas] .nav-signout, html[data-viewas] [data-action="sign-out"] { display: none !important; }
+
 /* ================================================================ shared Liquid Glass layer */
 /*
  * Liquid Glass primitives shared by 16A to 16J. Each variant decides where to use them.
@@ -4067,6 +4096,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   </defs>
 </svg>
 <a class="skip" href="#main">Skip to content</a>
+<div class="viewas-bar" id="viewas-bar" role="status" hidden><svg class="i" aria-hidden="true" focusable="false"><use href="#i-eye"/></svg><span class="va-text"><strong class="va-title">Viewing as <span id="viewas-name">this client</span>, read only</strong><span class="va-sub">Nothing here changes their account.</span></span></div>
 <div class="portal" id="app" data-side="full">
   <aside class="side" aria-label="Sidebar">
     <div class="brand"><img id="brand-mark" class="brand-mark" src="data:image/webp;base64,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" alt=""><span class="brand-name">Domin8te</span></div>
@@ -5226,9 +5256,30 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
    * Clerk; see live-data.js), switched on by window.D8CONFIG = { mode: 'live', ... } in the live build.
    */
   const MODE = root.D8CONFIG && root.D8CONFIG.mode === 'live' ? 'live' : 'demo';
-  /** The public demo is view-only: browse everything, change nothing. Tests set D8_DEMO_WRITABLE. */
-  const READ_ONLY = MODE === 'demo' && !root.D8_DEMO_WRITABLE;
+  /**
+   * "View as client" (2026-10-14): the agency console shows a client's whole dashboard, live, inside an iframe of its own
+   * page. It is on only when ALL of these hold: the live build, ?viewAs=<tenant id> in the address, a parent page of the
+   * SAME origin, and that parent offers D8C.viewAs(). Anything else (a stranger opening the address, a cross-origin frame
+   * that throws a SecurityError, no function) means no view-as at all: the normal sign-in, nothing more.
+   * @returns {{tenantId: string, parent: any, ctx: any, name: string}|null}
+   */
+  function viewAsMode() {
+    if (MODE !== 'live') return null;
+    try {
+      const id = new URLSearchParams(root.location.search).get('viewAs');
+      const parent = /** @type {any} */ (root).parent;
+      if (!id || !/^[\w-]{1,64}$/.test(id) || !parent || parent === root) return null;
+      if (!root.location.origin || parent.location.origin !== root.location.origin) return null;
+      if (!parent.D8C || typeof parent.D8C.viewAs !== 'function') return null;
+      return { tenantId: id, parent, ctx: null, name: '' };
+    } catch (e) { return null; }
+  }
+  const VIEW_AS = viewAsMode();
+  /** The public demo is view-only: browse everything, change nothing. Tests set D8_DEMO_WRITABLE. Viewing as a client is read-only too. */
+  const READ_ONLY = (MODE === 'demo' && !root.D8_DEMO_WRITABLE) || !!VIEW_AS;
   const DEMO_NOTE = 'This is a demo, so nothing is sent or saved. In your own portal this would go to the team.';
+  /** What every refused write says: the demo's words, or (viewing as a client) their name. */
+  const readOnlyNote = () => (VIEW_AS ? `Viewing as ${VIEW_AS.name || 'this client'}: read only. Nothing here changes their account.` : DEMO_NOTE);
   /** Storage names: each design variant keeps its own, so nothing leaks between them. */
   const NS = (root.D8VARIANT && root.D8VARIANT.storage) || 'd8.v16';
 
@@ -5641,7 +5692,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       state,
       /** @param {string} kind @param {any} rec @returns {Promise<any>} */
       put(kind, rec) {
-        if (READ_ONLY) return Promise.reject(fail('demo-readonly', DEMO_NOTE));
+        if (READ_ONLY) return Promise.reject(fail('demo-readonly', readOnlyNote()));
         const st = state();
         if (kind === 'message') rec.id = 'msg_' + ((st.messages || []).length + 1);
         if (kind === 'request') rec.id = 'req_' + ((st.requests || []).length + 1);
@@ -6338,7 +6389,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   D8.auth = auth;
   D8.integrations = integrations;
   D8.data = {
-    MODE, READ_ONLY, DEMO_NOTE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, ALWAYS_EMAILS, SEVERITY, HEALTH, ACCOUNTS,
+    MODE, READ_ONLY, get DEMO_NOTE() { return readOnlyNote(); }, viewAs: VIEW_AS, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, ALWAYS_EMAILS, SEVERITY, HEALTH, ACCOUNTS,
     connect, scenarios, currentScenario, switchScenario,
     // For live-data.js: build a client on another source, and the shared helpers it needs.
     makeClient, normalize, mergeProjections, apply, fail,
@@ -6380,6 +6431,28 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   const CLERK_JS = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js';
   const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
 
+  /* ---- View as client (2026-10-14) ---------------------------------------------------------------
+   * Set only when the agency console shows this dashboard in its own iframe (see dashboard-data.js, viewAsMode). Then
+   * there is no Clerk at all: the console's own signed-in staff client does every read (the tenant by id, the three
+   * one-argument staff functions), nothing is ever written, and the person is the client's contact from the record. */
+  const VIEW = /** @type {any} */ (D8.data).viewAs;
+  /** @type {Promise<any>|null} */
+  let viewReady = null;
+  /** What the console says about the client and the staff member: { client, tenant: {id, name, clerk_org_id}, staff: {userId, name} }. */
+  function viewCtx() {
+    if (!viewReady) {
+      viewReady = Promise.resolve().then(() => VIEW.parent.D8C.viewAs(VIEW.tenantId)).then((ctx) => {
+        if (!ctx || !ctx.client || !ctx.tenant || !ctx.tenant.id) throw new Error('no client');
+        VIEW.ctx = ctx;
+        VIEW.name = String(ctx.tenant.name || '');
+        return ctx;
+      }).catch((e) => { viewReady = null; throw fail('view-failed', e && e.code === 'view-failed' ? e.message : "The console couldn't open this client's dashboard. Close it and open it again."); });
+    }
+    return viewReady;
+  }
+  /** Every write the client could make stops here. */
+  const viewRefusal = () => fail('view-readonly', D8.data.DEMO_NOTE);
+
   /** Loads a script once. @param {string} src @param {Record<string, string>} [attrs] */
   function script(src, attrs) {
     return new Promise((resolve, reject) => {
@@ -6404,6 +6477,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   /** @type {Promise<any>|null} */
   let clerkReady = null;
   function clerk() {
+    if (VIEW) return Promise.reject(viewRefusal()); // viewing as a client never loads Clerk
     if (!clerkReady && PREVIEW) clerkReady = PREVIEW.clerk.load().then(() => PREVIEW.clerk);
     if (!clerkReady) {
       clerkReady = script(CLERK_JS, { 'data-clerk-publishable-key': cfg.clerkPublishableKey })
@@ -6494,6 +6568,11 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     live: true,
     /** The signed-in person and their restaurant, or null when signed out. */
     async getSession() {
+      if (VIEW) {
+        const ctx = await viewCtx();
+        // The client's own contact stays the person shown (no first name or email here); the staff member's id is only the reader.
+        return { userId: String((ctx.staff && ctx.staff.userId) || ''), tenantId: String(ctx.tenant.id), firstName: '', email: '', role: '' };
+      }
       const C = await clerk();
       const s = mySession(C);
       if (!s) return null;
@@ -6512,7 +6591,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     },
     /** Emails a 6-digit sign-in code (Clerk sends it). @param {string} email */
     async requestSignInLink(email) {
-      const e = String(email || '').trim();
+      if (VIEW) throw viewRefusal();
+      const e =String(email || '').trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw fail('bad-email', 'Enter the email address your invitation was sent to, like name@restaurant.com.', 'email');
       const C = await clerk();
       try { root.localStorage.setItem('d8.lastEmail', e); root.__d8LastEmail = e; } catch (x) { /* remembering the email is a nicety */ }
@@ -6529,7 +6609,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     },
     /** Checks the code and starts the session. @param {string} code */
     async verifyCode(code) {
-      const c = String(code || '').replace(/\s+/g, '');
+      if (VIEW) throw viewRefusal();
+      const c =String(code || '').replace(/\s+/g, '');
       if (!/^\d{6}$/.test(c)) throw fail('bad-code', 'Enter the 6-digit code from the email.', 'code');
       if (!pending) throw fail('no-pending', 'Ask for a new code first.', 'code');
       const C = await clerk();
@@ -6543,6 +6624,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       }
     },
     async signOut() {
+      if (VIEW) throw viewRefusal();
       const C = await clerk();
       // Only this page's person signs out; another person signed in on this browser stays signed in.
       const s = mySession(C);
@@ -6559,6 +6641,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   /** @type {Promise<any>|null} */
   let dbReady = null;
   function db() {
+    if (VIEW) return viewCtx().then((c) => c.client); // the console's signed-in staff client
     if (!dbReady && PREVIEW) dbReady = Promise.resolve(PREVIEW.supabase.createClient());
     if (!dbReady) {
       dbReady = script(SUPABASE_JS)
@@ -6650,16 +6733,18 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       const mine = ++loads;
       if (!session.tenantId) { tenant = null; return; }
       const sb = await db();
-      const t = await sb.from('tenants').select('id, name, doc').eq('clerk_org_id', session.tenantId).limit(1);
+      // Viewing as a client: the tenant row by its id, read with the console's staff client (the record a client sees is the same).
+      const t = VIEW ? await sb.from('tenants').select('id, name, doc').eq('id', session.tenantId).maybeSingle()
+        : await sb.from('tenants').select('id, name, doc').eq('clerk_org_id', session.tenantId).limit(1);
       if (t.error) {
         // With no sign-in the request goes out without a token and is refused (not an empty answer): say the session ended.
-        if (!PREVIEW && ['42501', 'PGRST301', 'PGRST302'].includes(t.error.code) && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
+        if (!VIEW && !PREVIEW && ['42501', 'PGRST301', 'PGRST302'].includes(t.error.code) && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
         throw dbFail(t.error);
       }
-      const row = t.data && t.data[0];
+      const row = VIEW ? (Array.isArray(t.data) ? t.data[0] : t.data) : t.data && t.data[0];
       if (!row) {
         // No row can also mean the sign-in ended (the request then went out without a token): say so, not "no portal".
-        if (!PREVIEW && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
+        if (!VIEW && !PREVIEW && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
         tenant = null; return;
       }
       zone = 'America/Winnipeg';
@@ -6669,18 +6754,19 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
         sb.from('requests').select('id, service, body, status, by_name, at, over_cap, urgent_fix').eq('tenant_id', row.id).order('at'),
-        sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').eq('clerk_user_id', session.userId).maybeSingle(),
+        // Viewing as a client: staff have no preferences for this client, so the defaults stand
+        VIEW ? Promise.resolve({ data: null, error: null }) : sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').eq('clerk_user_id', session.userId).maybeSingle(),
         // What staff approved for this client. The database returns a client only client_visible rows; asking
         // for them here as well keeps a staff session previewing the portal to the same rows.
         sb.from('client_dashboard_items').select('id, item_kind, external_id, content, source_observed_at, reporting_period_start, reporting_period_end, verification_status, published_at').eq('tenant_id', row.id).eq('client_visible', true),
         sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url, payment_link_approved_at, payment_link_approved_url, verified_at').eq('tenant_id', row.id).eq('client_visible', true),
         // The team's board cards for this client (2026-10-08): only their visible cards with a service, safe fields only
-        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve(none),
+        typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('client_work_cards', { p_tenant: row.id }) : sb.rpc('client_work_cards')) : Promise.resolve(none),
         // The plan (2026-10-13): this month and next, what each plan allows, what is used, what staff verified, what staff wrote for Home
         sb.from('tenant_plan_cycles').select('id, plan_id, picks, website_option, period_start, period_end, state, source, confirmed_at, confirmed_by').eq('tenant_id', row.id).order('period_start'),
-        typeof sb.rpc === 'function' ? sb.rpc('plan_menu') : Promise.resolve(none),
+        typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('plan_menu', { p_tenant: row.id }) : sb.rpc('plan_menu')) : Promise.resolve(none),
         sb.from('tenant_usage_current').select('service, metric, used').eq('tenant_id', row.id),
-        typeof sb.rpc === 'function' ? sb.rpc('client_results_current') : Promise.resolve(none),
+        typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('client_results_current', { p_tenant: row.id }) : sb.rpc('client_results_current')) : Promise.resolve(none),
         sb.from('client_home_sections').select('section, content, source, published_at, updated_at').eq('tenant_id', row.id).eq('client_visible', true)
       ]);
       for (const x of [d, m, r, p]) if (x.error) throw dbFail(x.error);
@@ -6757,6 +6843,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       state: () => st,
       /** @param {string} kind @param {any} rec @returns {Promise<any>} */
       async put(kind, rec) {
+        if (VIEW) throw viewRefusal(); // read only: never a write while viewing as a client
         const sb = await db();
         let res;
         if (kind === 'decision') {
@@ -6820,6 +6907,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   const outside = D8.integrations.resolve;
   D8.integrations.resolve = async (/** @type {string} */ kind, /** @type {string} */ id, /** @type {string} */ number) => {
     if (kind !== 'billing-portal' && kind !== 'invoice') return outside(kind, id);
+    if (VIEW) throw viewRefusal();
     if (PREVIEW) return null;
     const notSet = () => {
       const x = /** @type {any} */ (new Error('Online billing is not switched on yet. Press Message us and we sort it out.'));
@@ -6847,6 +6935,53 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     e.code = j.error || 'stripe';
     throw e;
   };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+/* lib/view-as.js */
+// @ts-check
+/*
+ * Talking to the agency console when it shows this dashboard in a frame ("view as client", 2026-10-14). Only ever with the
+ * parent window of the SAME origin, and only when data/dashboard-data.js decided this page is in that mode (D8.data.viewAs).
+ *   in:  { type: 'd8:changed' }            the console wrote something: read the client's data again (listen)
+ *   out: { type: 'd8:ready', route }       the first page is drawn
+ *        { type: 'd8:route', route }       the page changed (#/work/social ...)
+ *        { type: 'd8:error', code }        the dashboard could not open this client
+ * Nothing here touches the page itself; app.js decides what a change means.
+ */
+(function (root) {
+  'use strict';
+  /** @type {any} */
+  const D8 = (root.D8 = root.D8 || {});
+
+  /**
+   * Calls onChange (once for a burst of messages, after `wait` ms) when the parent says d8:changed. A message from any
+   * other window or origin is ignored. Returns false when this page is not in view-as mode.
+   * @param {() => void} onChange @param {number} [wait]
+   */
+  function listen(onChange, wait) {
+    if (!D8.data || !D8.data.viewAs) return false;
+    /** @type {any} */ let timer = 0;
+    root.addEventListener('message', (/** @type {any} */ e) => {
+      if (!e || e.source !== root.parent || e.origin !== root.location.origin) return;
+      const d = e.data;
+      if (!d || d.type !== 'd8:changed') return;
+      clearTimeout(timer);
+      timer = setTimeout(onChange, wait === undefined ? 250 : wait);
+    });
+    return true;
+  }
+
+  /** Posts to the console (same origin only). @param {any} msg */
+  function toParent(msg) {
+    if (!D8.data || !D8.data.viewAs) return false;
+    try {
+      root.parent.postMessage(msg, root.location.origin === 'null' ? '*' : root.location.origin);
+      return true;
+    } catch (e) { return false; /* the console is gone */ }
+  }
+
+  D8.viewAs = { listen, toParent };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script>
@@ -8506,6 +8641,8 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     if (String(kind).startsWith('connect-') && lastCtx) { account(String(kind).slice(8), 'reconnect', trigger, lastCtx); return; }
     const o = OUTSIDE[kind] || (String(kind).startsWith('connect-') ? { title: 'Reconnect this account', where: 'the provider', text: "You sign in on that service's own page and choose what we can use. We never see your password." } : null);
     if (!o) return;
+    // Viewing as a client (the console's read-only preview): Stripe's and the sign-in service's pages are the client's own.
+    if (D8.data.viewAs) { toast(D8.data.DEMO_NOTE, { tone: 'error' }); return; }
     const b = /** @type {HTMLButtonElement|null} */ (trigger && trigger.tagName === 'BUTTON' ? trigger : null);
     if (b) b.disabled = true;
     const number = trigger && trigger.getAttribute('data-number');
@@ -9580,7 +9717,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   /** @param {HTMLElement} el */
   async function loadAsks(el) {
     const box = /** @type {HTMLElement|null} */ (el.querySelector('#la-list'));
-    if (!box || !D8.live) return;
+    if (!box || !D8.live || D8.data.viewAs) return; // viewing as a client: the staff reader would see every client's asks
     try {
       const sb = await D8.live.db();
       const r = await sb.from('login_requests').select('first_name, email, role, status, at').order('at', { ascending: false }).limit(20);
@@ -9619,6 +9756,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       err.hidden = true;
       if (!first) return bad('first', 'Add their first name.');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return bad('email', 'Enter their email address, like name@restaurant.com.');
+      if (D8.data.viewAs) { status.textContent = D8.data.DEMO_NOTE; return; }
       if (!D8.live) { status.textContent = 'This is a demo, so nothing was sent. In your own portal, we would get this request.'; return; }
       const btn = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
       btn.disabled = true;
@@ -9662,7 +9800,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (!dirty()) return;
-      if (D8.data.READ_ONLY) { status.textContent = D8.data.DEMO_NOTE; D8.dialogs.toast('This is a demo, so nothing is saved.'); return; }
+      if (D8.data.READ_ONLY) { status.textContent = D8.data.DEMO_NOTE; D8.dialogs.toast(D8.data.viewAs ? D8.data.DEMO_NOTE : 'This is a demo, so nothing is saved.'); return; }
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner" aria-hidden="true"></span>Saving';
       err.hidden = true;
@@ -9815,12 +9953,12 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
           <form class="msg-compose" id="msg-form" novalidate>
             <div class="field msg-about" id="msg-about-box" hidden><label for="msg-about-pick">What is it about?</label><select id="msg-about-pick" name="about"><option value="general">General</option>${pkg.map((/** @type {string} */ x) => `<option value="${esc(x)}">${esc(SVC()[x].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>
             <label class="sr-only" for="msg-new">Write a message</label>
-            <textarea id="msg-new" name="text" rows="2" maxlength="2000" placeholder="${ro ? 'Sample conversation' : 'Start a conversation, or reply to us'}"${ro ? ' disabled' : ''} aria-describedby="msg-new-err msg-keys"></textarea>
+            <textarea id="msg-new" name="text" rows="2" maxlength="2000" placeholder="${ro ? (D8.data.viewAs ? 'Read only' : 'Sample conversation') : 'Start a conversation, or reply to us'}"${ro ? ' disabled' : ''} aria-describedby="msg-new-err msg-keys"></textarea>
             <p class="field-error" id="msg-new-err" hidden></p>
             <p class="form-error" id="msg-form-err" role="alert" hidden></p>
             <div class="msg-compose-foot">
               <button class="link-btn msg-about-toggle" type="button" aria-expanded="false" aria-controls="msg-about-box"${ro ? ' disabled' : ''}>Add a topic</button>
-              <span class="hint msg-keys" id="msg-keys">${ro ? 'Sample conversation. Sign in to message us.' : 'Ctrl and Enter sends'}</span>
+              <span class="hint msg-keys" id="msg-keys">${ro ? (D8.data.viewAs ? 'Read only. Nothing here changes their account.' : 'Sample conversation. Sign in to message us.') : 'Ctrl and Enter sends'}</span>
               <button class="btn btn-solid msg-send" type="submit"${ro ? ' disabled' : ''}>Send${icon('arrow-right')}</button>
             </div>
           </form>
@@ -10287,6 +10425,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
       if (problem) b.setAttribute('title', '1 payment problem'); else b.removeAttribute('title');
     });
     countMessages();
+    drawViewBar(a.business.name);
   }
 
   function refreshAccount() {
@@ -10323,6 +10462,57 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     }
   }
   const menuOpen = () => { const b = $('#account-btn'); return !!b && b.getAttribute('aria-expanded') === 'true'; };
+
+  /* ---- view as client (2026-10-14) --------------------------------------------------------------
+   * The agency console shows this dashboard live, read only, in an iframe (data/dashboard-data.js, viewAsMode, decides
+   * when). Here: the banner, hiding sign-out, telling the console where we are (d8:ready, d8:route, d8:error) and
+   * reloading the data in place when it says something changed (d8:changed). Messages are only ever exchanged with the
+   * parent window of the same origin. */
+
+  const toParent = (/** @type {any} */ msg) => D8.viewAs.toParent(msg);
+  let lastRouteSent = '';
+  function sendRoute() {
+    if (!D8.data.viewAs) return;
+    const route = currentHash() || '#/home';
+    if (route === lastRouteSent) return;
+    lastRouteSent = route;
+    toParent({ type: 'd8:route', route });
+  }
+  /** The line at the very top of every page. @param {string} [fallbackName] */
+  function drawViewBar(fallbackName) {
+    const V = D8.data.viewAs;
+    const bar = $('#viewas-bar');
+    if (!V || !bar) return;
+    const name = V.name || fallbackName || 'this client';
+    $('#viewas-name').textContent = name;
+    bar.hidden = false;
+  }
+  let reloading = false;
+  let reloadAgain = false;
+  /** New data from the console: read it again and redraw this page where it stands, keeping the scroll position. */
+  function reloadInPlace() {
+    if (!app.ready || !app.client) return;
+    if (reloading) { reloadAgain = true; return; }
+    reloading = true;
+    const y = root.scrollY;
+    app.client.refresh()
+      .then(() => refreshAccount())
+      .then(() => { if (app.page && app.page.refresh) app.page.refresh(); else render(true); })
+      .catch(() => { /* the page already on screen stays as it was; the next change tries again */ })
+      .then(() => {
+        reloading = false;
+        const back = () => root.scrollTo(0, y);
+        back();
+        if (root.requestAnimationFrame) root.requestAnimationFrame(back);
+        if (reloadAgain) { reloadAgain = false; reloadInPlace(); }
+      });
+  }
+  function wireViewAs() {
+    if (!D8.data.viewAs) return;
+    document.documentElement.setAttribute('data-viewas', '');
+    drawViewBar();
+    D8.viewAs.listen(reloadInPlace, 250);
+  }
 
   /* ---- routing --------------------------------------------------------------------------- */
 
@@ -10427,6 +10617,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     app.lastRoute = h || '#/home';
     if (!app.ready) { app.wanted = app.lastRoute; return; }
     render(false);
+    sendRoute();
   }
 
   /* ---- actions ----------------------------------------------------------------------------- */
@@ -10464,6 +10655,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
   function signOut(trigger) {
     if (menuOpen()) toggleMenu(false);
+    if (D8.data.viewAs) { D8.dialogs.toast(D8.data.DEMO_NOTE, { tone: 'error' }); return; } // nobody signs out of the console's view
     D8.dialogs.confirm({ title: 'Sign out?', text: `You can sign back in any time with ${D8.auth && D8.auth.live ? 'a code' : 'a link'} we email you.`, yes: 'Sign out', no: 'Stay signed in' }, trigger)
       .then((yes) => {
         if (!yes) return;
@@ -10558,6 +10750,16 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
 
   function fatal(e) {
     // The sign-in ended: back to the sign-in page, not "no portal for this email".
+    if (D8.data.viewAs) {
+      // No sign-in here: the console opened this, so the answer is for the console's person, and there is nothing to sign out of.
+      $('#app').classList.add('is-auth');
+      $('#main').innerHTML = `<div class="signin"><div class="signin-card"><h1 id="page-title" tabindex="-1">We couldn't open this dashboard</h1>${UI.ErrorState({
+        title: e && e.code === 'tenant-not-found' ? "This client's dashboard isn't set up yet." : 'Something went wrong while loading it.',
+        text: e && e.code === 'view-failed' ? e.message : 'Close it and open it again. Nothing has changed on their account.'
+      })}<button class="btn btn-solid" type="button" data-action="retry-start">Try again</button></div></div>`;
+      toParent({ type: 'd8:error', code: (e && e.code) || 'error' });
+      return;
+    }
     if (e && e.code === 'session-expired') { app.session = null; app.client = null; app.account = null; app.ready = true; root.location.hash = '#/sign-in'; return start(); }
     $('#app').classList.add('is-auth');
     const notFound = e && e.code === 'tenant-not-found';
@@ -10597,6 +10799,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
         app.lastRoute = root.location.hash || '#/home';
         app.ready = true;
         render(!next);
+        if (D8.data.viewAs && !lastRouteSent) { lastRouteSent = currentHash() || '#/home'; toParent({ type: 'd8:ready', route: lastRouteSent }); }
       }).catch(fatal);
     }).catch(fatal);
   }
@@ -10607,6 +10810,7 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
     syncSide();
     if (tablet) tablet.addEventListener('change', syncSide);
     D8.dialogs.wire();
+    wireViewAs();
     wireRail();
     document.addEventListener('click', onClick);
     document.addEventListener('change', onChange);

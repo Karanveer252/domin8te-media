@@ -29,7 +29,7 @@ const HERMES_ON = ARGS.includes('--hermes-on');   // for a preview built with D8
 
 const T = 'tnt_preview_bayleaf';
 const ROUTES = ['queue', 'messages', 'clients', 'board', 'billing', `billing/${T}`, 'new', 'settings',
-  `client/${T}/overview`, `client/${T}/work`, `client/${T}/work/cards`, `client/${T}/results`, `client/${T}/talk`, `client/${T}/home`, `client/${T}/visible`, `client/${T}/setup`, `client/${T}/advanced`,
+  `client/${T}/overview`, `client/${T}/work`, `client/${T}/work/cards`, `client/${T}/results`, `client/${T}/talk`, `client/${T}/home`, `client/${T}/visible`, `client/${T}/view`, `client/${T}/setup`, `client/${T}/advanced`,
   'client/tnt_preview_marlow/overview', 'client/tnt_preview_corner/visible'].filter((r) => !ONLY || r.includes(ONLY));
 
 const collect = `<script>(function () {

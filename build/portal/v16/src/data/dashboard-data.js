@@ -32,9 +32,30 @@
    * Clerk; see live-data.js), switched on by window.D8CONFIG = { mode: 'live', ... } in the live build.
    */
   const MODE = root.D8CONFIG && root.D8CONFIG.mode === 'live' ? 'live' : 'demo';
-  /** The public demo is view-only: browse everything, change nothing. Tests set D8_DEMO_WRITABLE. */
-  const READ_ONLY = MODE === 'demo' && !root.D8_DEMO_WRITABLE;
+  /**
+   * "View as client" (2026-10-14): the agency console shows a client's whole dashboard, live, inside an iframe of its own
+   * page. It is on only when ALL of these hold: the live build, ?viewAs=<tenant id> in the address, a parent page of the
+   * SAME origin, and that parent offers D8C.viewAs(). Anything else (a stranger opening the address, a cross-origin frame
+   * that throws a SecurityError, no function) means no view-as at all: the normal sign-in, nothing more.
+   * @returns {{tenantId: string, parent: any, ctx: any, name: string}|null}
+   */
+  function viewAsMode() {
+    if (MODE !== 'live') return null;
+    try {
+      const id = new URLSearchParams(root.location.search).get('viewAs');
+      const parent = /** @type {any} */ (root).parent;
+      if (!id || !/^[\w-]{1,64}$/.test(id) || !parent || parent === root) return null;
+      if (!root.location.origin || parent.location.origin !== root.location.origin) return null;
+      if (!parent.D8C || typeof parent.D8C.viewAs !== 'function') return null;
+      return { tenantId: id, parent, ctx: null, name: '' };
+    } catch (e) { return null; }
+  }
+  const VIEW_AS = viewAsMode();
+  /** The public demo is view-only: browse everything, change nothing. Tests set D8_DEMO_WRITABLE. Viewing as a client is read-only too. */
+  const READ_ONLY = (MODE === 'demo' && !root.D8_DEMO_WRITABLE) || !!VIEW_AS;
   const DEMO_NOTE = 'This is a demo, so nothing is sent or saved. In your own portal this would go to the team.';
+  /** What every refused write says: the demo's words, or (viewing as a client) their name. */
+  const readOnlyNote = () => (VIEW_AS ? `Viewing as ${VIEW_AS.name || 'this client'}: read only. Nothing here changes their account.` : DEMO_NOTE);
   /** Storage names: each design variant keeps its own, so nothing leaks between them. */
   const NS = (root.D8VARIANT && root.D8VARIANT.storage) || 'd8.v16';
 
@@ -447,7 +468,7 @@
       state,
       /** @param {string} kind @param {any} rec @returns {Promise<any>} */
       put(kind, rec) {
-        if (READ_ONLY) return Promise.reject(fail('demo-readonly', DEMO_NOTE));
+        if (READ_ONLY) return Promise.reject(fail('demo-readonly', readOnlyNote()));
         const st = state();
         if (kind === 'message') rec.id = 'msg_' + ((st.messages || []).length + 1);
         if (kind === 'request') rec.id = 'req_' + ((st.requests || []).length + 1);
@@ -1144,7 +1165,7 @@
   D8.auth = auth;
   D8.integrations = integrations;
   D8.data = {
-    MODE, READ_ONLY, DEMO_NOTE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, ALWAYS_EMAILS, SEVERITY, HEALTH, ACCOUNTS,
+    MODE, READ_ONLY, get DEMO_NOTE() { return readOnlyNote(); }, viewAs: VIEW_AS, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, ALWAYS_EMAILS, SEVERITY, HEALTH, ACCOUNTS,
     connect, scenarios, currentScenario, switchScenario,
     // For live-data.js: build a client on another source, and the shared helpers it needs.
     makeClient, normalize, mergeProjections, apply, fail,

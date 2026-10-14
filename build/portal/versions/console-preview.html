@@ -1602,6 +1602,79 @@
   });
 })();
 </script>
+<script>
+/* stub/60-clientview.js */
+// LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). The stand-ins for the Client view tab (2026-10-14):
+// the three read functions the client's dashboard calls when it is shown to staff ("view as client"), each as the database
+// answers them for staff with one argument, the tenant. They give the rows a client of that tenant would get and nothing more:
+// work cards that are shown, decided and not removed; the newest verified result of each kind that is not hidden; and the plan
+// menu. Mirrors portal/supabase/migrations/20261014010000_staff_view_as_client.sql.
+// The tables the dashboard reads directly (tenants, decisions, messages, requests, client_dashboard_items, client_billing_invoices,
+// tenant_plan_cycles, tenant_usage_current, client_home_sections) are the in-memory tables themselves: the dashboard filters
+// them by tenant_id and client_visible the way a client's own sign-in would see them.
+(function () {
+  'use strict';
+  const S = /** @type {any} */ (window).D8STUB;
+  if (!S) return;
+  const refuse = (/** @type {string} */ code, /** @type {string} */ message) => Object.assign(new Error(message), { code });
+
+  // The tenant argument is p_tenant in the real function; the older preview stand-ins took tenant_id, which still works.
+  /** @param {string} name */
+  function withTenant(name) {
+    const prev = S.rpcs[name];
+    if (!prev) return;
+    S.rpcs[name] = (/** @type {any} */ a, /** @type {any} */ s) => {
+      const args = a || {};
+      const t = args.p_tenant || args.tenant_id;
+      const rows = prev({ ...args, tenant_id: t }, s);
+      return Array.isArray(rows) && t ? rows.filter((/** @type {any} */ r) => !r.tenant_id || r.tenant_id === t) : rows;
+    };
+  }
+  withTenant('client_work_cards');
+  withTenant('client_results_current');
+
+  /** plan_menu(p_tenant): the plans, their limits (the newest version that has started by the day the next month begins), the services, and whether the plan and picks disagree. */
+  S.rpcs.plan_menu = (/** @type {any} */ a) => {
+    const t = a && a.p_tenant;
+    if (!t) throw refuse('42501', 'not-allowed');
+    const db = S.db;
+    const today = S.day(0);
+    const cyc = (db.tenant_plan_cycles || []).filter((/** @type {any} */ c) => c.tenant_id === t && c.period_start <= today && c.period_end > today)
+      .sort((/** @type {any} */ x, /** @type {any} */ y) => String(y.period_start).localeCompare(String(x.period_start)))[0];
+    const nxt = cyc ? cyc.period_end : S.day(1);
+    const plans = (db.plans || []).slice().sort((/** @type {any} */ x, /** @type {any} */ y) => (x.sort || 0) - (y.sort || 0));
+    const holders = (planId) => {
+      const latest = new Map();
+      for (const c of db.tenant_plan_cycles || []) {
+        const x = (db.tenants || []).find((/** @type {any} */ r) => r.id === c.tenant_id);
+        if (c.tenant_id === t || !x || x.status === 'archived' || c.state === 'ended' || !(c.period_start <= nxt && c.period_end >= nxt)) continue;
+        const was = latest.get(c.tenant_id);
+        if (!was || String(c.period_start) > String(was.period_start)) latest.set(c.tenant_id, c);
+      }
+      return Array.from(latest.values()).filter((c) => c.plan_id === planId).length;
+    };
+    /** @type {Map<string, any>} */ const newest = new Map();
+    for (const k of (db.plan_caps || []).filter((/** @type {any} */ x) => String(x.effective_from) <= String(nxt))) {
+      const key = `${k.plan_id}|${k.service}|${k.metric}`;
+      const was = newest.get(key);
+      if (!was || (k.version || 0) > (was.version || 0)) newest.set(key, k);
+    }
+    const services = (db.service_catalog || []).slice().sort((/** @type {any} */ x, /** @type {any} */ y) => (x.sort || 0) - (y.sort || 0));
+    const order = new Map(services.map((/** @type {any} */ s, /** @type {number} */ i) => [s.id, i]));
+    return {
+      plans: plans.map((/** @type {any} */ p) => ({
+        id: p.id, name: p.name, price_minor: p.price_minor == null ? null : p.price_minor, currency: p.currency, picks_allowed: p.picks_allowed, required_services: p.required_services || [],
+        max_clients: p.max_clients == null ? null : p.max_clients, locked: !!p.locked, full: p.max_clients == null ? false : holders(p.id) >= p.max_clients
+      })),
+      caps: Array.from(newest.values())
+        .sort((/** @type {any} */ x, /** @type {any} */ y) => String(x.plan_id).localeCompare(String(y.plan_id)) || ((order.get(x.service) || 0) - (order.get(y.service) || 0)) || String(x.metric).localeCompare(String(y.metric)))
+        .map((/** @type {any} */ k) => ({ plan_id: k.plan_id, service: k.service, metric: k.metric, label: k.label, monthly_cap: k.monthly_cap, weekly_hint: k.weekly_hint == null ? null : k.weekly_hint })),
+      services: services.map((/** @type {any} */ s) => ({ id: s.id, label: s.label, pickable: !!s.pickable })),
+      mismatch: (db.dashboard_exceptions || []).some((/** @type {any} */ e) => e.tenant_id === t && e.reason_code === 'plan_mismatch' && e.status === 'open')
+    };
+  };
+})();
+</script>
 <style>body::after{content:"Preview: in-memory data, nothing is saved or sent";position:fixed;left:0;right:0;bottom:0;z-index:99;padding:6px;background:#FF5B1F;color:#1D1A16;font:600 13px/1.4 system-ui;text-align:center}</style>
 <style>
 /* Agency console: the Domin8te team's workspace. The client portal's warm neutrals and typeface,
@@ -3975,6 +4048,68 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
   .hp-frame { padding: 12px; border-radius: 18px; }
   .hp-frame .card { padding: 16px 16px; }
 }
+
+/* css/56-clientview.css */
+/*
+ * The Client view tab (2026-10-14): the client's dashboard in a soft rounded device frame. The toolbar is the console's own glass
+ * pills. The frame is tall (it fills the window below the toolbar, never under 720px); the phone size centres a 390px wide phone.
+ * Colours come from the console's tokens, so the light, dark and moving-sky looks all work.
+ */
+
+.cv { display: grid; gap: 16px; }
+.cv > .page-fresh { margin: 0; }
+.cv-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 24px; }
+.cv-head h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.4px; }
+.cv-head p { margin-top: 5px; max-width: 70ch; color: var(--ink-3); font-size: 15.5px; }
+
+/* The toolbar. */
+.cv-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+.cv-bar .seg { flex-wrap: wrap; }
+.cv-bar .seg button { min-height: 38px; }
+.cv-bar .seg button:disabled { opacity: 0.55; cursor: default; transform: none; }
+.cv-reload { margin-left: auto; min-height: 38px; }
+.cv-head .cv-live { margin-top: 4px; }
+.cv-reload svg { width: 16px; height: 16px; }
+
+/* "Live: changes here show at once": a small pill with a quiet green dot that pulses once when an update is sent. */
+.cv-live { display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px; border-radius: 999px; background: var(--good-bg); color: var(--good); font-size: 13.5px; font-weight: 600; line-height: 1.3; }
+.cv-live.is-sample { background: var(--surface-3); color: var(--ink-2); }
+.cv-dot { position: relative; flex: none; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.cv-dot::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid currentColor; opacity: 0; }
+.cv-live.is-sent .cv-dot::after { animation: cv-pulse 900ms var(--ease) 1; }
+@keyframes cv-pulse { 0% { opacity: 0.75; transform: scale(0.5); } 100% { opacity: 0; transform: scale(1.9); } }
+
+/* The stage: a soft frame around the screen. */
+.cv-stage { display: flex; justify-content: center; padding: 14px; border-radius: 32px; border: 0.67px solid var(--glass-edge); background-color: var(--glass); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); }
+.cv-device-frame { width: 100%; max-width: 100%; margin: 0 auto; border-radius: 22px; transition: width 260ms var(--ease), padding 260ms var(--ease), border-radius 260ms var(--ease), background-color 260ms var(--ease); }
+.cv-screen { position: relative; overflow: hidden; border-radius: 20px; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 18px 40px -26px rgba(40, 30, 20, 0.45); height: max(720px, calc(100vh - 300px)); transition: border-radius 260ms var(--ease); }
+.cv-frame { display: block; width: 100%; height: 100%; border: 0; background: var(--surface); color-scheme: normal; }
+
+/* The phone: 390px wide, in a dark bezel, centred. */
+.cv-stage[data-device="phone"] .cv-device-frame { width: 390px; max-width: 100%; padding: 11px; border-radius: 48px; background-color: #1D1A16; box-shadow: 0 22px 44px -22px rgba(24, 28, 48, 0.55), inset 0 0 0 1.5px rgba(255, 255, 255, 0.12); }
+.cv-stage[data-device="phone"] .cv-screen { height: max(720px, min(844px, calc(100vh - 300px))); border-radius: 38px; box-shadow: none; }
+html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { background-color: #0A0B0E; box-shadow: 0 22px 44px -22px rgba(0, 0, 0, 0.8), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18); }
+
+/* Shown over the screen while it opens, and instead of it when it cannot. */
+.cv-cover { position: absolute; inset: 0; display: grid; place-items: start center; padding: 96px 24px 24px; background: var(--surface); color: var(--ink); text-align: center; }
+.cv-cover.is-busy { background: linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%) 0 0 / 220% 100%; animation: cv-shimmer 1.6s linear infinite; }
+@keyframes cv-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+.cv-msg { display: grid; justify-items: center; gap: 10px; max-width: 46ch; }
+.cv-msg strong { font-size: 18px; font-weight: 700; letter-spacing: -0.2px; }
+.cv-msg p { color: var(--ink-2); font-size: 15.5px; line-height: 1.55; }
+.cv-msg .btn { margin-top: 6px; }
+
+@media (max-width: 760px) {
+  .cv-stage { padding: 8px; border-radius: 24px; }
+  .cv-screen { height: max(720px, calc(100vh - 220px)); }
+  .cv-stage[data-device="phone"] .cv-device-frame { padding: 8px; border-radius: 40px; }
+  .cv-reload { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cv-live.is-sent .cv-dot::after { animation: none; }
+  .cv-cover.is-busy { animation: none; background: var(--surface); }
+  .cv-device-frame, .cv-screen { transition: none; }
+}
 </style>
 </head>
 <body>
@@ -4498,9 +4633,30 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
    * Clerk; see live-data.js), switched on by window.D8CONFIG = { mode: 'live', ... } in the live build.
    */
   const MODE = root.D8CONFIG && root.D8CONFIG.mode === 'live' ? 'live' : 'demo';
-  /** The public demo is view-only: browse everything, change nothing. Tests set D8_DEMO_WRITABLE. */
-  const READ_ONLY = MODE === 'demo' && !root.D8_DEMO_WRITABLE;
+  /**
+   * "View as client" (2026-10-14): the agency console shows a client's whole dashboard, live, inside an iframe of its own
+   * page. It is on only when ALL of these hold: the live build, ?viewAs=<tenant id> in the address, a parent page of the
+   * SAME origin, and that parent offers D8C.viewAs(). Anything else (a stranger opening the address, a cross-origin frame
+   * that throws a SecurityError, no function) means no view-as at all: the normal sign-in, nothing more.
+   * @returns {{tenantId: string, parent: any, ctx: any, name: string}|null}
+   */
+  function viewAsMode() {
+    if (MODE !== 'live') return null;
+    try {
+      const id = new URLSearchParams(root.location.search).get('viewAs');
+      const parent = /** @type {any} */ (root).parent;
+      if (!id || !/^[\w-]{1,64}$/.test(id) || !parent || parent === root) return null;
+      if (!root.location.origin || parent.location.origin !== root.location.origin) return null;
+      if (!parent.D8C || typeof parent.D8C.viewAs !== 'function') return null;
+      return { tenantId: id, parent, ctx: null, name: '' };
+    } catch (e) { return null; }
+  }
+  const VIEW_AS = viewAsMode();
+  /** The public demo is view-only: browse everything, change nothing. Tests set D8_DEMO_WRITABLE. Viewing as a client is read-only too. */
+  const READ_ONLY = (MODE === 'demo' && !root.D8_DEMO_WRITABLE) || !!VIEW_AS;
   const DEMO_NOTE = 'This is a demo, so nothing is sent or saved. In your own portal this would go to the team.';
+  /** What every refused write says: the demo's words, or (viewing as a client) their name. */
+  const readOnlyNote = () => (VIEW_AS ? `Viewing as ${VIEW_AS.name || 'this client'}: read only. Nothing here changes their account.` : DEMO_NOTE);
   /** Storage names: each design variant keeps its own, so nothing leaks between them. */
   const NS = (root.D8VARIANT && root.D8VARIANT.storage) || 'd8.v16';
 
@@ -4913,7 +5069,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
       state,
       /** @param {string} kind @param {any} rec @returns {Promise<any>} */
       put(kind, rec) {
-        if (READ_ONLY) return Promise.reject(fail('demo-readonly', DEMO_NOTE));
+        if (READ_ONLY) return Promise.reject(fail('demo-readonly', readOnlyNote()));
         const st = state();
         if (kind === 'message') rec.id = 'msg_' + ((st.messages || []).length + 1);
         if (kind === 'request') rec.id = 'req_' + ((st.requests || []).length + 1);
@@ -5610,7 +5766,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
   D8.auth = auth;
   D8.integrations = integrations;
   D8.data = {
-    MODE, READ_ONLY, DEMO_NOTE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, ALWAYS_EMAILS, SEVERITY, HEALTH, ACCOUNTS,
+    MODE, READ_ONLY, get DEMO_NOTE() { return readOnlyNote(); }, viewAs: VIEW_AS, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, ALWAYS_EMAILS, SEVERITY, HEALTH, ACCOUNTS,
     connect, scenarios, currentScenario, switchScenario,
     // For live-data.js: build a client on another source, and the shared helpers it needs.
     makeClient, normalize, mergeProjections, apply, fail,
@@ -5652,6 +5808,28 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
   const CLERK_JS = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js';
   const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
 
+  /* ---- View as client (2026-10-14) ---------------------------------------------------------------
+   * Set only when the agency console shows this dashboard in its own iframe (see dashboard-data.js, viewAsMode). Then
+   * there is no Clerk at all: the console's own signed-in staff client does every read (the tenant by id, the three
+   * one-argument staff functions), nothing is ever written, and the person is the client's contact from the record. */
+  const VIEW = /** @type {any} */ (D8.data).viewAs;
+  /** @type {Promise<any>|null} */
+  let viewReady = null;
+  /** What the console says about the client and the staff member: { client, tenant: {id, name, clerk_org_id}, staff: {userId, name} }. */
+  function viewCtx() {
+    if (!viewReady) {
+      viewReady = Promise.resolve().then(() => VIEW.parent.D8C.viewAs(VIEW.tenantId)).then((ctx) => {
+        if (!ctx || !ctx.client || !ctx.tenant || !ctx.tenant.id) throw new Error('no client');
+        VIEW.ctx = ctx;
+        VIEW.name = String(ctx.tenant.name || '');
+        return ctx;
+      }).catch((e) => { viewReady = null; throw fail('view-failed', e && e.code === 'view-failed' ? e.message : "The console couldn't open this client's dashboard. Close it and open it again."); });
+    }
+    return viewReady;
+  }
+  /** Every write the client could make stops here. */
+  const viewRefusal = () => fail('view-readonly', D8.data.DEMO_NOTE);
+
   /** Loads a script once. @param {string} src @param {Record<string, string>} [attrs] */
   function script(src, attrs) {
     return new Promise((resolve, reject) => {
@@ -5676,6 +5854,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
   /** @type {Promise<any>|null} */
   let clerkReady = null;
   function clerk() {
+    if (VIEW) return Promise.reject(viewRefusal()); // viewing as a client never loads Clerk
     if (!clerkReady && PREVIEW) clerkReady = PREVIEW.clerk.load().then(() => PREVIEW.clerk);
     if (!clerkReady) {
       clerkReady = script(CLERK_JS, { 'data-clerk-publishable-key': cfg.clerkPublishableKey })
@@ -5766,6 +5945,11 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
     live: true,
     /** The signed-in person and their restaurant, or null when signed out. */
     async getSession() {
+      if (VIEW) {
+        const ctx = await viewCtx();
+        // The client's own contact stays the person shown (no first name or email here); the staff member's id is only the reader.
+        return { userId: String((ctx.staff && ctx.staff.userId) || ''), tenantId: String(ctx.tenant.id), firstName: '', email: '', role: '' };
+      }
       const C = await clerk();
       const s = mySession(C);
       if (!s) return null;
@@ -5784,7 +5968,8 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
     },
     /** Emails a 6-digit sign-in code (Clerk sends it). @param {string} email */
     async requestSignInLink(email) {
-      const e = String(email || '').trim();
+      if (VIEW) throw viewRefusal();
+      const e =String(email || '').trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw fail('bad-email', 'Enter the email address your invitation was sent to, like name@restaurant.com.', 'email');
       const C = await clerk();
       try { root.localStorage.setItem('d8.lastEmail', e); root.__d8LastEmail = e; } catch (x) { /* remembering the email is a nicety */ }
@@ -5801,7 +5986,8 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
     },
     /** Checks the code and starts the session. @param {string} code */
     async verifyCode(code) {
-      const c = String(code || '').replace(/\s+/g, '');
+      if (VIEW) throw viewRefusal();
+      const c =String(code || '').replace(/\s+/g, '');
       if (!/^\d{6}$/.test(c)) throw fail('bad-code', 'Enter the 6-digit code from the email.', 'code');
       if (!pending) throw fail('no-pending', 'Ask for a new code first.', 'code');
       const C = await clerk();
@@ -5815,6 +6001,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
       }
     },
     async signOut() {
+      if (VIEW) throw viewRefusal();
       const C = await clerk();
       // Only this page's person signs out; another person signed in on this browser stays signed in.
       const s = mySession(C);
@@ -5831,6 +6018,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
   /** @type {Promise<any>|null} */
   let dbReady = null;
   function db() {
+    if (VIEW) return viewCtx().then((c) => c.client); // the console's signed-in staff client
     if (!dbReady && PREVIEW) dbReady = Promise.resolve(PREVIEW.supabase.createClient());
     if (!dbReady) {
       dbReady = script(SUPABASE_JS)
@@ -5922,16 +6110,18 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
       const mine = ++loads;
       if (!session.tenantId) { tenant = null; return; }
       const sb = await db();
-      const t = await sb.from('tenants').select('id, name, doc').eq('clerk_org_id', session.tenantId).limit(1);
+      // Viewing as a client: the tenant row by its id, read with the console's staff client (the record a client sees is the same).
+      const t = VIEW ? await sb.from('tenants').select('id, name, doc').eq('id', session.tenantId).maybeSingle()
+        : await sb.from('tenants').select('id, name, doc').eq('clerk_org_id', session.tenantId).limit(1);
       if (t.error) {
         // With no sign-in the request goes out without a token and is refused (not an empty answer): say the session ended.
-        if (!PREVIEW && ['42501', 'PGRST301', 'PGRST302'].includes(t.error.code) && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
+        if (!VIEW && !PREVIEW && ['42501', 'PGRST301', 'PGRST302'].includes(t.error.code) && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
         throw dbFail(t.error);
       }
-      const row = t.data && t.data[0];
+      const row = VIEW ? (Array.isArray(t.data) ? t.data[0] : t.data) : t.data && t.data[0];
       if (!row) {
         // No row can also mean the sign-in ended (the request then went out without a token): say so, not "no portal".
-        if (!PREVIEW && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
+        if (!VIEW && !PREVIEW && !mySession(await clerk())) throw fail('session-expired', 'Your session ended. Sign in again.');
         tenant = null; return;
       }
       zone = 'America/Winnipeg';
@@ -5941,18 +6131,19 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
         sb.from('requests').select('id, service, body, status, by_name, at, over_cap, urgent_fix').eq('tenant_id', row.id).order('at'),
-        sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').eq('clerk_user_id', session.userId).maybeSingle(),
+        // Viewing as a client: staff have no preferences for this client, so the defaults stand
+        VIEW ? Promise.resolve({ data: null, error: null }) : sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').eq('clerk_user_id', session.userId).maybeSingle(),
         // What staff approved for this client. The database returns a client only client_visible rows; asking
         // for them here as well keeps a staff session previewing the portal to the same rows.
         sb.from('client_dashboard_items').select('id, item_kind, external_id, content, source_observed_at, reporting_period_start, reporting_period_end, verification_status, published_at').eq('tenant_id', row.id).eq('client_visible', true),
         sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url, payment_link_approved_at, payment_link_approved_url, verified_at').eq('tenant_id', row.id).eq('client_visible', true),
         // The team's board cards for this client (2026-10-08): only their visible cards with a service, safe fields only
-        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve(none),
+        typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('client_work_cards', { p_tenant: row.id }) : sb.rpc('client_work_cards')) : Promise.resolve(none),
         // The plan (2026-10-13): this month and next, what each plan allows, what is used, what staff verified, what staff wrote for Home
         sb.from('tenant_plan_cycles').select('id, plan_id, picks, website_option, period_start, period_end, state, source, confirmed_at, confirmed_by').eq('tenant_id', row.id).order('period_start'),
-        typeof sb.rpc === 'function' ? sb.rpc('plan_menu') : Promise.resolve(none),
+        typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('plan_menu', { p_tenant: row.id }) : sb.rpc('plan_menu')) : Promise.resolve(none),
         sb.from('tenant_usage_current').select('service, metric, used').eq('tenant_id', row.id),
-        typeof sb.rpc === 'function' ? sb.rpc('client_results_current') : Promise.resolve(none),
+        typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('client_results_current', { p_tenant: row.id }) : sb.rpc('client_results_current')) : Promise.resolve(none),
         sb.from('client_home_sections').select('section, content, source, published_at, updated_at').eq('tenant_id', row.id).eq('client_visible', true)
       ]);
       for (const x of [d, m, r, p]) if (x.error) throw dbFail(x.error);
@@ -6029,6 +6220,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
       state: () => st,
       /** @param {string} kind @param {any} rec @returns {Promise<any>} */
       async put(kind, rec) {
+        if (VIEW) throw viewRefusal(); // read only: never a write while viewing as a client
         const sb = await db();
         let res;
         if (kind === 'decision') {
@@ -6092,6 +6284,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
   const outside = D8.integrations.resolve;
   D8.integrations.resolve = async (/** @type {string} */ kind, /** @type {string} */ id, /** @type {string} */ number) => {
     if (kind !== 'billing-portal' && kind !== 'invoice') return outside(kind, id);
+    if (VIEW) throw viewRefusal();
     if (PREVIEW) return null;
     const notSet = () => {
       const x = /** @type {any} */ (new Error('Online billing is not switched on yet. Press Message us and we sort it out.'));
@@ -7860,6 +8053,263 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
   }
 
   EXT.clients = { head, table, planPanel, planNameOf, picksLine, holdersOf, CAPACITY_HINT };
+})();
+</script>
+<script>
+/* mod-clientview.js */
+/*
+ * The Client view tab (#/client/<id>/view), 2026-10-14: the client's whole dashboard, as they see it, in a frame on this page.
+ * It is the real dashboard in its "view as client" mode (?viewAs=<client id>): it asks this console for the signed-in database
+ * client (window.D8C.viewAs, in console.js) and reads only what the client would see. It cannot approve, message or change
+ * anything. A toolbar picks the page (Home, Work, Results, Billing, Settings, Help, Messages), the screen size (desktop or a
+ * 390 wide phone) and reloads the frame.
+ *
+ * Live. After every write the console makes, console.js calls window.D8C_EXT.clientview.changed(tenantId). About 250 ms later
+ * (writes close together are one message) every open frame of that client gets { type: 'd8:changed', tenantId } by postMessage,
+ * and the dashboard reads again. Other console windows tell this one through a BroadcastChannel, so a change made in a second
+ * window shows here too. The dashboard tells this page which page it is on with { type: 'd8:ready', route } and
+ * { type: 'd8:route', route }.
+ *
+ * Where the dashboard is: /dashboard/ in the real console, staging/dashboard/index.html beside the preview page in a --preview
+ * build, and /dashboard/demo/ (no ?viewAs, no prices) in the demo console on the website. If the frame cannot connect (the page
+ * was opened from a file, or the dashboard has no view mode yet) the frame area says so calmly instead of showing a broken page.
+ */
+(function () {
+  'use strict';
+  const W = /** @type {any} */ (window);
+  W.D8C_EXT = W.D8C_EXT || {};
+  const EXT = W.D8C_EXT;
+  EXT.tabs = EXT.tabs || {};
+
+  /** @param {any} s */
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => /** @type {any} */ ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] || c);
+
+  /** The client's pages, in the order their menu has them. */
+  const PAGES = [['home', 'Home'], ['work', 'Work'], ['results', 'Results'], ['billing', 'Billing'], ['settings', 'Settings'], ['help', 'Help'], ['messages', 'Messages']];
+  const KEYS = PAGES.map((p) => p[0]);
+  const DEMO = () => !!W.D8DEMO_SITE;
+  const WAIT_MS = 15000;
+  const SEND_MS = 250;
+
+  /** The page and screen size each client was left on, for this visit to the console. @type {Record<string, {route: string}>} */
+  const memory = {};
+  /** @returns {string} */
+  const savedDevice = () => { try { return localStorage.getItem('d8c.view.device') === 'phone' ? 'phone' : 'desktop'; } catch (e) { return 'desktop'; } };
+  /** @param {string} d */
+  const saveDevice = (d) => { try { localStorage.setItem('d8c.view.device', d); } catch (e) { /* only a nicety */ } };
+
+  /** "#/work/cards?x=1" or "work" to "work", or '' when it is not one of the client's pages. @param {any} r */
+  function pageOf(r) {
+    const k = String(r == null ? '' : r).replace(/^[#/\s]+/, '').split(/[/?#]/)[0].toLowerCase();
+    return KEYS.includes(k) ? k : '';
+  }
+
+  /** Where the dashboard is for this client and page. @param {string} tenantId @param {string} route */
+  function dashUrl(tenantId, route) {
+    if (DEMO()) return `/dashboard/demo/#/${route}`;
+    const base = W.D8PREVIEW ? 'staging/dashboard/index.html' : '/dashboard/';
+    return `${base}?viewAs=${encodeURIComponent(tenantId)}#/${route}`;
+  }
+
+  /* ---- telling the frames ------------------------------------------------------------------------------------------ */
+
+  /** @typedef {{tenantId: string, el: HTMLIFrameElement, ready: boolean, sent: () => void}} Frame */
+  /** Every open Client view frame. @type {Set<Frame>} */
+  const frames = new Set();
+  /** @type {Set<string>} */ const waiting = new Set();
+  let waitingAll = false;
+  let timer = 0;
+  /** @type {BroadcastChannel|null} */
+  let channel = null;
+  try {
+    channel = typeof BroadcastChannel === 'function' ? new BroadcastChannel('d8c-changed') : null;
+    if (channel) channel.onmessage = (e) => { const d = e && e.data; if (d && d.type === 'd8:changed') changed(d.tenantId || null, true); };
+  } catch (e) { channel = null; }
+
+  function flush() {
+    timer = 0;
+    const all = waitingAll;
+    const ids = new Set(waiting);
+    waiting.clear();
+    waitingAll = false;
+    for (const f of Array.from(frames)) {
+      if (!f.el.isConnected) { frames.delete(f); continue; }
+      if (!f.ready || DEMO() || !(all || ids.has(f.tenantId))) continue;
+      try {
+        if (f.el.contentWindow) f.el.contentWindow.postMessage({ type: 'd8:changed', tenantId: f.tenantId }, location.origin);
+        f.sent();
+      } catch (e) { /* the frame went away between the check and the message */ }
+    }
+  }
+
+  /**
+   * The console wrote something (console.js calls this after each successful write). One message goes out about 250 ms later for
+   * all the writes in between. @param {string|null} tenantId the client it was about, or null when that is not known @param {boolean} [fromOther] told by another window
+   */
+  function changed(tenantId, fromOther) {
+    if (!fromOther && channel) { try { channel.postMessage({ type: 'd8:changed', tenantId: tenantId || null }); } catch (e) { /* other windows are a bonus */ } }
+    if (!frames.size) return;
+    if (tenantId) waiting.add(tenantId); else waitingAll = true;
+    if (!timer) timer = window.setTimeout(flush, SEND_MS);
+  }
+
+  /* ---- the tab ---------------------------------------------------------------------------------------------------- */
+
+  /** @param {any} C @param {HTMLElement} box @param {string} part */
+  function render(C, box, part) {
+    const target = C.current;
+    if (!target) return;
+    const id = String(target.id);
+    const name = String(target.name || 'This client');
+    const demo = DEMO();
+    const mem = (memory[id] = memory[id] || { route: 'home' });
+    const first = pageOf(part);
+    if (first) mem.route = first;
+    /** @type {{device: string, route: string, state: 'blocked'|'connecting'|'ready'|'failed', at: number}} */
+    const st = { device: savedDevice(), route: mem.route, state: 'connecting', at: Date.now() };
+    const blocked = location.protocol === 'file:';
+    if (blocked) st.state = 'blocked';
+    const frameTitle = demo ? 'Sample dashboard of a restaurant, read only' : `${name}'s dashboard, read only`;
+    const here = () => box.isConnected && C.current && String(C.current.id) === id;
+
+    box.innerHTML = `<section class="cv" aria-labelledby="cv-h">
+      ${C.pageFresh({ updatedAt: st.at, source: 'x', status: 'checking' })}
+      <div class="cv-head"><div><h2 id="cv-h">Client view</h2>
+        <p>${demo ? 'A sample dashboard, the way a restaurant sees theirs. It is a look only: it does not change with this console.' : `${esc(name)}'s dashboard, exactly as they see it. You can look and move around, but nothing here can be approved, sent or changed.`}</p></div>
+        <span class="cv-live${demo ? ' is-sample' : ''}"><span class="cv-dot" aria-hidden="true"></span><span>${demo ? 'Sample: this does not change with the console' : 'Live: changes here show at once'}</span></span>
+      </div>
+      <div class="cv-bar">
+        <div class="seg cv-pages" role="group" aria-label="${demo ? 'Dashboard page' : 'Page the client sees'}">${PAGES.map(([k, label]) => `<button type="button" data-cv-page="${k}" aria-pressed="${k === st.route}">${label}</button>`).join('')}</div>
+        <div class="seg cv-device" role="group" aria-label="Screen size"><button type="button" data-cv-device="desktop" aria-pressed="${st.device === 'desktop'}">Desktop</button><button type="button" data-cv-device="phone" aria-pressed="${st.device === 'phone'}">Phone</button></div>
+        <button type="button" class="btn btn-quiet cv-reload" data-cv-reload>${C.icon('refresh')}Reload</button>
+      </div>
+      <div class="cv-stage" data-device="${st.device}">
+        <div class="cv-device-frame">
+          <div class="cv-screen">
+            ${blocked ? '' : `<iframe class="cv-frame" title="${esc(frameTitle)}" referrerpolicy="same-origin" src="${esc(EXT.clientview.dashUrl(id, st.route))}"></iframe>`}
+            <div class="cv-cover" data-cv-cover role="status"></div>
+          </div>
+        </div>
+      </div>
+    </section>`;
+
+    const stage = /** @type {HTMLElement} */ (box.querySelector('.cv-stage'));
+    const cover = /** @type {HTMLElement} */ (box.querySelector('[data-cv-cover]'));
+    const live = /** @type {HTMLElement} */ (box.querySelector('.cv-live'));
+    const iframe = /** @type {HTMLIFrameElement|null} */ (box.querySelector('iframe.cv-frame'));
+    /** @type {Frame} */
+    const frame = {
+      tenantId: id, el: /** @type {HTMLIFrameElement} */ (iframe), ready: false,
+      sent() {
+        st.at = Date.now();
+        drawFresh();
+        live.classList.remove('is-sent');
+        void live.offsetWidth;
+        live.classList.add('is-sent');
+      }
+    };
+    if (iframe) frames.add(frame);
+    let timeout = 0;
+
+    function drawFresh() {
+      const line = box.querySelector('.page-fresh');
+      if (!line) return;
+      const failed = st.state === 'failed' || st.state === 'blocked';
+      const status = failed ? 'delayed' : st.state === 'ready' ? 'ok' : 'checking';
+      const label = st.state === 'blocked' ? 'Not shown here' : st.state === 'failed' ? 'Did not open' : st.state === 'connecting' ? 'Opening the dashboard' : undefined;
+      line.outerHTML = C.pageFresh({
+        updatedAt: st.state === 'ready' ? st.at : null,
+        source: demo ? 'The sample dashboard on the website' : `${name}'s own dashboard, read live`,
+        status, label
+      });
+    }
+    function drawCover() {
+      const msg = {
+        blocked: ['This page needs the console\'s web address', 'Client view cannot open when the console is opened as a file on this computer. Open the console from its normal link and this page will show the dashboard.'],
+        failed: ['The dashboard did not open here', demo ? 'The sample dashboard did not load. Check your connection and try Reload.' : 'The dashboard may not have its client view yet, or it did not load in time. Try Reload. Nothing was changed.'],
+        connecting: ['Opening ' + (demo ? 'the sample dashboard' : name + '\'s dashboard') + '...', '']
+      }[/** @type {'blocked'|'failed'|'connecting'} */ (st.state === 'ready' ? 'connecting' : st.state)];
+      cover.hidden = st.state === 'ready';
+      cover.classList.toggle('is-busy', st.state === 'connecting');
+      cover.innerHTML = st.state === 'ready' ? '' : `<div class="cv-msg"><strong>${esc(msg[0])}</strong>${msg[1] ? `<p>${esc(msg[1])}</p>` : ''}${st.state === 'failed' ? '<button type="button" class="btn" data-cv-reload>Reload</button>' : ''}</div>`;
+      if (iframe) iframe.setAttribute('aria-busy', String(st.state === 'connecting'));
+    }
+    function setState(/** @type {'blocked'|'connecting'|'ready'|'failed'} */ s) {
+      st.state = s;
+      frame.ready = s === 'ready';
+      if (s === 'ready') st.at = Date.now();
+      drawCover();
+      drawFresh();
+      if (!demo) {
+        const off = s === 'failed' || s === 'blocked';
+        live.classList.toggle('is-sample', off);
+        const word = live.lastElementChild;
+        if (word) word.textContent = off ? 'Not connected' : 'Live: changes here show at once';
+      }
+    }
+    function mark(/** @type {string} */ route) {
+      const k = pageOf(route);
+      if (!k) return;
+      st.route = mem.route = k;
+      for (const b of Array.from(box.querySelectorAll('[data-cv-page]'))) b.setAttribute('aria-pressed', String(b.getAttribute('data-cv-page') === k));
+    }
+    function arm() {
+      window.clearTimeout(timeout);
+      timeout = window.setTimeout(() => { if (st.state === 'connecting' && here()) setState('failed'); }, WAIT_MS);
+    }
+    /** Opens the dashboard again: at the page the toolbar shows (a new address), or from the top (the same one). @param {boolean} [again] */
+    function load(again) {
+      if (!iframe) return;
+      frame.ready = false;
+      setState('connecting');
+      const want = EXT.clientview.dashUrl(id, st.route);
+      let done = false;
+      if (again) { try { /** @type {Window} */ (iframe.contentWindow).location.reload(); done = true; } catch (e) { /* set the address instead */ } }
+      if (!done) iframe.src = want;
+      arm();
+    }
+
+    setState(blocked ? 'blocked' : 'connecting');
+    if (!blocked) {
+      arm();
+      // The demo dashboard knows nothing of this page, so its load is all there is to wait for.
+      iframe && iframe.addEventListener('load', () => { if (demo && st.state === 'connecting') setState('ready'); });
+    }
+
+    /** What the dashboard tells us. @param {MessageEvent} e */
+    function onMessage(e) {
+      if (!here()) { window.removeEventListener('message', onMessage); frames.delete(frame); window.clearTimeout(timeout); return; }
+      if (!iframe || e.source !== iframe.contentWindow || e.origin !== location.origin) return;
+      const d = e.data;
+      if (!d || typeof d !== 'object') return;
+      if (d.type === 'd8:ready') { mark(d.route); window.clearTimeout(timeout); setState('ready'); }
+      else if (d.type === 'd8:route') mark(d.route);
+    }
+    window.addEventListener('message', onMessage);
+
+    box.addEventListener('click', (e) => {
+      const b = /** @type {HTMLElement|null} */ ((/** @type {HTMLElement} */ (e.target)).closest ? (/** @type {HTMLElement} */ (e.target)).closest('button') : null);
+      if (!b) return;
+      const page = b.getAttribute('data-cv-page');
+      const device = b.getAttribute('data-cv-device');
+      if (page && iframe) {
+        mark(page);
+        if (st.state === 'ready') { try { /** @type {Window} */ (iframe.contentWindow).location.hash = `#/${page}`; return; } catch (x) { /* load it afresh below */ } }
+        load();
+      } else if (device) {
+        st.device = device;
+        saveDevice(device);
+        stage.setAttribute('data-device', device);
+        for (const x of Array.from(box.querySelectorAll('[data-cv-device]'))) x.setAttribute('aria-pressed', String(x.getAttribute('data-cv-device') === device));
+      } else if (b.hasAttribute('data-cv-reload')) {
+        if (iframe) load(true);
+        else C.toast('Open the console from its web address to see the client view.');
+      }
+    });
+  }
+
+  EXT.clientview = { changed, pageOf, dashUrl };
+  EXT.tabs.view = { label: 'Client view', after: 'home', render };
 })();
 </script>
 <script>
@@ -12995,8 +13445,83 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
 
 
   async function db() {
-    if (!sb) sb = await D8.live.db();
+    if (!sb) sb = watchWrites(await D8.live.db());
     return sb;
+  }
+  /**
+   * Tells the Client view tab (mod-clientview.js) after every write this console makes, so the client's dashboard in its frame
+   * redraws at once (2026-10-14). The one place for it: the database client is wrapped here, so every part of the console is
+   * covered (insert, update, upsert, delete, and every rpc that is not a plain read). A failed write tells nobody. Reads and the
+   * account look (user_prefs) do not count. The server functions are covered in callFn and multica below.
+   * @param {any} client
+   */
+  function watchWrites(client) {
+    if (!client || client.__d8watch) return client;
+    const isThen = (/** @type {any} */ x) => !!x && typeof x.then === 'function';
+    /** Wraps a pending query so its answer, when it has no error, tells the Client view. @param {any} q @param {any} tenant @returns {any} */
+    const guard = (q, tenant) => {
+      if (!isThen(q)) return q;
+      if (q instanceof Promise) return q.then((v) => { if (v && !v.error) changed(tenant); return v; });
+      const p = new Proxy(q, {
+        get(t, k) {
+          if (k === 'then') return (/** @type {any} */ res, /** @type {any} */ rej) => t.then((/** @type {any} */ v) => { if (v && !v.error) changed(tenant); return res ? res(v) : v; }, rej);
+          const v = t[k];
+          if (typeof v !== 'function') return v;
+          return (/** @type {any[]} */ ...a) => { const r = v.apply(t, a); return r === t ? p : isThen(r) ? guard(r, tenant) : r; };
+        }
+      });
+      return p;
+    };
+    const ofrom = client.from.bind(client);
+    const orpc = client.rpc.bind(client);
+    const WRITE = { insert: 1, update: 1, upsert: 1, delete: 1 };
+    client.from = (/** @type {string} */ table) => {
+      const b = ofrom(table);
+      if (table === 'user_prefs') return b;
+      return new Proxy(b, {
+        get(t, k) {
+          const v = t[k];
+          if (typeof v !== 'function') return v;
+          if (typeof k === 'string' && Object.prototype.hasOwnProperty.call(WRITE, k)) {
+            return (/** @type {any[]} */ ...a) => {
+              const row = Array.isArray(a[0]) ? a[0][0] : a[0];
+              const tenant = table === 'tenants' ? (row && row.id) || null : (row && row.tenant_id) || null;
+              return guard(v.apply(t, a), tenant);
+            };
+          }
+          return v.bind(t);
+        }
+      });
+    };
+    const READS = /^(console_me|client_work_cards|client_results_current|plan_menu|get_|list_|search_)/;
+    client.rpc = (/** @type {string} */ name, /** @type {any} */ args, /** @type {any} */ opts) => {
+      const r = orpc(name, args, opts);
+      if (READS.test(String(name))) return r;
+      return guard(r, (args && (args.p_tenant || args.p_tenant_id || args.tenant_id)) || null);
+    };
+    client.__d8watch = true;
+    return client;
+  }
+  /** Passes a change on to the Client view tab, if that part is loaded. @param {any} tenant */
+  function changed(tenant) {
+    const x = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.clientview;
+    if (x && x.changed) { try { x.changed(tenant || null); } catch (e) { /* the view of a client is a nicety: it never breaks a save */ } }
+  }
+  /**
+   * The client's dashboard as the dashboard's "view as client" mode needs it (2026-10-14): the console's own signed-in database
+   * client, the client's name, and who is looking. The dashboard in the Client view frame asks for this through window.parent.D8C.viewAs.
+   * @param {string} tenantId
+   */
+  async function viewAs(tenantId) {
+    if (!me || !all) throw new Error('Sign in to the console first.');
+    const client = await db();
+    let t = all.tenants.find((/** @type {any} */ x) => x.id === tenantId);
+    if (!t) {
+      const r = await client.from('tenants').select('id, name, clerk_org_id').eq('id', tenantId).maybeSingle();
+      t = r && !r.error ? r.data : null;
+    }
+    if (!t) throw new Error('That client was not found.');
+    return { client, tenant: { id: t.id, name: t.name, clerk_org_id: t.clerk_org_id || null }, staff: { userId: me.userId, name: me.name } };
   }
   /** @param {any} res */
   function check(res) {
@@ -13347,10 +13872,18 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
   function allTabs() {
     const ext = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.tabs ? /** @type {any} */ (window).D8C_EXT.tabs : {};
     const out = TABS.map((x) => [x[0], x[1]]);
-    for (const [key, def] of Object.entries(/** @type {Record<string, any>} */ (ext))) {
-      if (out.some((x) => x[0] === key)) continue;
-      const at = out.findIndex((x) => x[0] === (def.after || 'talk'));
-      out.splice(at >= 0 ? at + 1 : out.length, 0, [key, def.label]);
+    // A part may name a tab that another part adds later in the load order (Client view goes after Home), so a tab whose
+    // neighbour is not there yet waits for another pass; what is still waiting at the end goes last.
+    let rest = Object.entries(/** @type {Record<string, any>} */ (ext)).filter(([key]) => !out.some((x) => x[0] === key));
+    while (rest.length) {
+      const left = rest.filter(([key, def]) => {
+        const at = out.findIndex((x) => x[0] === (def.after || 'talk'));
+        if (at < 0) return true;
+        out.splice(at + 1, 0, [key, def.label]);
+        return false;
+      });
+      if (left.length === rest.length) { for (const [key, def] of left) out.push([key, def.label]); break; }
+      rest = left;
     }
     return out;
   }
@@ -14497,6 +15030,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) { const e = new Error(body.message || `The sync service answered ${res.status}.`); /** @type {any} */ (e).code = body.error || res.status; throw e; }
+    if (payload && payload.action !== 'status') changed(payload.tenantId);
     return body;
   }
   async function multicaStatus() {
@@ -15131,6 +15665,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
       const e = new Error(FN_CODES[b.error] || (b.message ? `${b.message}${b.detail ? ` (${b.detail})` : ''}` : `The server answered ${res.status}.`));
       /** @type {any} */ (e).code = b.error || res.status; /** @type {any} */ (e).customer = b.customer || null; throw e;
     }
+    if (!/^(list|status|search)$/.test(String(payload && payload.action))) changed(payload && payload.tenantId);
     return body;
   }
   /** The server's error codes for hiding, in words. @type {Record<string, string>} */
@@ -16598,7 +17133,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
   /** @type {any} */ (window).D8C = {
     esc, $, $$, icon, toast, undoToast, busy, val, message, skeleton, plural, when, ago, due, longDate, dayOf, today, localDay, newId, clone, svcLabel,
     SERVICES, SERVICE_ORDER, STATUS, FLAGS, PORTAL_URL, main,
-    db, check, ask, track, clean, redraw, afterSave, route, refreshAll, loadAll, callFn,
+    db, check, ask, track, clean, redraw, afterSave, route, refreshAll, loadAll, callFn, viewAs,
     tenant, derive, planOf, usageTone, usageBar, money, clockTime, pageFresh, billingOf, convo, allTabs, fromCache, loadClient, save, saveDoc,
     get all() { return all; }, get me() { return me; }, get current() { return current; }, get dirty() { return dirty; },
     get plans() { return all && all.plans ? all.plans : emptyPlans(); }

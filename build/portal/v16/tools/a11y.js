@@ -68,7 +68,7 @@ if (/v18h/.test(BUILD)) {
   // The plan release's console pages (2026-10-13): a client's plan drawer, the tabs it added, the plan columns, the stepped Add client form.
   const B = 'tnt_preview_bayleaf';
   CASES = CASES.concat([{ route: `billing/${B}`, w: 1440 }, { route: `billing/${B}`, w: 500 }, { route: `billing/${B}`, w: 1440, query: 'theme=dark' }, { route: 'billing', w: 500 },
-    { route: `client/${B}/results`, w: 1440 }, { route: `client/${B}/talk`, w: 1440 }, { route: `client/${B}/home`, w: 1440 }, { route: `client/${B}/home`, w: 500 }, { route: `client/${B}/visible`, w: 1440 }, { route: `client/${B}/visible`, w: 500 }, { route: `client/${B}/visible`, w: 1440, query: 'theme=dark' },
+    { route: `client/${B}/results`, w: 1440 }, { route: `client/${B}/talk`, w: 1440 }, { route: `client/${B}/home`, w: 1440 }, { route: `client/${B}/home`, w: 500 }, { route: `client/${B}/visible`, w: 1440 }, { route: `client/${B}/visible`, w: 500 }, { route: `client/${B}/visible`, w: 1440, query: 'theme=dark' }, { route: `client/${B}/view`, w: 1440 }, { route: `client/${B}/view`, w: 500 }, { route: `client/${B}/view`, w: 1440, query: 'theme=dark' }, { route: `client/${B}/view`, w: 1440, query: 'theme=dark&scene=scenes' },
     { route: `client/${B}/setup`, w: 1440 }, { route: `client/${B}/advanced`, w: 1440 }, { route: `client/${B}/work`, w: 1440 }, { route: 'client/tnt_preview_marlow/overview', w: 1440 }, { route: 'client/tnt_preview_corner/visible', w: 1440 },
     { route: 'new', w: 500 }, { route: 'new', w: 1440, query: 'theme=dark' }, { route: 'clients', w: 500 }, { route: 'clients', w: 1440, query: 'theme=dark' }, { route: 'board', w: 1440 }, { route: 'board', w: 500 }, { route: 'settings', w: 500 }]);
 } else if (BUILD !== 'v16') {

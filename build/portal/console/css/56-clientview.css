@@ -1,0 +1,60 @@
+/*
+ * The Client view tab (2026-10-14): the client's dashboard in a soft rounded device frame. The toolbar is the console's own glass
+ * pills. The frame is tall (it fills the window below the toolbar, never under 720px); the phone size centres a 390px wide phone.
+ * Colours come from the console's tokens, so the light, dark and moving-sky looks all work.
+ */
+
+.cv { display: grid; gap: 16px; }
+.cv > .page-fresh { margin: 0; }
+.cv-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 24px; }
+.cv-head h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.4px; }
+.cv-head p { margin-top: 5px; max-width: 70ch; color: var(--ink-3); font-size: 15.5px; }
+
+/* The toolbar. */
+.cv-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+.cv-bar .seg { flex-wrap: wrap; }
+.cv-bar .seg button { min-height: 38px; }
+.cv-bar .seg button:disabled { opacity: 0.55; cursor: default; transform: none; }
+.cv-reload { margin-left: auto; min-height: 38px; }
+.cv-head .cv-live { margin-top: 4px; }
+.cv-reload svg { width: 16px; height: 16px; }
+
+/* "Live: changes here show at once": a small pill with a quiet green dot that pulses once when an update is sent. */
+.cv-live { display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px; border-radius: 999px; background: var(--good-bg); color: var(--good); font-size: 13.5px; font-weight: 600; line-height: 1.3; }
+.cv-live.is-sample { background: var(--surface-3); color: var(--ink-2); }
+.cv-dot { position: relative; flex: none; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.cv-dot::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid currentColor; opacity: 0; }
+.cv-live.is-sent .cv-dot::after { animation: cv-pulse 900ms var(--ease) 1; }
+@keyframes cv-pulse { 0% { opacity: 0.75; transform: scale(0.5); } 100% { opacity: 0; transform: scale(1.9); } }
+
+/* The stage: a soft frame around the screen. */
+.cv-stage { display: flex; justify-content: center; padding: 14px; border-radius: 32px; border: 0.67px solid var(--glass-edge); background-color: var(--glass); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); }
+.cv-device-frame { width: 100%; max-width: 100%; margin: 0 auto; border-radius: 22px; transition: width 260ms var(--ease), padding 260ms var(--ease), border-radius 260ms var(--ease), background-color 260ms var(--ease); }
+.cv-screen { position: relative; overflow: hidden; border-radius: 20px; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 18px 40px -26px rgba(40, 30, 20, 0.45); height: max(720px, calc(100vh - 300px)); transition: border-radius 260ms var(--ease); }
+.cv-frame { display: block; width: 100%; height: 100%; border: 0; background: var(--surface); color-scheme: normal; }
+
+/* The phone: 390px wide, in a dark bezel, centred. */
+.cv-stage[data-device="phone"] .cv-device-frame { width: 390px; max-width: 100%; padding: 11px; border-radius: 48px; background-color: #1D1A16; box-shadow: 0 22px 44px -22px rgba(24, 28, 48, 0.55), inset 0 0 0 1.5px rgba(255, 255, 255, 0.12); }
+.cv-stage[data-device="phone"] .cv-screen { height: max(720px, min(844px, calc(100vh - 300px))); border-radius: 38px; box-shadow: none; }
+html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { background-color: #0A0B0E; box-shadow: 0 22px 44px -22px rgba(0, 0, 0, 0.8), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18); }
+
+/* Shown over the screen while it opens, and instead of it when it cannot. */
+.cv-cover { position: absolute; inset: 0; display: grid; place-items: start center; padding: 96px 24px 24px; background: var(--surface); color: var(--ink); text-align: center; }
+.cv-cover.is-busy { background: linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%) 0 0 / 220% 100%; animation: cv-shimmer 1.6s linear infinite; }
+@keyframes cv-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+.cv-msg { display: grid; justify-items: center; gap: 10px; max-width: 46ch; }
+.cv-msg strong { font-size: 18px; font-weight: 700; letter-spacing: -0.2px; }
+.cv-msg p { color: var(--ink-2); font-size: 15.5px; line-height: 1.55; }
+.cv-msg .btn { margin-top: 6px; }
+
+@media (max-width: 760px) {
+  .cv-stage { padding: 8px; border-radius: 24px; }
+  .cv-screen { height: max(720px, calc(100vh - 220px)); }
+  .cv-stage[data-device="phone"] .cv-device-frame { padding: 8px; border-radius: 40px; }
+  .cv-reload { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cv-live.is-sent .cv-dot::after { animation: none; }
+  .cv-cover.is-busy { animation: none; background: var(--surface); }
+  .cv-device-frame, .cv-screen { transition: none; }
+}

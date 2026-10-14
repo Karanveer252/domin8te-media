@@ -213,6 +213,7 @@
       if (problem) b.setAttribute('title', '1 payment problem'); else b.removeAttribute('title');
     });
     countMessages();
+    drawViewBar(a.business.name);
   }
 
   function refreshAccount() {
@@ -249,6 +250,57 @@
     }
   }
   const menuOpen = () => { const b = $('#account-btn'); return !!b && b.getAttribute('aria-expanded') === 'true'; };
+
+  /* ---- view as client (2026-10-14) --------------------------------------------------------------
+   * The agency console shows this dashboard live, read only, in an iframe (data/dashboard-data.js, viewAsMode, decides
+   * when). Here: the banner, hiding sign-out, telling the console where we are (d8:ready, d8:route, d8:error) and
+   * reloading the data in place when it says something changed (d8:changed). Messages are only ever exchanged with the
+   * parent window of the same origin. */
+
+  const toParent = (/** @type {any} */ msg) => D8.viewAs.toParent(msg);
+  let lastRouteSent = '';
+  function sendRoute() {
+    if (!D8.data.viewAs) return;
+    const route = currentHash() || '#/home';
+    if (route === lastRouteSent) return;
+    lastRouteSent = route;
+    toParent({ type: 'd8:route', route });
+  }
+  /** The line at the very top of every page. @param {string} [fallbackName] */
+  function drawViewBar(fallbackName) {
+    const V = D8.data.viewAs;
+    const bar = $('#viewas-bar');
+    if (!V || !bar) return;
+    const name = V.name || fallbackName || 'this client';
+    $('#viewas-name').textContent = name;
+    bar.hidden = false;
+  }
+  let reloading = false;
+  let reloadAgain = false;
+  /** New data from the console: read it again and redraw this page where it stands, keeping the scroll position. */
+  function reloadInPlace() {
+    if (!app.ready || !app.client) return;
+    if (reloading) { reloadAgain = true; return; }
+    reloading = true;
+    const y = root.scrollY;
+    app.client.refresh()
+      .then(() => refreshAccount())
+      .then(() => { if (app.page && app.page.refresh) app.page.refresh(); else render(true); })
+      .catch(() => { /* the page already on screen stays as it was; the next change tries again */ })
+      .then(() => {
+        reloading = false;
+        const back = () => root.scrollTo(0, y);
+        back();
+        if (root.requestAnimationFrame) root.requestAnimationFrame(back);
+        if (reloadAgain) { reloadAgain = false; reloadInPlace(); }
+      });
+  }
+  function wireViewAs() {
+    if (!D8.data.viewAs) return;
+    document.documentElement.setAttribute('data-viewas', '');
+    drawViewBar();
+    D8.viewAs.listen(reloadInPlace, 250);
+  }
 
   /* ---- routing --------------------------------------------------------------------------- */
 
@@ -353,6 +405,7 @@
     app.lastRoute = h || '#/home';
     if (!app.ready) { app.wanted = app.lastRoute; return; }
     render(false);
+    sendRoute();
   }
 
   /* ---- actions ----------------------------------------------------------------------------- */
@@ -390,6 +443,7 @@
 
   function signOut(trigger) {
     if (menuOpen()) toggleMenu(false);
+    if (D8.data.viewAs) { D8.dialogs.toast(D8.data.DEMO_NOTE, { tone: 'error' }); return; } // nobody signs out of the console's view
     D8.dialogs.confirm({ title: 'Sign out?', text: `You can sign back in any time with ${D8.auth && D8.auth.live ? 'a code' : 'a link'} we email you.`, yes: 'Sign out', no: 'Stay signed in' }, trigger)
       .then((yes) => {
         if (!yes) return;
@@ -484,6 +538,16 @@
 
   function fatal(e) {
     // The sign-in ended: back to the sign-in page, not "no portal for this email".
+    if (D8.data.viewAs) {
+      // No sign-in here: the console opened this, so the answer is for the console's person, and there is nothing to sign out of.
+      $('#app').classList.add('is-auth');
+      $('#main').innerHTML = `<div class="signin"><div class="signin-card"><h1 id="page-title" tabindex="-1">We couldn't open this dashboard</h1>${UI.ErrorState({
+        title: e && e.code === 'tenant-not-found' ? "This client's dashboard isn't set up yet." : 'Something went wrong while loading it.',
+        text: e && e.code === 'view-failed' ? e.message : 'Close it and open it again. Nothing has changed on their account.'
+      })}<button class="btn btn-solid" type="button" data-action="retry-start">Try again</button></div></div>`;
+      toParent({ type: 'd8:error', code: (e && e.code) || 'error' });
+      return;
+    }
     if (e && e.code === 'session-expired') { app.session = null; app.client = null; app.account = null; app.ready = true; root.location.hash = '#/sign-in'; return start(); }
     $('#app').classList.add('is-auth');
     const notFound = e && e.code === 'tenant-not-found';
@@ -523,6 +587,7 @@
         app.lastRoute = root.location.hash || '#/home';
         app.ready = true;
         render(!next);
+        if (D8.data.viewAs && !lastRouteSent) { lastRouteSent = currentHash() || '#/home'; toParent({ type: 'd8:ready', route: lastRouteSent }); }
       }).catch(fatal);
     }).catch(fatal);
   }
@@ -533,6 +598,7 @@
     syncSide();
     if (tablet) tablet.addEventListener('change', syncSide);
     D8.dialogs.wire();
+    wireViewAs();
     wireRail();
     document.addEventListener('click', onClick);
     document.addEventListener('change', onChange);
