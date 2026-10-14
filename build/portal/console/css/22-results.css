@@ -74,4 +74,3 @@
 /* a result open for its check is read, not typed: the values stay clear and dark */
 .rs-form input:disabled:not([role="switch"]), .rs-form select:disabled { background-color: rgba(255, 255, 255, 0.55); color: var(--ink); -webkit-text-fill-color: var(--ink); opacity: 1; cursor: default; }
 
-#tab > .page-fresh { margin: 0; }

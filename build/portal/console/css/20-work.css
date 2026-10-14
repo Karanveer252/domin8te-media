@@ -117,7 +117,7 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 .wk-form input[type="number"]:disabled, .wk-form select:disabled { opacity: 0.6; }
 
 /* inside a client's tab the freshness line sits above the toolbar with room under it */
-#tab > .page-fresh { margin: 0 0 14px; }
+#tab > .page-fresh { margin: 0 0 18px; }
 
 /* Phones: each client's limits slide sideways and so do the filter chips, so the board is not four screens down. */
 @media (max-width: 760px) {

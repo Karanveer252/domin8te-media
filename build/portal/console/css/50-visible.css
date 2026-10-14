@@ -4,19 +4,22 @@
  * a person: a row nobody has decided yet.
  */
 
-.vz { display: grid; gap: 16px; }
+.vz { display: grid; gap: 18px; }
 .vz > .page-fresh { margin: 0; }
 .vz-head h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.4px; }
 .vz-head p { margin-top: 5px; max-width: 66ch; color: var(--ink-3); font-size: 15.5px; }
 .vz > .notice { margin: 0; }
-.vz-cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+.vz-cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+/* the panels are solid enough that the page's dots do not show through the words */
+.vz-cols > .panel { background-color: var(--glass-strong); }
+.vz-main { container: vzlist / inline-size; }
 .vz-cols > .panel { margin-top: 0; }
 .vz-side { position: sticky; top: 16px; }
-.vz-side h3 { margin-bottom: 2px; }
+.vz-side h3 { margin-bottom: 4px; }
 .vz-count { font-variant-numeric: tabular-nums; }
 
 /* The filter: the console's own pill group, the counts quiet unless something waits for a decision. */
-.vz-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; padding: 0; }
+.vz-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 18px; padding: 0; }
 .vz-filter button { min-height: 36px; padding: 6px 14px; }
 .vz-filter .count { margin-left: 7px; padding: 0 7px; font-variant-numeric: tabular-nums; }
 .vz-filter .count.quiet { background: var(--surface-3); color: var(--ink-2); }
@@ -25,7 +28,7 @@
 .vz-tablewrap { margin: 0 -10px; overflow-x: auto; }
 .vz-table { width: 100%; border-collapse: collapse; }
 .vz-table th { padding: 10px 12px; border-bottom: 1px solid var(--line-2); color: var(--ink-3); font-size: 13px; font-weight: 600; text-align: left; white-space: nowrap; }
-.vz-table td { padding: 15px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.vz-table td { padding: 18px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .vz-row { transition: background 120ms var(--ease); }
 .vz-row:hover td { background: var(--hover); }
 .vz-row.is-open td { background: rgba(255, 255, 255, 0.5); border-bottom-color: transparent; }
@@ -36,7 +39,7 @@
 .vz-c-ctl { width: 134px; }
 .vz-type { display: inline-flex; align-items: center; padding: 2px 11px; border-radius: 999px; background: var(--surface-3); color: var(--ink-2); font-size: 12.5px; font-weight: 650; line-height: 1.55; white-space: nowrap; }
 .vz-title { display: block; font-size: 15.5px; font-weight: 650; line-height: 1.35; overflow-wrap: anywhere; }
-.vz-sub { display: block; margin-top: 3px; color: var(--ink-3); font-size: 13.5px; line-height: 1.5; }
+.vz-sub { display: block; margin-top: 6px; color: var(--ink-3); font-size: 13.5px; line-height: 1.5; }
 .vz-sub a { color: var(--accent-ink); font-weight: 600; }
 .vz-dot { margin: 0 4px; color: var(--line-2); }
 .vz-c-status .chip { margin-top: 0; }
@@ -68,13 +71,13 @@
 .vz-check input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--ink); cursor: pointer; }
 
 /* The history: a quiet timeline. The person is in bold inside the sentence. */
-.vz-hist { display: grid; gap: 20px; margin: 18px 0 0; padding: 0 0 0 20px; border-left: 2px solid var(--line-2); list-style: none; }
+.vz-hist { display: grid; gap: 24px; margin: 20px 0 0 6px; padding: 0 0 0 22px; border-left: 2px solid var(--line-2); list-style: none; }
 .vz-hist li { position: relative; }
 .vz-hist li:focus { outline: none; }
-.vz-hist li::before { content: ""; position: absolute; left: -27px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 2px var(--ink-3); }
+.vz-hist li::before { content: ""; position: absolute; left: -28px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 2px var(--ink-3); }
 .vz-hist li:first-child::before { box-shadow: 0 0 0 2px var(--accent); background: var(--accent); }
-.vz-hist time { display: block; font-size: 14.5px; font-weight: 650; font-variant-numeric: normal; }
-.vz-hist p { margin-top: 2px; color: var(--ink-2); font-size: 14.5px; line-height: 1.5; }
+.vz-hist time { display: block; color: var(--ink-3); font-size: 13px; font-weight: 650; letter-spacing: 0.01em; font-variant-numeric: normal; }
+.vz-hist p { margin-top: 4px; color: var(--ink-2); font-size: 14.5px; line-height: 1.55; text-wrap: pretty; }
 .vz-hist strong { color: var(--ink); }
 .vz-more { margin-top: 16px; font-size: 14px; }
 
@@ -85,8 +88,8 @@
 
 /* A phone: each row becomes a card, with no horizontal scroll. Top line: the type and the control (the switch or Decide). Then the
    title, the state, and the small print. The item cell gives its parts to the grid (display: contents) so the state can sit between. */
-@media (max-width: 760px) {
-  .vz-head h2 { font-size: 21px; }
+@media (max-width: 760px) { .vz-head h2 { font-size: 21px; } }
+@container vzlist (max-width: 720px) {
   .vz-tablewrap { margin: 0; overflow: visible; }
   .vz-table, .vz-table tbody { display: block; }
   .vz-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
