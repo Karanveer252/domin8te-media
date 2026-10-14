@@ -1,11 +1,12 @@
 /*
- * Add client (#/new), 2026-10-13: a stepped form. 1 Restaurant, contact and email. 2 Plan cards with their limits (Domin8te is
- * disabled with "Taken" while its one place is full). 3 Starting picks with the rule, a counter and a block message. 4 First billing
- * date with the reminder dates and the first lock period. 5 What the client sees on each dashboard page. 6 The Stripe customer.
+ * Add client (#/new), 2026-10-13: a stepped form. 1 Restaurant, contact and email. 2 Plan cards with their limits (a plan an owner
+ * locked in Settings shows "Locked" and cannot be chosen; Domin8te is open unless it is locked). 3 Starting picks with the rule, a
+ * counter and a block message. 4 First billing date with the reminder dates and the first lock period. 5 What the client sees on each
+ * dashboard page. 6 The Stripe customer.
  *
  * Write order on "Add the client": tenants, then tenant_plan_cycles (state active, source console), then the Home sections and the
- * sign-off level, then Stripe, then the Multica board. A refused plan (the one Domin8te place taken) says so in plain words and opens
- * the Billing drawer for the client that was just added. The plan rule is the shared widget in mod-planpick.js.
+ * sign-off level, then Stripe, then the Multica board. A refused plan (locked just now, or its client limit used up) says so in plain
+ * words and opens the Billing drawer for the client that was just added. The plan rule is the shared widget in mod-planpick.js.
  *
  * console.js calls window.D8C_EXT.newclient.page() from newClient(). Reads: tenants (D8C.all), plans (D8C.plans). Writes: tenants,
  * tenant_plan_cycles, client_home_sections, client_profile, and the Stripe and Multica server functions.
@@ -157,7 +158,7 @@
       if (S.email && !EMAIL.test(S.email)) m.push('a valid contact email');
       const chk = pp.check();
       if (!pp.state.planId) m.push('a plan');
-      else if (!chk.ok) m.push(chk.code === 'plan-full' ? 'a plan that is free' : 'the picks');
+      else if (!chk.ok) m.push(chk.code === 'plan-full' || chk.code === 'plan-locked' ? 'a plan that is open' : 'the picks');
       if (!dateOk(S.date)) m.push('a first billing date');
       return m;
     }
@@ -176,7 +177,7 @@
     function paintSteps() {
       const ok = [
         !!S.name.trim() && (!S.email || EMAIL.test(S.email)),
-        !!pp.state.planId && !(pp.check().code === 'plan-full'),
+        !!pp.state.planId && !['plan-full', 'plan-locked'].includes(pp.check().code),
         pp.check().ok,
         dateOk(S.date), true, true
       ];

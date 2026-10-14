@@ -361,7 +361,7 @@
       const mn = menu.error || !menu.data ? null : menu.data;
       const planRec = nowC && mn ? {
         menu: {
-          plans: (mn.plans || []).map((/** @type {any} */ x) => ({ id: x.id, name: x.name, priceMinor: x.price_minor, currency: x.currency, picksAllowed: x.picks_allowed, required: x.required_services || [], maxClients: x.max_clients, full: !!x.full })),
+          plans: (mn.plans || []).map((/** @type {any} */ x) => ({ id: x.id, name: x.name, priceMinor: x.price_minor, currency: x.currency, picksAllowed: x.picks_allowed, required: x.required_services || [], maxClients: x.max_clients, full: !!x.full, locked: !!x.locked })),
           caps: (mn.caps || []).map((/** @type {any} */ x) => ({ planId: x.plan_id, service: x.service, metric: x.metric, label: x.label, cap: Number(x.monthly_cap), weeklyHint: x.weekly_hint || null }))
         },
         now: nowC, next: nextC,

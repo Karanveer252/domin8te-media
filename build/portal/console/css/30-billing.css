@@ -4,18 +4,27 @@
  * Colours come from the console's tokens; the glass recipe is console.css's.
  */
 
+/* Surfaces that follow the theme: the same white glass in the light console, night surfaces in the dark one. */
+:root { --pp-card: rgba(255, 255, 255, 0.62); --pp-card-hover: rgba(255, 255, 255, 0.9); --pp-on: #FFFFFF; --pp-chip: rgba(255, 255, 255, 0.7); --pp-sheet: rgba(255, 255, 255, 0.95); --pp-sheet-foot: rgba(255, 255, 255, 0.85); --pp-soft: rgba(255, 255, 255, 0.5); --pp-line: rgba(94, 72, 50, 0.24); --pp-line-hi: rgba(94, 72, 50, 0.42); --pp-sunk: rgba(94, 72, 50, 0.06); }
+html[data-theme="dark"] { --pp-card: rgba(255, 255, 255, 0.05); --pp-card-hover: rgba(255, 255, 255, 0.1); --pp-on: #262A34; --pp-chip: rgba(255, 255, 255, 0.07); --pp-sheet: rgba(27, 30, 38, 0.97); --pp-sheet-foot: rgba(27, 30, 38, 0.92); --pp-soft: rgba(255, 255, 255, 0.06); --pp-line: rgba(255, 255, 255, 0.2); --pp-line-hi: rgba(255, 255, 255, 0.36); --pp-sunk: rgba(255, 255, 255, 0.05); }
+
 /* ==== the plan rule widget: plan cards, service picks, the rule message =============================== */
 
 .pp-plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.pp-plan { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 8px; min-width: 0; padding: 18px 18px 16px; border: 1px solid rgba(94, 72, 50, 0.24); border-radius: 22px; background: rgba(255, 255, 255, 0.62); cursor: pointer; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease), background 160ms var(--ease); }
-.pp-plan:hover { border-color: rgba(94, 72, 50, 0.42); background: rgba(255, 255, 255, 0.9); }
+.pp-plan { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 8px; min-width: 0; padding: 18px 18px 16px; border: 1px solid var(--pp-line); border-radius: 22px; background: var(--pp-card); cursor: pointer; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease), background 160ms var(--ease); }
+.pp-plan:hover { border-color: var(--pp-line-hi); background: var(--pp-card-hover); }
 .pp-plan input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .pp-plan:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
-.pp-plan.is-on { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.2), var(--glass-shadow-sm); }
-.pp-plan.is-taken { cursor: not-allowed; border-style: dashed; background: rgba(94, 72, 50, 0.06); }
+.pp-plan.is-on { border-color: var(--accent); background: var(--pp-on); box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.2), var(--glass-shadow-sm); }
+.pp-plan.is-taken { cursor: not-allowed; border-style: dashed; background: var(--pp-sunk); }
 .pp-plan.is-taken input { cursor: not-allowed; }
-.pp-plan.is-taken:hover { border-color: rgba(94, 72, 50, 0.24); background: rgba(94, 72, 50, 0.06); }
+.pp-plan.is-taken:hover { border-color: var(--pp-line); background: var(--pp-sunk); }
 .pp-plan.is-taken .pp-plan-name, .pp-plan.is-taken .pp-plan-price, .pp-plan.is-taken .pp-plan-rule, .pp-plan.is-taken .pp-plan-price small { color: var(--ink-2); }
+/* a plan an owner locked: the same quiet, dashed card as one with no place left, with its own violet word */
+.pp-plan.is-locked { cursor: not-allowed; border-style: dashed; background: var(--pp-sunk); }
+.pp-plan.is-locked input { cursor: not-allowed; }
+.pp-plan.is-locked:hover { border-color: var(--pp-line); background: var(--pp-sunk); }
+.pp-plan.is-locked .pp-plan-name, .pp-plan.is-locked .pp-plan-price, .pp-plan.is-locked .pp-plan-rule, .pp-plan.is-locked .pp-plan-price small { color: var(--ink-2); }
 .pp-plan-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .pp-plan-name { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2; }
 .pp-plan-price { font-size: 16px; font-weight: 650; white-space: nowrap; }
@@ -24,6 +33,8 @@
 .pp-plan-tag:empty { display: none; }
 .pp-tag { display: inline-flex; padding: 2px 10px; border-radius: 999px; background: var(--surface-3); color: var(--ink-2); font-size: 12.5px; font-weight: 650; }
 .pp-tag.is-bad { background: var(--bad-bg); color: var(--bad); }
+.pp-tag.is-lock { align-items: center; gap: 5px; background: var(--them-bg); color: var(--them); }
+.pp-tag.is-lock .ic { width: 13px; height: 13px; }
 .pp-plan-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .pp-caps { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
 .pp-caps-h { color: var(--ink-3); font-size: 12.5px; }
@@ -35,6 +46,11 @@
 .pp-note { display: block; padding: 8px 11px; border-radius: 12px; font-size: 13px; line-height: 1.4; }
 .pp-note.is-warn { background: var(--warn-bg); color: var(--warn); }
 .pp-note.is-bad { background: var(--bad-bg); color: var(--bad); }
+.pp-note.is-lock { background: var(--them-bg); color: var(--them); }
+.pp-link { position: relative; z-index: 2; color: inherit; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; }
+.pp-lock-note { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; }
+.pp-lock-note[hidden] { display: none; }
+.pp-lock-note .ic { flex: none; width: 15px; height: 15px; margin-top: 2px; }
 .pp-plans.is-compact { gap: 10px; }
 .pp-plans.is-compact .pp-plan { gap: 3px; padding: 12px 14px 12px; border-radius: 16px; }
 .pp-plans.is-compact .pp-plan-top { flex-direction: column; align-items: flex-start; gap: 0; }
@@ -46,17 +62,17 @@
 .pp-picks-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 14px; color: var(--ink-2); font-size: 14px; }
 .pp-count { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
 .pp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.pp-pick { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 12px 14px; border: 1px solid rgba(94, 72, 50, 0.24); border-radius: 18px; background: rgba(255, 255, 255, 0.62); cursor: pointer; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease), background 160ms var(--ease); }
-.pp-pick:hover { border-color: rgba(94, 72, 50, 0.42); background: rgba(255, 255, 255, 0.9); }
+.pp-pick { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 12px 14px; border: 1px solid var(--pp-line); border-radius: 18px; background: var(--pp-card); cursor: pointer; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease), background 160ms var(--ease); }
+.pp-pick:hover { border-color: var(--pp-line-hi); background: var(--pp-card-hover); }
 .pp-pick input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .pp-pick:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
-.pp-box { display: grid; place-items: center; width: 22px; height: 22px; margin-top: 1px; border: 1.5px solid #8F8578; border-radius: 7px; background: #fff; color: transparent; transition: background 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease); }
+.pp-box { display: grid; place-items: center; width: 22px; height: 22px; margin-top: 1px; border: 1.5px solid #8F8578; border-radius: 7px; background: var(--pp-on); color: transparent; transition: background 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease); }
 .pp-box .ic { width: 14px; height: 14px; stroke-width: 3; }
-.pp-pick.is-on { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.16); }
-.pp-pick.is-on .pp-box { border-color: var(--accent); background: var(--accent); color: var(--ink); }
+.pp-pick.is-on { border-color: var(--accent); background: var(--pp-on); box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.16); }
+.pp-pick.is-on .pp-box { border-color: var(--accent); background: var(--accent); color: #1D1A16; }
 .pp-pick.is-fixed, .pp-pick.is-fixed input { cursor: default; }
 .pp-pick.is-fixed.is-on { border-color: rgba(94, 72, 50, 0.4); box-shadow: none; }
-.pp-pick.is-fixed.is-on .pp-box { border-color: var(--ink); background: var(--ink); color: #fff; }
+.pp-pick.is-fixed.is-on .pp-box { border-color: var(--ink); background: var(--ink); color: var(--surface); }
 .pp-pick.is-idle { opacity: 0.6; cursor: not-allowed; }
 .pp-pick.is-idle input { cursor: not-allowed; }
 .pp-pick-text { display: grid; gap: 2px; min-width: 0; }
@@ -64,7 +80,7 @@
 .pp-pick-d { color: var(--ink-3); font-size: 13px; line-height: 1.4; }
 .pp-pick-tag { align-self: start; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-size: 12px; font-weight: 650; }
 .pp-pick-tag:empty { display: none; }
-.pp-option { display: grid; gap: 8px; margin: 0; padding: 10px 14px 12px; border: 1px solid var(--line-2); border-radius: 16px; background: rgba(255, 255, 255, 0.5); }
+.pp-option { display: grid; gap: 8px; margin: 0; padding: 10px 14px 12px; border: 1px solid var(--line-2); border-radius: 16px; background: var(--pp-soft); }
 .pp-option legend { padding: 0 6px; color: var(--ink-2); font-size: 13.5px; font-weight: 600; }
 .pp-option label { display: flex; align-items: center; gap: 9px; font-weight: 550; cursor: pointer; }
 .pp-option input { width: 17px; height: 17px; margin: 0; accent-color: var(--accent-ink); }
@@ -80,7 +96,7 @@
 .bd-switch, .nc-switch { position: relative; display: inline-flex; align-items: center; gap: 11px; font-weight: 600; cursor: pointer; }
 .bd-switch input, .nc-switch input { position: absolute; width: 44px; height: 26px; margin: 0; opacity: 0; cursor: pointer; }
 .bd-sw, .nc-sw { position: relative; flex: none; width: 44px; height: 26px; border-radius: 999px; background: #8F8578; transition: background 180ms var(--ease); }
-.bd-sw::after, .nc-sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(40, 30, 20, 0.35); transition: translate 180ms var(--ease); }
+.bd-sw::after, .nc-sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--pp-on); box-shadow: 0 1px 3px rgba(40, 30, 20, 0.35); transition: translate 180ms var(--ease); }
 input:checked + .bd-sw, input:checked + .nc-sw { background: #2E9E66; }
 input:checked + .bd-sw::after, input:checked + .nc-sw::after { translate: 18px 0; }
 input:focus-visible + .bd-sw, input:focus-visible + .nc-sw { outline: 2px solid var(--focus); outline-offset: 2px; }
@@ -95,6 +111,8 @@ input:disabled + .nc-sw { opacity: 0.5; }
 .bl-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; }
 .bl-dot.is-used { background: var(--accent); box-shadow: 0 0 0 4px rgba(255, 91, 31, 0.18); }
 .bl-dot.is-free { background: #2E9E66; box-shadow: 0 0 0 4px rgba(46, 158, 102, 0.18); }
+.bl-dot.is-lock { background: var(--them); box-shadow: 0 0 0 4px rgba(99, 88, 230, 0.18); }
+.bl-card > span a { color: var(--accent-ink); font-weight: 600; }
 .bl-foot { margin-top: 10px; }
 #bl-top { margin-top: 16px; }
 #bl-top .toolbar { margin-bottom: 16px; }
@@ -124,9 +142,9 @@ table.bl-grid td.bl-c-act { display: none; }
 .bl-plan { display: block; font-size: 15px; font-weight: 700; letter-spacing: -0.15px; }
 .bl-mini { margin-top: 6px; padding: 2px 10px 2px 8px; font-size: 12.5px; }
 .bl-chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.bchip { display: inline-flex; align-items: center; max-width: 100%; padding: 2px 9px; border: 1px solid rgba(94, 72, 50, 0.22); border-radius: 9px; background: rgba(255, 255, 255, 0.7); color: var(--ink); font-size: 12.5px; font-weight: 600; line-height: 1.4; }
+.bchip { display: inline-flex; align-items: center; max-width: 100%; padding: 2px 9px; border: 1px solid var(--pp-line); border-radius: 9px; background: var(--pp-chip); color: var(--ink); font-size: 12.5px; font-weight: 600; line-height: 1.4; }
 .bchip.is-add { border-color: rgba(255, 91, 31, 0.6); background: var(--you-bg); color: var(--you); }
-.bchip.is-stop { border-style: dashed; background: rgba(94, 72, 50, 0.05); color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.bchip.is-stop { border-style: dashed; background: var(--pp-sunk); color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1.5px; }
 .bchip.is-plan { border-color: rgba(99, 88, 230, 0.4); background: var(--them-bg); color: var(--them); }
 .bl-usage { display: grid; gap: 9px; margin-top: 10px; }
 .bl-usage .cu-line { font-size: 12.5px; }
@@ -143,10 +161,11 @@ table.bl-grid td.bl-c-act { display: none; }
 /* ==== the override drawer =============================================================================== */
 
 body:has(dialog.bill-drawer[open]) { overflow: hidden; }
-dialog.bill-drawer { position: fixed; inset: 0 0 0 auto; width: min(580px, 100vw); max-width: 100vw; height: 100vh; height: 100dvh; max-height: none; margin: 0; padding: 0; overflow: hidden; border: 0.67px solid var(--glass-edge); border-radius: 28px 0 0 28px; background-color: rgba(255, 255, 255, 0.95); box-shadow: -26px 0 70px -22px rgba(40, 30, 20, 0.5); }
+dialog.bill-drawer { position: fixed; inset: 0 0 0 auto; width: min(580px, 100vw); max-width: 100vw; height: 100vh; height: 100dvh; max-height: none; margin: 0; padding: 0; overflow: hidden; border: 0.67px solid var(--glass-edge); border-radius: 28px 0 0 28px; background-color: var(--pp-sheet); box-shadow: -26px 0 70px -22px rgba(40, 30, 20, 0.5); }
 dialog.bill-drawer[open] { display: flex; flex-direction: column; animation: bd-in 300ms var(--ease) both; }
 dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
-@keyframes bd-in { from { opacity: 0; translate: 40px 0; } to { opacity: 1; translate: 0 0; } }
+/* the drawer slides in and never fades, so its text keeps full contrast while it moves */
+@keyframes bd-in { from { translate: 56px 0; } to { translate: 0 0; } }
 @media (prefers-reduced-motion: reduce) { dialog.bill-drawer[open] { animation: none; } }
 .bd-form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .bd-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 22px 24px 14px; border-bottom: 1px solid var(--line); }
@@ -156,7 +175,7 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
 .bd-lede { color: var(--ink-2); font-size: 14px; line-height: 1.5; }
 .bd-sec { min-width: 0; margin: 0; padding: 0; border: 0; }
 .bd-sec > legend { margin-bottom: 9px; padding: 0; color: var(--ink-2); font-size: 14px; font-weight: 650; }
-.bd-now { display: grid; gap: 4px; padding: 14px 16px; border-radius: 18px; background: rgba(94, 72, 50, 0.06); }
+.bd-now { display: grid; gap: 4px; padding: 14px 16px; border-radius: 18px; background: var(--pp-sunk); }
 .bd-now-h { display: flex; flex-wrap: wrap; gap: 2px 8px; }
 .bd-now-h span { color: var(--ink-2); }
 .bd-limits { margin-top: 6px; }
@@ -166,8 +185,8 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
 .bd-change:empty { display: none; }
 .bd-change.is-on { padding: 10px 14px; border-radius: 14px; background: var(--you-bg); color: var(--you); font-weight: 600; }
 .bd-applies { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
-.bd-opt { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; row-gap: 1px; align-items: start; padding: 12px 14px; border: 1px solid rgba(94, 72, 50, 0.24); border-radius: 16px; background: rgba(255, 255, 255, 0.6); cursor: pointer; }
-.bd-opt:has(input:checked) { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.14); }
+.bd-opt { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; row-gap: 1px; align-items: start; padding: 12px 14px; border: 1px solid var(--pp-line); border-radius: 16px; background: var(--pp-card); cursor: pointer; }
+.bd-opt:has(input:checked) { border-color: var(--accent); background: var(--pp-on); box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.14); }
 .bd-opt:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
 .bd-opt input { grid-row: span 2; width: 17px; height: 17px; margin: 2px 0 0; accent-color: var(--accent-ink); }
 .bd-opt-t { font-weight: 650; }
@@ -178,9 +197,9 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
 .bd-hist h3 { margin-bottom: 10px; font-size: 17px; }
 .bd-hist-list { display: grid; margin: 0; padding: 0 0 0 16px; border-left: 1px solid var(--line-2); list-style: none; }
 .bd-hist-list li { position: relative; display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 12px; padding: 8px 0; font-size: 13.5px; line-height: 1.45; }
-.bd-hist-list li::before { content: ""; position: absolute; left: -20px; top: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--surface-3); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.95); }
+.bd-hist-list li::before { content: ""; position: absolute; left: -20px; top: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--surface-3); box-shadow: 0 0 0 3px var(--pp-sheet); }
 .bd-h-time { color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.bd-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 24px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: rgba(255, 255, 255, 0.85); }
+.bd-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 24px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: var(--pp-sheet-foot); }
 .bd-foot-note { color: var(--ink-3); font-size: 13.5px; }
 
 /* ==== a phone: the table becomes a stack of cards, the drawer fills the screen ========================== */

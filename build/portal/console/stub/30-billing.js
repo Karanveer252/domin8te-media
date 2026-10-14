@@ -59,8 +59,9 @@
   }
 
   /**
-   * app.guard_plan_cycle: picks fit the plan (23514), months of one client never overlap and the one Domin8te place (23P01), and a
-   * running month changes only with a new reason (42501). Writes the audit row the database's trigger writes.
+   * app.guard_plan_cycle: picks fit the plan (23514); a locked plan takes nobody new (23P01 plan-locked) unless the client is already on
+   * it; months of one client never overlap, and a plan with a client limit (a number in max_clients) can be full (23P01); a running
+   * month changes only with a new reason (42501). Writes the audit row the database's trigger writes.
    * @param {any} row the row as it will be @param {any} old the row before (updates) @param {'insert'|'update'} op
    */
   function guard(row, old, op) {
@@ -69,7 +70,14 @@
     if (row.plan_id !== 'starter' || !row.picks.includes('website')) row.website_option = null;
     if (row.plan_id === 'starter' && row.picks.includes('website') && !row.website_option) fail('23514', 'new row violates check constraint "starter_website_option"');
     if (!(String(row.period_end) > String(row.period_start))) fail('23514', 'new row violates check constraint "tenant_plan_cycles_period"');
-    const mine = (S.db.tenant_plan_cycles || []).filter((/** @type {any} */ c) => c.tenant_id === row.tenant_id && c.id !== row.id);
+    // a locked plan takes nobody new: refused unless this client already has it (the same row keeps its plan, or the month right before is on it)
+    const lockedPlan = planRow(row.plan_id);
+    if (lockedPlan && lockedPlan.locked) {
+      const keeps = op === 'update' && old && old.plan_id === row.plan_id;
+      const carry = (S.db.tenant_plan_cycles || []).some((/** @type {any} */ c) => c.tenant_id === row.tenant_id && c.id !== row.id && c.plan_id === row.plan_id && c.period_end === row.period_start);
+      if (!keeps && !carry) fail('23P01', `plan-locked: ${row.plan_id} is locked right now`);
+    }
+    const mine =(S.db.tenant_plan_cycles || []).filter((/** @type {any} */ c) => c.tenant_id === row.tenant_id && c.id !== row.id);
     if (op === 'insert' && mine.some((/** @type {any} */ c) => c.period_start === row.period_start)) fail('23505', 'duplicate key value violates unique constraint "tenant_plan_cycles_tenant_id_period_start_key"');
     if (mine.some((/** @type {any} */ c) => c.period_start !== row.period_start && c.period_start < row.period_end && row.period_start < c.period_end)) fail('23P01', 'overlaps-another-month');
     const pl = planRow(row.plan_id);

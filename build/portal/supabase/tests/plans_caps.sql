@@ -65,7 +65,8 @@ select pg_temp.e('T2 starter usage of the other website metric is refused', '235
 select pg_temp.v('T2 non-starter keeps no website option', 'null',
   (select website_option from public.tenant_plan_cycles where id = 'a1000000-0000-0000-0000-000000000001'));
 
--- T3 the Domin8te slot ------------------------------------------------------------------------------------------------
+-- T3 the client limit (Domin8te has none now: it is unlocked; a number in plans.max_clients still holds, so it is switched on here) ----
+update public.plans set max_clients = 1 where id = 'domin8te';
 insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks, state, source) values
   ('cccccccc-0000-0000-0000-00000000000c', pg_temp.today() - 5, pg_temp.today() + 26, 'domin8te', '{advertising,social,website,local,email}', 'active', 'migration');
 select pg_temp.e('T3 a second Domin8te client in the same months is refused', '23P01',
@@ -81,6 +82,49 @@ select pg_temp.e('T3 archiving the holder frees the slot', 'ok',
   $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('dddddddd-0000-0000-0000-00000000000d', pg_temp.today(), pg_temp.today() + 30, 'domin8te', '{advertising,social,website,local,email}')$q$);
 select pg_temp.e('T3 months of one client never overlap', '23P01',
   $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today(), pg_temp.today() + 30, 'growth', '{social,website}')$q$);
+
+update public.plans set max_clients = null where id = 'domin8te';
+
+-- T3b the Domin8te lock: an owner locks and unlocks it; nobody new can enter while it is locked ------------------------------------
+select pg_temp.v('lock: Domin8te starts open, with no client limit', 'false/null', (select locked::text || '/' || coalesce(max_clients::text, 'null') from public.plans where id = 'domin8te'));
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_staff","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:member"}}';
+select pg_temp.e('lock: a staff member who is not an owner cannot lock it', '42501', $q$select public.set_plan_locked('domin8te', true, 'x')$q$);
+select pg_temp.w('lock: nobody can write the switch directly', 'blocked', $q$update public.plans set locked = true where id = 'domin8te'$q$);
+set local request.jwt.claims = '{"sub":"user_TEST_a","role":"authenticated","o":{"id":"org_TEST_a"}}';
+select pg_temp.e('lock: a client cannot lock it', '42501', $q$select public.set_plan_locked('domin8te', true, 'x')$q$);
+set local request.jwt.claims = '{"sub":"user_TEST_owner","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:admin"}}';
+select pg_temp.e('lock: an unknown plan is refused', '22023', $q$select public.set_plan_locked('platinum', true, 'x')$q$);
+select pg_temp.e('lock: an owner locks Domin8te', 'ok', $q$select public.set_plan_locked('domin8te', true, 'full this month')$q$);
+select pg_temp.e('lock: locking it again changes nothing', 'ok', $q$select public.set_plan_locked('domin8te', true, 'again')$q$);
+reset role;
+select pg_temp.v('lock: the plan reads locked, by the owner', 'true/user_TEST_owner', (select locked::text || '/' || locked_by from public.plans where id = 'domin8te'));
+select pg_temp.v('lock: one audit line, with the reason', '1/full this month', (select count(*)::text || '/' || max(detail ->> 'reason') from public.audit_log where action = 'plan_locked' and detail ->> 'plan' = 'domin8te'));
+select pg_temp.v('lock: the lock is not logged as a plan edit', '0', (select count(*)::text from public.audit_log where action = 'plan_updated' and detail ->> 'plan' = 'domin8te' and (detail -> 'new' ->> 'locked')::boolean));
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_a","role":"authenticated","o":{"id":"org_TEST_a"}}';
+select pg_temp.v('lock: the client menu says Domin8te is locked', 'true', (select e ->> 'locked' from jsonb_array_elements(public.plan_menu() -> 'plans') e where e ->> 'id' = 'domin8te'));
+reset role;
+select pg_temp.e('lock: a Starter client cannot move onto a locked Domin8te', '23P01',
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('bbbbbbbb-0000-0000-0000-00000000000b', pg_temp.today() + 21, pg_temp.today() + 51, 'domin8te', '{advertising,social,website,local,email}')$q$);
+select pg_temp.e('lock: a brand new client cannot start on it', '23P01',
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('cccccccc-0000-0000-0000-00000000000c', pg_temp.today() + 100, pg_temp.today() + 130, 'domin8te', '{advertising,social,website,local,email}')$q$);
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_staff","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:member"}}';
+select pg_temp.e('lock: a staff override onto a locked Domin8te is refused too', '23P01',
+  $q$select public.override_plan_cycle('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today() + 21, 'domin8te', '{advertising,social,website,local,email}', null, 'lock test')$q$);
+reset role;
+select pg_temp.e('lock: a client already on Domin8te keeps it next month', 'ok',
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('dddddddd-0000-0000-0000-00000000000d', pg_temp.today() + 30, pg_temp.today() + 60, 'domin8te', '{advertising,social,website,local,email}')$q$);
+delete from public.tenant_plan_cycles where tenant_id = 'dddddddd-0000-0000-0000-00000000000d' and period_start = pg_temp.today() + 30;
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_owner","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:admin"}}';
+select pg_temp.e('lock: an owner unlocks Domin8te', 'ok', $q$select public.set_plan_locked('domin8te', false, 'room again')$q$);
+reset role;
+select pg_temp.v('lock: one unlock line', '1', (select count(*)::text from public.audit_log where action = 'plan_unlocked' and detail ->> 'plan' = 'domin8te'));
+select pg_temp.e('lock: unlocked, a Starter client can be put on Domin8te', 'ok',
+  $q$insert into public.tenant_plan_cycles (tenant_id, period_start, period_end, plan_id, picks) values ('bbbbbbbb-0000-0000-0000-00000000000b', pg_temp.today() + 21, pg_temp.today() + 51, 'domin8te', '{advertising,social,website,local,email}')$q$);
+delete from public.tenant_plan_cycles where tenant_id = 'bbbbbbbb-0000-0000-0000-00000000000b' and period_start = pg_temp.today() + 21;
 
 -- T4 caps -------------------------------------------------------------------------------------------------------------
 set local role authenticated;
@@ -299,7 +343,8 @@ select pg_temp.v('T15 one reminder_failed item, address masked', '1/b***@example
   (select count(*) || '/' || substring(min(message) from 'to (\S+) failed') from public.dashboard_exceptions where tenant_id = 'bbbbbbbb-0000-0000-0000-00000000000b' and reason_code = 'reminder_failed'));
 
 
--- plan_menu (20261013011200): the picker's menu, without opening the tables --------------------------------------------
+-- plan_menu (20261013011200): the picker's menu, without opening the tables (the old one-client limit is switched on again for this block) --
+update public.plans set max_clients = 1 where id = 'domin8te';
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"user_TEST_a","role":"authenticated","o":{"id":"org_TEST_a"}}';
 select pg_temp.v('MENU client gets the three plans in order', 'starter,growth,domin8te',
@@ -313,6 +358,8 @@ select pg_temp.v('MENU no open plan_mismatch for this client', 'false', (public.
 -- client D took the Domin8te place in T3 (after C was archived): client A sees it as taken, and no name anywhere
 select pg_temp.v('MENU Domin8te shows as taken, with no name anywhere', 'true/false',
   (select (p ->> 'full') || '/' || (public.plan_menu()::text ~* 'Plan test')::text from jsonb_array_elements(public.plan_menu() -> 'plans') p where p ->> 'id' = 'domin8te'));
+select pg_temp.v('MENU no plan is locked by default', 'false,false,false',
+  (select string_agg(p ->> 'locked', ',' order by ord) from jsonb_array_elements(public.plan_menu() -> 'plans') with ordinality as t(p, ord)));
 select pg_temp.v('MENU Starter and Growth have no limit on places', 'false,false',
   (select string_agg(p ->> 'full', ',' order by ord) from jsonb_array_elements(public.plan_menu() -> 'plans') with ordinality as t(p, ord) where p ->> 'id' in ('starter','growth')));
 reset role;
@@ -322,6 +369,7 @@ set local request.jwt.claims = '{"sub":"user_TEST_d","role":"authenticated","o":
 select pg_temp.v('MENU the holder sees its own place as free', 'false',
   (select p ->> 'full' from jsonb_array_elements(public.plan_menu() -> 'plans') p where p ->> 'id' = 'domin8te'));
 reset role;
+update public.plans set max_clients = null where id = 'domin8te';
 
 -- T18 (database half) Hermes has no way round the gates -----------------------------------------------------------------
 select pg_temp.v('T18 Hermes is off by default', 'false', app.hermes_enabled()::text);
@@ -333,6 +381,7 @@ select pg_temp.e('T18 hermes cannot hide an item', '42501', $q$select public.hid
 select pg_temp.e('T18 hermes cannot show a card', '42501', $q$select public.set_task_visibility('a7000000-0000-0000-0000-000000000001', true)$q$);
 select pg_temp.e('T18 hermes cannot override a plan', '42501', $q$select public.override_plan_cycle('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.today(), 'growth', '{social,email}', null, 'x')$q$);
 select pg_temp.e('T18 hermes cannot pick for a client', '42501', $q$select public.set_next_cycle_picks('growth', '{social,email}')$q$);
+select pg_temp.e('T18 hermes cannot lock a plan', '42501', $q$select public.set_plan_locked('domin8te', true, 'x')$q$);
 select pg_temp.e('T18 hermes cannot count usage', '42501',
   $q$insert into public.usage_events (tenant_id, cycle_id, service, metric) values ('aaaaaaaa-0000-0000-0000-00000000000a','a1000000-0000-0000-0000-000000000001','social','social_posts')$q$);
 select pg_temp.e('T18 hermes cannot publish a Home section', '42501',

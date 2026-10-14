@@ -131,6 +131,12 @@
         : a.p_plan === 'domin8te' ? all.every((/** @type {string} */ s) => picks.includes(s)) : false;
       if (!fits || picks.some((/** @type {string} */ s) => !all.includes(s)) || new Set(picks).size !== picks.length) throw refuse('23514', `picks-do-not-fit: {${picks.join(',')}} does not fit the ${a.p_plan} plan`);
       const plan = rows('plans').find((/** @type {any} */ p) => p.id === a.p_plan);
+      // A locked plan takes nobody new (a client already on it keeps it: this month's row is on it, or the month before is).
+      if (plan && plan.locked) {
+        const same = list.find(mine);
+        const keeps = (same && same.plan_id === a.p_plan) || list.some((/** @type {any} */ c) => c.tenant_id === a.p_tenant && c.plan_id === a.p_plan && (!same || c.id !== same.id) && c.period_end === a.p_period_start);
+        if (!keeps) throw refuse('23P01', `plan-locked: ${a.p_plan} is locked right now`);
+      }
       if (plan && plan.max_clients) {
         const held = new Set(list.filter((/** @type {any} */ c) => c.plan_id === a.p_plan && c.tenant_id !== a.p_tenant && c.state !== 'ended' && ((rows('tenants').find((/** @type {any} */ t) => t.id === c.tenant_id) || {}).status !== 'archived')).map((/** @type {any} */ c) => c.tenant_id));
         if (held.size >= plan.max_clients) throw refuse('23P01', `plan-full: ${a.p_plan} is taken right now`);

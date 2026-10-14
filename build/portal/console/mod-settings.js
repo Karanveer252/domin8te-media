@@ -124,16 +124,18 @@
     const cur = String(pl.currency || 'USD');
     const symbol = D().money(100, cur).replace(/[\d.,\s]/g, '');
     const limit = pl.max_clients === null || pl.max_clients === undefined ? null : Number(pl.max_clients);
-    let tags = '';
-    if (limit === null) tags = '<span class="chip plain">No client limit</span>';
-    else {
+    // A client limit is a number in max_clients, or none (Domin8te has none now). Who can join is the lock's job: see availHtml.
+    let tags = limit === null ? '<span class="chip plain">No client limit</span>' : `<span class="chip plain">Limit: ${esc(plural(limit, 'client'))}</span>`;
+    if (limit !== null) {
       const who = holders(pl);
       const names = (/** @type {any[]} */ list) => list.map((t) => t.name).join(', ');
-      tags = `<span class="chip plain">${limit === 1 ? '1 client' : `${limit} clients`} at a time</span>`
-        + (who.now.length ? `<span class="chip info" title="A paused client keeps the place. Only archiving frees it.">Taken by ${esc(names(who.now))}${who.now.some((/** @type {any} */ t) => t.status === 'paused') ? ' (paused)' : ''}</span>` : '')
+      tags += (who.now.length ? `<span class="chip info" title="A paused client keeps the place. Only archiving frees it.">Taken by ${esc(names(who.now))}${who.now.some((/** @type {any} */ t) => t.status === 'paused') ? ' (paused)' : ''}</span>` : '')
         + (who.next.length ? `<span class="chip info" title="Their next month is on this plan, so the place is theirs from then.">Next month: ${esc(names(who.next))}</span>` : '')
         + (!who.now.length && !who.next.length ? '<span class="chip good">Place free</span>' : '');
     }
+    // Open or locked: Domin8te always says which; any other plan only says so if someone locked it.
+    if (pl.locked) tags += '<span class="chip warn" title="No new client can be put on this plan.">Locked</span>';
+    else if (pl.id === 'domin8te') tags += '<span class="chip good" title="New clients can be put on this plan.">Open to new clients</span>';
     if (ed) {
       return `<article class="pl-card is-edit"><div class="field"><label for="pn-${esc(pl.id)}">Plan name</label><input id="pn-${esc(pl.id)}" name="plan-name" data-plan="${esc(pl.id)}" type="text" maxlength="40" value="${esc(pl.name)}" autocomplete="off"></div>
         ${priced ? `<div class="field"><label for="pp-${esc(pl.id)}">Price a month</label><span class="pl-money"><span aria-hidden="true">${esc(symbol)}</span><input id="pp-${esc(pl.id)}" name="plan-price" data-plan="${esc(pl.id)}" type="text" inputmode="decimal" value="${esc(String(Number(pl.price_minor) / 100))}" autocomplete="off"></span></div>` : ''}
@@ -142,6 +144,28 @@
     return `<article class="pl-card"><h3 class="pl-name">${esc(pl.name)}</h3>
       ${priced ? `<p class="pl-price"><span class="pl-amt">${esc(D().money(pl.price_minor, cur))}</span> a month</p>` : ''}
       <p class="pl-rule">${esc(ruleOf(pl))}</p><div class="pl-tags">${tags}</div></article>`;
+  }
+
+  /**
+   * The Domin8te availability row: whether anyone new can be put on the plan (plans.locked), and for owners the switch.
+   * While the limits are being edited the switch waits, so a redraw cannot throw the edits away.
+   */
+  function availHtml() {
+    const pl = D().plans.plans.find((/** @type {any} */ x) => x.id === 'domin8te');
+    if (!pl) return '';
+    const locked = !!pl.locked;
+    const owner = isOwner();
+    const name = String(pl.name);
+    const said = pl.locked_at ? `${locked ? 'Locked' : 'Unlocked'} ${D().clockTime(pl.locked_at)}${pl.locked_by ? ` by ${nameOf(pl.locked_by)}` : ''}.` : '';
+    const words = locked
+      ? `No new client can be put on ${name} and the client's picker shows it as locked. Clients already on ${name} keep it.`
+      : `New clients can be put on ${name}, and the client's picker shows it as open. Clients already on ${name} keep it either way.`;
+    const act = !owner ? `<p class="meta pl-avail-note">Only an owner can lock or unlock ${esc(name)}.</p>`
+      : ST.editing ? '<p class="meta pl-avail-note">Save or cancel your edits to change this.</p>'
+        : `<button class="btn btn-quiet" type="button" data-pl-lock="${locked ? 'unlock' : 'lock'}">${locked ? 'Unlock' : 'Lock'} ${esc(name)}</button>`;
+    return `<div class="pl-avail" id="pl-avail" role="group" aria-labelledby="pl-avail-h"><div class="pl-avail-txt">
+        <h3 class="pl-avail-h" id="pl-avail-h">${esc(name)} availability <span class="chip ${locked ? 'warn' : 'good'}">${locked ? 'Locked' : 'Open to new clients'}</span></h3>
+        <p>${esc(words)}</p>${said ? `<p class="meta">${esc(said)}</p>` : ''}</div>${act}</div>`;
   }
 
   /** The limits, a row for each limit and a column for each plan. @param {any} m @param {boolean} ed */
@@ -178,6 +202,7 @@
     const anyStar = p.caps.some((/** @type {any} */ c) => c.proposed);
     const body = `<p class="pl-strip" id="pl-strip">${stripHtml(m)}</p>
       <div class="pl-cards">${m.plans.map((/** @type {any} */ pl) => cardHtml(pl, ed)).join('')}</div>
+      ${availHtml()}
       ${tableHtml(m, ed)}
       <p class="pl-foot-note">${anyStar ? '<span class="pl-star" aria-hidden="true">*</span> A proposed number: not confirmed yet. ' : ''}Urgent info fixes (hours, closures, phone, sold-out items) are never counted on any plan.</p>`;
     if (!ed) {
@@ -281,10 +306,102 @@
     if (line) line.outerHTML = freshHtml();
   }
 
+  /** What a refusal of set_plan_locked means, in words, and that nothing was changed. @param {any} e */
+  function lockWords(e) {
+    const said = String((e && (e.message || e.details)) || '');
+    const code = String((e && e.code) || '');
+    const name = planName('domin8te');
+    if (/owners-only/.test(said) || code === '42501' || code === 'PGRST301') return `Only an owner can lock or unlock ${name}. Nothing was changed.`;
+    if (/unknown plan/.test(said)) return 'That plan was not found. Reload the page and try again. Nothing was changed.';
+    if (/PGRST202|42883|could not find/i.test(`${code} ${said}`)) return 'The lock is not set up on this database yet. Nothing was changed.';
+    return `${D().say ? D().say(e) : D().message(e)} Nothing was changed.`;
+  }
+
+  /**
+   * The confirm sheet for the lock: the plain words, an optional reason, Cancel and the go-ahead.
+   * Resolves the reason (it may be empty), or null when it was cancelled.
+   * @param {any} pl @param {boolean} want
+   */
+  function lockSheet(pl, want) {
+    let dlg = /** @type {HTMLDialogElement|null} */ (document.getElementById('pl-lock'));
+    if (!dlg) {
+      dlg = document.createElement('dialog');
+      dlg.id = 'pl-lock';
+      dlg.className = 'confirm pl-sheet';
+      dlg.setAttribute('aria-labelledby', 'pl-lock-h');
+      document.body.appendChild(dlg);
+    }
+    const el = dlg;
+    const name = esc(pl.name);
+    el.innerHTML = `<form method="dialog" novalidate><h2 id="pl-lock-h">${want ? 'Lock' : 'Unlock'} ${name}?</h2>
+      <p>${want ? `Locked: no new client can be put on ${name} and the client's picker shows it as locked. Clients already on ${name} keep it.` : `Unlocked: new clients can be put on ${name} again.`}</p>
+      <div class="field"><label for="pl-lock-why">Reason (optional)</label><textarea id="pl-lock-why" name="why" maxlength="500" rows="3" placeholder="${want ? 'For example: no room for new clients this month' : 'For example: there is room again'}"></textarea><p class="hint">Kept in the history.</p></div>
+      <div class="actions"><button class="btn btn-quiet" type="submit" value="cancel" formnovalidate>Cancel</button><button class="btn" type="submit" value="ok">${want ? 'Lock' : 'Unlock'} ${name}</button></div></form>`;
+    return new Promise((resolve) => {
+      // The answer comes from the buttons and from Escape, not from the dialog's close event: the browser sends that one with the
+      // next animation frame, which a tab in the background does not draw, and a dialog remembers its last returnValue.
+      let over = false;
+      /** @param {string|null} answer */
+      const finish = (answer) => {
+        if (over) return;
+        over = true;
+        el.removeEventListener('cancel', onCancel);
+        if (el.open) el.close();
+        resolve(answer);
+      };
+      const onCancel = () => finish(null);
+      el.addEventListener('cancel', onCancel);
+      $('form', el).addEventListener('submit', (/** @type {any} */ e) => {
+        e.preventDefault();
+        finish(e.submitter && e.submitter.value === 'ok' ? String(/** @type {HTMLTextAreaElement} */ ($('#pl-lock-why', el)).value || '').trim() : null);
+      });
+      el.showModal();
+      const why = $('#pl-lock-why', el);
+      if (why) why.focus();
+    });
+  }
+
+  /** Locks or unlocks Domin8te: asks first, calls set_plan_locked, then reads the plans again so every page sees it. @param {HTMLElement} btn @param {boolean} want */
+  async function setLocked(btn, want) {
+    const pl = D().plans.plans.find((/** @type {any} */ x) => x.id === 'domin8te');
+    if (!pl) return;
+    const reason = await lockSheet(pl, want);
+    // The row may have been drawn again while the sheet was open: the button to use is the one on screen now.
+    const live = /** @type {HTMLButtonElement} */ ($('[data-pl-lock]') || btn);
+    if (reason === null) { live.focus(); return; }
+    const done = D().busy(live, want ? 'Locking' : 'Unlocking');
+    /** @type {any} */ let res;
+    try { res = await (await D().db()).rpc('set_plan_locked', { p_plan: pl.id, p_locked: want, p_reason: reason || null }); } catch (x) { res = { error: { message: String((x && /** @type {any} */ (x).message) || x) } }; }
+    if (res.error) { done(); D().toast(lockWords(res.error), true); return; }
+    // The answer already says how it ended; a read that fails after it must not leave the old state on screen.
+    if (res.data && typeof res.data === 'object') { pl.locked = !!res.data.locked; if (res.data.locked_at) pl.locked_at = res.data.locked_at; }
+    await reloadPlans();
+    loadHistory();
+    drawPlans();
+    const again = $('[data-pl-lock]');
+    if (again) again.focus();
+    D().toast(want ? `Locked. No new client can be put on ${pl.name}.` : `Unlocked. New clients can be put on ${pl.name} again.`);
+  }
+
+  /** The lock button of the availability row, if this person has one. @param {ParentNode} root */
+  function wireAvail(root) {
+    const lock = $('[data-pl-lock]', root);
+    if (lock) lock.addEventListener('click', () => setLocked(lock, lock.getAttribute('data-pl-lock') === 'lock'));
+  }
+  /** Draws the availability row again (the team's names arrived, or the lock changed) without touching the rest of the panel. */
+  function drawAvail() {
+    const row = document.getElementById('pl-avail');
+    if (!row) return;
+    row.outerHTML = availHtml();
+    const fresh = document.getElementById('pl-avail');
+    if (fresh) wireAvail(fresh);
+  }
+
   /** @param {HTMLElement} box */
   function wirePlans(box) {
     const edit = $('[data-pl-edit]', box);
     if (edit) edit.addEventListener('click', () => { ST.editing = true; drawPlans(); const first = $('#pl-form input', document); if (first) first.focus(); });
+    wireAvail(box);
     const form = /** @type {HTMLFormElement|null} */ ($('#pl-form', box));
     if (!form) return;
     D().track(form, 'Plans and limits');
@@ -401,6 +518,11 @@
         const when = dates.length === 1 ? (dates[0] <= today ? `In force since ${shortDate(dates[0])}` : `Starts ${shortDate(dates[0])}`) : 'Start days differ';
         return { tag: `v${v}`, day: dayText, text: `${bits.slice(0, 3).join(', ')}${bits.length > 3 ? ` and ${bits.length - 3} more` : ''}. ${when}. ${cap1(who)}.` };
       }
+      if (g.action === 'plan_locked' || g.action === 'plan_unlocked') {
+        // "Locked Domin8te: no room this month." The reason is whatever the person wrote; a full stop at its end is not doubled.
+        const bits = g.rows.map((/** @type {any} */ d) => { const why = String(d.reason || '').trim().replace(/[.\s]+$/, ''); return `${g.action === 'plan_locked' ? 'Locked' : 'Unlocked'} ${planName(d.plan)}${why ? `: ${why}` : ''}`; });
+        return { tag: 'Plans', day: dayText, text: `${bits.join('. ')}. ${cap1(who)}.` };
+      }
       const bits = g.rows.map((/** @type {any} */ d) => {
         const o = d.old || {}, n = d.new || {};
         const said = [];
@@ -427,15 +549,18 @@
     try {
       const c = await D().db();
       const [a, s] = await Promise.all([
-        c.from('audit_log').select('actor, action, detail, at').in('action', ['plan_cap_version', 'plan_updated']).order('at', { ascending: false }).limit(120),
+        c.from('audit_log').select('actor, action, detail, at').in('action', ['plan_cap_version', 'plan_updated', 'plan_locked', 'plan_unlocked']).order('at', { ascending: false }).limit(120),
         c.from('staff').select('clerk_user_id, name')
       ]);
       if (a.error) { ST.histFailed = true; } else { ST.hist = a.data || []; ST.histFailed = false; }
       if (s && !s.error) ST.staff = Object.fromEntries((s.data || []).map((/** @type {any} */ x) => [x.clerk_user_id, x.name]));
     } catch (e) { ST.histFailed = true; }
     drawHistory();
+    // Names of the team are known now: the line above the table and the availability row can say who.
     const strip = document.getElementById('pl-strip');
     if (strip && D().plans.ok) strip.innerHTML = stripHtml(model());
+    const avail = document.getElementById('pl-avail');
+    if (avail && D().plans.ok && !avail.contains(document.activeElement) && !(/** @type {HTMLDialogElement|null} */ (document.getElementById('pl-lock')) || { open: false }).open) drawAvail();
   }
 
   /* ---- Reminder emails ------------------------------------------------------------------------------ */

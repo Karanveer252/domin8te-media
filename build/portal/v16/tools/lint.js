@@ -43,6 +43,8 @@ const findings = [];
 const add = (file, line, rule, text) => findings.push(`${path.relative(ROOT, file)}:${line}  ${rule}  ${text.trim().slice(0, 110)}`);
 
 const BANNED = /\b(leverage|seamless|empower|unlock|robust|actionable|data-driven|solutions|elevate)\b/i;
+// The console's Domin8te switch is called Lock and Unlock (Karan's own words for it); no other banned word is let through there.
+const BANNED_CONSOLE = /\b(leverage|seamless|empower|robust|actionable|data-driven|solutions|elevate)\b/i;
 const RULES = [
   { re: /—/, rule: 'no-em-dash', note: 'use a comma, a full stop or "to"' },
   { re: /href="#"/, rule: 'no-dead-link', note: 'every link goes somewhere real' },
@@ -67,7 +69,7 @@ for (const file of files) {
   const isCss = file.endsWith('.css');
   lines.forEach((line, i) => {
     for (const r of RULES) if (r.re.test(line)) add(file, i + 1, r.rule, (r.note ? r.note + ': ' : '') + line);
-    if (!isCss && BANNED.test(line)) add(file, i + 1, 'banned-word', line);
+    if (!isCss && (/[\\/]console[\\/]/.test(file) ? BANNED_CONSOLE : BANNED).test(line)) add(file, i + 1, 'banned-word', line);
     if (!isCss && /\btransform(s|ed|ing)?\b/i.test(line) && !/transform:|\.transform|style\.transform|'transform'/.test(line)) add(file, i + 1, 'banned-word', line);
   });
   if (file.endsWith('.js')) {

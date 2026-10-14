@@ -15,9 +15,10 @@
   S.seeds.push((/** @type {any} */ db) => {
     const { day, stamp } = S;
     db.plans = [
-      { id: 'starter', name: 'Starter', price_minor: price(99900), currency: 'USD', picks_allowed: 1, required_services: ['advertising'], max_clients: null, sort: 1 },
-      { id: 'growth', name: 'Growth', price_minor: price(199900), currency: 'USD', picks_allowed: 2, required_services: [], max_clients: null, sort: 2 },
-      { id: 'domin8te', name: 'Domin8te', price_minor: price(349900), currency: 'USD', picks_allowed: null, required_services: [], max_clients: 1, sort: 3 }
+      { id: 'starter', name: 'Starter', price_minor: price(99900), currency: 'USD', picks_allowed: 1, required_services: ['advertising'], max_clients: null, locked: false, locked_at: null, locked_by: null, sort: 1 },
+      { id: 'growth', name: 'Growth', price_minor: price(199900), currency: 'USD', picks_allowed: 2, required_services: [], max_clients: null, locked: false, locked_at: null, locked_by: null, sort: 2 },
+      // Domin8te is unlocked with no client limit (Karan, 13 Oct: "unlock the Domin8te tier"); staff switch the lock in Settings (rpc set_plan_locked)
+      { id: 'domin8te', name: 'Domin8te', price_minor: price(349900), currency: 'USD', picks_allowed: null, required_services: [], max_clients: null, locked: false, locked_at: null, locked_by: null, sort: 3 }
     ];
     db.service_catalog = [
       { id: 'advertising', label: 'Ads', pickable: true, sort: 1 }, { id: 'social', label: 'Social media', pickable: true, sort: 2 }, { id: 'website', label: 'Website', pickable: true, sort: 3 },

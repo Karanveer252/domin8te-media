@@ -149,13 +149,14 @@
     return { req, task, metric, service, line, qty, used, cap, would: used + qty, over: Math.max(0, used + qty - cap), label };
   }
 
-  /** The next plan up, when the client could take it (the single Domin8te place must be free). @param {any} cx */
+  /** The next plan up, when the client could take it: a locked plan takes nobody new, and a plan with a client limit needs a free place. @param {any} cx */
   function upgradeOf(cx) {
     const plans = cx.c.plans.plans.slice().sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort);
     const cur = cx.pl.nowPlan;
     const i = cur ? plans.findIndex((/** @type {any} */ p) => p.id === cur.id) : -1;
     const up = i >= 0 ? plans[i + 1] : null;
     if (!up) return null;
+    if (up.locked) return null;
     if (up.max_clients) {
       const held = new Set(cx.c.plans.cycles.filter((/** @type {any} */ k) => k.plan_id === up.id && k.state !== 'ended').map((/** @type {any} */ k) => k.tenant_id));
       const taken = Array.from(held).filter((id) => id !== cx.tid && (cx.c.tenant(id) || {}).status !== 'archived').length;
@@ -184,6 +185,7 @@
       [/unknown-metric/, () => 'This plan has no limit for that kind of work.'],
       [/picks-do-not-fit/, () => 'Those picks do not fit the plan.'],
       [/plan-full/, () => 'The Domin8te place is taken right now.'],
+      [/plan-locked/, () => 'That plan is locked, so nobody new can be put on it. An owner can lift the lock in Settings.'],
       [/month-locked/, () => 'This month is locked. Changes apply from next month.'],
       [/month-ended/, () => 'That month has ended.'],
       [/overlaps-another-month/, () => 'That overlaps another month for this client.'],

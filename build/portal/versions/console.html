@@ -1271,6 +1271,7 @@ button.cl-card:hover { background-color: rgba(255, 255, 255, 0.7); box-shadow: v
 .cl-dot.is-hint { background: transparent; box-shadow: inset 0 0 0 2px var(--ink-3), 0 0 0 4px rgba(94, 72, 50, 0.07); }
 .cl-card-t { margin: 0; font-size: 15.5px; font-weight: 650; line-height: 1.35; letter-spacing: -0.1px; }
 .cl-card-s { margin: 3px 0 0; color: var(--ink-3); font-size: 13.5px; line-height: 1.45; }
+.cl-card-s a { font-weight: 600; }
 
 /* The search and the chips. */
 .cl-chips { margin: 0 0 14px; }
@@ -1347,6 +1348,7 @@ button.cl-card:hover { background-color: rgba(255, 255, 255, 0.7); box-shadow: v
 .cl-plan-s { margin: 0; color: var(--ink-2); font-size: 14.5px; }
 .cl-plan-d { margin: 4px 0 0; color: var(--ink-3); font-size: 13.5px; }
 .cl-plan-src { margin: 8px 0 0; }
+.cl-plan-lock { margin: 10px 0 0; }
 .cl-plan-link { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 16px 0 0; }
 .cl-signoff { margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(94, 72, 50, 0.1); }
 
@@ -1575,18 +1577,27 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
  * Colours come from the console's tokens; the glass recipe is console.css's.
  */
 
+/* Surfaces that follow the theme: the same white glass in the light console, night surfaces in the dark one. */
+:root { --pp-card: rgba(255, 255, 255, 0.62); --pp-card-hover: rgba(255, 255, 255, 0.9); --pp-on: #FFFFFF; --pp-chip: rgba(255, 255, 255, 0.7); --pp-sheet: rgba(255, 255, 255, 0.95); --pp-sheet-foot: rgba(255, 255, 255, 0.85); --pp-soft: rgba(255, 255, 255, 0.5); --pp-line: rgba(94, 72, 50, 0.24); --pp-line-hi: rgba(94, 72, 50, 0.42); --pp-sunk: rgba(94, 72, 50, 0.06); }
+html[data-theme="dark"] { --pp-card: rgba(255, 255, 255, 0.05); --pp-card-hover: rgba(255, 255, 255, 0.1); --pp-on: #262A34; --pp-chip: rgba(255, 255, 255, 0.07); --pp-sheet: rgba(27, 30, 38, 0.97); --pp-sheet-foot: rgba(27, 30, 38, 0.92); --pp-soft: rgba(255, 255, 255, 0.06); --pp-line: rgba(255, 255, 255, 0.2); --pp-line-hi: rgba(255, 255, 255, 0.36); --pp-sunk: rgba(255, 255, 255, 0.05); }
+
 /* ==== the plan rule widget: plan cards, service picks, the rule message =============================== */
 
 .pp-plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.pp-plan { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 8px; min-width: 0; padding: 18px 18px 16px; border: 1px solid rgba(94, 72, 50, 0.24); border-radius: 22px; background: rgba(255, 255, 255, 0.62); cursor: pointer; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease), background 160ms var(--ease); }
-.pp-plan:hover { border-color: rgba(94, 72, 50, 0.42); background: rgba(255, 255, 255, 0.9); }
+.pp-plan { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 8px; min-width: 0; padding: 18px 18px 16px; border: 1px solid var(--pp-line); border-radius: 22px; background: var(--pp-card); cursor: pointer; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease), background 160ms var(--ease); }
+.pp-plan:hover { border-color: var(--pp-line-hi); background: var(--pp-card-hover); }
 .pp-plan input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .pp-plan:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
-.pp-plan.is-on { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.2), var(--glass-shadow-sm); }
-.pp-plan.is-taken { cursor: not-allowed; border-style: dashed; background: rgba(94, 72, 50, 0.06); }
+.pp-plan.is-on { border-color: var(--accent); background: var(--pp-on); box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.2), var(--glass-shadow-sm); }
+.pp-plan.is-taken { cursor: not-allowed; border-style: dashed; background: var(--pp-sunk); }
 .pp-plan.is-taken input { cursor: not-allowed; }
-.pp-plan.is-taken:hover { border-color: rgba(94, 72, 50, 0.24); background: rgba(94, 72, 50, 0.06); }
+.pp-plan.is-taken:hover { border-color: var(--pp-line); background: var(--pp-sunk); }
 .pp-plan.is-taken .pp-plan-name, .pp-plan.is-taken .pp-plan-price, .pp-plan.is-taken .pp-plan-rule, .pp-plan.is-taken .pp-plan-price small { color: var(--ink-2); }
+/* a plan an owner locked: the same quiet, dashed card as one with no place left, with its own violet word */
+.pp-plan.is-locked { cursor: not-allowed; border-style: dashed; background: var(--pp-sunk); }
+.pp-plan.is-locked input { cursor: not-allowed; }
+.pp-plan.is-locked:hover { border-color: var(--pp-line); background: var(--pp-sunk); }
+.pp-plan.is-locked .pp-plan-name, .pp-plan.is-locked .pp-plan-price, .pp-plan.is-locked .pp-plan-rule, .pp-plan.is-locked .pp-plan-price small { color: var(--ink-2); }
 .pp-plan-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .pp-plan-name { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2; }
 .pp-plan-price { font-size: 16px; font-weight: 650; white-space: nowrap; }
@@ -1595,6 +1606,8 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 .pp-plan-tag:empty { display: none; }
 .pp-tag { display: inline-flex; padding: 2px 10px; border-radius: 999px; background: var(--surface-3); color: var(--ink-2); font-size: 12.5px; font-weight: 650; }
 .pp-tag.is-bad { background: var(--bad-bg); color: var(--bad); }
+.pp-tag.is-lock { align-items: center; gap: 5px; background: var(--them-bg); color: var(--them); }
+.pp-tag.is-lock .ic { width: 13px; height: 13px; }
 .pp-plan-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .pp-caps { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
 .pp-caps-h { color: var(--ink-3); font-size: 12.5px; }
@@ -1606,6 +1619,11 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 .pp-note { display: block; padding: 8px 11px; border-radius: 12px; font-size: 13px; line-height: 1.4; }
 .pp-note.is-warn { background: var(--warn-bg); color: var(--warn); }
 .pp-note.is-bad { background: var(--bad-bg); color: var(--bad); }
+.pp-note.is-lock { background: var(--them-bg); color: var(--them); }
+.pp-link { position: relative; z-index: 2; color: inherit; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; }
+.pp-lock-note { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; }
+.pp-lock-note[hidden] { display: none; }
+.pp-lock-note .ic { flex: none; width: 15px; height: 15px; margin-top: 2px; }
 .pp-plans.is-compact { gap: 10px; }
 .pp-plans.is-compact .pp-plan { gap: 3px; padding: 12px 14px 12px; border-radius: 16px; }
 .pp-plans.is-compact .pp-plan-top { flex-direction: column; align-items: flex-start; gap: 0; }
@@ -1617,17 +1635,17 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 .pp-picks-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 14px; color: var(--ink-2); font-size: 14px; }
 .pp-count { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
 .pp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.pp-pick { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 12px 14px; border: 1px solid rgba(94, 72, 50, 0.24); border-radius: 18px; background: rgba(255, 255, 255, 0.62); cursor: pointer; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease), background 160ms var(--ease); }
-.pp-pick:hover { border-color: rgba(94, 72, 50, 0.42); background: rgba(255, 255, 255, 0.9); }
+.pp-pick { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 12px 14px; border: 1px solid var(--pp-line); border-radius: 18px; background: var(--pp-card); cursor: pointer; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease), background 160ms var(--ease); }
+.pp-pick:hover { border-color: var(--pp-line-hi); background: var(--pp-card-hover); }
 .pp-pick input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .pp-pick:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
-.pp-box { display: grid; place-items: center; width: 22px; height: 22px; margin-top: 1px; border: 1.5px solid #8F8578; border-radius: 7px; background: #fff; color: transparent; transition: background 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease); }
+.pp-box { display: grid; place-items: center; width: 22px; height: 22px; margin-top: 1px; border: 1.5px solid #8F8578; border-radius: 7px; background: var(--pp-on); color: transparent; transition: background 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease); }
 .pp-box .ic { width: 14px; height: 14px; stroke-width: 3; }
-.pp-pick.is-on { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.16); }
-.pp-pick.is-on .pp-box { border-color: var(--accent); background: var(--accent); color: var(--ink); }
+.pp-pick.is-on { border-color: var(--accent); background: var(--pp-on); box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.16); }
+.pp-pick.is-on .pp-box { border-color: var(--accent); background: var(--accent); color: #1D1A16; }
 .pp-pick.is-fixed, .pp-pick.is-fixed input { cursor: default; }
 .pp-pick.is-fixed.is-on { border-color: rgba(94, 72, 50, 0.4); box-shadow: none; }
-.pp-pick.is-fixed.is-on .pp-box { border-color: var(--ink); background: var(--ink); color: #fff; }
+.pp-pick.is-fixed.is-on .pp-box { border-color: var(--ink); background: var(--ink); color: var(--surface); }
 .pp-pick.is-idle { opacity: 0.6; cursor: not-allowed; }
 .pp-pick.is-idle input { cursor: not-allowed; }
 .pp-pick-text { display: grid; gap: 2px; min-width: 0; }
@@ -1635,7 +1653,7 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 .pp-pick-d { color: var(--ink-3); font-size: 13px; line-height: 1.4; }
 .pp-pick-tag { align-self: start; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-size: 12px; font-weight: 650; }
 .pp-pick-tag:empty { display: none; }
-.pp-option { display: grid; gap: 8px; margin: 0; padding: 10px 14px 12px; border: 1px solid var(--line-2); border-radius: 16px; background: rgba(255, 255, 255, 0.5); }
+.pp-option { display: grid; gap: 8px; margin: 0; padding: 10px 14px 12px; border: 1px solid var(--line-2); border-radius: 16px; background: var(--pp-soft); }
 .pp-option legend { padding: 0 6px; color: var(--ink-2); font-size: 13.5px; font-weight: 600; }
 .pp-option label { display: flex; align-items: center; gap: 9px; font-weight: 550; cursor: pointer; }
 .pp-option input { width: 17px; height: 17px; margin: 0; accent-color: var(--accent-ink); }
@@ -1651,7 +1669,7 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 .bd-switch, .nc-switch { position: relative; display: inline-flex; align-items: center; gap: 11px; font-weight: 600; cursor: pointer; }
 .bd-switch input, .nc-switch input { position: absolute; width: 44px; height: 26px; margin: 0; opacity: 0; cursor: pointer; }
 .bd-sw, .nc-sw { position: relative; flex: none; width: 44px; height: 26px; border-radius: 999px; background: #8F8578; transition: background 180ms var(--ease); }
-.bd-sw::after, .nc-sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(40, 30, 20, 0.35); transition: translate 180ms var(--ease); }
+.bd-sw::after, .nc-sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--pp-on); box-shadow: 0 1px 3px rgba(40, 30, 20, 0.35); transition: translate 180ms var(--ease); }
 input:checked + .bd-sw, input:checked + .nc-sw { background: #2E9E66; }
 input:checked + .bd-sw::after, input:checked + .nc-sw::after { translate: 18px 0; }
 input:focus-visible + .bd-sw, input:focus-visible + .nc-sw { outline: 2px solid var(--focus); outline-offset: 2px; }
@@ -1666,6 +1684,8 @@ input:disabled + .nc-sw { opacity: 0.5; }
 .bl-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; }
 .bl-dot.is-used { background: var(--accent); box-shadow: 0 0 0 4px rgba(255, 91, 31, 0.18); }
 .bl-dot.is-free { background: #2E9E66; box-shadow: 0 0 0 4px rgba(46, 158, 102, 0.18); }
+.bl-dot.is-lock { background: var(--them); box-shadow: 0 0 0 4px rgba(99, 88, 230, 0.18); }
+.bl-card > span a { color: var(--accent-ink); font-weight: 600; }
 .bl-foot { margin-top: 10px; }
 #bl-top { margin-top: 16px; }
 #bl-top .toolbar { margin-bottom: 16px; }
@@ -1695,9 +1715,9 @@ table.bl-grid td.bl-c-act { display: none; }
 .bl-plan { display: block; font-size: 15px; font-weight: 700; letter-spacing: -0.15px; }
 .bl-mini { margin-top: 6px; padding: 2px 10px 2px 8px; font-size: 12.5px; }
 .bl-chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.bchip { display: inline-flex; align-items: center; max-width: 100%; padding: 2px 9px; border: 1px solid rgba(94, 72, 50, 0.22); border-radius: 9px; background: rgba(255, 255, 255, 0.7); color: var(--ink); font-size: 12.5px; font-weight: 600; line-height: 1.4; }
+.bchip { display: inline-flex; align-items: center; max-width: 100%; padding: 2px 9px; border: 1px solid var(--pp-line); border-radius: 9px; background: var(--pp-chip); color: var(--ink); font-size: 12.5px; font-weight: 600; line-height: 1.4; }
 .bchip.is-add { border-color: rgba(255, 91, 31, 0.6); background: var(--you-bg); color: var(--you); }
-.bchip.is-stop { border-style: dashed; background: rgba(94, 72, 50, 0.05); color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.bchip.is-stop { border-style: dashed; background: var(--pp-sunk); color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1.5px; }
 .bchip.is-plan { border-color: rgba(99, 88, 230, 0.4); background: var(--them-bg); color: var(--them); }
 .bl-usage { display: grid; gap: 9px; margin-top: 10px; }
 .bl-usage .cu-line { font-size: 12.5px; }
@@ -1714,10 +1734,11 @@ table.bl-grid td.bl-c-act { display: none; }
 /* ==== the override drawer =============================================================================== */
 
 body:has(dialog.bill-drawer[open]) { overflow: hidden; }
-dialog.bill-drawer { position: fixed; inset: 0 0 0 auto; width: min(580px, 100vw); max-width: 100vw; height: 100vh; height: 100dvh; max-height: none; margin: 0; padding: 0; overflow: hidden; border: 0.67px solid var(--glass-edge); border-radius: 28px 0 0 28px; background-color: rgba(255, 255, 255, 0.95); box-shadow: -26px 0 70px -22px rgba(40, 30, 20, 0.5); }
+dialog.bill-drawer { position: fixed; inset: 0 0 0 auto; width: min(580px, 100vw); max-width: 100vw; height: 100vh; height: 100dvh; max-height: none; margin: 0; padding: 0; overflow: hidden; border: 0.67px solid var(--glass-edge); border-radius: 28px 0 0 28px; background-color: var(--pp-sheet); box-shadow: -26px 0 70px -22px rgba(40, 30, 20, 0.5); }
 dialog.bill-drawer[open] { display: flex; flex-direction: column; animation: bd-in 300ms var(--ease) both; }
 dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
-@keyframes bd-in { from { opacity: 0; translate: 40px 0; } to { opacity: 1; translate: 0 0; } }
+/* the drawer slides in and never fades, so its text keeps full contrast while it moves */
+@keyframes bd-in { from { translate: 56px 0; } to { translate: 0 0; } }
 @media (prefers-reduced-motion: reduce) { dialog.bill-drawer[open] { animation: none; } }
 .bd-form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .bd-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 22px 24px 14px; border-bottom: 1px solid var(--line); }
@@ -1727,7 +1748,7 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
 .bd-lede { color: var(--ink-2); font-size: 14px; line-height: 1.5; }
 .bd-sec { min-width: 0; margin: 0; padding: 0; border: 0; }
 .bd-sec > legend { margin-bottom: 9px; padding: 0; color: var(--ink-2); font-size: 14px; font-weight: 650; }
-.bd-now { display: grid; gap: 4px; padding: 14px 16px; border-radius: 18px; background: rgba(94, 72, 50, 0.06); }
+.bd-now { display: grid; gap: 4px; padding: 14px 16px; border-radius: 18px; background: var(--pp-sunk); }
 .bd-now-h { display: flex; flex-wrap: wrap; gap: 2px 8px; }
 .bd-now-h span { color: var(--ink-2); }
 .bd-limits { margin-top: 6px; }
@@ -1737,8 +1758,8 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
 .bd-change:empty { display: none; }
 .bd-change.is-on { padding: 10px 14px; border-radius: 14px; background: var(--you-bg); color: var(--you); font-weight: 600; }
 .bd-applies { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
-.bd-opt { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; row-gap: 1px; align-items: start; padding: 12px 14px; border: 1px solid rgba(94, 72, 50, 0.24); border-radius: 16px; background: rgba(255, 255, 255, 0.6); cursor: pointer; }
-.bd-opt:has(input:checked) { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.14); }
+.bd-opt { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; row-gap: 1px; align-items: start; padding: 12px 14px; border: 1px solid var(--pp-line); border-radius: 16px; background: var(--pp-card); cursor: pointer; }
+.bd-opt:has(input:checked) { border-color: var(--accent); background: var(--pp-on); box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.14); }
 .bd-opt:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
 .bd-opt input { grid-row: span 2; width: 17px; height: 17px; margin: 2px 0 0; accent-color: var(--accent-ink); }
 .bd-opt-t { font-weight: 650; }
@@ -1749,9 +1770,9 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
 .bd-hist h3 { margin-bottom: 10px; font-size: 17px; }
 .bd-hist-list { display: grid; margin: 0; padding: 0 0 0 16px; border-left: 1px solid var(--line-2); list-style: none; }
 .bd-hist-list li { position: relative; display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 12px; padding: 8px 0; font-size: 13.5px; line-height: 1.45; }
-.bd-hist-list li::before { content: ""; position: absolute; left: -20px; top: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--surface-3); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.95); }
+.bd-hist-list li::before { content: ""; position: absolute; left: -20px; top: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--surface-3); box-shadow: 0 0 0 3px var(--pp-sheet); }
 .bd-h-time { color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.bd-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 24px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: rgba(255, 255, 255, 0.85); }
+.bd-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 24px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: var(--pp-sheet-foot); }
 .bd-foot-note { color: var(--ink-3); font-size: 13.5px; }
 
 /* ==== a phone: the table becomes a stack of cards, the drawer fills the screen ========================== */
@@ -1819,8 +1840,8 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
 .nc-rail { min-width: 0; }
 .nc-draft { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 14px; }
 .nc-rail ol { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.nc-pill { display: inline-flex; align-items: center; gap: 9px; min-height: 40px; padding: 6px 16px 6px 7px; border: 0.67px solid var(--glass-edge); border-radius: 999px; background-color: rgba(255, 255, 255, 0.4); box-shadow: var(--glass-shadow-sm); color: var(--ink-2); font-size: 14px; font-weight: 650; cursor: pointer; transition: background 160ms var(--ease), color 160ms var(--ease); }
-.nc-pill:hover { background-color: rgba(255, 255, 255, 0.8); color: var(--ink); }
+.nc-pill { display: inline-flex; align-items: center; gap: 9px; min-height: 40px; padding: 6px 16px 6px 7px; border: 0.67px solid var(--glass-edge); border-radius: 999px; background-color: var(--pp-soft); box-shadow: var(--glass-shadow-sm); color: var(--ink-2); font-size: 14px; font-weight: 650; cursor: pointer; transition: background 160ms var(--ease), color 160ms var(--ease); }
+.nc-pill:hover { background-color: var(--pp-card-hover); color: var(--ink); }
 .nc-pill-n { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-3); color: var(--ink-2); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .nc-pill-n .ic { width: 14px; height: 14px; stroke-width: 3; }
 .nc-pill.is-done .nc-pill-n { background: var(--good-bg); color: var(--good); }
@@ -1828,14 +1849,14 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
 .nc-step { scroll-margin-top: 16px; }
 .nc-step + .nc-step, .nc-step + .nc-two, .nc-two + .nc-step { margin-top: 0; }
 .nc-step h2 { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 21px; }
-.nc-num { display: grid; flex: none; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.nc-num { display: grid; flex: none; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: var(--surface); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .nc-step.is-done .nc-num { background: var(--good); }
 .nc-sub { max-width: 72ch; margin: -6px 0 18px; color: var(--ink-3); font-size: 14px; line-height: 1.5; }
 .nc-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 18px; }
 .nc-two { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 .nc-two > .panel { margin: 0; }
 
-.nc-dates { display: grid; margin: 16px 0 0; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: rgba(255, 255, 255, 0.55); }
+.nc-dates { display: grid; margin: 16px 0 0; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: var(--pp-soft); }
 .nc-dates:empty { display: none; }
 .nc-dates > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 14px; padding: 11px 16px; border-top: 1px solid var(--line); }
 .nc-dates > div:first-child { border-top: 0; }
@@ -2022,6 +2043,24 @@ html[data-theme="dark"] .pl-later { background: rgba(120, 170, 255, 0.16); color
 html[data-theme="dark"] .raw-block code { background: rgba(255, 255, 255, 0.12); }
 /* The freshness line is white at 60 percent in 00-shared.css, which leaves the night theme's light words on a light bar: on this page it follows the glass. */
 html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--glass); border-color: var(--glass-edge); }
+
+/* Domin8te availability: open or locked, with the owner's switch (and the sheet that asks first). */
+.pl-cards:has(+ .pl-avail) { margin-bottom: 14px; }
+.pl-avail { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin: 0 0 26px; padding: 15px 20px; border-radius: 18px; background: var(--glass-soft); box-shadow: inset 0 0 0 1px var(--line); }
+.pl-avail-txt { display: grid; flex: 1 1 340px; gap: 4px; min-width: 0; }
+.pl-avail-h { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 16px; }
+.pl-avail-txt p { color: var(--ink-2); font-size: 14.5px; max-width: 72ch; }
+.pl-avail-txt p.meta { color: var(--ink-3); font-size: 13.5px; }
+.pl-avail > .btn { flex: none; }
+.pl-avail-note { max-width: 30ch; margin: 0; }
+.pl-sheet .field { margin-top: 16px; }
+.pl-sheet textarea { min-height: 78px; }
+.pl-sheet .actions { margin-top: 18px; }
+@media (max-width: 760px) {
+  .pl-avail { padding: 14px 16px; }
+  .pl-avail > .btn { width: 100%; }
+  .pl-avail-note { max-width: none; }
+}
 
 /* css/50-visible.css */
 /*
@@ -4354,7 +4393,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
       const mn = menu.error || !menu.data ? null : menu.data;
       const planRec = nowC && mn ? {
         menu: {
-          plans: (mn.plans || []).map((/** @type {any} */ x) => ({ id: x.id, name: x.name, priceMinor: x.price_minor, currency: x.currency, picksAllowed: x.picks_allowed, required: x.required_services || [], maxClients: x.max_clients, full: !!x.full })),
+          plans: (mn.plans || []).map((/** @type {any} */ x) => ({ id: x.id, name: x.name, priceMinor: x.price_minor, currency: x.currency, picksAllowed: x.picks_allowed, required: x.required_services || [], maxClients: x.max_clients, full: !!x.full, locked: !!x.locked })),
           caps: (mn.caps || []).map((/** @type {any} */ x) => ({ planId: x.plan_id, service: x.service, metric: x.metric, label: x.label, cap: Number(x.monthly_cap), weeklyHint: x.weekly_hint || null }))
         },
         now: nowC, next: nextC,
@@ -5120,7 +5159,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
   const AD_SPEND = 'Ad spend is paid to Meta and Google directly and is not part of your plan.';
   /** What a plan is, in a line. @param {any} p a menu plan */
   function blurb(p) {
-    if (p.id === 'domin8te') return p.full ? 'Every service, set up with Karan. Taken right now.' : 'Every service, set up with Karan.';
+    if (p.id === 'domin8te') return p.locked && !p.current ? 'Every service, set up with Karan. Not open to new clients right now.' : p.full ? 'Every service, set up with Karan. Taken right now.' : 'Every service, set up with Karan.';
     if (p.rule.fixed.length) return `${F.list(p.rule.fixed.map((/** @type {string} */ x) => svc(x).label))}, plus ${p.rule.choose === 1 ? 'one service' : p.rule.choose + ' services'} you choose`;
     return `Any ${p.rule.choose === 2 ? 'two' : p.rule.choose} services you choose`;
   }
@@ -5530,6 +5569,46 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
 
   /* ---- the page ------------------------------------------------------------------------------------------ */
 
+  /**
+   * The premium tier's card (Domin8te): open to new clients or locked (an owner switches it in Settings), and how many clients are on
+   * it. Only when a plan has a number of client places (plans.max_clients) do the older words about places stay: how many are used, who
+   * has it next, when it frees.
+   * @param {any[]} plans
+   */
+  function tierCard(plans) {
+    const c = C();
+    const feat = plans.find((/** @type {any} */ p) => p.max_clients != null) || plans.find((/** @type {any} */ p) => p.id === 'domin8te') || plans.find(takesAll);
+    if (!feat) return '';
+    const today = c.today();
+    const slot = PP().slotOf(feat.id, null, today, addDays(today, 1));
+    const n = slot.used;
+    const names = slot.holders.slice(0, 3).join(', ') + (n > 3 ? ` and ${n - 3} more` : '');
+    const count = `${n} ${n === 1 ? 'client' : 'clients'} on it${names ? `: ${names}` : ''}.`;
+    let placeNote = '';
+    if (slot.limited) {
+      const name = (/** @type {string} */ id) => ((c.tenant(id) || {}).name) || 'A client';
+      const live = (/** @type {any} */ x) => x.plan_id === feat.id && x.state !== 'ended' && ((c.tenant(x.tenant_id) || {}).status) !== 'archived';
+      const cycles = c.plans.cycles || [];
+      if (!slot.taken) {
+        const later = cycles.filter((/** @type {any} */ x) => live(x) && x.period_start > today).sort((/** @type {any} */ a, /** @type {any} */ b) => String(a.period_start).localeCompare(String(b.period_start)))[0];
+        if (later) placeNote = `Reserved from ${dayShort(later.period_start)} for ${name(later.tenant_id)}. New ${feat.name} sign-ups are blocked from then.`;
+      } else {
+        const holder = slot.holderIds[0];
+        const run = cycles.find((/** @type {any} */ x) => x.tenant_id === holder && live(x) && x.period_start <= today && x.period_end > today);
+        const after = run ? cycles.find((/** @type {any} */ x) => x.tenant_id === holder && x.period_start === run.period_end) : null;
+        if (run && after && after.plan_id !== feat.id) placeNote = `It frees on ${dayShort(run.period_end)}, when ${name(holder)} changes plan.`;
+      }
+    }
+    const locked = !!feat.locked;
+    const full = slot.limited && slot.taken;
+    const dot = locked ? 'is-lock' : full ? 'is-used' : 'is-free';
+    const title = locked ? `${feat.name} is locked` : slot.limited ? `${feat.name} place: ${full ? `${slot.used} of ${slot.max} used` : 'free'}` : `${feat.name}: open to new clients`;
+    const sub = locked ? `${esc(count)} New clients and plan changes to ${esc(feat.name)} are refused until an owner unlocks it. <a href="#/settings">Open Settings</a>`
+      : slot.limited ? (full ? `${esc(count)} ${placeNote ? esc(placeNote) : `New ${esc(feat.name)} sign-ups are blocked until this place frees up.`}` : `${esc(count)} ${placeNote ? esc(placeNote) : `A client can take it now. Only ${slot.max} ${slot.max === 1 ? 'client' : 'clients'} at a time.`}`)
+      : esc(count);
+    return `<div class="bl-card"><strong><span class="bl-dot ${dot}" aria-hidden="true"></span>${esc(title)}</strong><span>${sub}</span></div>`;
+  }
+
   /** @param {any[]} rows */
   function summary(rows) {
     const c = C();
@@ -5540,28 +5619,11 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
     const currency = (live[0] && live[0].P.nowPlan && live[0].P.nowPlan.currency) || 'USD';
     const mix = plans.map((/** @type {any} */ p) => ({ p, n: live.filter((r) => r.now && r.now.plan_id === p.id).length })).filter((x) => x.n).map((x) => `${x.p.name} ${x.n}`).join(', ');
     const plansText = `${live.length} active ${live.length === 1 ? 'plan' : 'plans'}`;
-    const lim = plans.find((/** @type {any} */ p) => p.max_clients != null);
-    const slot = lim ? PP().slotOf(lim.id, null, c.today(), addDays(c.today(), 1)) : null;
-    let placeNote = '';
-    if (lim && slot) {
-      const name = (/** @type {string} */ id) => ((c.tenant(id) || {}).name) || 'A client';
-      const live = (/** @type {any} */ x) => x.plan_id === lim.id && x.state !== 'ended' && ((c.tenant(x.tenant_id) || {}).status) !== 'archived';
-      const cycles = c.plans.cycles || [];
-      if (!slot.taken) {
-        const later = cycles.filter((/** @type {any} */ x) => live(x) && x.period_start > c.today()).sort((/** @type {any} */ a, /** @type {any} */ b) => String(a.period_start).localeCompare(String(b.period_start)))[0];
-        if (later) placeNote = `Reserved from ${dayShort(later.period_start)} for ${name(later.tenant_id)}. New ${lim.name} sign-ups are blocked from then.`;
-      } else {
-        const holder = slot.holderIds[0];
-        const run = cycles.find((/** @type {any} */ x) => x.tenant_id === holder && live(x) && x.period_start <= c.today() && x.period_end > c.today());
-        const after = run ? cycles.find((/** @type {any} */ x) => x.tenant_id === holder && x.period_start === run.period_end) : null;
-        if (run && after && after.plan_id !== lim.id) placeNote = `It frees on ${dayShort(run.period_end)}, when ${name(holder)} changes plan.`;
-      }
-    }
     const changes = rows.filter((r) => r.change && r.change.differs);
     const first = changes.slice(0, 2).map((r) => `${r.t.name}: ${r.change.text}${r.next ? ` from ${dayShort(r.next.period_start)}` : ''}`);
     return `<div class="bl-summary">
       <div class="bl-card"><strong>${total !== null ? `${esc(c.money(total, currency))} / mo` : esc(plansText)}</strong><span>${total !== null ? `${esc(plansText)}${mix ? ` · ${esc(mix)}` : ''}` : esc(mix || 'No plans running yet')}</span></div>
-      ${lim && slot ? `<div class="bl-card"><strong><span class="bl-dot ${slot.taken ? 'is-used' : 'is-free'}" aria-hidden="true"></span>${esc(lim.name)} place: ${slot.taken ? `${slot.used} of ${slot.max} used` : 'free'}</strong><span>${slot.taken ? `${esc(slot.holders.join(', '))}. ${placeNote ? esc(placeNote) : `New ${esc(lim.name)} sign-ups are blocked until this place frees up.`}` : placeNote ? esc(placeNote) : `A client can take it now. Only ${slot.max} ${slot.max === 1 ? 'client' : 'clients'} at a time.`}</span></div>` : ''}
+      ${tierCard(plans)}
       <div class="bl-card"><strong>${changes.length ? `${changes.length} ${changes.length === 1 ? 'change' : 'changes'} next cycle` : 'No changes next cycle'}</strong><span>${changes.length ? `${esc(first.join('. '))}${changes.length > 2 ? ` and ${changes.length - 2} more` : ''}` : 'Every client keeps what they have.'}</span></div>
     </div>`;
   }
@@ -5893,7 +5955,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
 // @ts-check
 /*
  * Clients, the plan release's part (2026-10-13): the list with each client's plan, picks, this month's usage bars, what needs
- * the team, status and freshness; the Domin8te place and capacity cards; the plan and over-limit filters; and the plan and
+ * the team, status and freshness; the Domin8te lock and capacity cards; the plan and over-limit filters; and the plan and
  * sign-off panel on a client's Setup tab. console.js (clientsPage, renderClients, setupTab, the About line) calls into
  * window.D8C_EXT.clients; this file reads helpers from window.D8C.
  *
@@ -5950,7 +6012,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
     return isNaN(d.getTime()) ? '' : `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
   }
 
-  /** The tenants that hold the one place of a capped plan (a paused client keeps it; only archiving frees it). @param {any} plan */
+  /** The tenants that hold a place of a plan that has a client limit (plans.max_clients is a number): every month not ended counts, as the database counts it; a paused client keeps its place, only archiving frees it. @param {any} plan */
   function holdersOf(plan) {
     const c = C();
     const ids = new Set(c.plans.cycles.filter((/** @type {any} */ k) => k.plan_id === plan.id && k.state !== 'ended').map((/** @type {any} */ k) => k.tenant_id));
@@ -6002,7 +6064,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
     const t = r.t;
     /** @type {{tone: string, text: string, sub?: string}[]} */ const out = [];
     if (t.status === 'archived') return [{ tone: '', text: 'Archived' }];
-    if (t.status === 'paused') out.push({ tone: 'warn', text: 'Paused', sub: r.pl.nowPlan && r.pl.nowPlan.max_clients ? 'Keeps its Domin8te place' : 'Work and billing are on hold' });
+    if (t.status === 'paused') out.push({ tone: 'warn', text: 'Paused', sub: r.pl.nowPlan && r.pl.nowPlan.max_clients ? `Keeps its ${r.pl.nowPlan.name} place` : 'Work and billing are on hold' });
     if (r.over.length) {
       const l = r.over[0];
       out.push({ tone: 'bad', text: `${BAR_NAME[l.metric] || l.label} over by ${l.used - l.cap}` });
@@ -6036,7 +6098,8 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
     } else if (pl.now && pl.next && (pl.next.plan_id !== pl.now.plan_id || picksLine(pl.next) !== picksLine(pl.now))) {
       lines.push(`Next: ${picksLine(pl.next)} from ${c.when(pl.next.period_start)}`);
     }
-    if (pl.nowPlan && pl.nowPlan.max_clients && t.status !== 'archived') lines.push(t.status === 'paused' ? 'Holds the Domin8te place while paused' : 'Holds the Domin8te place');
+    // Only a plan with a client limit has places to hold; with no limit nothing is said (the lock is on the card above the list).
+    if (pl.nowPlan && pl.nowPlan.max_clients && t.status !== 'archived') lines.push(t.status === 'paused' ? `Holds the ${pl.nowPlan.name} place while paused` : `Holds the ${pl.nowPlan.name} place`);
     if (!lines.length && t.doc.business.kind) lines.push(String(t.doc.business.kind));
     return lines.slice(0, 2);
   }
@@ -6067,17 +6130,40 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
     return { n, rows };
   }
 
+  /** The words about a locked plan, one place for the card and the client's Setup tab. @param {any} plan */
+  const lockedLine = (plan) => `New clients and plan changes to ${esc(plan.name)} are refused until an owner unlocks it in <a href="#/settings">Settings</a>.`;
+
+  /**
+   * The Domin8te card (2026-10-13, Karan asked for Domin8te to be open to everyone, with a switch for an owner): Domin8te has no client limit now and an owner can lock it.
+   * Open: "open to new clients". Locked: nobody new can be put on it, the clients on it keep it. When plans.max_clients still holds a
+   * number the limit stays and the card says how many places are taken, as before. @param {any} plan
+   */
+  function domin8teCard(plan) {
+    if (!plan) return '';
+    const c = C();
+    const limit = plan.max_clients === null || plan.max_clients === undefined ? null : Number(plan.max_clients);
+    const locked = !!plan.locked;
+    const name = esc(plan.name);
+    // The clients whose current plan month is on this plan, archived ones left out.
+    const on = c.all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived' && (c.planOf(t.id).nowPlan || {}).id === plan.id);
+    const lock = locked ? ` ${lockedLine(plan)}` : '';
+    if (limit !== null) {
+      const held = holdersOf(plan);
+      const names = held.map((/** @type {any} */ t) => t.name).join(', ');
+      return `<div class="cl-card"><span class="cl-dot ${locked || held.length >= limit ? 'is-taken' : 'is-free'}" aria-hidden="true"></span><div><p class="cl-card-t">${locked ? `${name} is locked: ${held.length} of ${limit} ${limit === 1 ? 'place' : 'places'} taken` : `${name} ${limit === 1 ? 'place' : 'places'}: ${held.length} of ${limit} taken`}</p>
+        <p class="cl-card-s">${held.length ? `${esc(names)} ${held.length === 1 ? 'holds' : 'hold'} it. Paused clients keep their place; only archiving frees it.` : `Free. A ${name} sign-up can go ahead.`}${lock}</p></div></div>`;
+    }
+    const who = on.length && on.length <= 3 ? `: ${esc(on.map((/** @type {any} */ t) => t.name).join(', '))}` : '';
+    const count = on.length ? `${c.plural(on.length, 'client')} on it${who}.` : 'No clients on it yet.';
+    return `<div class="cl-card"><span class="cl-dot ${locked ? 'is-taken' : 'is-free'}" aria-hidden="true"></span><div><p class="cl-card-t">${locked ? `${name} is locked` : `${name}: open to new clients`}</p>
+      <p class="cl-card-s">${count}${lock}</p></div></div>`;
+  }
+
   /** The three cards above the list. @param {any[]} rows */
   function cardsHtml(rows) {
     const c = C();
     const plans = c.plans.plans;
-    const capped = plans.find((/** @type {any} */ p) => p.max_clients) || null;
-    const holders = capped ? holdersOf(capped) : [];
-    const max = capped ? Number(capped.max_clients) : 0;
-    const placeCard = capped
-      ? `<div class="cl-card"><span class="cl-dot ${holders.length >= max ? 'is-taken' : 'is-free'}" aria-hidden="true"></span><div><p class="cl-card-t">${esc(capped.name)} place: ${holders.length} of ${max} taken</p>
-        <p class="cl-card-s">${holders.length ? `${esc(holders.map((/** @type {any} */ t) => t.name).join(', '))} holds it. Paused clients keep their place; only archiving frees it.` : `Free. A ${esc(capped.name)} sign-up can go ahead.`}</p></div></div>`
-      : '';
+    const placeCard = domin8teCard(plans.find((/** @type {any} */ p) => p.id === 'domin8te') || plans.find((/** @type {any} */ p) => p.max_clients || p.locked) || null);
     const active = rows.filter((r) => r.t.status === 'active').length;
     const capCard = `<div class="cl-card"><span class="cl-dot is-hint" aria-hidden="true"></span><div><p class="cl-card-t">Room for about ${CAPACITY_HINT} restaurants at a time</p>
       <p class="cl-card-s">${active} active now${active > CAPACITY_HINT ? ', over the hint' : ''}. A planning hint only: nothing is blocked.</p></div></div>`;
@@ -6178,7 +6264,8 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
       ${block('This month', pl.now, pl.nowPlan)}
       ${block('Next month', pl.next, pl.nextPlan)}
     </div>
-    <p class="cl-plan-link"><a class="btn btn-quiet btn-sm" href="#/billing/${esc(id)}">Change plan and picks in Billing</a><span class="meta">${t && t.status === 'paused' ? 'Paused: a Domin8te place stays held until the client is archived. ' : ''}Picks lock when the billing month starts; changes apply from next month.</span></p>`;
+    <p class="cl-plan-link"><a class="btn btn-quiet btn-sm" href="#/billing/${esc(id)}">Change plan and picks in Billing</a><span class="meta">${t && t.status === 'paused' && pl.nowPlan && pl.nowPlan.max_clients ? `Paused: a ${esc(pl.nowPlan.name)} place stays held until the client is archived. ` : ''}Picks lock when the billing month starts; changes apply from next month.</span></p>
+    ${pl.nowPlan && pl.nowPlan.locked ? `<p class="meta cl-plan-lock">${esc(pl.nowPlan.name)} is locked. This client keeps it. ${lockedLine(pl.nowPlan)}</p>` : ''}`;
   }
 
   EXT.clients = { head, table, planPanel, planNameOf, picksLine, holdersOf, CAPACITY_HINT };
@@ -6980,13 +7067,14 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
     return { req, task, metric, service, line, qty, used, cap, would: used + qty, over: Math.max(0, used + qty - cap), label };
   }
 
-  /** The next plan up, when the client could take it (the single Domin8te place must be free). @param {any} cx */
+  /** The next plan up, when the client could take it: a locked plan takes nobody new, and a plan with a client limit needs a free place. @param {any} cx */
   function upgradeOf(cx) {
     const plans = cx.c.plans.plans.slice().sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort);
     const cur = cx.pl.nowPlan;
     const i = cur ? plans.findIndex((/** @type {any} */ p) => p.id === cur.id) : -1;
     const up = i >= 0 ? plans[i + 1] : null;
     if (!up) return null;
+    if (up.locked) return null;
     if (up.max_clients) {
       const held = new Set(cx.c.plans.cycles.filter((/** @type {any} */ k) => k.plan_id === up.id && k.state !== 'ended').map((/** @type {any} */ k) => k.tenant_id));
       const taken = Array.from(held).filter((id) => id !== cx.tid && (cx.c.tenant(id) || {}).status !== 'archived').length;
@@ -7015,6 +7103,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
       [/unknown-metric/, () => 'This plan has no limit for that kind of work.'],
       [/picks-do-not-fit/, () => 'Those picks do not fit the plan.'],
       [/plan-full/, () => 'The Domin8te place is taken right now.'],
+      [/plan-locked/, () => 'That plan is locked, so nobody new can be put on it. An owner can lift the lock in Settings.'],
       [/month-locked/, () => 'This month is locked. Changes apply from next month.'],
       [/month-ended/, () => 'That month has ended.'],
       [/overlaps-another-month/, () => 'That overlaps another month for this client.'],
@@ -7700,13 +7789,14 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
 <script>
 /* mod-newclient.js */
 /*
- * Add client (#/new), 2026-10-13: a stepped form. 1 Restaurant, contact and email. 2 Plan cards with their limits (Domin8te is
- * disabled with "Taken" while its one place is full). 3 Starting picks with the rule, a counter and a block message. 4 First billing
- * date with the reminder dates and the first lock period. 5 What the client sees on each dashboard page. 6 The Stripe customer.
+ * Add client (#/new), 2026-10-13: a stepped form. 1 Restaurant, contact and email. 2 Plan cards with their limits (a plan an owner
+ * locked in Settings shows "Locked" and cannot be chosen; Domin8te is open unless it is locked). 3 Starting picks with the rule, a
+ * counter and a block message. 4 First billing date with the reminder dates and the first lock period. 5 What the client sees on each
+ * dashboard page. 6 The Stripe customer.
  *
  * Write order on "Add the client": tenants, then tenant_plan_cycles (state active, source console), then the Home sections and the
- * sign-off level, then Stripe, then the Multica board. A refused plan (the one Domin8te place taken) says so in plain words and opens
- * the Billing drawer for the client that was just added. The plan rule is the shared widget in mod-planpick.js.
+ * sign-off level, then Stripe, then the Multica board. A refused plan (locked just now, or its client limit used up) says so in plain
+ * words and opens the Billing drawer for the client that was just added. The plan rule is the shared widget in mod-planpick.js.
  *
  * console.js calls window.D8C_EXT.newclient.page() from newClient(). Reads: tenants (D8C.all), plans (D8C.plans). Writes: tenants,
  * tenant_plan_cycles, client_home_sections, client_profile, and the Stripe and Multica server functions.
@@ -7858,7 +7948,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
       if (S.email && !EMAIL.test(S.email)) m.push('a valid contact email');
       const chk = pp.check();
       if (!pp.state.planId) m.push('a plan');
-      else if (!chk.ok) m.push(chk.code === 'plan-full' ? 'a plan that is free' : 'the picks');
+      else if (!chk.ok) m.push(chk.code === 'plan-full' || chk.code === 'plan-locked' ? 'a plan that is open' : 'the picks');
       if (!dateOk(S.date)) m.push('a first billing date');
       return m;
     }
@@ -7877,7 +7967,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     function paintSteps() {
       const ok = [
         !!S.name.trim() && (!S.email || EMAIL.test(S.email)),
-        !!pp.state.planId && !(pp.check().code === 'plan-full'),
+        !!pp.state.planId && !['plan-full', 'plan-locked'].includes(pp.check().code),
         pp.check().ok,
         dateOk(S.date), true, true
       ];
@@ -8044,9 +8134,9 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
 /* mod-planpick.js */
 /*
  * The plan rule widget (2026-10-13): the one place in the console that knows how a plan and its picks are chosen. The Billing
- * override drawer and Add client both mount it, so staff see the same rule the database enforces (app.picks_valid and the one
- * Domin8te place) in the same words. The rule itself is D8.planModel.validate(), the one the client's picker uses; this widget
- * adds what only staff may do (set Domin8te while its place is free) and the staff voice.
+ * override drawer and Add client both mount it, so staff see the same rule the database enforces (app.picks_valid, a locked plan
+ * and a plan's client limit) in the same words. The rule itself is D8.planModel.validate(), the one the client's picker uses; this
+ * widget adds what only staff may do (set Domin8te while it is unlocked; a client already on it keeps it) and the staff voice.
  *
  * It reads plan data from window.D8C.plans and writes nothing: the page that mounts it decides what to do with the value.
  *
@@ -8093,7 +8183,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
   function menuOf() {
     return {
       plans: plansRows().map((/** @type {any} */ p) => ({
-        id: p.id, name: p.name, priceMinor: p.price_minor == null ? null : Number(p.price_minor), currency: p.currency || null,
+        id: p.id, name: p.name, locked: !!p.locked, priceMinor: p.price_minor == null ? null : Number(p.price_minor), currency: p.currency || null,
         picksAllowed: p.picks_allowed == null ? null : Number(p.picks_allowed), required: p.required_services || [], maxClients: p.max_clients == null ? null : Number(p.max_clients)
       })),
       caps: capsNow()
@@ -8129,20 +8219,25 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
   const andList = (list) => (list.length < 2 ? list.join('') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`);
 
   /**
-   * How full a plan with a client limit is over a stretch of days (the database's guard counts clients with a month that
-   * overlaps, not archived, not ended). A client's own months never count against it. Days are 'YYYY-MM-DD', end excluded.
+   * Who is on a plan over a stretch of days, and whether this client may be put on it. Two things can stop that, both the
+   * database's (guard_plan_cycle): a LOCKED plan (plans.locked, switched by an owner in Settings) takes nobody new, so the client must
+   * already be on it, which means the month being picked already has that plan or the month right before it does (a carry-over); and a
+   * plan with a client limit (plans.max_clients, a number; none means no limit) is full once that many other clients have a month on it.
+   * Clients who are archived, and months that have ended, do not count as holding a place. Days are 'YYYY-MM-DD', end excluded.
    * @param {string} planId @param {string|null} [tenantId] @param {string} [start] @param {string} [end]
    */
   function slotOf(planId, tenantId, start, end) {
     const p = plansRows().find((/** @type {any} */ x) => x.id === planId);
     const max = p && p.max_clients != null ? Number(p.max_clients) : null;
-    const out = { limited: max !== null, max, used: 0, holders: /** @type {string[]} */ ([]), holderIds: /** @type {string[]} */ ([]), taken: false, mine: false };
-    if (max === null) return out;
     const s = start || C().today();
     const e = end || W.D8.time.isoDay(W.D8.time.dayNum(s) + 1);
+    const cycles = C().plans.cycles || [];
+    const onIt = !!tenantId && cycles.some((/** @type {any} */ c) => c.tenant_id === tenantId && c.plan_id === planId && (String(c.period_start) === s || String(c.period_end) === s));
+    const planLocked = !!(p && p.locked);
+    const out = { limited: max !== null, max, used: 0, holders: /** @type {string[]} */ ([]), holderIds: /** @type {string[]} */ ([]), taken: false, mine: false, planLocked, onIt, locked: planLocked && !onIt };
     const tenants = (C().all && C().all.tenants) || [];
     /** @type {Set<string>} */ const ids = new Set();
-    for (const c of C().plans.cycles || []) {
+    for (const c of cycles) {
       if (c.plan_id !== planId || c.state === 'ended') continue;
       if (tenantId && c.tenant_id === tenantId) { out.mine = true; continue; }
       const t = tenants.find((/** @type {any} */ x) => x.id === c.tenant_id);
@@ -8152,7 +8247,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     out.holderIds = Array.from(ids);
     out.holders = out.holderIds.map((id) => ((tenants.find((/** @type {any} */ x) => x.id === id) || {}).name) || 'A client');
     out.used = ids.size;
-    out.taken = out.used >= max;
+    out.taken = max !== null && out.used >= max;
     return out;
   }
 
@@ -8179,6 +8274,13 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
   function say(err) {
     const code = String((err && err.code) || '');
     const text = String((err && (err.message || err.details)) || err || '');
+    // a locked plan comes first: it is a 23P01 too
+    const lockedAt = text.match(/plan-locked:\s*([^\s]+)/i);
+    if (lockedAt) {
+      const key = lockedAt[1].toLowerCase();
+      const lp = plansRows().find((/** @type {any} */ x) => x.id === key || String(x.name).toLowerCase() === key);
+      return `${lp ? lp.name : lockedAt[1].charAt(0).toUpperCase() + lockedAt[1].slice(1)} is locked right now. An owner can unlock it in Settings.`;
+    }
     const full = text.match(/plan-full:\s*([a-z0-9_-]+)/i);
     if (full || (code === '23P01' && !/overlap/i.test(text))) {
       const id = full ? full[1] : 'domin8te';
@@ -8201,8 +8303,11 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
 
   /* ---- the widget --------------------------------------------------------------------------------------- */
 
-  /** @param {any} ctl @param {any} p a plan of the menu @param {any} slot @param {boolean} blocked */
-  function planBody(ctl, p, slot, blocked) {
+  /** A small padlock, drawn here so it needs nothing from the page's icon sheet. */
+  const LOCK_ICON = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+
+  /** @param {any} ctl @param {any} p a plan of the menu @param {any} slot @param {boolean} full the plan's client limit is used up */
+  function planBody(ctl, p, slot, full) {
     const st = ctl.state;
     const caps = capsNow();
     const r = PM().rule(p);
@@ -8218,8 +8323,9 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
       return `<span class="pp-cap is-off"><b>${esc(label(id))}:</b> ${noPicks ? esc(line) : 'not picked'}</span>`;
     }).join('');
     const over = !r.all && chosen.length > r.choose ? `<span class="pp-note is-warn">${esc(p.name)} takes ${r.choose} pick${r.choose === 1 ? '' : 's'}${r.fixed.length ? ` besides ${esc(andList(r.fixed.map(label)))}` : ''}. You have ${chosen.length}.</span>` : '';
-    const taken = blocked ? `<span class="pp-note is-bad">${p.maxClients === 1 ? 'The one' : `All ${p.maxClients}`} ${esc(p.name)} ${p.maxClients === 1 ? 'place is' : 'places are'} in use. It opens when that client changes plan or leaves.</span>` : '';
-    return `<span class="pp-caps"><span class="pp-caps-h">Limits for your picks, each month</span>${rows}</span>${proposed ? '<span class="pp-star">* proposed</span>' : ''}${over}${taken}`;
+    const taken = full && !slot.locked ? `<span class="pp-note is-bad">${p.maxClients === 1 ? 'The one' : `All ${p.maxClients}`} ${esc(p.name)} ${p.maxClients === 1 ? 'place is' : 'places are'} in use. It opens when that client changes plan or leaves.</span>` : '';
+    const lock = slot.locked ? `<span class="pp-note is-lock">${esc(p.name)} is locked. An owner can unlock it in <a class="pp-link" href="#/settings">Settings</a>.</span>` : '';
+    return `<span class="pp-caps"><span class="pp-caps-h">Limits for your picks, each month</span>${rows}</span>${proposed ? '<span class="pp-star">* proposed</span>' : ''}${over}${lock}${taken}`;
   }
 
   /** @param {any} ctl @param {boolean} compact */
@@ -8234,7 +8340,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
       return `<label class="pp-plan" data-plan="${esc(p.id)}"><input type="radio" name="pp-plan-${ctl.id}" value="${esc(p.id)}" aria-labelledby="${esc(nid)}" aria-describedby="${esc(rid)}">
         <span class="pp-plan-top"><span class="pp-plan-name" id="${esc(nid)}">${esc(p.name)}</span>${price ? `<span class="pp-plan-price">${esc(price)}<small>/mo</small></span>` : ''}</span>
         <span class="pp-plan-rule" id="${esc(rid)}">${esc(rule)}</span><span class="pp-plan-tag" data-pp="tag"></span>${compact ? '' : '<span class="pp-plan-body" data-pp="body"></span>'}</label>`;
-    }).join('')}</div>`;
+    }).join('')}</div>${compact ? '<p class="pp-note is-lock pp-lock-note" data-pp="lock-note" hidden></p>' : ''}`;
   }
 
   /** @param {any} ctl */
@@ -8268,6 +8374,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
       const p = m.plans.find((/** @type {any} */ x) => x.id === st.planId);
       if (!p) return { ok: false, code: 'bad-plan', error: 'Choose a plan.' };
       const slot = ctl.slot(p.id);
+      if (slot.locked) return { ok: false, code: 'plan-locked', error: `${p.name} is locked. An owner can unlock it in Settings.` };
       if (slot.limited && slot.taken) return { ok: false, code: 'plan-full', error: `${p.name} is taken right now.` };
       if (PM().rule(p).all) return { ok: true, code: '', error: '' };
       const v = PM().validate(m, p.id, st.picks, st.websiteOption);
@@ -8297,16 +8404,25 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
           const p = m.plans.find((/** @type {any} */ x) => x.id === pid);
           if (!p) continue;
           const slot = ctl.slot(pid);
-          const blocked = slot.limited && slot.taken;
+          const full = slot.limited && slot.taken;
+          const blocked = slot.locked || full;
           const input = /** @type {HTMLInputElement} */ (card.querySelector('input'));
           input.checked = st.planId === pid;
           input.disabled = blocked && st.planId !== pid;
           card.classList.toggle('is-on', st.planId === pid);
-          card.classList.toggle('is-taken', blocked);
+          card.classList.toggle('is-locked', slot.locked);
+          card.classList.toggle('is-taken', full && !slot.locked);
           const tag = /** @type {HTMLElement} */ (card.querySelector('[data-pp="tag"]'));
-          tag.innerHTML = blocked ? '<span class="pp-tag is-bad">Taken</span>' : o.currentPlanId === pid ? '<span class="pp-tag">Current</span>' : '';
+          tag.innerHTML = slot.locked ? `<span class="pp-tag is-lock">${LOCK_ICON}Locked</span>` : full ? '<span class="pp-tag is-bad">Taken</span>' : o.currentPlanId === pid ? '<span class="pp-tag">Current</span>' : '';
           const body = card.querySelector('[data-pp="body"]');
-          if (body) body.innerHTML = planBody(ctl, p, slot, blocked);
+          if (body) body.innerHTML = planBody(ctl, p, slot, full);
+        }
+        // the small cards have no room for the line: one line under them says which plans are locked
+        const lockNote = /** @type {HTMLElement|null} */ (ctl.plansEl.querySelector('[data-pp="lock-note"]'));
+        if (lockNote) {
+          const names = m.plans.filter((/** @type {any} */ pl) => ctl.slot(pl.id).locked).map((/** @type {any} */ pl) => pl.name);
+          lockNote.hidden = !names.length;
+          lockNote.innerHTML = names.length ? `${LOCK_ICON}<span>${esc(andList(names))} ${names.length === 1 ? 'is' : 'are'} locked. An owner can unlock ${names.length === 1 ? 'it' : 'them'} in <a class="pp-link" href="#/settings">Settings</a>.</span>` : '';
         }
       }
       const el = /** @type {HTMLElement|null} */ (ctl.picksEl);
@@ -8951,16 +9067,18 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     const cur = String(pl.currency || 'USD');
     const symbol = D().money(100, cur).replace(/[\d.,\s]/g, '');
     const limit = pl.max_clients === null || pl.max_clients === undefined ? null : Number(pl.max_clients);
-    let tags = '';
-    if (limit === null) tags = '<span class="chip plain">No client limit</span>';
-    else {
+    // A client limit is a number in max_clients, or none (Domin8te has none now). Who can join is the lock's job: see availHtml.
+    let tags = limit === null ? '<span class="chip plain">No client limit</span>' : `<span class="chip plain">Limit: ${esc(plural(limit, 'client'))}</span>`;
+    if (limit !== null) {
       const who = holders(pl);
       const names = (/** @type {any[]} */ list) => list.map((t) => t.name).join(', ');
-      tags = `<span class="chip plain">${limit === 1 ? '1 client' : `${limit} clients`} at a time</span>`
-        + (who.now.length ? `<span class="chip info" title="A paused client keeps the place. Only archiving frees it.">Taken by ${esc(names(who.now))}${who.now.some((/** @type {any} */ t) => t.status === 'paused') ? ' (paused)' : ''}</span>` : '')
+      tags += (who.now.length ? `<span class="chip info" title="A paused client keeps the place. Only archiving frees it.">Taken by ${esc(names(who.now))}${who.now.some((/** @type {any} */ t) => t.status === 'paused') ? ' (paused)' : ''}</span>` : '')
         + (who.next.length ? `<span class="chip info" title="Their next month is on this plan, so the place is theirs from then.">Next month: ${esc(names(who.next))}</span>` : '')
         + (!who.now.length && !who.next.length ? '<span class="chip good">Place free</span>' : '');
     }
+    // Open or locked: Domin8te always says which; any other plan only says so if someone locked it.
+    if (pl.locked) tags += '<span class="chip warn" title="No new client can be put on this plan.">Locked</span>';
+    else if (pl.id === 'domin8te') tags += '<span class="chip good" title="New clients can be put on this plan.">Open to new clients</span>';
     if (ed) {
       return `<article class="pl-card is-edit"><div class="field"><label for="pn-${esc(pl.id)}">Plan name</label><input id="pn-${esc(pl.id)}" name="plan-name" data-plan="${esc(pl.id)}" type="text" maxlength="40" value="${esc(pl.name)}" autocomplete="off"></div>
         ${priced ? `<div class="field"><label for="pp-${esc(pl.id)}">Price a month</label><span class="pl-money"><span aria-hidden="true">${esc(symbol)}</span><input id="pp-${esc(pl.id)}" name="plan-price" data-plan="${esc(pl.id)}" type="text" inputmode="decimal" value="${esc(String(Number(pl.price_minor) / 100))}" autocomplete="off"></span></div>` : ''}
@@ -8969,6 +9087,28 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     return `<article class="pl-card"><h3 class="pl-name">${esc(pl.name)}</h3>
       ${priced ? `<p class="pl-price"><span class="pl-amt">${esc(D().money(pl.price_minor, cur))}</span> a month</p>` : ''}
       <p class="pl-rule">${esc(ruleOf(pl))}</p><div class="pl-tags">${tags}</div></article>`;
+  }
+
+  /**
+   * The Domin8te availability row: whether anyone new can be put on the plan (plans.locked), and for owners the switch.
+   * While the limits are being edited the switch waits, so a redraw cannot throw the edits away.
+   */
+  function availHtml() {
+    const pl = D().plans.plans.find((/** @type {any} */ x) => x.id === 'domin8te');
+    if (!pl) return '';
+    const locked = !!pl.locked;
+    const owner = isOwner();
+    const name = String(pl.name);
+    const said = pl.locked_at ? `${locked ? 'Locked' : 'Unlocked'} ${D().clockTime(pl.locked_at)}${pl.locked_by ? ` by ${nameOf(pl.locked_by)}` : ''}.` : '';
+    const words = locked
+      ? `No new client can be put on ${name} and the client's picker shows it as locked. Clients already on ${name} keep it.`
+      : `New clients can be put on ${name}, and the client's picker shows it as open. Clients already on ${name} keep it either way.`;
+    const act = !owner ? `<p class="meta pl-avail-note">Only an owner can lock or unlock ${esc(name)}.</p>`
+      : ST.editing ? '<p class="meta pl-avail-note">Save or cancel your edits to change this.</p>'
+        : `<button class="btn btn-quiet" type="button" data-pl-lock="${locked ? 'unlock' : 'lock'}">${locked ? 'Unlock' : 'Lock'} ${esc(name)}</button>`;
+    return `<div class="pl-avail" id="pl-avail" role="group" aria-labelledby="pl-avail-h"><div class="pl-avail-txt">
+        <h3 class="pl-avail-h" id="pl-avail-h">${esc(name)} availability <span class="chip ${locked ? 'warn' : 'good'}">${locked ? 'Locked' : 'Open to new clients'}</span></h3>
+        <p>${esc(words)}</p>${said ? `<p class="meta">${esc(said)}</p>` : ''}</div>${act}</div>`;
   }
 
   /** The limits, a row for each limit and a column for each plan. @param {any} m @param {boolean} ed */
@@ -9005,6 +9145,7 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     const anyStar = p.caps.some((/** @type {any} */ c) => c.proposed);
     const body = `<p class="pl-strip" id="pl-strip">${stripHtml(m)}</p>
       <div class="pl-cards">${m.plans.map((/** @type {any} */ pl) => cardHtml(pl, ed)).join('')}</div>
+      ${availHtml()}
       ${tableHtml(m, ed)}
       <p class="pl-foot-note">${anyStar ? '<span class="pl-star" aria-hidden="true">*</span> A proposed number: not confirmed yet. ' : ''}Urgent info fixes (hours, closures, phone, sold-out items) are never counted on any plan.</p>`;
     if (!ed) {
@@ -9108,10 +9249,102 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     if (line) line.outerHTML = freshHtml();
   }
 
+  /** What a refusal of set_plan_locked means, in words, and that nothing was changed. @param {any} e */
+  function lockWords(e) {
+    const said = String((e && (e.message || e.details)) || '');
+    const code = String((e && e.code) || '');
+    const name = planName('domin8te');
+    if (/owners-only/.test(said) || code === '42501' || code === 'PGRST301') return `Only an owner can lock or unlock ${name}. Nothing was changed.`;
+    if (/unknown plan/.test(said)) return 'That plan was not found. Reload the page and try again. Nothing was changed.';
+    if (/PGRST202|42883|could not find/i.test(`${code} ${said}`)) return 'The lock is not set up on this database yet. Nothing was changed.';
+    return `${D().say ? D().say(e) : D().message(e)} Nothing was changed.`;
+  }
+
+  /**
+   * The confirm sheet for the lock: the plain words, an optional reason, Cancel and the go-ahead.
+   * Resolves the reason (it may be empty), or null when it was cancelled.
+   * @param {any} pl @param {boolean} want
+   */
+  function lockSheet(pl, want) {
+    let dlg = /** @type {HTMLDialogElement|null} */ (document.getElementById('pl-lock'));
+    if (!dlg) {
+      dlg = document.createElement('dialog');
+      dlg.id = 'pl-lock';
+      dlg.className = 'confirm pl-sheet';
+      dlg.setAttribute('aria-labelledby', 'pl-lock-h');
+      document.body.appendChild(dlg);
+    }
+    const el = dlg;
+    const name = esc(pl.name);
+    el.innerHTML = `<form method="dialog" novalidate><h2 id="pl-lock-h">${want ? 'Lock' : 'Unlock'} ${name}?</h2>
+      <p>${want ? `Locked: no new client can be put on ${name} and the client's picker shows it as locked. Clients already on ${name} keep it.` : `Unlocked: new clients can be put on ${name} again.`}</p>
+      <div class="field"><label for="pl-lock-why">Reason (optional)</label><textarea id="pl-lock-why" name="why" maxlength="500" rows="3" placeholder="${want ? 'For example: no room for new clients this month' : 'For example: there is room again'}"></textarea><p class="hint">Kept in the history.</p></div>
+      <div class="actions"><button class="btn btn-quiet" type="submit" value="cancel" formnovalidate>Cancel</button><button class="btn" type="submit" value="ok">${want ? 'Lock' : 'Unlock'} ${name}</button></div></form>`;
+    return new Promise((resolve) => {
+      // The answer comes from the buttons and from Escape, not from the dialog's close event: the browser sends that one with the
+      // next animation frame, which a tab in the background does not draw, and a dialog remembers its last returnValue.
+      let over = false;
+      /** @param {string|null} answer */
+      const finish = (answer) => {
+        if (over) return;
+        over = true;
+        el.removeEventListener('cancel', onCancel);
+        if (el.open) el.close();
+        resolve(answer);
+      };
+      const onCancel = () => finish(null);
+      el.addEventListener('cancel', onCancel);
+      $('form', el).addEventListener('submit', (/** @type {any} */ e) => {
+        e.preventDefault();
+        finish(e.submitter && e.submitter.value === 'ok' ? String(/** @type {HTMLTextAreaElement} */ ($('#pl-lock-why', el)).value || '').trim() : null);
+      });
+      el.showModal();
+      const why = $('#pl-lock-why', el);
+      if (why) why.focus();
+    });
+  }
+
+  /** Locks or unlocks Domin8te: asks first, calls set_plan_locked, then reads the plans again so every page sees it. @param {HTMLElement} btn @param {boolean} want */
+  async function setLocked(btn, want) {
+    const pl = D().plans.plans.find((/** @type {any} */ x) => x.id === 'domin8te');
+    if (!pl) return;
+    const reason = await lockSheet(pl, want);
+    // The row may have been drawn again while the sheet was open: the button to use is the one on screen now.
+    const live = /** @type {HTMLButtonElement} */ ($('[data-pl-lock]') || btn);
+    if (reason === null) { live.focus(); return; }
+    const done = D().busy(live, want ? 'Locking' : 'Unlocking');
+    /** @type {any} */ let res;
+    try { res = await (await D().db()).rpc('set_plan_locked', { p_plan: pl.id, p_locked: want, p_reason: reason || null }); } catch (x) { res = { error: { message: String((x && /** @type {any} */ (x).message) || x) } }; }
+    if (res.error) { done(); D().toast(lockWords(res.error), true); return; }
+    // The answer already says how it ended; a read that fails after it must not leave the old state on screen.
+    if (res.data && typeof res.data === 'object') { pl.locked = !!res.data.locked; if (res.data.locked_at) pl.locked_at = res.data.locked_at; }
+    await reloadPlans();
+    loadHistory();
+    drawPlans();
+    const again = $('[data-pl-lock]');
+    if (again) again.focus();
+    D().toast(want ? `Locked. No new client can be put on ${pl.name}.` : `Unlocked. New clients can be put on ${pl.name} again.`);
+  }
+
+  /** The lock button of the availability row, if this person has one. @param {ParentNode} root */
+  function wireAvail(root) {
+    const lock = $('[data-pl-lock]', root);
+    if (lock) lock.addEventListener('click', () => setLocked(lock, lock.getAttribute('data-pl-lock') === 'lock'));
+  }
+  /** Draws the availability row again (the team's names arrived, or the lock changed) without touching the rest of the panel. */
+  function drawAvail() {
+    const row = document.getElementById('pl-avail');
+    if (!row) return;
+    row.outerHTML = availHtml();
+    const fresh = document.getElementById('pl-avail');
+    if (fresh) wireAvail(fresh);
+  }
+
   /** @param {HTMLElement} box */
   function wirePlans(box) {
     const edit = $('[data-pl-edit]', box);
     if (edit) edit.addEventListener('click', () => { ST.editing = true; drawPlans(); const first = $('#pl-form input', document); if (first) first.focus(); });
+    wireAvail(box);
     const form = /** @type {HTMLFormElement|null} */ ($('#pl-form', box));
     if (!form) return;
     D().track(form, 'Plans and limits');
@@ -9228,6 +9461,11 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
         const when = dates.length === 1 ? (dates[0] <= today ? `In force since ${shortDate(dates[0])}` : `Starts ${shortDate(dates[0])}`) : 'Start days differ';
         return { tag: `v${v}`, day: dayText, text: `${bits.slice(0, 3).join(', ')}${bits.length > 3 ? ` and ${bits.length - 3} more` : ''}. ${when}. ${cap1(who)}.` };
       }
+      if (g.action === 'plan_locked' || g.action === 'plan_unlocked') {
+        // "Locked Domin8te: no room this month." The reason is whatever the person wrote; a full stop at its end is not doubled.
+        const bits = g.rows.map((/** @type {any} */ d) => { const why = String(d.reason || '').trim().replace(/[.\s]+$/, ''); return `${g.action === 'plan_locked' ? 'Locked' : 'Unlocked'} ${planName(d.plan)}${why ? `: ${why}` : ''}`; });
+        return { tag: 'Plans', day: dayText, text: `${bits.join('. ')}. ${cap1(who)}.` };
+      }
       const bits = g.rows.map((/** @type {any} */ d) => {
         const o = d.old || {}, n = d.new || {};
         const said = [];
@@ -9254,15 +9492,18 @@ Two ways forward: we can do the extra work next month, or you can move up to ${u
     try {
       const c = await D().db();
       const [a, s] = await Promise.all([
-        c.from('audit_log').select('actor, action, detail, at').in('action', ['plan_cap_version', 'plan_updated']).order('at', { ascending: false }).limit(120),
+        c.from('audit_log').select('actor, action, detail, at').in('action', ['plan_cap_version', 'plan_updated', 'plan_locked', 'plan_unlocked']).order('at', { ascending: false }).limit(120),
         c.from('staff').select('clerk_user_id, name')
       ]);
       if (a.error) { ST.histFailed = true; } else { ST.hist = a.data || []; ST.histFailed = false; }
       if (s && !s.error) ST.staff = Object.fromEntries((s.data || []).map((/** @type {any} */ x) => [x.clerk_user_id, x.name]));
     } catch (e) { ST.histFailed = true; }
     drawHistory();
+    // Names of the team are known now: the line above the table and the availability row can say who.
     const strip = document.getElementById('pl-strip');
     if (strip && D().plans.ok) strip.innerHTML = stripHtml(model());
+    const avail = document.getElementById('pl-avail');
+    if (avail && D().plans.ok && !avail.contains(document.activeElement) && !(/** @type {HTMLDialogElement|null} */ (document.getElementById('pl-lock')) || { open: false }).open) drawAvail();
   }
 
   /* ---- Reminder emails ------------------------------------------------------------------------------ */

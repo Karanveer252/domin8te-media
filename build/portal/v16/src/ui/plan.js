@@ -44,7 +44,7 @@
   const AD_SPEND = 'Ad spend is paid to Meta and Google directly and is not part of your plan.';
   /** What a plan is, in a line. @param {any} p a menu plan */
   function blurb(p) {
-    if (p.id === 'domin8te') return p.full ? 'Every service, set up with Karan. Taken right now.' : 'Every service, set up with Karan.';
+    if (p.id === 'domin8te') return p.locked && !p.current ? 'Every service, set up with Karan. Not open to new clients right now.' : p.full ? 'Every service, set up with Karan. Taken right now.' : 'Every service, set up with Karan.';
     if (p.rule.fixed.length) return `${F.list(p.rule.fixed.map((/** @type {string} */ x) => svc(x).label))}, plus ${p.rule.choose === 1 ? 'one service' : p.rule.choose + ' services'} you choose`;
     return `Any ${p.rule.choose === 2 ? 'two' : p.rule.choose} services you choose`;
   }

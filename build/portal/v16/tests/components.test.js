@@ -155,6 +155,20 @@ test('the picker: plans and services as cards, Domin8te by asking Karan, and "Ta
   const taken = text(ui.plan.picker(full));
   assert.match(taken, /Taken right now/);
   assert.doesNotMatch(ui.plan.picker(full), /Ask Karan/);
+  // An owner locked Domin8te: its card says so and offers no way in (a client already on it sees the usual card).
+  const locked = JSON.parse(JSON.stringify(m));
+  locked.menu.find((p) => p.id === 'domin8te').locked = true;
+  const shut = text(ui.plan.picker(locked));
+  assert.match(shut, /Locked right now/);
+  assert.match(shut, /Not open to new clients right now/);
+  assert.doesNotMatch(ui.plan.picker(locked), /Ask Karan/);
+  const keeps = JSON.parse(JSON.stringify(locked));
+  keeps.menu.find((p) => p.id === 'domin8te').current = true;
+  assert.doesNotMatch(text(ui.plan.picker(keeps)), /Locked right now/, 'a client already on Domin8te is not told it is locked');
+  assert.match(text(ui.plan.picker(keeps)), /Your plan now/);
+  // Open by default: no lock, no Taken, an Ask Karan way in.
+  assert.match(ui.plan.picker(m), /Ask Karan/);
+  assert.doesNotMatch(text(ui.plan.picker(m)), /Locked right now|Taken right now/);
   // Starter picks its website time too: a page or edits.
   const starter = JSON.parse(JSON.stringify(m));
   starter.now.planId = 'starter';

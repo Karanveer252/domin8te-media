@@ -88,9 +88,9 @@
      prices live only in the database, for the signed-in portal. */
   const ALL = ['advertising', 'social', 'website', 'local', 'email'];
   const DEMO_PLANS = [
-    { id: 'starter', name: 'Starter', priceMinor: null, currency: null, picksAllowed: 1, required: ['advertising'], maxClients: null, full: false },
-    { id: 'growth', name: 'Growth', priceMinor: null, currency: null, picksAllowed: 2, required: [], maxClients: null, full: false },
-    { id: 'domin8te', name: 'Domin8te', priceMinor: null, currency: null, picksAllowed: null, required: [], maxClients: 1, full: false }
+    { id: 'starter', name: 'Starter', priceMinor: null, currency: null, picksAllowed: 1, required: ['advertising'], maxClients: null, full: false, locked: false },
+    { id: 'growth', name: 'Growth', priceMinor: null, currency: null, picksAllowed: 2, required: [], maxClients: null, full: false, locked: false },
+    { id: 'domin8te', name: 'Domin8te', priceMinor: null, currency: null, picksAllowed: null, required: [], maxClients: null, full: false, locked: false }
   ];
   // service, metric, label, the cap on Starter, Growth and Domin8te, and the weekly hint for each
   const CAP_ROWS = [

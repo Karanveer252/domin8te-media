@@ -24,11 +24,13 @@
     // The dearest plan first, as in the designs
     return m.menu.slice().reverse().map((/** @type {any} */ p) => {
       const pr = price(p);
-      const tag = p.current ? '<span class="chip-now">Your plan now</span>' : '';
+      // A plan an owner locked takes nobody new: its card says so (a client already on it sees the usual card)
+      const shut = !p.current && !!p.locked;
+      const tag = p.current ? '<span class="chip-now">Your plan now</span>' : shut ? `<span class="chip-now">${icon('lock')}Locked right now</span>` : '';
       if (p.askKaran) {
-        return `<div class="plan-opt is-ask${p.full ? ' is-full' : ''}">
+        return `<div class="plan-opt is-ask${p.full ? ' is-full' : ''}${shut ? ' is-locked' : ''}">
           <div class="po-card"><p class="po-title">${esc(p.name)}</p>${pr ? `<p class="po-cost"><strong>${esc(pr)}</strong>/month</p>` : ''}<p class="po-blurb">${esc(blurb(p))}</p>${tag}
-          ${p.full ? '' : `<a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Ask Karan</a>`}</div>
+          ${p.full || shut ? '' : `<a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Ask Karan</a>`}</div>
         </div>`;
       }
       return `<label class="plan-opt" data-plan="${esc(p.id)}"><input class="pk-input" type="radio" name="plan" value="${esc(p.id)}"${st.planId === p.id ? ' checked' : ''}>

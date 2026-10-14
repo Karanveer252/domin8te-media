@@ -1,7 +1,7 @@
 // @ts-check
 /*
  * Clients, the plan release's part (2026-10-13): the list with each client's plan, picks, this month's usage bars, what needs
- * the team, status and freshness; the Domin8te place and capacity cards; the plan and over-limit filters; and the plan and
+ * the team, status and freshness; the Domin8te lock and capacity cards; the plan and over-limit filters; and the plan and
  * sign-off panel on a client's Setup tab. console.js (clientsPage, renderClients, setupTab, the About line) calls into
  * window.D8C_EXT.clients; this file reads helpers from window.D8C.
  *
@@ -58,7 +58,7 @@
     return isNaN(d.getTime()) ? '' : `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
   }
 
-  /** The tenants that hold the one place of a capped plan (a paused client keeps it; only archiving frees it). @param {any} plan */
+  /** The tenants that hold a place of a plan that has a client limit (plans.max_clients is a number): every month not ended counts, as the database counts it; a paused client keeps its place, only archiving frees it. @param {any} plan */
   function holdersOf(plan) {
     const c = C();
     const ids = new Set(c.plans.cycles.filter((/** @type {any} */ k) => k.plan_id === plan.id && k.state !== 'ended').map((/** @type {any} */ k) => k.tenant_id));
@@ -110,7 +110,7 @@
     const t = r.t;
     /** @type {{tone: string, text: string, sub?: string}[]} */ const out = [];
     if (t.status === 'archived') return [{ tone: '', text: 'Archived' }];
-    if (t.status === 'paused') out.push({ tone: 'warn', text: 'Paused', sub: r.pl.nowPlan && r.pl.nowPlan.max_clients ? 'Keeps its Domin8te place' : 'Work and billing are on hold' });
+    if (t.status === 'paused') out.push({ tone: 'warn', text: 'Paused', sub: r.pl.nowPlan && r.pl.nowPlan.max_clients ? `Keeps its ${r.pl.nowPlan.name} place` : 'Work and billing are on hold' });
     if (r.over.length) {
       const l = r.over[0];
       out.push({ tone: 'bad', text: `${BAR_NAME[l.metric] || l.label} over by ${l.used - l.cap}` });
@@ -144,7 +144,8 @@
     } else if (pl.now && pl.next && (pl.next.plan_id !== pl.now.plan_id || picksLine(pl.next) !== picksLine(pl.now))) {
       lines.push(`Next: ${picksLine(pl.next)} from ${c.when(pl.next.period_start)}`);
     }
-    if (pl.nowPlan && pl.nowPlan.max_clients && t.status !== 'archived') lines.push(t.status === 'paused' ? 'Holds the Domin8te place while paused' : 'Holds the Domin8te place');
+    // Only a plan with a client limit has places to hold; with no limit nothing is said (the lock is on the card above the list).
+    if (pl.nowPlan && pl.nowPlan.max_clients && t.status !== 'archived') lines.push(t.status === 'paused' ? `Holds the ${pl.nowPlan.name} place while paused` : `Holds the ${pl.nowPlan.name} place`);
     if (!lines.length && t.doc.business.kind) lines.push(String(t.doc.business.kind));
     return lines.slice(0, 2);
   }
@@ -175,17 +176,40 @@
     return { n, rows };
   }
 
+  /** The words about a locked plan, one place for the card and the client's Setup tab. @param {any} plan */
+  const lockedLine = (plan) => `New clients and plan changes to ${esc(plan.name)} are refused until an owner unlocks it in <a href="#/settings">Settings</a>.`;
+
+  /**
+   * The Domin8te card (2026-10-13, Karan asked for Domin8te to be open to everyone, with a switch for an owner): Domin8te has no client limit now and an owner can lock it.
+   * Open: "open to new clients". Locked: nobody new can be put on it, the clients on it keep it. When plans.max_clients still holds a
+   * number the limit stays and the card says how many places are taken, as before. @param {any} plan
+   */
+  function domin8teCard(plan) {
+    if (!plan) return '';
+    const c = C();
+    const limit = plan.max_clients === null || plan.max_clients === undefined ? null : Number(plan.max_clients);
+    const locked = !!plan.locked;
+    const name = esc(plan.name);
+    // The clients whose current plan month is on this plan, archived ones left out.
+    const on = c.all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived' && (c.planOf(t.id).nowPlan || {}).id === plan.id);
+    const lock = locked ? ` ${lockedLine(plan)}` : '';
+    if (limit !== null) {
+      const held = holdersOf(plan);
+      const names = held.map((/** @type {any} */ t) => t.name).join(', ');
+      return `<div class="cl-card"><span class="cl-dot ${locked || held.length >= limit ? 'is-taken' : 'is-free'}" aria-hidden="true"></span><div><p class="cl-card-t">${locked ? `${name} is locked: ${held.length} of ${limit} ${limit === 1 ? 'place' : 'places'} taken` : `${name} ${limit === 1 ? 'place' : 'places'}: ${held.length} of ${limit} taken`}</p>
+        <p class="cl-card-s">${held.length ? `${esc(names)} ${held.length === 1 ? 'holds' : 'hold'} it. Paused clients keep their place; only archiving frees it.` : `Free. A ${name} sign-up can go ahead.`}${lock}</p></div></div>`;
+    }
+    const who = on.length && on.length <= 3 ? `: ${esc(on.map((/** @type {any} */ t) => t.name).join(', '))}` : '';
+    const count = on.length ? `${c.plural(on.length, 'client')} on it${who}.` : 'No clients on it yet.';
+    return `<div class="cl-card"><span class="cl-dot ${locked ? 'is-taken' : 'is-free'}" aria-hidden="true"></span><div><p class="cl-card-t">${locked ? `${name} is locked` : `${name}: open to new clients`}</p>
+      <p class="cl-card-s">${count}${lock}</p></div></div>`;
+  }
+
   /** The three cards above the list. @param {any[]} rows */
   function cardsHtml(rows) {
     const c = C();
     const plans = c.plans.plans;
-    const capped = plans.find((/** @type {any} */ p) => p.max_clients) || null;
-    const holders = capped ? holdersOf(capped) : [];
-    const max = capped ? Number(capped.max_clients) : 0;
-    const placeCard = capped
-      ? `<div class="cl-card"><span class="cl-dot ${holders.length >= max ? 'is-taken' : 'is-free'}" aria-hidden="true"></span><div><p class="cl-card-t">${esc(capped.name)} place: ${holders.length} of ${max} taken</p>
-        <p class="cl-card-s">${holders.length ? `${esc(holders.map((/** @type {any} */ t) => t.name).join(', '))} holds it. Paused clients keep their place; only archiving frees it.` : `Free. A ${esc(capped.name)} sign-up can go ahead.`}</p></div></div>`
-      : '';
+    const placeCard = domin8teCard(plans.find((/** @type {any} */ p) => p.id === 'domin8te') || plans.find((/** @type {any} */ p) => p.max_clients || p.locked) || null);
     const active = rows.filter((r) => r.t.status === 'active').length;
     const capCard = `<div class="cl-card"><span class="cl-dot is-hint" aria-hidden="true"></span><div><p class="cl-card-t">Room for about ${CAPACITY_HINT} restaurants at a time</p>
       <p class="cl-card-s">${active} active now${active > CAPACITY_HINT ? ', over the hint' : ''}. A planning hint only: nothing is blocked.</p></div></div>`;
@@ -286,7 +310,8 @@
       ${block('This month', pl.now, pl.nowPlan)}
       ${block('Next month', pl.next, pl.nextPlan)}
     </div>
-    <p class="cl-plan-link"><a class="btn btn-quiet btn-sm" href="#/billing/${esc(id)}">Change plan and picks in Billing</a><span class="meta">${t && t.status === 'paused' ? 'Paused: a Domin8te place stays held until the client is archived. ' : ''}Picks lock when the billing month starts; changes apply from next month.</span></p>`;
+    <p class="cl-plan-link"><a class="btn btn-quiet btn-sm" href="#/billing/${esc(id)}">Change plan and picks in Billing</a><span class="meta">${t && t.status === 'paused' && pl.nowPlan && pl.nowPlan.max_clients ? `Paused: a ${esc(pl.nowPlan.name)} place stays held until the client is archived. ` : ''}Picks lock when the billing month starts; changes apply from next month.</span></p>
+    ${pl.nowPlan && pl.nowPlan.locked ? `<p class="meta cl-plan-lock">${esc(pl.nowPlan.name)} is locked. This client keeps it. ${lockedLine(pl.nowPlan)}</p>` : ''}`;
   }
 
   EXT.clients = { head, table, planPanel, planNameOf, picksLine, holdersOf, CAPACITY_HINT };

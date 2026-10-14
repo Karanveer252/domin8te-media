@@ -145,3 +145,21 @@ html[data-theme="dark"] .pl-later { background: rgba(120, 170, 255, 0.16); color
 html[data-theme="dark"] .raw-block code { background: rgba(255, 255, 255, 0.12); }
 /* The freshness line is white at 60 percent in 00-shared.css, which leaves the night theme's light words on a light bar: on this page it follows the glass. */
 html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--glass); border-color: var(--glass-edge); }
+
+/* Domin8te availability: open or locked, with the owner's switch (and the sheet that asks first). */
+.pl-cards:has(+ .pl-avail) { margin-bottom: 14px; }
+.pl-avail { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin: 0 0 26px; padding: 15px 20px; border-radius: 18px; background: var(--glass-soft); box-shadow: inset 0 0 0 1px var(--line); }
+.pl-avail-txt { display: grid; flex: 1 1 340px; gap: 4px; min-width: 0; }
+.pl-avail-h { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 16px; }
+.pl-avail-txt p { color: var(--ink-2); font-size: 14.5px; max-width: 72ch; }
+.pl-avail-txt p.meta { color: var(--ink-3); font-size: 13.5px; }
+.pl-avail > .btn { flex: none; }
+.pl-avail-note { max-width: 30ch; margin: 0; }
+.pl-sheet .field { margin-top: 16px; }
+.pl-sheet textarea { min-height: 78px; }
+.pl-sheet .actions { margin-top: 18px; }
+@media (max-width: 760px) {
+  .pl-avail { padding: 14px 16px; }
+  .pl-avail > .btn { width: 100%; }
+  .pl-avail-note { max-width: none; }
+}

@@ -7,7 +7,9 @@
       "Read(//c/Users/kvsd1/AppData/Local/Temp/claude/C--Work-domin8te-media/81252625-995d-40cb-83f3-4c88ed712821/scratchpad/**)",
       "Bash(python -c ' *)",
       "mcp__honcho__create_session",
-      "mcp__honcho__add_peers_to_session"
+      "mcp__honcho__add_peers_to_session",
+      "Bash(mkdir -p /c/Users/kvsd1/.claude/honcho-sync)",
+      "Read(//c/Users/kvsd1/.claude/honcho-sync/**)"
     ]
   }
 }

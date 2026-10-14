@@ -7,8 +7,8 @@
 .nc-rail { min-width: 0; }
 .nc-draft { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 14px; }
 .nc-rail ol { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.nc-pill { display: inline-flex; align-items: center; gap: 9px; min-height: 40px; padding: 6px 16px 6px 7px; border: 0.67px solid var(--glass-edge); border-radius: 999px; background-color: rgba(255, 255, 255, 0.4); box-shadow: var(--glass-shadow-sm); color: var(--ink-2); font-size: 14px; font-weight: 650; cursor: pointer; transition: background 160ms var(--ease), color 160ms var(--ease); }
-.nc-pill:hover { background-color: rgba(255, 255, 255, 0.8); color: var(--ink); }
+.nc-pill { display: inline-flex; align-items: center; gap: 9px; min-height: 40px; padding: 6px 16px 6px 7px; border: 0.67px solid var(--glass-edge); border-radius: 999px; background-color: var(--pp-soft); box-shadow: var(--glass-shadow-sm); color: var(--ink-2); font-size: 14px; font-weight: 650; cursor: pointer; transition: background 160ms var(--ease), color 160ms var(--ease); }
+.nc-pill:hover { background-color: var(--pp-card-hover); color: var(--ink); }
 .nc-pill-n { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-3); color: var(--ink-2); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .nc-pill-n .ic { width: 14px; height: 14px; stroke-width: 3; }
 .nc-pill.is-done .nc-pill-n { background: var(--good-bg); color: var(--good); }
@@ -16,14 +16,14 @@
 .nc-step { scroll-margin-top: 16px; }
 .nc-step + .nc-step, .nc-step + .nc-two, .nc-two + .nc-step { margin-top: 0; }
 .nc-step h2 { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 21px; }
-.nc-num { display: grid; flex: none; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.nc-num { display: grid; flex: none; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: var(--surface); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .nc-step.is-done .nc-num { background: var(--good); }
 .nc-sub { max-width: 72ch; margin: -6px 0 18px; color: var(--ink-3); font-size: 14px; line-height: 1.5; }
 .nc-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 18px; }
 .nc-two { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 .nc-two > .panel { margin: 0; }
 
-.nc-dates { display: grid; margin: 16px 0 0; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: rgba(255, 255, 255, 0.55); }
+.nc-dates { display: grid; margin: 16px 0 0; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: var(--pp-soft); }
 .nc-dates:empty { display: none; }
 .nc-dates > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 14px; padding: 11px 16px; border-top: 1px solid var(--line); }
 .nc-dates > div:first-child { border-top: 0; }

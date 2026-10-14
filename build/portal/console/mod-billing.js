@@ -241,6 +241,46 @@
 
   /* ---- the page ------------------------------------------------------------------------------------------ */
 
+  /**
+   * The premium tier's card (Domin8te): open to new clients or locked (an owner switches it in Settings), and how many clients are on
+   * it. Only when a plan has a number of client places (plans.max_clients) do the older words about places stay: how many are used, who
+   * has it next, when it frees.
+   * @param {any[]} plans
+   */
+  function tierCard(plans) {
+    const c = C();
+    const feat = plans.find((/** @type {any} */ p) => p.max_clients != null) || plans.find((/** @type {any} */ p) => p.id === 'domin8te') || plans.find(takesAll);
+    if (!feat) return '';
+    const today = c.today();
+    const slot = PP().slotOf(feat.id, null, today, addDays(today, 1));
+    const n = slot.used;
+    const names = slot.holders.slice(0, 3).join(', ') + (n > 3 ? ` and ${n - 3} more` : '');
+    const count = `${n} ${n === 1 ? 'client' : 'clients'} on it${names ? `: ${names}` : ''}.`;
+    let placeNote = '';
+    if (slot.limited) {
+      const name = (/** @type {string} */ id) => ((c.tenant(id) || {}).name) || 'A client';
+      const live = (/** @type {any} */ x) => x.plan_id === feat.id && x.state !== 'ended' && ((c.tenant(x.tenant_id) || {}).status) !== 'archived';
+      const cycles = c.plans.cycles || [];
+      if (!slot.taken) {
+        const later = cycles.filter((/** @type {any} */ x) => live(x) && x.period_start > today).sort((/** @type {any} */ a, /** @type {any} */ b) => String(a.period_start).localeCompare(String(b.period_start)))[0];
+        if (later) placeNote = `Reserved from ${dayShort(later.period_start)} for ${name(later.tenant_id)}. New ${feat.name} sign-ups are blocked from then.`;
+      } else {
+        const holder = slot.holderIds[0];
+        const run = cycles.find((/** @type {any} */ x) => x.tenant_id === holder && live(x) && x.period_start <= today && x.period_end > today);
+        const after = run ? cycles.find((/** @type {any} */ x) => x.tenant_id === holder && x.period_start === run.period_end) : null;
+        if (run && after && after.plan_id !== feat.id) placeNote = `It frees on ${dayShort(run.period_end)}, when ${name(holder)} changes plan.`;
+      }
+    }
+    const locked = !!feat.locked;
+    const full = slot.limited && slot.taken;
+    const dot = locked ? 'is-lock' : full ? 'is-used' : 'is-free';
+    const title = locked ? `${feat.name} is locked` : slot.limited ? `${feat.name} place: ${full ? `${slot.used} of ${slot.max} used` : 'free'}` : `${feat.name}: open to new clients`;
+    const sub = locked ? `${esc(count)} New clients and plan changes to ${esc(feat.name)} are refused until an owner unlocks it. <a href="#/settings">Open Settings</a>`
+      : slot.limited ? (full ? `${esc(count)} ${placeNote ? esc(placeNote) : `New ${esc(feat.name)} sign-ups are blocked until this place frees up.`}` : `${esc(count)} ${placeNote ? esc(placeNote) : `A client can take it now. Only ${slot.max} ${slot.max === 1 ? 'client' : 'clients'} at a time.`}`)
+      : esc(count);
+    return `<div class="bl-card"><strong><span class="bl-dot ${dot}" aria-hidden="true"></span>${esc(title)}</strong><span>${sub}</span></div>`;
+  }
+
   /** @param {any[]} rows */
   function summary(rows) {
     const c = C();
@@ -251,28 +291,11 @@
     const currency = (live[0] && live[0].P.nowPlan && live[0].P.nowPlan.currency) || 'USD';
     const mix = plans.map((/** @type {any} */ p) => ({ p, n: live.filter((r) => r.now && r.now.plan_id === p.id).length })).filter((x) => x.n).map((x) => `${x.p.name} ${x.n}`).join(', ');
     const plansText = `${live.length} active ${live.length === 1 ? 'plan' : 'plans'}`;
-    const lim = plans.find((/** @type {any} */ p) => p.max_clients != null);
-    const slot = lim ? PP().slotOf(lim.id, null, c.today(), addDays(c.today(), 1)) : null;
-    let placeNote = '';
-    if (lim && slot) {
-      const name = (/** @type {string} */ id) => ((c.tenant(id) || {}).name) || 'A client';
-      const live = (/** @type {any} */ x) => x.plan_id === lim.id && x.state !== 'ended' && ((c.tenant(x.tenant_id) || {}).status) !== 'archived';
-      const cycles = c.plans.cycles || [];
-      if (!slot.taken) {
-        const later = cycles.filter((/** @type {any} */ x) => live(x) && x.period_start > c.today()).sort((/** @type {any} */ a, /** @type {any} */ b) => String(a.period_start).localeCompare(String(b.period_start)))[0];
-        if (later) placeNote = `Reserved from ${dayShort(later.period_start)} for ${name(later.tenant_id)}. New ${lim.name} sign-ups are blocked from then.`;
-      } else {
-        const holder = slot.holderIds[0];
-        const run = cycles.find((/** @type {any} */ x) => x.tenant_id === holder && live(x) && x.period_start <= c.today() && x.period_end > c.today());
-        const after = run ? cycles.find((/** @type {any} */ x) => x.tenant_id === holder && x.period_start === run.period_end) : null;
-        if (run && after && after.plan_id !== lim.id) placeNote = `It frees on ${dayShort(run.period_end)}, when ${name(holder)} changes plan.`;
-      }
-    }
     const changes = rows.filter((r) => r.change && r.change.differs);
     const first = changes.slice(0, 2).map((r) => `${r.t.name}: ${r.change.text}${r.next ? ` from ${dayShort(r.next.period_start)}` : ''}`);
     return `<div class="bl-summary">
       <div class="bl-card"><strong>${total !== null ? `${esc(c.money(total, currency))} / mo` : esc(plansText)}</strong><span>${total !== null ? `${esc(plansText)}${mix ? ` · ${esc(mix)}` : ''}` : esc(mix || 'No plans running yet')}</span></div>
-      ${lim && slot ? `<div class="bl-card"><strong><span class="bl-dot ${slot.taken ? 'is-used' : 'is-free'}" aria-hidden="true"></span>${esc(lim.name)} place: ${slot.taken ? `${slot.used} of ${slot.max} used` : 'free'}</strong><span>${slot.taken ? `${esc(slot.holders.join(', '))}. ${placeNote ? esc(placeNote) : `New ${esc(lim.name)} sign-ups are blocked until this place frees up.`}` : placeNote ? esc(placeNote) : `A client can take it now. Only ${slot.max} ${slot.max === 1 ? 'client' : 'clients'} at a time.`}</span></div>` : ''}
+      ${tierCard(plans)}
       <div class="bl-card"><strong>${changes.length ? `${changes.length} ${changes.length === 1 ? 'change' : 'changes'} next cycle` : 'No changes next cycle'}</strong><span>${changes.length ? `${esc(first.join('. '))}${changes.length > 2 ? ` and ${changes.length - 2} more` : ''}` : 'Every client keeps what they have.'}</span></div>
     </div>`;
   }

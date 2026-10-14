@@ -2,7 +2,8 @@
 // (2026-10-13): the rules on plan_caps and plans, the re-queue of a failed bill reminder, the audit row of a raw data edit, and
 // some seed rows (newer limit versions, more failed reminders, their audit rows). The real rules are in
 // portal/supabase/migrations/20261013010000_plans_and_caps.sql (guard_plan_cap, guard_plan) and 20261013010700_billing_reminders.sql
-// (guard_reminder_update). A refusal here has the same code and words as the database's.
+// (guard_reminder_update), and 20261013011400_domin8te_lock.sql (set_plan_locked: the Domin8te lock). A refusal here has the same code and words
+// as the database's. Who is an owner is the console's own answer (D8C.me.role), so the owner-only rules can be tried by changing it.
 (function () {
   'use strict';
   const S = /** @type {any} */ (window).D8STUB;
@@ -25,6 +26,8 @@
   const revert = (/** @type {any} */ rec, /** @type {any} */ before) => { for (const k of Object.keys(rec)) delete rec[k]; Object.assign(rec, before); };
   /** The columns an update changed (updated_at is the stand-in's own). */
   const changedCols = (/** @type {any} */ rec, /** @type {any} */ before) => Object.keys(rec).filter((k) => k !== 'updated_at' && !same(rec[k], before[k]));
+  /** app.is_super_admin(): the console's own idea of who is signed in (an owner), as the preview's console_me answers it. */
+  const isOwner = () => { const c = /** @type {any} */ (window).D8C; return !(c && c.me) || c.me.role === 'super_admin'; };
 
   /* ---- seed rows ------------------------------------------------------------------------------------------ */
   S.seeds.push((/** @type {any} */ db) => {
@@ -49,6 +52,13 @@
     // A plan renamed earlier (the audit row the plans trigger writes).
     const g = db.plans.find((/** @type {any} */ p) => p.id === 'growth');
     if (g) db.audit_log.push({ tenant_id: null, actor: 'user_preview_karan', action: 'plan_updated', detail: { plan: 'growth', old: { ...g, name: 'Plus' }, new: { ...g } }, at: stamp(-3, 1) });
+    // Domin8te was locked for a while and unlocked again (set_plan_locked writes these two lines; the plan row keeps the time of the last switch).
+    const d = db.plans.find((/** @type {any} */ p) => p.id === 'domin8te');
+    if (d) {
+      db.audit_log.push({ tenant_id: null, actor: 'user_preview_karan', action: 'plan_locked', detail: { plan: 'domin8te', reason: 'The one place was taken' }, at: stamp(-9, 2) },
+        { tenant_id: null, actor: 'user_preview_karan', action: 'plan_unlocked', detail: { plan: 'domin8te', reason: '' }, at: stamp(-1, 3) });
+      if (!d.locked && !d.locked_at) { d.locked_at = stamp(-1, 3); d.locked_by = 'user_preview_karan'; }
+    }
 
     // The shared seed (00-plans.js) has two reminders on the wrong side of now: one "sent" in the future and one still "scheduled"
     // days in the past. Put them where a real job would have left them, so Last run and Next up read true. A correct seed is left alone.
@@ -77,6 +87,8 @@
     const db = S.db;
     const made = /** @type {any[]} */ ([]);
     const today = dbToday();
+    // The policy "super admin writes caps": anyone else is refused before any row is looked at.
+    if (!isOwner()) throw err('42501', 'new row violates row-level security policy for table "plan_caps"');
     for (const r of list) {
       if (Object.keys(r).some((k) => !CAP_GRANT.includes(k))) throw err('42501', 'permission denied for table plan_caps');
       const plan = db.plans.find((/** @type {any} */ p) => p.id === r.plan_id);
@@ -108,13 +120,34 @@
   /* ---- plans: name and price (guard_plan, the grants and the checks) ---------------------------------------- */
   S.hooks.update.plans = (/** @type {any} */ rec, /** @type {any} */ before) => {
     const cols = changedCols(rec, before);
+    // The policy "super admin edits plans" (the database answers a person who is not one with no row at all; here it is a refusal).
+    if (!isOwner()) { revert(rec, before); throw err('42501', 'new row violates row-level security policy for table "plans"'); }
     if (rec.id !== before.id) { revert(rec, before); throw err('22023', 'a plan id cannot change'); }
+    // locked, locked_at and locked_by are not granted columns: only set_plan_locked changes them.
     if (cols.some((k) => !PLAN_GRANT.includes(k))) { revert(rec, before); throw err('42501', 'permission denied for table plans'); }
     // price_minor is an amount above zero. The demo build holds none at all, so nothing can be set there.
     if (cols.includes('price_minor') && (!S.PRICES || !Number.isInteger(rec.price_minor) || rec.price_minor <= 0)) { revert(rec, before); throw err('23514', 'new row for relation "plans" violates check constraint "plans_price_minor_check"'); }
     const strip = (/** @type {any} */ r) => { const o = { ...r }; delete o.updated_at; delete o.updated_by; return o; };
+    const words = (/** @type {any} */ r) => { const o = strip(r); delete o.locked; delete o.locked_at; delete o.locked_by; return o; };
     rec.updated_by = 'user_preview_karan';
-    S.audit(null, 'plan_updated', { plan: rec.id, old: strip(before), new: strip(rec) });
+    // guard_plan writes its line only when something other than the lock changed (the lock has its own lines).
+    if (!same(words(before), words(rec))) S.audit(null, 'plan_updated', { plan: rec.id, old: strip(before), new: strip(rec) });
+  };
+
+  /* ---- set_plan_locked(p_plan, p_locked, p_reason): the Domin8te switch (20261013011400_domin8te_lock.sql) ---- */
+  S.rpcs.set_plan_locked = (/** @type {any} */ a) => {
+    if (!isOwner()) throw err('42501', 'owners-only: only an owner can lock or unlock a plan');
+    if (a.p_locked === null || a.p_locked === undefined) throw err('22023', 'say locked or unlocked');
+    const row = S.db.plans.find((/** @type {any} */ p) => p.id === a.p_plan);
+    if (!row) throw err('22023', 'unknown plan');
+    // Nothing happens when it is already that way: no new time, no audit line.
+    if (!!row.locked !== !!a.p_locked) {
+      row.locked = !!a.p_locked;
+      row.locked_at = new Date().toISOString();
+      row.locked_by = 'user_preview_karan';
+      S.audit(null, a.p_locked ? 'plan_locked' : 'plan_unlocked', { plan: row.id, reason: String(a.p_reason || '').slice(0, 500) });
+    }
+    return { plan: row.id, locked: !!row.locked, locked_at: row.locked_at };
   };
 
   /* ---- billing_reminders: staff may only put a failed or skipped one back in the queue (guard_reminder_update) -- */

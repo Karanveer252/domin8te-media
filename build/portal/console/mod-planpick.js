@@ -1,8 +1,8 @@
 /*
  * The plan rule widget (2026-10-13): the one place in the console that knows how a plan and its picks are chosen. The Billing
- * override drawer and Add client both mount it, so staff see the same rule the database enforces (app.picks_valid and the one
- * Domin8te place) in the same words. The rule itself is D8.planModel.validate(), the one the client's picker uses; this widget
- * adds what only staff may do (set Domin8te while its place is free) and the staff voice.
+ * override drawer and Add client both mount it, so staff see the same rule the database enforces (app.picks_valid, a locked plan
+ * and a plan's client limit) in the same words. The rule itself is D8.planModel.validate(), the one the client's picker uses; this
+ * widget adds what only staff may do (set Domin8te while it is unlocked; a client already on it keeps it) and the staff voice.
  *
  * It reads plan data from window.D8C.plans and writes nothing: the page that mounts it decides what to do with the value.
  *
@@ -49,7 +49,7 @@
   function menuOf() {
     return {
       plans: plansRows().map((/** @type {any} */ p) => ({
-        id: p.id, name: p.name, priceMinor: p.price_minor == null ? null : Number(p.price_minor), currency: p.currency || null,
+        id: p.id, name: p.name, locked: !!p.locked, priceMinor: p.price_minor == null ? null : Number(p.price_minor), currency: p.currency || null,
         picksAllowed: p.picks_allowed == null ? null : Number(p.picks_allowed), required: p.required_services || [], maxClients: p.max_clients == null ? null : Number(p.max_clients)
       })),
       caps: capsNow()
@@ -85,20 +85,25 @@
   const andList = (list) => (list.length < 2 ? list.join('') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`);
 
   /**
-   * How full a plan with a client limit is over a stretch of days (the database's guard counts clients with a month that
-   * overlaps, not archived, not ended). A client's own months never count against it. Days are 'YYYY-MM-DD', end excluded.
+   * Who is on a plan over a stretch of days, and whether this client may be put on it. Two things can stop that, both the
+   * database's (guard_plan_cycle): a LOCKED plan (plans.locked, switched by an owner in Settings) takes nobody new, so the client must
+   * already be on it, which means the month being picked already has that plan or the month right before it does (a carry-over); and a
+   * plan with a client limit (plans.max_clients, a number; none means no limit) is full once that many other clients have a month on it.
+   * Clients who are archived, and months that have ended, do not count as holding a place. Days are 'YYYY-MM-DD', end excluded.
    * @param {string} planId @param {string|null} [tenantId] @param {string} [start] @param {string} [end]
    */
   function slotOf(planId, tenantId, start, end) {
     const p = plansRows().find((/** @type {any} */ x) => x.id === planId);
     const max = p && p.max_clients != null ? Number(p.max_clients) : null;
-    const out = { limited: max !== null, max, used: 0, holders: /** @type {string[]} */ ([]), holderIds: /** @type {string[]} */ ([]), taken: false, mine: false };
-    if (max === null) return out;
     const s = start || C().today();
     const e = end || W.D8.time.isoDay(W.D8.time.dayNum(s) + 1);
+    const cycles = C().plans.cycles || [];
+    const onIt = !!tenantId && cycles.some((/** @type {any} */ c) => c.tenant_id === tenantId && c.plan_id === planId && (String(c.period_start) === s || String(c.period_end) === s));
+    const planLocked = !!(p && p.locked);
+    const out = { limited: max !== null, max, used: 0, holders: /** @type {string[]} */ ([]), holderIds: /** @type {string[]} */ ([]), taken: false, mine: false, planLocked, onIt, locked: planLocked && !onIt };
     const tenants = (C().all && C().all.tenants) || [];
     /** @type {Set<string>} */ const ids = new Set();
-    for (const c of C().plans.cycles || []) {
+    for (const c of cycles) {
       if (c.plan_id !== planId || c.state === 'ended') continue;
       if (tenantId && c.tenant_id === tenantId) { out.mine = true; continue; }
       const t = tenants.find((/** @type {any} */ x) => x.id === c.tenant_id);
@@ -108,7 +113,7 @@
     out.holderIds = Array.from(ids);
     out.holders = out.holderIds.map((id) => ((tenants.find((/** @type {any} */ x) => x.id === id) || {}).name) || 'A client');
     out.used = ids.size;
-    out.taken = out.used >= max;
+    out.taken = max !== null && out.used >= max;
     return out;
   }
 
@@ -135,6 +140,13 @@
   function say(err) {
     const code = String((err && err.code) || '');
     const text = String((err && (err.message || err.details)) || err || '');
+    // a locked plan comes first: it is a 23P01 too
+    const lockedAt = text.match(/plan-locked:\s*([^\s]+)/i);
+    if (lockedAt) {
+      const key = lockedAt[1].toLowerCase();
+      const lp = plansRows().find((/** @type {any} */ x) => x.id === key || String(x.name).toLowerCase() === key);
+      return `${lp ? lp.name : lockedAt[1].charAt(0).toUpperCase() + lockedAt[1].slice(1)} is locked right now. An owner can unlock it in Settings.`;
+    }
     const full = text.match(/plan-full:\s*([a-z0-9_-]+)/i);
     if (full || (code === '23P01' && !/overlap/i.test(text))) {
       const id = full ? full[1] : 'domin8te';
@@ -157,8 +169,11 @@
 
   /* ---- the widget --------------------------------------------------------------------------------------- */
 
-  /** @param {any} ctl @param {any} p a plan of the menu @param {any} slot @param {boolean} blocked */
-  function planBody(ctl, p, slot, blocked) {
+  /** A small padlock, drawn here so it needs nothing from the page's icon sheet. */
+  const LOCK_ICON = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+
+  /** @param {any} ctl @param {any} p a plan of the menu @param {any} slot @param {boolean} full the plan's client limit is used up */
+  function planBody(ctl, p, slot, full) {
     const st = ctl.state;
     const caps = capsNow();
     const r = PM().rule(p);
@@ -174,8 +189,9 @@
       return `<span class="pp-cap is-off"><b>${esc(label(id))}:</b> ${noPicks ? esc(line) : 'not picked'}</span>`;
     }).join('');
     const over = !r.all && chosen.length > r.choose ? `<span class="pp-note is-warn">${esc(p.name)} takes ${r.choose} pick${r.choose === 1 ? '' : 's'}${r.fixed.length ? ` besides ${esc(andList(r.fixed.map(label)))}` : ''}. You have ${chosen.length}.</span>` : '';
-    const taken = blocked ? `<span class="pp-note is-bad">${p.maxClients === 1 ? 'The one' : `All ${p.maxClients}`} ${esc(p.name)} ${p.maxClients === 1 ? 'place is' : 'places are'} in use. It opens when that client changes plan or leaves.</span>` : '';
-    return `<span class="pp-caps"><span class="pp-caps-h">Limits for your picks, each month</span>${rows}</span>${proposed ? '<span class="pp-star">* proposed</span>' : ''}${over}${taken}`;
+    const taken = full && !slot.locked ? `<span class="pp-note is-bad">${p.maxClients === 1 ? 'The one' : `All ${p.maxClients}`} ${esc(p.name)} ${p.maxClients === 1 ? 'place is' : 'places are'} in use. It opens when that client changes plan or leaves.</span>` : '';
+    const lock = slot.locked ? `<span class="pp-note is-lock">${esc(p.name)} is locked. An owner can unlock it in <a class="pp-link" href="#/settings">Settings</a>.</span>` : '';
+    return `<span class="pp-caps"><span class="pp-caps-h">Limits for your picks, each month</span>${rows}</span>${proposed ? '<span class="pp-star">* proposed</span>' : ''}${over}${lock}${taken}`;
   }
 
   /** @param {any} ctl @param {boolean} compact */
@@ -190,7 +206,7 @@
       return `<label class="pp-plan" data-plan="${esc(p.id)}"><input type="radio" name="pp-plan-${ctl.id}" value="${esc(p.id)}" aria-labelledby="${esc(nid)}" aria-describedby="${esc(rid)}">
         <span class="pp-plan-top"><span class="pp-plan-name" id="${esc(nid)}">${esc(p.name)}</span>${price ? `<span class="pp-plan-price">${esc(price)}<small>/mo</small></span>` : ''}</span>
         <span class="pp-plan-rule" id="${esc(rid)}">${esc(rule)}</span><span class="pp-plan-tag" data-pp="tag"></span>${compact ? '' : '<span class="pp-plan-body" data-pp="body"></span>'}</label>`;
-    }).join('')}</div>`;
+    }).join('')}</div>${compact ? '<p class="pp-note is-lock pp-lock-note" data-pp="lock-note" hidden></p>' : ''}`;
   }
 
   /** @param {any} ctl */
@@ -224,6 +240,7 @@
       const p = m.plans.find((/** @type {any} */ x) => x.id === st.planId);
       if (!p) return { ok: false, code: 'bad-plan', error: 'Choose a plan.' };
       const slot = ctl.slot(p.id);
+      if (slot.locked) return { ok: false, code: 'plan-locked', error: `${p.name} is locked. An owner can unlock it in Settings.` };
       if (slot.limited && slot.taken) return { ok: false, code: 'plan-full', error: `${p.name} is taken right now.` };
       if (PM().rule(p).all) return { ok: true, code: '', error: '' };
       const v = PM().validate(m, p.id, st.picks, st.websiteOption);
@@ -253,16 +270,25 @@
           const p = m.plans.find((/** @type {any} */ x) => x.id === pid);
           if (!p) continue;
           const slot = ctl.slot(pid);
-          const blocked = slot.limited && slot.taken;
+          const full = slot.limited && slot.taken;
+          const blocked = slot.locked || full;
           const input = /** @type {HTMLInputElement} */ (card.querySelector('input'));
           input.checked = st.planId === pid;
           input.disabled = blocked && st.planId !== pid;
           card.classList.toggle('is-on', st.planId === pid);
-          card.classList.toggle('is-taken', blocked);
+          card.classList.toggle('is-locked', slot.locked);
+          card.classList.toggle('is-taken', full && !slot.locked);
           const tag = /** @type {HTMLElement} */ (card.querySelector('[data-pp="tag"]'));
-          tag.innerHTML = blocked ? '<span class="pp-tag is-bad">Taken</span>' : o.currentPlanId === pid ? '<span class="pp-tag">Current</span>' : '';
+          tag.innerHTML = slot.locked ? `<span class="pp-tag is-lock">${LOCK_ICON}Locked</span>` : full ? '<span class="pp-tag is-bad">Taken</span>' : o.currentPlanId === pid ? '<span class="pp-tag">Current</span>' : '';
           const body = card.querySelector('[data-pp="body"]');
-          if (body) body.innerHTML = planBody(ctl, p, slot, blocked);
+          if (body) body.innerHTML = planBody(ctl, p, slot, full);
+        }
+        // the small cards have no room for the line: one line under them says which plans are locked
+        const lockNote = /** @type {HTMLElement|null} */ (ctl.plansEl.querySelector('[data-pp="lock-note"]'));
+        if (lockNote) {
+          const names = m.plans.filter((/** @type {any} */ pl) => ctl.slot(pl.id).locked).map((/** @type {any} */ pl) => pl.name);
+          lockNote.hidden = !names.length;
+          lockNote.innerHTML = names.length ? `${LOCK_ICON}<span>${esc(andList(names))} ${names.length === 1 ? 'is' : 'are'} locked. An owner can unlock ${names.length === 1 ? 'it' : 'them'} in <a class="pp-link" href="#/settings">Settings</a>.</span>` : '';
         }
       }
       const el = /** @type {HTMLElement|null} */ (ctl.picksEl);
