@@ -1,0 +1,96 @@
+/*
+ * Clients, the plan release's part (2026-10-13): the three cards above the list, the filter chips, the list with its usage bars,
+ * and the plan panel on a client's Setup tab. Tokens and the glass recipe come from console.css; the usage bar from 00-shared.css.
+ */
+
+/* The three cards: the Domin8te place, the capacity hint and the over-limit warnings. */
+.cl-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 18px 0 20px; }
+.cl-card { display: flex; align-items: flex-start; gap: 12px; min-width: 0; padding: 16px 20px; border: 0.67px solid var(--glass-edge, rgba(255, 255, 255, 0.76)); border-radius: 20px; background-color: var(--glass-soft, rgba(255, 255, 255, 0.42)); background-image: var(--glass-hi, none); box-shadow: var(--glass-shadow-sm, var(--shadow)); color: var(--ink); text-align: left; }
+.cl-card > div { min-width: 0; }
+button.cl-card { width: 100%; font: inherit; cursor: pointer; transition: box-shadow 160ms var(--ease), background-color 160ms var(--ease); }
+button.cl-card:hover { background-color: rgba(255, 255, 255, 0.7); box-shadow: var(--glass-shadow, var(--shadow)); }
+.cl-dot { flex: none; width: 12px; height: 12px; margin-top: 6px; border-radius: 50%; background: var(--surface-3); box-shadow: 0 0 0 4px rgba(94, 72, 50, 0.08); }
+.cl-dot.is-taken { background: var(--accent); box-shadow: 0 0 0 4px rgba(255, 91, 31, 0.16); }
+.cl-dot.is-free { background: #3E9B63; box-shadow: 0 0 0 4px rgba(62, 155, 99, 0.16); }
+.cl-dot.is-over { background: #D43B2F; box-shadow: 0 0 0 4px rgba(212, 59, 47, 0.14); }
+.cl-dot.is-hint { background: transparent; box-shadow: inset 0 0 0 2px var(--ink-3), 0 0 0 4px rgba(94, 72, 50, 0.07); }
+.cl-card-t { margin: 0; font-size: 15.5px; font-weight: 650; line-height: 1.35; letter-spacing: -0.1px; }
+.cl-card-s { margin: 3px 0 0; color: var(--ink-3); font-size: 13.5px; line-height: 1.45; }
+
+/* The search and the chips. */
+.cl-chips { margin: 0 0 14px; }
+.cl-chips .seg, .cl-toolbar .seg { display: flex; flex-wrap: wrap; max-width: 100%; overflow: visible; padding: 0; }
+.cl-chips .seg button, .cl-toolbar .seg button { flex: none; }
+.cl-chips .seg .count, .cl-toolbar .seg .count { margin-left: 6px; min-width: 20px; padding: 0 6px; font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.cl-toolbar { justify-content: space-between; gap: 10px 16px; margin-bottom: 18px; }
+.cl-more button { min-height: 34px; padding: 5px 13px; font-size: 13.5px; }
+
+/* The list: one row for each restaurant, usage bars in a small column of their own. */
+.cl-table table.grid th, .cl-table table.grid td { padding: 14px 7px; vertical-align: top; }
+.cl-table table.grid th:first-child, .cl-table table.grid td:first-child { padding-left: 20px; min-width: 132px; }
+.cl-table table.grid th:last-child, .cl-table table.grid td:last-child { padding-right: 20px; }
+.cl-table table.grid thead th { vertical-align: middle; }
+.cl-table table.grid td { font-size: 14.5px; }
+.cl-table .cl-plan-name { font-weight: 650; }
+.cl-v { min-width: 0; }
+.cl-sub { display: block; margin-top: 2px; color: var(--ink-3); font-size: 12.5px; line-height: 1.4; }
+.cl-needs { display: grid; justify-items: start; gap: 3px; }
+.cl-needs .cl-sub { margin: 0; }
+.cl-wait { margin-top: 10px; }
+.cl-usage { display: grid; gap: 7px; min-width: 232px; }
+.cl-usage .cusage { grid-template-columns: 106px minmax(36px, 1fr) max-content; align-items: center; column-gap: 10px; row-gap: 0; }
+.cl-usage .cu-line { display: contents; }
+.cl-usage .cu-name { grid-column: 1; grid-row: 1; font-size: 12.5px; }
+.cl-usage .cbar { grid-column: 2; grid-row: 1; }
+.cl-usage .cu-fig { grid-column: 3; grid-row: 1; font-size: 12.5px; }
+.cl-month { display: block; margin-top: 8px; color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.cl-status { display: grid; gap: 8px; }
+.cl-status .chip { font-size: 13px; }
+.cl-fresh { min-width: 112px; }
+.cl-fresh .chip { margin-top: 6px; padding: 1px 9px 1px 8px; font-size: 12px; }
+.cl-fresh .cl-sub:first-child { margin-top: 0; }
+.cl-foot { margin-top: 10px; }
+
+/* A narrower page: each restaurant is a card (two across, one on a phone); the column names come in front of each value. */
+@media (max-width: 1360px) {
+  .cl-table { overflow: visible; border: 0; background: none; box-shadow: none; }
+  .cl-table table.grid, .cl-table table.grid tbody { display: block; }
+  .cl-table table.grid thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .cl-table table.grid tbody { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .cl-table table.grid tbody tr { display: grid; align-content: start; gap: 4px; padding: 18px 20px 14px; border: 0.67px solid var(--glass-edge, rgba(255, 255, 255, 0.76)); border-radius: 24px; background-color: var(--glass-soft, rgba(255, 255, 255, 0.5)); background-image: var(--glass-hi, none); box-shadow: var(--glass-shadow-sm, var(--shadow)); }
+  .cl-table table.grid tbody tr:hover { background-color: rgba(255, 255, 255, 0.6); }
+  .cl-table table.grid td, .cl-table table.grid td:first-child, .cl-table table.grid td:last-child { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 4px 12px; padding: 7px 0; border: 0; min-width: 0; }
+  .cl-table table.grid td::before { content: attr(data-label); color: var(--ink-3); font-size: 12.5px; font-weight: 600; line-height: 1.7; }
+  .cl-v { display: grid; justify-items: start; align-content: start; gap: 6px; }
+  .cl-v > .cl-usage, .cl-v > .cl-status { justify-self: stretch; }
+  .cl-table table.grid td:first-child { display: block; padding-top: 0; padding-bottom: 10px; border-bottom: 1px solid rgba(94, 72, 50, 0.1); }
+  .cl-table table.grid td:first-child::before { display: none; }
+  .cl-table table.grid td:first-child .row-link { font-size: 17px; }
+  .cl-table table.grid td.cl-usage-cell, .cl-table table.grid td.cl-usage-cell:last-child { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .cl-usage { min-width: 0; }
+  .cl-usage .cusage { grid-template-columns: 124px minmax(40px, 1fr) max-content; }
+  .cl-fresh { min-width: 0; }
+  .cl-foot { margin-top: 2px; }
+}
+@media (max-width: 860px) {
+  .cl-cards { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .cl-table table.grid tbody { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .cl-chips .seg { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: none; padding-bottom: 4px; }
+  .cl-chips .seg::-webkit-scrollbar { display: none; }
+  .cl-toolbar { justify-content: flex-start; }
+  .cl-table table.grid tbody tr { padding: 16px 16px 12px; border-radius: 22px; }
+  .cl-table table.grid td, .cl-table table.grid td:first-child, .cl-table table.grid td:last-child { grid-template-columns: 100px minmax(0, 1fr); }
+  .cl-usage .cusage { grid-template-columns: 112px minmax(30px, 1fr) max-content; }
+}
+
+/* A client's Setup tab: this month's plan and next month's, read from the plan months. */
+.cl-plan { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.cl-plan-card { display: grid; gap: 2px; padding: 16px 18px; border: 1px solid rgba(94, 72, 50, 0.12); border-radius: 18px; background: rgba(255, 255, 255, 0.55); }
+.cl-plan-card.is-empty { background: transparent; border-style: dashed; }
+.cl-plan-k { margin: 0; color: var(--ink-3); font-size: 13px; font-weight: 600; }
+.cl-plan-v { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.25; }
+.cl-plan-s { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+.cl-plan-d { margin: 4px 0 0; color: var(--ink-3); font-size: 13.5px; }
+.cl-plan-src { margin: 8px 0 0; }
+.cl-plan-link { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 16px 0 0; }
+.cl-signoff { margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(94, 72, 50, 0.1); }

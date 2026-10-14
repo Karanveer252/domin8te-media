@@ -16,6 +16,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { secretMatches } from "../_shared/secret.ts";
+import { hermesEnabled } from "../_shared/hermes.ts";
 
 const ALLOWED = ["https://domin8temedia.com", "https://www.domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
 const MAX_BODY = 64 * 1024;
@@ -67,6 +68,7 @@ function botName(req: Request): string | null {
   if (!allow.length) return null;
   const name = (req.headers.get("x-dashboard-bot-name") || "").trim().toLowerCase();
   if (!/^[a-z0-9-]{1,40}$/.test(name) || !allow.includes(name)) return null;
+  if (name === "hermes" && !hermesEnabled()) return null;   // Hermes is kept but off until HERMES_ENABLED=true
   if (!secretMatches(req.headers.get("x-dashboard-bot-secret"), Deno.env.get("DASHBOARD_BOT_SECRET"))) return null;
   return name;
 }

@@ -1,7 +1,10 @@
 -- Row level security checks for the portal. Runs in one transaction and rolls back.
 -- Every row of the result must say PASS. Needs the test tenant 'Bayleaf Kitchen (test, from the demo)'
 -- (id 5c047f41-9a29-4769-9673-b4865eeec8c3); it links it to a made-up organisation for the test only.
+-- 2026-10-13: Bayleaf was deleted from prod, so the test now makes it when it is missing (test project: always).
 begin;
+insert into public.tenants (id, name, doc) values ('5c047f41-9a29-4769-9673-b4865eeec8c3', 'Bayleaf Kitchen (test, from the demo)', '{"approvals":{"apv_posts":{}}}')
+  on conflict (id) do nothing;
 update public.tenants set clerk_org_id = 'org_TEST_bayleaf' where id = '5c047f41-9a29-4769-9673-b4865eeec8c3';
 insert into public.tenants (id, name, clerk_org_id, doc) values ('00000000-0000-0000-0000-00000000beef', 'Other restaurant (test)', 'org_TEST_other', '{"approvals":{"apv_x":{}}}');
 insert into app.settings (key, value) values ('team_org_id', 'org_TEST_team') on conflict (key) do update set value = excluded.value;
@@ -54,6 +57,17 @@ select pg_temp.w('client: answers its own ask', 'blocked', $q$update public.logi
 select pg_temp.w('client: deletes its own ask', 'blocked', $q$delete from public.login_requests where email = 'sam@bayleaf.test'$q$);
 select pg_temp.t('client: fills the queue to 10 asks', 'allowed', $q$insert into public.login_requests (first_name, email) select 'P' || g, 'p' || g || '@bayleaf.test' from generate_series(1, 9) g$q$);
 select pg_temp.t('client: an 11th waiting ask', 'blocked', $q$insert into public.login_requests (first_name, email) values ('Q','q@bayleaf.test')$q$);
+-- Plans, usage, Home sections, reminders, history (20261013*): a client reads only its own, and never staff-only tables.
+insert into r select 'client: reads no other restaurant''s months', 'none', count(*)::text from public.tenant_plan_cycles where tenant_id <> '5c047f41-9a29-4769-9673-b4865eeec8c3';
+insert into r select 'client: reads no reminders', 'none', count(*)::text from public.billing_reminders;
+insert into r select 'client: reads no visibility history', 'none', count(*)::text from public.client_visibility_history;
+insert into r select 'client: reads no plans it is not on', 'none', count(*)::text from public.plans;
+select pg_temp.t('client: picks without a running month', 'blocked', $q$select public.set_next_cycle_picks('growth', '{social,website}')$q$);
+select pg_temp.t('client: shows a card itself', 'blocked', $q$select public.set_task_visibility(gen_random_uuid(), true)$q$);
+select pg_temp.t('client: counts usage', 'blocked', $q$insert into public.usage_events (tenant_id, cycle_id, service, metric) values ('5c047f41-9a29-4769-9673-b4865eeec8c3', gen_random_uuid(), 'social', 'social_posts')$q$);
+select pg_temp.t('client: writes a Home section', 'blocked', $q$insert into public.client_home_sections (tenant_id, section, content) values ('5c047f41-9a29-4769-9673-b4865eeec8c3', 'note', '{"body":"x"}')$q$);
+select pg_temp.t('client: flags its own ask as within the cap', 'blocked', $q$insert into public.requests (tenant_id, service, body, over_cap) values ('5c047f41-9a29-4769-9673-b4865eeec8c3','social','x9',false)$q$);
+select pg_temp.t('client: an ask with what kind of work and how many', 'allowed', $q$insert into public.requests (tenant_id, service, body, metric, est_qty) values ('5c047f41-9a29-4769-9673-b4865eeec8c3','social','x8','social_posts',2)$q$);
 set local request.jwt.claims = '{"sub":"user_TEST_listed_only","role":"authenticated"}';
 insert into r select 'old staff list alone: not staff', 'none', count(*)::text from public.tenants where id = '00000000-0000-0000-0000-00000000beef';
 select pg_temp.t('old staff list alone: cannot add a card', 'blocked', $q$insert into public.tasks (tenant_id, title) values ('5c047f41-9a29-4769-9673-b4865eeec8c3','x')$q$);
@@ -64,6 +78,9 @@ select pg_temp.t('team member: cannot file someone else', 'blocked', $q$insert i
 select pg_temp.t('staff: reply to client', 'allowed', $q$insert into public.messages (tenant_id, body, from_staff) values ('5c047f41-9a29-4769-9673-b4865eeec8c3','on it',true)$q$);
 select pg_temp.t('staff: edit a client record', 'allowed', $q$update public.tenants set name = name where id = '5c047f41-9a29-4769-9673-b4865eeec8c3'$q$);
 select pg_temp.t('staff: add a card', 'allowed', $q$insert into public.tasks (tenant_id, title, status) values ('5c047f41-9a29-4769-9673-b4865eeec8c3','Test card','todo')$q$);
+select pg_temp.t('staff: cannot delete a card (soft_delete_task only)', 'blocked', $q$delete from public.tasks where title = 'Test card'$q$);
+select pg_temp.t('staff: cannot flip visibility directly', 'blocked', $q$update public.tasks set client_visible = true where title = 'Test card'$q$);
+select pg_temp.t('staff: read the plans and caps', 'allowed', $q$select 1 / (select count(*) from public.plan_caps)::int$q$);
 select pg_temp.t('staff: move a request along', 'allowed', $q$update public.requests set status = 'in_progress' where tenant_id = '5c047f41-9a29-4769-9673-b4865eeec8c3' and body = 'x'$q$);
 insert into r select 'staff: the request got a card', '1', count(*)::text from public.tasks where kind = 'request' and detail = 'x' and status = 'in_progress';
 select pg_temp.t('staff: move the card to done', 'allowed', $q$update public.tasks set status = 'done' where kind = 'request' and detail = 'x'$q$);

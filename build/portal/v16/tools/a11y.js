@@ -13,7 +13,9 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const CHROME = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find((p) => fs.existsSync(p));
-const BUILD = process.argv[2] || 'v18h';
+const ARGS = process.argv.slice(2);
+const BUILD = ARGS.find((a) => !a.startsWith('--')) || 'v18h';
+const ONLY = (ARGS.find((a) => a.startsWith('--only=')) || '').slice(7).split('|').filter(Boolean);
 const BUILT = path.join(__dirname, '..', '..', 'versions', BUILD + '.html');
 const AXE = path.join(os.tmpdir(), 'axe.min.js');
 if (!fs.existsSync(AXE)) {
@@ -41,15 +43,21 @@ fs.writeFileSync(tmp, fs.readFileSync(BUILT, 'utf8').replace('</body>', runner +
 const FILE = tmp.split(path.sep).join('/');
 
 let CASES = [];
-for (const route of ['home', 'work', 'results', 'updates', 'billing', 'settings', 'messages', 'help']) CASES.push({ route, w: 1440 });
+for (const route of ['home', 'work', 'results', 'updates', 'billing', 'billing/change', 'settings', 'messages', 'help']) CASES.push({ route, w: 1440 });
 CASES.push({ route: 'messages', w: 390 }, { route: 'messages', w: 1440, query: 'theme=dark' }, { route: 'messages', w: 1440, query: 'demo=cornerbean' });
-for (const route of ['home', 'results', 'billing']) CASES.push({ route, w: 1440, query: 'theme=dark' });
-for (const route of ['home', 'work', 'results']) CASES.push({ route, w: 500 });
+for (const route of ['home', 'results', 'billing', 'billing/change']) CASES.push({ route, w: 1440, query: 'theme=dark' });
+for (const route of ['home', 'work', 'results', 'billing', 'billing/change']) CASES.push({ route, w: 500 });
+// The three plans and a change already chosen (2026-10-13): the usage bars at every tone, the confirmation, the picker.
+for (const route of ['home', 'work', 'results', 'billing', 'billing/change']) for (const demo of ['cornerbean', 'domin8te', 'change']) CASES.push({ route, w: 1440, query: 'demo=' + demo });
 CASES.push({ route: 'home', w: 1440, query: 'demo=cornerbean' }, { route: 'home', w: 1440, query: 'demo=cornerbean&theme=dark' }, { route: 'results', w: 1440, query: 'demo=google-down' }, { route: 'home', w: 1440, query: 'side=rail' }, { route: 'settings', w: 1440, query: 'theme=dark' }, { route: 'work', w: 1440, query: 'theme=dark' });
 
 if (/v18h/.test(BUILD)) {
   // The final design: every case the original has, and its Scenes in light, dark and at phone width.
-  CASES = CASES.concat([{ route: 'home', w: 1440, query: 'scene=scenes' }, { route: 'results', w: 1440, query: 'scene=scenes' }, { route: 'settings', w: 1440, query: 'scene=scenes&theme=dark' }, { route: 'home', w: 500, query: 'scene=scenes' }]);
+  CASES = CASES.concat([{ route: 'home', w: 1440, query: 'scene=scenes' }, { route: 'results', w: 1440, query: 'scene=scenes' }, { route: 'settings', w: 1440, query: 'scene=scenes&theme=dark' }, { route: 'home', w: 500, query: 'scene=scenes' },
+    // The new pages on the moving sky, where the page's own words are light and glass keeps dark ones (2026-10-13)
+    ...['work', 'billing', 'billing/change', 'help', 'messages', 'settings'].map((route) => ({ route, w: 1440, query: 'scene=scenes' })),
+    { route: 'billing/change', w: 500, query: 'scene=scenes' }, { route: 'billing', w: 500, query: 'scene=scenes' },
+    { route: 'billing/change', w: 1440, query: 'scene=scenes&theme=dark' }, { route: 'home', w: 1440, query: 'scene=scenes&demo=cornerbean' }, { route: 'billing', w: 1440, query: 'scene=scenes&demo=change' }]);
 } else if (/console/.test(BUILD)) {
   // The agency console preview: the queue, the list, a client's tabs, and a phone width.
   CASES = [{ route: 'queue', w: 1440 }, { route: 'clients', w: 1440 }, { route: 'new', w: 1440 }, { route: 'client/tnt_preview_bayleaf/overview', w: 1440 }, { route: 'client/tnt_preview_bayleaf/board', w: 1440 }, { route: 'client/tnt_preview_bayleaf/board/new', w: 1440 }, { route: 'client/tnt_preview_bayleaf/work/social', w: 1440 },
@@ -57,11 +65,19 @@ if (/v18h/.test(BUILD)) {
     { route: 'queue', w: 1440, query: 'theme=dark' }, { route: 'client/tnt_preview_bayleaf/overview', w: 1440, query: 'theme=dark' }, { route: 'board', w: 1440, query: 'theme=dark' }, { route: 'settings', w: 1440, query: 'theme=dark' },
     { route: 'queue', w: 1440, query: 'scene=scenes' }, { route: 'board', w: 1440, query: 'scene=scenes' }, { route: 'clients', w: 1440, query: 'scene=scenes' }, { route: 'client/tnt_preview_bayleaf/inbox', w: 1440, query: 'scene=scenes' }, { route: 'settings', w: 1440, query: 'scene=scenes&theme=dark' },
     { route: 'messages', w: 1440 }, { route: 'messages/tnt_preview_osteria', w: 1440, query: 'theme=dark' }, { route: 'messages/tnt_preview_bayleaf', w: 500 }, { route: 'messages', w: 500 }, { route: 'messages', w: 1440, query: 'scene=scenes' }];
+  // The plan release's console pages (2026-10-13): a client's plan drawer, the tabs it added, the plan columns, the stepped Add client form.
+  const B = 'tnt_preview_bayleaf';
+  CASES = CASES.concat([{ route: `billing/${B}`, w: 1440 }, { route: `billing/${B}`, w: 500 }, { route: `billing/${B}`, w: 1440, query: 'theme=dark' }, { route: 'billing', w: 500 },
+    { route: `client/${B}/results`, w: 1440 }, { route: `client/${B}/talk`, w: 1440 }, { route: `client/${B}/home`, w: 1440 }, { route: `client/${B}/home`, w: 500 }, { route: `client/${B}/visible`, w: 1440 }, { route: `client/${B}/visible`, w: 500 }, { route: `client/${B}/visible`, w: 1440, query: 'theme=dark' },
+    { route: `client/${B}/setup`, w: 1440 }, { route: `client/${B}/advanced`, w: 1440 }, { route: `client/${B}/work`, w: 1440 }, { route: 'client/tnt_preview_marlow/overview', w: 1440 }, { route: 'client/tnt_preview_corner/visible', w: 1440 },
+    { route: 'new', w: 500 }, { route: 'new', w: 1440, query: 'theme=dark' }, { route: 'clients', w: 500 }, { route: 'clients', w: 1440, query: 'theme=dark' }, { route: 'board', w: 1440 }, { route: 'board', w: 500 }, { route: 'settings', w: 500 }]);
 } else if (BUILD !== 'v16') {
   // Variants: every main page in light, then dark, a phone width and the all-caught-up state.
   CASES = ['home', 'work', 'results', 'billing', 'settings'].map((route) => ({ route, w: 1440 }))
     .concat([{ route: 'home', w: 1440, query: 'theme=dark' }, { route: 'results', w: 1440, query: 'theme=dark' }, { route: 'home', w: 500 }, { route: 'home', w: 1440, query: 'demo=cornerbean' }]);
 }
+// --only=#/home|#/work keeps the cases whose address contains one of the texts
+if (ONLY.length) CASES = CASES.filter((c) => ONLY.some((o) => `${c.w}px ${c.query ? '?' + c.query + ' ' : ''}#/${c.route}`.includes(o)));
 let failed = 0;
 for (const c of CASES) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'd8axe-'));

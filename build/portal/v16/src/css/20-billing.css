@@ -1,0 +1,223 @@
+/*
+ * Billing (2026-10-13): the plan with what each service allows, the "You're all set" confirmation, the card and the bills
+ * table that becomes a list of bills on a phone. Tokens only.
+ * One clear thing per card: the plan's name, the month that changes, the card on file, the bill that is due. The deadline is
+ * one block (the days left beside what to do about them), notes are quiet panels, and the bills' states are a dot and a word.
+ */
+
+/* On Scenes, light theme, the page's own words are light because they sit on a deep sky. Glass that sits straight on the
+   sky (not inside a card) takes the glass inks back, so its words stay dark on it. (See variants/18h-scenes/3-18f-skylight.css.) */
+html[data-variant="18h"] .page :is(.bill-help) {
+  --p-ink: var(--k-ink); --p-ink-2: var(--k-ink-2); --p-ink-3: var(--k-ink-3);
+  --p-accent-ink: var(--k-accent-ink); --p-focus: var(--k-focus); --p-line: var(--k-line); --p-line-2: var(--k-line-2);
+  color: var(--p-ink);
+}
+/* The help line sits on its own pane of glass now, so it needs neither the sky's dark shadow nor the paper's light halo. */
+html[data-variant="18h"][data-variant] .page .bill-help.bill-help { text-shadow: none; }
+
+/* ------------------------------------------------------------------ Billing: the payment banner */
+
+.page-billing .banner { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px 20px; padding: 20px 24px; }
+.page-billing .banner-icon { align-self: start; width: 44px; height: 44px; padding: 10px; border-radius: 14px; background: linear-gradient(var(--p-crit-bg), var(--p-crit-bg)), var(--p-surface); box-shadow: 0 0 0 1px var(--p-crit-line); }
+.page-billing .banner h2 { font-size: 18px; line-height: 1.3; letter-spacing: -0.01em; }
+.page-billing .banner p { margin-top: 4px; font-size: 15px; line-height: 1.5; }
+.page-billing .banner .fold { margin-top: 4px; }
+.page-billing .banner .fold > summary { min-height: 36px; }
+.page-billing .banner .fold > .meta { margin-top: 0; }
+.banner + * { margin-top: var(--p-gap); }
+
+/* ------------------------------------------------------------------ Billing: the plan */
+
+.plan-overview { padding: 28px 30px 30px; }
+.plan-overview + .plan-confirmed, .plan-confirmed + .plan-overview, .plan-overview + .bill-cols, .plan-confirmed + .bill-cols { margin-top: var(--p-gap); }
+.po-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px 24px; }
+.po-head > .badge { flex: none; margin-top: 2px; }
+.po-name { margin-top: 6px; font-size: 30px; font-weight: 700; line-height: 1.15; letter-spacing: -0.025em; }
+.po-price { font-weight: 500; letter-spacing: -0.01em; color: var(--p-ink-3); font-variant-numeric: tabular-nums; }
+.po-sub { margin-top: 8px; color: var(--p-ink-2); }
+.po-head .chips { margin-top: 14px; }
+.po-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 40px; }
+
+/* the services, one under the other, a hairline between them; what each allows in the main ink */
+.svc-list { display: grid; }
+.svc-list > li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; align-items: start; padding: 16px 0; border-top: 1px solid var(--p-line); }
+.svc-list > li:first-child { padding-top: 0; border-top: 0; }
+.svc-list > li:last-child { padding-bottom: 0; }
+.sl-name { font-size: 17px; font-weight: 700; line-height: 1.3; }
+.sl-about { margin-top: 1px; font-size: 14.5px; line-height: 1.45; color: var(--p-ink-3); }
+.sl-lines { display: grid; gap: 4px; margin-top: 8px; }
+.sl-lines li { font-size: 15px; line-height: 1.45; color: var(--p-ink); }
+.sl-lines .chip-sample { margin-left: 2px; vertical-align: 1px; }
+.sl-hint { color: var(--p-ink-3); }
+.sl-fine { margin-top: 8px; font-size: 13.5px; line-height: 1.45; color: var(--p-ink-3); }
+
+/* what comes with the plan besides the services */
+.po-h-more { margin-top: 26px; }
+.po-included { display: grid; gap: 8px; margin-top: 10px; }
+.po-included li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; align-items: start; font-size: 15px; line-height: 1.45; color: var(--p-ink); }
+.po-included .i { width: 17px; height: 17px; margin-top: 3px; color: var(--p-success); }
+
+/* the facts: label and value, hairlines between the rows, figures that line up */
+.po-side { display: grid; align-content: start; }
+.facts-lite { display: grid; }
+.facts-lite > div { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 2px 16px; padding: 9px 0; border-top: 1px solid var(--p-line); }
+.facts-lite > div:first-child { padding-top: 0; border-top: 0; }
+.facts-lite dt { font-size: 14.5px; line-height: 1.5; color: var(--p-ink-3); }
+.facts-lite dd { font-size: 15.5px; font-weight: 650; line-height: 1.45; letter-spacing: -0.005em; }
+
+/* the deadline: the days left beside what to do about them, in one panel */
+.days-left { display: inline-grid; justify-items: center; gap: 0; min-width: 64px; padding: 10px 18px; border-radius: 16px; background: var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line), 0 1px 2px rgba(34, 40, 70, 0.06); line-height: 1.1; text-align: center; }
+.days-left strong { font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: -0.03em; color: var(--p-accent-ink); font-variant-numeric: tabular-nums; }
+.days-left span { margin-top: 4px; font-size: 13px; line-height: 1.3; color: var(--p-ink-2); }
+.po-when { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 16px; margin-top: 18px; padding: 14px 18px 14px 16px; border-radius: 16px; background: var(--p-glass-soft); box-shadow: inset 0 0 0 1px var(--p-line); }
+.po-when .days-left { padding: 2px 16px 2px 0; border-right: 1px solid var(--p-line); border-radius: 0; background: none; box-shadow: none; }
+.po-when .po-note { margin: 0; padding: 0; background: none; box-shadow: none; }
+.po-when .po-note .i { display: none; }
+.po-side > .po-note { margin-top: 18px; }
+.po-actions { display: grid; gap: 10px; margin-top: 20px; }
+
+/* the same card, shrunk to this month: on the picker, and above the confirmation once next month is chosen */
+.plan-overview.is-compact { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); align-items: center; gap: 18px 40px; padding: 22px 28px; }
+.plan-overview.is-compact .po-name { font-size: 26px; }
+.plan-overview.is-compact .facts-lite > div:last-child { padding-bottom: 0; }
+
+/* ------------------------------------------------------------------ Billing: "You're all set" */
+
+.plan-confirmed { padding: 28px 30px 30px; }
+.pcf-head { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 12px 18px; }
+.pcf-ok { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 18px; background: var(--p-success); color: #fff; box-shadow: 0 8px 18px -10px rgba(44, 106, 61, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.pcf-ok .i { width: 28px; height: 28px; }
+html[data-theme="dark"] .pcf-ok { color: #0D1F14; }
+.pcf-head h2 { margin-top: 3px; font-size: 28px; font-weight: 700; line-height: 1.15; letter-spacing: -0.025em; }
+.lock-chip { display: inline-flex; align-items: center; gap: 6px; justify-self: end; margin: 0; padding: 5px 14px 5px 11px; border-radius: 999px; background: linear-gradient(var(--p-success-bg), var(--p-success-bg)), var(--p-surface); color: var(--p-success); font-size: 14px; font-weight: 650; line-height: 1.4; white-space: nowrap; }
+.lock-chip .i { width: 15px; height: 15px; }
+.pcf-lede { margin-top: 18px; max-width: 70ch; font-size: 17px; line-height: 1.5; color: var(--p-ink-2); }
+.pcf-versus { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; gap: 14px; margin-bottom: 30px; }
+.pcf-box { padding: 18px 22px 20px; border-radius: 20px; background: var(--p-glass-strong); box-shadow: inset 0 0 0 1px var(--p-line); }
+.pcf-box .eyebrow { color: var(--p-ink-3); }
+.pcf-box.is-next { background: var(--p-surface); box-shadow: inset 0 0 0 2.5px var(--p-accent-ink), 0 14px 28px -18px rgba(174, 58, 11, 0.5); }
+.pcf-box.is-next .eyebrow { color: var(--p-accent-ink); }
+.pcf-plan { margin-top: 4px; font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.012em; }
+.pcf-price { margin-top: 4px; font-size: 15px; color: var(--p-ink-3); }
+.pcf-price strong { font-size: 28px; font-weight: 700; letter-spacing: -0.025em; color: var(--p-ink); font-variant-numeric: tabular-nums; }
+.pcf-svcs { margin-top: 4px; font-size: 15px; line-height: 1.45; color: var(--p-ink-2); }
+.pcf-arrow { display: grid; place-items: center; align-self: center; width: 32px; height: 32px; border-radius: 50%; background: var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line); color: var(--p-ink-2); }
+.pcf-arrow .i { width: 16px; height: 16px; }
+.pcf-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 40px; }
+.pcf-warn { display: flex; align-items: flex-start; gap: 10px; margin-top: 28px; padding: 14px 18px; border-radius: 14px; background: var(--p-glass-soft); box-shadow: inset 0 0 0 1px var(--p-line); font-size: 15px; line-height: 1.5; color: var(--p-ink-2); }
+.pcf-warn .i { flex: none; width: 17px; height: 17px; margin-top: 3px; color: var(--p-ink-3); }
+.pcf-warn strong { color: var(--p-ink); }
+.pcf-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+
+/* ------------------------------------------------------------------ Billing: the card and the bills */
+
+.bill-cols { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); align-items: start; gap: var(--p-gap); margin-top: var(--p-gap); }
+.pay-card, .bills-card { padding: 24px 26px 22px; }
+.pay-card { display: grid; gap: 14px; }
+.pay-card .sec-head, .bills-card .sec-head { margin-bottom: 2px; }
+.bills-card .sec-head > .sec-meta { flex-basis: auto; margin-left: auto; }
+.pay-line { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 12px; margin: 0; font-size: 17px; font-weight: 700; line-height: 1.3; color: var(--p-ink); }
+.pay-line.is-none { font-size: 16px; font-weight: 500; color: var(--p-ink-2); }
+.pay-ico { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: var(--p-surface); box-shadow: 0 0 0 1px var(--p-line), 0 1px 2px rgba(34, 40, 70, 0.07), inset 0 1px 0 var(--p-glass-hi); color: var(--p-ink-2); }
+.pay-ico .i { width: 22px; height: 22px; }
+html[data-theme="dark"] .pay-ico { background: var(--p-surface-2); box-shadow: 0 0 0 1px var(--p-line-2), inset 0 1px 0 var(--p-glass-hi); }
+.pay-card .due { margin-top: -4px; }
+.pay-card .secure-line { margin: 0; padding: 0; background: none; font-size: 14px; line-height: 1.5; color: var(--p-ink-3); }
+.pay-card .secure-line .i { margin-top: 3px; color: var(--p-success); }
+.pay-card .secure-line strong { color: var(--p-ink-2); font-weight: 650; }
+.pay-card .btn { justify-self: start; }
+
+.bills-wrap { max-height: none; margin-top: 4px; border: 0; border-radius: 0; background: none; }
+.bills { font-size: 15px; }
+.bills th, .bills td { padding: 13px 16px 13px 0; vertical-align: middle; }
+.bills thead th { position: static; padding-top: 2px; padding-bottom: 10px; background: none; border-bottom: 1px solid var(--p-line-2); font-size: 13px; font-weight: 650; line-height: 1.4; letter-spacing: 0.01em; color: var(--p-ink-3); }
+.bills tbody tr:last-child th, .bills tbody tr:last-child td { border-bottom: 0; }
+.bills tbody th { font-weight: 600; }
+.bills .th-bill { width: 30%; }
+.bills .th-st { width: 20%; }
+.bills .th-due { width: 22%; }
+.bills.has-amount .th-bill { width: 24%; }
+.bills.has-amount .th-amt { width: 18%; }
+.bills.has-amount .th-st { width: 18%; }
+.bills.has-amount .th-due { width: 20%; }
+.bill-num { display: block; font-size: 15.5px; font-weight: 700; line-height: 1.3; letter-spacing: -0.005em; font-variant-numeric: tabular-nums; }
+.bill-month { display: block; margin-top: 1px; font-size: 13.5px; font-weight: 500; line-height: 1.4; color: var(--p-ink-3); }
+.bill-amt { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bill-due { white-space: nowrap; }
+.bill-paid { display: block; margin-top: 1px; font-size: 13.5px; line-height: 1.4; color: var(--p-ink-3); }
+.bill-act { padding-right: 0; text-align: right; }
+/* a bill's state is a dot and a word */
+.bill-st .badge { gap: 8px; padding: 3px 12px 3px 10px; font-size: 13.5px; line-height: 1.5; }
+.bill-st .badge .i { display: none; }
+.bill-st .badge::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.bills-foot { margin-top: 12px; font-size: 13.5px; line-height: 1.5; }
+.bills-card .fold-invoices { margin: 0; border-top: 1px solid var(--p-line); }
+.bills-card .fold-invoices > summary { min-height: 44px; padding: 4px 0; }
+.bills-card .fold-invoices > .bills-wrap { margin-top: 0; }
+.bills-card .fold-invoices .bills thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.bills-card .fold-invoices .bills tbody tr:first-child th, .bills-card .fold-invoices .bills tbody tr:first-child td { border-top: 1px solid var(--p-line); }
+
+/* a question about a charge: one quiet line on its own glass */
+.bill-help { display: flex; align-items: center; gap: 10px; margin: var(--p-gap) 0 0; padding: 14px 18px; border-radius: 16px; background: var(--p-glass-soft); box-shadow: inset 0 0 0 1px var(--p-line), inset 0 1px 0 var(--p-glass-hi); font-size: 15px; line-height: 1.5; color: var(--p-ink-2); }
+.bill-help .i { flex: none; width: 18px; height: 18px; color: var(--p-ink-3); }
+.bill-help .link { color: var(--p-ink); }
+
+.plan-locked { padding: 24px 26px; }
+
+@container page (max-width: 900px) {
+  .po-grid, .pcf-grid { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .bill-cols { grid-template-columns: minmax(0, 1fr); }
+  .plan-overview.is-compact { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .pcf-versus { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .pcf-arrow { justify-self: center; transform: rotate(90deg); }
+}
+@container page (max-width: 700px) {
+  .plan-overview, .plan-confirmed { padding: 22px 20px 24px; }
+  .plan-overview.is-compact { padding: 20px; }
+  .po-head { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .po-head > .badge { margin-top: 0; }
+  .po-name { font-size: 27px; }
+  .facts-lite > div { grid-template-columns: 92px minmax(0, 1fr); gap: 2px 12px; }
+  .facts-lite dd { font-size: 15px; }
+  .pcf-head { grid-template-columns: 52px minmax(0, 1fr); gap: 12px 14px; }
+  .pcf-ok { width: 52px; height: 52px; border-radius: 16px; }
+  .pcf-ok .i { width: 26px; height: 26px; }
+  .pcf-head h2 { font-size: 24px; }
+  .lock-chip { grid-column: 1 / -1; justify-self: start; }
+  .pcf-lede { margin-top: 16px; font-size: 16px; }
+  .pcf-box { padding: 16px 18px 18px; }
+  .pcf-actions { display: grid; gap: 10px; }
+  .pcf-actions .btn { width: 100%; }
+  .pay-card, .bills-card { padding: 20px 20px 18px; }
+  .page-billing .banner { grid-template-columns: 44px minmax(0, 1fr); padding: 18px 20px 20px; }
+  .page-billing .banner .btn { grid-column: 1 / -1; width: 100%; }
+  .bill-help { padding: 12px 16px; font-size: 14.5px; }
+}
+@container page (max-width: 640px) {
+  /* the bills become a list: the number and its state on one line, the date and the button on the next */
+  .bills thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .bills, .bills tbody, .bills tr, .bills th, .bills td { display: block; }
+  .bills tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto auto; gap: 0 12px; padding: 14px 0; border-bottom: 1px solid var(--p-line); }
+  .bills tbody tr:first-child { padding-top: 6px; }
+  .bills tbody tr:last-child { padding-bottom: 4px; border-bottom: 0; }
+  .bills th, .bills td { padding: 0; border: 0; }
+  .bills tbody th { grid-column: 1; grid-row: 1; }
+  .bill-st { grid-column: 2; grid-row: 1; justify-self: end; align-self: start; }
+  .bill-amt { grid-column: 1; grid-row: 2; margin-top: 6px; font-size: 15.5px; font-weight: 650; }
+  .bill-due { grid-column: 1; grid-row: 3; margin-top: 6px; font-size: 14.5px; color: var(--p-ink-2); white-space: normal; }
+  .bill-act { grid-column: 2; grid-row: 2 / 4; align-self: end; justify-self: end; }
+  .bills-card .fold-invoices .bills tbody tr:first-child th, .bills-card .fold-invoices .bills tbody tr:first-child td { border-top: 0; }
+  .bills-card .fold-invoices .bills tbody tr:first-child { padding-top: 12px; }
+}
+@media (pointer: coarse) {
+  .page-billing .banner .fold > summary { min-height: 44px; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .po-when, .pcf-warn, .bill-help { background: var(--p-surface-2); }
+}
+@media (forced-colors: active) {
+  .lock-chip, .bill-st .badge, .days-left, .po-when, .pcf-warn, .bill-help, .pay-ico, .pcf-box, .pcf-arrow, .page-billing .banner-icon { border: 1px solid CanvasText; }
+  .pcf-box.is-next { outline: 3px solid Highlight; }
+  .bill-st .badge::before { background: CanvasText; }
+  .pcf-ok { background: Highlight; color: Canvas; }
+}

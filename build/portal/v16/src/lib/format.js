@@ -76,6 +76,38 @@
     if (d === 1) return { text: 'Due tomorrow, ' + date(iso), tone: 'soon' };
     return { text: 'Due ' + date(iso), tone: 'later' };
   }
+  /** '4:10 PM' (the restaurant's own clock) */
+  function time12(x) {
+    if (bad(x)) return '';
+    const d = new Date(toMs(x));
+    const h = d.getUTCHours();
+    return ((h % 12) || 12) + ':' + pad(d.getUTCMinutes()) + ' ' + (h < 12 ? 'AM' : 'PM');
+  }
+  /** 'Mon 12 Oct, 4:10 PM' */
+  const dateTime12 = (x) => (bad(x) ? '' : date(x) + ', ' + time12(x));
+  /* The restaurant's time zone in the words a restaurant uses: "11:59 PM Central" in sentences, "4:10 PM CT" in the small print. */
+  const ZONE = {
+    'America/Winnipeg': ['Central', 'CT'], 'America/Chicago': ['Central', 'CT'], 'America/Regina': ['Central', 'CT'],
+    'America/Toronto': ['Eastern', 'ET'], 'America/New_York': ['Eastern', 'ET'], 'America/Edmonton': ['Mountain', 'MT'],
+    'America/Denver': ['Mountain', 'MT'], 'America/Vancouver': ['Pacific', 'PT'], 'America/Los_Angeles': ['Pacific', 'PT'],
+    'America/Halifax': ['Atlantic', 'AT'], 'America/St_Johns': ['Newfoundland', 'NT']
+  };
+  /** @param {string} tz an IANA name */
+  const zoneName = (tz) => (/** @type {any} */ (ZONE)[tz] ? /** @type {any} */ (ZONE)[tz][0] : String(tz || '').split('/').pop().replace(/_/g, ' '));
+  /** @param {string} tz an IANA name */
+  const zoneAbbr = (tz) => (/** @type {any} */ (ZONE)[tz] ? /** @type {any} */ (ZONE)[tz][1] : '');
+  /**
+   * Money from the database's minor units: "$12.50", or "$12" when there are no cents, with the plain dollar sign for
+   * dollars of either country. The amounts come from the plans table, never from this file.
+   * @param {number|null|undefined} minor @param {string} [currency]
+   */
+  function money(minor, currency) {
+    if (minor === null || minor === undefined || !Number.isFinite(Number(minor))) return '';
+    const n = Number(minor) / 100;
+    try {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: String(currency || 'USD').toUpperCase(), currencyDisplay: 'narrowSymbol', minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 }).format(n);
+    } catch (e) { return String(n); }
+  }
   /** @param {number} n */
   const num = (n) => Number(n).toLocaleString('en-GB');
   /** @param {number} now */
@@ -93,7 +125,8 @@
     return items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1];
   }
   /** @param {string} s lower-cases the first letter, for "You: confirm your hours" */
-  const lcFirst = (s) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s);
+  // A sentence's first letter in lower case, unless the text starts with an acronym ("SEO and Google Maps" stays as it is).
+  const lcFirst = (s) => (s && !/^[A-Z]{2}/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s);
 
-  D8.fmt = { esc, date, longDate, monthYear, time, when, ago, due, num, greeting, range, plural, list, lcFirst, daysBetween, WEEKDAY };
+  D8.fmt = { esc, date, longDate, monthYear, time, time12, dateTime12, zoneName, zoneAbbr, money, when, ago, due, num, greeting, range, plural, list, lcFirst, daysBetween, WEEKDAY };
 })(typeof window !== 'undefined' ? window : globalThis);

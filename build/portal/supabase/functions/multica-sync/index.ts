@@ -22,6 +22,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { multica, multicaError, multicaConfigured, pullTask, claimProject, linkNewIssue, TASK_COLUMNS, apiUrl, type TaskRow } from "../_shared/multica.ts";
+import { withAgent } from "../_shared/hermes.ts";
 
 const ALLOWED = ["https://domin8temedia.com", "https://www.domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
 
@@ -111,8 +112,7 @@ Deno.serve(async (req) => {
         if (saved.error) throw new Error("The issue was saved in Multica but the link could not be recorded here. Try again.");
         if (!saved.data?.length) return reply(origin, 409, { error: "conflict", message: "The card changed or was deleted while it was pushed; refresh." });
       } else {
-        if (env("MULTICA_AGENT_ID")) { fields.assignee_type = "agent"; fields.assignee_id = env("MULTICA_AGENT_ID"); }
-        const c = await multica("/api/issues", { method: "POST", body: JSON.stringify(fields) });
+        const c = await multica("/api/issues", { method: "POST", body: JSON.stringify(withAgent(fields, env)) });   // an agent only while Hermes is on
         if (!c.ok || !c.data?.id) throw new Error(multicaError(c, "create the issue"));
         issue = c.data;
         // Compare-and-set on an empty multica_issue_id: a second push at the same time cancels its own new issue.

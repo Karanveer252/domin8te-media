@@ -4,6 +4,8 @@ begin;
 insert into public.tenants (id, name, clerk_org_id, doc) values
   ('00000000-0000-0000-0000-0000000ca4d1', 'Cards test A', 'org_TEST_cards_a', '{}'),
   ('00000000-0000-0000-0000-0000000ca4d2', 'Cards test B', 'org_TEST_cards_b', '{}');
+-- (2026-10-13) Cards now show only once staff decided to show them and while not removed: these are decided cards,
+-- plus one visible-but-undecided card and one removed card that must stay off the client's page.
 insert into public.tasks (tenant_id, title, detail, service, status, priority, assignee, client_visible) values
   ('00000000-0000-0000-0000-0000000ca4d1', 'A visible website card', 'internal note A', 'website', 'in_progress', 'high', 'Karan', true),
   ('00000000-0000-0000-0000-0000000ca4d1', 'A internal card', '', 'social', 'todo', 'none', null, false),
@@ -11,6 +13,11 @@ insert into public.tasks (tenant_id, title, detail, service, status, priority, a
   ('00000000-0000-0000-0000-0000000ca4d1', 'A cancelled card', '', 'website', 'cancelled', 'none', null, true),
   ('00000000-0000-0000-0000-0000000ca4d1', 'A done card', '', 'local', 'done', 'none', null, true),
   ('00000000-0000-0000-0000-0000000ca4d2', 'B visible card', 'internal note B', 'website', 'todo', 'none', null, true);
+update public.tasks set visibility_decided_at = now(), visibility_decided_by = 'test' where tenant_id in ('00000000-0000-0000-0000-0000000ca4d1', '00000000-0000-0000-0000-0000000ca4d2');
+insert into public.tasks (tenant_id, title, service, status, client_visible) values
+  ('00000000-0000-0000-0000-0000000ca4d1', 'A undecided card', 'website', 'todo', true),
+  ('00000000-0000-0000-0000-0000000ca4d1', 'A removed card', 'website', 'todo', true);
+update public.tasks set visibility_decided_at = now(), deleted_at = now(), deleted_by = 'test', deleted_reason = 'test' where title = 'A removed card';
 create temp table r (check_name text, expect text, result text) on commit drop;
 grant insert, select on r to authenticated, anon;
 
@@ -23,6 +30,8 @@ insert into r select 'client A: never an internal card', '0', count(*)::text fro
 insert into r select 'client A: never a card without a service', '0', count(*)::text from public.client_work_cards() where title = 'A general card';
 insert into r select 'client A: never a cancelled card', '0', count(*)::text from public.client_work_cards() where title = 'A cancelled card';
 insert into r select 'client A: never restaurant B''s card', '0', count(*)::text from public.client_work_cards() where title like 'B %';
+insert into r select 'client A: never a card staff have not decided on', '0', count(*)::text from public.client_work_cards() where title = 'A undecided card';
+insert into r select 'client A: never a removed card', '0', count(*)::text from public.client_work_cards() where title = 'A removed card';
 insert into r select 'client A: still cannot read the board table', '0', count(*)::text from public.tasks;
 insert into r select 'client A: the result has no detail column', 'false', (exists (select 1 from information_schema.routines rt join information_schema.parameters p on p.specific_name = rt.specific_name where rt.routine_schema = 'public' and rt.routine_name = 'client_work_cards' and p.parameter_name in ('detail', 'priority', 'assignee')))::text;
 

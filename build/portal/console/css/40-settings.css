@@ -1,0 +1,147 @@
+/*
+ * Settings (2026-10-13): Plans and limits, Picks and lock, Change history, Reminder emails, the Hermes row, the raw data editor's
+ * block. Colours and surfaces come from the console's tokens (console.css); nothing here is a new look. Classes: pl- (plans),
+ * pk- (picks), hx- (history), rm- (reminders), set- (the page), raw- (the raw editor).
+ */
+
+/* The page: a row of links to its parts, and two cards side by side. */
+.set-index { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 20px; }
+.set-index button { min-height: 36px; padding: 6px 15px; border: 0.67px solid var(--glass-edge); border-radius: 999px; background-color: var(--glass); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color 160ms var(--ease), color 160ms var(--ease); }
+.set-index button:hover { background-color: var(--glass-strong); color: var(--ink); }
+#team-box, #gates-box, #sec-ai { scroll-margin-top: 72px; }
+.set-duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.set-duo > .panel + .panel { margin-top: 0; }
+.panel + .set-duo, .set-duo + .panel { margin-top: 16px; }
+.pl-head { align-items: flex-start; margin-bottom: 18px; }
+.pl-head-txt { display: grid; gap: 4px; min-width: 0; }
+.pl-head-txt p { max-width: 64ch; }
+.pl-head .btns { flex: none; }
+.pl-lock { margin: -6px 0 16px; }
+
+/* Plans and limits: one line of facts, a card for each plan, then the limits with a column for each plan. */
+.pl-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px; margin: 0 0 18px; padding: 10px 16px; border-radius: 16px; background: var(--glass-soft); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); font-size: 14px; }
+.pl-strip strong { margin-right: 6px; color: var(--ink); font-weight: 650; }
+.pl-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 26px; }
+.pl-card { display: grid; gap: 4px; align-content: start; min-width: 0; padding: 18px 20px 16px; border-radius: var(--r-item); background: var(--glass-soft); box-shadow: inset 0 0 0 1px var(--line), 0 1px 2px rgba(40, 30, 20, 0.04); }
+.pl-name { font-size: 18px; letter-spacing: -0.2px; }
+.pl-price { margin: 0; color: var(--ink-3); font-size: 14px; }
+.pl-amt { margin-right: 2px; color: var(--ink); font-size: 28px; font-weight: 700; letter-spacing: -0.7px; }
+.pl-rule { color: var(--ink-2); font-size: 14.5px; }
+.pl-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pl-tags .chip { align-items: flex-start; max-width: 100%; border-radius: 16px; line-height: 1.3; white-space: normal; text-align: left; }
+.pl-tags .chip::before { flex: none; margin-top: 0.45em; }
+.pl-card.is-edit { gap: 10px; }
+.pl-money { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-weight: 600; }
+.pl-money input { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; }
+
+.pl-wrap { overflow-x: auto; margin: 0 -6px; padding: 0 6px; }
+table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 15px; }
+.pl-grid th, .pl-grid td { text-align: left; vertical-align: top; }
+.pl-grid thead th { padding: 4px 14px 12px; border-bottom: 1px solid var(--line-2); color: var(--ink-2); font-size: 14px; font-weight: 650; }
+.pl-grid thead .pl-corner { width: 31%; padding-left: 0; }
+.pl-grid .pl-svc th { padding: 24px 0 8px; border: 0; color: var(--ink); font-size: 15.5px; font-weight: 700; letter-spacing: -0.1px; }
+.pl-svc-note { display: block; margin-top: 2px; color: var(--ink-3); font-size: 13px; font-weight: 400; letter-spacing: 0; }
+.pl-grid tbody tr + tr > * { border-top: 1px solid var(--line); }
+.pl-grid tbody th[scope="row"] { padding: 12px 12px 12px 0; color: var(--ink); font-weight: 500; }
+.pl-grid tbody tr:not(.pl-svc):hover > * { background: var(--hover); }
+.pl-grid tbody tr:not(.pl-svc) > :first-child { border-radius: 10px 0 0 10px; }
+.pl-grid tbody tr:not(.pl-svc) > :last-child { border-radius: 0 10px 10px 0; }
+.pl-grid td { padding: 10px 14px; }
+.pl-form .pl-grid tbody th[scope="row"] { padding-top: 20px; }
+.pl-n { font-size: 18px; font-weight: 650; letter-spacing: -0.2px; font-variant-numeric: tabular-nums; }
+.pl-n.is-zero, .pl-none { color: var(--ink-3); font-weight: 500; }
+.pl-star { margin-left: 2px; color: var(--accent-ink); font-weight: 700; }
+.pl-hint { display: block; margin-top: 1px; color: var(--ink-3); font-size: 13px; }
+.pl-later { display: block; width: fit-content; max-width: 100%; margin-top: 5px; padding: 2px 9px; border-radius: 12px; background: rgba(60, 120, 210, 0.12); color: #27528C; font-size: 12.5px; font-weight: 600; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.pl-foot-note { margin-top: 20px; color: var(--ink-3); font-size: 13.5px; }
+
+/* The same table while it is being edited: a field for each number, and a start day. */
+.pl-edit-line { display: inline-flex; align-items: center; gap: 4px; }
+.pl-grid .pl-in { width: 88px; min-height: 42px; padding: 6px 10px; border: 1px solid rgba(94, 72, 50, 0.22); border-radius: 12px; background: rgba(255, 255, 255, 0.78); color: var(--ink); font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease); }
+.pl-grid .pl-hint-in { display: block; width: 100%; max-width: 132px; min-height: 34px; margin-top: 6px; padding: 4px 10px; font-size: 13px; }
+.pl-grid input[aria-invalid="true"], .pl-card input[aria-invalid="true"], .pl-date input[aria-invalid="true"] { border-color: var(--bad); box-shadow: 0 0 0 3px var(--bad-bg); }
+.pl-foot { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.pl-foot-row { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px 32px; align-items: start; }
+.pl-date input { max-width: 220px; }
+.pl-check { display: flex; align-items: flex-start; gap: 12px; padding-top: 24px; cursor: pointer; }
+.pl-check input { flex: none; width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--accent-ink); }
+.pl-check-t { display: block; font-weight: 650; }
+.pl-check-d { display: block; color: var(--ink-3); font-size: 13.5px; }
+.pl-foot .field-error { margin-top: 12px; }
+.pl-acts { justify-content: flex-end; margin-top: 18px; }
+.pl-count { margin-right: auto; color: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Picks and lock, and the change history. */
+.pk-lead { font-size: 16px; }
+.pk-body { margin-top: 4px; color: var(--ink-2); }
+.pk-facts { grid-template-columns: minmax(0, 1fr); gap: 2px; margin-top: 8px; }
+.pk-facts dt { margin-top: 14px; font-size: 13px; font-weight: 600; }
+.pk-facts dd { color: var(--ink); }
+.hx-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.hx-item { position: relative; display: grid; gap: 2px; margin-left: 5px; padding: 0 0 16px 20px; border-left: 2px solid var(--line-2); }
+.hx-item:last-child { padding-bottom: 2px; }
+.hx-item::before { content: ""; position: absolute; left: -7px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--bg); border: 2px solid var(--line-2); }
+.hx-when { color: var(--ink-2); font-size: 14px; }
+.hx-when strong { margin-right: 6px; color: var(--ink); }
+.hx-what { color: var(--ink-2); font-size: 14.5px; }
+.set-duo .q-more { margin-top: 10px; }
+
+/* Reminder emails: what the job does and when it last ran on the left, what failed on the right. */
+.rm-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px 44px; align-items: start; }
+.rm-facts { grid-template-columns: minmax(78px, max-content) minmax(0, 1fr); gap: 14px 18px; }
+.rm-sub { display: block; margin-top: 2px; font-size: 13px; }
+.rm-key { margin-top: 20px; padding: 13px 16px; border-radius: 16px; background: var(--glass-soft); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); font-size: 14px; }
+.rm-key strong { color: var(--ink); }
+.rm-key.is-off { background: var(--warn-bg); box-shadow: none; }
+.rm-h { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 15px; }
+.rm-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.rm-fail { display: grid; gap: 6px; padding: 14px 16px; border-radius: 18px; background: var(--glass-soft); box-shadow: inset 0 0 0 1px var(--line); }
+.rm-who { display: grid; gap: 1px; }
+.rm-err { color: var(--bad); font-size: 13.5px; }
+.rm-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 4px; }
+.rm-addr { display: grid; gap: 10px; margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.rm-addr .btn { justify-self: start; }
+
+/* Hermes: one read-only row. */
+.set-ai .panel-head { margin-bottom: 10px; }
+.set-ai p + p { margin-top: 4px; }
+
+/* The raw data editor: the parts that moved to Billing and Results cannot be saved from here. */
+.raw-block { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; padding: 12px 16px; border-radius: 16px; background: var(--bad-bg); color: var(--ink); font-size: 14px; }
+.raw-block strong { color: var(--bad); }
+.raw-block code { padding: 1px 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.7); font: 12.5px ui-monospace, SFMono-Regular, Consolas, monospace; }
+.raw-block > span { flex: 1 1 280px; min-width: 0; }
+
+@media (max-width: 900px) {
+  .set-duo, .rm-grid, .pl-foot-row { grid-template-columns: minmax(0, 1fr); }
+  .set-duo > .panel + .panel { margin-top: 0; }
+  .pl-check { padding-top: 0; }
+}
+@media (max-width: 760px) {
+  .set-index { flex-wrap: nowrap; margin-inline: -16px; padding: 2px 16px 6px; overflow-x: auto; scrollbar-width: none; }
+  .set-index button { flex: none; }
+  .pl-cards { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-bottom: 22px; }
+  .pl-card { padding: 14px 16px; }
+  .pl-amt { font-size: 24px; }
+  .pl-head .btns { width: 100%; margin-left: 0; }
+  .pl-grid thead .pl-corner { width: 28%; }
+  .pl-grid thead th { padding-inline: 8px; }
+  .pl-grid td { padding: 10px 8px; }
+  .pl-grid .pl-in { width: 100%; max-width: 80px; padding-inline: 8px; }
+  .pl-grid .pl-hint-in { max-width: 100%; }
+  .pl-acts { gap: 10px; }
+  .pl-count { flex: 1 0 100%; }
+  .rm-facts { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .rm-facts dt { font-size: 13px; }
+  .rm-facts dd { margin-bottom: 12px; }
+  /* The Team panel's role switch is wider than a phone: its two choices wrap instead of pushing the page sideways. */
+  .team-actions .seg.role-seg { flex-wrap: wrap; max-width: 100%; border-radius: 20px; }
+  .team-actions .seg.role-seg button { white-space: normal; text-align: left; }
+}
+
+/* The night theme: the few colours that are not tokens. */
+html[data-theme="dark"] .pl-grid .pl-in { border-color: rgba(255, 255, 255, 0.14); background-color: rgba(255, 255, 255, 0.05); }
+html[data-theme="dark"] .pl-later { background: rgba(120, 170, 255, 0.16); color: #B5D0FF; }
+html[data-theme="dark"] .raw-block code { background: rgba(255, 255, 255, 0.12); }
+/* The freshness line is white at 60 percent in 00-shared.css, which leaves the night theme's light words on a light bar: on this page it follows the glass. */
+html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--glass); border-color: var(--glass-edge); }

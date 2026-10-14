@@ -7,7 +7,7 @@
     "build": "node tools/build.js",
     "lint": "node tools/lint.js",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "node --test tests/data.test.js tests/live.test.js tests/tokens.test.js tests/shell.test.js tests/glass.test.js",
+    "test": "node --test tests/data.test.js tests/live.test.js tests/plan.test.js tests/components.test.js tests/tokens.test.js tests/shell.test.js tests/glass.test.js",
     "smoke": "node tools/smoke.js",
     "a11y": "node tools/a11y.js",
     "shots": "node tools/shots.js",

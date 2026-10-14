@@ -1,0 +1,137 @@
+/*
+ * All work and each client's cards (C3, 2026-10-13): the usage strip, the filter chips, what a card says about its limit, and the dialogs
+ * (Count this as, Remove a card, Void a count). Colours and glass come from the console's tokens (console.css, css/00-shared.css).
+ */
+
+/* ---- the usage strip: one card for each client's plan limits ---------------------------------------------------------------- */
+.wk-strips { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; margin: 2px 0 18px; }
+.wk-rest { margin: -6px 0 18px; }
+.wk-rest > summary { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--ink-2); font-size: 14px; font-weight: 650; cursor: pointer; }
+.wk-rest[open] > summary { margin-bottom: 14px; }
+.wk-rest .wk-strips { margin: 0; }
+.wk-strip { display: grid; align-content: start; gap: 12px; padding: 16px 18px 14px; border: 0.67px solid var(--glass-edge); border-radius: var(--r-item); background-color: var(--glass-soft); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); transition: box-shadow 160ms var(--ease); }
+#tab > .wk-strip { margin: 0 0 16px; }
+.wk-strip.is-on { box-shadow: 0 0 0 2px var(--ink), var(--glass-shadow-sm); }
+.wk-strip-h { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.wk-strip-name { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-size: 16.5px; font-weight: 700; letter-spacing: -0.2px; }
+button.wk-strip-name { margin: -3px -7px; padding: 3px 7px; border: 0; border-radius: 9px; background: none; text-align: left; cursor: pointer; transition: background 160ms var(--ease); }
+button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
+.wk-plan { background: var(--you-bg); color: var(--you); text-decoration: none; }
+.wk-plan:hover { text-decoration: underline; text-underline-offset: 3px; }
+.wk-picks { color: var(--ink-3); font-size: 14px; }
+.wk-bars { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+#tab > .wk-strip > .wk-bars { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 32px; }
+.wk-none { color: var(--ink-3); font-size: 14px; }
+.wk-more { padding-top: 10px; border-top: 1px solid rgba(94, 72, 50, 0.1); }
+.wk-more > summary { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 13.5px; font-weight: 650; list-style: none; cursor: pointer; }
+.wk-more > summary::-webkit-details-marker { display: none; }
+.wk-more > summary::before { content: ""; width: 7px; height: 7px; border-right: 1.75px solid currentColor; border-bottom: 1.75px solid currentColor; rotate: -45deg; transition: rotate 160ms var(--ease); }
+.wk-more[open] > summary::before { rotate: 45deg; }
+.wk-all { display: grid; gap: 16px; margin-top: 14px; }
+.wk-group h3 { margin: 0 0 8px; color: var(--ink-3); font-size: 13.5px; font-weight: 650; }
+.wk-all .wk-bars { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 24px; }
+.wk-n { min-width: 20px; padding: 0 6px; border-radius: 999px; background: rgba(94, 72, 50, 0.1); color: var(--ink-2); font-size: 12px; font-weight: 650; line-height: 1.65; text-align: center; font-variant-numeric: tabular-nums; }
+.wk-n.is-bad { background: var(--bad-bg); color: var(--bad); }
+
+/* ---- the filter chips ------------------------------------------------------------------------------------------------------- */
+.wk-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin: 0 0 6px; }
+.wk-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.wk-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 7px 14px; border: 0.67px solid var(--glass-edge); border-radius: 999px; background-color: rgba(255, 255, 255, 0.34); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); color: var(--ink-2); font-size: 14px; font-weight: 650; cursor: pointer; transition: background-color 160ms var(--ease), color 160ms var(--ease), box-shadow 160ms var(--ease); }
+.wk-chip:hover { background-color: rgba(255, 255, 255, 0.72); color: var(--ink); }
+.wk-chip[aria-pressed="true"] { background-color: rgba(255, 255, 255, 0.96); color: var(--ink); box-shadow: var(--pill-on), var(--glass-shadow-sm); }
+.wk-empty, .wk-older { margin-top: 12px; }
+
+/* ---- a card on the board ----------------------------------------------------------------------------------------------------- */
+.card-client.wk-who { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 7px; margin-bottom: 5px; }
+.wk-client { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wk-tag { display: inline-flex; align-items: center; max-width: 100%; padding: 0 8px; border: 1px solid var(--line-2); border-radius: 8px; background: rgba(255, 255, 255, 0.7); color: var(--ink-2); font-size: 12.5px; font-weight: 600; line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wk-tag.is-plain { border-style: dashed; color: var(--ink-3); }
+.wk-land { margin: 5px 0 0; color: var(--ink-2); font-size: 14px; }
+.wk-land.is-over { color: var(--bad); font-weight: 650; }
+.wk-land.is-done { color: var(--ink-3); }
+.wk-land.is-done::before { content: "\2713"; margin-right: 6px; color: var(--good); font-weight: 700; }
+.wk-land.is-urgent, .wk-land.is-none { color: var(--ink-3); }
+.card.is-over { border-color: rgba(168, 35, 27, 0.3); }
+.wk-flag { display: grid; gap: 4px; margin: 9px 0 2px; padding: 9px 12px; border-radius: 12px; background: var(--bad-bg); color: var(--bad); font-size: 13.5px; line-height: 1.4; }
+.wk-flag strong { font-weight: 700; }
+.wk-flag-a { justify-self: start; color: var(--bad); font-size: 13.5px; font-weight: 650; }
+.wk-vis { display: inline-flex; align-items: center; color: var(--ink-3); }
+.wk-vis .ic { width: 17px; height: 17px; }
+.wk-vis.is-on { color: var(--good); }
+.cards:empty::before { content: "Nothing here"; display: block; padding: 6px 4px; color: var(--ink-3); font-size: 13px; }
+
+/* ---- who sees a card, in the add form and the editor ------------------------------------------------------------------------ */
+.wk-vis-field { display: grid; gap: 10px; }
+.wk-vis-field .switch-row .pick-t { font-size: 15px; }
+.wk-why { display: grid; gap: 5px; margin-left: 64px; }
+.wk-keep { justify-self: start; margin-left: 64px; }
+.wk-usage { margin: 2px 0 0; }
+
+/* ---- dialogs: Count this as, Remove a card, Void a count --------------------------------------------------------------------- */
+.wk-dlg { width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 32px); margin: auto; padding: 0; overflow: auto; }
+.wk-form { display: grid; gap: 14px; padding: 26px 28px 24px; }
+.wk-kicker { margin: 0; color: var(--ink-3); font-size: 13px; font-weight: 650; }
+.wk-form h2 { font-size: 24px; letter-spacing: -0.4px; }
+.wk-sub { display: grid; gap: 1px; margin: -6px 0 0; }
+.wk-sub strong { font-weight: 650; }
+.wk-sub span { color: var(--ink-3); font-size: 14px; }
+.wk-lead { margin: -4px 0 0; color: var(--ink-2); }
+.wk-how { display: grid; gap: 10px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.wk-box { border: 1px solid var(--line-2); border-radius: 18px; background: rgba(255, 255, 255, 0.55); transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease), background 160ms var(--ease); }
+.wk-box:has(input[type="radio"]:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); background: rgba(255, 255, 255, 0.86); }
+.wk-opt { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; cursor: pointer; }
+.wk-opt input { flex: none; width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--ink); }
+.wk-fields { display: grid; grid-template-columns: minmax(0, 1fr) 108px; gap: 10px 12px; padding: 0 16px 16px 46px; transition: opacity 160ms var(--ease); }
+.wk-fields.is-off { opacity: 0.45; }
+.wk-lands { grid-column: 1 / -1; min-height: 20px; margin: 0; color: var(--ink-2); font-size: 14px; }
+.wk-lands.is-over { color: var(--bad); font-weight: 650; }
+.wk-dlg .actions { justify-content: flex-end; margin-top: 4px; }
+.wk-dlg textarea { min-height: 96px; }
+@media (max-width: 560px) {
+  .wk-form { padding: 22px 18px 18px; }
+  .wk-fields { grid-template-columns: minmax(0, 1fr) 88px; padding: 0 14px 14px; }
+  .wk-why, .wk-keep { margin-left: 0; }
+  .wk-dlg .actions .btn { flex: 1 1 auto; }
+}
+
+/* The Remove drop zone is a bar under the columns, so the columns keep their width. */
+.board > .col-delete { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 14px; min-height: 0; padding: 8px 18px; }
+.board > .col-delete .col-h { margin: 0; white-space: nowrap; }
+.board > .col-delete .del-zone { margin: 0; padding: 12px 4px; place-items: center start; text-align: left; }
+
+/* The board is a row of columns, one for each stage (four, or five while a card is Blocked) and the Remove bar under them. */
+.board:has(> :nth-child(5):last-child) { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(4, minmax(186px, 1fr)); }
+.board:has(> :nth-child(6):last-child) { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(5, minmax(186px, 1fr)); }
+@media (max-width: 1240px) {
+  .board:has(> :nth-child(5):last-child) { grid-template-columns: repeat(4, 230px); }
+  .board:has(> :nth-child(6):last-child) { grid-template-columns: repeat(5, 230px); }
+}
+@media (max-width: 760px) {
+  .board:has(> :nth-child(5):last-child), .board:has(> :nth-child(6):last-child) { grid-template-columns: minmax(0, 1fr); }
+  .board > .col-delete { flex-direction: column; align-items: stretch; }
+}
+
+/* the console styles text, date and search fields; a whole-number field gets the same look */
+.wk-form input[type="number"] { width: 100%; min-height: 42px; padding: 7px 11px; border: 1px solid rgba(94, 72, 50, 0.22); border-radius: 12px; background-color: rgba(255, 255, 255, 0.78); font-size: 15px; font-variant-numeric: tabular-nums; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease); }
+.wk-form input[type="number"]:focus { outline: none; border-color: rgba(174, 58, 11, 0.55); box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.16); }
+.wk-form input[type="number"]:disabled, .wk-form select:disabled { opacity: 0.6; }
+
+/* inside a client's tab the freshness line sits above the toolbar with room under it */
+#tab > .page-fresh { margin: 0 0 14px; }
+
+/* Phones: each client's limits slide sideways and so do the filter chips, so the board is not four screens down. */
+@media (max-width: 760px) {
+  .wk-strips { display: flex; gap: 12px; margin: 2px -16px 12px; padding: 2px 16px 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .wk-strips > .wk-strip { flex: 0 0 min(84vw, 340px); scroll-snap-align: start; }
+  .wk-rest .wk-strips { margin: 0 -16px; }
+  .wk-chips { flex-wrap: nowrap; margin: 0 -16px; padding: 4px 16px 10px; overflow-x: auto; scrollbar-width: none; }
+  .wk-chip { flex: none; }
+  .wk-bar { gap: 0; }
+}
+
+/* The Remove bar keeps its own light ground, so its words read on every scene behind the board. */
+.board > .col-delete { background-color: rgba(255, 255, 255, 0.74); background-image: linear-gradient(rgba(168, 35, 27, 0.05), rgba(168, 35, 27, 0.05)); }
+.board > .col-delete .del-zone { color: var(--ink-2); }
+.board > .col-delete.over { background-color: rgba(255, 232, 228, 0.92); }
+.board > .col-delete.over .del-zone { color: var(--bad); }
+@media (max-width: 760px) { .wk-strips { scroll-padding: 0 16px; } }

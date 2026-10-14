@@ -216,7 +216,7 @@
   }
 
   function refreshAccount() {
-    return app.client.getAccount().then((a) => { app.account = a; drawShell(); return a; });
+    return app.client.getAccount().then((a) => { app.account = a; D8.account = a; drawShell(); return a; });
   }
 
   function markCurrent(name) {
@@ -397,6 +397,7 @@
           app.session = null;
           app.client = null;
           app.account = null;
+          D8.account = null;
           // Signed out is a known state, even from the screen shown when the account failed to load.
           app.wanted = null;
           app.ready = true;
@@ -512,6 +513,7 @@
       if (V.home && !$('#main').children.length) $('#main').innerHTML = `<div class="page page-booting">${UI.Skeleton('strip', 4)}${UI.Skeleton('row', 3)}</div>`;
       return app.client.getAccount().then((a) => {
         app.account = a;
+        D8.account = a;
         syncLook(a.appearance);
         drawShell();
         // A page chosen while the account loaded wins over the one start() was asked to open.

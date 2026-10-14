@@ -1,4 +1,4 @@
-# Build domin8te-v63.zip = the live v62 archive with the Meta Pixel (id 1300852505438917) on the 15 public pages
+# Build domin8te-v63.zip = the live v62 archive with the Meta Pixel (id 2195448994715770) on the 15 public pages
 # (2026-10-08, Karan: "deploy the meta pixel too"), added by meta-pixel.py, and the privacy page saying so. The
 # pages are otherwise identical to v62 (checked before packing). Not on dashboard, console, onboarding or the
 # Lecookie copy. Roll back = redeploy v62.

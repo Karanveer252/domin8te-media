@@ -45,7 +45,7 @@ test('every fixture record carries its own tenant id and nothing is shared betwe
 });
 
 test('strip figures are computed from the stored series and match the agreed totals', async () => {
-  const { client: c } = await client('bayleaf');
+  const { client: c } = await client('domin8te');
   const strip = await c.getStrip(30);
   const byId = Object.fromEntries(strip.metrics.map((m) => [m.id, m]));
   assert.equal(strip.metrics.length <= 4, true, 'no more than four metrics');
@@ -61,7 +61,7 @@ test('strip figures are computed from the stored series and match the agreed tot
 });
 
 test('missing or partial data is never compared as if it were complete', async () => {
-  const { client: c } = await client('bayleaf');
+  const { client: c } = await client('domin8te');
   const r30 = await c.getResults(30);
   const social = r30.groups.find((g) => g.id === 'social');
   const insta = social.metrics.find((m) => m.id === 'instagramViews');
@@ -81,14 +81,15 @@ test('missing or partial data is never compared as if it were complete', async (
   }
 });
 
-test('services outside the package are hidden everywhere', async () => {
+test('services outside the plan are hidden everywhere', async () => {
   const { client: c } = await client('cornerbean');
   const work = await c.getWork();
-  assert.deepEqual([...work.services.map((s) => s.id)], ['website', 'local']);
+  assert.deepEqual([...work.services.map((s) => s.id)], ['advertising', 'local'], 'the plan is Starter: Ads and SEO and Google Maps');
+  assert.deepEqual([...work.off.map((s) => s.id)], ['website', 'social', 'email'], 'the others are listed as not in this month\'s plan');
   const results = await c.getResults(30);
-  assert.ok(!results.groups.some((g) => g.id === 'social' || g.id === 'advertising'));
+  assert.ok(!results.groups.some((g) => g.id === 'social' || g.id === 'website'));
   const updates = await c.getUpdates();
-  assert.ok(updates.every((u) => u.service === null || ['website', 'local'].includes(u.service)));
+  assert.ok(updates.every((u) => u.service === null || ['advertising', 'local'].includes(u.service)), 'a website update is not shown to a restaurant without the website');
   const attention = await c.getAttention();
   assert.equal(attention.length, 0, 'the all-caught-up scenario has nothing to do');
   const strip = await c.getStrip(30);
@@ -110,7 +111,7 @@ test('progress is never a percentage: only counted, defined milestones', () => {
 });
 
 test('approving removes the item, applies its effects and keeps an audit record', async () => {
-  const { client: c } = await client('bayleaf');
+  const { client: c } = await client('domin8te');
   const before = await c.getAttention();
   assert.deepEqual([...before.map((a) => a.id)], ['act_payment', 'act_posts', 'act_instagram', 'act_hours'], 'most urgent first');
   const rec = await c.decide('apv_posts', 'approved', '');
@@ -127,7 +128,7 @@ test('approving removes the item, applies its effects and keeps an audit record'
 });
 
 test('asking for changes needs a note, and the note is kept', async () => {
-  const { client: c } = await client('bayleaf');
+  const { client: c } = await client('domin8te');
   await assert.rejects(() => c.decide('apv_hours', 'changes', '   '), (e) => e.code === 'comment-required' && e.field === 'comment');
   const rec = await c.decide('apv_hours', 'changes', 'We close at 22:00 on Fridays.');
   assert.equal(rec.comment, 'We close at 22:00 on Fridays.');
@@ -152,7 +153,7 @@ test('a failing source only fails the figures that depend on it', async () => {
 });
 
 test('the written summary and the insight agree with the figures', async () => {
-  const bay = await client('bayleaf');
+  const bay = await client('domin8te');
   const r = await bay.client.getResults(30);
   const leads = Object.fromEntries(r.groups.find((g) => g.id === 'leads').metrics.map((m) => [m.id, m]));
   const f = r.summary.facts;
@@ -168,12 +169,30 @@ test('the written summary and the insight agree with the figures', async () => {
 
   const cafe = await client('cornerbean');
   const cr = await cafe.client.getResults(30);
-  const visits = cr.groups.find((g) => g.id === 'website').metrics[0];
+  const calls = cr.groups.find((g) => g.id === 'leads').metrics.find((m) => m.id === 'calls');
   const dirs = cr.groups.find((g) => g.id === 'local').metrics.find((m) => m.id === 'directions');
-  assert.equal(cr.summary.facts.visits, visits.value);
-  assert.equal(cr.summary.facts.extraVisits, visits.value - visits.previous);
+  assert.equal(cr.summary.facts.calls, calls.value);
+  assert.equal(cr.summary.facts.extraCalls, calls.value - calls.previous);
   assert.equal(cr.summary.facts.directions, dirs.value);
   assert.equal(cr.summary.facts.directionsBefore, dirs.previous);
+
+  // On Growth (Social media and Website) the summary says nothing about Google: that service is not in the plan.
+  const growth = await client('bayleaf');
+  const gr = await growth.client.getResults(30);
+  assert.ok(!/Google/.test(gr.summary.text) && gr.summary.facts.calls === undefined);
+});
+
+test('the written summary shows only once a person has checked it, and says who', async () => {
+  const { client: c, D8 } = await client('bayleaf');
+  const r = await c.getResults(30);
+  assert.equal(r.summary.reviewedBy, 'Karan');
+  assert.ok(r.summary.reviewedAt);
+  for (const t of Object.values(D8.demoFixtures.tenants)) for (const s of t.summaries) assert.ok(s.reviewedBy && s.reviewedAt, 'every summary in the demo names who checked it');
+  // An unchecked one stays out of sight.
+  const D8b = load('bayleaf');
+  D8b.demoFixtures.tenants.tnt_demo_bayleaf.summaries = [{ days: 30, writtenAt: '2026-09-24T14:20', facts: {}, text: 'Not checked yet.' }];
+  const again = D8b.data.connect(await D8b.auth.getSession());
+  assert.equal((await again.getResults(30)).summary, null);
 });
 
 test('required account emails cannot be switched off', async () => {
@@ -258,7 +277,7 @@ test('Clerk sign-in link: the email is validated and nothing pretends to be sent
 });
 
 test('each attention item has a severity, and the payment problem is the only critical one', async () => {
-  const { client: c, D8 } = await client('bayleaf');
+  const { client: c, D8 } = await client('domin8te');
   const items = await c.getAttention();
   assert.deepEqual([...items.map((a) => a.severity)], ['critical', 'approval', 'connection', 'scheduled']);
   for (const a of items) {
@@ -272,14 +291,14 @@ test('the all-caught-up state only shows facts that are on record', async () => 
   const h = await c.getHighlights();
   assert.equal(h.next.title, 'First monthly photo refresh');
   assert.equal(h.next.date, '2026-10-01');
-  assert.equal(h.win.text, 'New homepage live');
+  assert.equal(h.win.text, 'Ad account connected and checked', 'the website is not in their plan, so its win is not theirs');
   const work = await c.getWork();
   const all = work.services.flatMap((s) => s.milestones.map((m) => m.title));
   assert.ok(all.includes(h.next.title), 'the next milestone is a real milestone');
 });
 
 test('coming up only lists dates on record, in order, once each, for this tenant only', async () => {
-  const { client: c } = await client('bayleaf');
+  const { client: c } = await client('domin8te');
   const list = await c.getUpcoming();
   assert.ok(list.length > 0 && list.length <= 6);
   assert.deepEqual(list.map((i) => i.date), list.map((i) => i.date).slice().sort(), 'in date order');
@@ -297,7 +316,7 @@ test('coming up only lists dates on record, in order, once each, for this tenant
   assert.ok(!(await c.getUpcoming()).some((i) => i.title === "Approve next week's social posts"), 'an answered approval drops out');
   const { client: other } = await client('cornerbean');
   const theirs = await other.getUpcoming();
-  assert.ok(!theirs.some((i) => i.service === 'advertising' || i.service === 'social'), 'services outside the package never appear');
+  assert.ok(!theirs.some((i) => i.service === 'social' || i.service === 'website'), 'services outside the plan never appear');
   assert.ok(theirs.every((i) => !list.some((j) => j.title === i.title && j.kind !== 'meeting')), 'no tenant sees the other\'s dates');
 });
 

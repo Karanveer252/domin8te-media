@@ -1,0 +1,69 @@
+/*
+ * Work, the premium pass (2026-10-13): each service's card (its state at the top right, the "Right now" line, the usage
+ * well in two columns, the steps) and the quiet cards for the services not in this month's plan. Every rule sits under
+ * .page-work. Tokens only.
+ */
+
+/* ------------------------------------------------------------------ a service's card */
+
+.page-work .svc-section { margin-top: 20px; padding: 26px 28px 24px; }
+.page-work .svc-section:first-of-type { margin-top: 24px; }
+.page-work .svc-simple > * + * { margin-top: 20px; }
+/* The name at the left, its state at the right: one glance says where each service stands. */
+.page-work .svc-head { gap: 10px 14px; }
+.page-work .svc-head h2 { font-size: 22px; line-height: 1.25; }
+.page-work .svc-head h2 .i { width: 23px; height: 23px; }
+.page-work .svc-head > .badge { margin-left: auto; }
+.page-work .svc-head + .svc-now { margin-top: 14px; }
+.page-work .svc-now { font-size: 18px; line-height: 1.45; text-wrap: pretty; }
+
+/* The usage well: a soft recess inside the card. Two limits to a row, so a bar is never the width of the page; the day
+   it resets runs along the foot. */
+.page-work .work-usage { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 36px; margin: 18px 0 0; padding: 16px 20px 14px; border-radius: 16px; background: var(--p-well); --p-fill-ok: var(--p-chart); }
+.page-work .work-usage .usage { gap: 7px; }
+.page-work .work-usage .usage-line { font-size: 15px; line-height: 1.45; }
+.page-work .work-usage .usage-word { font-size: 13px; }
+.page-work .work-usage .usage-reset { grid-column: 1 / -1; margin-top: 2px; font-size: 13.5px; }
+.page-work .work-usage .chip-sample { padding: 0 8px; border: 1px dashed var(--p-line-2); border-radius: 999px; background: none; color: var(--p-ink-3); font-size: 12px; font-weight: 600; line-height: 1.5; vertical-align: 1px; }
+.page-work .work-usage + .notice, .page-work .work-usage + .svc-wait { margin-top: 16px; }
+
+/* The steps: the list sits close under its heading, the done steps fold right under the list. */
+.page-work .svc-simple > .steps-head + .steps { margin-top: 6px; }
+.page-work .svc-simple > .steps + .steps-earlier, .page-work .svc-simple > .steps-head + .steps-earlier { margin-top: 6px; }
+.page-work .step { padding: 11px 0; }
+.page-work .steps-earlier > .steps { margin-top: 2px; }
+
+/* ------------------------------------------------------------------ not in this month's plan */
+
+/* Quiet on purpose: a smaller card, lighter glass, the icon tile and the words in the second and third inks, the three
+   of them close together as one group. Nothing in them is broken; nothing in them needs the client. */
+.page-work .svc-off { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: start; gap: 14px; margin-top: 24px; padding: 18px 22px 18px 20px; background: var(--p-glass-soft); }
+.page-work .svc-off + .svc-off { margin-top: 10px; }
+.page-work .svc-off .svc-ico { width: 40px; height: 40px; border-radius: 12px; background: var(--p-well); box-shadow: none; color: var(--p-ink-3); }
+.page-work .svc-off .svc-ico .i { width: 20px; height: 20px; }
+.page-work .off-body { min-width: 0; }
+.page-work .svc-off .svc-head { gap: 6px 12px; min-height: 40px; }
+.page-work .svc-off .svc-head h2 { font-size: 18px; color: var(--p-ink-2); }
+.page-work .svc-off .svc-head .badge { margin-left: auto; padding: 3px 10px; font-size: 13px; font-weight: 600; }
+.page-work .svc-off p { margin-top: 4px; max-width: 70ch; font-size: 15px; line-height: 1.5; color: var(--p-ink-2); }
+.page-work .svc-off .link { color: var(--p-ink); }
+
+@container svc (max-width: 640px) {
+  .page-work .work-usage { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 14px 16px 12px; }
+}
+@container page (max-width: 560px) {
+  .page-work .svc-section { padding: 20px; }
+  /* A phone: the name on one line, its state on the next, both at the left. */
+  .page-work .svc-section:not(.svc-off) > .svc-head { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 8px; }
+  .page-work .svc-section:not(.svc-off) > .svc-head > .badge { margin-left: 0; }
+  .page-work .svc-head h2 { font-size: 21px; }
+  .page-work .svc-now { font-size: 17px; }
+  .page-work .svc-off { grid-template-columns: 36px minmax(0, 1fr); gap: 12px; margin-top: 20px; padding: 16px; }
+  .page-work .svc-off .svc-ico { width: 36px; height: 36px; border-radius: 11px; }
+  .page-work .svc-off .svc-head { min-height: 36px; }
+  .page-work .svc-off .svc-head .badge { margin-left: 0; }
+}
+@media (forced-colors: active) {
+  .page-work .work-usage .chip-sample { border: 1px solid CanvasText; }
+  .page-work .work-usage { border: 1px solid CanvasText; }
+}

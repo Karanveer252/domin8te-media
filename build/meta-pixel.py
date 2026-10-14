@@ -9,7 +9,7 @@ seo/build.py writes the same blocks into the pages it generates, so a rebuild ke
   python meta-pixel.py --check  only reports"""
 import io, os, re, sys
 SITE = r'C:\Work\domin8te-media'
-PIXEL_ID = '1300852505438917'
+PIXEL_ID = '2195448994715770'
 HEAD = '''<!-- Meta Pixel Code -->
 <script>
 !function(f,b,e,v,n,t,s)

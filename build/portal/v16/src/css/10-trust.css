@@ -1,0 +1,170 @@
+/*
+ * Trust pieces (2026-10-13): the demo's "Sample data" label, the freshness line under every page title, the Verified pill,
+ * usage bars, result cards and the "Where these numbers come from" table. Tokens only, so the dark set follows.
+ * Words and a dot carry every state, never colour alone.
+ * The result card is the hero: one figure, its period, where it came from and whether a person checked it. Cards in a
+ * row share their rows (subgrid), so every label, figure and source line sits on the same line as its neighbours'.
+ */
+
+/* On Scenes, light theme, the page's own words are light because they sit on a deep sky. Glass that sits straight on the
+   sky (not inside a card) takes the glass inks back, so its words stay dark on it. (See variants/18h-scenes/3-18f-skylight.css.) */
+html[data-variant="18h"] .page :is(.sample-chip, .page-fresh) {
+  --p-ink: var(--k-ink); --p-ink-2: var(--k-ink-2); --p-ink-3: var(--k-ink-3);
+  --p-accent-ink: var(--k-accent-ink); --p-focus: var(--k-focus); --p-line: var(--k-line); --p-line-2: var(--k-line-2);
+  color: var(--p-ink);
+}
+
+/* The fills the bars use: orange while there is room, amber from 85 percent, red at the limit. */
+html { --p-fill-ok: var(--p-accent); --p-fill-warn: #E39A0B; --p-fill-full: #D43B2F; }
+html[data-theme="dark"] { --p-fill-ok: var(--p-accent); --p-fill-warn: #F2B544; --p-fill-full: #FF7A6E; }
+
+/* ------------------------------------------------------------------ the demo's label */
+
+.sample-chip {
+  display: inline-flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; max-width: 100%; margin: 0;
+  padding: 6px 14px; border: 1px solid var(--p-line); border-radius: 999px;
+  background: var(--p-glass-strong); box-shadow: inset 0 1px 0 var(--p-glass-hi), 0 1px 2px rgba(34, 40, 70, 0.05);
+  font-size: 13px; line-height: 1.4; color: var(--p-ink-3);
+}
+.sample-chip strong { font-weight: 650; color: var(--p-ink); }
+.sample-chip span::before { content: "\00b7"; margin-right: 8px; color: var(--p-line-2); }
+
+/* ------------------------------------------------------------------ the freshness line */
+
+.page-fresh {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 20px; margin-top: 20px; padding: 10px 16px;
+  border: 1px solid var(--p-line); border-radius: 14px; background: var(--p-glass-soft);
+  box-shadow: inset 0 1px 0 var(--p-glass-hi);
+  font-size: 13.5px; line-height: 1.45; color: var(--p-ink-2);
+}
+.page-fresh + * { margin-top: 20px; }
+.pf-part { min-width: 0; }
+.pf-part strong { font-weight: 650; color: var(--p-ink); }
+.pf-extra { color: var(--p-ink-3); }
+.pf-note {
+  display: flex; align-items: flex-start; gap: 8px; flex: 1 1 100%; margin: 4px -6px -2px; padding: 9px 12px; border-radius: 10px;
+  background: linear-gradient(var(--p-warning-bg), var(--p-warning-bg)), var(--p-surface); color: var(--p-ink);
+  font-size: 13.5px; font-weight: 500; line-height: 1.45;
+}
+.pf-note .i { flex: none; width: 15px; height: 15px; margin-top: 2px; color: var(--p-warning); }
+.page-fresh.is-kept { border-color: var(--p-sched-line); }
+
+/* ------------------------------------------------------------------ the pills: Verified, Being checked, Source delayed */
+
+.pf-chip, .vbadge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 8px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 650; line-height: 1.5; letter-spacing: 0.005em; white-space: nowrap;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 18%, transparent);
+}
+.pf-dot, .vb-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 16%, transparent); }
+.pf-chip.is-ok, .vbadge.is-verified { background: linear-gradient(var(--p-success-bg), var(--p-success-bg)), var(--p-surface); color: var(--p-success); }
+.pf-chip.is-checking, .vbadge.is-checking { background: linear-gradient(var(--p-warning-bg), var(--p-warning-bg)), var(--p-surface); color: var(--p-warning); }
+.pf-chip.is-delayed, .vbadge.is-delayed { background: linear-gradient(var(--p-neutral-bg), var(--p-neutral-bg)), var(--p-surface); color: var(--p-neutral); }
+
+/* ------------------------------------------------------------------ usage bars */
+
+.usage { display: grid; gap: 6px; }
+.usage-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 10px; }
+.usage-name { font-size: 15px; font-weight: 600; color: var(--p-ink); }
+.usage-fig { margin-left: auto; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--p-ink-2); }
+.usage-line { font-size: 15px; color: var(--p-ink-2); }
+.usage-line strong { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--p-ink); }
+.usage-hint { color: var(--p-ink-3); }
+.bar { position: relative; height: 8px; overflow: hidden; border-radius: 999px; background: var(--p-well); box-shadow: inset 0 0 0 1px var(--p-line); }
+.bar > span { display: block; height: 100%; border-radius: inherit; background: var(--p-fill-ok); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28); transition: width var(--m-slow) var(--ease); }
+.usage.is-warn .bar > span { background: var(--p-fill-warn); }
+.usage.is-full .bar > span { background: var(--p-fill-full); }
+.usage-word { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 650; }
+.usage-word::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.usage.is-warn .usage-word { color: var(--p-warning); }
+.usage.is-full .usage-word { color: var(--p-error); }
+.usage-reset { margin-top: 2px; font-size: 13.5px; color: var(--p-ink-3); }
+.chip-sample { display: inline-flex; align-items: center; padding: 1px 9px; border-radius: 999px; background: linear-gradient(var(--p-neutral-bg), var(--p-neutral-bg)), var(--p-surface); color: var(--p-ink-3); font-size: 12.5px; font-weight: 600; line-height: 1.5; white-space: nowrap; }
+
+/* ------------------------------------------------------------------ result cards */
+
+/* Three to a row. Each card is a subgrid of five rows (name, figure, period, anything extra, source), so cards side by
+   side share their rows: the figures sit on one line and the source lines meet at the foot, whatever the names' length. */
+.rtiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--p-gap); }
+.strip.is-3 .rtile { min-width: 0; }
+.rtile { position: relative; display: grid; grid-template-rows: subgrid; grid-row: span 5; row-gap: 0; min-width: 0; padding: 20px 22px 18px; }
+@supports not (grid-template-rows: subgrid) {
+  .rtile { display: flex; flex-direction: column; }
+  .rt-source, .rtile .btn-text { margin-top: auto; }
+}
+.rt-head { grid-row: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 6px 10px; }
+.rt-label { flex: 1 1 auto; min-width: 0; font-size: 15px; font-weight: 650; line-height: 1.3; color: var(--p-ink); overflow-wrap: anywhere; }
+.rt-head .vbadge { flex: none; margin-top: 1px; }
+.rt-value { grid-row: 2; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-top: 10px; }
+.rtile .fig { font-size: 40px; line-height: 1; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: lining-nums proportional-nums; }
+.rt-unit { margin-left: -4px; font-size: 15px; font-weight: 500; color: var(--p-ink-3); }
+.rtile .delta { padding: 2px 9px 2px 6px; font-size: 13.5px; }
+.rt-period { grid-row: 3; margin-top: 8px; font-size: 14px; color: var(--p-ink-2); font-variant-numeric: tabular-nums; }
+.rt-more { grid-row: 4; }
+.rt-check { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: linear-gradient(var(--p-warning-bg), var(--p-warning-bg)), var(--p-surface); font-size: 13.5px; line-height: 1.45; color: var(--p-ink); }
+.rt-check .i { flex: none; margin-top: 2px; width: 15px; height: 15px; color: var(--p-warning); }
+.rt-note { margin-top: 8px; font-size: 14px; line-height: 1.45; color: var(--p-ink-2); }
+.rt-source { grid-row: 5; align-self: end; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--p-line); font-size: 13px; line-height: 1.45; color: var(--p-ink-3); }
+.rt-source strong { font-weight: 650; color: var(--p-ink-2); }
+.rt-read { white-space: nowrap; }
+.rt-read::before { content: "\00b7"; margin-right: 6px; color: var(--p-line-2); }
+/* Not connected yet, or not loading: the words sit where the figure would, the reason under them, Try again at the foot. */
+.rt-empty { grid-row: 2; align-self: end; display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 16px; font-weight: 650; color: var(--p-ink-2); }
+.rt-empty .i { width: 18px; height: 18px; color: var(--p-ink-3); }
+.rtile.is-error .rt-empty, .rtile.is-error .rt-empty .i { color: var(--p-crit); }
+.rtile:is(.is-pending, .is-error) .rt-note { grid-row: 3 / span 2; }
+.rtile.is-pending { background-image: none; }
+.rtile.is-pending .rt-label { color: var(--p-ink-2); }
+.rtile .btn-text { grid-row: 5; justify-self: start; align-self: end; margin-top: 12px; }
+/* Home's three: the same card, a little tighter. */
+.rtile.is-compact { padding: 18px 20px 16px; }
+.rtile.is-compact .rt-label { font-size: 14.5px; }
+.rtile.is-compact .rt-value { margin-top: 8px; }
+.rtile.is-compact .fig { font-size: 34px; }
+.rtile.is-compact .rt-source { margin-top: 12px; padding-top: 10px; }
+
+/* ------------------------------------------------------------------ where these numbers come from */
+
+.sources-card { margin-top: 40px; padding: 22px 26px 12px; }
+.sources-card .sec-head { margin-bottom: 8px; }
+.sources-card .table-wrap { max-height: none; margin-top: 0; border: 0; border-radius: 0; background: none; }
+.sources-table { font-size: 14.5px; }
+.sources-table th, .sources-table td { padding: 12px 16px 12px 0; vertical-align: middle; border-bottom: 1px solid var(--p-line); }
+.sources-table thead th { position: static; padding: 4px 16px 8px 0; background: none; border-bottom: 1px solid var(--p-line-2); font-size: 13px; font-weight: 600; letter-spacing: 0.01em; color: var(--p-ink-3); }
+.sources-table tbody th { font-weight: 600; color: var(--p-ink); }
+.sources-table tbody tr:last-child th, .sources-table tbody tr:last-child td { border-bottom: 0; }
+.sources-table td { color: var(--p-ink-2); }
+.sources-table td:last-child { color: var(--p-ink-3); }
+
+/* ------------------------------------------------------------------ narrower pages and phones */
+
+@container page (max-width: 900px) {
+  .rtiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container page (max-width: 640px) {
+  .page-fresh { gap: 4px 14px; padding: 10px 14px; }
+  .pf-note { margin: 6px -4px 0; }
+  .rtiles, .strip.is-3 { grid-template-columns: minmax(0, 1fr); }
+  .strip.is-3 { gap: 12px; }
+  .rtile { padding: 18px 18px 16px; }
+  .rtile .fig { font-size: 34px; }
+  .rtile.is-compact .fig { font-size: 30px; }
+  .rtile.is-compact { padding: 16px 18px 14px; }
+  .sources-card { padding: 20px 18px 8px; }
+  .sources-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .sources-table, .sources-table tbody, .sources-table tr, .sources-table th, .sources-table td { display: block; }
+  .sources-table tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--p-line); }
+  .sources-table tr:last-child { border-bottom: 0; }
+  .sources-table th, .sources-table td { padding: 0; border: 0; }
+  .sources-table tbody th { grid-column: 1; font-size: 15px; line-height: 1.35; }
+  .sources-table td:nth-child(2) { grid-column: 1; font-size: 13.5px; }
+  .sources-table td:nth-child(3) { grid-column: 1; font-size: 13.5px; }
+  .sources-table td:nth-child(4) { grid-column: 2; grid-row: 1; justify-self: end; }
+  .sources-table td:nth-child(5) { grid-column: 1 / -1; font-size: 13px; color: var(--p-ink-3); }
+}
+@media (forced-colors: active) {
+  .pf-chip, .vbadge, .chip-sample, .checked-chip { border: 1px solid CanvasText; }
+  .bar { border: 1px solid CanvasText; }
+  .bar > span { background: Highlight; }
+  .rt-check, .pf-note { border: 1px solid CanvasText; }
+}

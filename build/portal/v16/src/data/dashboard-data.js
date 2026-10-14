@@ -25,6 +25,7 @@
   /** @type {any} */
   const D8 = (root.D8 = root.D8 || {});
   const T = D8.time;
+  const F = D8.fmt;
 
   /**
    * 'demo' reads demo-fixtures.js. 'live' reads the portal database (Supabase, signed in through
@@ -40,10 +41,11 @@
   const SERVICES = {
     website: { label: 'Website', icon: 'globe' },
     social: { label: 'Social media', icon: 'share' },
-    advertising: { label: 'Advertising', icon: 'megaphone' },
-    local: { label: 'Local search', icon: 'pin' }
+    advertising: { label: 'Ads', icon: 'megaphone' },
+    local: { label: 'SEO and Google Maps', icon: 'pin' },
+    email: { label: 'Email', icon: 'mail' }
   };
-  const SERVICE_ORDER = ['website', 'social', 'advertising', 'local'];
+  const SERVICE_ORDER = ['website', 'social', 'advertising', 'local', 'email'];
 
   /** One status vocabulary for all work. "waiting" is shown to the client as "Waiting for you". */
   const STATUS = {
@@ -58,9 +60,9 @@
   const GROUPS = [
     { id: 'leads', title: 'Bookings and calls', intro: 'People who booked or picked up the phone.' },
     { id: 'website', title: 'Website', service: 'website', intro: 'Visits to your website.' },
-    { id: 'local', title: 'Local search', service: 'local', intro: 'How people find you on Google.' },
+    { id: 'local', title: 'SEO and Google Maps', service: 'local', intro: 'How people find you on Google.' },
     { id: 'social', title: 'Social media', service: 'social', intro: 'How often your posts were seen.' },
-    { id: 'advertising', title: 'Advertising', service: 'advertising', intro: 'What your ads brought in.' }
+    { id: 'advertising', title: 'Ads', service: 'advertising', intro: 'What your ads brought in.' }
   ];
 
   /** Operational emails sent through Resend. Sign-in and password emails come from Clerk. */
@@ -70,6 +72,13 @@
     { id: 'invoices', label: 'A new invoice is available', text: 'When Stripe (our payment service) sends an invoice.' },
     { id: 'website', label: 'A website update is published', text: 'When a change goes live on your website.' },
     { id: 'account', label: 'Important account actions', text: 'Payment problems and anything that could pause a service.', required: true }
+  ];
+
+  /** Emails that are always sent, so they have no switch (2026-10-13): the bill reminders and the confirmation of a change of picks. */
+  const ALWAYS_EMAILS = [
+    { id: 'bill7', label: 'Reminder 7 days before your bill', text: 'What you have now, and what you can change for next month.' },
+    { id: 'bill3', label: 'Reminder 3 days before your bill', text: "Last chance to change next month's services." },
+    { id: 'picks', label: 'Confirmation when you change your picks', text: 'A copy of what you chose and when it starts.' }
   ];
 
   /**
@@ -280,7 +289,7 @@
   function normalize(doc, now) {
     const t = clone(doc || {});
     const yesterday = T.isoDay(T.dayNum(now()) - 1);
-    return {
+    return planPackage({
       ...t,
       business: t.business || { name: '', kind: '' },
       user: t.user || { firstName: '', email: '', role: '' },
@@ -304,8 +313,28 @@
       // the team's board cards for this client (live: from client_work_cards(); the demo: the fixture's own)
       cards: t.cards || [],
       billing: { plan: null, subscription: null, paymentMethod: null, invoices: [], ...(t.billing || {}) },
-      dataThrough: t.dataThrough || yesterday
-    };
+      dataThrough: t.dataThrough || yesterday,
+      // The restaurant's own clock, its plan (2026-10-13: months, picks, limits), what staff wrote for Home, and (live) the verified results
+      timezone: t.timezone || 'America/Winnipeg',
+      plan: t.plan || null,
+      homeSections: t.homeSections || [],
+      verifiedResults: t.verifiedResults || null
+    });
+  }
+  /**
+   * The plan decides which services a restaurant has: the picks of this month's plan (the console's Billing is the one
+   * place they change). The record's own package is the fallback only while no plan month is set up.
+   * @param {any} t a normalize()d record
+   */
+  function planPackage(t) {
+    if (t.plan && t.plan.now && D8.planModel) {
+      t.package = { ...t.package, services: D8.planModel.picksOf(t.plan.now) };
+      // A service they just picked may have nothing on record yet: it starts as "getting started", never missing.
+      for (const id of t.package.services) {
+        if (!t.services[id]) t.services[id] = { status: 'planned', objective: '', now: '', next: null, expected: null, proof: null, milestones: [], completed: [], files: [] };
+      }
+    }
+    return t;
   }
 
   /**
@@ -348,7 +377,9 @@
     }
     const inv = (invoices || []).map((r) => ({
       id: r.invoice_number, number: r.invoice_number, issued: r.issued_at, due: r.due_at || null, paidAt: r.paid_at || null,
-      status: r.status, amountMinor: r.amount_minor, currency: r.currency, url: r.hosted_payment_url || null
+      status: r.status, amountMinor: r.amount_minor, currency: r.currency, verifiedAt: r.verified_at || null,
+      // the Stripe link shows only once staff approved this very link (payment_link_approved_*)
+      url: r.hosted_payment_url && r.payment_link_approved_at && r.payment_link_approved_url === r.hosted_payment_url ? r.hosted_payment_url : null
     }));
     if (inv.length) {
       const nums = new Set(inv.map((x) => x.number));
@@ -376,6 +407,8 @@
       st.notificationsSavedAt = rec.at;
     } else if (kind === 'appearance') {
       st.appearance = rec.look;
+    } else if (kind === 'picks') {
+      st.planNext = rec.next;
     }
     return st;
   }
@@ -383,7 +416,8 @@
   /** The demo: a fixture, and the client's actions kept in this browser. @param {any} session */
   function demoSource(session) {
     const sc = currentScenario();
-    const raw = fixtures().tenants[session.tenantId];
+    // Each demo situation can carry its own plan (the same restaurant on Starter, Growth or Domin8te)
+    const raw = fixtures().record ? fixtures().record(session.tenantId, sc) : fixtures().tenants[session.tenantId];
     const key = NS + '.demo.' + session.tenantId;
     const state = () => {
       const s = readJSON(key) || {};
@@ -418,6 +452,7 @@
         if (kind === 'message') rec.id = 'msg_' + ((st.messages || []).length + 1);
         if (kind === 'request') rec.id = 'req_' + ((st.requests || []).length + 1);
         rec.at = T.isoTime(now());
+        if (kind === 'picks') rec.next = { ...rec.next, confirmedAt: rec.at };
         st.lastAt = rec.at;
         writeJSON(key, apply(st, kind, rec));
         return Promise.resolve(rec);
@@ -600,7 +635,17 @@
       }
       for (const r of state().requests || []) if (out[r.service]) out[r.service].requests.push(r);
       applyCards(out);
+      attachUsage(out);
       return out;
+    }
+
+    /** Each service in this month's plan carries what is used of it (a line per kind of work: used, limit, a bar). @param {Record<string, any>} out */
+    function attachUsage(out) {
+      const m = plan();
+      for (const s of Object.values(out)) {
+        const ps = m.now ? m.now.services.find((/** @type {any} */ x) => x.id === s.id) : null;
+        s.usage = ps ? ps.lines : [];
+      }
     }
 
     /* The team's board cards on each service (2026-10-08, Karan: one card should be the single place the work is
@@ -754,6 +799,10 @@
         meeting: clone(tenant.meeting), subscription: clone(tenant.billing.subscription), sources: srcs,
         connected: working.length, problems: srcs.filter((s) => s.state !== 'fresh'),
         updatedAt: latest ? T.isoTime(latest) : null, openActions: attention().length,
+        // What staff wrote for Home (running now, next month, nothing to do, a note); only the ones they made visible
+        homeSections: clone(tenant.homeSections || []),
+        // The restaurant's own clock: every time on every page is in it
+        timezone: tenant.timezone, zoneAbbr: F.zoneAbbr(tenant.timezone),
         // The look the client chose (theme, and the ground where the design has one), kept with the
         // account so it follows them to every device. Null until they first choose.
         appearance: clone(state().appearance || null)
@@ -761,6 +810,7 @@
     }
 
     function results(days) {
+      if (tenant.verifiedResults) return verifiedResults();
       const groups = [];
       for (const g of GROUPS) {
         if (g.service && !inPackage(g.service)) continue;
@@ -782,17 +832,23 @@
           campaigns: g.id === 'advertising' ? clone(tenant.campaigns || []) : []
         });
       }
-      const summary = days === 30 ? (tenant.summaries || []).find((s) => s.days === 30) : null;
-      return { window: windowInfo(days), groups, summary: summary ? clone(summary) : null };
+      const wi = windowInfo(days);
+      return { mode: 'series', window: wi, groups, items: groups.flatMap((g) => g.metrics.map((/** @type {any} */ m) => tileOf(m, wi))), summary: days === 30 ? reviewedSummary(30) : null };
     }
 
     function billing() {
       if (failing.has('stripe')) throw fail('source-error', 'We could not reach Stripe just now.');
       const b = clone(tenant.billing);
-      // the plan lists the services the client actually has: the package is the one list the team changes
-      // (Change services in the console), so a client who drops two services sees two here, as everywhere else
-      if (b.plan) b.plan = { ...b.plan, interval: b.plan.interval || tenant.package.billing || '', services: tenant.package.services.filter((s) => SERVICES[s]) };
-      return { ...b, stripeConnected: integrations.stripe.connected };
+      const m = plan();
+      // One state per bill: paid, failed, overdue (open and past its due date) or due. A pay link shows only once staff approved it.
+      const invoices = (b.invoices || []).map((/** @type {any} */ i) => {
+        const due = i.due || i.issued || null;
+        const state = i.status === 'paid' ? 'paid' : i.status === 'failed' ? 'failed' : due && due < m.today ? 'overdue' : 'due';
+        return { ...i, due, paid: i.paidAt || i.paidOn || null, state };
+      });
+      const checked = invoices.map((/** @type {any} */ i) => i.verifiedAt).filter(Boolean).sort().pop() || null;
+      // The plan is the month's plan from the database; the record's own plan name is never used.
+      return { ...b, plan: m, invoices, checkedAt: checked, stripeConnected: integrations.stripe.connected };
     }
 
     function settings() {
@@ -800,13 +856,75 @@
       /** @type {Record<string, boolean>} */
       const prefs = {};
       for (const n of NOTIFICATIONS) prefs[n.id] = n.required ? true : saved[n.id] !== undefined ? !!saved[n.id] : true;
-      return { email: session.email || tenant.user.email, categories: clone(NOTIFICATIONS), prefs, savedAt: state().notificationsSavedAt || null, sources: sources() };
+      return { email: session.email || tenant.user.email, categories: clone(NOTIFICATIONS), always: clone(ALWAYS_EMAILS), prefs, savedAt: state().notificationsSavedAt || null, sources: sources() };
     }
 
     function approval(id) {
       const a = tenant.approvals[id];
       if (!a) throw fail('not-found', 'This item is no longer waiting for you.');
       return { ...clone(a), decision: decisions()[id] || null };
+    }
+
+    /* ---- the plan, the tiles and the verified results (2026-10-13) ------------------------------------ */
+
+    /** Everything the pages need about this restaurant's plan this month and next (see data/plan-model.js). */
+    const plan = () => D8.planModel.build(tenant, state(), now());
+
+    /** The Work page: every service in the plan with its usage, what is waiting, the plan, and the services that are not in it. */
+    function work() {
+      const m = plan();
+      const list = Object.values(services());
+      const off = m.state === 'ok' ? SERVICE_ORDER.filter((id) => SERVICES[id] && !m.now.picks.includes(id)).map((id) => ({ id, label: SERVICES[id].label, icon: SERVICES[id].icon })) : [];
+      const times = list.flatMap((s) => (s.cards || []).map((/** @type {any} */ c) => c.updatedAt)).filter(Boolean).sort();
+      return { services: list, actions: attention(), plan: m, off, updatedAt: times.length ? times[times.length - 1] : null };
+    }
+
+    /**
+     * A figure as a card: its value, the period it covers, where it came from and whether it was checked. The demo's
+     * figures come from its series; the live ones are only what staff verified (verifiedTiles).
+     * @param {any} m a metric() result @param {any} w a windowInfo()
+     */
+    function tileOf(m, w) {
+      if (m.state === 'pending') return { id: m.id, label: m.label, state: 'pending', text: m.text, group: m.group, metric: m };
+      if (m.state === 'error') return { id: m.id, label: m.label, state: 'error', text: m.text, group: m.group, service: m.service, metric: m };
+      const srcs = m.sources || [];
+      const slow = m.state === 'partial' || srcs.some((/** @type {any} */ s) => s.state === 'stale' || s.state === 'disconnected');
+      const read = srcs.map((/** @type {any} */ s) => s.updatedAt).filter(Boolean).sort().pop() || null;
+      return { id: m.id, label: m.label, value: m.value, unit: m.unit, state: 'ok', periodStart: w.from, periodEnd: w.to, days: w.days, source: srcs.map((/** @type {any} */ s) => s.name).join(' and '), readAt: read, badge: slow ? 'delayed' : 'verified', group: m.group, service: m.service, metric: m };
+    }
+    /** Live: the newest verified number for each kind of figure, newest period first. */
+    function verifiedTiles() {
+      return (tenant.verifiedResults || []).filter((/** @type {any} */ r) => inPackage(r.service))
+        .slice()
+        .sort((/** @type {any} */ a, /** @type {any} */ b) => String(b.periodEnd || '').localeCompare(String(a.periodEnd || '')) || SERVICE_ORDER.indexOf(a.service) - SERVICE_ORDER.indexOf(b.service))
+        .map((/** @type {any} */ r) => ({
+          id: r.key, label: r.label, value: r.value, unit: r.unit, state: 'ok', periodStart: r.periodStart, periodEnd: r.periodEnd, source: r.source, readAt: r.readAt,
+          badge: r.newer ? 'checking' : r.status === 'stale' ? 'delayed' : 'verified', newer: !!r.newer, verifiedAt: r.verifiedAt || null, service: r.service || null, group: r.service || 'overall'
+        }));
+    }
+    /** The written summary, only once a person has checked it: it names who and when. @param {number|null} days */
+    function reviewedSummary(days) {
+      const list = (tenant.summaries || []).filter((/** @type {any} */ s) => (days === null || s.days === days) && s.reviewedBy && s.reviewedAt)
+        .slice().sort((/** @type {any} */ a, /** @type {any} */ b) => String(b.reviewedAt).localeCompare(String(a.reviewedAt)));
+      return list[0] ? clone(list[0]) : null;
+    }
+    /** Home's three numbers. @param {number} days */
+    function strip(days) {
+      const w = windowInfo(days);
+      if (tenant.verifiedResults) return { mode: 'verified', window: w, metrics: [], items: verifiedTiles().slice(0, 3) };
+      const metrics = tenant.strip.map((id) => metric(id, days)).filter(Boolean)
+        .map((m) => (m.chart && m.state !== 'error' && m.value !== null ? { ...m, spark: points(m.id, days).map((p) => p.v) } : m));
+      return { mode: 'series', window: w, metrics, items: metrics.map((m) => tileOf(m, w)) };
+    }
+    /** Live results: only what staff verified, each with its own period, its source and its status. */
+    function verifiedResults() {
+      const items = verifiedTiles();
+      const groups = [];
+      for (const id of [null, ...SERVICE_ORDER]) {
+        const its = items.filter((x) => (x.service || null) === id);
+        if (its.length) groups.push({ id: id || 'overall', title: id ? SERVICES[id].label : 'Across your services', intro: '', state: 'ok', items: its, service: id });
+      }
+      return { mode: 'verified', window: null, groups, items, summary: reviewedSummary(null), checking: items.some((x) => x.badge === 'checking') };
     }
 
     /* ---- writes ------------------------------------------------------------------- */
@@ -842,15 +960,46 @@
       }, 600);
     }
 
-    /** A change request against one service. Live: POST /api/requests. */
-    function sendRequest(service, text) {
+    /**
+     * A change request against one service. Live: POST /api/requests. It says what kind of work and how many, so the
+     * limit can be checked (asking for more than the plan allows is still allowed: Karan replies first, and nothing
+     * is charged). An urgent fix (hours, a closure, a phone number, a sold-out item) never counts toward the plan.
+     * @param {string} service @param {string} text @param {{metric?: string|null, estQty?: number|null, urgent?: boolean}} [extra]
+     */
+    function sendRequest(service, text, extra) {
       return call(() => {
-        if (!inPackage(service) || !SERVICES[service]) throw fail('bad-service', 'That service is not part of your plan.');
+        const x = extra || {};
+        const urgent = !!x.urgent;
+        const svcId = urgent ? ['local', 'website'].find((id) => inPackage(id)) || (tenant.package.services.find((/** @type {string} */ id) => SERVICES[id]) || '') : service;
+        if (!svcId || !inPackage(svcId) || !SERVICES[svcId]) throw fail('bad-service', 'That service is not part of your plan.');
         const body = String(text || '').trim();
         if (!body) throw fail('text-required', 'Tell us what you would like changed.', 'text');
         if (body.length > 2000) throw fail('text-too-long', 'Keep the request under 2,000 characters.', 'text');
-        return src.put('request', { service, text: body, status: 'review', by: session.firstName });
+        const metric = !urgent && x.metric && /^[a-z_]{3,40}$/.test(String(x.metric)) ? String(x.metric) : null;
+        const qty = !urgent && metric ? Math.max(1, Math.min(100, Math.floor(Number(x.estQty)) || 1)) : null;
+        const ask = metric ? D8.planModel.askPreview(plan(), svcId, metric, qty || 1) : null;
+        // The team's card carries the words, so an urgent fix reads as one there too
+        const said = urgent && !/^urgent fix:/i.test(body) ? `Urgent fix: ${body}` : body;
+        return src.put('request', { service: svcId, text: said, status: 'review', by: session.firstName, metric, estQty: qty, urgentFix: urgent, overCap: !!(ask && ask.over) });
       }, 600);
+    }
+
+    /**
+     * The client's choice for next month. Live: the database checks the same rule again (set_next_cycle_picks) and refuses
+     * anything after the last day to change. @param {string} planId @param {string[]} picks @param {string|null} [websiteOption]
+     */
+    function savePicks(planId, picks, websiteOption) {
+      return call(() => {
+        const m = plan();
+        if (m.state !== 'ok') throw fail('no-plan', 'Your plan is not set up yet. Message us and we will sort it out.');
+        if (!m.open) throw fail('locked', 'It is too late to change next month. Message us and we will help.');
+        const list = D8.planModel.ordered(picks);
+        const opt = planId === 'starter' && list.includes('website') ? websiteOption || null : null;
+        const v = D8.planModel.validate({ plans: m.menu }, planId, list, opt);
+        if (!v.ok) throw fail(v.code, v.error);
+        const next = { planId, picks: list, websiteOption: opt, start: m.bill, end: T.addMonths(m.bill, 1), source: 'client_picker', state: 'confirmed', confirmedBy: session.firstName || '' };
+        return src.put('picks', { next, planId, picks: list, websiteOption: opt, by: session.firstName }).then((/** @type {any} */ r) => ({ next: r.next, at: r.at }));
+      }, 700);
     }
 
     /**
@@ -922,7 +1071,7 @@
     function thread() {
       const seed = src.seed ? src.seed() : {};
       const reqs = [...(seed.requests || []), ...(state().requests || [])].filter((/** @type {any} */ r) => SERVICES[r.service])
-        .map((/** @type {any} */ r) => ({ kind: 'request', id: r.id, service: r.service, text: r.text, at: r.at, status: r.status || 'review', by: r.by || '' }));
+        .map((/** @type {any} */ r) => ({ kind: 'request', id: r.id, service: r.service, text: r.text, at: r.at, status: r.status || 'review', by: r.by || '', overCap: !!r.overCap, urgent: !!r.urgentFix }));
       const items = [...allMessages().map((m) => ({ kind: 'message', ...m })), ...reqs].sort((a, b) => T.parse(a.at) - T.parse(b.at));
       return { items, seenAt: seenAt(), unread: unreadReplies(), services: tenant.package.services.filter((/** @type {string} */ x) => SERVICES[x]), team: clone(tenant.team) };
     }
@@ -951,15 +1100,13 @@
       getAccount: () => call(account),
       getAttention: () => call(attention),
       // Charted metrics carry their daily figures for a small sparkline; the rest do not.
-      getStrip: (days = 30) => call(() => ({
-        window: windowInfo(days),
-        metrics: tenant.strip.map((id) => metric(id, days)).filter(Boolean)
-          .map((m) => (m.chart && m.state !== 'error' && m.value !== null ? { ...m, spark: points(m.id, days).map((p) => p.v) } : m))
-      })),
+      getStrip: (days = 30) => call(() => strip(days)),
+      getPlan: () => call(plan, 0),
+      savePicks,
       getHighlights: () => call(highlights),
       getUpcoming: () => call(upcoming),
       getWorkSummary: () => call(() => Object.values(services())),
-      getWork: () => call(() => ({ services: Object.values(services()), actions: attention() })),
+      getWork: () => call(work),
       getInsight: () => call(insight),
       getUpdates: () => call(updates),
       getResults: (days = 30) => call(() => results(days)),
@@ -997,7 +1144,7 @@
   D8.auth = auth;
   D8.integrations = integrations;
   D8.data = {
-    MODE, READ_ONLY, DEMO_NOTE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, SEVERITY, HEALTH, ACCOUNTS,
+    MODE, READ_ONLY, DEMO_NOTE, SERVICES, SERVICE_ORDER, STATUS, GROUPS, NOTIFICATIONS, ALWAYS_EMAILS, SEVERITY, HEALTH, ACCOUNTS,
     connect, scenarios, currentScenario, switchScenario,
     // For live-data.js: build a client on another source, and the shared helpers it needs.
     makeClient, normalize, mergeProjections, apply, fail,

@@ -1,0 +1,63 @@
+/*
+ * Add client (2026-10-13): the stepped form. The plan cards and the picks are the shared widget (.pp-* in 30-billing.css);
+ * this file is the page around them: the steps rail, the numbered cards, the dates, the page decisions and the actions.
+ */
+
+.nc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.nc-rail { min-width: 0; }
+.nc-draft { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 14px; }
+.nc-rail ol { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.nc-pill { display: inline-flex; align-items: center; gap: 9px; min-height: 40px; padding: 6px 16px 6px 7px; border: 0.67px solid var(--glass-edge); border-radius: 999px; background-color: rgba(255, 255, 255, 0.4); box-shadow: var(--glass-shadow-sm); color: var(--ink-2); font-size: 14px; font-weight: 650; cursor: pointer; transition: background 160ms var(--ease), color 160ms var(--ease); }
+.nc-pill:hover { background-color: rgba(255, 255, 255, 0.8); color: var(--ink); }
+.nc-pill-n { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-3); color: var(--ink-2); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.nc-pill-n .ic { width: 14px; height: 14px; stroke-width: 3; }
+.nc-pill.is-done .nc-pill-n { background: var(--good-bg); color: var(--good); }
+
+.nc-step { scroll-margin-top: 16px; }
+.nc-step + .nc-step, .nc-step + .nc-two, .nc-two + .nc-step { margin-top: 0; }
+.nc-step h2 { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 21px; }
+.nc-num { display: grid; flex: none; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.nc-step.is-done .nc-num { background: var(--good); }
+.nc-sub { max-width: 72ch; margin: -6px 0 18px; color: var(--ink-3); font-size: 14px; line-height: 1.5; }
+.nc-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 18px; }
+.nc-two { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.nc-two > .panel { margin: 0; }
+
+.nc-dates { display: grid; margin: 16px 0 0; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: rgba(255, 255, 255, 0.55); }
+.nc-dates:empty { display: none; }
+.nc-dates > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 14px; padding: 11px 16px; border-top: 1px solid var(--line); }
+.nc-dates > div:first-child { border-top: 0; }
+.nc-dates dt { color: var(--ink-3); font-size: 13.5px; }
+.nc-dates dd { margin: 0; font-weight: 650; text-align: right; }
+.nc-past { display: block; margin-top: 1px; color: var(--ink-3); font-size: 12.5px; font-weight: 500; }
+
+.nc-vis-wrap { display: grid; border-top: 1px solid var(--line); }
+.nc-vis { display: grid; grid-template-columns: 140px 190px minmax(0, 1fr); gap: 8px 20px; align-items: center; padding: 14px 4px; border-bottom: 1px solid var(--line); }
+.nc-vis-head { padding-top: 10px; padding-bottom: 10px; color: var(--ink-3); font-size: 13px; font-weight: 600; }
+.nc-vis-page { font-size: 15.5px; font-weight: 650; }
+.nc-vis-why { color: var(--ink-3); font-size: 14px; line-height: 1.45; }
+.nc-check { display: flex; align-items: center; gap: 11px; font-weight: 600; cursor: pointer; }
+.nc-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent-ink); }
+.nc-check input:disabled + span { color: var(--ink-3); }
+.nc-step .hint { margin-top: 6px; color: var(--ink-3); font-size: 13.5px; }
+
+.nc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 4px; }
+.nc-status { flex: 1 1 260px; font-size: 14px; }
+.nc-foot { margin-top: -6px; }
+.fold-more .seg-set { margin-top: 12px; }
+
+@media (max-width: 1240px) {
+  .nc-two { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .nc-fields { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .nc-rail ol { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .nc-pill { flex: none; }
+  .nc-vis { grid-template-columns: minmax(0, 1fr) auto; }
+  .nc-vis-head { display: none; }
+  .nc-vis-why { grid-column: 1 / -1; }
+  .nc-step h2 { font-size: 19px; }
+  .nc-actions .btn { flex: 1 1 auto; }
+}

@@ -1,0 +1,101 @@
+/*
+ * Results (2026-10-13): the range bar, the checked summary, the groups of result cards, the daily chart card, the folds,
+ * the ads list and the notices. The cards themselves and the "Where these numbers come from" table are in 10-trust.css.
+ * Tokens only, so the dark set follows.
+ */
+
+/* On Scenes the fold pills ("Show daily website visits", "See your 3 ads") sit straight on the sky and are glass, so they
+   keep the glass inks (the same rule the freshness line uses in 10-trust.css). */
+html[data-variant="18h"] .page-results :is(.fold-chart, .fold-ads) > summary {
+  --p-ink: var(--k-ink); --p-ink-2: var(--k-ink-2); --p-ink-3: var(--k-ink-3);
+  --p-focus: var(--k-focus); --p-line: var(--k-line); --p-line-2: var(--k-line-2);
+  color: var(--p-ink-2); text-shadow: none;
+}
+/* Over the deep sky (Scenes, light) the group's source line carries the same soft shadow as the words beside it. */
+html[data-variant="18h"][data-scene="scenes"]:not([data-theme="dark"]) .page-results .group-src { text-shadow: 0 1px 14px rgba(8, 10, 30, 0.5); }
+
+/* ------------------------------------------------------------------ the top: range, freshness, summary */
+
+.page-results .range-bar { gap: 10px 14px; margin-top: 20px; }
+.page-results .range-text { flex: 1 1 100%; margin: -2px 0 0 2px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.page-results #results-body > :first-child { margin-top: 24px; }
+.page-results .page-fresh + * { margin-top: 20px; }
+.page-results .page-fresh + .group { margin-top: 32px; }
+.page-results .ai-summary { margin-top: 20px; padding: 22px 24px 20px; border-style: solid; border-color: var(--p-glass-edge); background: var(--p-glass); }
+.ai-summary .sec-head { align-items: center; gap: 8px 16px; margin-bottom: 10px; }
+.checked-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 11px 3px 9px; border-radius: 999px;
+  background: linear-gradient(var(--p-success-bg), var(--p-success-bg)), var(--p-surface); color: var(--p-success);
+  font-size: 13px; font-weight: 650; line-height: 1.5; white-space: nowrap;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 18%, transparent);
+}
+.checked-chip .i { width: 14px; height: 14px; }
+.ai-summary .ai-text { max-width: 70ch; font-size: 17px; line-height: 1.55; color: var(--p-ink); }
+.ai-summary .ai-label { display: flex; align-items: center; gap: 6px; margin-top: 12px; padding: 0; border-radius: 0; background: none; color: var(--p-ink-3); font-size: 13.5px; font-weight: 500; }
+.ai-summary .ai-label .i { width: 14px; height: 14px; color: var(--p-appr); }
+.ai-big { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--p-line); font-size: 15.5px; line-height: 1.5; color: var(--p-ink-2); }
+.ai-big strong { font-weight: 650; color: var(--p-ink); }
+
+/* ------------------------------------------------------------------ a group: heading, what it is, where from */
+
+.page-results .group { margin-top: 40px; }
+.group-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 14px; }
+.group-head h2 { margin-right: auto; }
+.group-head .sec-meta { order: 1; flex-basis: 100%; font-size: 15px; color: var(--p-ink-2); }
+.group-head .group-src { flex: 0 1 auto; margin: 0; font-size: 13.5px; line-height: 1.4; text-align: right; color: var(--p-ink-3); }
+.group-src .fresh { display: inline; }
+.group-src .fresh .i { margin-right: 3px; vertical-align: -0.2em; }
+.group-src .sep { margin: 0 8px; }
+.page-results .group .notice { margin-top: var(--p-gap); }
+.page-results .group > .error-state { margin-top: 0; }
+
+/* ------------------------------------------------------------------ the daily chart */
+
+.page-results .chart-fig { margin-top: var(--p-gap); padding: 20px 22px 14px; }
+.chart-cap { align-items: center; gap: 6px 16px; margin-bottom: 12px; }
+.chart-title { font-size: 15.5px; font-weight: 650; }
+.legend { font-size: 13.5px; }
+.page-results .c-y, .page-results .c-x { font-variant-numeric: tabular-nums; }
+.page-results .chart-table { margin-top: 6px; }
+.page-results .chart-table summary { font-size: 14px; color: var(--p-ink-2); }
+.page-results .chart-table summary:hover { color: var(--p-ink); }
+.page-results .chart-table .table-wrap { margin-top: 10px; }
+
+/* ------------------------------------------------------------------ the folds: a quiet glass pill, the card under it */
+
+.page-results :is(.fold-chart, .fold-ads) { margin-top: 14px; }
+.page-results :is(.fold-chart, .fold-ads) > summary {
+  gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid var(--p-line); border-radius: 999px;
+  background: var(--p-glass-soft); box-shadow: inset 0 1px 0 var(--p-glass-hi);
+  font-size: 14px; font-weight: 600; color: var(--p-ink-2);
+  transition: background-color var(--m-fast) var(--ease), color var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease);
+}
+.page-results :is(.fold-chart, .fold-ads) > summary:hover { border-color: var(--p-line-2); background: var(--p-glass-strong); color: var(--p-ink); }
+.page-results :is(.fold-chart, .fold-ads) > summary:active { background: var(--p-active); }
+.page-results :is(.fold-chart, .fold-ads)[open] > summary { margin-bottom: 12px; }
+.page-results .fold-chart > .chart-fig, .page-results .fold-ads > .campaigns { margin-top: 0; }
+
+/* ------------------------------------------------------------------ the ads */
+
+.page-results .campaigns { padding: 6px 22px 8px; }
+.campaigns li { align-items: center; gap: 8px 12px; padding: 12px 0; border-top: 1px solid var(--p-line); }
+.campaigns li:first-child { border-top: 0; }
+.camp-name { font-size: 15.5px; font-weight: 650; }
+.campaigns .meta { margin-top: 2px; font-size: 13.5px; }
+
+/* ------------------------------------------------------------------ phones */
+
+@container page (max-width: 640px) {
+  .page-results .range-bar { gap: 10px 12px; }
+  .group-head .sec-meta { order: 0; }
+  .group-head .group-src { flex-basis: 100%; text-align: left; }
+  .page-results .chart-fig { padding: 18px 16px 12px; }
+  .page-results .chart { height: 200px; }
+  .page-results .campaigns { padding: 4px 18px 6px; }
+}
+@media (pointer: coarse) {
+  .page-results :is(.fold-chart, .fold-ads) > summary { min-height: 44px; }
+}
+@media (forced-colors: active) {
+  .page-results :is(.fold-chart, .fold-ads) > summary { border: 1px solid CanvasText; }
+}

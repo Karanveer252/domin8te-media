@@ -1,0 +1,95 @@
+/*
+ * Needs you, the plan release's part (2026-10-13): the cards for plan, limit, pick, bill email and result items, and the chips
+ * that filter the page. Tokens and the glass recipe come from console.css; the usage bar and the freshness line from 00-shared.css.
+ */
+
+/* The chips: the console's own pill row, with a quiet count in each. */
+.nx-chips { margin: 16px 0 22px; }
+.nx-chips .seg { display: flex; flex-wrap: wrap; max-width: 100%; overflow: visible; padding: 0; }
+.nx-chips .seg button { display: inline-flex; flex: none; align-items: center; gap: 2px; }
+.nx-chips .seg .count { margin-left: 6px; min-width: 20px; padding: 0 6px; font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+
+/* One glass panel holds the cards; each card is a row of it, set off by a hairline. */
+.nx-panel { margin: 0 0 18px; padding: 4px 26px; }
+.nx-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.nx-card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 28px; padding: 20px 0; border-top: 1px solid rgba(94, 72, 50, 0.1); }
+.nx-card:first-child { border-top: 0; }
+.nx-card.is-focus::before { content: ""; position: absolute; inset: 6px -14px; z-index: -1; border-radius: 20px; background: rgba(255, 91, 31, 0.07); box-shadow: inset 0 0 0 1.5px rgba(255, 91, 31, 0.4); }
+.nx-main { display: flex; align-items: flex-start; gap: 16px; min-width: 0; }
+.nx-ico { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 14px; background: var(--surface-2); color: var(--ink-2); }
+.nx-ico .ic { width: 20px; height: 20px; }
+.nx-ico.is-bad { background: var(--bad-bg); color: var(--bad); }
+.nx-ico.is-warn { background: var(--warn-bg); color: var(--warn); }
+.nx-ico.is-you { background: rgba(255, 110, 50, 0.14); color: #9A3510; }
+.nx-ico.is-good { background: var(--good-bg); color: var(--good); }
+.nx-body { display: grid; gap: 8px; min-width: 0; flex: 1; }
+.nx-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.nx-head h3 { font-size: 17px; font-weight: 650; letter-spacing: -0.15px; line-height: 1.3; }
+.nx-who { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0 2px; color: var(--ink-3); font-size: 14px; }
+.nx-who a { color: var(--ink-2); font-weight: 600; text-decoration: none; }
+.nx-who a:hover { color: var(--ink); text-decoration: underline; }
+.nx-who .chip { margin-left: 8px; padding: 1px 9px; font-size: 12.5px; }
+.nx-stale { margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--good-bg); color: var(--good); font-size: 14px; font-weight: 600; }
+
+/* What is wrong, what the client sees, the fastest fix: three short lines with their labels. */
+.nx-facts { display: grid; gap: 4px; margin: 0; }
+.nx-facts > div { display: grid; grid-template-columns: 124px minmax(0, 1fr); gap: 12px; }
+.nx-facts dt { margin: 0; color: var(--ink-3); font-size: 13.5px; font-weight: 600; line-height: 1.6; }
+.nx-facts dd { margin: 0; color: var(--ink); font-size: 14.5px; line-height: 1.5; text-wrap: pretty; }
+.nx-facts > div:last-child dd { color: var(--ink-2); }
+.nx-hint { margin: 0; color: var(--ink-3); font-size: 13.5px; }
+.nx-detail { margin: 4px 0 2px 136px; min-width: 0; }
+
+/* Two columns side by side: the console's value and the client dashboard's. A value that differs reads red on the client's side. */
+.nx-compare { display: grid; gap: 0; padding: 4px 14px; border-radius: 14px; background: rgba(94, 72, 50, 0.06); font-size: 14px; }
+.nx-cmp-row { display: grid; grid-template-columns: minmax(96px, 150px) minmax(0, 1fr) minmax(0, 1fr); gap: 4px 16px; padding: 7px 0; }
+.nx-cmp-row + .nx-cmp-row { border-top: 1px solid rgba(94, 72, 50, 0.09); }
+.nx-cmp-head { color: var(--ink); font-weight: 650; }
+.nx-cmp-k { color: var(--ink-3); }
+.nx-cmp-row .is-diff { color: var(--bad); font-weight: 600; }
+.nx-usage { display: grid; gap: 6px; max-width: 420px; }
+.nx-usage-note { margin: 0; color: var(--ink-3); font-size: 13.5px; }
+.nx-services { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
+.nx-services-k { margin-right: 4px; color: var(--ink-3); font-size: 13.5px; font-weight: 600; }
+
+/* The actions: the one that fixes it is orange, the rest are glass; they wrap, right-aligned beside the text on a wide page. */
+.nx-actions { display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: flex-end; gap: 8px; max-width: 340px; }
+.nx-actions .btn { white-space: normal; text-align: center; line-height: 1.25; }
+.nx-actions .btn[aria-expanded="true"] { box-shadow: var(--pill-on); outline: 2px solid rgba(255, 91, 31, 0.5); outline-offset: 1px; }
+.nx-actions .nx-link { color: var(--accent-ink); }
+
+/* The sheet an action opens inside its card: what will happen, anything it needs, a note, then the one button that does it. */
+.nx-slot { grid-column: 1 / -1; min-width: 0; }
+.nx-slot:empty { display: none; }
+.nx-sheet { display: grid; gap: 14px; padding: 18px 20px; border: 0.67px solid var(--glass-edge, rgba(255, 255, 255, 0.76)); border-radius: 20px; background: rgba(255, 255, 255, 0.72); box-shadow: var(--glass-shadow-sm, var(--shadow)); }
+.nx-sheet-lead { margin: 0; color: var(--ink-2); font-size: 14.5px; line-height: 1.55; max-width: 74ch; }
+.nx-sheet-lead strong { display: block; margin-bottom: 2px; color: var(--ink); font-size: 15.5px; }
+.nx-sheet .field { max-width: 520px; }
+.nx-sheet .nx-qty input { max-width: 120px; }
+.nx-note textarea { width: 100%; resize: vertical; }
+.nx-check { display: flex; align-items: flex-start; gap: 10px; max-width: 520px; color: var(--ink-2); font-size: 14px; cursor: pointer; }
+.nx-check input { flex: none; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); }
+.nx-sheet-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.nx-sheet .field-error { margin: 0; }
+
+@media (max-width: 1100px) {
+  .nx-card { grid-template-columns: minmax(0, 1fr); }
+  .nx-actions { justify-content: flex-start; max-width: none; padding-left: 56px; }
+}
+@media (max-width: 700px) {
+  .nx-panel { padding: 2px 16px; }
+  .nx-card { padding: 18px 0; }
+  .nx-main { gap: 12px; }
+  .nx-ico { width: 36px; height: 36px; border-radius: 12px; }
+  .nx-head h3 { font-size: 16px; }
+  .nx-facts > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .nx-detail { margin-left: 0; }
+  .nx-cmp-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .nx-cmp-row .nx-cmp-k { grid-column: 1 / -1; }
+  .nx-cmp-head > :first-child { display: none; }
+  .nx-actions { padding-left: 0; }
+  .nx-actions .btn, .nx-sheet-btns .btn { min-height: 44px; flex: 1 1 auto; }
+  .nx-sheet { padding: 16px; }
+  .nx-chips .seg { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+  .nx-chips .seg::-webkit-scrollbar { display: none; }
+}

@@ -16,16 +16,16 @@ const flow = (name, steps, extra = {}) => ({ name, route: extra.route || 'home',
 const st = (code) => `function () { ${code} }`;
 
 const cases = [];
-const routes = ['home', 'work', 'results', 'updates', 'billing', 'settings', 'messages', 'help', 'no-such-page'];
-const pageOf = { 'no-such-page': 'notFound' };
+const routes = ['home', 'work', 'results', 'updates', 'billing', 'billing/change', 'settings', 'messages', 'help', 'no-such-page'];
+const pageOf = { 'no-such-page': 'notFound', 'billing/change': 'billing' };
 
 // 1. Every page, both grounds, both themes, at 1440.
 for (const scene of ['static', 'scenes']) for (const theme of ['light', 'dark']) for (const r of routes) {
   cases.push({ name: `${r} ${scene} ${theme}`, route: r, query: `scene=${scene}&theme=${theme}`, expect: { page: pageOf[r] || r, scene, theme } });
 }
 // 2. The demo situations on Home, Work and Results, both grounds.
-for (const demo of ['cornerbean', 'google-down', 'slow']) for (const scene of ['static', 'scenes']) for (const r of ['home', 'work', 'results']) {
-  cases.push({ name: `${demo} ${r} ${scene}`, route: r, query: `demo=${demo}&scene=${scene}`, wait: demo === 'slow' ? 4500 : 1500, budget: demo === 'slow' ? 14000 : 9000, expect: { page: r, scene } });
+for (const demo of ['cornerbean', 'domin8te', 'change', 'google-down', 'slow']) for (const scene of ['static', 'scenes']) for (const r of ['home', 'work', 'results', 'billing', 'billing/change']) {
+  cases.push({ name: `${demo} ${r} ${scene}`, route: r, query: `demo=${demo}&scene=${scene}`, wait: demo === 'slow' ? 4500 : 1500, budget: demo === 'slow' ? 14000 : 9000, expect: { page: pageOf[r] || r, scene } });
 }
 // 3. Phone and tablet widths.
 for (const scene of ['static', 'scenes']) for (const r of routes) cases.push({ name: `phone ${r} ${scene}`, route: r, query: `scene=${scene}`, w: 390, h: 844, expect: { page: pageOf[r] || r } });
@@ -47,7 +47,7 @@ cases.push(flow('Work: Now, Done and back', [
 ], { gap: 800, expect: { page: 'work' } }));
 cases.push(flow('Ask for a change from the top of Work asks which service', [
   st(`click('.page-head [data-action="compose"]');`),
-  st(`var sel = $('#msg-service'); if (!sel) throw new Error('no service select'); sel.value = sel.options[sel.options.length - 1].value; var f = $('#dlg form'); f.querySelector('textarea').value = 'Please add the new brunch photo.'; f.requestSubmit();`),
+  st(`var sel = $('#msg-service'); if (!sel) throw new Error('no service select'); sel.value = sel.options[sel.options.length - 2].value; var f = $('#dlg form'); f.querySelector('textarea').value = 'Please add the new brunch photo.'; f.requestSubmit();`),
   st(`note('title', ($('#dlg-title') || {}).textContent); click('#dlg [data-dlg-close]');`)
 ], { route: 'work', gap: 800 }));
 cases.push(flow('Settings: Add someone shows the form, connections expand', [
@@ -92,10 +92,9 @@ cases.push(flow('view-only demo: approving says it is a demo and saves nothing',
   st(`if (!$('#dlg .notice')) throw new Error('no demo line up front'); var f = $('#dlg form'); f.requestSubmit(f.querySelector('button[value="approved"]'));`),
   st(`var e = $('#dlg .form-error'); if (!e || e.hidden || e.textContent.indexOf('This is a demo') < 0) throw new Error('no demo message'); if ($('#dlg .confirm-state')) throw new Error('it looks answered'); note('message', e.textContent.slice(0, 40)); var k = Object.keys(localStorage).filter(function (x) { return x.indexOf('.demo.') > 0; }); note('stored', k.map(function (x) { var v = JSON.parse(localStorage.getItem(x) || '{}'); return Object.keys(v).filter(function (y) { return y === 'decisions' || y === 'messages' || y === 'requests' || y === 'notifications'; }).length; }).join(','));`)
 ], { gap: 700, readOnly: true }));
-cases.push(flow('view-only demo: a message keeps the words and sends nothing', [
+cases.push(flow('view-only demo: Messages can be read, not written', [
   st(`click('.help-contact a[href="#/messages"]');`),
-  st(`window.__n = $$('#msg-thread .msg').length; var ta = $('#msg-new'); ta.value = 'Please change the opening hours.'; $('#msg-form').requestSubmit();`),
-  st(`var e = $('#msg-form-err'); if (!e || e.hidden || e.textContent.indexOf('This is a demo') < 0) throw new Error('no demo message'); if ($('#msg-new').value !== 'Please change the opening hours.') throw new Error('the words were lost'); if ($$('#msg-thread .msg').length !== window.__n) throw new Error('a bubble was added'); note('kept', true);`)
+  st(`var ta = $('#msg-new'), send = $('.msg-send'); if (!ta.disabled || !send.disabled) throw new Error('the box or the button is open'); if (($('#msg-keys') || {}).textContent.indexOf('Sample conversation. Sign in to message us.') < 0) throw new Error('no line about it'); if (!$$('#msg-thread .msg').length) throw new Error('nothing to read'); note('view only', true);`)
 ], { route: 'help', gap: 1000, readOnly: true, expect: { page: 'messages' } }));
 cases.push(flow('view-only demo: saving email choices says it is a demo', [
   st(`$('.fold-emails').open = true; var box = $$('#notify-form input[type="checkbox"]').filter(function (b) { return !b.disabled; })[0]; box.click();`),
@@ -130,6 +129,38 @@ cases.push(flow('Billing: invoice and payment method dialogs', [
   st(`click('[data-kind="billing-portal"]');`),
   st(`note('payment', ($('#dlg-title') || {}).textContent); click('#dlg [data-dlg-close]');`)
 ], { route: 'billing', gap: 700 }));
+// Choosing next month (2026-10-13): pick another plan, see what changes, confirm, and see it set. The demo saves nothing.
+cases.push(flow('Billing: change next month, confirm, and see it set', [
+  st(`click('.po-actions a[href="#/billing/change"]');`),
+  st(`note('page', title()); click('input[name="plan"][value="starter"]'); var b = $('.pk-confirm'); if (!b || b.textContent.indexOf('switch to Starter') < 0) throw new Error('confirm says ' + (b && b.textContent)); if (!$('.pk-panel .chg-row.is-stops')) throw new Error('the panel does not say what stops');`),
+  st(`click('.pk-confirm');`),
+  st(`note('hash', location.hash); if (!$('.plan-confirmed')) throw new Error('no confirmation'); note('says', ($('.plan-confirmed h2') || {}).textContent); note('toast', toast());`)
+], { route: 'billing', gap: 1500, expect: { page: 'billing' } }));
+cases.push(flow('view-only demo: confirming a change of plan says it is a demo and saves nothing', [
+  st(`click('input[name="plan"][value="starter"]'); click('.pk-confirm');`),
+  st(`var e = $('#pk-error'); if (!e || e.hidden || e.textContent.indexOf('This is a demo') < 0) throw new Error('no demo message'); if (location.hash !== '#/billing/change') throw new Error('it moved on'); note('message', e.textContent.slice(0, 40));`)
+], { route: 'billing/change', gap: 900, readOnly: true, expect: { page: 'billing' } }));
+cases.push(flow('Billing: a rule-breaking choice cannot be confirmed', [
+  st(`click('input[name="plan"][value="starter"]'); var boxes = $$('input[name="svc"]').filter(function (b) { return !b.disabled && !b.checked; }); note('left to pick', boxes.length);`),
+  st(`var on = $$('input[name="svc"]:checked:not(:disabled)'); on.forEach(function (b) { b.click(); }); var b = $('.pk-confirm'); note('confirm disabled', b.disabled); if (!b.disabled) throw new Error('nothing picked, but it can be confirmed');`)
+], { route: 'billing/change', gap: 700, expect: { page: 'billing' } }));
+// Ask for a change shows how it fits this month's limit before it is sent (2026-10-13).
+cases.push(flow('Ask for a change over the limit goes to Karan for a decision', [
+  st(`click('.page-head [data-action="compose"]');`),
+  st(`var s = $('#dlg form').elements.namedItem('service'); s.value = 'advertising'; s.dispatchEvent(new Event('change', { bubbles: true }));`),
+  st(`var n = $('#ask-note .ask-note'); if (!n || !n.classList.contains('is-over')) throw new Error('no over-limit note'); var b = $('#dlg [type=submit]'); if (b.textContent.indexOf('Send to Karan for a decision') < 0) throw new Error('the button says ' + b.textContent); note('note', n.textContent.trim().slice(0, 50)); $('#dlg textarea').value = 'One more ad for Halloween please.'; $('#dlg form').requestSubmit();`),
+  st(`var t = ($('#dlg-title') || {}).textContent; note('title', t); if (t !== 'Sent to Karan') throw new Error('not sent to Karan: ' + t); click('#dlg [data-dlg-close]');`)
+], { route: 'work', query: 'demo=cornerbean', gap: 900 }));
+cases.push(flow('Ask for a change: an urgent fix never counts', [
+  st(`click('.page-head [data-action="compose"]');`),
+  st(`var s = $('#dlg form').elements.namedItem('service'); s.value = 'urgent'; s.dispatchEvent(new Event('change', { bubbles: true }));`),
+  st(`var n = $('#ask-note .ask-note'); if (!n || !n.classList.contains('is-urgent')) throw new Error('no urgent note'); if ($('#dlg [type=submit]').textContent.indexOf('Send urgent fix') < 0) throw new Error('the button is wrong'); if (!$('#ask-qty').hidden) throw new Error('an urgent fix asks how many'); note('urgent', true); click('#dlg [data-dlg-close]');`)
+], { route: 'work', gap: 800 }));
+cases.push(flow('Ask for a change inside the limit says how much is left', [
+  st(`click('.page-head [data-action="compose"]');`),
+  st(`var s = $('#dlg form').elements.namedItem('service'); s.value = 'social'; s.dispatchEvent(new Event('change', { bubbles: true }));`),
+  st(`var n = $('#ask-note .ask-note'); if (!n || !n.classList.contains('is-ok')) throw new Error('no limit note'); if ($('#dlg [type=submit]').textContent.indexOf('Send request') < 0) throw new Error('the button is wrong'); note('note', n.textContent.trim().slice(0, 60)); click('#dlg [data-dlg-close]');`)
+], { route: 'work', gap: 800 }));
 cases.push(flow('Refresh (beside the range picker on Results)', [
   st(`click('[data-action="refresh"]');`),
   st(`note('toast', toast());`)

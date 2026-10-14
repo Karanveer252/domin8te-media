@@ -14,14 +14,6 @@
   const esc = F.esc;
   const icon = UI.icon;
   const SVC = () => D8.data.SERVICES;
-  /** The services a client does not have, quietly, under their plan (2026-10-08: plans can now shrink or grow).
-   * @param {string[]} has */
-  const planOff = (has) => {
-    const off = (D8.data.SERVICE_ORDER || Object.keys(SVC())).filter((/** @type {string} */ s) => !has.includes(s) && SVC()[s]);
-    return off.length ? `<div class="plan-off"><p class="plan-off-h">Not in your plan</p>
-      <ul class="plan-list is-off">${off.map((/** @type {string} */ x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
-      <p class="plan-off-ask">Want one of these added? <a href="#/messages">Send us a note</a>.</p></div>` : '';
-  };
   // Design variants can ask for a Home order, a Coming up section and a Basic / Advanced switch
   // on Results (D8VARIANT.home, .reportModes). Without them, every page renders as in 16.
   /** @type {any} */
@@ -121,6 +113,7 @@
   function checkedText(a, now) {
     return a.updatedAt ? `Checked ${esc(F.when(a.updatedAt, now))}.` : 'Not checked yet.';
   }
+  /* (the same line on every page that says when it last looked: the restaurant's own clock) */
   function checkedLine(a, now) {
     return `<p class="meta home-checked"><span id="home-checked">${checkedText(a, now)}</span> <a class="link" href="#/results">See all results</a></p>`;
   }
@@ -138,6 +131,16 @@
     </section>`;
   }
 
+  /** "Next planned" and "Latest win", as a quiet line under the calm banner. @param {any} h */
+  function calmFacts(h) {
+    if (!h || (!h.next && !h.win)) return '';
+    const svcName = (/** @type {string} */ id) => (SVC()[id] ? SVC()[id].label : '');
+    const bits = [];
+    if (h.next) bits.push(`<span><strong>Next planned:</strong> ${esc(h.next.title)}, ${esc(F.date(h.next.date))}${svcName(h.next.service) ? ` (${esc(svcName(h.next.service))})` : ''}</span>`);
+    if (h.win) bits.push(`<span><strong>Latest win:</strong> ${esc(h.win.text)}, ${esc(day(h.win.date))}${svcName(h.win.service) ? ` (${esc(svcName(h.win.service))})` : ''}</span>`);
+    return `<p class="pb-facts">${bits.join('')}</p>`;
+  }
+
   const home = {
     title: () => 'Home',
     render(ctx) {
@@ -148,23 +151,17 @@
           ${UI.SectionHead('h-attention', 'Waiting for you')}
           <div id="home-attention">${UI.Skeleton('row', 2)}</div>
         </section>`,
+        plan: `<div class="sec home-plan" id="home-plan">${UI.Skeleton('card', 2)}</div>`,
         strip: `<section class="sec sec-strip" aria-labelledby="h-strip">
           ${UI.SectionHead('h-strip', 'Last 30 days')}
           <div id="home-strip">${UI.Skeleton('strip', 3)}</div>
           ${checkedLine(a, now)}
-        </section>`,
-        work: `<section class="sec sec-work" aria-labelledby="h-work">
-          ${UI.SectionHead('h-work', 'Your services', '<p class="sec-meta"><a class="link" href="#/work">See all work</a></p>')}
-          <div id="home-work">${UI.Skeleton('card', 1)}</div>
-        </section>`,
-        upcoming: HOME.upcoming ? `<section class="sec sec-upcoming" aria-labelledby="h-upcoming">
-          ${UI.SectionHead('h-upcoming', 'Coming up', '<p class="sec-meta">The next few weeks</p>')}
-          <div id="home-upcoming" class="upcoming-box">${UI.Skeleton('text', 3)}</div>
-        </section>` : ''
+        </section>`
       };
-      const order = HOME.order || ['attention', 'strip', 'work', 'upcoming'];
+      const order = ['attention', 'plan', 'strip'];
       return `<div class="page page-home">
-        ${UI.PageHeader({ cls: 'is-home', title: `${F.greeting(now)}, ${a.user.firstName}.`, intro: '<span id="home-summary">Checking your account.</span>', introHtml: true })}
+        ${UI.PageHeader({ cls: 'is-home', title: `${F.greeting(now)}, ${a.user.firstName}.`, intro: '<span id="home-summary">Checking your account.</span>', introHtml: true, sample: a.business.name })}
+        ${UI.PageFresh({ updatedAt: a.updatedAt || D8.time.isoTime(now), source: 'Domin8te console', zone: a.zoneAbbr, status: a.problems && a.problems.length ? 'delayed' : 'ok', label: a.problems && a.problems.length ? `${a.problems.length} ${F.plural(a.problems.length, 'account needs', 'accounts need')} a look` : '' })}
         ${order.map((k) => parts[k] || '').join('\n        ')}
         ${contactStrip(a, now)}
       </div>`;
@@ -172,43 +169,41 @@
     mount(ctx, r, el) {
       const now = () => ctx.client.now();
       /** @type {number|null} */ let count = null;
-      /** @type {any} */ let strip = null;
+      /** What staff wrote for one part of Home, when they made it visible. @param {string} k */
+      const staffSection = (k) => (ctx.account.homeSections || []).find((/** @type {any} */ s) => s.section === k) || null;
       const summary = () => {
-        if (count === null || strip === null) return;
-        const lead = count < 0 ? '' : count ? `${count} ${F.plural(count, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.';
-        const m = strip && strip.metrics.find((x) => x.state === 'ok' && x.change);
-        const what = m ? F.lcFirst(label(m.label)) : '';
-        const perf = !m ? '' : m.change.dir === 'flat'
-          ? ` Your ${what} were about the same as the month before.`
-          : ` You got ${Math.round(Math.abs(m.change.pct))}% ${m.change.dir === 'up' ? 'more' : 'fewer'} ${what} than the month before.`;
-        setText(el, '#home-summary', (lead + perf).trim() || 'We could not check what is waiting for you just now.');
+        if (count === null) return;
+        setText(el, '#home-summary', count < 0 ? 'We could not check what is waiting for you just now.' : count ? `${count} ${F.plural(count, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.');
       };
       const loaders = {
         strip: () => section(el, '#home-strip', () => ctx.client.getStrip(30), (d) => {
-          strip = d;
-          summary();
-          // Three numbers on Home; directions and where each number comes from are on Results.
-          return UI.MetricStrip(d, now(), { max: 3, skip: ['directions'], sources: false });
-        }, () => { strip = false; summary(); return { title: "We couldn't load your numbers.", text: 'The rest of this page works.', retry: 'strip' }; }),
-        // When nothing needs the client, the section turns into the all-caught-up state, which
-        // also needs the next planned milestone and the latest win.
-        attention: () => section(el, '#home-attention', () => ctx.client.getAttention()
-          .then((items) => (items.length ? { items, highlights: null } : ctx.client.getHighlights().catch(() => null).then((h) => ({ items, highlights: h })))), (d) => {
+          const verified = d.mode === 'verified';
+          const head = el.querySelector('#h-strip');
+          if (head) head.textContent = verified ? 'Latest checked numbers' : 'Last 30 days';
+          const list = d.items.filter((/** @type {any} */ x) => x.state !== 'pending' || !verified).slice(0, 3);
+          if (!list.length) return UI.EmptyState({ icon: 'results', title: 'No checked numbers yet.', text: 'They show here once we have checked them against your accounts.' });
+          return `<div class="strip is-3">${list.map((/** @type {any} */ t) => UI.ResultTile(t, now(), { compact: true, delta: !verified, days: 30 })).join('')}</div>`;
+        }, () => ({ title: "We couldn't load your numbers.", text: 'The rest of this page works.', retry: 'strip' })),
+        // When nothing needs the client, the section turns into one calm banner that says where the plan stands.
+        attention: () => section(el, '#home-attention', () => Promise.all([ctx.client.getAttention(), ctx.client.getPlan().catch(() => null)])
+          .then(([items, plan]) => (items.length ? { items, plan, highlights: null } : ctx.client.getHighlights().catch(() => null).then((h) => ({ items, plan, highlights: h })))), (d) => {
           count = d.items.length;
           summary();
           ctx.setBadges(d.items);
-          return count ? UI.ActionNeededList(d.items, now()) : UI.CaughtUp(d.highlights);
+          const ok = d.plan && d.plan.state === 'ok';
+          const sec = el.querySelector('.sec-attention');
+          if (sec) sec.classList.toggle('is-calm', !count && !!ok);
+          if (count) return UI.ActionNeededList(d.items, now());
+          return ok ? D8.plan.banner(d.plan, { staff: staffSection('nothing_to_do'), facts: calmFacts(d.highlights) }) : UI.CaughtUp(d.highlights);
         }, () => { count = -1; summary(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
-        // The rows need what is waiting for the client too, to say when a service's next step is theirs.
-        work: () => section(el, '#home-work', () => Promise.all([ctx.client.getWorkSummary(), ctx.client.getAttention().catch(() => [])]), ([list, acts]) => list.length
-          ? UI.ServiceRows(list, acts)
-          : UI.EmptyState({ icon: 'work', title: 'No work started yet.', text: 'Your services show here once we start.' }),
-          () => ({ title: "We couldn't load our work for you.", text: 'The rest of this page works.', retry: 'work' }))
+        // The plan this month, what is used, and what comes next.
+        plan: () => section(el, '#home-plan', () => Promise.all([ctx.client.getPlan(), ctx.client.getWorkSummary(), ctx.client.getAttention().catch(() => [])]), ([m, list, acts]) => {
+          if (m.state !== 'ok') return D8.plan.notSetUp();
+          const changing = m.confirmed && m.changes.differs;
+          const note = staffSection('note');
+          return `<div class="home-cols">${D8.plan.runningNow(m, { summary: list, actions: acts, staff: staffSection('running_now') })}${changing ? D8.plan.whatChanges(m, staffSection('next_month')) : D8.plan.comingUp(m, staffSection('next_month'))}</div>${note && D8.plan.staffNote(note) ? `<section class="card home-note" aria-label="A note from Domin8te">${D8.plan.staffNote(note)}</section>` : ''}`;
+        }, () => ({ title: "We couldn't load your plan.", text: 'The rest of this page works.', retry: 'plan' }))
       };
-      if (HOME.upcoming) {
-        loaders.upcoming = () => section(el, '#home-upcoming', () => ctx.client.getUpcoming(), (list) => UI.UpcomingList(list, now()),
-          () => ({ title: "We couldn't load what is coming up.", text: 'The rest of this page works.', retry: 'upcoming' }));
-      }
       Object.values(loaders).forEach((load) => load());
       return {
         refresh() {
@@ -219,9 +214,9 @@
         retry(which) {
           const f = loaders[which];
           if (!f) return;
-          const box = /** @type {HTMLElement|null} */ (el.querySelector({ strip: '#home-strip', attention: '#home-attention', work: '#home-work', upcoming: '#home-upcoming' }[which] || ''));
+          const box = /** @type {HTMLElement|null} */ (el.querySelector({ strip: '#home-strip', attention: '#home-attention', plan: '#home-plan' }[which] || ''));
           // A section that never loaded goes back to its placeholder; one with content keeps it, dimmed.
-          if (box && !box.hasAttribute('data-loaded')) box.innerHTML = UI.Skeleton({ strip: 'strip', attention: 'row', work: 'card' }[which] || 'block', which === 'strip' ? 3 : 1);
+          if (box && !box.hasAttribute('data-loaded')) box.innerHTML = UI.Skeleton({ strip: 'strip', attention: 'row', plan: 'card' }[which] || 'block', which === 'strip' ? 3 : which === 'plan' ? 2 : 1);
           f();
         }
       };
@@ -283,8 +278,8 @@
       ${done.length ? `<details class="steps-earlier"><summary class="btn-text">Show ${done.length} done ${F.plural(done.length, 'step', 'steps')}${icon('chevron-down')}</summary><ol class="steps">${done.map(row).join('')}</ol></details>` : ''}`;
   }
 
-  /** @param {any} s @param {any[]} actions */
-  function serviceSection(s, actions) {
+  /** @param {any} s @param {any[]} actions @param {any} [m] the plan model */
+  function serviceSection(s, actions, m) {
     const svc = SVC()[s.id];
     const needs = actions.filter((a) => a.service === s.id || (s.next && a.id === s.next.actionId));
     // One line that points to Home, where the button is; a service's own note (Social's "posts are paused")
@@ -298,6 +293,7 @@
         <h2 id="h-svc-${esc(s.id)}">${icon(svc.icon)}${esc(svc.label)}</h2>${UI.StatusBadge(s.status)}
       </header>
       <p class="svc-now"><span class="svc-now-label">Right now:</span> ${esc(s.now || 'Getting started')}</p>
+      ${m && m.state === 'ok' ? D8.plan.workUsage(s, m) : ''}
       ${note}
       ${stepList(s)}
     </section>`;
@@ -307,7 +303,7 @@
   function workHead(cur) {
     const ask = `<button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="request" title="Tell us anything you want different. We usually reply within one working day.">${icon('edit')}Ask for a change</button>`;
     const tab = (/** @type {string} */ id, /** @type {string} */ href, /** @type {string} */ text) => `<a class="work-tab" href="${href}"${cur === id ? ' aria-current="page"' : ''}>${text}</a>`;
-    return `${UI.PageHeader({ title: 'Work', intro: cur === 'done' ? 'Everything we finished for you, newest first.' : 'What we are doing for you now, step by step.', aside: ask })}
+    return `${UI.PageHeader({ title: 'Work', intro: cur === 'done' ? 'Everything we finished for you, newest first.' : "What we are doing for you now, and how much of this month's plan is used.", aside: ask })}
       <nav class="work-tabs" aria-label="Work">${tab('now', '#/work', 'Now')}${tab('done', '#/updates', 'Done')}</nav>`;
   }
 
@@ -321,9 +317,18 @@
     },
     mount(ctx, r, el) {
       let jumped = false; // only the first draw jumps to the service named in the address, not every refresh
-      const load = () => section(el, '#work-body', () => ctx.client.getWork(), (w) => w.services.length
-        ? w.services.map((s) => serviceSection(s, w.actions)).join('')
-        : UI.EmptyState({ icon: 'work', title: 'No work started yet.', text: 'Your services show here once we start.' }),
+      const load = () => section(el, '#work-body', () => ctx.client.getWork(), (w) => {
+        const m = w.plan;
+        const fresh = UI.PageFresh({
+          updatedAt: w.updatedAt || D8.time.isoTime(ctx.client.now()), source: 'Domin8te console', zone: ctx.account.zoneAbbr,
+          status: m.mismatch ? 'kept' : 'ok', extra: m.state === 'ok' ? `Plan: ${m.now.name} · picks locked until ${F.date(m.lastDay)}` : '',
+          note: m.mismatch ? 'Showing the last checked update. We could not confirm a newer change from our task tool. Karan has been told and nothing is lost.' : ''
+        });
+        const body = w.services.length
+          ? w.services.map((s) => serviceSection(s, w.actions, m)).join('')
+          : UI.EmptyState({ icon: 'work', title: 'No work started yet.', text: 'Your services show here once we start.' });
+        return fresh + body + D8.plan.offCards(w.off, m);
+      },
       () => ({ title: "We couldn't load your work.", text: 'Your other pages still work. Try again soon.', retry: 'work' }))
         .then(() => {
           if (!r.sub || jumped) return;
@@ -340,15 +345,13 @@
 
   const pickDays = (v) => ([7, 30, 90].includes(Number(v)) ? Number(v) : 30);
 
-  /** One figure: its name, the number and its change, and the number before. Where it comes from is said once, under the group's heading. */
-  function resultTile(m, w) {
-    const name = label(m.label);
-    if (m.state === 'error') {
-      return `<div class="card mtile is-error"><p class="metric-label">${esc(name)}</p><p class="metric-empty">${icon('alert')}Couldn't load just now</p><p class="metric-meta">${esc(m.text)}</p><button class="link-btn" type="button" data-action="retry" data-section="results">Try again</button></div>`;
-    }
-    const note = UI.ComparisonNote(m, w.days);
-    const prev = m.change && m.previous !== null ? `<p class="metric-prev">${F.num(m.previous)} in the ${w.days} days before</p>` : '';
-    return `<div class="card mtile"><p class="metric-label">${esc(name)}</p><p class="metric-value"><span class="fig">${m.value === null ? 'None' : F.num(m.value)}</span>${UI.Delta(m, w.days)}${UI.NewBadge(m, w.days)}</p>${prev}${note ? `<p class="metric-note">${note}</p>` : ''}</div>`;
+  /**
+   * One figure as a card: its number, the period it covers, where it comes from and whether it was checked (2026-10-13).
+   * @param {any} m a metric @param {any} w the window @param {Map<string, any>} tiles the data layer's cards, by id @param {number} now
+   */
+  function resultTile(m, w, tiles, now) {
+    const t = tiles.get(m.id);
+    return t ? UI.ResultTile(t, now, { delta: true, days: w.days }) : '';
   }
 
   /** A daily chart. The first one on the page shows; the others fold behind "Show daily ...". @param {boolean} [folded] */
@@ -405,40 +408,62 @@
     return line ? `<p class="meta group-src">${line}</p>` : '';
   }
 
-  /** @param {any} g @param {any} w @param {number} now @param {{chartShown: boolean}} seen whether a chart is already open on the page */
+  /** @param {any} g @param {any} w @param {number} now @param {{chartShown: boolean, tiles: Map<string, any>}} seen whether a chart is already open on the page, and the cards by id */
   function group(g, w, now, seen) {
-    const head = UI.SectionHead('h-g-' + g.id, esc(g.title), `<p class="sec-meta">${esc(groupIntro(g))}</p>`);
+    // The heading, what the group is, and (beside the heading on a wide page) where its numbers come from (60-results.css).
+    const head = (/** @type {string} */ src) => `<div class="sec-head group-head"><h2 id="h-g-${esc(g.id)}">${esc(g.title)}</h2><p class="sec-meta">${esc(groupIntro(g))}</p>${src}</div>`;
     if (g.state === 'error') {
       const who = F.list(g.sources.filter((s) => s.state === 'error').map((s) => s.name)) || 'The source';
-      return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head}${UI.ErrorState({ title: `We couldn't load your ${g.title.toLowerCase()} numbers.`, text: `${who} is not answering. The rest of this page works.`, retry: 'results' })}</section>`;
+      return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head('')}${UI.ErrorState({ title: `We couldn't load your ${F.lcFirst(g.title)} numbers.`, text: `${who} is not answering. The rest of this page works.`, retry: 'results' })}</section>`;
     }
-    const tiles = g.metrics.map((m) => resultTile(m, w)).join('') + g.pending.map((p) =>
-      `<div class="card mtile is-pending"><p class="metric-label">${esc(label(p.label))}</p><p class="metric-empty">${icon('linkoff')}Not connected yet</p><p class="metric-meta">${esc(p.text)}</p></div>`).join('');
+    const tiles = g.metrics.map((m) => resultTile(m, w, seen.tiles, now)).join('') + g.pending.map((p) => UI.ResultTile({ state: 'pending', label: p.label, text: p.text }, now)).join('');
     // The note stays; reconnecting is done from Waiting for you on Home and from Settings.
     const notes = g.notes.map((n) => `<div class="notice is-off">${icon('linkoff')}<p>${esc(n.name)} has been disconnected since ${esc(day(n.since))}${n.lastDay ? `, so its numbers stop on ${esc(day(n.lastDay))}` : ''}. The gap means missing numbers, not a drop.</p></div>`).join('');
     let chart = '';
     if (g.chart) { chart = chartBlock(g.chart, w, seen.chartShown); seen.chartShown = true; }
-    return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head}${groupSources(g, now)}<div class="mtiles">${tiles}</div>${notes}${chart}${g.campaigns.length ? campaigns(g.campaigns) : ''}</section>`;
+    return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head(groupSources(g, now))}<div class="rtiles">${tiles}</div>${notes}${chart}${g.campaigns.length ? campaigns(g.campaigns) : ''}</section>`;
   }
 
-  /** The summary at the top: the assistant's few lines (labelled) and the biggest change this month, in one card. */
+  /** The summary at the top: the assistant's few lines, only once a person has checked them, and who. */
   function summaryCard(res, ins) {
     const big = ins && ins.state !== 'error' && ins.state !== 'none' && ins.headline ? ins : null;
-    if (!res.summary && !big) return '';
-    return `<section class="ai-summary" aria-labelledby="h-summary">
-        <div class="sec-head"><h2 id="h-summary">Summary</h2>${res.summary ? `<span class="ai-label">${icon('spark')}Written by our AI assistant, checked against the numbers below.</span>` : ''}</div>
-        ${res.summary ? `<p class="ai-text">${esc(res.summary.text)}</p>` : ''}
+    const s = res.summary;
+    if (!s && !big) return '';
+    return `<section class="card ai-summary" aria-labelledby="h-summary">
+        <div class="sec-head"><h2 id="h-summary">Summary</h2>${s ? `<span class="checked-chip">${icon('check')}Checked by ${esc(s.reviewedBy)}, ${esc(day(s.reviewedAt))}</span>` : ''}</div>
+        ${s ? `<p class="ai-text">${esc(s.text)}</p><p class="ai-label">${icon('spark')}Written by our AI assistant, then checked by ${esc(s.reviewedBy)} against the numbers below.</p>` : ''}
         ${big ? `<p class="ai-big"><strong>Biggest change this month:</strong> ${esc(big.headline)} ${esc(big.detail || '')}</p>` : ''}
       </section>`;
   }
 
-  function resultsBody(res, ins, now) {
-    const out = [];
-    // The biggest change is a 30-day comparison, so it joins the summary on the 30-day view.
-    out.push(summaryCard(res, res.window.days === 30 ? ins : null));
-    if (!res.groups.length) out.push(UI.EmptyState({ icon: 'results', title: 'No results yet.', text: 'Numbers show here once your accounts are connected.' }));
-    const seen = { chartShown: false };
-    for (const g of res.groups) out.push(group(g, res.window, now, seen));
+  /** The freshness line for Results: the newest read, every source named, and whether anything is still being checked. @param {any} res @param {any} ctx */
+  function resultsFresh(res, ctx) {
+    const ok = res.items.filter((/** @type {any} */ x) => x.state === 'ok');
+    const times = ok.map((/** @type {any} */ x) => x.readAt || x.verifiedAt || '').filter(Boolean).sort();
+    const sources = [...new Set(ok.map((/** @type {any} */ x) => x.source).filter(Boolean))];
+    const checking = ok.filter((/** @type {any} */ x) => x.badge === 'checking').length;
+    const delayed = ok.filter((/** @type {any} */ x) => x.badge === 'delayed').length;
+    return {
+      updatedAt: times.length ? times[times.length - 1] : null, zone: ctx.account.zoneAbbr, source: sources.length ? F.list(sources.slice(0, 4)) : 'your connected accounts',
+      status: checking ? 'checking' : delayed ? 'delayed' : 'ok', label: checking ? `${checking} ${F.plural(checking, 'number', 'numbers')} being checked` : delayed ? `${delayed} ${F.plural(delayed, 'source is', 'sources are')} delayed` : '', okLabel: 'All checked'
+    };
+  }
+
+  /** @param {any} res @param {any} ins @param {number} now @param {any} ctx */
+  function resultsBody(res, ins, now, ctx) {
+    const out = [UI.PageFresh(resultsFresh(res, ctx))];
+    out.push(summaryCard(res, res.mode === 'series' && res.window && res.window.days === 30 ? ins : null));
+    if (res.mode === 'verified') {
+      if (!res.groups.length) out.push(UI.EmptyState({ icon: 'results', title: 'No checked results yet.', text: 'Numbers show here once we have checked them against your accounts. Nothing unchecked is ever shown.' }));
+      for (const g of res.groups) {
+        out.push(`<section class="group" aria-labelledby="h-g-${esc(g.id)}"><div class="sec-head group-head"><h2 id="h-g-${esc(g.id)}">${esc(g.title)}</h2></div><div class="rtiles">${g.items.map((/** @type {any} */ t) => UI.ResultTile(t, now)).join('')}</div></section>`);
+      }
+    } else {
+      if (!res.groups.length) out.push(UI.EmptyState({ icon: 'results', title: 'No results yet.', text: 'Numbers show here once your accounts are connected.' }));
+      const seen = { chartShown: false, tiles: new Map(res.items.map((/** @type {any} */ t) => [t.id, t])) };
+      for (const g of res.groups) out.push(group(g, res.window, now, seen));
+    }
+    out.push(UI.SourcesTable(res.items));
     return out.join('');
   }
 
@@ -450,7 +475,7 @@
       const detail = V.reportModes ? (pref('detail') === 'advanced' ? 'advanced' : 'basic') : '';
       const modes = detail ? UI.FilterChips([['basic', 'Basic'], ['advanced', 'Advanced']], detail, 'detail', 'How much detail to show') : '';
       return `<div class="page page-results"${detail ? ` data-detail="${detail}"` : ''}>
-        ${UI.PageHeader({ title: 'Results', intro: 'How your marketing is doing, and where each number comes from.', after: `<div class="range-bar">${UI.DateRangeSelector(days)}${modes}${refreshButton()}<p class="range-text" id="range-text" aria-live="polite"></p></div>` })}
+        ${UI.PageHeader({ title: 'Results', intro: 'How your marketing is doing. Every number shows its period, where it came from and whether we checked it.', after: `<div class="range-bar">${UI.DateRangeSelector(days)}${modes}${refreshButton()}<p class="range-text" id="range-text" aria-live="polite"></p></div>` })}
         <div id="results-body">${UI.Skeleton('block', 3)}</div>
       </div>`;
     },
@@ -462,9 +487,10 @@
         if (!body.hasAttribute('data-loaded')) body.innerHTML = UI.Skeleton('block', 3);
         // The biggest change is extra: if it fails, the results still show.
         return section(el, '#results-body', () => Promise.all([ctx.client.getResults(days), ctx.client.getInsight().catch(() => null)]), ([res, ins]) => {
-          const w = res.window;
-          setText(el, '#range-text', `${F.range(w.from, w.to)} vs the ${w.days} days before`);
-          return resultsBody(res, ins, ctx.client.now());
+          const bar = el.querySelector('.range-bar');
+          if (bar) bar.classList.toggle('is-verified', res.mode === 'verified');
+          if (res.mode === 'series') { const w = res.window; setText(el, '#range-text', `${F.range(w.from, w.to)} vs the ${w.days} days before`); } else setText(el, '#range-text', '');
+          return resultsBody(res, ins, ctx.client.now(), ctx);
         }, () => ({ title: "We couldn't load your results.", text: 'Your other pages still work. Try again soon.', retry: 'results' }))
           .then(() => D8.charts.mountAll(el));
       };
@@ -528,9 +554,10 @@
       /** @type {any[]|null} */ let all = null;
       const draw = () => {
         const list = (all || []).filter((u) => filter === 'all' || u.service === filter);
-        const label = filter === 'all' ? '' : SVC()[filter].label.toLowerCase() + ' ';
+        const label = filter === 'all' ? '' : F.lcFirst(SVC()[filter].label) + ' ';
         setText(el, '#updates-status', `${list.length} ${label}${F.plural(list.length, 'update', 'updates')}`);
-        return list.length ? feed(list) : UI.EmptyState({ icon: 'updates', title: `No ${label}updates yet.`, text: 'They show here when we finish something.' });
+        const fresh = UI.PageFresh({ updatedAt: all && all[0] ? all[0].date : null, source: 'Domin8te team', status: 'ok' });
+        return fresh + (list.length ? feed(list) : UI.EmptyState({ icon: 'updates', title: `No ${label}updates yet.`, text: 'They show here when we finish something.' }));
       };
       const load = () => section(el, '#updates-body', () => ctx.client.getUpdates(), (list) => { all = list; return draw(); },
         () => ({ title: "We couldn't load your updates.", text: 'Your other pages still work. Try again soon.', retry: 'updates' }));
@@ -551,58 +578,90 @@
 
   /* ================================================================ BILLING */
 
-  /* Billing, simplified (2026-10-09): one banner while a payment failed (with the one Update payment method
-     button), one card for the plan and the card, and the last three invoices with the older ones folded. */
-  const INVOICES_SHOWN = 3;
-  function billingBody(b) {
+  /* Billing (2026-10-13): the plan with what each service allows, the confirmation once next month is chosen, the card,
+     and the bills in one table with the Stripe link staff approved. Choosing next month's services is its own view,
+     #/billing/change, so this page stays calm for someone who only came to look at a bill. */
+
+  /** The bar across the top when a payment did not go through: one button to Stripe. @param {any} b */
+  function payBanner(b) {
     const s = b.subscription;
     const pm = b.paymentMethod || {};
-    const rowsOf = (/** @type {any[]} */ list) => list.map((i) => UI.InvoiceRow(i, { problemShown: false })).join('');
-    // A new client has no plan or subscription on file yet: say so, never a "could not load". The card is optional
-    // (the console never records one): without it the card line is simply left out.
-    if (!s || !b.plan || !b.plan.name || !(s.status || s.nextBilling || s.startedAt)) {
-      const recentOnly = (b.invoices || []).slice(0, INVOICES_SHOWN);
-      return `${UI.EmptyState({ icon: 'card', title: 'Billing is not set up yet.', text: 'Message us and we will sort it out.' })}
-        ${recentOnly.length ? `<section class="sec" aria-labelledby="h-invoices"><div class="sec-head"><h2 id="h-invoices">Invoices</h2></div><div class="card"><ul class="invoices">${rowsOf(recentOnly)}</ul></div></section>` : ''}
-        <p class="bill-help">Question about a charge? <a class="link" href="#/messages">Message us</a></p>`;
-    }
-    const problem = s.status === 'past_due';
     const payProblem = pm.problem;
-    const okStatus = !s.status || ['active', 'trialing'].includes(s.status);
-    const statusText = s.status === 'canceled' ? 'Cancelled' : s.status ? String(s.status).replace(/_/g, ' ').replace(/^./, (x) => x.toUpperCase()) : 'Active'; // UK spelling, as in the console
-    const banner = problem ? `<section class="banner tone-error" aria-labelledby="h-bill-problem">
+    return `<section class="banner tone-error" aria-labelledby="h-bill-problem">
         ${icon('alert', 'banner-icon')}
         <div><h2 id="h-bill-problem">Your payment did not go through</h2><p>${pm.last4 ? `Your card ending ${esc(pm.last4)} was` : 'Your last payment was'} declined${payProblem && payProblem.date ? ` on ${esc(day(payProblem.date))}` : ''}.${s.graceUntil ? ` Everything keeps running until ${esc(day(s.graceUntil))}. If the payment still fails, services pause after that.` : ''}</p>${s.retryOn ? `<details class="fold fold-quiet"><summary>See details${icon('chevron-down')}</summary><p class="meta">Stripe, our payment service, will try your card again on ${esc(day(s.retryOn))}.</p></details>` : ''}</div>
         <button class="btn btn-primary" type="button" data-action="external" data-kind="billing-portal">Update payment method</button>
-      </section>` : '';
-    const rows = (/** @type {any[]} */ list) => list.map((i) => UI.InvoiceRow(i, { problemShown: problem })).join('');
-    const recent = b.invoices.slice(0, INVOICES_SHOWN);
-    const older = b.invoices.slice(INVOICES_SHOWN);
-    return `${banner}
-      <section class="card bill-card bill-one" aria-labelledby="h-plan">
-        <div class="sec-head"><h2 id="h-plan">Your plan</h2>${problem ? '' : okStatus ? `<span class="badge tone-success">${icon('check')}Active</span>` : `<span class="badge tone-info">${icon('clock')}${esc(statusText)}</span>`}</div>
-        <p class="plan-name">${esc(b.plan.name)}</p>
-        <ul class="plan-list">${b.plan.services.map((x) => `<li>${icon(SVC()[x].icon)}${esc(SVC()[x].label)}</li>`).join('')}</ul>
-        ${planOff(b.plan.services)}
-        <dl class="facts">${b.plan.interval ? `<div><dt>How you pay</dt><dd>${esc(b.plan.interval)}</dd></div>` : ''}${s.nextBilling ? `<div><dt>Next payment</dt><dd>${esc(day(s.nextBilling))}</dd></div>` : ''}${pm.last4 ? `<div><dt>Card</dt><dd class="card-line">${icon('card')}${esc(pm.brand || 'Card')} ending ${esc(pm.last4)}</dd></div>` : ''}</dl>
-        ${!problem && payProblem ? `<p class="due tone-overdue">${icon('alert')}${esc(payProblem.text)}</p>` : ''}
-        <p class="secure-line">${icon('lock')}<span><strong>Secured by Stripe</strong>, trusted by millions of businesses. Your card details stay with Stripe; we never see your full card number.</span></p>
-        ${problem ? '' : `<button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="billing-portal">Change card${icon('external')}</button>`}
-      </section>
-      <section class="sec" aria-labelledby="h-invoices">
-        <div class="sec-head"><h2 id="h-invoices">Invoices</h2></div>
-        ${b.invoices.length ? `<div class="card"><ul class="invoices">${rows(recent)}</ul>${older.length ? `<details class="fold fold-invoices"><summary>See older invoices${icon('chevron-down')}</summary><ul class="invoices">${rows(older)}</ul></details>` : ''}</div>` : UI.EmptyState({ icon: 'file', title: 'No invoices yet.', text: 'Your first one shows here when Stripe sends it.' })}
-      </section>
-      <p class="bill-help">Question about a charge? <a class="link" href="#/messages">Message us</a></p>`;
+      </section>`;
+  }
+
+  /** The freshness line for Billing: when a person last checked a bill, and a note while a payment needs a look. @param {any} b @param {any} ctx */
+  function billFresh(b, ctx) {
+    const problem = !!b.subscription && b.subscription.status === 'past_due';
+    return UI.PageFresh({
+      updatedAt: b.checkedAt || null, zone: ctx.account.zoneAbbr, source: b.invoices.length ? 'Stripe, checked by Karan' : 'Stripe',
+      status: problem ? 'delayed' : 'ok', label: 'Payment needs a look'
+    });
+  }
+
+  /** @param {any} b the billing record, with the plan model as b.plan @param {any} ctx */
+  function billingBody(b, ctx) {
+    const m = b.plan;
+    const fresh = billFresh(b, ctx);
+    const help = '<p class="bill-help">Question about a charge? <a class="link" href="#/messages">Message us</a></p>';
+    // A new client has no month of a plan yet: say so, never a "could not load". Any bills they do have still show.
+    if (m.state !== 'ok') return `${fresh}${D8.plan.notSetUp()}${b.invoices.length ? D8.plan.bills(b.invoices, m) : ''}${help}`;
+    const changing = m.confirmed && m.changes.differs;
+    return `${fresh}
+      ${b.subscription && b.subscription.status === 'past_due' ? payBanner(b) : ''}
+      ${changing ? D8.plan.confirmed(m, ctx.account.user.email) : ''}
+      ${D8.plan.overview(m)}
+      <div class="bill-cols">${D8.plan.payment(b)}${D8.plan.bills(b.invoices, m)}</div>
+      ${help}`;
+  }
+
+  /** Choosing next month: the page the client lands on from "Change my services". @param {any} ctx */
+  function changeFrame(ctx) {
+    return `<div class="page page-billing page-change">
+      <p class="crumb"><a class="link" href="#/billing">${icon('chevron-left')}Back to billing</a></p>
+      ${UI.PageHeader({ title: 'Change your plan or services', intro: 'Choose what you want from your next bill. Nothing changes until you confirm.', sample: ctx.account.business.name })}
+      <div id="change-body">${UI.Skeleton('block', 2)}</div>
+    </div>`;
+  }
+
+  /** @param {any} m the plan model @param {any} ctx */
+  function changeBody(m, ctx) {
+    const fresh = UI.PageFresh({ updatedAt: D8.time.isoTime(ctx.client.now()), zone: ctx.account.zoneAbbr, source: 'Domin8te console', status: 'ok' });
+    if (m.state !== 'ok') return fresh + D8.plan.notSetUp();
+    if (!m.open) {
+      return `${fresh}<section class="card plan-locked" aria-labelledby="h-locked">
+        <div class="empty">${icon('lock', 'empty-icon')}<div><h2 id="h-locked" class="empty-title">Next month is set.</h2><p class="empty-text">The last day to change it, ${esc(day(m.lastDay))}, has passed. Message us if something is wrong.</p><a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a></div></div>
+      </section>`;
+    }
+    return fresh + D8.plan.deadline(m) + D8.plan.overview(m, { compact: true }) + D8.plan.picker(m);
   }
 
   const billing = {
-    title: () => 'Billing',
-    render() {
-      return `<div class="page page-billing">${UI.PageHeader({ title: 'Billing', intro: 'Your plan, payments and invoices.' })}<div id="billing-body">${UI.Skeleton('block', 2)}</div></div>`;
+    title: (ctx, r) => (r && r.sub === 'change' ? 'Change your plan' : 'Billing'),
+    render(ctx, r) {
+      if (r && r.sub === 'change') return changeFrame(ctx);
+      return `<div class="page page-billing">${UI.PageHeader({ title: 'Billing', intro: 'Your plan, payments and bills.', sample: ctx.account.business.name })}<div id="billing-body">${UI.Skeleton('block', 2)}</div></div>`;
     },
     mount(ctx, r, el) {
-      const load = () => section(el, '#billing-body', () => ctx.client.getBilling(), billingBody,
+      if (r && r.sub === 'change') {
+        const loadChange = () => section(el, '#change-body', () => ctx.client.getPlan(), (m) => changeBody(m, ctx),
+          () => ({ title: "We couldn't load your plan.", text: 'Nothing has changed. Try again soon.', retry: 'billing' }))
+          .then((m) => {
+            if (!m || m.state !== 'ok' || !m.open) return;
+            D8.plan.mountPicker(el, ctx, m, () => {
+              D8.dialogs.toast(`Confirmed. A copy is on its way to ${ctx.account.user.email || 'your email'}.`);
+              root.location.hash = '#/billing';
+            });
+          });
+        loadChange();
+        // A half-made choice is never thrown away by a refresh from somewhere else.
+        return { retry: loadChange, refresh() { /* nothing */ } };
+      }
+      const load = () => section(el, '#billing-body', () => ctx.client.getBilling(), (b) => billingBody(b, ctx),
         () => ({ title: "We couldn't load your billing.", text: 'Your services are not affected. Try again soon.', retry: 'billing' }));
       load();
       return { retry: load, refresh: load };
@@ -644,7 +703,13 @@
     const problems = s.sources.filter((src) => src.pending || src.state !== 'fresh');
     const fine = s.sources.filter((src) => !(src.pending || src.state !== 'fresh'));
     const count = working === s.sources.length ? `All ${s.sources.length} working` : `${working} of ${s.sources.length} working`;
-    return `<section class="card set-card" id="sources" tabindex="-1" aria-labelledby="h-sources">
+    // The emails that cannot be switched off (the bill reminders, the confirmation of a change of picks, payment problems) show as rows, always on.
+    const always = [...(s.always || []), ...s.categories.filter((c) => c.required)].map((c) => `<div class="toggle-row is-always">
+        <input class="switch" type="checkbox" id="a-${esc(c.id)}" checked disabled aria-describedby="a-${esc(c.id)}-text">
+        <label for="a-${esc(c.id)}"><span class="toggle-label">${esc(c.label)}<span class="chip-always">Always sent</span></span><span class="toggle-text" id="a-${esc(c.id)}-text">${esc(c.text)}</span></label>
+      </div>`).join('');
+    const fresh = UI.PageFresh({ updatedAt: s.savedAt || null, source: 'Your account', zone: ctx.account.zoneAbbr, status: 'ok' });
+    return `${fresh}<section class="card set-card" id="sources" tabindex="-1" aria-labelledby="h-sources">
         <div class="sec-head"><h2 id="h-sources">Connected accounts</h2><p class="sec-meta set-count">${esc(count)}</p></div>
         ${problems.length ? `<ul class="sources">${problems.map((src) => sourceRow(src, now)).join('')}</ul>` : ''}
         ${fine.length ? `<details class="fold fold-sources"${problems.length ? '' : ' open'}><summary>See all connections${icon('chevron-down')}</summary><p class="meta">You connect and disconnect on the app's own page. We never see your password.</p><ul class="sources">${fine.map((src) => sourceRow(src, now)).join('')}</ul></details>` : ''}
@@ -671,9 +736,10 @@
       </section>
       <section class="card set-card" aria-labelledby="h-email">
         <h2 id="h-email">Emails</h2>
-        <p class="meta">We send these to ${esc(s.email)}. Payment problems and sign-in emails are always sent.</p>
+        <p class="meta">We send these to ${esc(s.email)}.</p>
+        <div class="toggles is-always" role="group" aria-label="Emails we always send">${always}</div>
         <details class="fold fold-emails">
-          <summary>Choose which emails you get${icon('chevron-down')}</summary>
+          <summary>Choose which other emails you get${icon('chevron-down')}</summary>
           <form id="notify-form" novalidate>
             <fieldset class="toggles"><legend class="sr-only">Emails you get</legend>${rows}</fieldset>
             <p class="form-error" role="alert" hidden></p>
@@ -800,8 +866,8 @@
 
   const settings = {
     title: () => 'Settings',
-    render() {
-      return `<div class="page page-settings">${UI.PageHeader({ title: 'Settings', intro: 'Your connected accounts, who can sign in, your emails and how the portal looks.' })}<div id="settings-body" class="settings-stack">${UI.Skeleton('block', 2)}</div></div>`;
+    render(ctx) {
+      return `<div class="page page-settings">${UI.PageHeader({ title: 'Settings', intro: 'Your connected accounts, who can sign in, your emails and how the portal looks.', sample: ctx.account.business.name })}<div id="settings-body" class="settings-stack">${UI.Skeleton('block', 2)}</div></div>`;
     },
     mount(ctx, r, el) {
       const load = () => section(el, '#settings-body', () => ctx.client.getSettings(), (s) => settingsBody(s, ctx),
@@ -820,37 +886,45 @@
 
   /* ================================================================ HELP */
 
-  /* Help (2026-10-09): one card that leads to Messages, where the conversation lives now, then the
-     common questions, with our promises as one of them. */
+  /* Help (2026-10-09): the common questions, and a card that leads to Messages, where the conversation lives.
+     2026-10-13: the answers cover plans, picks, limits and where the numbers come from. Change HELP_UPDATED with the words. */
+  const HELP_UPDATED = '2026-10-13';
   const PROMISES = [
     'We only publish posts, pages and ads you have approved.',
     'We never change your ad budget without asking you first.',
-    'Every number comes straight from your connected accounts and shows when it was last updated.',
-    'Summaries written by our assistant are labelled and checked against the numbers.',
+    'Every number shows its period, where it came from and whether we checked it.',
+    'Summaries written by our assistant are labelled, and checked by a person against the numbers.',
     'Only people you invite can see your account.'
   ];
   const FAQ = [
-    ['What we promise', `<ul class="promise-list">${PROMISES.map((p) => `<li>${icon('check')}<span>${esc(p)}</span></li>`).join('')}</ul>`],
-    ['How fast do you make changes?', 'Small changes, like new opening hours or a menu price, usually go live within one working day. Bigger jobs, like a new page or an ad campaign, follow the dates on your Work page.'],
+    ['How do I change my plan or my services?', 'Go to Billing and pick for next month. Your choice starts on your next bill date. This month stays as it is.'],
+    ['When can I change my picks?', 'Any time up to the last day shown in Billing, which is the day before your next bill. We email you 7 days and 3 days before, so you never miss it. Pick again as often as you like until then.'],
+    ['What happens to a service I stop?', 'We keep your work saved. You can add the service back for a later month.'],
+    ['Is ad spend part of my plan?', `${D8.plan.AD_SPEND} We never change your ad budget without asking you first.`],
+    ['What if I need more posts or changes this month?', 'Ask from Work. If it goes over your plan, Karan replies with options first. Nothing extra is charged without your OK.'],
+    ['Do urgent fixes count?', 'No. Hours, closures, phone numbers and sold-out items are always fixed and never counted.'],
+    ['Where do the numbers come from?', 'Each number on Results names its source, its dates, and whether we checked it. If an account disconnects, we tell you instead of guessing.'],
     ['How do approvals work?', 'When we need your OK, it shows under Waiting for you on your Home page, with a date. Approve it, or ask for changes with a short note. Nothing goes out until you approve it.'],
-    ['Where do the numbers come from?', 'Straight from your connected accounts, like Google Business Profile (your listing on Google and Maps) and your booking system. Each number shows where it came from and when it was last updated. If an account disconnects, we tell you instead of guessing.'],
-    ['How do I change my card or my plan?', 'Change your payment details on Stripe (our payment service), from your Billing page. To change your plan, message us.'],
-    ['Who can see my account?', 'You, the people at your restaurant we have given a login (ask for one in Settings), and the Domin8te team working for you. Other clients never see your numbers.']
+    ['How fast do you make changes?', 'Small changes, like new opening hours or a menu price, usually go live within one working day. Bigger jobs, like a new page or an ad campaign, follow the dates on your Work page.'],
+    ['How do I change my card?', 'Change your payment details on Stripe (our payment service), from your Billing page.'],
+    ['Who can see my account?', 'You, the people at your restaurant we have given a login (ask for one in Settings), and the Domin8te team working for you. Other clients never see your numbers.'],
+    ['What we promise', `<ul class="promise-list">${PROMISES.map((p) => `<li>${icon('check')}<span>${esc(p)}</span></li>`).join('')}</ul>`]
   ];
 
   const help = {
     title: () => 'Help',
     render(ctx) {
       return `<div class="page page-help">
-        ${UI.PageHeader({ title: 'Help', intro: 'How to reach us, and answers to common questions.' })}
-        <section class="card help-contact" aria-labelledby="h-contact">
-          <div class="help-contact-row">
-            <div><h2 id="h-contact">Have a question? Message us</h2><p>${ctx.account.team.reply ? esc(replyLine(ctx.account.team.reply)) + ' ' : ''}Messages go straight to the people who work on your account.</p></div>
-            <a class="btn btn-solid" href="#/messages">${icon('message')}Go to Messages</a>
-          </div>
-        </section>
+        ${UI.PageHeader({ title: 'Help', intro: 'How to reach us, and answers to common questions.', sample: ctx.account.business.name })}
+        ${UI.PageFresh({ updatedAt: HELP_UPDATED, source: 'Domin8te team', status: 'ok' })}
         <section class="sec" aria-labelledby="h-faq"><h2 id="h-faq" class="sec-title">Common questions</h2>
           <div class="card faq">${FAQ.map(([q, a]) => `<details><summary>${esc(q)}${icon('chevron-down')}</summary>${a.startsWith('<') ? a : `<p>${esc(a)}</p>`}</details>`).join('')}</div>
+        </section>
+        <section class="card help-contact" aria-labelledby="h-contact">
+          <div class="help-contact-row">
+            <div><h2 id="h-contact">Still stuck?</h2><p>${ctx.account.team.reply ? esc(replyLine(ctx.account.team.reply)) + ' ' : ''}Messages go straight to the people who work on your account.</p></div>
+            <a class="btn btn-solid" href="#/messages">${icon('message')}Message us</a>
+          </div>
         </section>
       </div>`;
     },
@@ -914,21 +988,24 @@
     render(ctx) {
       const reply = ctx.account.team && ctx.account.team.reply ? replyLine(ctx.account.team.reply) : 'We usually reply within one working day.';
       const pkg = (ctx.account.package.services || []).filter((/** @type {string} */ x) => SVC()[x]);
+      // The demo is view-only (2026-10-13): the conversation can be read, nothing can be sent.
+      const ro = D8.data.READ_ONLY;
       return `<div class="page page-messages">
-        ${UI.PageHeader({ title: 'Messages', intro: `Talk to your Domin8te team. ${reply}`, aside: `<button class="btn btn-glass btn-sm" type="button" data-msg-reload title="Checks for new messages now. The page also checks by itself every 10 seconds.">${icon('refresh')}Reload conversation</button>` })}
-        <section class="card msg-card" aria-labelledby="h-thread">
+        ${UI.PageHeader({ title: 'Messages', intro: `Talk to your Domin8te team. ${reply}`, aside: `<button class="btn btn-glass btn-sm" type="button" data-msg-reload title="Checks for new messages now. The page also checks by itself every 10 seconds.">${icon('refresh')}Reload conversation</button>`, sample: ctx.account.business.name })}
+        <div id="msg-fresh">${UI.PageFresh({ source: 'Domin8te team', zone: ctx.account.zoneAbbr, status: 'ok' })}</div>
+        <section class="card msg-card${ro ? ' is-view-only' : ''}" aria-labelledby="h-thread">
           <h2 id="h-thread" class="sr-only">Your conversation with Domin8te</h2>
           <div class="msg-scroll" id="msg-thread" role="log" aria-label="Messages with Domin8te" tabindex="0">${UI.Skeleton('text', 1)}</div>
           <form class="msg-compose" id="msg-form" novalidate>
             <div class="field msg-about" id="msg-about-box" hidden><label for="msg-about-pick">What is it about?</label><select id="msg-about-pick" name="about"><option value="general">General</option>${pkg.map((/** @type {string} */ x) => `<option value="${esc(x)}">${esc(SVC()[x].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>
             <label class="sr-only" for="msg-new">Write a message</label>
-            <textarea id="msg-new" name="text" rows="2" maxlength="2000" placeholder="Start a conversation, or reply to us" aria-describedby="msg-new-err msg-keys"></textarea>
+            <textarea id="msg-new" name="text" rows="2" maxlength="2000" placeholder="${ro ? 'Sample conversation' : 'Start a conversation, or reply to us'}"${ro ? ' disabled' : ''} aria-describedby="msg-new-err msg-keys"></textarea>
             <p class="field-error" id="msg-new-err" hidden></p>
             <p class="form-error" id="msg-form-err" role="alert" hidden></p>
             <div class="msg-compose-foot">
-              <button class="link-btn msg-about-toggle" type="button" aria-expanded="false" aria-controls="msg-about-box">Add a topic</button>
-              <span class="hint msg-keys" id="msg-keys">Ctrl and Enter sends</span>
-              <button class="btn btn-solid msg-send" type="submit">Send${icon('arrow-right')}</button>
+              <button class="link-btn msg-about-toggle" type="button" aria-expanded="false" aria-controls="msg-about-box"${ro ? ' disabled' : ''}>Add a topic</button>
+              <span class="hint msg-keys" id="msg-keys">${ro ? 'Sample conversation. Sign in to message us.' : 'Ctrl and Enter sends'}</span>
+              <button class="btn btn-solid msg-send" type="submit"${ro ? ' disabled' : ''}>Send${icon('arrow-right')}</button>
             </div>
           </form>
         </section>
@@ -966,10 +1043,17 @@
         ctx.setMessagesBadge(0);
         ctx.client.markMessagesSeen().catch(() => { /* remembered next time they open Messages */ });
       }
+      /** The freshness line says when the newest message was written. @param {any} th */
+      function setFresh(th) {
+        const box_ = el.querySelector('#msg-fresh');
+        const newest = th.items.length ? th.items[th.items.length - 1].at : null;
+        if (box_) box_.innerHTML = UI.PageFresh({ updatedAt: newest, source: 'Domin8te team', zone: ctx.account.zoneAbbr, status: 'ok' });
+      }
       /** @param {any} th */
       function keep(th) {
         if (seenBefore === undefined) seenBefore = th.seenAt;
         last = th;
+        setFresh(th);
         lastKey = th.items.map((/** @type {any} */ x) => x.id + ':' + (x.status || '')).join('|');
         return th;
       }

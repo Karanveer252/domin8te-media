@@ -1,0 +1,236 @@
+/*
+ * Page touches for the plan release (2026-10-13): Work's usage and its muted "not in this month's plan" cards, Settings
+ * (locked always-sent emails, the connected-account rows, the look picker), Help (the questions), Messages (the thread,
+ * the composer and the view-only demo) and the limit check inside "Ask for a change". Tokens only, so dark follows.
+ * Design pass 2026-10-13 ("pages"): one clear thing per card, a quiet second tier, a whisper third; 8px rhythm;
+ * locked switches that read as locked, not broken; a read-only composer that reads as calm, not disabled by accident.
+ */
+
+/* A small lock, drawn in the colour of whatever carries it (a mask, so it follows the tokens). */
+html { --pg-lock: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><rect x='4.5' y='10.5' width='15' height='10' rx='2.5'/><path d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/></svg>"); }
+
+.svc-opt.is-fixed .pk-input { cursor: default; }
+
+/* ------------------------------------------------------------------ Work */
+
+.work-usage { display: grid; gap: 12px; margin: 14px 0 4px; padding: 16px 18px; border-radius: 16px; background: var(--p-well); }
+.svc-off { margin-top: 16px; padding: 22px 26px; background: var(--p-glass-soft); }
+.svc-off .svc-head h2 { font-size: 20px; color: var(--p-ink-2); }
+.svc-off p { margin-top: 10px; max-width: 70ch; color: var(--p-ink-2); }
+
+/* ------------------------------------------------------------------ Settings */
+
+/* The stack: four cards, one job each, 24px apart; each card's title is the one clear thing. */
+.page-settings .settings-stack { gap: 24px; }
+.page-settings .set-card { padding: 26px 28px 24px; }
+.page-settings .set-card h2 { margin-bottom: 4px; font-size: 20px; line-height: 1.25; font-weight: 700; letter-spacing: -0.01em; }
+.page-settings .set-card > p { max-width: 66ch; font-size: 16px; line-height: 1.5; color: var(--p-ink-2); }
+.page-settings .set-card > p.meta { font-size: 14.5px; color: var(--p-ink-3); }
+.page-settings .set-card .sec-head { margin-bottom: 2px; }
+.page-settings .set-count { font-size: 14.5px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--p-ink-2); }
+.page-settings .set-actions { gap: 10px; margin-top: 16px; }
+
+/* Connected accounts: name, what it does, when it last spoke; the health word on the right, the one button after it. */
+.page-settings .sources { margin-top: 10px; }
+.page-settings .src-row { gap: 6px 18px; padding: 14px 0; }
+.page-settings .src-row > div { min-width: 0; }
+.page-settings .src-name { font-size: 16px; font-weight: 650; line-height: 1.35; }
+.page-settings .src-about { margin-top: 1px; font-size: 14.5px; line-height: 1.45; color: var(--p-ink-2); }
+.page-settings .src-row > div > .meta { margin-top: 3px; font-size: 13.5px; line-height: 1.45; }
+.page-settings .src-row .badge { justify-self: end; }
+.page-settings .src-row .btn-glass { justify-self: end; }
+.src-off { color: var(--p-ink-2); }
+.src-off:hover { color: var(--p-crit); }
+
+/* Folds: the quiet summary is the whole hit area, a pill on hover, 44px on touch. */
+.page-settings .fold > summary { gap: 8px; min-height: 40px; margin: 0 -6px; padding: 0 6px; border-radius: 10px; font-size: 15px; transition: background-color var(--m-fast) var(--ease), color var(--m-fast) var(--ease); }
+.page-settings .fold > summary:hover { background: var(--p-hover); color: var(--p-ink); }
+.page-settings .fold > summary:focus-visible { outline: 2px solid var(--p-focus); outline-offset: 0; }
+.page-settings .fold > summary .i { width: 18px; height: 18px; color: var(--p-ink-3); }
+.page-settings .fold-sources > .meta { margin: 4px 0 2px; font-size: 14px; }
+.page-settings .fold-sources > .sources { margin-top: 6px; }
+.page-settings .fold-look > summary { width: auto; min-height: 44px; margin: -6px -6px; padding: 0 6px; }
+.page-settings .fold-look > summary h2 { margin: 0; }
+.page-settings .fold-look > summary .i { width: 20px; height: 20px; }
+.page-settings .fold-look[open] > summary { margin-bottom: 10px; }
+
+/* Who can sign in: the login request is a sub-task, so it sits in its own well. */
+.page-settings .ask-form { margin-top: 18px; padding: 18px 20px 20px; border-radius: 16px; background: var(--p-well); }
+.page-settings .ask-form > p:first-child { margin-bottom: 0; font-size: 15.5px; color: var(--p-ink); }
+.page-settings .ask-form > .meta { margin-top: -4px; }
+.page-settings .ask-form .form-foot { margin-top: 4px; padding-top: 14px; border-top-color: var(--p-line-2); }
+
+/* Emails: the label is the clear thing, the sentence under it the second tier; the chip sits beside the label and wraps
+   under it on a narrow phone instead of hanging in the air. */
+.page-settings .toggles { margin-top: 12px; }
+.page-settings .toggles.is-always { margin-top: 10px; }
+.page-settings .toggle-row { gap: 4px 16px; padding: 14px 0; }
+.page-settings .toggle-label { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; font-size: 16px; font-weight: 650; line-height: 1.35; }
+.page-settings .toggle-text { font-size: 14.5px; line-height: 1.45; color: var(--p-ink-2); }
+.chip-always { display: inline-flex; align-items: center; margin: 0; padding: 2px 10px; border-radius: 999px; background: linear-gradient(var(--p-neutral-bg), var(--p-neutral-bg)), var(--p-surface); color: var(--p-ink-2); font-size: 12.5px; font-weight: 650; line-height: 1.5; letter-spacing: 0.01em; white-space: nowrap; }
+.toggle-row.is-always label { cursor: default; }
+/* A locked switch is on at full strength, with a small lock on its knob: on and not yours to turn off, never "broken". */
+.toggle-row.is-always .switch, .toggle-row.is-always .switch:disabled { opacity: 1; cursor: default; }
+.toggle-row.is-always .switch::before { content: ""; position: absolute; z-index: 1; top: 3px; left: 21px; width: 22px; height: 22px; background: var(--p-switch-on); -webkit-mask: var(--pg-lock) center / 11px 11px no-repeat; mask: var(--pg-lock) center / 11px 11px no-repeat; }
+.fold-emails { margin-top: 8px; }
+.page-settings .fold-emails > #notify-form { margin-top: 2px; }
+.page-settings .form-foot .btn { min-width: 150px; }
+.link-btn:disabled { color: var(--p-ink-3); text-decoration: none; cursor: not-allowed; opacity: 0.7; }
+
+/* How it looks: two choices per question, the chosen one framed in ink. */
+.page-settings .pick-legend { margin-bottom: 10px; font-size: 14.5px; font-weight: 700; letter-spacing: 0.01em; color: var(--p-ink-2); }
+.page-settings .theme-pick { gap: 12px; margin-top: 8px; }
+.page-settings .theme-opt { padding: 14px 16px; transition: border-color var(--m-fast) var(--ease), background-color var(--m-fast) var(--ease), box-shadow var(--m-fast) var(--ease); }
+.page-settings .theme-opt:hover { border-color: var(--p-ink-3); background: var(--p-surface); }
+.page-settings .theme-opt:has(input:checked) { border-color: var(--p-ink); background: var(--p-surface); box-shadow: 0 0 0 1px var(--p-ink); }
+.page-settings .theme-opt strong { font-size: 15.5px; font-weight: 650; line-height: 1.3; }
+.page-settings .theme-opt .meta { margin-top: 1px; font-size: 13.5px; line-height: 1.4; }
+.page-settings .theme-swatch { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5); }
+
+@container page (max-width: 560px) {
+  .page-settings .set-card { padding: 22px 20px 20px; }
+  .page-settings .settings-stack { gap: 18px; }
+  /* The row stacks: the words first, then the health word and the button side by side. */
+  .page-settings .src-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px 12px; }
+  .page-settings .src-row > div { grid-column: 1 / -1; }
+  .page-settings .src-row .badge { grid-column: 1; grid-row: 2; justify-self: start; }
+  .page-settings .src-row .btn { grid-column: 2; grid-row: 2; justify-self: end; margin: 0; }
+  .page-settings .ask-form { padding: 16px 16px 18px; }
+  .page-settings .theme-opt { padding: 12px 14px; }
+}
+@media (pointer: coarse) {
+  .page-settings .fold > summary { min-height: 44px; }
+}
+
+/* ------------------------------------------------------------------ Help */
+
+.page-help .sec { margin-top: 24px; }
+.page-help .sec-title { margin-bottom: 12px; }
+/* The questions: one row each, a pill on hover, the open one in heavier ink with its answer set in a comfortable measure. */
+.page-help .faq { padding: 6px 26px; }
+.page-help .faq summary { gap: 16px; min-height: 58px; margin: 0 -12px; padding: 14px 12px; border-radius: 12px; font-size: 16.5px; font-weight: 600; line-height: 1.35; color: var(--p-ink); transition: background-color var(--m-fast) var(--ease); }
+.page-help .faq summary:hover { background: var(--p-hover); }
+.page-help .faq summary:focus-visible { outline: 2px solid var(--p-focus); outline-offset: -2px; border-radius: 12px; }
+.page-help .faq summary .i { flex: none; width: 20px; height: 20px; color: var(--p-ink-3); transition: transform var(--m) var(--ease), color var(--m-fast) var(--ease); }
+.page-help .faq details[open] > summary { font-weight: 700; }
+.page-help .faq details[open] > summary .i { color: var(--p-ink); }
+.page-help .faq details > p { max-width: 68ch; padding: 0 0 20px; font-size: 16px; line-height: 1.55; color: var(--p-ink-2); }
+.page-help .faq .promise-list { padding: 2px 0 14px; }
+.page-help .promise-list li { grid-template-columns: 24px minmax(0, 1fr); gap: 10px; padding: 7px 0; font-size: 16px; line-height: 1.5; color: var(--p-ink-2); }
+.page-help .promise-list .i { width: 18px; height: 18px; margin-top: 3px; }
+/* Still stuck: one sentence and the one button. */
+.page-help .help-contact { margin-top: 24px; padding: 26px 28px; }
+.help-contact-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px 24px; }
+.help-contact-row > div { flex: 1 1 360px; min-width: 0; }
+.help-contact h2 { margin-bottom: 4px; font-size: 20px; line-height: 1.25; font-weight: 700; letter-spacing: -0.01em; }
+.help-contact p { margin-top: 4px; max-width: 58ch; font-size: 16px; line-height: 1.5; color: var(--p-ink-2); }
+.help-contact .btn { flex: none; }
+
+@container page (max-width: 560px) {
+  .page-help .faq { padding: 4px 18px; }
+  .page-help .faq summary { min-height: 54px; margin: 0 -8px; padding: 12px 8px; font-size: 16px; }
+  .page-help .faq details > p { padding-bottom: 18px; font-size: 15.5px; }
+  .page-help .help-contact { padding: 22px 20px; }
+  .help-contact .btn { width: 100%; }
+}
+
+/* ------------------------------------------------------------------ Messages */
+
+/* The thread: the team's bubbles on glass with a hairline, the client's in ink; day pills and the New line quiet. */
+.page-messages .msg-card { margin-top: 24px; }
+.page-messages .msg-scroll { padding: 22px 22px 16px; }
+.page-messages .msg-list { gap: 12px; }
+.page-messages .msg-bubble { padding: 11px 15px; }
+.page-messages .msg.is-team .msg-bubble { box-shadow: inset 0 0 0 1px var(--p-line), 0 1px 2px rgba(34, 40, 70, 0.05); }
+.page-messages .msg.is-mine .msg-bubble { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+.page-messages .msg-meta { margin-top: 5px; gap: 0 7px; font-size: 13px; }
+.page-messages .msg-day { margin: 14px 0 2px; padding: 3px 12px; font-size: 12.5px; font-weight: 650; letter-spacing: 0.01em; color: var(--p-ink-2); }
+.page-messages .msg-list > .msg-day:first-child { margin-top: 2px; }
+.page-messages .msg-new { margin-top: 6px; font-size: 12.5px; letter-spacing: 0.02em; }
+/* A change request: a dashed card on the client's side, its state as a small pill in plain words. */
+.page-messages .msg-req { padding: 12px 16px 13px; }
+.page-messages .msg-req-h { font-size: 12.5px; font-weight: 700; letter-spacing: 0.01em; color: var(--p-ink-2); }
+.page-messages .msg-req .msg-text { margin-top: 5px; }
+.page-messages .msg-req-status { display: inline-flex; align-items: center; margin-top: 9px; padding: 2px 10px; border-radius: 999px; background: linear-gradient(var(--p-info-bg), var(--p-info-bg)), var(--p-surface); color: var(--p-info); font-size: 13px; font-weight: 650; line-height: 1.5; }
+.page-messages .msg-req-status:is([data-status="done"], [data-status="complete"]) { background: linear-gradient(var(--p-success-bg), var(--p-success-bg)), var(--p-surface); color: var(--p-success); }
+.page-messages .msg-req-status[data-status="declined"] { background: linear-gradient(var(--p-neutral-bg), var(--p-neutral-bg)), var(--p-surface); color: var(--p-neutral); }
+/* Nothing yet: a soft mark and one sentence, centred. */
+.msg-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 220px; padding: 24px; color: var(--p-ink-2); font-size: 16px; line-height: 1.5; text-align: center; }
+.msg-empty-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--p-well); color: var(--p-ink-2); box-shadow: inset 0 0 0 1px var(--p-line); }
+.msg-empty-icon .i { width: 22px; height: 22px; }
+.msg-empty p { max-width: 36ch; margin: 0; }
+/* The composer sits on a soft strip, so the box you write in is the brightest thing on it. */
+.page-messages .msg-compose { gap: 10px; padding: 14px 18px 16px; background: var(--p-well); }
+.page-messages .msg-compose textarea { min-height: 68px; transition: border-color var(--m-fast) var(--ease), box-shadow var(--m-fast) var(--ease); }
+.page-messages .msg-compose textarea:hover { border-color: var(--p-ink-3); }
+.page-messages .msg-compose textarea:focus-visible { outline: none; border-color: var(--p-focus); box-shadow: 0 0 0 3px rgba(29, 26, 22, 0.14); }
+html[data-theme="dark"] .page-messages .msg-compose textarea:focus-visible { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18); }
+.page-messages .msg-compose-foot { gap: 8px 16px; }
+.page-messages .msg-keys { font-size: 14px; }
+
+/* View-only, in the public demo: the same strip, read-only on purpose. The box is a quiet dashed outline, the topic
+   button goes (there is nothing to send), the line says why with a small lock, and Send is a plain stone pill. */
+.msg-card.is-view-only .msg-compose { opacity: 1; gap: 10px; }
+.msg-card.is-view-only textarea, .msg-card.is-view-only textarea:hover { min-height: 56px; border: 1px dashed var(--p-line-2); background: transparent; color: var(--p-ink-3); box-shadow: none; cursor: default; resize: none; }
+.msg-card.is-view-only textarea::placeholder { color: var(--p-ink-3); }
+.msg-card.is-view-only .msg-about-toggle { display: none; }
+.msg-card.is-view-only .msg-keys { display: inline-flex; align-items: center; gap: 7px; margin: 0 auto 0 0; color: var(--p-ink-2); font-size: 14.5px; font-weight: 600; }
+.msg-card.is-view-only .msg-keys::before { content: ""; flex: none; width: 15px; height: 15px; background: currentColor; -webkit-mask: var(--pg-lock) center / contain no-repeat; mask: var(--pg-lock) center / contain no-repeat; }
+.msg-card.is-view-only .msg-send, .msg-card.is-view-only .msg-send:disabled { margin-left: auto; opacity: 1; border-color: var(--p-line-2); background: var(--p-neutral-bg); background-image: none; color: var(--p-ink-3); box-shadow: none; cursor: not-allowed; }
+@media (hover: none) {
+  /* The explanation must stay on phones, where the keyboard hint is otherwise hidden. */
+  .msg-card.is-view-only .msg-keys { display: inline-flex; }
+}
+@media (max-width: 760px) {
+  .page-messages .msg-card { margin-top: 20px; }
+  .page-messages .msg-scroll { padding: 16px 14px 12px; }
+  .page-messages .msg-compose { padding: 12px 14px 14px; }
+  .msg-empty { min-height: 200px; }
+}
+
+/* ------------------------------------------------------------------ Ask for a change: how it fits this month */
+
+.dlg-form.is-ask { gap: 18px; }
+.ask-qty { display: grid; grid-template-columns: minmax(0, 1fr) 136px; gap: 0 16px; }
+.ask-qty .field:only-child { grid-column: 1 / -1; }
+.ask-qty .ask-n:only-child { max-width: 200px; }
+.ask-n input { font-variant-numeric: tabular-nums; }
+.ask-note-box:empty { display: none; }
+/* The note: one bold lead, the figures in tabular numerals, the bar under them, the sum as a quiet line. */
+.ask-note { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: start; gap: 6px 12px; padding: 16px 18px; border-radius: 16px; font-size: 15.5px; line-height: 1.5; font-variant-numeric: tabular-nums; color: var(--p-ink); }
+.ask-note > .i { width: 20px; height: 20px; margin-top: 2px; }
+.ask-note > div { min-width: 0; }
+.ask-note p { margin: 0; }
+.ask-note strong { font-weight: 700; }
+.ask-note.is-ok { background: var(--p-info-bg); box-shadow: inset 0 0 0 1px rgba(60, 120, 210, 0.22); }
+.ask-note.is-ok > .i { color: var(--p-info); }
+.ask-note.is-over { background: var(--p-attn-bg); box-shadow: inset 0 0 0 1px rgba(255, 110, 50, 0.3); }
+.ask-note.is-over > .i { color: var(--p-attn); }
+.ask-note.is-urgent { background: var(--p-success-bg); box-shadow: inset 0 0 0 1px rgba(46, 140, 80, 0.26); }
+.ask-note.is-urgent > .i { color: var(--p-success); }
+.ask-note .bar { margin-top: 12px; }
+.ask-note.is-over .bar > span { background: var(--p-fill-full); }
+.ask-sum { margin-top: 8px; font-size: 14px; font-weight: 600; color: var(--p-ink-2); }
+/* The demo line under the note: a whisper, so the limit note stays the one loud thing. */
+.dlg-form.is-ask .notice { padding: 0 2px; background: none; box-shadow: none; font-size: 14.5px; line-height: 1.5; color: var(--p-ink-2); }
+.dlg-form.is-ask .notice > .i { width: 17px; height: 17px; margin-top: 2px; color: var(--p-ink-3); }
+.confirm-state.is-ask { gap: 12px; }
+.confirm-state.is-ask p { max-width: 54ch; color: var(--p-ink-2); }
+.confirm-state.is-ask h3 { margin-top: 2px; }
+
+@media (max-width: 760px) {
+  .ask-qty { grid-template-columns: minmax(0, 1fr) 120px; gap: 0 12px; }
+  .ask-note { padding: 14px 16px; font-size: 15px; }
+}
+
+/* ------------------------------------------------------------------ comfort and access */
+
+@media (prefers-reduced-motion: reduce) {
+  .page-help .faq summary .i, .page-settings .fold > summary .i, .page-settings .theme-opt, .page-messages .msg-compose textarea { transition: none; }
+}
+@media (forced-colors: active) {
+  .chip-always, .msg-day, .msg-req-status, .msg-empty-icon, .ask-note { border: 1px solid CanvasText; }
+  .toggle-row.is-always .switch::before { background: CanvasText; }
+  .msg-card.is-view-only .msg-keys::before { background: CanvasText; }
+  .msg-card.is-view-only textarea { border-style: dashed; }
+}

@@ -14,7 +14,7 @@ const { SRC } = require('./load');
 /** Values made inside the sandbox have its own prototypes: compare what they hold. */
 const plain = (v) => JSON.parse(JSON.stringify(v));
 
-const FILES = ['lib/time.js', 'lib/format.js', 'data/demo-fixtures.js', 'data/dashboard-data.js', 'data/live-data.js'];
+const FILES = ['lib/time.js', 'lib/format.js', 'data/plan-model.js', 'data/demo-fixtures.js', 'data/dashboard-data.js', 'data/live-data.js'];
 const BAYLEAF = () => JSON.parse(JSON.stringify(require('./fixture-bayleaf.json')));
 
 /** A tiny Supabase stand-in: tables in memory, filters, inserts, upserts, and planted errors. */
@@ -59,10 +59,12 @@ function fakeSupabase(tables, errors) {
           };
           return chain;
         },
-        // the database's functions: rows kept as tables['rpc:<name>'], errors planted as errors['rpc:<name>']
-        rpc(name) {
+        // the database's functions: rows kept as tables['rpc:<name>'] (or a function of the arguments), errors planted as errors['rpc:<name>']
+        rpc(name, args) {
+          (tables.__rpcCalls = tables.__rpcCalls || []).push([name, args]);
           const planted = errors[`rpc:${name}`];
-          return Promise.resolve(planted ? { data: null, error: planted } : { data: tables[`rpc:${name}`] || [], error: null });
+          const t = tables[`rpc:${name}`];
+          return Promise.resolve(planted ? { data: null, error: planted } : { data: typeof t === 'function' ? t(args) : t || [], error: null });
         }
       };
     }
@@ -150,7 +152,13 @@ const withProjections = () => ({
 });
 
 test('approved projections show on the portal; the record is the fallback; nothing unapproved leaks', async () => {
-  const { D8 } = live({ tables: withProjections(), clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const tables = withProjections();
+  // client_results_current(): the newest verified number for each kind of figure, as the database returns it
+  tables['rpc:client_results_current'] = [{ tenant_id: 'tnt_row_1', metric_key: 'bookings', id: 'i5', external_id: 'r1',
+    content: { metric: 'bookings', label: 'Bookings', value: 212, unit: 'bookings', service: 'website', source: 'Resy' },
+    reporting_period_start: '2026-08-21', reporting_period_end: '2026-09-19', source_observed_at: '2026-09-20T09:00:00Z', source_ref: 'console:r1',
+    verification_status: 'stale', verified_at: '2026-09-20T10:00:00Z', has_newer_unverified: false }];
+  const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
   const c = D8.data.connect(await D8.auth.getSession());
   const ups = plain(await c.getUpdates());
   const byId = Object.fromEntries(ups.map((u) => [u.id, u]));
@@ -163,10 +171,12 @@ test('approved projections show on the portal; the record is the fallback; nothi
   assert.equal(site.now, 'Fixing the booking button');
   assert.ok(site.completed.some((x) => x.text === 'Uploaded the brunch menu'));
   const res = plain(await c.getResults(30));
-  const bookings = res.groups.flatMap((g) => g.metrics).find((m) => m.id === 'bookings');
-  assert.equal(bookings.verified.value, 212);
-  assert.equal(bookings.verified.periodEnd, '2026-09-19');
-  assert.equal(bookings.verified.health.label, 'Delayed', 'a stale result keeps showing, as Delayed');
+  const bookings = res.items.find((x) => x.id === 'bookings');
+  assert.equal(res.mode, 'verified', 'live results are only what staff verified');
+  assert.equal(bookings.value, 212);
+  assert.equal(bookings.periodEnd, '2026-09-19');
+  assert.equal(bookings.source, 'Resy');
+  assert.equal(bookings.badge, 'delayed', 'a stale result keeps showing, as Delayed');
   const bill = plain(await c.getBilling());
   assert.equal(bill.invoices[0].number, 'BAY-0010');
   assert.ok(bill.invoices.some((x) => x.number === 'BAY-0009'), 'the record\'s own invoices stay');
@@ -459,4 +469,209 @@ test("Stripe pages: the billing buttons ask stripe-billing for this client's own
   assert.equal(calls.length, 4, 'other outside pages do not call Stripe');
   await D8.integrations.resolve('connect-instagram');
   assert.equal(calls.length, 4);
+});
+
+/* ================================================================ the plan, the results and Home (2026-10-13) */
+
+// A day counted on the restaurant's own clock (the test tenant is on America/Winnipeg), so the tests do not change with the hour they run at.
+const dayFromNow = (n) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Winnipeg', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(Date.now() + n * 864e5));
+const MENU = () => ({
+  plans: [
+    { id: 'starter', name: 'Starter', price_minor: 99900, currency: 'USD', picks_allowed: 1, required_services: ['advertising'], max_clients: null, full: false },
+    { id: 'growth', name: 'Growth', price_minor: 199900, currency: 'USD', picks_allowed: 2, required_services: [], max_clients: null, full: false },
+    { id: 'domin8te', name: 'Domin8te', price_minor: 349900, currency: 'USD', picks_allowed: null, required_services: [], max_clients: 1, full: true }
+  ],
+  caps: [
+    { plan_id: 'growth', service: 'social', metric: 'social_posts', label: 'posts', monthly_cap: 12, weekly_hint: '3 a week' },
+    { plan_id: 'growth', service: 'website', metric: 'web_pages', label: 'new pages', monthly_cap: 2, weekly_hint: null },
+    { plan_id: 'growth', service: 'website', metric: 'web_edits', label: 'edits', monthly_cap: 5, weekly_hint: null },
+    { plan_id: 'growth', service: 'advertising', metric: 'ads_live_campaigns', label: 'live campaigns', monthly_cap: 3, weekly_hint: null },
+    { plan_id: 'starter', service: 'advertising', metric: 'ads_live_campaigns', label: 'live campaigns', monthly_cap: 1, weekly_hint: null },
+    { plan_id: 'starter', service: 'social', metric: 'social_posts', label: 'posts', monthly_cap: 8, weekly_hint: '2 a week' }
+  ],
+  services: [], mismatch: false
+});
+/** Growth (Social media and Website) this month, from 10 days ago to 21 days ahead, with usage so far. */
+const withPlan = (extra) => ({
+  ...withBayleaf(),
+  tenant_plan_cycles: [{ id: 'cyc1', tenant_id: 'tnt_row_1', plan_id: 'growth', picks: ['social', 'website'], website_option: null, period_start: dayFromNow(-10), period_end: dayFromNow(21), state: 'active', source: 'console', confirmed_at: '2026-09-21T15:00:00Z', confirmed_by: 'user_k' }],
+  'rpc:plan_menu': MENU(),
+  tenant_usage_current: [{ tenant_id: 'tnt_row_1', service: 'social', metric: 'social_posts', used: 9 }, { tenant_id: 'tnt_row_1', service: 'website', metric: 'web_edits', used: 3 }],
+  ...extra
+});
+
+test('the plan comes from the database: this month, next month, what is used, and the picks decide the services', async () => {
+  const { D8 } = live({ tables: withPlan(), clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  const p = plain(await c.getPlan());
+  assert.equal(p.state, 'ok');
+  assert.equal(p.now.name, 'Growth');
+  assert.equal(p.now.priceMinor, 199900, 'prices come from the database');
+  assert.equal(p.pricesShown, true);
+  assert.deepEqual(p.now.picks, ['social', 'website']);
+  assert.equal(p.now.services.find((s) => s.id === 'social').lines[0].used, 9);
+  assert.equal(p.now.services.find((s) => s.id === 'social').lines[0].weeklyHint, '3 a week');
+  assert.equal(p.next, null, 'next month is not there until it is carried over or chosen');
+  assert.equal(p.menu.find((m) => m.id === 'domin8te').full, true, 'the Domin8te place shows as taken, with no name');
+  assert.equal(p.open, true);
+  // the picks decide what the client has: the record's own package (four services) no longer does
+  assert.deepEqual(plain(await c.getWork()).services.map((s) => s.id), ['website', 'social']);
+  assert.equal(plain(await c.getAccount()).package.services.length, 2);
+});
+
+test('next month: the database month after this one, and a refresh keeps what the client has just chosen', async () => {
+  const tables = withPlan();
+  tables.tenant_plan_cycles.push({ id: 'cyc2', tenant_id: 'tnt_row_1', plan_id: 'growth', picks: ['social', 'website'], website_option: null, period_start: dayFromNow(21), period_end: dayFromNow(52), state: 'confirmed', source: 'auto_carry', confirmed_at: '2026-10-05T10:00:00Z', confirmed_by: 'system' });
+  // what the database returns when the client picks: the written month
+  tables['rpc:set_next_cycle_picks'] = (a) => ({ id: 'cyc2', tenant_id: 'tnt_row_1', plan_id: a.p_plan, picks: a.p_picks, website_option: a.p_website_option, period_start: dayFromNow(21), period_end: dayFromNow(52), state: 'confirmed', source: 'client_picker', confirmed_at: '2026-10-12T19:14:00+00:00', confirmed_by: 'user_dani' });
+  const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  let p = plain(await c.getPlan());
+  assert.equal(p.next.source, 'auto_carry');
+  assert.equal(p.confirmed, false);
+  const r = plain(await c.savePicks('growth', ['email', 'advertising']));
+  assert.deepEqual(plain(tables.__rpcCalls.filter((x) => x[0] === 'set_next_cycle_picks').map((x) => x[1])), [{ p_plan: 'growth', p_picks: ['advertising', 'email'], p_website_option: null }], 'the database gets the picks in catalog order');
+  assert.equal(r.next.source, 'client_picker');
+  p = plain(await c.getPlan());
+  assert.equal(p.confirmed, true);
+  assert.deepEqual(p.next.picks, ['advertising', 'email']);
+  assert.deepEqual(p.changes.adds, ['advertising', 'email']);
+  // the database now holds the written month: a refresh reads it, and it still shows
+  Object.assign(tables.tenant_plan_cycles[1], { picks: ['advertising', 'email'], source: 'client_picker', confirmed_at: '2026-10-12T19:14:00+00:00' });
+  await c.refresh();
+  p = plain(await c.getPlan());
+  assert.deepEqual(p.next.picks, ['advertising', 'email']);
+  assert.equal(p.confirmed, true);
+});
+
+test('a refresh that read the rows before a pick was written does not undo it', async () => {
+  const tables = withPlan();
+  tables.tenant_plan_cycles.push({ id: 'cyc2', tenant_id: 'tnt_row_1', plan_id: 'growth', picks: ['social', 'website'], website_option: null, period_start: dayFromNow(21), period_end: dayFromNow(52), state: 'confirmed', source: 'auto_carry', confirmed_at: '2026-10-05T10:00:00Z', confirmed_by: 'system' });
+  // the stand-in database keeps returning the old month: what a read that began before the write sees
+  tables['rpc:set_next_cycle_picks'] = (a) => ({ id: 'cyc2', tenant_id: 'tnt_row_1', plan_id: a.p_plan, picks: a.p_picks, website_option: a.p_website_option, period_start: dayFromNow(21), period_end: dayFromNow(52), state: 'confirmed', source: 'client_picker', confirmed_at: '2026-10-12T19:14:00+00:00', confirmed_by: 'user_dani' });
+  const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  await c.getPlan();
+  await Promise.all([c.refresh(), c.savePicks('growth', ['advertising', 'email'])]);
+  const p = plain(await c.getPlan());
+  assert.deepEqual(p.next.picks, ['advertising', 'email'], 'the newer choice holds');
+  assert.equal(p.confirmed, true);
+});
+
+test('picks the database refuses are explained in the portal\'s words, and a month after the last day is refused before it is sent', async () => {
+  const mk = (error) => {
+    const tables = withPlan();
+    return live({ tables, errors: error ? { 'rpc:set_next_cycle_picks': error } : {}, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  };
+  const ask = async (error) => {
+    const { D8 } = mk(error);
+    const c = D8.data.connect(await D8.auth.getSession());
+    return c.savePicks('growth', ['advertising', 'social']);
+  };
+  await assert.rejects(ask({ code: '42501', message: 'next-month-locked' }), (e) => e.code === 'locked' && /too late/.test(e.message));
+  await assert.rejects(ask({ code: '23514', message: 'picks-do-not-fit: {social} does not fit the growth plan' }), (e) => e.code === 'bad-picks');
+  await assert.rejects(ask({ code: '23P01', message: 'plan-full: domin8te is taken right now' }), (e) => e.code === 'plan-full');
+  await assert.rejects(ask({ code: 'P0002', message: 'no-current-cycle' }), (e) => e.code === 'no-plan');
+  await assert.rejects(ask({ code: '42501', message: 'ask-karan: Domin8te is set up with Karan' }), (e) => e.code === 'ask-karan');
+  // the last day has passed: refused in the portal, no call made
+  const tables = withPlan();
+  tables.tenant_plan_cycles[0].period_start = dayFromNow(-30);
+  tables.tenant_plan_cycles[0].period_end = dayFromNow(1);
+  const a = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const ca = a.D8.data.connect(await a.D8.auth.getSession());
+  assert.equal(plain(await ca.getPlan()).open, true, 'the bill is tomorrow, so today is the last day to change');
+  tables.tenant_plan_cycles[0].period_end = dayFromNow(0);
+  const b = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const cb = b.D8.data.connect(await b.D8.auth.getSession());
+  assert.equal(plain(await cb.getPlan()).open, false, 'the bill is today: it is too late');
+  await assert.rejects(cb.savePicks('growth', ['advertising', 'social']), (e) => e.code === 'locked');
+  assert.equal((tables.__rpcCalls || []).filter((x) => x[0] === 'set_next_cycle_picks').length, 0, 'nothing is sent to the database');
+});
+
+test('results are only what staff verified; a newer number being checked keeps the last one and says so; the record\'s own figures are dropped', async () => {
+  const tables = withPlan();
+  tables['rpc:client_results_current'] = [
+    { tenant_id: 'tnt_row_1', metric_key: 'calls', id: 'a', external_id: 'calls:20260930', content: { metric: 'calls', label: 'Calls from Google', value: 64, unit: 'calls', service: 'website', source: 'Google Business Profile' }, reporting_period_start: '2026-09-01', reporting_period_end: '2026-09-30', source_observed_at: '2026-10-01T15:00:00+00:00', source_ref: 'console:calls', verification_status: 'verified', verified_at: '2026-10-02T16:00:00+00:00', has_newer_unverified: false },
+    { tenant_id: 'tnt_row_1', metric_key: 'reach', id: 'b', external_id: 'reach:20260831', content: { metric: 'reach', label: 'Instagram reach', value: 2410, unit: 'people', service: 'social', source: 'Meta Business Suite' }, reporting_period_start: '2026-08-01', reporting_period_end: '2026-08-31', source_observed_at: '2026-09-02T15:00:00+00:00', source_ref: 'console:reach', verification_status: 'verified', verified_at: '2026-09-03T16:00:00+00:00', has_newer_unverified: true },
+    { tenant_id: 'someone-else', metric_key: 'calls', id: 'c', external_id: 'calls:x', content: { metric: 'calls', label: 'Calls', value: 1, service: 'website' }, reporting_period_start: '2026-09-01', reporting_period_end: '2026-09-30', verification_status: 'verified' }
+  ];
+  const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  const r = plain(await c.getResults(30));
+  assert.equal(r.mode, 'verified');
+  assert.equal(r.items.length, 2, 'another restaurant\'s row never shows');
+  const calls = r.items.find((x) => x.id === 'calls');
+  assert.deepEqual([calls.value, calls.periodStart, calls.periodEnd, calls.source, calls.badge], [64, '2026-09-01', '2026-09-30', 'Google Business Profile', 'verified']);
+  assert.match(calls.readAt, /^2026-10-01T\d\d:\d\d$/, 'read time is on the restaurant\'s clock');
+  const reach = r.items.find((x) => x.id === 'reach');
+  assert.deepEqual([reach.value, reach.badge, reach.newer], [2410, 'checking', true], 'the last checked number keeps showing, marked as being checked');
+  assert.deepEqual(r.groups.map((g) => g.id), ['website', 'social']);
+  const strip = plain(await c.getStrip(30));
+  assert.equal(strip.mode, 'verified');
+  assert.equal(strip.items.length, 2);
+  assert.deepEqual(strip.metrics, [], 'the record\'s own figures are not read');
+  assert.equal(plain(await c.getInsight()).state, 'none', 'no comparison without the record\'s series');
+});
+
+test('without client_results_current (before its migration) the record\'s own figures stand', async () => {
+  const { D8 } = live({ tables: withPlan(), errors: { 'rpc:client_results_current': { code: 'PGRST202', message: 'function does not exist' } }, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  const r = plain(await c.getResults(30));
+  assert.equal(r.mode, 'series');
+  assert.ok(r.groups.length > 0);
+});
+
+test('a bill\'s pay link shows only once staff approved that exact link', async () => {
+  const tables = withPlan();
+  tables.client_billing_invoices = [
+    { tenant_id: 'tnt_row_1', client_visible: true, invoice_number: 'BAY-0011', amount_minor: 199900, currency: 'USD', status: 'open', issued_at: '2026-10-01', due_at: dayFromNow(-3), paid_at: null, hosted_payment_url: 'https://invoice.stripe.com/i/a', payment_link_approved_at: '2026-10-02T10:00:00Z', payment_link_approved_url: 'https://invoice.stripe.com/i/a', verified_at: '2026-10-02T10:00:00Z' },
+    { tenant_id: 'tnt_row_1', client_visible: true, invoice_number: 'BAY-0012', amount_minor: 199900, currency: 'USD', status: 'open', issued_at: '2026-10-05', due_at: dayFromNow(5), paid_at: null, hosted_payment_url: 'https://invoice.stripe.com/i/b', payment_link_approved_at: null, payment_link_approved_url: null, verified_at: '2026-10-05T10:00:00Z' },
+    { tenant_id: 'tnt_row_1', client_visible: true, invoice_number: 'BAY-0013', amount_minor: 199900, currency: 'USD', status: 'open', issued_at: '2026-10-06', due_at: '2026-10-21', paid_at: null, hosted_payment_url: 'https://invoice.stripe.com/i/changed', payment_link_approved_at: '2026-10-02T10:00:00Z', payment_link_approved_url: 'https://invoice.stripe.com/i/old', verified_at: '2026-10-06T10:00:00Z' }
+  ];
+  const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  const b = plain(await c.getBilling());
+  const by = Object.fromEntries(b.invoices.map((i) => [i.number, i]));
+  assert.equal(by['BAY-0011'].url, 'https://invoice.stripe.com/i/a');
+  assert.equal(by['BAY-0012'].url, null, 'a link nobody approved does not show');
+  assert.equal(by['BAY-0013'].url, null, 'a link that changed after it was approved needs approving again');
+  assert.equal(by['BAY-0011'].state, 'overdue', 'open and past its due date');
+  assert.equal(by['BAY-0012'].state, 'due', 'open and not yet due');
+  assert.equal(b.plan.now.name, 'Growth');
+  assert.ok(b.checkedAt, 'the page knows when the bills were last checked');
+});
+
+test('without the plan functions (an older database) the record stands, and the plan says it is not set up', async () => {
+  const { D8 } = live({ tables: withBayleaf(), errors: { 'rpc:plan_menu': { code: 'PGRST202', message: 'function does not exist' }, 'select:tenant_plan_cycles': { code: '42P01', message: 'relation does not exist' } }, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  assert.equal(plain(await c.getPlan()).state, 'none');
+  assert.equal(plain(await c.getWork()).services.length, 4, 'the record\'s own package stands while no month is set up');
+  assert.equal(plain(await c.getBilling()).plan.state, 'none');
+});
+
+test('a request says what kind of work and how many; the database marks one over the limit', async () => {
+  const tables = withPlan();
+  const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  const plainRow = () => tables.requests[tables.requests.length - 1];
+  await c.sendRequest('social', 'Four posts for the weekend', { metric: 'social_posts', estQty: 4 });
+  assert.deepEqual([plainRow().metric, plainRow().est_qty, plainRow().urgent_fix], ['social_posts', 4, false]);
+  await c.sendRequest('', 'We close early on Monday', { urgent: true });
+  assert.equal(plainRow().urgent_fix, true);
+  assert.match(plainRow().body, /^Urgent fix: /);
+  assert.equal(plainRow().service, 'website', 'an urgent fix is filed on the website (or Google)');
+  assert.equal(plainRow().metric, null, 'an urgent fix names no limit');
+});
+
+test('what staff wrote for Home shows once it is visible', async () => {
+  const tables = withPlan({ client_home_sections: [
+    { tenant_id: 'tnt_row_1', client_visible: true, section: 'note', content: { title: 'A note from Karan', body: 'The new menu is ready to look at.', items: ['Brunch', 'Dinner'] }, source: 'Domin8te console', published_at: '2026-10-12T15:00:00+00:00', updated_at: '2026-10-12T15:00:00+00:00' },
+    { tenant_id: 'tnt_row_1', client_visible: false, section: 'running_now', content: { title: 'Not published' }, source: 'Domin8te console' }
+  ] });
+  const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  const a = plain(await c.getAccount());
+  assert.deepEqual(a.homeSections.map((x) => x.section), ['note'], 'a section that is not visible never reaches the portal');
+  assert.equal(a.homeSections[0].content.title, 'A note from Karan');
+  assert.deepEqual(a.homeSections[0].content.items, ['Brunch', 'Dinner']);
 });

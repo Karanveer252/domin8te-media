@@ -1,0 +1,77 @@
+/*
+ * Result entry (C9, 2026-10-13): the Results tab of a client. The form on the left, the publish checklist and what the client sees now on
+ * the right. Colours and glass come from the console's tokens (console.css, css/00-shared.css).
+ */
+
+.rs-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 18px; margin: 18px 0 18px; }
+.rs-head h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+.rs-head p { margin-top: 4px; font-size: 15px; }
+.rs-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); gap: 20px; align-items: start; }
+.rs-side { display: grid; gap: 16px; }
+.rs-side .panel { padding: 22px 24px; }
+.rs-side h2 { margin-bottom: 14px; font-size: 18px; letter-spacing: -0.2px; }
+.rs-form { display: grid; gap: 18px; }
+
+/* a value with its unit beside it */
+.rs-unit { position: relative; }
+.rs-unit input { padding-right: 84px; font-variant-numeric: tabular-nums; }
+.rs-suffix { position: absolute; top: 50%; right: 13px; translate: 0 -50%; max-width: 70px; overflow: hidden; color: var(--ink-3); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
+.rs-form .hint:empty { display: none; }
+.rs-form .date-say { min-height: 0; }
+
+/* the proof file: the whole box is the button, the name says what is attached */
+.rs-file { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; min-height: 48px; padding: 7px 12px; border: 1px dashed rgba(94, 72, 50, 0.4); border-radius: 12px; background: rgba(255, 255, 255, 0.6); transition: border-color 160ms var(--ease), background 160ms var(--ease); }
+.rs-file:hover { border-color: var(--ink); background: rgba(255, 255, 255, 0.85); }
+.rs-file:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.rs-file input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.rs-pick { display: inline-flex; align-items: center; min-height: 30px; padding: 0 12px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 13.5px; font-weight: 650; }
+.rs-file-name { min-width: 0; overflow: hidden; color: var(--ink-2); font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+.rs-file.is-set { border-style: solid; border-color: var(--line-2); }
+.rs-file.is-set:hover { border-color: var(--line-2); background: rgba(255, 255, 255, 0.6); }
+
+/* held for a check */
+.rs-hold { padding: 14px 18px; border: 1px solid rgba(200, 140, 30, 0.4); border-radius: 16px; background: var(--warn-bg); color: var(--ink); font-size: 15px; line-height: 1.5; }
+.rs-hold strong { font-weight: 700; }
+.rs-hold a { color: var(--warn); font-weight: 650; }
+.rs-vis .switch-row[aria-disabled], .rs-vis .switch-row { cursor: default; }
+.rs-vis input:disabled { opacity: 1; cursor: default; }
+.rs-vis input:disabled:checked { background: var(--good); }
+.rs-actions { margin-top: 0; }
+.rs-actions .btn[disabled] { background-color: rgba(94, 72, 50, 0.14); background-image: none; color: var(--ink-3); opacity: 1; cursor: not-allowed; }
+
+/* the publish checklist: a line down the side, a mark for each step */
+.rs-list { display: grid; gap: 14px; margin: 0; padding: 2px 0 2px 18px; border-left: 1px solid var(--line-2); list-style: none; }
+.rs-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; font-weight: 550; }
+.rs-list .is-todo { color: var(--warn); }
+.rs-mark { display: grid; flex: none; place-items: center; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; }
+.rs-list .is-done .rs-mark { background: var(--good-bg); color: var(--good); }
+.rs-list .is-done .rs-mark .ic { width: 13px; height: 13px; stroke-width: 2.4; }
+.rs-list .is-todo .rs-mark { border: 1.75px solid currentColor; }
+.rs-note { display: block; margin-top: 1px; font-size: 13px; font-weight: 400; }
+
+/* what the client sees now, and what waits */
+.rs-now-list, .rs-wait-list { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.rs-now-list li { display: grid; gap: 3px; justify-items: start; padding-bottom: 14px; border-bottom: 1px solid rgba(94, 72, 50, 0.1); }
+.rs-now-list li:last-child { padding-bottom: 0; border-bottom: 0; }
+.rs-now-list strong { font-weight: 650; }
+.rs-now-list span { color: var(--ink-2); font-size: 14.5px; }
+.rs-wait-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 12px; }
+.rs-wait-list li > div { display: grid; min-width: 0; }
+.rs-wait-list li > div span { color: var(--ink-2); font-size: 14px; }
+.rs-wait-list .btn { grid-column: 1 / -1; justify-self: start; }
+.rs-wait h2 { display: flex; align-items: center; gap: 8px; }
+
+@media (max-width: 1100px) { .rs-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) {
+  .rs-head h2 { font-size: 23px; }
+  .rs-actions .btn { flex: 1 1 100%; }
+  .rs-file-name { white-space: normal; overflow-wrap: anywhere; }
+}
+
+/* the read time is a date and time field: the same look as the other fields (the console styles the date and text ones) */
+.rs-form input[type="datetime-local"] { width: 100%; min-height: 42px; padding: 7px 11px; border: 1px solid rgba(94, 72, 50, 0.22); border-radius: 12px; background-color: rgba(255, 255, 255, 0.78); font-size: 15px; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease); }
+.rs-form input[type="datetime-local"]:focus { outline: none; border-color: rgba(174, 58, 11, 0.55); box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.16); }
+/* a result open for its check is read, not typed: the values stay clear and dark */
+.rs-form input:disabled:not([role="switch"]), .rs-form select:disabled { background-color: rgba(255, 255, 255, 0.55); color: var(--ink); -webkit-text-fill-color: var(--ink); opacity: 1; cursor: default; }
+
+#tab > .page-fresh { margin: 0; }

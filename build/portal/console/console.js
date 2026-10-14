@@ -50,7 +50,10 @@
   /** @param {number} n @param {string} one @param {string} [many] */
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many || one + 's'}`;
   const PAUSED_HINT = 'Paused: work and billing are on hold. They keep their login.';
-  const MULTICA_HINT = 'Multica is our task tool where Hermes and the team pick up work.';
+  /** The console's public switches, from live-config.json (public values only). Hermes is off until that file says true (2026-10-13). */
+  const FLAGS = D8.flags = Object.assign(D8.flags || {}, { hermes: !!(/** @type {any} */ (window).D8CONFIG && /** @type {any} */ (window).D8CONFIG.hermesEnabled === true) });
+  const MULTICA_BASE = 'Multica is our task tool where the team picks up work.';
+  const MULTICA_HINT = FLAGS.hermes ? 'Multica is our task tool where Hermes and the team pick up work.' : MULTICA_BASE;
   const HERMES_HINT = 'Hermes is our AI assistant. It works on cards in Multica.';
   /** A date in words, as elsewhere in the console: "3 Sept 2026". @param {string} iso */
   const longDate = (iso) => { if (!iso) return ''; const d = new Date(String(iso).slice(0, 10) + 'T00:00'); return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); };
@@ -226,7 +229,7 @@
       client.from('requests').select('id, tenant_id, service, body, status, by_name, at').order('at', { ascending: false }).limit(1000),
       client.from('messages').select('id, tenant_id, about, body, from_staff, by_name, at').order('at', { ascending: false }).limit(1000),
       client.from('decisions').select('tenant_id, approval_id, decision, comment, by_name, at').order('at', { ascending: false }).limit(1000),
-      client.from('tasks').select('*').order('position'),
+      client.from('tasks').select('*').is('deleted_at', null).order('position'),
       client.from('client_profile').select('*'),
       client.from('login_requests').select('*').eq('status', 'pending').order('at')
     ]);
@@ -250,6 +253,8 @@
       all.reviews = all.reviews || { items: [], invoices: [], exceptions: [], sync: {}, auto: [] };
       all.reviews.error = message(e);
     }
+    // The plan release's tables (2026-10-13). A database without them yet answers with nothing and the console carries on.
+    try { await loadPlans(); } catch (e) { all.plans = all.plans || emptyPlans(); }
     if (current) {
       // Everything comes from the fresh rows (the cards too: leaving them out made the next "Add the card" fail with
       // "Cannot read properties of undefined (reading 'push')" after the card was already saved, 2026-10-08), so the
@@ -337,7 +342,7 @@
     else if (theirs.length > 1) waiting.push({ kind: 'next', label: 'Their next steps', text: `${theirs.length} next steps are theirs`, title: theirs.map((x) => x.text).join('; '), href: go('work', ['site']) });
     const bill = billingOf(t);
     if (bill.status === 'past_due') needs.push({ kind: 'billing', label: 'Payment past due', text: `${bill.plan || 'Plan'}${bill.grace ? `: services pause after ${when(bill.grace)}` : ''}`, dueDate: bill.grace || undefined, href: '#/billing', rank: 1 });
-    else if (bill.renews && bill.status !== 'canceled') { const rd = due(bill.renews); if (rd.days >= 0 && rd.days <= 7) soon.push({ kind: 'renewal', label: 'Renews', text: `${bill.plan || 'Plan'}${bill.amount ? `, ${bill.amount}` : ''}`, dueDate: bill.renews, href: '#/billing' }); }
+    else if (bill.renews && bill.status !== 'canceled') { const rd = due(bill.renews); if (rd.days >= 0 && rd.days <= 7) soon.push({ kind: 'renewal', label: 'Renews', text: `${bill.plan || 'Plan'}${bill.amount && !(/** @type {any} */ (window).D8DEMO_SITE) ? `, ${bill.amount}` : ''}`, dueDate: bill.renews, href: '#/billing' }); }
     if (!t.clerk_org_id && t.status === 'active') needs.push({ kind: 'login', label: 'No login yet', text: 'They can\'t open their portal yet. Add one in Setup.', href: go('setup', ['login']), rank: 2 });
     for (const a of asksFor(id)) needs.push({ kind: 'login-ask', label: 'Login request', hint: 'The client asked us to give someone a login. Answer it in Setup.', text: `${a.first_name}${a.role ? ', ' + a.role : ''} (${a.email})`, at: a.at, href: go('setup', ['login']), rank: 1 });
     if (doc.meeting && doc.meeting.at) {
@@ -345,6 +350,10 @@
       if (d.late) needs.push({ kind: 'meeting', label: 'Meeting passed', text: `${doc.meeting.title || 'Meeting'} was ${when(doc.meeting.at)}. Set the next one or clear it in Setup.`, dueDate: dayOf(doc.meeting.at), href: go('setup', ['meeting']), rank: 2 });
       else if (d.days <= 7) soon.push({ kind: 'meeting', label: 'Meeting', text: `${doc.meeting.title || 'Meeting'}, ${when(doc.meeting.at)}`, dueDate: dayOf(doc.meeting.at), href: go('overview') });
     }
+    // The plan release's items (2026-10-13): plans, limits, picks, bill emails and results. They count here, so the sidebar
+    // badge, the client list and the client's Overview agree with Needs you; mod-needs.js draws their cards.
+    const np = partOf('needs');
+    if (np && all.reviews) for (const x of all.reviews.exceptions || []) if (x.tenant_id === id && np.handles(x)) needs.push(np.toNeed(x));
     const stamp = (/** @type {any} */ x) => x.dueDate || (x.at ? String(x.at).slice(0, 10) : '9999');
     needs.sort((a, b) => a.rank - b.rank || stamp(a).localeCompare(stamp(b)));
     waiting.sort((a, b) => Number(b.late) - Number(a.late) || String(a.dueDate || '9999').localeCompare(String(b.dueDate || '9999')));
@@ -352,8 +361,99 @@
     return { needs, waiting, soon };
   }
 
+  /** A part of the console (mod-*.js, loaded before this file) by name, or null when it is not there. @param {string} name @returns {any} */
+  function partOf(name) {
+    const e = /** @type {any} */ (window).D8C_EXT;
+    return e && Object.prototype.hasOwnProperty.call(e, name) && e[name] && typeof e[name] === 'object' ? e[name] : null;
+  }
+
   /** @param {string} id */
   const tenant = (id) => (all ? all.tenants.find((/** @type {any} */ x) => x.id === id) : null);
+
+  /* ---- plans, limits and what is used (2026-10-13) ----------------------------------------------------- */
+
+  /** What a database with no plan tables yet gives. */
+  const emptyPlans = () => ({ ok: false, plans: [], caps: [], services: [], cycles: [], usage: [], reminders: [], home: [], at: Date.now() });
+  /** Loads the plan release's tables into all.plans. Every read fails quietly to an empty list: one missing table never blanks the console. */
+  async function loadPlans() {
+    const c = await db();
+    /** @param {any} q */
+    const rd = async (q) => { try { const r = await q; return r && !r.error ? r.data || [] : []; } catch (e) { return []; } };
+    const [plans, caps, services, cycles, usage, reminders, home] = await Promise.all([
+      rd(c.from('plans').select('*').order('sort')),
+      rd(c.from('plan_caps').select('*')),
+      rd(c.from('service_catalog').select('*').order('sort')),
+      rd(c.from('tenant_plan_cycles').select('*').order('period_start')),
+      rd(c.from('tenant_usage_current').select('*')),
+      rd(c.from('billing_reminders').select('*')),
+      rd(c.from('client_home_sections').select('*'))
+    ]);
+    all.plans = { ok: plans.length > 0, plans, caps, services, cycles, usage, reminders, home, at: Date.now() };
+  }
+  /** The tone of one limit: orange with room, amber from 85 percent, red at the limit. @param {number} used @param {number} cap */
+  const usageTone = (used, cap) => (cap > 0 && used >= cap ? 'full' : cap > 0 && used / cap >= 0.85 ? 'warn' : 'ok');
+  /**
+   * One client's plan right now: this month's and next month's cycle, the plan rows, and what is used of each limit
+   * (a limit of none is left out). Everything the Billing table, the client list, the board and the drawers show about a plan comes from here.
+   * @param {string} id a tenant id
+   */
+  function planOf(id) {
+    const p = all && all.plans ? all.plans : emptyPlans();
+    const mine = p.cycles.filter((/** @type {any} */ c) => c.tenant_id === id).sort((/** @type {any} */ a, /** @type {any} */ b) => String(a.period_start).localeCompare(String(b.period_start)));
+    const day = today();
+    const now = mine.find((/** @type {any} */ c) => c.state === 'active') || mine.find((/** @type {any} */ c) => c.period_start <= day && c.period_end > day) || null;
+    const next = now ? mine.find((/** @type {any} */ c) => c.period_start === now.period_end) || null : mine.find((/** @type {any} */ c) => c.period_start > day) || null;
+    const planRow = (/** @type {any} */ c) => (c ? p.plans.find((/** @type {any} */ x) => x.id === c.plan_id) || null : null);
+    const lines = p.usage.filter((/** @type {any} */ u) => u.tenant_id === id && Number(u.monthly_cap) > 0).map((/** @type {any} */ u) => ({
+      service: u.service, metric: u.metric, label: u.label, cap: Number(u.monthly_cap), used: Number(u.used) || 0, weeklyHint: u.weekly_hint || '', proposed: !!u.proposed,
+      pct: Math.min(100, Math.round(((Number(u.used) || 0) / Number(u.monthly_cap)) * 100)), tone: usageTone(Number(u.used) || 0, Number(u.monthly_cap))
+    }));
+    return { now, next, nowPlan: planRow(now), nextPlan: planRow(next), all: mine, lines, reminders: next ? p.reminders.filter((/** @type {any} */ r) => r.cycle_id === next.id) : [] };
+  }
+  /**
+   * One usage bar for the console: the limit's name and "used/cap", a bar that is orange with room, amber from 85 percent and red at
+   * the limit, and "over by N" when a one-off was approved past it. @param {{label: string, used: number, cap: number, pct: number, tone: string}} l
+   */
+  function usageBar(l) {
+    const over = l.used > l.cap ? `<span class="cu-over">over by ${l.used - l.cap}</span>` : '';
+    return `<div class="cusage is-${l.tone}"><div class="cu-line"><span class="cu-name">${esc(l.label)}</span><span class="cu-fig">${l.used}/${l.cap}${over}</span></div><div class="cbar" role="meter" aria-label="${esc(l.label)}: ${l.used} of ${l.cap}" aria-valuemin="0" aria-valuemax="${l.cap}" aria-valuenow="${Math.min(l.used, l.cap)}"><i style="width:${l.pct}%"></i></div></div>`;
+  }
+  /** "$12.50" from the database's minor units, with the plain dollar sign. @param {number|null|undefined} minor @param {string} [currency] */
+  function money(minor, currency) {
+    if (minor === null || minor === undefined || !Number.isFinite(Number(minor))) return '';
+    const n = Number(minor) / 100;
+    try { return new Intl.NumberFormat('en-US', { style: 'currency', currency: String(currency || 'USD').toUpperCase(), currencyDisplay: 'narrowSymbol', minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 }).format(n); } catch (e) { return String(n); }
+  }
+  /** A time on this computer's clock with its zone, "12 Oct, 10:42 PM CT". @param {string|number|Date} t */
+  function clockTime(t) {
+    const d = new Date(t);
+    if (isNaN(d.getTime())) return '';
+    return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}`;
+  }
+  /**
+   * The line under a page's title (the console's twin of the portal's): when the page was last updated, where it comes from,
+   * and whether that is up to date. status: ok, checking, delayed or kept; label replaces the chip's words; note is a short line after it.
+   * @param {{updatedAt?: string|number|Date|null, source: string, status?: 'ok'|'checking'|'delayed'|'kept', label?: string, note?: string}} o
+   */
+  function pageFresh(o) {
+    const st = o.status || 'ok';
+    const chip = { ok: 'Up to date', checking: 'Being checked', delayed: 'Source delayed', kept: 'Showing the last checked data' }[st];
+    const at = o.updatedAt ? clockTime(o.updatedAt) : '';
+    return `<div class="page-fresh is-${st}">${at ? `<span class="pf-part"><strong>Last updated</strong> ${esc(at)}</span>` : ''}<span class="pf-part"><strong>Source:</strong> ${esc(o.source)}</span><span class="pf-chip is-${st}"><span class="pf-dot" aria-hidden="true"></span>${esc(o.label || chip)}</span>${o.note ? `<p class="pf-note">${esc(o.note)}</p>` : ''}</div>`;
+  }
+  /** Where each page's numbers come from, for the freshness line a page does not draw itself. */
+  const FRESH_SOURCE = { queue: 'Console and the database', messages: 'Messages from the portal', clients: 'Console and the database', board: 'Console and Multica', billing: 'Stripe and console', settings: 'Console', new: 'Console', client: 'Console and the database' };
+  /** Every page ends up with exactly one freshness line: a page that draws its own keeps it; the others get this one under their title. */
+  function ensureFresh() {
+    if ($('.page-fresh', main) || !all) return;
+    const page = document.documentElement.dataset.page || 'queue';
+    // A client's page has no .page-head: its line goes at the top of the tab, where the tabs that draw their own put it.
+    const place = $('.page-head', main) || (page === 'client' ? $('#tab', main) : null);
+    if (!place || place.hasAttribute('data-no-fresh')) return;
+    const failed = !!(all.reviews && all.reviews.error);
+    place.insertAdjacentHTML(place.id === 'tab' ? 'afterbegin' : 'afterend', pageFresh({ updatedAt: all.at, source: /** @type {any} */ (FRESH_SOURCE)[page] || 'Console', status: failed ? 'delayed' : 'ok', label: failed ? 'Some data did not load' : undefined }));
+  }
+  new MutationObserver(() => ensureFresh()).observe(main, { childList: true, subtree: true });
 
   /* ---- the sidebar --------------------------------------------------------------------------------- */
 
@@ -454,6 +554,19 @@
 
   // The keys are the routes (#/client/<id>/<key>[/<part>]). Older links still work: LEGACY_TABS maps them.
   const TABS = [['overview', 'Overview'], ['work', 'Work'], ['talk', 'Talk'], ['setup', 'Setup'], ['advanced', 'Advanced']];
+  /** The tabs a client has: the five above, and the ones the console's parts register (2026-10-13), each placed after the tab it names. @returns {string[][]} */
+  function allTabs() {
+    const ext = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.tabs ? /** @type {any} */ (window).D8C_EXT.tabs : {};
+    const out = TABS.map((x) => [x[0], x[1]]);
+    for (const [key, def] of Object.entries(/** @type {Record<string, any>} */ (ext))) {
+      if (out.some((x) => x[0] === key)) continue;
+      const at = out.findIndex((x) => x[0] === (def.after || 'talk'));
+      out.splice(at >= 0 ? at + 1 : out.length, 0, [key, def.label]);
+    }
+    return out;
+  }
+  /** A tab a part of the console registered, or null. @param {string} key */
+  const extTab = (key) => { const t = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.tabs; return t && Object.prototype.hasOwnProperty.call(t, key) ? t[key] : null; };
   /** Old tab keys (before 2026-10-09), each to its new tab and the part that opens the same place. @type {Record<string, (part: string) => string>} */
   const LEGACY_TABS = {
     board: (p) => 'work/' + (p === 'new' ? 'new' : 'cards'),
@@ -486,7 +599,7 @@
       ];
       for (const t of (all ? all.tenants : [])) {
         out.push({ name: t.name, hint: 'Client', href: `#/client/${t.id}`, icon: 'store' });
-        for (const [k, label] of TABS) if (k !== 'overview') out.push({ name: `${t.name}: ${label}`, hint: 'Tab', href: `#/client/${t.id}/${k}`, icon: 'page' });
+        for (const [k, label] of allTabs()) if (k !== 'overview') out.push({ name: `${t.name}: ${label}`, hint: 'Tab', href: `#/client/${t.id}/${k}`, icon: 'page' });
         out.push({ name: `${t.name}: Messages`, hint: 'Tab', href: `#/messages/${t.id}`, icon: 'chat' });
       }
       return out;
@@ -756,8 +869,6 @@
     const parts = (location.hash || '#/queue').replace(/^#\//, '').split('/');
     document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'settings', 'messages'].includes(parts[0]) ? parts[0] : 'queue';
     stopInbox();
-    const svcDlg = /** @type {HTMLDialogElement|null} */ ($('#svc-dlg'));
-    if (svcDlg && svcDlg.open) svcDlg.close();
     main.onclick = null;
     main.onchange = null;
     unwireBoard(main); // the All work board's listeners go with the page
@@ -765,7 +876,7 @@
     else if (parts[0] === 'new') newClient();
     else if (parts[0] === 'client' && parts[1]) clientPage(parts[1], parts[2] || lastTab(parts[1]), parts[3] || '');
     else if (parts[0] === 'board') allBoardPage();
-    else if (parts[0] === 'billing') billingPage();
+    else if (parts[0] === 'billing') billingPage(parts[1] || '');   // #/billing/<client id> opens that client's plan drawer (2026-10-13)
     else if (parts[0] === 'settings') settingsPage('');
     else if (parts[0] === 'messages') messagesPage(parts[1] || '');
     else queuePage();
@@ -834,10 +945,10 @@
     waiting.sort((a, b) => Number(b.late) - Number(a.late) || String(a.dueDate || '9999').localeCompare(String(b.dueDate || '9999')));
     soon.sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
     /** Grouped by client, most urgent client first: the first 3 open, the rest behind "Show N more". @param {any[]} items */
-    const grouped = (items) => {
+    const grouped = (items, /** @type {string} */ qf) => {
       /** @type {Map<string, any[]>} */ const by = new Map();
       for (const x of items) { if (!by.has(x.client)) by.set(x.client, []); /** @type {any[]} */ (by.get(x.client)).push(x); }
-      return Array.from(by.entries()).map(([name, list]) => `<div class="q-client"><h3 class="q-client-h">${esc(name)} · ${list.length}</h3>
+      return Array.from(by.entries()).map(([name, list]) => `<div class="q-client"${qf ? ` data-qf="${qf}"` : ''}><h3 class="q-client-h">${esc(name)} · ${list.length}</h3>
         <ul class="q">${list.slice(0, 3).map((x) => qRow(x)).join('')}</ul>
         ${list.length > 3 ? `<details class="reveal q-more"><summary>Show ${list.length - 3} more</summary><ul class="q">${list.slice(3).map((x) => qRow(x)).join('')}</ul></details>` : ''}</div>`).join('');
     };
@@ -845,16 +956,25 @@
     const doNow = reviewCount(null) + needs.length;
     const next = soon[0];
     const nd = next ? due(next.dueDate) : null;
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Needs you</h1><p>What the team has to do, for every client. Most urgent first.</p></div>
+    // The plan release's items (plans, limits, picks, bill emails, results) have their own cards, drawn by mod-needs.js, with
+    // filter chips; every other need stays a one line row as before. The chips show or hide the blocks marked data-qf.
+    const N = partOf('needs');
+    const typed = N ? needs.filter((x) => x.kind === 'exception') : [];
+    const plain = N ? needs.filter((x) => x.kind !== 'exception') : needs;
+    const view = { typed, dmCount: reviewCount(null), otherCount: plain.length };
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Needs you</h1><p>Everything waiting on the team, most urgent first. Plan and limit items say what is wrong, what the client sees right now and the fastest way to fix it.</p></div>
       <div class="btns updated"><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span><button class="icon-btn icon-btn-sm" type="button" data-action="refresh" aria-label="Reload" title="Reload">${icon('refresh')}</button></div></div>
-      ${soon.length ? `<details class="soon-strip"><summary>${icon('clock')}<span><b>Coming up this week: ${soon.length}.</b> Next: ${esc(next.client)}, ${esc(next.label)}${nd ? `, ${esc(nd.days === 0 ? 'today' : nd.text)}` : ''}</span></summary><ul class="q">${soon.map((x) => qRow(x, x.client)).join('')}</ul></details>` : ''}
+      ${N ? N.top(view) : ''}
+      ${soon.length ? `<details class="soon-strip" data-qf="other"><summary>${icon('clock')}<span><b>Coming up this week: ${soon.length}.</b> Next: ${esc(next.client)}, ${esc(next.label)}${nd ? `, ${esc(nd.days === 0 ? 'today' : nd.text)}` : ''}</span></summary><ul class="q">${soon.map((x) => qRow(x, x.client)).join('')}</ul></details>` : ''}
       ${all.tenants.length ? '' : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p><a class="btn" href="#/new">Add a client</a></div>`}
       <section class="q-group" id="q-needs"><h2>Do now <span class="meta">${doNow}</span></h2>
+        ${N ? N.cards(typed) : ''}
         ${dm}
-        ${needs.length ? grouped(needs) : `<div class="empty"><p><strong>Nothing needs you right now.</strong></p><p>New requests, messages, change requests and late dates show up here.</p></div>`}
+        ${needs.length ? (plain.length ? grouped(plain, 'other') : '') : `<div class="empty"><p><strong>Nothing needs you right now.</strong></p><p>New requests, messages, change requests and late dates show up here.</p></div>`}
       </section>
-      ${waiting.length ? `<details class="q-group q-fold" id="q-waiting"><summary><h2>Waiting on clients <span class="meta">${waiting.length}</span></h2></summary>
+      ${waiting.length ? `<details class="q-group q-fold" id="q-waiting" data-qf="other"><summary><h2>Waiting on clients <span class="meta">${waiting.length}</span></h2></summary>
         <p class="lede">Approvals they have not answered, and next steps that are theirs. Late ones first.</p>${grouped(waiting)}</details>` : ''}`;
+    if (N) N.wire(main, view);
   }
 
   /* ---- Messages: every client's conversation in one place ------------------------------------------------ */
@@ -1028,158 +1148,55 @@
 
   const listState = { q: '', filter: 'all', sort: 'needs', dir: 'desc' };
 
+  /**
+   * The client list (2026-10-13): each restaurant's plan, picks, this month's usage bars, what needs the team, status and
+   * freshness, with the Domin8te place and capacity cards and the plan and over-limit filters. mod-clients.js draws it.
+   */
   function clientsPage() {
     document.title = 'Clients · Domin8te console';
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Clients</h1><p>Every restaurant, what is waiting, and who can sign in.</p></div>
-      <div class="btns">${me.role === 'super_admin' ? `<a class="btn" href="#/new">${icon('plus')}Add a client</a>` : ''}</div></div>
-      <div class="toolbar"><input id="list-q" type="search" placeholder="Search by name, kind or package" aria-label="Search clients" value="${esc(listState.q)}" autocomplete="off">
-        <div class="seg" id="list-filter" role="group" aria-label="Show">${[['all', 'All'], ['needs', 'Needs you'], ['inactive', 'Paused or archived']].map(([k, l]) => `<button type="button" data-filter="${k}" aria-pressed="${listState.filter === k}">${l}</button>`).join('')}</div></div>
-      <div id="list"></div>`;
+    const X = partOf('clients');
+    main.innerHTML = `${X.head(listState, me.role === 'super_admin')}<div id="list"></div>`;
     renderClients();
-    $('#list-q').addEventListener('input', (/** @type {any} */ e) => { listState.q = e.target.value; renderClients(); });
-    $('#list-filter').addEventListener('click', (e) => {
-      const b = /** @type {HTMLElement} */ (e.target).closest('[data-filter]');
-      if (!b) return;
-      listState.filter = b.getAttribute('data-filter') || 'all';
-      for (const x of $$('[data-filter]')) x.setAttribute('aria-pressed', String(x === b));
+    /** Picks a filter (a chip, or the over-limit card) and draws the list again. @param {string} k */
+    const setFilter = (k) => {
+      listState.filter = k;
+      for (const x of $$('[data-filter]', main)) x.setAttribute('aria-pressed', String(x.getAttribute('data-filter') === k));
       renderClients();
-    });
-    $('#list').addEventListener('click', (e) => {
-      const th = /** @type {HTMLElement} */ (e.target).closest('[data-sort]');
+    };
+    $('#list-q').addEventListener('input', (/** @type {any} */ e) => { listState.q = e.target.value; renderClients(); });
+    main.onclick = (e) => {
+      const el = /** @type {HTMLElement} */ (e.target);
+      const chip = el.closest('[data-filter]');
+      if (chip) { setFilter(chip.getAttribute('data-filter') || 'all'); return; }
+      const go = el.closest('[data-cl-go]');
+      if (go) { setFilter(go.getAttribute('data-cl-go') || 'all'); return; }
+      const th = el.closest('[data-sort]');
       if (th) {
         const k = th.getAttribute('data-sort') || 'name';
         if (listState.sort === k) listState.dir = listState.dir === 'asc' ? 'desc' : 'asc';
-        else { listState.sort = k; listState.dir = k === 'name' ? 'asc' : 'desc'; }
+        else { listState.sort = k; listState.dir = k === 'name' || k === 'plan' ? 'asc' : 'desc'; }
         renderClients();
         return;
       }
-      const tr = /** @type {HTMLElement} */ (e.target).closest('tr[data-href]');
-      if (tr && !/** @type {HTMLElement} */ (e.target).closest('a')) location.hash = tr.getAttribute('data-href') || '';
-    });
+      const tr = el.closest('tr[data-href]');
+      if (tr && !el.closest('a')) location.hash = tr.getAttribute('data-href') || '';
+    };
   }
 
   function renderClients() {
-    const q = listState.q.trim().toLowerCase();
-    let rows = all.tenants.map((/** @type {any} */ t) => ({ t, d: derive(t) }));
-    rows = rows.filter(({ t, d }) => {
-      if (q && !`${t.name} ${t.doc.business.kind || ''} ${t.doc.package.name || ''}`.toLowerCase().includes(q)) return false;
-      switch (listState.filter) {
-        case 'needs': return t.status !== 'archived' && d.needs.length > 0;
-        case 'inactive': return t.status !== 'active';
-        default: return true;
-      }
-    });
-    const dir = listState.dir === 'asc' ? 1 : -1;
-    rows.sort((a, b) => {
-      switch (listState.sort) {
-        case 'needs': return dir * (a.d.needs.length - b.d.needs.length) || a.t.name.localeCompare(b.t.name);
-        case 'waiting': return dir * (a.d.waiting.length - b.d.waiting.length) || a.t.name.localeCompare(b.t.name);
-        default: return dir * a.t.name.localeCompare(b.t.name);
-      }
-    });
-    const th = (/** @type {string} */ k, /** @type {string} */ label) => `<th scope="col"${listState.sort === k ? ` aria-sort="${listState.dir === 'asc' ? 'ascending' : 'descending'}"` : ''}><button type="button" data-sort="${k}">${label}${listState.sort === k ? icon('sort') : ''}</button></th>`;
-    $('#list').innerHTML = rows.length ? `<div class="table-wrap"><table class="grid"><thead><tr>
-        ${th('name', 'Client')}${th('needs', 'Needs you')}${th('waiting', 'Waiting on client')}<th scope="col">Status</th>
-      </tr></thead><tbody>${rows.map(({ t, d }) => {
-        const services = (t.doc.package.services || []).map(svcLabel).join(', ');
-        const status = t.status === 'active' ? '<span class="chip good">Active</span>' : t.status === 'paused' ? `<span class="chip warn" title="${PAUSED_HINT}">Paused</span>` : '<span class="chip">Archived</span>';
-        return `<tr data-href="#/client/${esc(t.id)}/overview"${t.status !== 'active' ? ' class="paused"' : ''}>
-          <td><a class="row-link" href="#/client/${esc(t.id)}/overview">${esc(t.name)}</a><span class="sub">${services ? esc(services) : 'No services'}</span></td>
-          <td>${d.needs.length ? `<span class="with"><span class="chip you">${d.needs.length}</span><span class="sub">${esc(d.needs[0].label)}${d.needs.length > 1 ? ` + ${d.needs.length - 1} more` : ''}</span></span>` : '<span class="none">Nothing</span>'}</td>
-          <td>${d.waiting.length ? `<span class="chip them">${d.waiting.length}</span>` : '<span class="none">Nothing</span>'}</td>
-          <td><span class="row-chips">${status}${t.clerk_org_id ? '' : '<span class="chip warn">No login yet</span>'}</span></td></tr>`;
-      }).join('')}</tbody></table></div><p class="meta" style="margin-top:8px">${plural(rows.length, 'client')}${rows.length !== all.tenants.length ? ` of ${all.tenants.length}` : ''}. Click a column name to sort.</p>`
-      : all.tenants.length ? `<div class="empty"><p><strong>No client matches.</strong></p><p>Try another name or a different filter.</p></div>`
-      : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p>${me.role === 'super_admin' ? '<a class="btn" href="#/new">Add a client</a>' : ''}</div>`;
+    $('#list').innerHTML = partOf('clients').table(listState);
   }
 
   /* ---- adding a client ------------------------------------------------------------------------------ */
 
-  /** @param {string[]} chosen */
-  function servicesChecks(chosen) {
-    return `<div class="checks">${SERVICE_ORDER.map((/** @type {string} */ s) => `<label><input type="checkbox" name="svc" value="${s}"${chosen.includes(s) ? ' checked' : ''}>${esc(SERVICES[s].label)}</label>`).join('')}</div>`;
-  }
   const blankService = () => ({ status: 'planned', objective: '', now: '', next: null, expected: null, proof: null, milestones: [], completed: [], files: [] });
 
+  /** Add client is a stepped form in mod-newclient.js (2026-10-13): plan cards, starting picks, the first billing date and what the client sees. */
   function newClient() {
     document.title = 'Add a client · Domin8te console';
-    if (me.role !== 'super_admin') {
-      main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a>
-        <div class="empty"><p><strong>Only an owner can add a client.</strong></p><p>Team members work on existing clients. Ask an owner to add this one.</p><a class="btn btn-quiet" href="#/clients">See all clients</a></div>`;
-      return;
-    }
-    main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a>
-      <div class="page-head"><div><h1 id="page-title" tabindex="-1">Add a client</h1><p>Only the name is needed. They see nothing until you give them a login.</p></div></div>
-      <form class="panel" id="new-form" novalidate>
-        <div class="grid-3">
-          <div class="field span-all"><label for="n-name">Restaurant name</label><input id="n-name" name="name" type="text" required maxlength="200" autocomplete="off"></div>
-          <div class="field"><label for="n-first">Contact's first name</label><input id="n-first" name="first" type="text" maxlength="100"></div>
-          <div class="field span-2"><label for="n-email">Contact's email (you can give them a login later)</label><input id="n-email" name="email" type="email" maxlength="200"></div>
-          <div class="field span-all"><span class="label">Services</span>${servicesChecks(['website', 'social', 'advertising', 'local'])}</div>
-        </div>
-        <details class="reveal fold-more"><summary>More (optional): kind of place, plan, sign-off level</summary>
-          <div class="field"><label for="n-kind">Kind of place</label><input id="n-kind" name="kind" type="text" placeholder="Restaurant, cafe, bar, bakery" maxlength="60"></div>
-          ${profilePickers({})}
-          <p class="hint">For the team only. The client never sees the plan or sign-off level.</p>
-        </details>
-        <p class="field-error" id="n-err" hidden></p>
-        <div class="actions"><button class="btn" type="submit">Add the client</button><a class="btn btn-quiet" href="#/clients">Cancel</a></div>
-      </form>`;
-    $('#n-name').focus();
-    const f = /** @type {HTMLFormElement} */ ($('#new-form'));
-    track(f, 'New client');
-    f.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const err = $('#n-err');
-      err.hidden = true;
-      const name = val(f, 'name');
-      if (!name) { err.textContent = 'Give the restaurant a name.'; err.hidden = false; $('#n-name').focus(); return; }
-      const contactMail = val(f, 'email');
-      if (contactMail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactMail)) { err.textContent = 'That email does not look right. Fix it or leave it empty.'; err.hidden = false; $('#n-email').focus(); return; }
-      const same = (all.tenants || []).find((/** @type {any} */ t) => String(t.name || '').trim().toLowerCase() === name.toLowerCase());
-      if (same && !await ask(`${same.name} is already a client`, 'A client with this name is already in the console. Add another one with the same name?', 'Add anyway')) return;
-      const services = $$('input[name="svc"]:checked', f).map((i) => i.value);
-      /** @type {Record<string, any>} */
-      const svcDocs = {};
-      for (const s of services) svcDocs[s] = blankService();
-      const doc = {
-        business: { name, kind: val(f, 'kind') },
-        user: { firstName: val(f, 'first'), email: val(f, 'email'), role: 'Owner' },
-        package: { name: '', services, billing: '' },
-        team: { name: 'Your account team', reply: 'Usually replies within one working day', ...agencyAccess() },
-        meeting: null, services: svcDocs, actions: [], approvals: {}, updates: [], sources: [], metrics: {}, strip: [], pending: [], campaigns: [], summaries: []
-      };
-      const done = busy($('button[type=submit]', f), 'Adding');
-      try {
-        const client = await db();
-        const row = check(await client.from('tenants').insert({ name, doc }).select('id').single());
-        if (val(f, 'tier') || val(f, 'approval')) {
-          try { await saveProfile(row.id, val(f, 'tier'), val(f, 'approval')); } catch (x) { toast(`${name} was added, but the plan and sign-off level were not saved: ${message(x)}`, true); }
-        }
-        // Their Stripe customer, made now when Stripe is set up (owners only). If it fails, the client is still added.
-        let stripeNote = '';
-        const sst = await stripeStatus();
-        if (sst.configured && !sst.refused && me.role === 'super_admin') {
-          const mail = val(f, 'email');
-          try {
-            const r = await stripeFn({ action: 'create', tenantId: row.id, name, email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail) ? mail : undefined });
-            if (r.customer) stripeKnown[r.customer.id] = r.customer;
-            stripeNote = ` Stripe customer created (${stripeModeText()}).`;
-          } catch (x) { stripeNote = ` Stripe was not set up for them: ${stripeErr(x)} You can link it later from Setup > Billing.`; }
-        }
-        // The client's own board in Multica, made now so it is ready for the team (and Hermes).
-        multicaStatus().then((st) => { if (st.configured) multica({ action: 'project', tenantId: row.id }).catch((x) => toast(`The Multica board for ${name} could not be made yet: ${message(x)}`, true)); });
-        clean(f);
-        // Added is added: a failed reload must not put the form back in reach of a second, duplicate insert.
-        try { await loadAll(); } catch (x) { toast(`${name} was added, but the client list could not reload: ${message(x)}`, true); }
-        toast(`${name} added.${stripeNote}`);
-        location.hash = `#/client/${row.id}/overview`;
-      } catch (x) {
-        done();
-        err.textContent = message(x);
-        err.hidden = false;
-      }
-    });
+    const part = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.newclient;
+    if (part) part.page();
+    else main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a><div class="empty"><p><strong>Add client did not load.</strong></p><p>Reload the page. If this stays, tell the team.</p></div>`;
   }
 
   /* ---- one client --------------------------------------------------------------------------------- */
@@ -1206,7 +1223,7 @@
       client.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', id).order('at'),
       client.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', id).order('at'),
       client.from('requests').select('id, service, body, status, by_name, at').eq('tenant_id', id).order('at', { ascending: false }),
-      client.from('tasks').select('*').eq('tenant_id', id).order('position')
+      client.from('tasks').select('*').eq('tenant_id', id).is('deleted_at', null).order('position')
     ]);
     const row = check(t);
     if (!row) return null;
@@ -1289,7 +1306,7 @@
       try { window.history.replaceState(null, '', fixed); lastHash = fixed; drawn = fixed; } catch (e) { /* the old address stays; it still works */ }
     }
     rememberRecent(id);
-    const t = TABS.find((x) => x[0] === tab) ? tab : 'overview';
+    const t = allTabs().find((x) => x[0] === tab) ? tab : 'overview';
     const d = current.doc;
     const got = derive({ ...current, doc: d });
     const talkCount = got.needs.filter((x) => x.kind === 'request' || x.kind === 'message' || x.kind === 'changes').length;
@@ -1305,15 +1322,14 @@
     const about = [
       d.business.kind ? esc(d.business.kind) : '',
       d.user.firstName || d.user.email ? `${esc(d.user.firstName || '')}${d.user.email ? ` <a href="mailto:${esc(d.user.email)}">${esc(d.user.email)}</a>` : ''}` : '',
-      d.package.name ? esc(d.package.name) : '',
-      pf.tier ? tierChip(pf.tier) : '',
+      partOf('clients').planNameOf(current.id) ? `${esc(partOf('clients').planNameOf(current.id))} plan` : '',
       pf.approval_level ? approvalChip(pf.approval_level, true) : '',
       `Changed <time datetime="${esc(current.updated_at)}" title="${esc(when(current.updated_at))}">${esc(ago(current.updated_at))}</time>`
     ].filter(Boolean);
     main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a>
       <div class="client-head"><div><h1 id="page-title" tabindex="-1">${esc(current.name)}</h1>
         <div class="who">${statusChip}${warns}<details class="about"><summary>About</summary><p class="about-line">${about.map((x) => `<span class="t">${x}</span>`).join('')}</p></details></div></div></div>
-      <nav class="tabs" aria-label="Client sections">${TABS.map(([k, label]) => {
+      <nav class="tabs" aria-label="Client sections">${allTabs().map(([k, label]) => {
         const count = k === 'talk' && talkCount ? `<span class="count" title="Needs a reply">${talkCount}</span>` : k === 'work' && openCards ? `<span class="count quiet" title="Open cards">${openCards}</span>` : '';
         return `<a href="#/client/${esc(id)}/${k}"${k === t ? ' aria-current="page"' : ''}>${label}${count}</a>`;
       }).join('')}</nav>
@@ -1321,7 +1337,19 @@
     const box = /** @type {HTMLElement} */ ($('#tab'));
     try { localStorage.setItem('d8c.tab.' + id, t); } catch (e) { /* remembering the tab is a nicety */ }
     stopPulling();
-    ({ overview, work: workTab, talk, setup: setupTab, advanced })[/** @type {'overview'} */ (t)](box, part, got);
+    const ext = extTab(t);
+    if (ext) ext.render(/** @type {any} */ (window).D8C, box, part, got);
+    else ({ overview, work: workTab, talk, setup: setupTab, advanced })[/** @type {'overview'} */ (t)](box, part, got);
+    // One freshness line on every client tab (2026-10-13). A tab that draws its own (Work, and the tabs the console's parts add)
+    // keeps it; Overview, Talk, Setup and Advanced get this one under the client's name, before the tabs.
+    if (!ext && t !== 'work' && !$('.page-fresh', main)) {
+      const held = got.needs.filter((/** @type {any} */ x) => x.kind === 'exception' && /^(plan_mismatch|result_outlier)$/.test(x.ex.reason_code)).length;
+      const failed = !!(all.reviews && all.reviews.error);
+      $('.client-head', main).insertAdjacentHTML('afterend', pageFresh({
+        updatedAt: current.updated_at, source: 'this client\'s record, plan months and usage in the console',
+        status: failed ? 'delayed' : held ? 'kept' : 'ok', label: failed ? 'Some data did not load' : held ? `${held} unverified` : undefined
+      }));
+    }
   }
 
   /* ---- Overview ---------------------------------------------------------------------------------- */
@@ -1331,34 +1359,21 @@
      only two on their dashboard, and the console must show the others as not provided). The client's services are
      doc.package.services; their dashboard already shows nothing of a service outside it (Work, updates, approvals,
      results). Taking one away deletes nothing: doc.services keeps its history, and adding it back brings it back.
-     Every change is noted in doc.package.changes (newest first, the last twenty). ---- */
+     Every change is noted in doc.package.changes (newest first, the last twenty). Since 2026-10-13 the services follow the picks of
+     the client's plan: Change services opens that client's plan drawer in Billing, and nothing here edits the services. ---- */
   /** @type {Record<string, string>} */
   const SVC_ICON = { website: 'globe', social: 'share', advertising: 'megaphone', local: 'pin' };
-  /** @type {Record<string, string>} */
-  const SVC_WHAT = {
-    website: 'Their site: menu, hours, booking and pages',
-    social: 'Posts on their Instagram and Facebook',
-    advertising: 'Paid ads on Meta and Google',
-    local: 'Their Google listing, reviews and local search'
-  };
   /** A work status as the team reads it: "waiting" is "Waiting on client" here (the client sees "Waiting for you"). @param {string} k */
   const teamStatus = (k) => (k === 'waiting' ? 'Waiting on client' : (STATUS[k] || STATUS.planned).label);
-  const CHANGE_SVC_HINT = 'Turn services on or off for this client. Nothing is deleted.';
+  const CHANGE_SVC_HINT = 'A client\'s services are the picks of their plan. Change them in Billing.';
   /** @param {string[]} list */
   const andList = (list) => list.length < 2 ? list.join('') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
-  /** Whether a service the client no longer has still holds work worth keeping. @param {any} w */
-  const hasHistory = (w) => !!(w && (w.now || (w.milestones && w.milestones.length) || (w.completed && w.completed.length) || (w.files && w.files.length)));
-  /** @param {string[]} now @param {string[]} had */
-  const svcDiff = (now, had) => ({
-    added: SERVICE_ORDER.filter((/** @type {string} */ s) => now.includes(s) && !had.includes(s)),
-    removed: SERVICE_ORDER.filter((/** @type {string} */ s) => had.includes(s) && !now.includes(s))
-  });
 
   /** Services on the Overview: one row each (icon, name, status), and a link to what they see. @param {any} d @param {string[]} services */
   function servicesPanel(d, services) {
     const off = SERVICE_ORDER.filter((/** @type {string} */ s) => !services.includes(s));
     return `<section class="panel svc-panel" aria-labelledby="g-svc">
-      <div class="panel-head"><h2 id="g-svc">Services</h2><p>${services.length} of ${SERVICE_ORDER.length} provided. <a href="#/client/${esc(current.id)}/setup/details">Change in Setup</a></p></div>
+      <div class="panel-head"><h2 id="g-svc">Services</h2><p>${services.length} of ${SERVICE_ORDER.length} provided. <a href="#/billing/${esc(current.id)}" title="${CHANGE_SVC_HINT}">Change services</a></p></div>
       ${services.length ? `<ul class="svc-rows">${services.map((/** @type {string} */ s) => {
         const w = d.services[s] || {};
         const st = STATUS[w.status] || STATUS.planned;
@@ -1369,92 +1384,9 @@
     </section>`;
   }
 
-  /** The Change services window: one switch per service, what the change means, then one save. */
+  /** "Change services" is the plan's picks now: Billing opens that client's plan drawer (2026-10-13). The old window that switched services on and off, and named the package, is gone. */
   function changeServices() {
-    if (!current) return;
-    const d = current.doc;
-    const had = (d.package.services || []).filter((/** @type {string} */ s) => SERVICES[s]);
-    let dlg = /** @type {HTMLDialogElement|null} */ ($('#svc-dlg'));
-    if (!dlg) {
-      const made = /** @type {HTMLDialogElement} */ (document.createElement('dialog'));
-      made.id = 'svc-dlg';
-      made.className = 'svc-dlg';
-      made.setAttribute('aria-labelledby', 'svc-dlg-h');
-      document.body.appendChild(made);
-      made.addEventListener('click', (e) => { if (e.target === made) made.close(); });
-      dlg = made;
-    }
-    const box = dlg;
-    // The client this window was opened for; a save after the user has moved to another client must not write there.
-    const target = current;
-    const name = current.name;
-    box.innerHTML = `<form method="dialog" class="sd-form" novalidate>
-      <div class="sd-head"><h2 id="svc-dlg-h">Change services</h2><p>Turn on what ${esc(name)} gets from us. Their dashboard shows only these.</p></div>
-      <div class="sd-list" role="group" aria-label="Services for ${esc(name)}">${SERVICE_ORDER.map((/** @type {string} */ s) => `
-        <label class="sd-opt" data-svc="${s}">
-          <span class="sd-ic"><svg class="ic" aria-hidden="true"><use href="#i-${SVC_ICON[s]}"/></svg></span>
-          <span class="sd-txt"><span class="sd-name">${esc(SERVICES[s].label)}</span><span class="sd-what">${esc(SVC_WHAT[s] || '')}</span></span>
-          <span class="sd-state" aria-hidden="true"></span>
-          <input class="sd-sw" type="checkbox" role="switch" name="svc" value="${s}"${had.includes(s) ? ' checked' : ''} aria-label="${esc(SERVICES[s].label)}">
-        </label>`).join('')}
-      </div>
-      <div class="sd-note" aria-live="polite"></div>
-      <div class="field sd-pkg"><label for="sd-pkg">Package name</label><input id="sd-pkg" name="pkg" type="text" value="${esc(d.package.name || '')}" placeholder="Website and social" maxlength="80"><p class="hint">Shown on their Billing page. Rename it if the old name no longer fits.</p></div>
-      <div class="actions"><button class="btn btn-quiet" type="button" data-sd="cancel">Cancel</button><button class="btn" type="submit" data-sd="save">Save changes</button></div>
-    </form>`;
-    const form = /** @type {HTMLFormElement} */ ($('form', box));
-    const chosen = () => $$('input[name="svc"]:checked', form).map((i) => i.value);
-    const paint = () => {
-      const now = chosen();
-      const { added, removed } = svcDiff(now, had);
-      for (const opt of $$('.sd-opt', form)) {
-        const s = opt.dataset.svc, on = now.includes(s);
-        opt.classList.toggle('is-on', on);
-        opt.classList.toggle('is-adding', added.includes(s));
-        opt.classList.toggle('is-removing', removed.includes(s));
-        $('.sd-state', opt).textContent = added.includes(s) ? 'Adding' : removed.includes(s) ? 'Taking off' : on ? 'Provided' : 'Not provided';
-      }
-      const waiting = (d.actions || []).filter((/** @type {any} */ a) => a && removed.includes(a.service)).length;
-      const many = removed.length > 1;
-      const lines = [];
-      if (removed.length) lines.push(`<p class="sd-line is-off"><b>${esc(andList(removed.map(svcLabel)))}</b> ${many ? 'come' : 'comes'} off ${esc(name)}'s dashboard: ${many ? 'their Work pages' : 'its Work page'}, updates and results${waiting ? `, and ${waiting} item${waiting > 1 ? 's' : ''} waiting on the client` : ''}. Nothing is deleted. Add ${many ? 'them' : 'it'} back any time and the history returns.</p>`);
-      if (added.length) lines.push(`<p class="sd-line is-on"><b>${esc(andList(added.map(svcLabel)))}</b> ${added.length > 1 ? 'get their own Work pages' : 'gets its own Work page'} on their dashboard${added.some((/** @type {string} */ s) => hasHistory(d.services[s])) ? ', with the history from before' : ', starting as Planned'}.</p>`);
-      if (!now.length) lines.push('<p class="sd-line is-warn">With no services, their dashboard has no Work pages. If they are taking a break, pause the client instead.</p>');
-      if (!lines.length) lines.push('<p class="sd-line">Switch a service on or off to see what changes for them.</p>');
-      $('.sd-note', form).innerHTML = lines.join('');
-      /** @type {HTMLButtonElement} */ ($('[data-sd="save"]', form)).disabled = !added.length && !removed.length && val(form, 'pkg') === (d.package.name || '');
-    };
-    form.addEventListener('change', paint);
-    form.addEventListener('input', paint);
-    $('[data-sd="cancel"]', form).addEventListener('click', () => box.close());
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const now = chosen();
-      const { added, removed } = svcDiff(now, had);
-      const pkgName = val(form, 'pkg');
-      const renamed = pkgName !== (d.package.name || '');
-      if (!added.length && !removed.length && !renamed) { box.close(); return; }
-      if (!current || current.id !== target.id) { box.close(); return; }
-      const done = busy(/** @type {HTMLButtonElement} */ ($('[data-sd="save"]', form)), 'Saving');
-      try {
-        await saveDoc((doc) => {
-          // Worked out from the record as it is now, so a service another staff member changed meanwhile is not put back.
-          const cur = doc.package.services || [];
-          doc.package = { ...doc.package, name: pkgName, services: SERVICE_ORDER.filter((/** @type {string} */ s) => added.includes(s) || (cur.includes(s) && !removed.includes(s))) };
-          for (const s of added) if (!doc.services[s]) doc.services[s] = blankService();
-          // the Billing page shows the plan's own name: keep it with the package, as Save details does
-          if (renamed && pkgName) doc.billing = { ...(doc.billing || {}), plan: { ...((doc.billing && doc.billing.plan) || {}), name: pkgName } };
-          if (added.length || removed.length) doc.package.changes = [{ at: new Date().toISOString(), by: (me && me.name) || '', added, removed }, ...(doc.package.changes || [])].slice(0, 20);
-        });
-        box.close();
-        toast(`${added.length || removed.length ? `${name} now has ${now.length ? andList(now.map(svcLabel)) : 'no services'}.` : `Package renamed to ${pkgName || 'nothing'}.`}${current && current.clerk_org_id ? ' Their dashboard shows this the next time it loads.' : ''}`);
-        redraw();
-      } catch (x) { done(); toast(message(x), true); }
-    });
-    paint();
-    box.showModal();
-    const first = /** @type {HTMLElement|null} */ ($('.sd-sw', form));
-    if (first) first.focus();
+    if (current) location.hash = `#/billing/${current.id}`;
   }
 
   /** @param {HTMLElement} box @param {string} part @param {{needs: any[], waiting: any[], soon: any[]}} got */
@@ -1509,10 +1441,11 @@
           <div class="span-all"><p class="hint meta">They sign in at domin8temedia.com/dashboard with this email. We email them a 6-digit code each time, no password. Nothing is sent until they ask for a code.</p></div>
           <div class="actions span-all" style="margin-top:0"><button class="btn" type="submit">${current.clerk_org_id ? 'Add this login' : 'Give them a login'}</button><span id="login-out" class="meta"></span></div>
         </form>`)}
-      ${fold('sec-plan', 'plan-h', 'Plan and sign-off', `${pf.tier && TIERS[pf.tier] ? TIERS[pf.tier][0] : 'No plan'}, ${pf.approval_level && APPROVAL_LEVELS[pf.approval_level] ? `${APPROVAL_LEVELS[pf.approval_level][0]} sign-off` : 'no sign-off level'}. For the team only. The client never sees these.`, part === 'plan', `
-        <form id="profile-form" novalidate>
+      ${fold('sec-plan', 'plan-h', 'Plan and sign-off', `${esc(partOf('clients').planNameOf(current.id) || 'No plan set')}, ${pf.approval_level && APPROVAL_LEVELS[pf.approval_level] ? `${APPROVAL_LEVELS[pf.approval_level][0]} sign-off` : 'no sign-off level'}. The plan comes from Billing. The sign-off level is for the team only.`, part === 'plan', `
+        ${partOf('clients').planPanel(current.id)}
+        <form id="profile-form" class="cl-signoff" novalidate>
         ${profilePickers(pf)}
-        <div class="actions"><button class="btn" type="submit">Save plan and sign-off</button></div>
+        <div class="actions"><button class="btn" type="submit">Save sign-off level</button></div>
         </form>`)}
       ${fold('sec-details', 'details-h', 'Details and services', `${esc(current.name)}, ${services.length ? esc(andList(services.map(svcLabel))) : 'no services'}`, part === 'details', `
         <form id="ov-form" novalidate>
@@ -1527,8 +1460,7 @@
           <div class="field"><label for="o-first">Main contact's first name</label><input id="o-first" name="first" type="text" value="${esc(d.user.firstName)}" maxlength="100"></div>
           <div class="field"><label for="o-email">Main contact's email (not a login)</label><input id="o-email" name="email" type="email" value="${esc(d.user.email)}" maxlength="200"><p class="hint">For contact only. Logins are above.</p></div>
           <div class="field"><label for="o-role">Their role</label><input id="o-role" name="role" type="text" value="${esc(d.user.role)}" maxlength="60" placeholder="Owner"></div>
-          <div class="field"><label for="o-pkg">Package name</label><input id="o-pkg" name="pkg" type="text" value="${esc(d.package.name)}" placeholder="Full service" maxlength="80"></div>
-          <div class="field span-2"><span class="label">Services</span><div class="svc-sum">${SERVICE_ORDER.map((/** @type {string} */ s) => `<span class="chip ${services.includes(s) ? 'good' : 'off'}">${esc(SERVICES[s].label)}${services.includes(s) ? '' : ': not provided'}</span>`).join('')}<button class="btn btn-quiet btn-sm" type="button" data-svc-change title="${CHANGE_SVC_HINT}">Change services</button></div>
+          <div class="field span-all"><span class="label">Services</span><div class="svc-sum">${SERVICE_ORDER.map((/** @type {string} */ s) => `<span class="chip ${services.includes(s) ? 'good' : 'off'}">${esc(SERVICES[s].label)}${services.includes(s) ? '' : ': not provided'}</span>`).join('')}<button class="btn btn-quiet btn-sm" type="button" data-svc-change title="${CHANGE_SVC_HINT}">Change services</button></div>
             ${last ? `<p class="hint">Last change ${esc(ago(last.at))}${last.by ? ` by ${esc(last.by)}` : ''}: ${esc(lastLine)}.</p>` : ''}</div>
         </div>
         <div class="actions"><button class="btn" type="submit">Save details</button></div>
@@ -1563,14 +1495,14 @@
     const to = ({ billing: 'billing', meeting: 'sec-meeting', login: 'sec-login', plan: 'sec-plan', accounts: 'sec-accounts', details: 'sec-details', more: 'sec-more' })[/** @type {'billing'} */ (part)];
     if (to) setTimeout(() => { const el = document.getElementById(to); if (el) el.scrollIntoView({ block: 'start' }); }, 0);
     const pfm = /** @type {HTMLFormElement} */ ($('#profile-form', box));
-    track(pfm, 'Plan and sign-off');
+    track(pfm, 'Sign-off level');
     pfm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const done = busy($('button[type=submit]', pfm), 'Saving');
       try {
-        await saveProfile(current.id, val(pfm, 'tier'), val(pfm, 'approval'));
+        await saveProfile(current.id, val(pfm, 'approval'));
         clean(pfm);
-        toast('Plan and sign-off saved.');
+        toast('Sign-off level saved.');
         afterSave(done);
       } catch (x) { done(); toast(message(x), true); }
     });
@@ -1586,9 +1518,7 @@
         const doc = clone(current.doc);
         doc.business = { ...doc.business, name, kind: val(f, 'kind') };
         doc.user = { ...doc.user, firstName: val(f, 'first'), email: val(f, 'email'), role: val(f, 'role') };
-        // the services themselves change only through Change services (changeServices), never here
-        doc.package = { ...doc.package, name: val(f, 'pkg') };
-        doc.billing = { ...(doc.billing || {}), plan: { ...((doc.billing && doc.billing.plan) || {}), name: val(f, 'pkg') || ((doc.billing && doc.billing.plan && doc.billing.plan.name) || '') } };
+        // the services and the plan change only in Billing (changeServices opens it), never here
         await save({ name, status: val(f, 'status') || current.status, doc });
         clean(f);
         toast(signsIn ? 'Details saved. The client sees them next time their portal loads.' : 'Details saved. Nobody can sign in yet. Use Logins at the top to let them in.');
@@ -1786,6 +1716,19 @@
     return multicaState;
   }
 
+  /** All work and the cards' limits, counts, visibility and removal live in mod-work.js (2026-10-13). @returns {any} */
+  const wx = () => (/** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.work) || null;
+  /**
+   * The services a card can be for: what the client's package says, what their plan month includes, and the card's own (so saving a card
+   * never quietly drops its service because the list did not know it).
+   * @param {string} tenantId @param {string} [own]
+   */
+  function cardServices(tenantId, own) {
+    const owner = current && current.id === tenantId ? current : tenant(tenantId);
+    const list = new Set(((owner && owner.doc.package.services) || []).concat(planOf(tenantId).now ? planOf(tenantId).now.picks || [] : [], own ? [own] : []));
+    return SERVICE_ORDER.filter((/** @type {string} */ s) => list.has(s) && SERVICES[s]);
+  }
+
   /** The request a card mirrors, kept in step locally the way the database keeps it. @param {any} task */
   function requestFollows(task) {
     if (task.kind !== 'request' || !task.request_id) return;
@@ -1800,10 +1743,25 @@
   /** Moves a card: saved here first, then mirrored to Multica when it is set up. @param {any} task @param {string} status */
   async function moveTask(task, status) {
     if (task.status === status) return;
+    // A card over its limit may not start. Moving to Done asks what it counts as and writes that first: past the limit the database
+    // refuses, Needs you gets an item, and the card stays where it is (mod-work.js).
+    const wk = wx();
+    /** @type {any} */ let counted = null;
+    if (wk) {
+      const stopped = wk.moveBlock(task, status);
+      if (stopped) { toast(stopped, true); return; }
+      if (status === 'done') {
+        const gate = await wk.beforeDone(task);
+        if (gate.wrote) writes++;
+        if (gate.stop) return;
+        counted = gate.usage || null;
+      }
+    }
     const client = await db();
     // Only if the card is still in the column we think it is in; somebody (or Hermes) may have moved it already.
     const row = check(await client.from('tasks').update({ status }).eq('id', task.id).eq('status', task.status).select('*').maybeSingle());
     if (!row) {
+      if (counted) await wk.undoCount(counted);   // it did not move, so what it counted for is voided again
       await loadAll().catch(() => { /* the toast below still says what happened */ });
       toast('Moved elsewhere. Board refreshed.', true);
       return;
@@ -1868,7 +1826,7 @@
     const pr = PRIORITIES.find(([k]) => k === t.priority);
     return [
       t.service ? svcLabel(t.service) : 'General',
-      t.client_visible === false ? 'Team only' : t.service && t.status !== 'cancelled' ? 'Client can see' : '',
+      wx() ? wx().seeText(t) : '',
       pr && t.priority !== 'none' ? `${pr[1]} priority` : '',
       t.due ? 'Due ' + when(t.due) : '',
       t.assignee ? 'On it: ' + t.assignee : '',
@@ -1878,21 +1836,24 @@
 
   /** @param {any} t @param {string} [client] shown on the all-clients board */
   function card(t, client) {
-    return `<li class="card${t.status === 'cancelled' ? ' cancelled' : ''}" draggable="true" data-task="${esc(t.id)}" tabindex="0" aria-label="${esc(t.title)}, ${esc(TASK_STATUS_LABEL[t.status])}. Press Enter to edit or move it." title="${esc(cardMore(t))}">
-      ${client ? `<p class="card-client">${esc(client)}</p>` : ''}<p class="card-title">${esc(t.title)}</p>
-      <p class="card-meta">${cardChip(t)}<button class="linkish card-edit-btn" type="button" data-edit="${esc(t.id)}">Edit</button></p>
+    // mod-work.js adds who and what service, where the card lands against its limit, the over-limit flag and who sees it.
+    const v = wx() ? wx().cardView(t, client) : null;
+    return `<li class="card${t.status === 'cancelled' ? ' cancelled' : ''}${v ? v.cls : ''}" draggable="true" data-task="${esc(t.id)}" tabindex="0" aria-label="${esc(t.title)}, ${esc(TASK_STATUS_LABEL[t.status])}${v && v.cls ? ', over its limit' : ''}. Press Enter to edit or move it." title="${esc(cardMore(t))}">
+      ${v ? v.head : client ? `<p class="card-client">${esc(client)}</p>` : ''}<p class="card-title">${esc(t.title)}</p>
+      ${v ? v.land + v.flag : ''}<p class="card-meta">${cardChip(t)}${v ? v.vis : ''}<button class="linkish card-edit-btn" type="button" data-edit="${esc(t.id)}">Edit</button></p>
     </li>`;
   }
-  /** The columns, with Blocked left out while nothing is blocked. @param {any[]} cards @param {(t: any) => string} draw */
-  function boardColumns(cards, draw) {
+  /** The columns, with Blocked left out while nothing is blocked. opts.doneLabel renames Done ("Done this month" on All work). @param {any[]} cards @param {(t: any) => string} draw @param {{doneLabel?: string}} [opts] */
+  function boardColumns(cards, draw, opts) {
     return COLUMNS.map(([k, l]) => {
       const items = cards.filter((t) => t.status === k || (k === 'done' && t.status === 'cancelled'));
       if (k === 'blocked' && !items.length) return '';
-      return `<section class="col" data-col="${k}" aria-label="${l}"><h2 class="col-h">${l} <span class="meta">${items.length}</span></h2><ul class="cards">${items.map(draw).join('')}</ul></section>`;
+      const label = k === 'done' && opts && opts.doneLabel ? opts.doneLabel : l;
+      return `<section class="col" data-col="${k}" aria-label="${esc(label)}"><h2 class="col-h">${esc(label)} <span class="meta">${items.length}</span></h2><ul class="cards">${items.map(draw).join('')}</ul></section>`;
     }).join('') +
       // A bin after Done (2026-10-09, Karan: "after done there should be a delete tab ... drag and drop the cards in it
-      // ... a confirmation in a dialog box"). Not a status: dropping a card here asks, then deletes it.
-      `<section class="col col-delete" data-col="__delete" aria-label="Delete: drop a card here to delete it"><h2 class="col-h">${icon('trash')}Delete</h2><p class="del-zone">Drop a card here to delete it. We ask first.</p></section>`;
+      // ... a confirmation in a dialog box"). Not a status: dropping a card here asks why, then removes it and keeps its history (2026-10-13).
+      `<section class="col col-delete" data-col="__delete" aria-label="Remove: drop a card here to remove it"><h2 class="col-h">${icon('trash')}Remove</h2><p class="del-zone">Drop a card here to remove it. We ask why and keep its history.</p></section>`;
   }
   /** Whether a client's own board is on screen. */
   const clientBoardOpen = () => !!document.querySelector('#tab #board');
@@ -1911,39 +1872,50 @@
 
   /** @param {HTMLElement} box @param {string} part @param {string} toggle */
   async function board(box, part, toggle) {
+    // The month's usage is read first, so every card can say where it lands (mod-work.js); if the person moved on meanwhile, nothing is drawn.
+    const wk = wx();
+    if (wk) {
+      const at = location.hash;
+      box.innerHTML = skeleton(2);
+      await wk.ready();
+      if (location.hash !== at || !current || !box.isConnected) return;
+    }
     const d = current.doc;
-    const services = (d.package.services || []).filter((/** @type {string} */ s) => SERVICES[s]);
-    const tasks = () => (current.tasks || []).slice().sort((/** @type {any} */ a, /** @type {any} */ b) => a.position - b.position || String(a.created_at).localeCompare(String(b.created_at)));
+    const services = cardServices(current.id, '');
+    const tasks = () => (current.tasks || []).filter((/** @type {any} */ t) => !t.deleted_at).slice().sort((/** @type {any} */ a, /** @type {any} */ b) => a.position - b.position || String(a.created_at).localeCompare(String(b.created_at)));
     // Drawn at once; if the Multica check has not answered yet, the chip fills in when it does.
     const st = multicaState || { pending: true };
     if (!multicaState) {
       const at = location.hash;
       multicaStatus().then(() => { if (location.hash === at && !dirty.size && current) route(); });
     }
-    const how = `${HERMES_HINT} ${MULTICA_HINT} Moves here copy there, and Hermes's moves appear here ${prefs.autoPull ? 'within 90 seconds' : 'when you press Check now'}.`;
+    const how = `${FLAGS.hermes ? HERMES_HINT + ' ' : ''}${MULTICA_HINT} Moves here copy there, and moves there appear here ${prefs.autoPull ? 'within 90 seconds' : 'when you press Check now'}.`;
     const chip = st.pending
       ? `<span class="chip plain" title="${esc(MULTICA_HINT)}">Checking Multica</span>`
       : st.configured
       ? `<span class="chip good multica-chip" title="${esc(how + (st.workspace ? ` Workspace: ${st.workspace}.` : ''))}">Linked to Multica · <button class="linkish" type="button" data-action="board-sync">Check now</button></span>`
       : `<span class="chip warn" title="${esc(st.failed ? `Multica isn't linked: ${st.failed}` : 'Multica isn\'t linked yet. Cards save here as normal. Ask an owner to link it.')}">Multica not linked</span>`;
-    box.innerHTML = `<div class="toolbar">${toggle}<span class="grow"></span>${chip}<button class="btn btn-sm" type="button" data-action="reveal" aria-expanded="${part === 'new'}" aria-controls="card-form">${icon('plus')}Add a card</button></div>
+    box.innerHTML = `${pageFresh({ updatedAt: all.at, source: 'Console work cards, usage and Multica', status: all.reviews && all.reviews.error ? 'delayed' : 'ok', label: all.reviews && all.reviews.error ? 'Some data did not load' : undefined })}
+      <div class="toolbar">${toggle}<span class="grow"></span>${chip}<button class="btn btn-sm" type="button" data-action="reveal" aria-expanded="${part === 'new'}" aria-controls="card-form">${icon('plus')}Add a card</button></div>
+      ${wk ? wk.strip(current.id) : ''}
       <form class="panel" id="card-form" novalidate${part === 'new' ? '' : ' hidden'}>
         <div class="panel-head"><h2 id="card-form-h">Add a card</h2><p>One job for this client. Client requests show up here by themselves.</p></div>
         <div class="grid-3">
           <div class="field span-2"><label for="c-title">What needs doing</label><input id="c-title" name="title" type="text" maxlength="200" required placeholder="Write the October newsletter"></div>
           <div class="field"><label for="c-status">Column</label><select id="c-status" name="status">${COLUMNS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
-          <div class="field span-all"><label for="c-detail">Details (optional)</label><textarea id="c-detail" name="detail" maxlength="4000" placeholder="What done looks like, links, anything Hermes or a teammate needs."></textarea></div>
+          <div class="field span-all"><label for="c-detail">Details (optional)</label><textarea id="c-detail" name="detail" maxlength="4000" placeholder="What done looks like, links, anything ${FLAGS.hermes ? 'Hermes or a teammate' : 'a teammate'} needs."></textarea></div>
           <div class="field"><label for="c-service">Service</label><select id="c-service" name="service"><option value="">General</option>${services.map((/** @type {string} */ s) => `<option value="${s}">${esc(SERVICES[s].label)}</option>`).join('')}</select></div>
           <div class="field"><label for="c-due">Due</label><input id="c-due" name="due" type="date"></div>
           <div class="field"><label for="c-priority">Priority</label><select id="c-priority" name="priority">${PRIORITIES.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
-          <div class="field span-all card-vis-field"><label class="check-inline"><input type="checkbox" name="internal" id="c-internal"> Team only (hide from client)</label><p class="hint">A card with a service shows on the client's Work page (title, stage, due date). Details, priority and who is on it always stay with the team.</p></div>
-          <div class="field span-all"><label for="c-assignee">Who is on it (optional)</label><input id="c-assignee" name="assignee" type="text" maxlength="60" placeholder="Hermes, Karan"><p class="hint">${HERMES_HINT}</p></div>
+          ${wk ? wk.visibilityField(null) : ''}
+          <div class="field span-all"><label for="c-assignee">Who is on it (optional)</label><input id="c-assignee" name="assignee" type="text" maxlength="60" placeholder="${FLAGS.hermes ? 'Hermes, Karan' : 'Karan, Sam'}">${FLAGS.hermes ? `<p class="hint">${HERMES_HINT}</p>` : ''}</div>
         </div>
         <div class="actions"><button class="btn" type="submit">Add the card</button><button class="btn btn-quiet" type="button" data-action="reveal-close">Cancel</button></div>
       </form>
       <div class="board" id="board">${boardColumns(tasks(), (t) => card(t))}</div>`;
     const f = /** @type {HTMLFormElement} */ ($('#card-form', box));
     track(f, 'New card');
+    if (wk) wk.wireVisibility(f, null);
     if (part === 'new') $('#c-title', box).focus();
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1954,8 +1926,13 @@
       const done = busy($('button[type=submit]', f), 'Adding');
       try {
         const client = await db();
-        const row = check(await client.from('tasks').insert({ tenant_id: tid, kind: 'task', title, detail: val(f, 'detail'), status: val(f, 'status') || 'todo', client_visible: !(/** @type {HTMLInputElement} */ (f.elements.namedItem('internal'))).checked, service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, position: (current && current.id === tid ? current.tasks || [] : []).length }).select('*').single());
+        // No client_visible here: a new card always starts hidden and undecided (the database sets that), and showing it is its own step below.
+        let row = check(await client.from('tasks').insert({ tenant_id: tid, kind: 'task', title, detail: val(f, 'detail'), status: val(f, 'status') || 'todo', service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, position: (current && current.id === tid ? current.tasks || [] : []).length }).select('*').single());
         writes++;
+        const show = /** @type {HTMLInputElement|null} */ (f.elements.namedItem('visible'));
+        if (wk && show && show.checked && !show.disabled) {
+          try { row = { ...row, ...(await wk.setVisibility(row.id, true)) }; writes++; } catch (x) { toast(`Card added, but it is still hidden from the client: ${message(x)}`, true); }
+        }
         if (current && current.id === tid) (current.tasks = current.tasks || []).push(row);
         (all.tasks = all.tasks || []).push(row);
         clean(f);
@@ -2000,8 +1977,8 @@
   function editCard(li, t, after) {
     if (!t) return;
     const back = after || route;
-    const owner = current && current.id === t.tenant_id ? current : tenant(t.tenant_id);
-    const services = ((owner && owner.doc.package.services) || []).filter((/** @type {string} */ s) => SERVICES[s]);
+    const wk = wx();
+    const services = cardServices(t.tenant_id, t.service);
     li.classList.add('editing');
     li.draggable = false;
     li.removeAttribute('title');
@@ -2015,26 +1992,31 @@
         <div class="field"><label for="e-priority-${esc(t.id)}">Priority</label><select id="e-priority-${esc(t.id)}" name="priority">${PRIORITIES.map(([k, l]) => `<option value="${k}"${t.priority === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
         <div class="field"><label for="e-assignee-${esc(t.id)}">Who is on it</label><input id="e-assignee-${esc(t.id)}" name="assignee" type="text" value="${esc(t.assignee || '')}" maxlength="60"></div>
       </div>
-      <div class="field card-vis-field"><label class="check-inline"><input type="checkbox" name="internal"${t.client_visible === false ? ' checked' : ''}> Team only (hide from client)</label><p class="hint">If it has a service and this is off, the client sees its title, stage and due date on their Work page.</p></div>
+      ${wk ? wk.visibilityField(t) : ''}${wk ? wk.editUsage(t) : ''}
       <p class="card-sync meta">${syncLine(t)}</p>
-      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-quiet btn-sm btn-remove" type="button" data-remove-card style="margin-left:auto">Delete card</button></div>
-      ${t.multica_issue_id ? `<div class="card-note"><div class="field"><label for="e-note-${esc(t.id)}">Note on ${esc(t.multica_identifier || 'the issue')} in Multica</label><textarea id="e-note-${esc(t.id)}" name="note" maxlength="4000" placeholder="Hermes and the team see this in the issue's thread."></textarea></div><button class="btn btn-quiet btn-sm" type="button" data-note>Add the note</button></div>` : ''}
+      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-quiet btn-sm btn-remove" type="button" data-remove-card style="margin-left:auto">Remove card</button></div>
+      ${t.multica_issue_id ? `<div class="card-note"><div class="field"><label for="e-note-${esc(t.id)}">Note on ${esc(t.multica_identifier || 'the issue')} in Multica</label><textarea id="e-note-${esc(t.id)}" name="note" maxlength="4000" placeholder="${FLAGS.hermes ? 'Hermes and the team see' : 'The team sees'} this in the issue's thread."></textarea></div><button class="btn btn-quiet btn-sm" type="button" data-note>Add the note</button></div>` : ''}
     </form>`;
     const f = /** @type {HTMLFormElement} */ ($('form', li));
     track(f, 'Card');
+    // Who sees the card, "Void this count" and "Keep hidden" (mod-work.js). A write there is noted and the board drawn again.
+    if (wk) { wk.wireVisibility(f, t); wk.wireEdit(f, t, () => { writes++; clean(f); back(); }); }
     $('input', f).focus();
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
       const title = val(f, 'title');
       if (!title) { toast('The card needs a title.', true); return; }
+      // Showing or hiding a card is not a plain edit (set_task_visibility); hiding one the client sees needs a reason.
+      const vis = wk ? wk.visibilityChange(f, t) : { changed: false };
+      if (vis.error) { toast(vis.error, true); return; }
       const done = busy($('button[type=submit]', f), 'Saving');
       try {
         const client = await db();
         // Only what this person changed is sent, so a teammate's edit to another field of the same card is not undone.
         /** @type {Record<string, any>} */
-        const want = { title, detail: val(f, 'detail'), service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null, client_visible: !(/** @type {HTMLInputElement} */ (f.elements.namedItem('internal'))).checked };
+        const want = { title, detail: val(f, 'detail'), service: val(f, 'service') || null, due: val(f, 'due') || null, priority: val(f, 'priority') || 'none', assignee: val(f, 'assignee') || null };
         /** @type {Record<string, any>} */
-        const was = { title: t.title, detail: t.detail || '', service: t.service || null, due: t.due || null, priority: t.priority || 'none', assignee: t.assignee || null, client_visible: t.client_visible !== false };
+        const was = { title: t.title, detail: t.detail || '', service: t.service || null, due: t.due || null, priority: t.priority || 'none', assignee: t.assignee || null };
         /** @type {Record<string, any>} */
         const patch = {};
         for (const k of Object.keys(want)) if (want[k] !== was[k]) patch[k] = want[k];
@@ -2043,6 +2025,7 @@
           row = check(await client.from('tasks').update(patch).eq('id', t.id).select('*').single());
           writes++;
         }
+        if (vis.changed) { row = { ...row, ...(await wk.setVisibility(t.id, vis.visible, vis.reason)) }; writes++; }
         const status = val(f, 'status');
         Object.assign(t, { ...row, status: t.status });
         clean(f);
@@ -2082,34 +2065,30 @@
 
   /* ---- All work: every client's cards on one board ---------------------------------------------------- */
 
-  const allBoardState = { client: '' };
+  /** The All work page's choices: a client (named on a limits card), a service, or Over limit. mod-work.js draws the page. */
+  const allBoardState = { client: '', service: '', over: false, focus: '' };
 
   function allBoardPage() {
     document.title = 'All work · Domin8te console';
-    const names = Object.fromEntries(all.tenants.map((/** @type {any} */ t) => [t.id, t.name]));
-    const active = all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived');
-    const cards = (all.tasks || []).filter((/** @type {any} */ k) => names[k.tenant_id] && (!allBoardState.client || k.tenant_id === allBoardState.client))
-      .sort((/** @type {any} */ a, /** @type {any} */ b) => String(a.due || '9999').localeCompare(String(b.due || '9999')) || String(a.created_at).localeCompare(String(b.created_at)));
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">All work</h1><p>Every client's team cards on one board.</p></div></div>
-      <div class="toolbar"><label class="sr-only" for="ab-client">Show</label><select id="ab-client" style="width:auto;min-width:220px"><option value="">Every client</option>${active.map((/** @type {any} */ t) => `<option value="${esc(t.id)}"${allBoardState.client === t.id ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select>
-        ${allBoardState.client ? `<a class="btn btn-quiet btn-sm" href="#/client/${esc(allBoardState.client)}/work/new">${icon('plus')}Add a card</a>` : ''}</div>
-      <div class="board" id="board">${boardColumns(cards, (t) => card(t, names[t.tenant_id]))}</div>`;
-    $('#ab-client').addEventListener('change', (/** @type {any} */ e) => { allBoardState.client = e.target.value; allBoardPage(); });
-    const find = (/** @type {string} */ id) => (all.tasks || []).find((/** @type {any} */ x) => x.id === id);
-    wireBoard(main, find, () => allBoardPage());
+    const wk = wx();
+    if (!wk) { main.innerHTML = '<div class="page-head"><div><h1 id="page-title" tabindex="-1">All work</h1></div></div><p class="notice bad">This page could not load its parts. Reload the page.</p>'; return; }
+    // Each client's limits, the filter chips, and this file's board columns and cards (each card shows where it lands against its limit).
+    wk.allWork({ main, state: allBoardState, columns: boardColumns, card, wire: (/** @type {HTMLElement} */ box, /** @type {(id: string) => any} */ find, /** @type {() => void} */ again) => wireBoard(box, find, again), redraw: () => allBoardPage() });
   }
 
-  /** Deletes a card after asking. Returns whether it was deleted. @param {any} t */
+  /** Removes a card after asking why: soft_delete_task keeps the row and its history, and the card leaves the board. Returns whether it was removed. @param {any} t */
   async function deleteCard(t) {
     if (!t) return false;
-    if (!await ask(`Delete "${t.title}"?`, t.kind === 'request' ? 'Only the card goes. The request stays on the Talk tab, and the client keeps seeing its last status.' : 'The card is gone for good. If it has a Multica issue, that issue stays as it is.', 'Delete')) return false;
+    const wk = wx();
+    const reason = wk ? await wk.askRemove(t) : null;
+    if (!reason) return false;
     try {
-      const client = await db();
-      check(await client.from('tasks').delete().eq('id', t.id).select('id'));
+      await wk.removeCard(t.id, reason);
       writes++;
+      // The row stays in the database for its history; the console stops listing it.
       if (current && current.tasks) current.tasks = current.tasks.filter((/** @type {any} */ x) => x.id !== t.id);
       if (all && all.tasks) all.tasks = all.tasks.filter((/** @type {any} */ x) => x.id !== t.id);
-      toast('Card deleted.');
+      toast('Card removed. Its history is kept.');
       return true;
     } catch (x) { toast(message(x), true); return false; }
   }
@@ -2131,6 +2110,8 @@
     const ac = new AbortController();
     boardWires.set(box, ac);
     const on = { signal: ac.signal };
+    // "Ask for an OK" on a card over its limit, and "Count it" on a finished card nobody counted (mod-work.js).
+    if (wx()) wx().wire(box, find, after, ac.signal, () => { writes++; });
     box.addEventListener('click', async (e) => {
       const del = /** @type {HTMLElement} */ (e.target).closest('[data-delete]');
       if (!del) return;
@@ -2259,6 +2240,23 @@
     'dashboard.exception.resolved': () => 'marked a dashboard problem as fixed',
     'dashboard.daily': () => 'ran the daily check' // "The system ran the daily check", not the raw "dashboard daily"
   };
+  // The plan release's audit lines (2026-10-13), in words. The metric ids read as the limit they count ("social_posts" is "posts").
+  const metricWords = (/** @type {any} */ m) => String(m || 'work').replace(/^(social|ads|web|seo|email)_/, '').replace(/_/g, ' ');
+  const planWords = (/** @type {any} */ p) => (p ? String(p).charAt(0).toUpperCase() + String(p).slice(1) : 'a plan');
+  const sectionWords = (/** @type {any} */ s) => { const t = String(s || 'a section').replace(/_/g, ' '); return t.charAt(0).toUpperCase() + t.slice(1); };
+  Object.assign(HISTORY_WORDS, {
+    usage_added: (/** @type {any} */ d) => d.counted === false ? `logged an urgent fix (${metricWords(d.metric)}), not counted` : `counted ${d.qty || 1} of ${metricWords(d.metric)}${d.over_cap_approved ? ', approved as a one-off' : ''}`,
+    usage_voided: (/** @type {any} */ d) => `took ${d.qty || 1} of ${metricWords(d.metric)} off the count${d.reason ? `: ${d.reason}` : ''}`,
+    task_shown: (/** @type {any} */ d) => `showed the card “${d.title || 'a card'}” to the client${d.reason ? `: ${d.reason}` : ''}`,
+    task_hidden: (/** @type {any} */ d) => `hid the card “${d.title || 'a card'}” from the client${d.reason ? `: ${d.reason}` : ''}`,
+    task_deleted: (/** @type {any} */ d) => `removed the card “${d.title || 'a card'}” (its history is kept)${d.reason ? `: ${d.reason}` : ''}`,
+    result_entered: (/** @type {any} */ d) => `entered a result: ${metricWords(d.metric)} ${d.value == null ? '' : d.value} for the period ending ${d.period_end || 'a date'}`.replace('  ', ' '),
+    plan_cycle_insert: (/** @type {any} */ d) => `set up a plan month: ${planWords(d.plan)}${d.period_start ? ` from ${d.period_start}` : ''}`,
+    plan_cycle_update: (/** @type {any} */ d) => `changed a plan month: ${planWords(d.plan)}${d.period_start ? ` from ${d.period_start}` : ''}`,
+    home_section_insert: (/** @type {any} */ d) => `added the Home section “${sectionWords(d.section)}”`,
+    home_section_update: (/** @type {any} */ d) => `changed the Home section “${sectionWords(d.section)}”`,
+    reminder_requeued: () => 'sent a bill reminder again'
+  });
   // The database writes 'reject' + 'd' for these two (review_dashboard_item, review_billing_invoice): the same words.
   HISTORY_WORDS['dashboard.item.rejectd'] = HISTORY_WORDS['dashboard.item.rejected'];
   HISTORY_WORDS['dashboard.invoice.rejectd'] = HISTORY_WORDS['dashboard.invoice.rejected'];
@@ -2293,7 +2291,7 @@
         // (they left) is "A team member"; anything else (a message, request or answer) was the client's own.
         const sys = !r.actor || !/^user_/.test(r.actor); // stripe-webhook, dashboard-manager, cron: not a person
         const staffMsg = r.action === 'messages.created' && (current.messages || []).some((/** @type {any} */ m) => m.id === (r.detail || {}).id && m.from_staff);
-        const who = staffNames[r.actor] || (sys ? 'The system' : staffMsg || /^(tenant|dashboard)\.|^task\.moved$/.test(r.action) ? 'A team member' : clientName);
+        const who = staffNames[r.actor] || (sys ? 'The system' : staffMsg || /^(tenant|dashboard)\.|^task\.moved$|^(usage_|task_(shown|hidden|deleted)|plan_cycle_|result_entered|home_section_|reminder_requeued)/.test(r.action) ? 'A team member' : clientName);
         const day = new Date(r.at).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
         const prev = lines[lines.length - 1];
         if (r.action === 'tenant.updated' && prev && prev.action === 'tenant.updated' && prev.who === who && prev.day === day) { prev.n++; continue; }
@@ -2458,8 +2456,12 @@
     if (!stripeState || stripeState.retry) stripeStatus().then(() => { const box = $('#sec-stripe'); if (box && location.hash === '#/settings') box.innerHTML = stripePanel(); });
     const y = window.scrollY;
     const look = (/** @type {string} */ key, /** @type {string} */ label, /** @type {string[][]} */ opts) => `<div class="field"><label for="pref-${key}">${label}</label><select id="pref-${key}" data-pref-select="${key}">${opts.map(([v, l]) => `<option value="${v}"${String(prefs[key]) === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Settings</h1><p>Changes apply at once and save to your account, so they follow you to any computer.</p></div></div>
+    // The plan release's parts of this page (plans and limits, reminder emails, the Hermes row) are drawn by console/mod-settings.js.
+    const X = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.settings;
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Settings</h1><p>Plans and limits, bill reminders, the team and the services the console connects to. Your own preferences save to your account and follow you to any computer.</p></div></div>
+      ${X ? X.top() : ''}
       <p class="meta set-note" id="set-note" role="status">${note ? esc(note) : ''}</p>
+      ${X ? X.sections() : ''}
       <section class="panel" aria-labelledby="s-team" id="team-box"></section>
       <section class="panel" aria-labelledby="s-access" id="sec-access"><div class="panel-head"><h2 id="s-access">Access details for clients</h2><p>Clients see these in their steps when they connect Instagram, Facebook, Meta ads or Google. Saving copies them to every client, and new clients get them too.</p></div>
         ${me.role === 'super_admin' ? `<form id="access-form" novalidate><div class="grid-3">
@@ -2468,17 +2470,19 @@
         </div><div class="actions"><button class="btn" type="submit">Save for all clients</button></div></form>` : `<p class="meta">Meta business ID: ${esc(agencyAccess().metaBusinessId || 'not set')}. Google access email: ${esc(agencyAccess().accessEmail || 'not set')}. Only an owner can change these.</p>`}
       </section>
       <section class="panel" aria-labelledby="s-stripe" id="sec-stripe">${stripePanel()}</section>
-      <section class="panel" aria-labelledby="s-multica"><div class="panel-head"><h2 id="s-multica">Multica</h2><p>${MULTICA_HINT} ${HERMES_HINT} ${st.pending ? 'Checking the connection.' : st.configured ? `Linked to the <strong>${esc(st.workspace)}</strong> workspace${st.agent ? '. New cards go to your agent' : ''}. Each card is an issue in the client's Multica project: moves here copy there, and moves there show here.` : `Not linked yet, so cards save here only.${st.failed ? ` ${esc(st.failed)}` : ' Once MULTICA_TOKEN and MULTICA_WORKSPACE are in the Supabase secrets, each card also becomes an issue in its client\'s Multica project.'}`}</p></div>
+      <section class="panel" aria-labelledby="s-multica" id="sec-multica"><div class="panel-head"><h2 id="s-multica">Multica</h2><p>${MULTICA_HINT}${FLAGS.hermes ? ' ' + HERMES_HINT : ''} ${st.pending ? 'Checking the connection.' : st.configured ? `Linked to the <strong>${esc(st.workspace)}</strong> workspace${st.agent ? '. New cards go to your agent' : ''}. Each card is an issue in the client's Multica project: moves here copy there, and moves there show here.` : `Not linked yet, so cards save here only.${st.failed ? ` ${esc(st.failed)}` : ' Once MULTICA_TOKEN and MULTICA_WORKSPACE are in the Supabase secrets, each card also becomes an issue in its client\'s Multica project.'}`}</p></div>
         <label class="switch-row"><input type="checkbox" role="switch" data-pref-toggle="autoPull"${prefs.autoPull ? ' checked' : ''}><span><span class="pick-t">Keep boards in step with Multica</span><span class="pick-d">Checks every 90 seconds while a board is open, when it opens, and when you come back to the tab. Off: press Check now yourself.</span></span></label>
       </section>
+      ${X ? X.hermes({ hint: HERMES_HINT }) : ''}
       ${me.role === 'super_admin' ? '<section class="panel" aria-labelledby="s-gates" id="gates-box"></section>' : ''}
-      <section class="panel" aria-labelledby="s-look"><div class="panel-head"><h2 id="s-look">Preferences</h2></div>
+      <section class="panel" aria-labelledby="s-look" id="sec-look"><div class="panel-head"><h2 id="s-look">Preferences</h2></div>
         <div class="grid-3">${look('scene', 'Background', [['static', 'Dotted grid'], ['scenes', 'Moving sky']])}${look('theme', 'Theme', [['light', 'Light'], ['dark', 'Dark']])}</div>
       </section>`;
     window.scrollTo(0, y);
     if (jumpAfter) { const to = document.getElementById(jumpAfter); jumpAfter = ''; if (to) setTimeout(() => to.scrollIntoView({ block: 'start' }), 0); }
+    if (X) X.mount();
     teamPanel(/** @type {HTMLElement} */ ($('#team-box')));
-    const af = /** @type {HTMLFormElement|null} */ ($('#access-form'));
+    const af =/** @type {HTMLFormElement|null} */ ($('#access-form'));
     if (af) {
       track(af, 'Access details');
       af.addEventListener('submit', async (e) => {
@@ -2534,9 +2538,8 @@
   }
 
 
-  /* ---- The team's notes on a client: plan tier and how much they want to approve ------------------------- */
+  /* ---- The team's note on a client: how much they want to approve (the plan itself comes from Billing) ------- */
 
-  const TIERS = { bronze: ['Bronze', 'Entry plan, the least expensive'], silver: ['Silver', 'Middle plan'], gold: ['Gold', 'Top plan, the most expensive'] };
   const APPROVAL_LEVELS = {
     red: ['Red', 'Approves everything', 'Ask them before anything goes out: every post, page, ad and change.', 'bad'],
     yellow: ['Yellow', 'Only big decisions', 'Ask about design and big business decisions. Do the everyday work without asking.', 'warn'],
@@ -2544,24 +2547,25 @@
   };
   /** @param {string} id */
   const profileOf = (id) => (all && all.profiles && all.profiles[id]) || {};
-  /** @param {string} [tier] */
-  const TIER_HINT = 'Gold, Silver or Bronze: our price tier. The client never sees it.';
-  const tierChip = (tier) => (tier && TIERS[tier] ? `<span class="tier tier-${tier}" title="${esc(TIERS[tier][1])}. ${TIER_HINT}">${TIERS[tier][0]}</span>` : '');
   /** @param {string} [level] @param {boolean} [long] */
   const approvalChip = (level, long) => (level && APPROVAL_LEVELS[level] ? `<span class="chip ${APPROVAL_LEVELS[level][3]}" title="Sign-off level: how often we ask them. ${esc(APPROVAL_LEVELS[level][2])}">${APPROVAL_LEVELS[level][0]}${long ? ': ' + esc(APPROVAL_LEVELS[level][1].toLowerCase()) : ''}</span>` : '');
-  /** The plan tier and the sign-off level, each a segmented control; only the chosen one's description shows. @param {any} p */
+  /** The sign-off level, a segmented control; only the chosen one's description shows. (The price tier is gone: the plan comes from Billing.) @param {any} p */
   function profilePickers(p) {
     /** @param {string} name @param {string} legend @param {[string, string, string][]} opts @param {string} chosen */
     const seg = (name, legend, opts, chosen) => `<fieldset class="pick-set seg-set"><legend>${legend}</legend>
       <div class="seg seg-radio">${opts.map(([k, l]) => `<label><input type="radio" name="${name}" value="${k}"${chosen === k ? ' checked' : ''}><span>${esc(l)}</span></label>`).join('')}</div>
       ${opts.map(([k, , desc]) => `<p class="hint seg-desc" data-v="${k}">${esc(desc)}</p>`).join('')}</fieldset>`;
-    return seg('tier', 'Plan', Object.entries(TIERS).map(([k, v]) => [k, v[0], v[1]]), p.tier || '')
-      + seg('approval', 'Sign-off level', Object.entries(APPROVAL_LEVELS).map(([k, v]) => [k, v[0], `${v[1]}. ${v[2]}`]), p.approval_level || '');
+    return seg('approval', 'Sign-off level', Object.entries(APPROVAL_LEVELS).map(([k, v]) => [k, v[0], `${v[1]}. ${v[2]}`]), p.approval_level || '');
   }
-  /** Saves the tier and approval level for one client. @param {string} id @param {string} tier @param {string} level */
-  async function saveProfile(id, tier, level) {
+  /**
+   * Saves the sign-off level for one client. The old call shape (id, tier, level) is still accepted so the parts that were
+   * written against it keep working: a third argument means the second is the old tier, which is never written any more.
+   * @param {string} id @param {string} tierOrLevel @param {string} [levelOld]
+   */
+  async function saveProfile(id, tierOrLevel, levelOld) {
+    const level = levelOld === undefined ? tierOrLevel : levelOld;
     const client = await db();
-    const row = check(await client.from('client_profile').upsert({ tenant_id: id, tier: tier || null, approval_level: level || null }).select('*').single());
+    const row = check(await client.from('client_profile').upsert({ tenant_id: id, approval_level: level || null }).select('*').single());
     writes++;
     if (all) { all.profiles = all.profiles || {}; all.profiles[id] = row; }
     return row;
@@ -2840,12 +2844,21 @@
   /* ---- Billing: every client's plan, start date and renewal ---------------------------------------------- */
 
   const SUB_STATUS = { active: ['Active', 'good'], trialing: ['Trial', 'info'], past_due: ['Past due', 'bad'], paused: ['Paused', 'warn'], canceled: ['Cancelled', 'plain'] };
-  /** A client's billing as the console shows it. @param {any} t */
+  /**
+   * A client's billing as the console shows it. The plan and its price come from the plan tables (planOf), never from typed text; the
+   * dates and the payment status are the subscription's (Stripe fills them in once a client is linked). bill is the bill date of the
+   * plan month that is running. @param {any} t
+   */
   function billingOf(t) {
     const b = (t.doc && t.doc.billing) || {};
     const s = b.subscription || {};
+    const p = planOf(t.id);
+    const plan = p.nowPlan || p.nextPlan;
     return {
-      plan: (b.plan && b.plan.name) || t.doc.package.name || '',
+      plan: plan ? plan.name : '',
+      priceMinor: plan && plan.price_minor != null ? Number(plan.price_minor) : null,
+      price: plan && plan.price_minor != null ? money(plan.price_minor, plan.currency) : '',
+      bill: p.now ? p.now.period_end : p.next ? p.next.period_start : '',
       amount: s.amount || '',
       startedAt: s.startedAt || '',
       renews: s.nextBilling || '',
@@ -2853,54 +2866,12 @@
       grace: s.graceUntil || ''
     };
   }
-  const billingState = { filter: 'all' };
 
-  function billingPage() {
-    document.title = 'Billing · Domin8te console';
-    const rows = all.tenants.filter((/** @type {any} */ t) => t.status !== 'archived').map((/** @type {any} */ t) => ({ t, b: billingOf(t) }));
-    const soon = rows.filter((r) => r.b.renews && r.b.status !== 'canceled' && due(r.b.renews).days >= 0 && due(r.b.renews).days <= 7);
-    const late = rows.filter((r) => r.b.status === 'past_due');
-    const unset = rows.filter((r) => !r.b.renews);
-    let shown = rows;
-    if (billingState.filter === 'soon') shown = soon;
-    if (billingState.filter === 'late') shown = late;
-    if (billingState.filter === 'unset') shown = unset;
-    shown = shown.slice().sort((x, y) => String(x.b.renews || '9999').localeCompare(String(y.b.renews || '9999')) || x.t.name.localeCompare(y.t.name));
-    // A failed look is tried again on each visit; it redraws only when the answer is new, so two failures in a row
-    // do not keep redrawing (and asking) in a loop.
-    if (!stripeState || stripeState.failed) {
-      const was = stripeState;
-      stripeStatus().then((st) => { if (location.hash === '#/billing' && !(was && st.failed)) billingPage(); });
-    }
-    const stripeLine = !stripeState ? ''
-      : stripeReady() ? ` Stripe is connected (${stripeModeText()}): linked clients get their dates from it.`
-      : stripeState.refused ? ' Stripe is off: the server has a live key and live mode is off.'
-      : ' Stripe is not connected yet, so dates are typed in each client\'s Setup.';
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Billing</h1><p>Every client's package, when they started and when they renew. Next renewal first.${stripeLine}</p></div></div>
-      <div class="toolbar"><div class="seg" role="group" aria-label="Show">${[['all', 'All', rows.length], ['soon', 'Renewing this week', soon.length], ['late', 'Past due', late.length], ['unset', 'No dates yet', unset.length]].map(([k, l, n]) => `<button type="button" data-bfilter="${k}" aria-pressed="${billingState.filter === k}">${l}<span class="count${k === 'late' && n ? '' : ' quiet'}">${n}</span></button>`).join('')}</div></div>
-      ${shown.length ? `<div class="table-wrap"><table class="grid"><thead><tr><th scope="col">Client</th><th scope="col">Package</th><th scope="col">Started</th><th scope="col">Renews</th><th scope="col">Status</th><th scope="col">Stripe</th></tr></thead><tbody>
-        ${shown.map(({ t, b }) => {
-          const d = b.renews ? due(b.renews) : null;
-          const st = SUB_STATUS[b.status];
-          const renewText = !d ? '<span class="none">Not set</span>'
-            : d.days < 0 ? `${esc(when(b.renews))}<span class="sub late-text">${esc(d.text)}</span>`
-            : `${esc(when(b.renews))}<span class="sub">${d.days === 0 ? 'today' : d.days === 1 ? 'tomorrow' : `in ${d.days} days`}</span>`;
-          return `<tr data-href="#/client/${esc(t.id)}/setup/billing">
-            <td><a class="row-link" href="#/client/${esc(t.id)}/setup/billing" title="Open their billing dates">${esc(t.name)}</a>${profileOf(t.id).tier ? `<span class="row-chips">${tierChip(profileOf(t.id).tier)}</span>` : ''}${t.status === 'paused' ? `<span class="sub" title="${PAUSED_HINT}">Client paused</span>` : ''}</td>
-            <td>${b.plan ? esc(b.plan) : '<span class="none">Not set</span>'}${b.amount ? `<span class="sub">${esc(b.amount)}</span>` : ''}</td>
-            <td class="when">${b.startedAt ? esc(when(b.startedAt)) : '<span class="none">Not set</span>'}</td>
-            <td class="when">${renewText}</td>
-            <td>${st ? `<span class="chip ${st[1]}">${st[0]}</span>` : '<span class="none">Not set</span>'}${b.status === 'past_due' && b.grace ? `<span class="sub">Services pause after ${esc(when(b.grace))}</span>` : ''}</td>
-            <td>${stripeIdOf(t) ? `<span class="chip good" title="${esc(stripeIdOf(t))}">Linked</span>` : '<span class="chip off">Not linked</span>'}</td></tr>`;
-        }).join('')}</tbody></table></div>`
-        : `<div class="empty"><p><strong>${billingState.filter === 'all' ? 'No clients yet.' : 'Nothing here.'}</strong></p><p>${billingState.filter === 'all' ? 'Add a client, then type their package and dates in their Setup tab.' : 'Try another filter.'}</p></div>`}`;
-    main.onclick = (e) => {
-      const target = /** @type {HTMLElement} */ (e.target);
-      const f = target.closest('[data-bfilter]');
-      if (f) { billingState.filter = f.getAttribute('data-bfilter') || 'all'; billingPage(); return; }
-      const tr = target.closest('tr[data-href]');
-      if (tr && !target.closest('a')) location.hash = tr.getAttribute('data-href') || '';
-    };
+  /** Billing is a page of its own in mod-billing.js (2026-10-13). #/billing/<client id> opens that client's plan drawer. @param {string} [clientId] */
+  function billingPage(clientId) {
+    const part = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.billing;
+    if (part) part.page(clientId || '');
+    else main.innerHTML = '<div class="empty"><p><strong>Billing did not load.</strong></p><p>Reload the page. If this stays, tell the team.</p></div>';
   }
 
   /* ---- Work ---------------------------------------------------------------------------------------- */
@@ -2934,7 +2905,8 @@
     // Old "Completed recently" lines join the steps as done ones, unless a step already says the same.
     const titles = new Set((w.milestones || []).map((/** @type {any} */ m) => String(m.title).trim().toLowerCase()));
     const rows = [...(w.milestones || []), ...(w.completed || []).filter((/** @type {any} */ c) => !titles.has(String(c.text).trim().toLowerCase())).map((/** @type {any} */ c) => ({ title: c.text, date: c.date, state: 'done' }))];
-    const cards = (current.tasks || []).filter((/** @type {any} */ t) => t.service === s && t.status !== 'cancelled' && t.client_visible !== false).length;
+    const seen = (window.D8C_EXT && window.D8C_EXT.work && window.D8C_EXT.work.clientSees) || ((/** @type {any} */ t) => t.client_visible !== false);
+    const cards = (current.tasks || []).filter((/** @type {any} */ t) => t.service === s && t.status !== 'cancelled' && seen(t)).length;
     box.innerHTML = `<div class="toolbar">${toggle}<span class="grow"></span><nav class="seg" aria-label="Service">${services.map((/** @type {string} */ k) => `<a href="#/client/${esc(current.id)}/work/${k}"${k === s ? ' aria-current="page"' : ''} title="${esc(stOf(k))}">${esc(SERVICES[k].label)}</a>`).join('')}</nav></div>
       <form class="panel" data-svc="${s}" novalidate>
         <div class="panel-head"><h2>${esc(SERVICES[s].label)}</h2><p>What the client reads on their Work page, in plain words.</p></div>
@@ -3314,44 +3286,20 @@
   }
   /* ---- Record ---------------------------------------------------------------------------------------- */
 
-  /** The raw record, folded under History: Copy and Save. @param {HTMLElement} box @param {boolean} open */
+  /**
+   * The raw record, folded under History: Copy and Save. The editor itself is in console/mod-settings.js: it blocks the parts that
+   * moved to Billing and Results, asks before saving, and writes what changed to the history (the audit log).
+   * @param {HTMLElement} box @param {boolean} open
+   */
   function record(box, open) {
-    box.innerHTML = `<details class="panel fold-panel" id="sec-raw"${open ? ' open' : ''}><summary class="fold-sum"><h2>Raw data</h2><span class="meta">Everything their portal reads, in code form. Only change it if an owner asks you to.</span></summary>
-      <form id="rec-form" novalidate>
-      <textarea class="code" name="doc" spellcheck="false" aria-label="Client record as JSON">${esc(JSON.stringify(current.doc, null, 2))}</textarea>
-      <p class="field-error" id="rec-err" hidden></p>
-      <div class="actions"><button class="btn" type="submit">Save raw data</button><button class="btn btn-quiet" type="button" data-action="copy-record">Copy</button><span class="meta">Numbers must be real. Never type a number that did not come from a source.</span></div>
-      </form></details>`;
-    const f = /** @type {HTMLFormElement} */ ($('#rec-form', box));
-    track(f, 'Raw data');
-    $('[data-action="copy-record"]', box).addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(/** @type {any} */ (f.elements.namedItem('doc')).value); toast('Copied.'); } catch (x) { toast('Could not copy. Select the text and copy it instead.', true); }
-    });
-    f.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const err = $('#rec-err', box);
-      err.hidden = true;
-      /** @type {any} */
-      let doc;
-      try {
-        doc = JSON.parse(/** @type {any} */ (f.elements.namedItem('doc')).value);
-        if (!doc || typeof doc !== 'object' || Array.isArray(doc)) throw new Error('The record must be one JSON object.');
-      } catch (x) {
-        err.textContent = `That isn't valid: ${message(x)}`;
-        err.hidden = false;
-        return;
-      }
-      const done = busy($('button[type=submit]', f), 'Saving');
-      try {
-        await save({ doc });
-        clean(f);
-        toast('Raw data saved.');
-        afterSave(done);
-      } catch (x) {
-        done();
-        toast(message(x), true);
-      }
-    });
+    // The History list below reads the editor's audit row in words.
+    HISTORY_WORDS['tenant.raw_edit'] = (/** @type {any} */ d) => {
+      const keys = Array.isArray(d.keys) ? d.keys : [];
+      return `changed the raw data${keys.length ? `: ${keys.slice(0, 4).join(', ')}${keys.length > 4 ? ` and ${keys.length - 4} more` : ''}` : ''}`;
+    };
+    const X = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.settings;
+    if (!X) { box.innerHTML = '<p class="notice bad">The raw data editor did not load. Reload the page.</p>'; return; }
+    X.raw(box, open);
   }
 
   /* ---- Dashboard approvals: what the dashboard manager queued for client portals -------------------------- */
@@ -3404,7 +3352,11 @@
   function reviewsFor(tenantId) {
     const r = (all && all.reviews) || { items: [], invoices: [], exceptions: [] };
     const mine = (/** @type {any[]} */ list) => tenantId ? list.filter((x) => x.tenant_id === tenantId) : list;
-    return { items: mine(r.items), invoices: mine(r.invoices), exceptions: mine(r.exceptions) };
+    // The plan release's items (plans, limits, picks, bill emails, results) have their own cards on Needs you, and a pending
+    // result with an outlier item is that item's card: neither is listed again here.
+    const np = partOf('needs');
+    const claimed = np ? np.claimedItems(r.exceptions) : new Set();
+    return { items: mine(r.items).filter((x) => !claimed.has(String(x.id))), invoices: mine(r.invoices), exceptions: mine(r.exceptions).filter((x) => !(np && np.handles(x))) };
   }
   /** How many things wait in "Check before it goes live". @param {string|null} tenantId */
   const reviewCount = (tenantId) => { const r = reviewsFor(tenantId); return r.items.length + r.invoices.length + r.exceptions.length; };
@@ -3440,7 +3392,7 @@
   const clientName = (id) => { const t = tenant(id); return t ? t.name : 'A client'; };
 
   /** What an item says in one line: its title or first words. @param {any} c */
-  const dmHeadline = (c) => { const v = c && (c.title || c.text || c.completed || c.changed || c.result); return v ? dmText(v) : 'No title'; };
+  const dmHeadline = (c) => { const v = c && (c.title || c.text || c.completed || c.changed || c.result || (c.label ? `${c.label}${c.value != null && c.value !== '' ? `: ${c.value}` : ''}` : '')); return v ? dmText(v) : 'No title'; };
 
   /** What each queued item proposed when the block was drawn, by item id, so an edit can send back what was not touched as it was. @type {Map<string, any>} */
   const dmOriginal = new Map();
@@ -3522,7 +3474,7 @@
       : `<p class="meta">Nothing to check.</p>`;
     if (tenantId) return `<section class="panel" aria-labelledby="g-dm"><div class="panel-head"><h2 id="g-dm">Check before it goes live <span class="meta">${count}</span></h2><p title="${esc(lede)}">${autoOn ? 'Some items may go live by themselves. Hover for details.' : 'Clients see nothing new until you approve it.'}</p></div>${notice}${dmSyncLine(tenantId)}${body}</section>`;
     // On Needs you it sits pinned at the top of Do now.
-    return count || loadErr ? `<div class="q-client q-dm" id="q-dm"><h3 class="q-client-h" title="${esc(lede)}">Check before it goes live · ${count}</h3>${notice}${count ? body : ''}</div>` : '';
+    return count || loadErr ? `<div class="q-client q-dm" id="q-dm" data-qf="approval"><h3 class="q-client-h" title="${esc(lede)}">Check before it goes live · ${count}</h3>${notice}${count ? body : ''}</div>` : '';
   }
 
   /**
@@ -3850,5 +3802,22 @@
     main.innerHTML = '<div class="signin"><div class="signin-card"><h1>Not connected</h1><p class="notice bad">This copy of the console has no live settings, so it cannot sign in. Build it with portal/build-console.js.</p></div></div>';
     return;
   }
+  /**
+   * What the console's own parts (mod-*.js, loaded before this file) may use: the helpers, the page's live state and the
+   * ways to save and redraw. A part registers itself on window.D8C_EXT.<name> and is called from here with this object.
+   */
+  /** @type {any} */ (window).D8C = {
+    esc, $, $$, icon, toast, undoToast, busy, val, message, skeleton, plural, when, ago, due, longDate, dayOf, today, localDay, newId, clone, svcLabel,
+    SERVICES, SERVICE_ORDER, STATUS, FLAGS, PORTAL_URL, main,
+    db, check, ask, track, clean, redraw, afterSave, route, refreshAll, loadAll, callFn,
+    tenant, derive, planOf, usageTone, usageBar, money, clockTime, pageFresh, billingOf, convo, allTabs, fromCache, loadClient, save, saveDoc,
+    get all() { return all; }, get me() { return me; }, get current() { return current; }, get dirty() { return dirty; },
+    get plans() { return all && all.plans ? all.plans : emptyPlans(); }
+  };
+  /** More of what the Billing and Add client parts need (mod-billing.js, mod-newclient.js): Stripe, Multica, the sign-off levels and the client record's starting pieces. */
+  Object.assign(/** @type {any} */ (window).D8C, { blankService, agencyAccess, saveProfile, APPROVAL_LEVELS, stripeStatus, stripeReady, stripeModeText, stripeFn, stripeErr, stripeKnown, multica, multicaStatus,
+    /** A raw database refusal (error.code and error.message of an rpc or write answer) in the console's plain words; check() speaks the client portal's words. */
+    say: (/** @type {any} */ err) => { const p = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.planpick; return p ? p.say(err) : message(err); } });
+  /** @type {any} */ (window).D8C_EXT = /** @type {any} */ (window).D8C_EXT || {};
   boot();
 })();

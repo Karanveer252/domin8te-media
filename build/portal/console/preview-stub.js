@@ -18,7 +18,7 @@
   /** @param {any} doc @param {any} sub */
   const withBilling = (doc, sub) => { doc.billing = { plan: { name: doc.package.name }, subscription: sub, paymentMethod: null, invoices: [] }; return doc; };
   const osteria = mkDoc({
-    name: 'Osteria Nove', kind: 'Italian restaurant', first: 'Marco', email: 'marco@osterianove.example', pkg: 'Website and local search',
+    name: 'Osteria Nove', kind: 'Italian restaurant', first: 'Marco', email: 'marco@osterianove.example', pkg: 'Growth',
     services: {
       website: { status: 'in_progress', objective: 'A menu people can read on their phone, and a booking button that works.', now: 'Building the new menu page', next: { who: 'domin8te', text: 'Send the draft menu page for approval' }, expected: { date: day(4), text: 'Draft menu page ready to review' }, proof: null, milestones: [{ title: 'Kickoff call', date: day(-9), state: 'done' }, { title: 'Draft menu page', date: day(4), state: 'current' }, { title: 'Site live', date: day(18), state: 'next' }], completed: [{ date: day(-9), text: 'Agreed the plan on the kickoff call' }], files: [] },
       local: { status: 'planned', objective: 'The right hours and photos when someone nearby searches for dinner.', now: 'Waiting for access to the Google profile', next: { who: 'client', text: 'Add us as a manager on your Google Business Profile' }, expected: null, proof: null, milestones: [], completed: [], files: [] }
@@ -26,7 +26,7 @@
     meeting: { at: day(2) + 'T15:00', title: 'Menu page walkthrough', length: '20 minutes', status: 'confirmed' }
   });
   const marlow = mkDoc({
-    name: 'Marlow & Finch', kind: 'Wine bar', first: 'Priya', email: 'priya@marlowfinch.example', pkg: 'Social and advertising',
+    name: 'Marlow & Finch', kind: 'Wine bar', first: 'Priya', email: 'priya@marlowfinch.example', pkg: 'Growth',
     services: {
       social: { status: 'in_progress', objective: 'Three posts a week that make people book a table.', now: "Scheduling this week's posts", next: { who: 'domin8te', text: "Draft next week's posts" }, expected: { date: day(6), text: "Next week's posts drafted" }, proof: { date: day(-3), text: '3 posts published' }, milestones: [{ title: 'Content plan agreed', date: day(-20), state: 'done' }, { title: 'October posts drafted', date: day(6), state: 'current' }], completed: [{ date: day(-3), text: 'Published 3 posts' }], files: [] },
       advertising: { status: 'waiting', objective: 'Fill Thursday evenings.', now: 'Thursday ad is ready for your approval', next: { who: 'client', text: 'Approve the Thursday ad' }, expected: { date: day(-2), text: 'Thursday ad live on Meta' }, proof: null, milestones: [{ title: 'Ad copy and image ready', date: day(-4), state: 'done' }, { title: 'Ad live on Meta', date: day(-2), state: 'current' }], completed: [{ date: day(-4), text: 'Prepared the Thursday ad' }], files: [] }
@@ -35,7 +35,7 @@
     updates: [{ id: 'upd_mf1', date: day(-3), service: 'social', author: 'team', title: "This week's posts are out", completed: 'Published 3 posts on Instagram and Facebook.', next: "Draft next week's posts by " + day(6) + '.' }]
   });
   const corner = mkDoc({
-    name: 'The Corner Bean', kind: 'Cafe', first: 'Sam', email: 'sam@cornerbean.example', pkg: 'Website',
+    name: 'The Corner Bean', kind: 'Cafe', first: 'Sam', email: 'sam@cornerbean.example', pkg: 'Starter',
     services: { website: { status: 'paused', objective: 'A simple site with the menu and opening hours.', now: 'Paused at your request until the refit is done', next: null, expected: null, proof: { date: day(-40), text: 'Site launched' }, milestones: [{ title: 'Site launched', date: day(-40), state: 'done' }], completed: [{ date: day(-40), text: 'Launched the site' }], files: [] } }
   });
   withBilling(osteria, { status: 'active', startedAt: day(-9), nextBilling: day(21), amount: '$399 a month' });
@@ -83,13 +83,13 @@
     ],
     tasks: [
       { id: 'k1', tenant_id: 'tnt_preview_bayleaf', kind: 'request', request_id: 'r1', service: 'website', title: 'Add the brunch menu under Menus.', detail: 'Add the brunch menu under Menus.', status: 'todo', priority: 'none', due: null, position: 0, assignee: null, created_at: stamp(0, 3), updated_at: stamp(0, 3) },
-      { id: 'k2', tenant_id: 'tnt_preview_bayleaf', kind: 'task', request_id: null, service: 'social', title: 'Revise next week\u2019s posts from Dani\u2019s notes', detail: 'Sunday hours line is wrong in the Wednesday post.', status: 'in_progress', priority: 'high', due: day(1), position: 1, assignee: 'Hermes', multica_issue_id: 'iss_preview_1', multica_identifier: 'MUL-41', multica_status: 'in_progress', multica_synced_at: stamp(0, 1), created_at: stamp(-1, 0), updated_at: stamp(0, 1) },
+      { id: 'k2', tenant_id: 'tnt_preview_bayleaf', kind: 'task', request_id: null, service: 'social', title: 'Revise next week\u2019s posts from Dani\u2019s notes', detail: 'Sunday hours line is wrong in the Wednesday post.', status: 'in_progress', priority: 'high', due: day(1), position: 1, assignee: 'Sam', multica_issue_id: 'iss_preview_1', multica_identifier: 'MUL-41', multica_status: 'in_progress', multica_synced_at: stamp(0, 1), created_at: stamp(-1, 0), updated_at: stamp(0, 1) },
       { id: 'k3', tenant_id: 'tnt_preview_bayleaf', kind: 'task', request_id: null, service: 'local', title: 'Upload 12 photos to the Google profile', detail: '', status: 'blocked', priority: 'medium', due: day(-2), position: 2, assignee: 'Karan', multica_issue_id: 'iss_preview_2', multica_identifier: 'MUL-38', multica_status: 'blocked', multica_synced_at: stamp(0, 1), created_at: stamp(-6, 0), updated_at: stamp(-1, 0) },
       { id: 'k4', tenant_id: 'tnt_preview_bayleaf', kind: 'task', request_id: null, service: 'advertising', title: 'Autumn menu ad: two versions for Dani to pick', detail: '', status: 'in_review', priority: 'none', due: day(2), position: 3, assignee: 'Karan', multica_issue_id: 'iss_preview_3', multica_identifier: 'MUL-40', multica_status: 'in_review', multica_synced_at: stamp(0, 1), created_at: stamp(-3, 0), updated_at: stamp(-1, 0) },
       { id: 'k5', tenant_id: 'tnt_preview_bayleaf', kind: 'task', request_id: null, service: 'website', title: 'Publish the autumn menu page', detail: '', status: 'done', priority: 'none', due: null, position: 4, assignee: 'Karan', multica_issue_id: 'iss_preview_4', multica_identifier: 'MUL-31', multica_status: 'done', multica_synced_at: stamp(-12, 0), created_at: stamp(-14, 0), updated_at: stamp(-12, 0) },
-      { id: 'k6', tenant_id: 'tnt_preview_marlow', kind: 'request', request_id: 'r2', service: 'social', title: 'Can we do a post about the new wine list on Friday?', detail: 'Can we do a post about the new wine list on Friday?', status: 'in_progress', priority: 'none', due: day(2), position: 0, assignee: 'Hermes', multica_issue_id: 'iss_preview_5', multica_identifier: 'MUL-44', multica_status: 'in_progress', multica_synced_at: stamp(0, 2), created_at: stamp(-5, 0), updated_at: stamp(0, 2) },
+      { id: 'k6', tenant_id: 'tnt_preview_marlow', kind: 'request', request_id: 'r2', service: 'social', title: 'Can we do a post about the new wine list on Friday?', detail: 'Can we do a post about the new wine list on Friday?', status: 'in_progress', priority: 'none', due: day(2), position: 0, assignee: 'Sam', multica_issue_id: 'iss_preview_5', multica_identifier: 'MUL-44', multica_status: 'in_progress', multica_synced_at: stamp(0, 2), created_at: stamp(-5, 0), updated_at: stamp(0, 2) },
       { id: 'k7', tenant_id: 'tnt_preview_marlow', kind: 'request', request_id: 'r3', service: 'advertising', title: 'Pause the Sunday ad, we are closed that weekend.', detail: 'Pause the Sunday ad, we are closed that weekend.', status: 'done', priority: 'none', due: null, position: 1, assignee: null, created_at: stamp(-12, 0), updated_at: stamp(-11, 0) },
-      { id: 'k8', tenant_id: 'tnt_preview_osteria', kind: 'task', request_id: null, service: 'website', title: 'Draft the menu page', detail: '', status: 'in_progress', priority: 'none', due: day(4), position: 0, assignee: 'Hermes', created_at: stamp(-4, 0), updated_at: stamp(-1, 0) }
+      { id: 'k8', tenant_id: 'tnt_preview_osteria', kind: 'task', request_id: null, service: 'website', title: 'Draft the menu page', detail: '', status: 'in_progress', priority: 'none', due: day(4), position: 0, assignee: 'Sam', created_at: stamp(-4, 0), updated_at: stamp(-1, 0) }
     ]
   };
   // What the database's triggers do: a card follows its request and a request follows its card.
@@ -171,6 +171,26 @@
   let mul = 44;
   let n = 100;
 
+  /*
+   * The plan release's stand-ins (2026-10-13) live in stub/*.js, one file for each part, loaded after this one. A part
+   * registers what it needs here and never edits this file:
+   *   D8STUB.seeds.push((db) => { db.plans = [...]; })     rows for tables the console reads (run once, before the first query)
+   *   D8STUB.rpcs.set_task_visibility = (args, S) => row     what the database function answers (throw { code, message } to refuse)
+   *   D8STUB.hooks.insert.usage_events = (rec, S) => {...}   a rule the database enforces on a write (throw { code, message } to refuse)
+   *   D8STUB.hooks.update.tasks = (rec, before, S) => {...}
+   * S is D8STUB itself: db, now(), day(n), stamp(n, h), id(), audit(tenantId, action, detail).
+   */
+  const STUB = {
+    db, rpcs: {}, seeds: [], hooks: { insert: {}, update: {} },
+    now, day, stamp, id: () => ++n,
+    audit: (tenantId, action, detail) => db.audit_log.push({ tenant_id: tenantId, actor: 'user_preview_karan', action, detail: detail || {}, at: now() })
+  };
+  /** @type {any} */ (window).D8STUB = STUB;
+  let seeded = false;
+  function seedOnce() { if (seeded) return; seeded = true; for (const f of STUB.seeds) f(db, STUB); }
+  /** A refusal in the shape the console's db layer reads. @param {any} e */
+  const asError = (e) => (e && (e.code || e.message) ? { code: e.code || '', message: e.message || String(e), details: e.details || null, hint: e.hint || null } : { code: '', message: String(e) });
+
   function from(name) {
     const q = { filters: [], op: 'select', payload: null, one: false, cols: '' };
     const project = (row) => {
@@ -186,7 +206,24 @@
     const run = () => {
       const rows = db[name] = db[name] || [];
       // '__or' stands for the approvals queue's filter: still waiting (pending, or a pending revision).
-      const match = (r) => q.filters.every(([k, v]) => k === '__or' ? (r.verification_status === 'pending' || !!r.pending_at) : Array.isArray(v) ? v.includes(r[k]) : r[k] === v);
+      const cmp = (r, k, v) => {
+        if (v && typeof v === 'object' && !Array.isArray(v) && v.__op) {
+          const a = r[k];
+          switch (v.__op) {
+            case 'neq': return a !== v.v;
+            case 'gt': return a > v.v;
+            case 'gte': return a >= v.v;
+            case 'lt': return a < v.v;
+            case 'lte': return a <= v.v;
+            case 'is': return v.v === null ? a === null || a === undefined : a === v.v;
+            case 'notnull': return a !== null && a !== undefined;
+            case 'contains': return Array.isArray(a) && v.v.every((x) => a.includes(x));
+            default: return true;
+          }
+        }
+        return Array.isArray(v) ? v.includes(r[k]) : r[k] === v;
+      };
+      const match = (r) => q.filters.every(([k, v]) => k === '__or' ? (r.verification_status === 'pending' || !!r.pending_at) : cmp(r, k, v));
       if (q.op === 'upsert' && name === 'user_prefs') {
         const had = rows.find((r) => r.clerk_user_id === q.payload.clerk_user_id);
         const rec = had ? Object.assign(had, JSON.parse(JSON.stringify(q.payload)), { updated_at: now() }) : { ...q.payload, updated_at: now() };
@@ -197,6 +234,7 @@
       if (q.op === 'insert') {
         const rec = { id: `${name}_${++n}`, at: now(), updated_at: now(), status: name === 'requests' ? 'review' : undefined, ...q.payload };
         if (name === 'tenants') rec.status = rec.status || 'active';
+        if (STUB.hooks.insert[name]) STUB.hooks.insert[name](rec, STUB);
         rows.push(rec);
         log(name, rec, null);
         if (name === 'requests') db.tasks.push({ id: `tasks_${++n}`, tenant_id: rec.tenant_id, kind: 'request', request_id: rec.id, service: rec.service, title: String(rec.body).slice(0, 200), detail: rec.body, status: 'todo', priority: 'none', due: null, position: db.tasks.length, assignee: null, created_at: now(), updated_at: now() });
@@ -204,7 +242,7 @@
       }
       if (q.op === 'update') {
         const hit = rows.filter(match);
-        for (const r of hit) { const before = { ...r }; Object.assign(r, JSON.parse(JSON.stringify(q.payload)), { updated_at: now() }); keepInStep(name, r); log(name, r, before); }
+        for (const r of hit) { const before = { ...r }; Object.assign(r, JSON.parse(JSON.stringify(q.payload)), { updated_at: now() }); if (STUB.hooks.update[name]) STUB.hooks.update[name](r, before, STUB); keepInStep(name, r); log(name, r, before); }
         const out = hit.map(project);
         return { data: q.one ? out[0] || null : out, error: null };
       }
@@ -219,6 +257,12 @@
     const chain = {
       select(c) { q.cols = c || ''; return chain; },
       eq(k, v) { q.filters.push([k, v]); return chain; },
+      neq(k, v) { q.filters.push([k, { __op: 'neq', v }]); return chain; },
+      gt(k, v) { q.filters.push([k, { __op: 'gt', v }]); return chain; },
+      gte(k, v) { q.filters.push([k, { __op: 'gte', v }]); return chain; },
+      lt(k, v) { q.filters.push([k, { __op: 'lt', v }]); return chain; },
+      lte(k, v) { q.filters.push([k, { __op: 'lte', v }]); return chain; },
+      contains(k, v) { q.filters.push([k, { __op: 'contains', v }]); return chain; },
       order() { return chain; },
       limit() { return chain; },
       maybeSingle() { q.one = true; return chain; },
@@ -227,11 +271,11 @@
       update(p) { q.op = 'update'; q.payload = p; return chain; },
       upsert(p) { q.op = 'upsert'; q.payload = p; return chain; },
       delete() { q.op = 'delete'; return chain; },
-      not() { return chain; },
+      not(k, op, v) { if (op === 'is' && v === null) q.filters.push([k, { __op: 'notnull' }]); return chain; },
       or() { q.filters.push(['__or', true]); return chain; },
-      is() { return chain; },
+      is(k, v) { q.filters.push([k, { __op: 'is', v }]); return chain; },
       in(k, vs) { q.filters.push([k, vs]); return chain; },
-      then(res, rej) { return new Promise((r) => setTimeout(r, 30)).then(run).then(res, rej); }
+      then(res, rej) { return new Promise((r) => setTimeout(r, 30)).then(() => { seedOnce(); try { return run(); } catch (e) { return { data: null, error: asError(e) }; } }).then(res, rej); }
     };
     return chain;
   }
@@ -355,5 +399,14 @@
     return realFetch(url, init);
   };
 
-  /** @type {any} */ (window).D8PREVIEW = { clerk, supabase: { createClient: () => ({ from, rpc: async (name, args) => (name === 'console_me' ? { data: { staff: true, role: 'super_admin', team: 'org_preview_team', name: 'Karan' }, error: null } : { data: rpcPreview(name, args || {}), error: null }) }) } };
+  /** @type {any} */ (window).D8PREVIEW = { clerk, supabase: { createClient: () => ({
+    from,
+    rpc: async (name, args) => {
+      seedOnce();
+      if (name === 'console_me') return { data: { staff: true, role: 'super_admin', team: 'org_preview_team', name: 'Karan' }, error: null };
+      await new Promise((r) => setTimeout(r, 30));
+      const h = STUB.rpcs[name];
+      try { return { data: h ? await h(args || {}, STUB) : rpcPreview(name, args || {}), error: null }; } catch (e) { return { data: null, error: asError(e) }; }
+    }
+  }) } };
 })();

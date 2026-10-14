@@ -83,7 +83,75 @@
   const LAST30 = { from: '2026-08-25', to: '2026-09-23' };
   const PREV30 = { from: '2026-07-26', to: '2026-08-24' };
 
-  /* ---- tenant: Bayleaf Kitchen (four services, a busy week) ------------------------ */
+  /* ---- plans and limits (2026-10-13) --------------------------------------------------------------------
+     The same numbers the database holds (plan_caps). The public demo shows no prices: priceMinor is null here, and the
+     prices live only in the database, for the signed-in portal. */
+  const ALL = ['advertising', 'social', 'website', 'local', 'email'];
+  const DEMO_PLANS = [
+    { id: 'starter', name: 'Starter', priceMinor: null, currency: null, picksAllowed: 1, required: ['advertising'], maxClients: null, full: false },
+    { id: 'growth', name: 'Growth', priceMinor: null, currency: null, picksAllowed: 2, required: [], maxClients: null, full: false },
+    { id: 'domin8te', name: 'Domin8te', priceMinor: null, currency: null, picksAllowed: null, required: [], maxClients: 1, full: false }
+  ];
+  // service, metric, label, the cap on Starter, Growth and Domin8te, and the weekly hint for each
+  const CAP_ROWS = [
+    ['social', 'social_posts', 'posts', [8, 12, 16], ['2 a week', '3 a week', '4 a week']],
+    ['social', 'social_reels', 'Reels', [1, 2, 4]],
+    ['social', 'social_stories', 'Stories', [0, 8, 12]],
+    ['advertising', 'ads_live_campaigns', 'live campaigns', [1, 3, 5]],
+    ['advertising', 'ads_new_creatives', 'new ad designs', [2, 4, 6]],
+    ['advertising', 'ads_platforms', 'platforms', [1, 2, 2]],
+    ['website', 'web_pages', 'new pages', [1, 2, 3]],
+    ['website', 'web_edits', 'edits', [2, 5, 8]],
+    ['local', 'seo_google_posts', 'Google posts', [4, 6, 8]],
+    ['local', 'seo_photos', 'photos', [4, 8, 12]],
+    ['local', 'seo_review_replies', 'review replies', [20, 30, 40]],
+    ['local', 'seo_jobs', 'Listing and search tasks', [1, 2, 3]],
+    ['email', 'email_campaigns', 'email campaigns', [2, 3, 4]],
+    ['email', 'email_automations', 'automations', [0, 1, 2]]
+  ];
+  const DEMO_CAPS = CAP_ROWS.flatMap((r) => ['starter', 'growth', 'domin8te'].map((planId, i) => ({ planId, service: r[0], metric: r[1], label: r[2], cap: r[3][i], weeklyHint: r[4] ? r[4][i] : null })));
+  /** What was used so far this month, in the demo (sample numbers). */
+  const use = (service, metric, used) => ({ service, metric, used });
+  const USAGE = {
+    growth: [use('social', 'social_posts', 9), use('social', 'social_reels', 1), use('social', 'social_stories', 3), use('website', 'web_pages', 1), use('website', 'web_edits', 3)],
+    starter: [use('advertising', 'ads_live_campaigns', 1), use('advertising', 'ads_new_creatives', 2), use('advertising', 'ads_platforms', 1),
+      use('local', 'seo_google_posts', 3), use('local', 'seo_photos', 3), use('local', 'seo_review_replies', 17), use('local', 'seo_jobs', 0)],
+    domin8te: [use('advertising', 'ads_live_campaigns', 3), use('advertising', 'ads_new_creatives', 4), use('advertising', 'ads_platforms', 2),
+      use('social', 'social_posts', 12), use('social', 'social_reels', 2), use('social', 'social_stories', 7),
+      use('website', 'web_pages', 1), use('website', 'web_edits', 5),
+      use('local', 'seo_google_posts', 5), use('local', 'seo_photos', 6), use('local', 'seo_review_replies', 22), use('local', 'seo_jobs', 2),
+      use('email', 'email_campaigns', 2), use('email', 'email_automations', 1)]
+  };
+  /**
+   * One month of a plan. The month runs from `start` to the day before `end` (the bill date). `next` is what happens
+   * the month after: carried over by itself (auto_carry), or chosen by the client.
+   * @param {{planId: string, picks: string[], websiteOption?: string|null, start: string, end: string, next?: any, usageOf?: string}} o
+   */
+  function planOf(o) {
+    const cycle = (c) => ({ planId: c.planId, picks: c.picks.slice(), websiteOption: c.websiteOption || null, start: c.start, end: c.end, source: c.source || 'console', state: c.state || 'active', confirmedAt: c.confirmedAt || null, confirmedBy: c.confirmedBy || '' });
+    const now = cycle({ ...o, confirmedAt: o.start + 'T09:00', state: 'active' });
+    // the next month: the same by default (carried over, not yet confirmed), or what the scenario says
+    const start = o.end;
+    const nextEnd = addMonth(o.end);
+    const n = o.next || { planId: o.planId, picks: o.picks, websiteOption: o.websiteOption };
+    return {
+      menu: { plans: DEMO_PLANS, caps: DEMO_CAPS },
+      now,
+      next: cycle({ ...n, start, end: nextEnd, source: n.source || 'auto_carry', state: 'confirmed', confirmedAt: n.confirmedAt || null }),
+      usage: USAGE[o.usageOf || o.planId],
+      mismatch: false
+    };
+  }
+  /** The same day next month, the way the database adds a month (the last day when that month is shorter). @param {string} iso */
+  function addMonth(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    const ny = m === 12 ? y + 1 : y;
+    const nm = m === 12 ? 1 : m + 1;
+    const days = new Date(Date.UTC(ny, nm, 0)).getUTCDate();
+    return `${ny}-${String(nm).padStart(2, '0')}-${String(Math.min(d, days)).padStart(2, '0')}`;
+  }
+
+  /* ---- tenant: Bayleaf Kitchen (a busy week; on the Growth plan: Social media and Website) ------------------ */
 
   const BAYLEAF = {
     tenantId: 'tnt_demo_bayleaf',
@@ -91,7 +159,9 @@
     dataThrough: '2026-09-23',
     business: { name: 'Bayleaf Kitchen', kind: 'Restaurant' },
     user: { firstName: 'Dani', email: 'dani@bayleaf-kitchen.example', role: 'Owner' },
-    package: { name: 'Full service', services: ['website', 'social', 'advertising', 'local'], billing: 'Billed monthly on the 22nd' },
+    // This month's plan decides the services (the plan below), so the record itself names none (2026-10-13).
+    package: { services: [], billing: 'Billed monthly on the 22nd' },
+    plan: planOf({ planId: 'growth', picks: ['social', 'website'], start: '2026-09-22', end: '2026-10-22' }),
     // the team's board cards for the website, as the console's board holds them (2026-10-08: cards show on the Work page)
     cards: [
       { id: 'card_hours', service: 'website', title: 'Update the autumn opening hours across the site', status: 'in_review', due: '2026-10-01', updatedAt: '2026-09-23T16:20' },
@@ -164,13 +234,13 @@
       }
     },
     pending: [],
-    strip: ['bookings', 'calls', 'directions', 'visits'],
+    strip: ['bookings', 'visits', 'facebookViews', 'instagramViews'],
     insightMetric: 'bookings',
     // Written by the Domin8te assistant from the figures above, then checked against them
-    // (tests/data.test.js fails if a number here stops matching the series).
+    // (tests/data.test.js fails if a number here stops matching the series). It shows only once a person has checked it.
     summaries: [{
-      days: 30, writtenAt: '2026-09-24T14:20', facts: { bookings: 212, extraBookings: 41, calls: 148 },
-      text: 'Your website brought in 212 bookings in the last 30 days, 41 more than the 30 days before, and the rise was biggest on Fridays and Saturdays. Calls from Google rose to 148. Instagram has been disconnected since 21 Sep, so Instagram figures after 20 Sep are missing.'
+      days: 30, writtenAt: '2026-09-24T14:20', reviewedBy: 'Karan', reviewedAt: '2026-09-24T14:40', facts: { bookings: 212, extraBookings: 41 },
+      text: 'Your website brought in 212 bookings in the last 30 days, 41 more than the 30 days before, and the rise was biggest on Fridays and Saturdays. Instagram has been disconnected since 21 Sep, so Instagram figures after 20 Sep are missing.'
     }],
     campaigns: [
       { name: 'Summer terrace', from: '2026-07-03', to: '2026-07-16', status: 'complete', channel: 'Meta' },
@@ -394,19 +464,18 @@
       }
     ],
     billing: {
-      plan: { name: 'Full service', services: ['website', 'social', 'advertising', 'local'], interval: 'Billed monthly on the 22nd' },
       subscription: { status: 'past_due', graceUntil: '2026-10-06', retryOn: '2026-09-25', nextBilling: '2026-10-22' },
       paymentMethod: { brand: 'Visa', last4: '4412', problem: { date: '2026-09-22', text: 'Declined on Tue 22 Sep' } },
       invoices: [
-        { id: 'in_bay_0009', number: 'BAY-0009', issued: '2026-09-22', period: ['2026-09-22', '2026-10-21'], status: 'failed', note: 'Stripe will try your card again on Fri 25 Sep.' },
-        { id: 'in_bay_0008', number: 'BAY-0008', issued: '2026-08-22', period: ['2026-08-22', '2026-09-21'], status: 'paid', paidOn: '2026-08-22' },
-        { id: 'in_bay_0007', number: 'BAY-0007', issued: '2026-07-22', period: ['2026-07-22', '2026-08-21'], status: 'paid', paidOn: '2026-07-22' },
-        { id: 'in_bay_0006', number: 'BAY-0006', issued: '2026-06-22', period: ['2026-06-22', '2026-07-21'], status: 'paid', paidOn: '2026-06-22' }
+        { id: 'in_bay_0009', number: 'BAY-0009', issued: '2026-09-22', due: '2026-09-22', period: ['2026-09-22', '2026-10-21'], status: 'failed', note: 'Stripe will try your card again on Fri 25 Sep.' },
+        { id: 'in_bay_0008', number: 'BAY-0008', issued: '2026-08-22', due: '2026-08-22', period: ['2026-08-22', '2026-09-21'], status: 'paid', paidOn: '2026-08-22' },
+        { id: 'in_bay_0007', number: 'BAY-0007', issued: '2026-07-22', due: '2026-07-22', period: ['2026-07-22', '2026-08-21'], status: 'paid', paidOn: '2026-07-22' },
+        { id: 'in_bay_0006', number: 'BAY-0006', issued: '2026-06-22', due: '2026-06-22', period: ['2026-06-22', '2026-07-21'], status: 'paid', paidOn: '2026-06-22' }
       ]
     }
   };
 
-  /* ---- tenant: Corner Bean Café (two services, nothing to do) ---------------------- */
+  /* ---- tenant: Corner Bean Café (on the Starter plan: Ads and SEO and Google Maps; nothing to do) ---------- */
 
   const CAFE_START = '2026-07-01';
   const CORNERBEAN = {
@@ -415,12 +484,14 @@
     dataThrough: '2026-09-23',
     business: { name: 'Corner Bean Café', kind: 'Café' },
     user: { firstName: 'Priya', email: 'priya@cornerbean.example', role: 'Owner' },
-    package: { name: 'Website and local search', services: ['website', 'local'], billing: 'Billed monthly on the 1st' },
+    package: { services: [], billing: 'Billed monthly on the 1st' },
+    plan: planOf({ planId: 'starter', picks: ['advertising', 'local'], start: '2026-09-01', end: '2026-10-01' }),
     team: { name: 'Your account team', reply: 'Usually replies within one working day' },
     meeting: { at: '2026-10-02T09:30', title: 'Website review call', length: '30 minutes', status: 'confirmed' },
     sources: [
       { id: 'analytics', name: 'Website analytics', status: 'connected', updatedAt: '2026-09-24T06:00' },
-      { id: 'gbp', name: 'Google Business Profile', status: 'connected', updatedAt: '2026-09-24T07:40' }
+      { id: 'gbp', name: 'Google Business Profile', status: 'connected', updatedAt: '2026-09-24T07:40' },
+      { id: 'meta-ads', name: 'Meta ads', status: 'connected', updatedAt: '2026-09-24T08:20' }
     ],
     metrics: {
       calls: {
@@ -438,18 +509,23 @@
       profileViews: {
         label: 'Views of your Google profile', unit: 'views', service: 'local', group: 'local', sources: ['gbp'],
         series: series({ seed: 109, start: CAFE_START, end: '2026-09-23', base: 28, week: CAFE, noise: 0.25, fit: [{ ...LAST30, total: 890 }, { ...PREV30, total: 802 }] })
+      },
+      adClicks: {
+        label: 'Clicks from ads to your menu page', unit: 'clicks', service: 'advertising', group: 'advertising', sources: ['meta-ads'],
+        // The first ad ran from 12 Sep: before that there was no ad, so no number (the figures start there).
+        series: series({ seed: 113, start: '2026-09-12', end: '2026-09-23', base: 6, week: CAFE, noise: 0.3, fit: [{ from: '2026-09-12', to: '2026-09-23', total: 64 }] })
       }
     },
     pending: [
       { metric: 'orders', group: 'leads', label: 'Orders from your website', text: "Online ordering isn't connected yet. Once it is, orders from your website show here." }
     ],
-    strip: ['visits', 'calls', 'directions', 'orders'],
-    insightMetric: 'visits',
+    strip: ['calls', 'directions', 'adClicks', 'orders'],
+    insightMetric: 'calls',
     summaries: [{
-      days: 30, writtenAt: '2026-09-24T07:55', facts: { visits: 1240, extraVisits: 135, directionsBefore: 49, directions: 58 },
-      text: 'Website visits rose to 1,240 in the last 30 days, 135 more than the 30 days before. Direction requests on Google went from 49 to 58. Online ordering is not connected yet, so there is nothing to report on orders.'
+      days: 30, writtenAt: '2026-09-24T07:55', reviewedBy: 'Karan', reviewedAt: '2026-09-24T08:30', facts: { calls: 41, extraCalls: 4, directionsBefore: 49, directions: 58 },
+      text: 'Calls from Google rose to 41 in the last 30 days, 4 more than the 30 days before. Direction requests on Google went from 49 to 58. Your first ad started on 12 Sep, so ad numbers only go back to then. Online ordering is not connected yet, so there is nothing to report on orders.'
     }],
-    campaigns: [],
+    campaigns: [{ name: 'First neighbourhood ad', from: '2026-09-12', to: null, status: 'in_progress', channel: 'Meta' }],
     actions: [],
     approvals: {},
     services: {
@@ -469,6 +545,21 @@
           { date: '2026-09-18', text: 'Published the new homepage' },
           { date: '2026-09-11', text: 'You approved the homepage design' }
         ],
+        files: []
+      },
+      advertising: {
+        status: 'in_progress',
+        objective: 'Bring people from the neighbourhood in for the first time.',
+        now: 'The first neighbourhood ad is running on Facebook and Instagram',
+        expected: { date: '2026-10-05', text: 'Results of the first ad' },
+        next: { who: 'domin8te', text: 'Send you the results of the first ad' },
+        proof: { date: '2026-09-15', text: 'Ad account connected and checked' },
+        milestones: [
+          { title: 'Ad account connected and checked', date: '2026-09-15', state: 'done' },
+          { title: 'First neighbourhood ad running', date: '2026-09-12', state: 'done' },
+          { title: 'Results of the first ad', date: '2026-10-05', state: 'current' }
+        ],
+        completed: [{ date: '2026-09-15', text: 'Connected and checked your ad account' }, { date: '2026-09-12', text: 'Started the first neighbourhood ad' }],
         files: []
       },
       local: {
@@ -502,25 +593,68 @@
       }
     ],
     billing: {
-      plan: { name: 'Website and local search', services: ['website', 'local'], interval: 'Billed monthly on the 1st' },
       subscription: { status: 'active', nextBilling: '2026-10-01' },
       paymentMethod: { brand: 'Mastercard', last4: '0821' },
       invoices: [
-        { id: 'in_cb_0002', number: 'CBC-0002', issued: '2026-09-01', period: ['2026-09-01', '2026-09-30'], status: 'paid', paidOn: '2026-09-01' },
-        { id: 'in_cb_0001', number: 'CBC-0001', issued: '2026-08-01', period: ['2026-08-01', '2026-08-31'], status: 'paid', paidOn: '2026-08-01' }
+        { id: 'in_cb_0002', number: 'CBC-0002', issued: '2026-09-01', due: '2026-09-01', period: ['2026-09-01', '2026-09-30'], status: 'paid', paidOn: '2026-09-01' },
+        { id: 'in_cb_0001', number: 'CBC-0001', issued: '2026-08-01', due: '2026-08-01', period: ['2026-08-01', '2026-08-31'], status: 'paid', paidOn: '2026-08-01' }
       ]
     }
   };
+
+  /* The same restaurant on another plan or in another month (2026-10-13). A patch changes only what the plan changes. */
+  const EVERYTHING = {
+    services: ALL,
+    plan: () => planOf({ planId: 'domin8te', picks: ALL, start: '2026-09-22', end: '2026-10-22' }),
+    strip: ['bookings', 'calls', 'directions', 'visits'],
+    // the written summary for the plan that includes Google: it mentions calls
+    summaries: [{
+      days: 30, writtenAt: '2026-09-24T14:20', reviewedBy: 'Karan', reviewedAt: '2026-09-24T14:40', facts: { bookings: 212, extraBookings: 41, calls: 148 },
+      text: 'Your website brought in 212 bookings in the last 30 days, 41 more than the 30 days before, and the rise was biggest on Fridays and Saturdays. Calls from Google rose to 148. Instagram has been disconnected since 21 Sep, so Instagram figures after 20 Sep are missing.'
+    }]
+  };
+  const PATCHES = {
+    // Domin8te: every service, the same busy week
+    everything: EVERYTHING,
+    // Growth with next month already chosen: Ads and Social media instead of Social media and Website, nothing else waiting
+    change: {
+      plan: () => planOf({ planId: 'growth', picks: ['social', 'website'], start: '2026-09-22', end: '2026-10-22',
+        next: { planId: 'growth', picks: ['advertising', 'social'], source: 'client_picker', confirmedAt: '2026-09-23T14:14', confirmedBy: 'Dani' } }),
+      actions: [],
+      billing: { subscription: { status: 'active', nextBilling: '2026-10-22' }, paymentMethod: { brand: 'Visa', last4: '4412' } }
+    }
+  };
+  /**
+   * The record a demo situation shows: the restaurant's own, or its version for that situation.
+   * @param {string} tenantId @param {{patch?: string}} [sc]
+   */
+  function record(tenantId, sc) {
+    const base = TENANTS[tenantId];
+    const p = base && sc && sc.patch ? /** @type {any} */ (PATCHES)[sc.patch] : null;
+    if (!p) return base;
+    const t = JSON.parse(JSON.stringify(base));
+    if (p.services) t.package = { ...t.package, services: p.services.slice() };
+    if (p.plan) t.plan = p.plan();
+    if (p.strip) t.strip = p.strip.slice();
+    if (p.summaries) t.summaries = JSON.parse(JSON.stringify(p.summaries));
+    if (p.actions) t.actions = p.actions.slice();
+    if (p.billing) t.billing = { ...t.billing, ...p.billing };
+    return t;
+  }
+  const TENANTS = { tnt_demo_bayleaf: BAYLEAF, tnt_demo_cornerbean: CORNERBEAN };
 
   D8.demoFixtures = {
     // Demo scenarios exist for development only. Each one picks a tenant and, optionally,
     // simulates a failing source or a slow connection. They never mix tenants.
     scenarios: [
-      { id: 'bayleaf', tenantId: 'tnt_demo_bayleaf', label: 'Busy week', about: 'Four services, four things to do, a disconnected account and a payment problem.' },
-      { id: 'cornerbean', tenantId: 'tnt_demo_cornerbean', label: 'All caught up', about: 'Two services, nothing to do, and online orders not connected yet.' },
-      { id: 'google-down', tenantId: 'tnt_demo_bayleaf', label: 'Google figures failing', about: 'Google Business Profile does not load. Everything else still works.', fail: ['gbp'] },
+      { id: 'bayleaf', tenantId: 'tnt_demo_bayleaf', label: 'Busy week', about: 'Growth plan (Social media and Website): four things to do, a disconnected account and a payment problem.' },
+      { id: 'cornerbean', tenantId: 'tnt_demo_cornerbean', label: 'All caught up', about: 'Starter plan (Ads and SEO and Google Maps): nothing to do, and online orders not connected yet.' },
+      { id: 'domin8te', tenantId: 'tnt_demo_bayleaf', label: 'All services', about: 'Domin8te plan: all five services, in the same busy week.', patch: 'everything' },
+      { id: 'change', tenantId: 'tnt_demo_bayleaf', label: 'Plan change confirmed', about: 'Growth now, and next month already chosen: Ads and Social media. Nothing waiting.', patch: 'change' },
+      { id: 'google-down', tenantId: 'tnt_demo_bayleaf', label: 'Google figures failing', about: 'Google Business Profile does not load. Everything else still works.', fail: ['gbp'], patch: 'everything' },
       { id: 'slow', tenantId: 'tnt_demo_bayleaf', label: 'Slow connection', about: 'Every section takes about two seconds, so you can see the loading states.', latency: 2000 }
     ],
-    tenants: { tnt_demo_bayleaf: BAYLEAF, tnt_demo_cornerbean: CORNERBEAN }
+    tenants: TENANTS,
+    record
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -5,7 +5,9 @@ const fs = require('fs');
 const path = require('path');
 
 const SRC = path.join(__dirname, '..', 'src');
-const FILES = ['lib/time.js', 'lib/format.js', 'data/demo-fixtures.js', 'data/dashboard-data.js'];
+const FILES = ['lib/time.js', 'lib/format.js', 'data/plan-model.js', 'data/demo-fixtures.js', 'data/dashboard-data.js'];
+/** The pieces that draw the plan and the trust marks: they only build strings, so they load without a page. */
+const UI_FILES = ['ui/components.js', 'ui/plan.js', 'ui/plan-billing.js', 'ui/plan-picker.js', 'ui/plan-ask.js'];
 
 function memoryStorage() {
   const m = new Map();
@@ -19,7 +21,8 @@ function memoryStorage() {
 /**
  * A fresh sandbox with instant timers and empty storage. The public demo is view-only, so tests that act on it
  * (approve, message, save) switch the guard off, as the page's own test seed does; pass { readOnly: true } to keep it on.
- * @param {string} [scenario] @param {{readOnly?: boolean}} [opts]
+ * { ui: true } also loads the files that draw the plan and the trust marks; { live: true } makes it the signed-in portal.
+ * @param {string} [scenario] @param {{readOnly?: boolean, ui?: boolean, live?: boolean}} [opts]
  */
 function load(scenario, opts) {
   const ctx = {
@@ -31,9 +34,10 @@ function load(scenario, opts) {
     sessionStorage: memoryStorage()
   };
   if (!(opts && opts.readOnly)) ctx.D8_DEMO_WRITABLE = true;
+  if (opts && opts.live) ctx.D8CONFIG = { mode: 'live' };
   ctx.globalThis = ctx;
   vm.createContext(ctx);
-  for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(SRC, f), 'utf8'), ctx, { filename: f });
+  for (const f of FILES.concat(opts && opts.ui ? UI_FILES : [])) vm.runInContext(fs.readFileSync(path.join(SRC, f), 'utf8'), ctx, { filename: f });
   if (scenario) ctx.D8.data.useScenario(scenario);
   return ctx.D8;
 }

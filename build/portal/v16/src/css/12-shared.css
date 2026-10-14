@@ -1,0 +1,59 @@
+/*
+ * Small pieces the plan pages share (2026-10-13): the label above a title, the pills, a service's icon tile, the brand rule,
+ * a short note, and the timeline. Home, Billing and the picker all use them. Tokens only.
+ * Notes and staff notes are quiet panels: the soft glass with a hairline, never a grey well. Tinted pills carry a solid base
+ * under their tint, so they read the same on the dotted paper, on a card and on the sky.
+ */
+
+/* ------------------------------------------------------------------ small shared pieces */
+
+.eyebrow { margin: 0; font-size: 13.5px; font-weight: 700; line-height: 1.4; letter-spacing: 0.04em; color: var(--p-accent-ink); }
+.eyebrow.is-green { color: var(--p-success); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip, .chip-now, .plan-chip { display: inline-flex; align-items: center; min-height: 30px; padding: 3px 13px; border: 1px solid var(--p-line-2); border-radius: 999px; background: var(--p-glass-strong); color: var(--p-ink); font-size: 14px; font-weight: 600; line-height: 1.4; white-space: nowrap; box-shadow: inset 0 1px 0 var(--p-glass-hi); }
+.chip-now { min-height: 26px; padding: 1px 10px; color: var(--p-ink-2); font-size: 13px; font-weight: 650; }
+.chip-now.is-on { border-color: transparent; background: linear-gradient(var(--p-success-bg), var(--p-success-bg)), var(--p-surface); color: var(--p-success); box-shadow: none; }
+.svc-ico { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: var(--p-surface); box-shadow: 0 0 0 1px var(--p-line), 0 1px 2px rgba(34, 40, 70, 0.07), inset 0 1px 0 var(--p-glass-hi); color: var(--p-ink-2); }
+.svc-ico .i { width: 22px; height: 22px; }
+.svc-ico.is-advertising { color: #C2410C; }
+.svc-ico.is-social { color: #7B3FA0; }
+.svc-ico.is-website { color: #2B5A98; }
+.svc-ico.is-local { color: #2C6A3D; }
+.svc-ico.is-email { color: #9A6A00; }
+html[data-theme="dark"] .svc-ico { background: var(--p-surface-2); box-shadow: 0 0 0 1px var(--p-line-2), inset 0 1px 0 var(--p-glass-hi); }
+html[data-theme="dark"] .svc-ico.is-advertising { color: #FF8A57; }
+html[data-theme="dark"] .svc-ico.is-social { color: #D2A8EE; }
+html[data-theme="dark"] .svc-ico.is-website { color: #8FB8FF; }
+html[data-theme="dark"] .svc-ico.is-local { color: #7ED99B; }
+html[data-theme="dark"] .svc-ico.is-email { color: #F2C46B; }
+.rule-rainbow { height: 3px; margin: 22px 0; border-radius: 3px; background: linear-gradient(90deg, #E5484D, #F2A93B, #3FB27F, #3E7BE0, #7B4FD6, #D6458A); opacity: 0.9; }
+.po-h { margin-bottom: 14px; font-size: 16.5px; font-weight: 700; line-height: 1.3; letter-spacing: -0.005em; }
+.po-note { display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; padding: 13px 16px; border-radius: 14px; background: var(--p-glass-soft); box-shadow: inset 0 0 0 1px var(--p-line); font-size: 14.5px; line-height: 1.5; color: var(--p-ink-2); }
+.po-note .i { flex: none; width: 17px; height: 17px; margin-top: 3px; color: var(--p-ink-3); }
+.po-note strong { color: var(--p-ink); }
+.staff-note { margin: 0 0 16px; padding: 14px 16px; border-radius: 14px; background: var(--p-glass-soft); box-shadow: inset 0 0 0 1px var(--p-line); }
+.staff-note h3 { font-size: 16px; font-weight: 700; line-height: 1.3; }
+.staff-note p { margin-top: 4px; color: var(--p-ink-2); }
+.staff-note ul { display: grid; gap: 2px; margin-top: 8px; padding-left: 18px; list-style: disc; color: var(--p-ink-2); }
+.staff-note .pc-source { margin-top: 10px; }
+
+/* ------------------------------------------------------------------ the timeline */
+
+.tl { display: grid; margin: 0; padding: 0; list-style: none; }
+.tl-item { position: relative; display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 14px; padding-bottom: 18px; }
+.tl-item:last-child { padding-bottom: 0; }
+.tl-item::before { content: ""; position: absolute; left: 11px; top: 29px; bottom: 3px; width: 2px; border-radius: 1px; background: var(--p-line-2); }
+.tl-item:last-child::before { display: none; }
+.tl-dot { display: grid; place-items: center; width: 24px; height: 24px; margin-top: 1px; border: 2px solid var(--p-line-2); border-radius: 50%; background: var(--p-surface); color: transparent; }
+.tl-dot .i { width: 13px; height: 13px; }
+.tl-item.is-done .tl-dot { border-color: var(--p-accent-ink); background: var(--p-accent-ink); color: var(--p-bg); }
+.tl-title { padding-top: 2px; font-size: 16px; font-weight: 650; line-height: 1.35; }
+.tl-text { margin-top: 2px; font-size: 14.5px; line-height: 1.5; color: var(--p-ink-2); }
+
+@media (prefers-reduced-transparency: reduce) {
+  .po-note, .staff-note { background: var(--p-surface-2); }
+}
+@media (forced-colors: active) {
+  .chip, .chip-now, .plan-chip, .svc-ico, .po-note, .staff-note, .tl-dot { border: 1px solid CanvasText; }
+  .tl-item.is-done .tl-dot { background: Highlight; color: Canvas; }
+}

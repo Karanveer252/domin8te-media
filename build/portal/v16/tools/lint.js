@@ -49,7 +49,8 @@ const RULES = [
   { re: />\s*(Submit|OK|Go)\s*</, rule: 'no-vague-label', note: 'a control names its action (brand book: never Submit, OK or Go)' },
   { re: /lorem ipsum/i, rule: 'no-placeholder-copy' },
   { re: /\bDominate\b|\bDomin[^8\s]te\b/i, rule: 'brand-spelling', note: 'Domin8te, with the 8' },
-  { re: /['">]\s*SEO\b|\bSEO\s*['"<]/, rule: 'plain-words', note: 'say "Local search", not SEO' },
+  // The places the word is allowed: the service's own name, "SEO and Google Maps", and the staff-side limit "SEO jobs" (2026-10-13)
+  { re: /['">]\s*SEO\b(?! and Google Maps| jobs?\b)|\bSEO\s*['"<]/, rule: 'plain-words', note: 'say "Local search", not SEO' },
   { re: /console\.log\(/, rule: 'no-console-log' },
   { re: /text-transform:\s*uppercase/, rule: 'no-uppercase-labels' },
   { re: /prefers-color-scheme:\s*dark/, rule: 'light-by-default', note: 'dark only by the client choosing it' },

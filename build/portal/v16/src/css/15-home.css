@@ -1,0 +1,99 @@
+/*
+ * Home, the plan part (2026-10-13): the calm banner when nothing needs the client, and the cards for what is running now,
+ * what is coming and what changes next month. Tokens only. The page's own rhythm (the gaps between its parts, the three
+ * numbers on a phone, the contact strip) is in 16-home-page.css; Work's pieces are in 45-work.css.
+ */
+
+/* ------------------------------------------------------------------ Home: the calm banner */
+
+/* When the banner stands in for Waiting for you, the section's heading is for screen readers only. */
+.sec-attention.is-calm > .sec-head { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Icon, words, one button: the tint fades out to the right so the card stays glass. */
+.plan-banner { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px 22px; padding: 22px 26px; background-image: linear-gradient(100deg, var(--p-success-bg), transparent 64%); }
+.plan-banner.is-change { background-image: linear-gradient(100deg, var(--p-info-bg), transparent 64%); }
+/* The tile is in the family of the attention cards' icons: a tint, a hairline, the state's colour. */
+.pb-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 15px; background: linear-gradient(var(--p-success-bg), var(--p-success-bg)), var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line); color: var(--p-success); }
+.plan-banner.is-change .pb-icon { background: linear-gradient(var(--p-info-bg), var(--p-info-bg)), var(--p-surface); color: var(--p-info); }
+.pb-icon .i { width: 24px; height: 24px; }
+.pb-body { min-width: 0; }
+.pb-title { font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.012em; }
+.pb-text { margin-top: 4px; max-width: 70ch; line-height: 1.5; color: var(--p-ink-2); text-wrap: pretty; }
+/* Next planned and Latest win: one quiet line each, the label a little heavier. */
+.pb-facts { display: grid; gap: 3px; margin-top: 10px; font-size: 14.5px; line-height: 1.45; color: var(--p-ink-2); }
+.pb-facts strong { font-weight: 650; color: var(--p-ink); }
+.pb-go { white-space: nowrap; }
+
+/* ------------------------------------------------------------------ Home: the plan cards */
+
+.home-plan { margin-top: 32px; }
+.home-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--p-gap); align-items: start; }
+.home-note { margin-top: var(--p-gap); padding: 22px 26px; }
+.plan-card { padding: 24px 26px 22px; }
+.pc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 14px; padding-bottom: 16px; border-bottom: 1px solid var(--p-line); }
+.pc-head > div { min-width: 0; }
+.pc-head h2 { font-size: 21px; font-weight: 700; line-height: 1.25; letter-spacing: -0.015em; }
+.pc-sub { margin-top: 4px; font-size: 14.5px; line-height: 1.4; color: var(--p-ink-3); }
+.pc-head .plan-chip { flex: none; margin-top: 1px; }
+.pc-head + .staff-note { margin-top: 16px; }
+.plan-coming .pc-head, .plan-changes .pc-head { margin-bottom: 18px; }
+.pc-source { margin-top: 14px; font-size: 13.5px; color: var(--p-ink-3); }
+.pc-foot { margin-top: 18px; font-size: 14.5px; line-height: 1.5; color: var(--p-ink-2); }
+.plan-chip { font-weight: 650; }
+/* Running now: one row per service. The icon tile, the name with its state at the right, what is happening, then a bar
+   for each limit. Rows breathe (18px) and share a hairline. */
+.run-list { display: grid; }
+.run-svc { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 16px; padding: 18px 0; border-top: 1px solid var(--p-line); }
+.run-svc:first-child { border-top: 0; padding-top: 16px; }
+.run-svc:last-child { padding-bottom: 4px; }
+.run-main { min-width: 0; }
+.run-top { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.run-top > :first-child { min-width: 0; }
+.run-top .badge, .run-top .svc-row-wait { flex: none; }
+.run-top .badge { padding: 3px 11px 3px 9px; font-size: 13.5px; }
+.run-name { font-size: 17px; font-weight: 700; line-height: 1.3; }
+.run-name a { color: inherit; text-decoration: none; }
+.run-name a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.run-now { margin-top: 3px; font-size: 15px; line-height: 1.45; color: var(--p-ink-2); }
+.run-usage { display: grid; gap: 10px; margin-top: 12px; }
+.run-usage .usage { gap: 6px; }
+/* The compact usage row: the name is content-sized (and wraps when a phone is too narrow for it), the demo's chip sits
+   right after it, the figure at the far right. A grid that adds one column per piece, so a row without the chip has no
+   empty slot: the leftover goes to the auto columns, the chip at the start of its column, the figure at the end of its. */
+.run-usage .usage-row { display: grid; grid-auto-flow: column; grid-template-columns: minmax(0, max-content); grid-auto-columns: auto; align-items: baseline; gap: 0 10px; }
+.run-usage .usage-name { font-size: 15px; font-weight: 600; line-height: 1.4; }
+.run-usage .usage-fig { margin-left: 0; justify-self: end; font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--p-ink); font-variant-numeric: tabular-nums; }
+.run-usage .chip-sample { justify-self: start; }
+.run-usage .usage-word { font-size: 13px; }
+.svc-row-wait { padding: 3px 11px; border-radius: 999px; background: linear-gradient(var(--p-attn-bg), var(--p-attn-bg)), var(--p-surface); color: var(--p-attn); font-size: 13.5px; font-weight: 650; line-height: 1.4; white-space: nowrap; }
+/* What changes next month: one row per service, its word (Keeps, Adds, Stops) at the right. The picker's panel reuses
+   these rows in its own, plainer form (30-picker.css). */
+.chg-list { display: grid; gap: 10px; }
+.chg-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 16px 12px 12px; border-radius: 16px; background: var(--p-glass-strong); box-shadow: inset 0 0 0 1px var(--p-line); }
+.chg-row > div { min-width: 0; }
+.chg-name { font-size: 16.5px; font-weight: 650; line-height: 1.3; }
+.chg-text { margin-top: 2px; font-size: 14.5px; line-height: 1.45; color: var(--p-ink-2); }
+.chg-tag { padding: 3px 12px; border-radius: 999px; font-size: 13.5px; font-weight: 650; line-height: 1.4; white-space: nowrap; }
+.chg-row.is-keeps .chg-tag { background: linear-gradient(var(--p-success-bg), var(--p-success-bg)), var(--p-surface); color: var(--p-success); }
+.chg-row.is-adds .chg-tag { background: linear-gradient(var(--p-attn-bg), var(--p-attn-bg)), var(--p-surface); color: var(--p-attn); }
+.chg-row.is-stops .chg-tag { border: 1px solid var(--p-line-2); color: var(--p-ink-2); }
+.plan-none .empty { padding: 4px 0; }
+
+/* Beside a long Running now (five services), the dates on the right stay in view while the list scrolls by. */
+@container page (min-width: 901px) {
+  .plan-coming, .plan-changes { position: sticky; top: 24px; }
+}
+@container page (max-width: 900px) {
+  .home-cols { grid-template-columns: minmax(0, 1fr); }
+}
+@container page (max-width: 700px) {
+  /* The banner stacks: the tile, the words, the button across the full width. */
+  .plan-banner { grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 20px; }
+  .pb-icon { width: 44px; height: 44px; border-radius: 14px; }
+  .plan-banner .pb-go { justify-self: stretch; }
+  .plan-card { padding: 20px; }
+  .run-svc { gap: 14px; }
+  .chg-row { padding: 12px 14px 12px 12px; gap: 12px; }
+}
+@media (forced-colors: active) {
+  .chg-tag, .svc-row-wait, .plan-chip, .pb-icon { border: 1px solid CanvasText; }
+}

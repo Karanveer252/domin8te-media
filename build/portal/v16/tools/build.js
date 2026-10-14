@@ -99,6 +99,9 @@ function resolve(dirName) {
 function build(variant) {
   let html = read('index.html');
   let css = read('styles.css');
+  // The plan, the picker and the trust pieces (2026-10-13) are styled in src/css/*.css, in name order, after the base sheet.
+  const cssDir = path.join(SRC, 'css');
+  if (fs.existsSync(cssDir)) for (const f of fs.readdirSync(cssDir).filter((n) => n.endsWith('.css')).sort()) css += `\n/* ================================================================ css/${f} */\n${read('css/' + f)}`;
   let extraScripts = '';
   if (variant) {
     const { cfg: v, css: vcss, js: vjs, inj } = resolve(path.basename(variant.dir));
@@ -148,7 +151,9 @@ function build(variant) {
   html = html.replace(/<script src="([^"]+)"><\/script>/g, (m, src) => `<script>\n/* ${src} */\n${safeScript(read(src))}</script>`);
   if (extraScripts) html = html.replace('</body>', () => `${extraScripts}\n</body>`);
 
-  const name = variant ? `${variant.out || 'v16' + variant.id}.html` : 'v16.html';
+  // D8_OUT_SUFFIX=name writes versions/<design>-name.html instead, so people working side by side do not overwrite each other's build.
+  const suffix = process.env.D8_OUT_SUFFIX ? '-' + String(process.env.D8_OUT_SUFFIX).replace(/[^a-z0-9-]/gi, '') : '';
+  const name = (variant ? variant.out || 'v16' + variant.id : 'v16') + suffix + '.html';
   const height = variant ? variant.cardHeight : 2680; // the original's Home measures about 2,664px at 1440 wide
   const subtitle = variant ? `${variant.title}: ${variant.subtitle}` : '16 Pre-shift: the working client portal in a restrained glass shell, warm light, five areas';
   const group = variant ? (variant.flow ? 'Living flow' : variant.family === 'clear' ? 'Final direction' : variant.heavy ? 'Heavy glass' : 'Liquid glass') : 'Directions';

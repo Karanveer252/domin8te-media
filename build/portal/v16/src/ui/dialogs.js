@@ -442,8 +442,11 @@
     const svc = isRequest ? D8.data.SERVICES[o.service] : null;
     const pkg = ctx.account.package.services.filter((/** @type {string} */ x) => D8.data.SERVICES[x]);
     const title = isRequest ? (svc ? `Ask for a change: ${svc.label}` : 'Ask for a change') : 'Message us';
-    // Opened from the top of Work (2026-10-09), a request first asks which service it is for.
-    const pick = isRequest && !svc ? `<div class="field"><label for="msg-service">Which service?</label><select id="msg-service" name="service">${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}</select></div>` : '';
+    // A request says which service it is for: this month's picks, or an urgent fix (hours, a closure, a phone number, a
+    // sold-out item), which never counts toward the plan (2026-10-13). Once the plan has loaded it also asks how many, and
+    // shows how that fits this month's limit before anything is sent.
+    const pick = `<div class="field"><label for="msg-service">Which service?</label><select id="msg-service" name="service">${pkg.map((s) => `<option value="${esc(s)}"${s === o.service ? ' selected' : ''}>${esc(D8.data.SERVICES[s].label)}</option>`).join('')}<option value="urgent">Urgent fix (hours, closure, phone, sold out)</option></select></div>
+        <div class="ask-qty" id="ask-qty" hidden></div>`;
     const about = isRequest ? pick : `<div class="field"><label for="msg-about">What is it about?</label><select id="msg-about" name="about"><option value="general">Something else</option>${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>`;
     let sent = false;
     open(head(title, esc(D8.ui.replyLine(ctx.account.team.reply || ''))) + `<div class="dlg-body">
@@ -455,11 +458,56 @@
           <p class="hint" id="msg-hint">${isRequest ? 'For example: swap the brunch photo for the one I sent on Monday.' : 'We read every message. If it is urgent, say so in the first line.'}</p>
           <p class="field-error" id="err-text" hidden></p>
         </div>
+        ${isRequest ? '<div class="ask-note-box" id="ask-note" aria-live="polite"></div>' : ''}
         ${demoLine()}
         <p class="form-error" role="alert" hidden></p>
         <div class="dlg-actions"><button class="btn btn-solid" type="submit">${isRequest ? 'Send request' : 'Send message'}</button><button class="btn btn-glass" type="button" data-dlg-close>Cancel</button></div>
       </form></div>`, trigger, () => { if (sent) ctx.afterChange(); });
     const form = /** @type {HTMLFormElement} */ (inner().querySelector('form'));
+    const submit = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
+    const qtyBox = /** @type {HTMLElement|null} */ (form.querySelector('#ask-qty'));
+    const noteBox = /** @type {HTMLElement|null} */ (form.querySelector('#ask-note'));
+    /** This month's plan, once it has loaded: the limit check reads it. @type {any} */
+    let plan = null;
+
+    /** What the form is asking for right now: the service, the kind of work and how many, and how that fits the month's limit. */
+    function asking() {
+      const sel = /** @type {HTMLSelectElement|null} */ (form.elements.namedItem('service'));
+      const service = sel ? sel.value : o.service;
+      const urgent = service === 'urgent';
+      const s = plan && plan.state === 'ok' && !urgent ? plan.now.services.find((/** @type {any} */ x) => x.id === service) : null;
+      /** @type {any[]} */
+      const lines = s ? s.lines : [];
+      const m = /** @type {HTMLSelectElement|null} */ (form.elements.namedItem('metric'));
+      const q = /** @type {HTMLInputElement|null} */ (form.elements.namedItem('qty'));
+      const metric = lines.length ? (m && lines.some((l) => l.metric === m.value) ? m.value : lines[0].metric) : null;
+      const qty = q ? Math.max(1, Math.min(100, Math.floor(Number(q.value)) || 1)) : 1;
+      return { service, urgent, lines, metric, qty, preview: metric ? D8.planModel.askPreview(plan, service, metric, qty) : null };
+    }
+    /** Redraws the quantity row when the service changed, then the limit note and the button's words. @param {boolean} rebuild */
+    function refresh(rebuild) {
+      if (!isRequest || !qtyBox || !noteBox) return;
+      if (rebuild) {
+        const a = asking();
+        if (!a.lines.length) { qtyBox.hidden = true; qtyBox.innerHTML = ''; } else {
+          const one = a.lines.length === 1;
+          qtyBox.hidden = false;
+          qtyBox.innerHTML = `${one ? '' : `<div class="field"><label for="ask-metric">What kind of work?</label><select id="ask-metric" name="metric">${a.lines.map((l) => `<option value="${esc(l.metric)}">${esc(l.name)}</option>`).join('')}</select></div>`}
+            <div class="field ask-n"><label for="ask-n">${one ? `How many ${esc(a.lines[0].unit)}?` : 'How many?'}</label><input id="ask-n" name="qty" type="number" min="1" max="100" step="1" value="1" inputmode="numeric"></div>`;
+        }
+      }
+      const b = asking();
+      noteBox.innerHTML = D8.plan.askNote(b.preview, { urgent: b.urgent });
+      const over = !!(b.preview && b.preview.over);
+      if (!submit.classList.contains('is-busy')) submit.textContent = over ? 'Send to Karan for a decision' : b.urgent ? 'Send urgent fix' : 'Send request';
+    }
+    if (isRequest) {
+      form.addEventListener('change', (e) => { const t = /** @type {HTMLInputElement} */ (e.target); refresh(!!t && t.name === 'service'); });
+      form.addEventListener('input', (e) => { const t = /** @type {HTMLInputElement} */ (e.target); if (t && t.name === 'qty') refresh(false); });
+      // Without the plan the request still goes; it just is not checked against a limit here.
+      ctx.client.getPlan().then((m) => { plan = m; if (document.contains(form)) refresh(true); }).catch(() => { /* no limit check */ });
+    }
+
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const text = /** @type {HTMLTextAreaElement} */ (form.elements.namedItem('text')).value;
@@ -469,15 +517,22 @@
       if (!text.trim()) { fieldError('text', isRequest ? 'Tell us what you would like changed.' : 'Write your message first.'); return; }
       const btn = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
       if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
+      const a = isRequest ? asking() : null;
       setBusy(true, btn, 'Sending');
-      const svcEl = /** @type {HTMLSelectElement|null} */ (form.elements.namedItem('service'));
-      const p = slow(isRequest ? ctx.client.sendRequest(svcEl ? svcEl.value : o.service, text) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text), 'Messages');
+      /** @type {{metric?: string|null, estQty?: number|null, urgent?: boolean}} */
+      const extra = a ? (a.urgent ? { urgent: true } : a.metric ? { metric: a.metric, estQty: a.qty } : {}) : {};
+      const p = slow(a ? ctx.client.sendRequest(a.service, text, extra) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text), 'Messages');
       p.then((rec) => {
         sent = true;
         setBusy(false);
-        inner().innerHTML = head(isRequest ? 'Request sent' : 'Message sent', '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>Thanks${ctx.session.firstName ? ', ' + esc(ctx.session.firstName) : ''}.</h3><p>${ctx.account.team.reply ? esc(D8.ui.replyLine(ctx.account.team.reply)) + ' ' : ''}We'll answer here and by email.</p><p class="audit">${icon('clock')}Sent on ${esc(F.date(rec.at))} at ${esc(F.time(rec.at))}</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
+        const over = !!((rec && rec.overCap) || (a && a.preview && a.preview.over));
+        const line = over
+          ? 'This is over your plan for this month. Karan will reply with options before anything happens. Nothing is charged without your OK.'
+          : a && a.urgent ? 'Urgent fixes go to the front of the line, and they never count toward your plan.'
+            : `${ctx.account.team.reply ? D8.ui.replyLine(ctx.account.team.reply) + ' ' : ''}We'll answer here and by email.`;
+        inner().innerHTML = head(isRequest ? (over ? 'Sent to Karan' : 'Request sent') : 'Message sent', '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-${over ? 'info' : 'success'}">${icon('check')}</span><h3>Thanks${ctx.session.firstName ? ', ' + esc(ctx.session.firstName) : ''}.</h3><p>${esc(line)}</p><p class="audit">${icon('clock')}Sent on ${esc(F.date(rec.at))} at ${esc(F.time(rec.at))}</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
         focusTitle();
-        toast(isRequest ? 'Request sent.' : 'Message sent.');
+        toast(isRequest ? (over ? 'Sent to Karan.' : 'Request sent.') : 'Message sent.');
       }).catch((err) => {
         setBusy(false, btn);
         if (!(err.field && fieldError(err.field, err.message))) formError(err.code === 'slow' ? err.message : `That did not send. ${err.message || ''} Try again.`);

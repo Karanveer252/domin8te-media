@@ -18,13 +18,19 @@ const path = require('path');
 
 const DIR = path.join(__dirname, 'console');
 const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, 'live-config.json'), 'utf8'));
+if (typeof cfg.hermesEnabled !== 'boolean') cfg.hermesEnabled = false;   // a public flag, off unless live-config.json says true
 const demoSite = process.argv.includes('--demo-site');
 const toSite = process.argv.includes('--site') || demoSite;
 const preview = process.argv.includes('--preview') || demoSite;
+// D8_HERMES=1 turns the flag on in a --preview build only (to look at the "on" state locally); the demo site and the real console never read it.
+if (preview && !demoSite && process.env.D8_HERMES === '1') cfg.hermesEnabled = true;
 if (process.argv.includes('--site') && preview) throw new Error('Use --demo-site to publish the preview; --site is the real console.');
 if (toSite && !demoSite && !cfg.clerkPublishableKey) console.log('note: no clerkPublishableKey yet, so the site copy is the LOCKED console (a notice, no sign-in, no data).');
 for (const k of Object.keys(cfg)) if (/secret|sk_/i.test(k + String(cfg[k]))) throw new Error(`live-config.json must hold public values only (found ${k}).`);
 
+/** The files of one kind in a folder of the console, in name order (none when the folder is not there). @param {string} dir @param {string} ext */
+const DIR_MODULES = () => (fs.readdirSync(DIR).filter((f) => /^mod-.*\.js$/.test(f)).sort());
+const listDir = (dir, ext) => (fs.existsSync(path.join(DIR, dir)) ? fs.readdirSync(path.join(DIR, dir)).filter((f) => f.endsWith(ext)).sort() : []);
 /** Keeps a script from closing its own tag. @param {string} s */
 const safe = (s) => s.replace(/<\/script/gi, '<\\/script');
 let html = fs.readFileSync(path.join(DIR, 'console.html'), 'utf8');
@@ -34,9 +40,15 @@ let head = `<script>window.D8CONFIG = ${JSON.stringify({ ...cfg, app: 'console' 
 if (preview) {
   const seed = fs.readFileSync(path.join(__dirname, 'v16', 'tests', 'fixture-bayleaf.json'), 'utf8');
   head += `
-<script>window.D8PREVIEW_SEED = ${safe(seed)};</script>
+<script>window.D8PREVIEW_SEED = ${safe(seed)};</script>${demoSite ? `
+<script>window.D8DEMO_SITE = true;</script>` : ''}
 <script>
 ${safe(fs.readFileSync(path.join(DIR, 'preview-stub.js'), 'utf8'))}</script>`;
+  // The preview's stand-ins for the plan release live in stub/*.js (one file for each part), in name order.
+  for (const f of listDir('stub', '.js')) head += `
+<script>
+/* stub/${f} */
+${safe(fs.readFileSync(path.join(DIR, 'stub', f), 'utf8'))}</script>`;
   head += `
 <style>body::after{content:"${demoSite ? 'Demo console: sample clients, nothing is saved or sent' : 'Preview: in-memory data, nothing is saved or sent'}";position:fixed;left:0;right:0;bottom:0;z-index:99;padding:6px;background:#FF5B1F;color:#1D1A16;font:600 13px/1.4 system-ui;text-align:center}</style>`;
 }
@@ -48,7 +60,9 @@ if (cfg.clerkPublishableKey && !preview) {
   try { hosts.push('https://' + Buffer.from(cfg.clerkPublishableKey.replace(/^pk_(live|test)_/, ''), 'base64').toString('utf8').replace(/\$$/, '')); } catch (e) { /* the key is checked elsewhere */ }
 }
 html = html.replace('<!--PRECONNECT-->', () => hosts.filter(Boolean).map((h) => `<link rel="preconnect" href="${h}" crossorigin>`).join('\n'));
-html = html.replace('<link rel="stylesheet" href="console.css">', () => `<style>\n${fs.readFileSync(path.join(DIR, 'console.css'), 'utf8')}</style>`);
+// The console's pieces (2026-10-13): css/*.css after console.css, and mod-*.js before console.js, each in name order.
+html = html.replace('<link rel="stylesheet" href="console.css">', () => `<style>\n${fs.readFileSync(path.join(DIR, 'console.css'), 'utf8')}${listDir('css', '.css').map((f) => `\n/* css/${f} */\n${fs.readFileSync(path.join(DIR, 'css', f), 'utf8')}`).join('')}</style>`);
+html = html.replace('<!--MODULES-->', () => DIR_MODULES().map((f) => `<script src="${f}"></script>`).join('\n'));
 html = html.replace(/<script src="([^"]+)"><\/script>/g, (m, src) => `<script>\n/* ${src} */\n${safe(fs.readFileSync(path.join(DIR, src), 'utf8'))}</script>`);
 if (/src="\.\.\//.test(html) || /href="console\.css"/.test(html)) throw new Error('something was not inlined');
 // the website's icons, as on the homepage (site-icons.js)
@@ -58,11 +72,14 @@ html = html.replace('<meta charset="utf-8">', () => '<meta charset="utf-8">\n' +
 if (html.split('</body>').length !== 2) throw new Error('growth cursor: expected one </body>');
 html = html.replace('</body>', () => require('./growth-cursor')() + '</body>');
 
-const out = path.join(__dirname, 'versions', demoSite ? 'console-demo.html' : preview ? 'console-preview.html' : 'console.html');
+// D8_OUT_SUFFIX=name writes versions/console-preview-name.html instead, so people working side by side do not overwrite each other's build.
+const suffix = process.env.D8_OUT_SUFFIX ? '-' + String(process.env.D8_OUT_SUFFIX).replace(/[^a-z0-9-]/gi, '') : '';
+const out = path.join(__dirname, 'versions', (demoSite ? 'console-demo' : preview ? 'console-preview' : 'console') + suffix + '.html');
 fs.writeFileSync(out, html);
 console.log(`wrote ${out} (${(html.length / 1024).toFixed(1)} KB)`);
 if (toSite) {
-  const site = 'C:/Work/domin8te-media/console/index.html';
+  // D8_SITE_DIR=<folder> writes <folder>/console/index.html instead of the website's own folder (a staging copy, never the live source).
+  const site = process.env.D8_SITE_DIR ? path.join(process.env.D8_SITE_DIR, 'console', 'index.html') : 'C:/Work/domin8te-media/console/index.html';
   fs.mkdirSync(path.dirname(site), { recursive: true });
   fs.writeFileSync(site, html);
   console.log(`wrote ${site}`);

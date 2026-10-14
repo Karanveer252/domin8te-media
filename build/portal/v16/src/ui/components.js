@@ -151,8 +151,124 @@
 
   /* ---- page structure --------------------------------------------------------------- */
 
+  /**
+   * In the public demo every page says so, at the top: the names and numbers are made up (2026-10-13). Never in a real portal.
+   * @param {string} [name] the sample restaurant
+   */
+  function SampleChip(name) {
+    const who = name || (D8.account && D8.account.business ? D8.account.business.name : '');
+    return D8.data.MODE === 'demo' ? `<p class="sample-chip"><strong>Sample data</strong><span>${who ? esc(who) + ' is not a real restaurant' : 'names and numbers are examples'}</span></p>` : '';
+  }
+
+  /** @param {{title: string, intro?: string, introHtml?: boolean, cls?: string, after?: string, aside?: string, sample?: string}} o */
   function PageHeader(o) {
-    return `<header class="page-head${o.cls ? ' ' + o.cls : ''}"><div class="page-head-text"><h1 id="page-title" tabindex="-1">${esc(o.title)}</h1>${o.intro ? `<p class="lede">${o.introHtml ? o.intro : esc(o.intro)}</p>` : ''}${o.after || ''}</div>${o.aside ? `<div class="page-aside">${o.aside}</div>` : ''}</header>`;
+    const sample = SampleChip(o.sample);
+    const aside = (sample || o.aside) ? `<div class="page-aside">${o.aside || ''}${sample}</div>` : '';
+    return `<header class="page-head${o.cls ? ' ' + o.cls : ''}"><div class="page-head-text"><h1 id="page-title" tabindex="-1">${esc(o.title)}</h1>${o.intro ? `<p class="lede">${o.introHtml ? o.intro : esc(o.intro)}</p>` : ''}${o.after || ''}</div>${aside}</header>`;
+  }
+
+  /* ---- freshness, verification and usage (2026-10-13) --------------------------------------------------------- */
+
+  /**
+   * The line under every page header: when the page was last updated (the restaurant's own clock), where it comes
+   * from, and whether it is up to date. A page that could not refresh says it is showing the last checked version.
+   * @param {{updatedAt?: string|null, source: string, status?: 'ok'|'checking'|'delayed'|'kept', zone?: string, label?: string, okLabel?: string, note?: string, extra?: string}} o
+   */
+  function PageFresh(o) {
+    const st = o.status || 'ok';
+    const chip = {
+      ok: ['is-ok', o.okLabel || 'Up to date'],
+      checking: ['is-checking', o.label || 'Being checked'],
+      delayed: ['is-delayed', o.label || 'Source delayed'],
+      kept: ['is-checking', o.label || 'Showing the last checked update']
+    }[st];
+    const when = o.updatedAt ? (String(o.updatedAt).length > 10 ? `${F.dateTime12(o.updatedAt)}${o.zone ? ' ' + o.zone : ''}` : F.date(o.updatedAt)) : '';
+    return `<div class="page-fresh is-${st}">
+      ${when ? `<span class="pf-part"><strong>Last updated</strong> ${esc(when)}</span>` : ''}
+      <span class="pf-part"><strong>Source:</strong> ${esc(o.source)}</span>
+      <span class="pf-chip ${chip[0]}"><span class="pf-dot" aria-hidden="true"></span>${esc(chip[1])}</span>
+      ${o.extra ? `<span class="pf-part pf-extra">${esc(o.extra)}</span>` : ''}
+      ${o.note ? `<p class="pf-note">${icon('clock')}<span>${esc(o.note)}</span></p>` : ''}
+    </div>`;
+  }
+
+  /**
+   * Whether a number was checked, in one small pill: Verified, Being checked (a newer number is waiting), Source delayed,
+   * or Kept last checked. Words and a dot, never colour alone. @param {'verified'|'checking'|'delayed'|'kept'} status
+   */
+  function VerifyBadge(status) {
+    const s = { verified: ['is-verified', 'Verified'], checking: ['is-checking', 'Being checked'], delayed: ['is-delayed', 'Source delayed'], kept: ['is-checking', 'Kept last checked'] }[status] || ['is-delayed', 'Not checked yet'];
+    return `<span class="vbadge ${s[0]}"><span class="vb-dot" aria-hidden="true"></span>${s[1]}</span>`;
+  }
+
+  /**
+   * One usage bar: what is used of one limit this month. Orange while there is room, amber from 85 percent, red at the
+   * limit, and the same in words. Home draws a compact row (name, figure); Work (plain) draws a sentence.
+   * @param {{name: string, used: number, cap: number, pct: number, tone: string, tail: string, usedText: string, weeklyHint?: string|null, atOnce?: boolean}} l
+   * @param {{chip?: string, plain?: boolean}} [o]
+   */
+  function UsageBar(l, o = {}) {
+    const word = l.tone === 'full' ? 'Limit reached' : l.tone === 'warn' ? 'Almost used' : '';
+    const m = /^(\d+ of \d+)(.*)$/.exec(l.usedText);
+    const sentence = m ? `<strong>${esc(m[1])}</strong>${esc(m[2])}${l.atOnce ? '' : ' this month'}${l.weeklyHint ? ` <span class="usage-hint">(${esc(l.weeklyHint)})</span>` : ''}` : esc(l.usedText);
+    const head = o.plain
+      ? `<p class="usage-line">${sentence}${o.chip ? ' ' + o.chip : ''}</p>`
+      : `<p class="usage-row"><span class="usage-name">${esc(l.name)}</span>${o.chip || ''}<span class="usage-fig">${esc(l.tail)}</span></p>`;
+    return `<div class="usage is-${l.tone}">
+      ${head}
+      <div class="bar" role="meter" aria-label="${esc(l.usedText)}${l.weeklyHint ? ` (${esc(l.weeklyHint)})` : ''}" aria-valuemin="0" aria-valuemax="${l.cap}" aria-valuenow="${Math.min(l.used, l.cap)}"><span style="width:${l.pct}%"></span></div>
+      ${word ? `<p class="usage-word">${word}</p>` : ''}
+    </div>`;
+  }
+
+  /**
+   * A number as a card: its value, the period it covers, where it came from and whether it was checked. For Home's three
+   * numbers, the Results page and the demo alike. @param {any} t a tile from the data layer @param {number} now
+   * @param {{compact?: boolean, delta?: boolean, days?: number}} [o]
+   */
+  function ResultTile(t, now, o = {}) {
+    const label = metricLabel(t.label);
+    // The same five rows in every state (name, figure, period, anything extra, source), so cards in a row line up (10-trust.css).
+    if (t.state === 'pending') return `<article class="card rtile is-pending"><header class="rt-head"><p class="rt-label">${esc(label)}</p></header><p class="rt-empty">${icon('linkoff')}Not connected yet</p><p class="rt-note">${esc(t.text)}</p></article>`;
+    if (t.state === 'error') return `<article class="card rtile is-error"><header class="rt-head"><p class="rt-label">${esc(label)}</p></header><p class="rt-empty">${icon('alert')}Couldn't load just now</p><p class="rt-note">${esc(t.text)} The other numbers are fine.</p><button class="btn-text" type="button" data-action="retry" data-section="${o.compact ? 'strip' : 'results'}">${icon('refresh')}Try again</button></article>`;
+    const m = t.metric;
+    const period = t.periodStart && t.periodEnd ? periodText(t.periodStart, t.periodEnd) : '';
+    const read = t.readAt ? `read ${F.date(t.readAt)}` : '';
+    const value = t.value === null || t.value === undefined || Number.isNaN(Number(t.value)) ? 'None' : F.num(t.value);
+    const delta = o.delta && m ? Delta(m, o.days || 30) + NewBadge(m, o.days || 30) : '';
+    const note = o.delta && m ? ComparisonNote(m, o.days || 30) : '';
+    const more = `${t.newer ? `<p class="rt-check">${icon('clock')}<span>We are checking a newer number before we show it. This is the last number we checked.</span></p>` : ''}${note ? `<p class="rt-note">${note}</p>` : ''}`;
+    return `<article class="card rtile${o.compact ? ' is-compact is-link' : ''}${t.badge ? ' is-' + t.badge : ''}">
+      <header class="rt-head"><p class="rt-label">${esc(label)}</p>${VerifyBadge(t.badge)}</header>
+      <p class="rt-value"><span class="fig">${esc(value)}</span>${t.unit && !o.compact ? `<span class="rt-unit">${esc(t.unit)}</span>` : ''}${delta}</p>
+      ${period ? `<p class="rt-period">${esc(period)}</p>` : ''}
+      ${more ? `<div class="rt-more">${more}</div>` : ''}
+      ${t.source ? `<p class="rt-source"><strong>Source:</strong> ${esc(t.source)}${read ? ` <span class="rt-read">${esc(read)}</span>` : ''}</p>` : ''}
+      ${o.compact ? `<a class="card-link" href="#/results"><span class="sr-only">${esc(label)}: see it in Results</span></a>` : ''}
+    </article>`;
+  }
+  /** "1 Sep to 30 Sep 2026" for a period: the year once, at the end. @param {string} a @param {string} b */
+  function periodText(a, b) {
+    const same = String(a).slice(0, 4) === String(b).slice(0, 4);
+    return `${F.date(a, { weekday: false, year: !same })} to ${F.date(b, { weekday: false, year: true })}`;
+  }
+  /**
+   * "Where these numbers come from": one row per number, with its period, its source, whether it was checked and when.
+   * @param {any[]} items
+   */
+  function SourcesTable(items) {
+    const rows = items.filter((x) => x.state === 'ok').map((t) => `<tr>
+        <th scope="row">${esc(metricLabel(t.label))}</th>
+        <td>${t.periodStart && t.periodEnd ? esc(periodText(t.periodStart, t.periodEnd)) : ''}</td>
+        <td>${esc(t.source || '')}</td>
+        <td>${VerifyBadge(t.badge)}</td>
+        <td>${t.verifiedAt ? `Domin8te team, ${esc(F.date(t.verifiedAt))}` : D8.data.MODE === 'demo' ? 'Sample data' : ''}</td>
+      </tr>`).join('');
+    if (!rows) return '';
+    return `<section class="card sources-card" aria-labelledby="h-where">
+      <div class="sec-head"><h2 id="h-where">Where these numbers come from</h2></div>
+      <div class="table-wrap" tabindex="0" role="region" aria-label="Where each number comes from"><table class="sources-table"><thead><tr><th scope="col">Number</th><th scope="col">Period</th><th scope="col">Source</th><th scope="col">Status</th><th scope="col">Checked</th></tr></thead><tbody>${rows}</tbody></table></div>
+    </section>`;
   }
 
   /** @param {string} id heading id @param {string} titleHtml already-escaped title @param {string} [extra] */
@@ -456,6 +572,7 @@
     StatusBadge, ServiceTag, HealthBadge, FreshnessIndicator, SourceChip, StatusChip, Delta, NewBadge, ComparisonNote, sourceLine,
     EmptyState, ErrorState, Skeleton, PageHeader, SectionHead,
     Sparkline, MetricCard, MetricStrip, ActionNeededItem, ActionNeededList, CaughtUp, UpcomingList, ServiceWorkCard, ServiceRows, nextStep,
+    SampleChip, PageFresh, VerifyBadge, UsageBar, ResultTile, SourcesTable, periodText,
     InsightCard, UpdateCard, DateRangeSelector, FilterChips, InvoiceRow
   };
 })(typeof window !== 'undefined' ? window : globalThis);

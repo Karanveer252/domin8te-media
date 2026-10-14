@@ -242,6 +242,12 @@
   function dbFail(error) {
     const code = error && error.code;
     if (code === '23505') return fail('already-decided', 'You already answered this one.');
+    const said = String((error && error.message) || '');
+    if (/ask-karan/.test(said)) return fail('ask-karan', 'Domin8te is set up with Karan. Message him and we will arrange it.');
+    if (/month-locked|next-month-locked/.test(said)) return fail('locked', 'It is too late to change next month. Message us and we will help.');
+    if (/no-current-cycle/.test(said) || code === 'P0002') return fail('no-plan', 'Your plan is not set up yet. Message us and we will sort it out.');
+    if (code === '23P01' || /plan-full/.test(said)) return fail('plan-full', 'That plan is taken right now. Message Karan and we will help.');
+    if (/picks-do-not-fit/.test(said)) return fail('bad-picks', 'Those services do not fit that plan. Check your picks and try again.');
     if (code === '42501' || code === 'PGRST301') return fail('forbidden', "We couldn't save that for your account. Sign out and in again, then try once more.");
     if (code === '23514') return fail('invalid', "That wasn't saved: something in it is too long or missing.");
     return fail('source-error', "We couldn't reach your account just now. Try again in a moment.");
@@ -250,7 +256,17 @@
   /** Whether a freshly loaded state already has this write. @param {any} s @param {string} kind @param {any} rec */
   const holds = (s, kind, rec) => (kind === 'decision' ? !!(s.decisions && s.decisions[rec.approvalId])
     : kind === 'message' || kind === 'request' ? (s[kind + 's'] || []).some((/** @type {any} */ x) => x.id === rec.id)
-      : false);
+      : kind === 'picks' ? !!(s.planNext && s.planNext.confirmedAt === rec.next.confirmedAt)
+        : false);
+
+  /** A plan month from the database, in the shape the portal reads. @param {any} c */
+  const cycleOf = (c) => ({
+    id: c.id, planId: c.plan_id, picks: c.picks || [], websiteOption: c.website_option || null,
+    start: String(c.period_start).slice(0, 10), end: String(c.period_end).slice(0, 10), state: c.state, source: c.source,
+    confirmedAt: c.confirmed_at || null, confirmedBy: c.confirmed_by || ''
+  });
+  /** Where a figure came from, in words, when the person who entered it named no source. @param {string} ref */
+  const sourceName = (ref) => ({ console: 'Domin8te console', stripe: 'Stripe', multica: 'Multica', zernio: 'Zernio' }[String(ref || '').split(':')[0]] || 'Domin8te');
 
   /**
    * The live source for one signed-in person: their restaurant's record and their own rows, read
@@ -297,17 +313,24 @@
       }
       zone = 'America/Winnipeg';
       if (row.doc && typeof row.doc.timezone === 'string') { try { new Intl.DateTimeFormat('en-GB', { timeZone: row.doc.timezone }); zone = row.doc.timezone; } catch (e) { /* unknown zone: keep Winnipeg */ } }
-      const [d, m, r, p, items, inv, cards] = await Promise.all([
+      const none = { data: null, error: { code: 'PGRST202', message: 'no rpc' } };
+      const [d, m, r, p, items, inv, cards, cyc, menu, usage, res, home] = await Promise.all([
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
-        sb.from('requests').select('id, service, body, status, by_name, at').eq('tenant_id', row.id).order('at'),
+        sb.from('requests').select('id, service, body, status, by_name, at, over_cap, urgent_fix').eq('tenant_id', row.id).order('at'),
         sb.from('user_prefs').select('notifications, notifications_saved_at, appearance').eq('clerk_user_id', session.userId).maybeSingle(),
         // What staff approved for this client. The database returns a client only client_visible rows; asking
         // for them here as well keeps a staff session previewing the portal to the same rows.
         sb.from('client_dashboard_items').select('id, item_kind, external_id, content, source_observed_at, reporting_period_start, reporting_period_end, verification_status, published_at').eq('tenant_id', row.id).eq('client_visible', true),
-        sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url').eq('tenant_id', row.id).eq('client_visible', true),
+        sb.from('client_billing_invoices').select('invoice_number, amount_minor, currency, status, issued_at, due_at, paid_at, hosted_payment_url, payment_link_approved_at, payment_link_approved_url, verified_at').eq('tenant_id', row.id).eq('client_visible', true),
         // The team's board cards for this client (2026-10-08): only their visible cards with a service, safe fields only
-        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve({ data: null, error: { code: 'PGRST202', message: 'no rpc' } })
+        typeof sb.rpc === 'function' ? sb.rpc('client_work_cards') : Promise.resolve(none),
+        // The plan (2026-10-13): this month and next, what each plan allows, what is used, what staff verified, what staff wrote for Home
+        sb.from('tenant_plan_cycles').select('id, plan_id, picks, website_option, period_start, period_end, state, source, confirmed_at, confirmed_by').eq('tenant_id', row.id).order('period_start'),
+        typeof sb.rpc === 'function' ? sb.rpc('plan_menu') : Promise.resolve(none),
+        sb.from('tenant_usage_current').select('service, metric, used').eq('tenant_id', row.id),
+        typeof sb.rpc === 'function' ? sb.rpc('client_results_current') : Promise.resolve(none),
+        sb.from('client_home_sections').select('section, content, source, published_at, updated_at').eq('tenant_id', row.id).eq('client_visible', true)
       ]);
       for (const x of [d, m, r, p]) if (x.error) throw dbFail(x.error);
       // The three projections may be missing before their migration (table or function not there yet): that is fine.
@@ -315,12 +338,12 @@
       // record already on screen stays as it was.
       const MISSING = ['42P01', 'PGRST205', 'PGRST202', '42883'];
       const missing = (/** @type {any} */ e) => MISSING.includes(e.code) || /does not exist|schema cache|no rpc/i.test(String(e.message || ''));
-      for (const x of [items, inv, cards]) if (x.error && !missing(x.error)) throw dbFail(x.error);
+      for (const x of [items, inv, cards, cyc, menu, usage, res, home]) if (x.error && !missing(x.error)) throw dbFail(x.error);
       if (mine !== loads && tenant) return; // a newer load started (after a 30 s give-up): it has the say
       /** @type {any} */ const next = {};
       for (const x of d.data || []) apply(next, 'decision', { approvalId: x.approval_id, decision: x.decision, comment: x.comment, at: toWall(x.at), by: x.by_name });
       for (const x of m.data || []) apply(next, 'message', { id: x.id, about: x.about, text: x.body, at: toWall(x.at), fromTeam: x.from_staff, by: x.by_name });
-      for (const x of r.data || []) apply(next, 'request', { id: x.id, service: x.service, text: x.body, at: toWall(x.at), status: x.status });
+      for (const x of r.data || []) apply(next, 'request', { id: x.id, service: x.service, text: x.body, at: toWall(x.at), status: x.status, overCap: !!x.over_cap, urgentFix: !!x.urgent_fix });
       if (p.data && p.data.notifications) apply(next, 'notifications', { prefs: p.data.notifications, at: toWall(p.data.notifications_saved_at) });
       if (p.data && p.data.appearance) apply(next, 'appearance', { look: p.data.appearance });
       st = next;
@@ -328,7 +351,36 @@
       // A projection that cannot be read (tables not there yet) leaves the record as it is.
       const itemRows = (items.error ? [] : items.data || []).map((/** @type {any} */ x) => ({ ...x, source_observed_at: toWall(x.source_observed_at), published_at: toWall(x.published_at) }));
       const invRows = (inv.error ? [] : inv.data || []).map((/** @type {any} */ x) => ({ ...x, issued_at: toWall(x.issued_at), due_at: toWall(x.due_at), paid_at: toWall(x.paid_at) }));
-      const merged = mergeProjections(normalize(row.doc, now), itemRows, invRows);
+      // The plan: the month that holds today, and the month after it (the database's picks, never the record's own package)
+      const today = T.isoDay(T.dayNum(now()));
+      const cycles = cyc.error ? [] : (cyc.data || []).map(cycleOf).map((/** @type {any} */ c) => ({ ...c, confirmedAt: toWall(c.confirmedAt) }));
+      // The month that holds today; failing that (the daily roll has not run yet) the latest one that has started
+      const nowC = cycles.find((/** @type {any} */ c) => c.start <= today && c.end > today && c.state !== 'ended')
+        || cycles.filter((/** @type {any} */ c) => c.start <= today && c.state !== 'ended').sort((/** @type {any} */ a, /** @type {any} */ b) => b.start.localeCompare(a.start))[0] || null;
+      const nextC = nowC ? cycles.find((/** @type {any} */ c) => c.start === nowC.end && c.state !== 'ended') || null : null;
+      const mn = menu.error || !menu.data ? null : menu.data;
+      const planRec = nowC && mn ? {
+        menu: {
+          plans: (mn.plans || []).map((/** @type {any} */ x) => ({ id: x.id, name: x.name, priceMinor: x.price_minor, currency: x.currency, picksAllowed: x.picks_allowed, required: x.required_services || [], maxClients: x.max_clients, full: !!x.full })),
+          caps: (mn.caps || []).map((/** @type {any} */ x) => ({ planId: x.plan_id, service: x.service, metric: x.metric, label: x.label, cap: Number(x.monthly_cap), weeklyHint: x.weekly_hint || null }))
+        },
+        now: nowC, next: nextC,
+        usage: usage.error ? [] : (usage.data || []).map((/** @type {any} */ u) => ({ service: u.service, metric: u.metric, used: Number(u.used) || 0 })),
+        mismatch: !!mn.mismatch
+      } : null;
+      // Only what staff verified counts as a result (client_results_current). Without that function (before its migration) the record's own figures stand.
+      const verified = res.error ? null : (res.data || []).filter((/** @type {any} */ x) => x.tenant_id === row.id).map((/** @type {any} */ x) => {
+        const c = x.content || {};
+        return {
+          key: x.metric_key, label: String(c.label || c.metric || x.metric_key), value: Number(c.value), unit: String(c.unit || ''), service: c.service || null,
+          periodStart: String(x.reporting_period_start || '').slice(0, 10), periodEnd: String(x.reporting_period_end || '').slice(0, 10),
+          source: String(c.source || sourceName(x.source_ref)), readAt: toWall(x.source_observed_at) || null, status: x.verification_status,
+          newer: !!x.has_newer_unverified, verifiedAt: toWall(x.verified_at) || null
+        };
+      });
+      const sections = home.error ? [] : (home.data || []).map((/** @type {any} */ x) => ({ section: x.section, content: x.content || {}, source: x.source || 'Domin8te console', publishedAt: toWall(x.published_at) || null, updatedAt: toWall(x.updated_at) || null }));
+      const merged = mergeProjections(normalize({ ...(row.doc || {}), plan: planRec, timezone: zone, homeSections: sections, verifiedResults: verified }, now), itemRows, invRows);
+      if (verified) { merged.metrics = {}; merged.strip = []; merged.pending = []; merged.insightMetric = ''; }
       tenant = { ...merged, tenantId: row.id, name: row.name };
       // A function that is not there yet (before its migration) leaves the cards out and the record as it is.
       if (!cards.error && Array.isArray(cards.data)) tenant.cards = cards.data.map((/** @type {any} */ c) => ({ id: c.id, service: c.service, title: c.title, status: c.status, due: c.due, updatedAt: toWall(c.updated_at), createdAt: toWall(c.created_at) }));
@@ -361,7 +413,9 @@
         } else if (kind === 'message') {
           res = await sb.from('messages').insert({ tenant_id: rowId, about: rec.about, body: rec.text, by_name: rec.by || '' }).select('id, at').single();
         } else if (kind === 'request') {
-          res = await sb.from('requests').insert({ tenant_id: rowId, service: rec.service, body: rec.text, by_name: rec.by || '' }).select('id, at, status').single();
+          res = await sb.from('requests').insert({ tenant_id: rowId, service: rec.service, body: rec.text, by_name: rec.by || '', metric: rec.metric || null, est_qty: rec.estQty || null, urgent_fix: !!rec.urgentFix }).select('id, at, status, over_cap').single();
+        } else if (kind === 'picks') {
+          res = await sb.rpc('set_next_cycle_picks', { p_plan: rec.planId, p_picks: rec.picks, p_website_option: rec.websiteOption || null });
         } else if (kind === 'notifications') {
           res = await sb.from('user_prefs').upsert({ clerk_user_id: session.userId, notifications: rec.prefs, notifications_saved_at: new Date().toISOString() }).select('notifications_saved_at').single();
         } else if (kind === 'appearance') {
@@ -378,8 +432,11 @@
           throw dbFail(res.error);
         }
         const row = res.data || {};
-        const stored = { ...rec, id: row.id || rec.id, at: toWall(row.at || row.notifications_saved_at) || T.isoTime(now()) };
-        if (row.status) stored.status = row.status;
+        const stored = { ...rec, id: row.id || rec.id, at: toWall(row.at || row.notifications_saved_at || row.confirmed_at) || T.isoTime(now()) };
+        if (row.status && kind !== 'picks') stored.status = row.status;
+        if (kind === 'request') stored.overCap = !!row.over_cap;
+        // The month the database wrote, kept until a refresh has read it too
+        if (kind === 'picks') stored.next = { ...cycleOf(row), confirmedAt: stored.at };
         apply(st, kind, stored);
         // A refresh already running read the rows before this write: keep the write when that refresh lands.
         if (loading) loading.then(() => { if (!holds(st, kind, stored)) apply(st, kind, stored); }, () => {});

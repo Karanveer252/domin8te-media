@@ -26,5 +26,20 @@
   /** @param {number} n day number @returns {number} 0 = Sunday */
   const dow = (n) => new Date(n * DAY).getUTCDay();
 
-  D8.time = { DAY, parse, dayNum, isoDay, isoTime, dow };
+  /**
+   * A calendar day plus whole months, the way the database does it: the same day of the next month, or its last day
+   * when that month is shorter (31 Jan plus one month is 28 Feb). @param {string} iso 'YYYY-MM-DD' @param {number} n
+   * @returns {string} 'YYYY-MM-DD'
+   */
+  function addMonths(iso, n) {
+    const ms = parse(iso);
+    if (!Number.isFinite(ms)) return '';
+    const d = new Date(ms);
+    const y = d.getUTCFullYear() + Math.floor((d.getUTCMonth() + n) / 12);
+    const m = (((d.getUTCMonth() + n) % 12) + 12) % 12;
+    const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    return isoDay(Math.floor(Date.UTC(y, m, Math.min(d.getUTCDate(), last)) / DAY));
+  }
+
+  D8.time = { DAY, parse, dayNum, isoDay, isoTime, dow, addMonths };
 })(typeof window !== 'undefined' ? window : globalThis);

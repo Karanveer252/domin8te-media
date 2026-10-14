@@ -1,0 +1,36 @@
+/*
+ * Home, the page (2026-10-13 premium pass): the rhythm between its parts, the three numbers on a phone, the contact strip,
+ * and the usage bars in the plan card. Every rule sits under .page-home. Tokens only.
+ */
+
+/* The parts, top to bottom: the greeting, the freshness line, Waiting for you (or the calm banner), the plan this month,
+   the three numbers, the contact strip. The plan sits a little closer to what is waiting (both are "now"); the numbers
+   and the contact strip stand apart. */
+.page-home .page-fresh + .sec { margin-top: 24px; }
+.page-home .home-plan, .page-home .sec-attention + .home-plan { margin-top: 32px; }
+.page-home .sec-strip { margin-top: 40px; }
+.page-home .sec-attention > .sec-head { margin-bottom: 12px; }
+.page-home .home-checked { margin-top: 14px; }
+
+/* The usage bars in Running now: the brand's deeper orange while there is room (the bright accent stays with the one
+   action that matters), and the demo's "sample limit" chip as a quiet dashed outline, as in the approved mockups. */
+.page-home .run-usage { --p-fill-ok: var(--p-chart); }
+.page-home .run-usage .chip-sample { padding: 0 8px; border: 1px dashed var(--p-line-2); border-radius: 999px; background: none; color: var(--p-ink-3); font-size: 12px; font-weight: 600; line-height: 1.5; }
+
+/* The contact strip: the quietest card on the page, the meeting at the left, one button at the right. */
+.page-home .contact-strip { margin-top: 32px; padding: 14px 16px 14px 22px; background: var(--p-glass-soft); }
+.page-home .contact-meet { font-size: 15.5px; }
+
+/* The three numbers: one per row on a phone, so a figure never breaks across two lines and its pill stays beside its name. */
+@container page (max-width: 560px) {
+  .page-home .strip.is-3 { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .page-home .strip.is-3 > :nth-child(3):last-child { grid-column: auto; }
+}
+@media (max-width: 760px) {
+  .page-home .home-plan, .page-home .sec-attention + .home-plan { margin-top: 28px; }
+  .page-home .sec-strip { margin-top: 36px; }
+  .page-home .contact-strip { margin-top: 28px; padding: 14px 16px; }
+}
+@media (forced-colors: active) {
+  .page-home .run-usage .chip-sample { border: 1px solid CanvasText; }
+}

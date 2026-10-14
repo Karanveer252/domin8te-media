@@ -1,0 +1,210 @@
+/*
+ * The Home tab editor (2026-10-13): four section cards on the left, a live preview of the client's Home on the right.
+ * The preview frame (.hp-frame) holds the portal's own markup (ui/plan.js), which the console's stylesheet does not know. The
+ * rules after "the preview frame" are a light sketch of the portal's look, scoped to the frame: the same tokens (as --p-*),
+ * the same rounded white cards, the same rows. The portal's classes that the console also uses (.card, .btn, .badge) are
+ * reset inside the frame first, so nothing of the console leaks in.
+ */
+
+.hp { display: grid; gap: 16px; }
+.hp > .page-fresh { margin: 0; }
+.hp-head h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.4px; }
+.hp-head p { margin-top: 5px; max-width: 70ch; color: var(--ink-3); font-size: 15.5px; }
+.hp > .notice { margin: 0; }
+.hp-cols { display: grid; grid-template-columns: minmax(0, 1fr) 470px; gap: 16px; align-items: start; }
+.hp-edit { display: grid; gap: 16px; min-width: 0; }
+.hp-slot > .panel { margin: 0; }
+
+/* A section card. */
+.hp-card-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 20px; }
+.hp-card-title { min-width: 0; flex: 1 1 280px; }
+.hp-card-title h3 { font-size: 20px; font-weight: 700; letter-spacing: -0.2px; }
+.hp-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 8px; color: var(--ink-3); font-size: 13.5px; }
+.hp-meta .chip { font-size: 13px; }
+.hp-sw { display: flex; align-items: center; gap: 10px; flex: none; padding-top: 2px; }
+.hp-sw-word { color: var(--ink-2); font-size: 13.5px; font-weight: 600; }
+.hp-lead { margin-top: 14px; max-width: 64ch; color: var(--ink-2); }
+.hp-facts { margin-top: 16px; padding: 14px 16px; border-radius: 16px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); }
+.hp-facts-h { margin-bottom: 10px; color: var(--ink-2); font-size: 13.5px; font-weight: 650; }
+.hp-facts > .meta { margin: 0; }
+.hp-bars { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 26px; }
+.hp-chips { margin: 0; padding: 0; list-style: none; }
+.hp-facts .chip { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.hp-facts .chip.you { background: linear-gradient(var(--you-bg), var(--you-bg)), var(--surface); box-shadow: none; }
+.hp-chips .chip { padding-left: 11px; }
+.hp-stop { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--ink-3); }
+.hp-form { display: grid; gap: 14px; margin-top: 18px; }
+.hp-hint { text-align: right; }
+.hp-hint[id$="-c"] { margin-top: -1px; }
+.hp-error { margin: 0; }
+.hp-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 2px; }
+.hp-state { margin-left: 4px; color: var(--ink-3); font-size: 13.5px; }
+.hp-card .vz-pform { margin-top: 16px; }
+.hp-hist-box { margin-top: 16px; padding: 14px 18px; border-radius: 16px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); }
+.hp-hist { display: grid; margin: 0; padding: 0; list-style: none; }
+.hp-hist li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 14px; padding: 11px 0; border-top: 1px solid var(--line); }
+.hp-hist li:first-child { padding-top: 2px; border-top: 0; }
+.hp-hist time { display: block; font-size: 14px; font-weight: 650; font-variant-numeric: normal; }
+.hp-hist p { margin-top: 1px; color: var(--ink-2); font-size: 14px; line-height: 1.5; }
+.hp-hist-box .linkish { margin-top: 6px; font-size: 14px; }
+
+/* The preview column. */
+.hp-side { position: sticky; top: 16px; }
+/* The panel keeps its title, the choice of what to preview and the note in view; only the page inside it scrolls. */
+.hp-preview { display: flex; flex-direction: column; padding: 22px 22px 18px; margin: 0; max-height: calc(100vh - 32px); overflow: hidden; }
+.hp-prev-head, .hp-seg, .hp-legend { flex: none; }
+.hp-prev-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-bottom: 12px; }
+.hp-seg { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; padding: 0; }
+.hp-seg button { min-height: 36px; padding: 6px 14px; }
+.hp-legend { margin-top: 12px; font-size: 13.5px; line-height: 1.5; }
+
+@media (max-width: 1240px) {
+  .hp-cols { grid-template-columns: minmax(0, 1fr); }
+  .hp-side { position: static; }
+  .hp-preview { max-height: none; overflow: visible; }
+  .hp-preview .hp-frame { overflow: visible; }
+}
+@media (max-width: 640px) {
+  .hp-head h2 { font-size: 21px; }
+  .hp-bars { grid-template-columns: minmax(0, 1fr); }
+  .hp-hist li { grid-template-columns: minmax(0, 1fr); }
+  .hp-actions .btn { flex: 1 1 140px; }
+  .hp-preview { padding: 18px 14px 14px; }
+}
+
+/* ---- the preview frame ------------------------------------------------------------------------------------- */
+
+.hp-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.hp-frame {
+  --p-ink: #1D1A16; --p-ink-2: #534C44; --p-ink-3: #655E55; --p-line: rgba(94, 72, 50, 0.13); --p-line-2: rgba(94, 72, 50, 0.24);
+  --p-surface: #FFFFFF; --p-well: rgba(120, 96, 70, 0.07); --p-glass-strong: rgba(255, 255, 255, 0.82); --p-glass-soft: rgba(255, 255, 255, 0.6); --p-glass-hi: rgba(255, 255, 255, 0.9);
+  --p-success: #2C6A3D; --p-success-bg: rgba(46, 140, 80, 0.13); --p-info: #2B5A98; --p-info-bg: rgba(60, 120, 210, 0.12);
+  --p-attn: #9A3510; --p-attn-bg: rgba(255, 110, 50, 0.14); --p-warning: #7A5200; --p-error: #A8231B; --p-neutral: #534C44; --p-neutral-bg: rgba(94, 72, 50, 0.09);
+  --p-accent-ink: #AE3A0B; --p-fill-ok: #C2410C; --p-fill-warn: #E39A0B; --p-fill-full: #D43B2F;
+  container: hpf / inline-size;
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: grid; align-content: start; gap: 14px; padding: 18px; border-radius: 22px; border: 1px solid var(--line); background: #F4F1EC;
+  color: var(--p-ink); font-size: 15px; line-height: 1.5;
+}
+.hp-frame * { box-sizing: border-box; }
+.hp-frame .card, .hp-frame .badge, .hp-frame .btn { all: revert; }
+.hp-frame h2, .hp-frame h3 { margin: 0; letter-spacing: -0.012em; line-height: 1.25; }
+.hp-frame p { margin: 0; }
+.hp-frame ul, .hp-frame ol { margin: 0; padding: 0; list-style: none; }
+.hp-frame .i { flex: none; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.hp-frame .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.hp-frame a { color: inherit; text-decoration: none; }
+.hp-frame .card { display: block; padding: 20px 22px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.8); background: var(--p-glass-strong); box-shadow: 0 0 0 0.5px rgba(86, 66, 46, 0.1), 0 1px 2px rgba(34, 40, 70, 0.05), 0 10px 28px -16px rgba(34, 40, 90, 0.22); color: var(--p-ink); font: inherit; cursor: default; }
+.hp-frame .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; padding: 0 16px; border: 1px solid var(--p-line-2); border-radius: 999px; background: var(--p-glass-strong); color: var(--p-ink); font-size: 14px; font-weight: 650; white-space: nowrap; }
+.hp-frame .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 11px 3px 9px; border-radius: 999px; font-size: 13px; font-weight: 650; line-height: 1.3; white-space: nowrap; }
+.hp-frame .badge .i { width: 14px; height: 14px; }
+.hp-frame .tone-neutral { background: var(--p-neutral-bg); color: var(--p-neutral); }
+.hp-frame .tone-info { background: var(--p-info-bg); color: var(--p-info); }
+.hp-frame .tone-attention { background: var(--p-attn-bg); color: var(--p-attn); }
+.hp-frame .tone-success { background: var(--p-success-bg); color: var(--p-success); }
+.hp-frame .hp-hello h3 { font-size: 22px; font-weight: 700; }
+.hp-frame .hp-hello p { margin-top: 2px; color: var(--p-ink-2); }
+.hp-frame .hp-wait h3 { font-size: 17px; font-weight: 700; }
+.hp-frame .hp-wait ul { display: grid; gap: 8px; margin-top: 10px; }
+.hp-frame .hp-wait li { display: grid; gap: 1px; padding: 10px 12px; border-radius: 12px; background: var(--p-attn-bg); color: var(--p-attn); }
+.hp-frame .hp-wait li span { color: var(--p-ink-2); font-size: 14px; }
+
+/* The calm banner. */
+.hp-frame .plan-banner { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px 16px; background-image: linear-gradient(100deg, var(--p-success-bg), transparent 64%); }
+.hp-frame .plan-banner.is-change { background-image: linear-gradient(100deg, var(--p-info-bg), transparent 64%); }
+.hp-frame .pb-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(var(--p-success-bg), var(--p-success-bg)), var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line); color: var(--p-success); }
+.hp-frame .plan-banner.is-change .pb-icon { background: linear-gradient(var(--p-info-bg), var(--p-info-bg)), var(--p-surface); color: var(--p-info); }
+.hp-frame .pb-icon .i { width: 22px; height: 22px; }
+.hp-frame .pb-title { font-size: 18px; font-weight: 700; }
+.hp-frame .pb-text { margin-top: 3px; color: var(--p-ink-2); }
+.hp-frame .pb-go { grid-column: 1 / -1; justify-self: start; }
+.hp-frame .pb-go .i { width: 16px; height: 16px; }
+
+/* The plan cards. */
+.hp-frame .home-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
+.hp-frame .home-note { margin: 0; }
+.hp-frame .pc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px 12px; padding-bottom: 14px; border-bottom: 1px solid var(--p-line); }
+.hp-frame .pc-head > div { min-width: 0; }
+.hp-frame .pc-head h2 { font-size: 19px; font-weight: 700; }
+.hp-frame .pc-sub { margin-top: 3px; color: var(--p-ink-3); font-size: 14px; }
+.hp-frame .plan-chip { flex: none; display: inline-flex; align-items: center; min-height: 28px; padding: 2px 12px; border: 1px solid var(--p-line-2); border-radius: 999px; background: var(--p-glass-strong); font-size: 13.5px; font-weight: 650; }
+.hp-frame .pc-source { margin-top: 12px; color: var(--p-ink-3); font-size: 13px; }
+.hp-frame .pc-foot { margin-top: 14px; color: var(--p-ink-2); font-size: 14px; }
+.hp-frame .pc-head + .staff-note { margin-top: 14px; }
+.hp-frame .staff-note { margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.6); box-shadow: inset 0 0 0 1px var(--p-line); }
+.hp-frame .staff-note h3 { font-size: 15.5px; font-weight: 700; }
+.hp-frame .staff-note p { margin-top: 3px; color: var(--p-ink-2); }
+.hp-frame .staff-note ul { display: grid; gap: 2px; margin-top: 8px; padding-left: 18px; list-style: disc; color: var(--p-ink-2); }
+.hp-frame .staff-note .pc-source { margin-top: 8px; }
+.hp-frame .run-svc { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 14px; padding: 16px 0; border-top: 1px solid var(--p-line); }
+.hp-frame .run-svc:first-child { border-top: 0; padding-top: 14px; }
+.hp-frame .run-svc:last-child { padding-bottom: 2px; }
+.hp-frame .svc-ico { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 13px; background: var(--p-surface); box-shadow: 0 0 0 1px var(--p-line), 0 1px 2px rgba(34, 40, 70, 0.07); color: var(--p-ink-2); }
+.hp-frame .svc-ico .i { width: 20px; height: 20px; }
+.hp-frame .svc-ico.is-advertising { color: #C2410C; }
+.hp-frame .svc-ico.is-social { color: #7B3FA0; }
+.hp-frame .svc-ico.is-website { color: #2B5A98; }
+.hp-frame .svc-ico.is-local { color: #2C6A3D; }
+.hp-frame .svc-ico.is-email { color: #9A6A00; }
+.hp-frame .run-main { min-width: 0; }
+.hp-frame .run-top { display: flex; align-items: center; justify-content: space-between; gap: 8px 10px; }
+.hp-frame .run-name { font-size: 16px; font-weight: 700; }
+.hp-frame .run-now { margin-top: 2px; color: var(--p-ink-2); font-size: 14.5px; }
+.hp-frame .svc-row-wait { padding: 2px 10px; border-radius: 999px; background: var(--p-attn-bg); color: var(--p-attn); font-size: 13px; font-weight: 650; white-space: nowrap; }
+.hp-frame .run-usage { display: grid; gap: 9px; margin-top: 10px; }
+.hp-frame .usage { display: grid; gap: 5px; }
+.hp-frame .usage-row { display: flex; align-items: baseline; justify-content: space-between; gap: 2px 10px; }
+.hp-frame .usage-name { font-size: 14.5px; font-weight: 600; }
+.hp-frame .usage-fig { font-size: 14.5px; font-weight: 600; }
+.hp-frame .bar { position: relative; height: 8px; overflow: hidden; border-radius: 999px; background: var(--p-well); box-shadow: inset 0 0 0 1px var(--p-line); }
+.hp-frame .bar > span { display: block; height: 100%; border-radius: inherit; background: var(--p-fill-ok); }
+.hp-frame .usage.is-warn .bar > span { background: var(--p-fill-warn); }
+.hp-frame .usage.is-full .bar > span { background: var(--p-fill-full); }
+.hp-frame .usage-word { font-size: 12.5px; font-weight: 650; color: var(--p-warning); }
+.hp-frame .usage.is-full .usage-word { color: var(--p-error); }
+.hp-frame .chg-list { display: grid; gap: 8px; }
+.hp-frame .chg-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--p-glass-strong); box-shadow: inset 0 0 0 1px var(--p-line); }
+.hp-frame .chg-name { font-size: 15px; font-weight: 650; }
+.hp-frame .chg-text { margin-top: 1px; color: var(--p-ink-2); font-size: 13.5px; }
+.hp-frame .chg-tag { padding: 2px 11px; border-radius: 999px; font-size: 13px; font-weight: 650; white-space: nowrap; }
+.hp-frame .chg-row.is-keeps .chg-tag { background: var(--p-success-bg); color: var(--p-success); }
+.hp-frame .chg-row.is-adds .chg-tag { background: var(--p-attn-bg); color: var(--p-attn); }
+.hp-frame .chg-row.is-stops .chg-tag { border: 1px solid var(--p-line-2); color: var(--p-ink-2); }
+.hp-frame .tl { display: grid; }
+.hp-frame .tl-item { position: relative; display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 12px; padding-bottom: 16px; }
+.hp-frame .tl-item:last-child { padding-bottom: 0; }
+.hp-frame .tl-item::before { content: ""; position: absolute; left: 11px; top: 28px; bottom: 3px; width: 2px; border-radius: 1px; background: var(--p-line-2); }
+.hp-frame .tl-item:last-child::before { display: none; }
+.hp-frame .tl-dot { display: grid; place-items: center; width: 24px; height: 24px; border: 2px solid var(--p-line-2); border-radius: 50%; background: var(--p-surface); color: transparent; }
+.hp-frame .tl-dot .i { width: 12px; height: 12px; }
+.hp-frame .tl-item.is-done .tl-dot { border-color: var(--p-accent-ink); background: var(--p-accent-ink); color: #F4F1EC; }
+.hp-frame .tl-title { padding-top: 1px; font-size: 15px; font-weight: 650; }
+.hp-frame .tl-text { margin-top: 1px; color: var(--p-ink-2); font-size: 14px; }
+.hp-frame .empty { display: block; }
+.hp-frame .empty-title { font-size: 17px; font-weight: 700; }
+.hp-frame .empty-text { margin-top: 3px; color: var(--p-ink-2); }
+.hp-frame .empty .i { display: none; }
+
+/* The part of the page that belongs to the section being typed in. */
+.hp-frame .hp-hot { outline: 2px solid var(--accent); outline-offset: 3px; transition: outline-color 160ms var(--ease); }
+
+/* The latest checked numbers. */
+.hp-frame .hp-strip h3 { margin: 2px 2px 10px; font-size: 16px; font-weight: 700; }
+.hp-frame .hp-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.hp-frame .hp-tile { display: grid; align-content: start; gap: 2px; padding: 14px 16px; }
+.hp-frame .hp-tile-label { color: var(--p-ink-2); font-size: 14px; font-weight: 600; }
+.hp-frame .hp-tile-value { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.hp-frame .hp-tile-value span { margin-left: 5px; color: var(--p-ink-3); font-size: 13.5px; font-weight: 600; letter-spacing: 0; }
+.hp-frame .hp-tile-meta { color: var(--p-ink-3); font-size: 13px; }
+.hp-frame .hp-tile .badge { justify-self: start; margin-top: 8px; }
+
+/* A wide column (the page stacked, or a big screen): the two plan cards sit side by side, as on the real page. */
+@container hpf (min-width: 640px) {
+  .hp-frame .home-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hp-frame .plan-banner { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .hp-frame .pb-go { grid-column: auto; }
+}
+@media (max-width: 640px) {
+  .hp-frame { padding: 12px; border-radius: 18px; }
+  .hp-frame .card { padding: 16px 16px; }
+}
