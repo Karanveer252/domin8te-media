@@ -22,7 +22,7 @@ button.cl-card:hover { background-color: rgba(255, 255, 255, 0.7); box-shadow: v
 .cl-chips { margin: 0 0 14px; }
 .cl-chips .seg, .cl-toolbar .seg { display: flex; flex-wrap: wrap; max-width: 100%; overflow: visible; padding: 0; }
 .cl-chips .seg button, .cl-toolbar .seg button { flex: none; }
-.cl-chips .seg .count, .cl-toolbar .seg .count { margin-left: 6px; min-width: 20px; padding: 0 6px; font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.cl-chips .seg .count, .cl-toolbar .seg .count { margin-left: 6px; min-width: 20px; padding: 0 6px; font-size: 12px; line-height: 1.5; font-variant-numeric: proportional-nums; }
 .cl-toolbar { justify-content: space-between; gap: 10px 16px; margin-bottom: 18px; }
 .cl-more button { min-height: 34px; padding: 5px 13px; font-size: 13.5px; }
 
@@ -44,7 +44,7 @@ button.cl-card:hover { background-color: rgba(255, 255, 255, 0.7); box-shadow: v
 .cl-usage .cu-name { grid-column: 1; grid-row: 1; font-size: 12.5px; }
 .cl-usage .cbar { grid-column: 2; grid-row: 1; }
 .cl-usage .cu-fig { grid-column: 3; grid-row: 1; font-size: 12.5px; }
-.cl-month { display: block; margin-top: 8px; color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.cl-month { display: block; margin-top: 8px; color: var(--ink-3); font-size: 12px; font-variant-numeric: proportional-nums; }
 .cl-status { display: grid; gap: 8px; }
 .cl-status .chip { font-size: 13px; }
 .cl-fresh { min-width: 112px; }

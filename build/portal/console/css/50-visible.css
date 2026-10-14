@@ -16,12 +16,12 @@
 .vz-cols > .panel { margin-top: 0; }
 .vz-side { position: sticky; top: 16px; }
 .vz-side h3 { margin-bottom: 4px; }
-.vz-count { font-variant-numeric: tabular-nums; }
+.vz-count { font-variant-numeric: proportional-nums; }
 
 /* The filter: the console's own pill group, the counts quiet unless something waits for a decision. */
 .vz-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 18px; padding: 0; }
 .vz-filter button { min-height: 36px; padding: 6px 14px; }
-.vz-filter .count { margin-left: 7px; padding: 0 7px; font-variant-numeric: tabular-nums; }
+.vz-filter .count { margin-left: 7px; padding: 0 7px; font-variant-numeric: proportional-nums; }
 .vz-filter .count.quiet { background: var(--surface-3); color: var(--ink-2); }
 
 /* The table. */
@@ -71,12 +71,9 @@
 .vz-check input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--ink); cursor: pointer; }
 
 /* The history: a quiet timeline. The person is in bold inside the sentence. */
-.vz-hist { display: grid; gap: 24px; margin: 20px 0 0 6px; padding: 0 0 0 22px; border-left: 2px solid var(--line-2); list-style: none; }
-.vz-hist li { position: relative; }
+.vz-hist { margin-top: 20px; }
 .vz-hist li:focus { outline: none; }
-.vz-hist li::before { content: ""; position: absolute; left: -28px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 2px var(--ink-3); }
-.vz-hist li:first-child::before { box-shadow: 0 0 0 2px var(--accent); background: var(--accent); }
-.vz-hist time { display: block; color: var(--ink-3); font-size: 13px; font-weight: 650; letter-spacing: 0.01em; font-variant-numeric: normal; }
+.vz-hist time { display: block; color: var(--ink-3); line-height: 20px; font-size: 13px; font-weight: 650; letter-spacing: 0.01em; font-variant-numeric: normal; }
 .vz-hist p { margin-top: 4px; color: var(--ink-2); font-size: 14.5px; line-height: 1.55; text-wrap: pretty; }
 .vz-hist strong { color: var(--ink); }
 .vz-more { margin-top: 16px; font-size: 14px; }

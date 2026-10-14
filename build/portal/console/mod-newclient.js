@@ -214,10 +214,24 @@
     form.addEventListener('change', () => { refresh(); keepDraft(); });
     refresh();
 
+    // The step you are on is the chosen pill in the rail (ink, like every other selected pill): the one you jumped to, typed in, or scrolled to.
+    /** @param {string} id */
+    function markStep(id) {
+      for (const p of Array.from(form.querySelectorAll('.nc-pill'))) {
+        if (p.getAttribute('data-nc-go') === id) p.setAttribute('aria-current', 'step'); else p.removeAttribute('aria-current');
+      }
+    }
+    markStep('nc-s1');
+    form.addEventListener('focusin', (e) => { const st = /** @type {HTMLElement} */ (e.target).closest('.nc-step'); if (st && st.id) markStep(st.id); });
+    if (typeof IntersectionObserver === 'function') {
+      const seen = new IntersectionObserver((rows) => { for (const r of rows) if (r.isIntersecting && r.target.id) markStep(r.target.id); }, { rootMargin: '-30% 0px -60% 0px' });
+      for (const st of Array.from(form.querySelectorAll('.nc-step'))) seen.observe(st);
+    }
+
     form.addEventListener('click', (e) => {
       const t = /** @type {HTMLElement} */ (e.target);
       const go = t.closest('[data-nc-go]');
-      if (go) { const el = document.getElementById(go.getAttribute('data-nc-go') || ''); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+      if (go) { const el = document.getElementById(go.getAttribute('data-nc-go') || ''); if (el) { markStep(el.id); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
       const act = t.closest('[data-nc]');
       if (!act) return;
       if (act.getAttribute('data-nc') === 'draft') {

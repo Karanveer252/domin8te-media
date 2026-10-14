@@ -22,7 +22,7 @@ html[data-theme="dark"][data-scene="scenes"][data-page] .page-fresh { background
 .cusage { display: grid; gap: 3px; min-width: 0; }
 .cu-line { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
 .cu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cu-fig { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.cu-fig { font-variant-numeric: proportional-nums; font-weight: 600; color: var(--ink); white-space: nowrap; }
 .cu-over { margin-left: 6px; padding: 0 7px; border-radius: 999px; background: var(--bad-bg); color: var(--bad); font-size: 11.5px; font-weight: 650; }
 .cbar { height: 6px; overflow: hidden; border-radius: 999px; background: var(--surface-3); }
 .cbar > i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
@@ -30,3 +30,16 @@ html[data-theme="dark"][data-scene="scenes"][data-page] .page-fresh { background
 .cusage.is-full .cbar > i { background: #D43B2F; }
 .cusage.is-warn .cu-fig { color: var(--warn); }
 .cusage.is-full .cu-fig { color: var(--bad); }
+
+/* The history timelines (Settings > Change history, Visible > History, the Billing drawer's history), one look (2026-10-14).
+   A solid dot for each line sits exactly on a thin rail; the rail joins one dot to the next and stops at the last one; the newest
+   dot is filled. The dots are solid so nothing behind shows through. Rail centre: 7px from the list's left edge. */
+:is(.hx-list, .vz-hist, .bd-hist-list) { --tl-gap: 22px; position: relative; display: grid; gap: var(--tl-gap); margin: 0; padding: 0 0 0 30px; border: 0; list-style: none; }
+.bd-hist-list { --tl-gap: 14px; }
+:is(.hx-list, .vz-hist, .bd-hist-list) > li { position: relative; margin: 0; padding: 0; border: 0; }
+:is(.hx-list, .vz-hist, .bd-hist-list) > li::before { content: ""; position: absolute; left: -29px; top: 3px; box-sizing: border-box; width: 14px; height: 14px; border: 2px solid var(--line-2); border-radius: 50%; background: var(--surface); box-shadow: none; }
+:is(.hx-list, .vz-hist, .bd-hist-list) > li:not(:last-child)::after { content: ""; position: absolute; left: -23px; top: 21px; bottom: calc(-1 * var(--tl-gap) + 1px); width: 2px; border-radius: 2px; background: var(--line-2); }
+:is(.hx-list, .vz-hist, .bd-hist-list) > li:first-child::before { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 0 4px var(--you-bg); }
+details :is(.hx-list) > li:first-child::before { border-color: var(--line-2); background: var(--surface); box-shadow: none; }
+details > .hx-list { margin-top: var(--tl-gap); }
+html[data-theme="dark"] :is(.hx-list, .vz-hist, .bd-hist-list) > li::before { background: var(--surface-2); }

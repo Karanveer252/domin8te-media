@@ -197,10 +197,15 @@
    */
   function cardView(t, client) {
     const i = infoFor(t);
+    // the client's colour (mod-color.js): a left edge on the card, and the name as a tinted pill with a dot
+    const K = EXT.color;
+    const tint = K ? K.cls(t.tenant_id) : '';
+    const owner = tint ? C().tenant(t.tenant_id) : null;
     const over = !!(i && i.over && OPEN.includes(t.status));
     const svc = t.service ? C().svcLabel(t.service) : '';
     const tag = svc ? `<span class="wk-tag" title="${E(svc)}">${E(svc)}</span>` : '<span class="wk-tag is-plain">General</span>';
-    const head = `<p class="card-client wk-who">${client ? `<span class="wk-client">${E(client)}</span>` : ''}${tag}</p>`;
+    const who = tint ? K.pill(t.tenant_id, client || (owner ? owner.name : '')) : client ? `<span class="wk-client">${E(client)}</span>` : '';
+    const head = `<p class="card-client wk-who">${who}${tag}</p>`;
     let land = '';
     if (i && i.kind === 'counted') land = `<p class="wk-land is-done" title="Counted against ${E(i.line ? lower(i.line.label) : 'a limit')} this month">${E(i.text)}</p>`;
     else if (i && i.kind === 'urgent') land = `<p class="wk-land is-urgent">${E(i.text)}</p>`;
@@ -218,7 +223,7 @@
         : v === 'shown' ? `<span class="wk-vis is-on" title="Client sees this card: its title, stage and due date on their Work page">${EYE}</span>`
           : v === 'hidden' ? `<span class="wk-vis" title="Hidden from the client">${EYE_OFF}</span>` : ''
       : '';
-    return { cls: over ? ' is-over' : '', head, land, flag, vis };
+    return { cls: (over ? ' is-over' : '') + tint, head, land, flag, vis };
   }
   /** The tooltip line about who sees a card. @param {any} t */
   function seeText(t) {
@@ -713,6 +718,12 @@
       note: !c.plans.ok ? 'Plans have not loaded, so cards show without their limits.' : store.failed ? `Usage did not load (${store.failed}). Cards show without their positions.` : '' });
     const chip = (/** @type {string} */ key, /** @type {string} */ label, /** @type {boolean} */ on, /** @type {string} [extra] */ extra) => `<button class="wk-chip" type="button" data-wk-filter="${E(key)}" aria-pressed="${on ? 'true' : 'false'}">${E(label)}${extra || ''}</button>`;
     const strips = tenants.filter((/** @type {any} */ t) => c.planOf(t.id).now || everyCard.some((/** @type {any} */ k) => k.tenant_id === t.id));
+    // "By client": one pill for each client that has cards, with its colour dot. Only worth a row when there is more than one.
+    const K = EXT.color;
+    const withCards = tenants.filter((/** @type {any} */ t) => everyCard.some((/** @type {any} */ k) => k.tenant_id === t.id));
+    const byClient = withCards.length > 1
+      ? `<div class="wk-by" role="group" aria-label="By client"><span class="wk-by-l" aria-hidden="true">By client</span><div class="wk-by-pills">${withCards.map((/** @type {any} */ t) => `<button class="wk-chip wk-pill" type="button" data-wk-client="${E(t.id)}" data-wk-pill aria-pressed="${st.client === t.id ? 'true' : 'false'}">${K ? K.dot(t.id) : ''}${E(t.name)}</button>`).join('')}</div></div>`
+      : '';
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">All work</h1><p>Every client’s team cards on one board. Each card shows where it lands against that client’s plan limit, so nothing over the limit gets started without a decision.</p></div></div>
       ${fresh}
       ${strips.length ? `<div class="wk-strips" role="group" aria-label="Plan limits by client">${strips.slice(0, 6).map((/** @type {any} */ t) => strip(t.id, { filter: true, pressed: st.client === t.id })).join('')}</div>` : ''}
@@ -722,6 +733,7 @@
         ${chip('over', 'Over limit', !!st.over, `<span class="wk-n${overN ? ' is-bad' : ''}">${overN}</span>`)}
         ${services.map((/** @type {string} */ s) => chip('service:' + s, c.svcLabel(s), st.service === s)).join('')}
       </div>${st.client ? `<a class="btn btn-quiet btn-sm" href="#/client/${E(st.client)}/work/new">${c.icon('plus')}Add a card for ${E(names[st.client])}</a>` : ''}</div>
+      ${byClient}
       ${shown.length || !everyCard.length ? '' : `<p class="meta wk-empty">No cards match. <button class="linkish" type="button" data-wk-filter="all">Show everything</button></p>`}
       <div class="board" id="board">${o.columns(shown, (/** @type {any} */ t) => o.card(t, names[t.tenant_id]), { doneLabel: 'Done this month' })}</div>
       ${olderDone ? `<p class="meta wk-older">${c.plural(olderDone, 'earlier finished card is', 'earlier finished cards are')} on each client’s own Work tab.</p>` : ''}`;
@@ -741,7 +753,7 @@
       } else if (k) {
         const id = k.getAttribute('data-wk-client') || '';
         st.client = st.client === id ? '' : id;
-        st.focus = `[data-wk-client="${id}"]`;
+        st.focus = `${k.hasAttribute('data-wk-pill') ? '[data-wk-pill]' : ''}[data-wk-client="${id}"]`;
       }
       o.redraw();
     }, { signal });

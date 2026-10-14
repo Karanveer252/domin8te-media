@@ -50,7 +50,7 @@ h2 { font-size: 17px; }
 h3 { font-size: 15px; }
 p { margin: 0; }
 strong { font-weight: 650; }
-.num, .when, .badge, .count, td.n, time { font-variant-numeric: tabular-nums; }
+.num, .when, .badge, .count, td.n, time { font-variant-numeric: proportional-nums; }
 .skip { position: absolute; left: 16px; top: -80px; z-index: 100; padding: 10px 14px; border-radius: var(--r); background: var(--ink); color: var(--bg); font-weight: 600; text-decoration: none; }
 .skip:focus { top: 12px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -294,7 +294,7 @@ table.grid tbody tr[data-href] { cursor: pointer; }
 .h-day { margin: 18px 0 6px; color: var(--ink-2); font-size: 13.5px; font-weight: 650; }
 .h-day:first-child { margin-top: 0; }
 .h-row { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); }
-.h-time { color: var(--ink-3); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.h-time { color: var(--ink-3); font-size: 13.5px; font-variant-numeric: proportional-nums; }
 .card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; margin-top: 6px; color: var(--ink-3); font-size: 13px; }
 .card-meta .late { color: var(--bad); font-weight: 600; }
 .card-sync { margin-top: 6px; font-size: 13px; }
@@ -540,7 +540,10 @@ select { background-color: rgba(255, 255, 255, 0.78); }
 .tabs a:active, .seg a:active, .seg button:active { transform: translateY(0); box-shadow: var(--glass-shadow-sm); }
 @media (prefers-reduced-motion: reduce) { .tabs a:hover, .seg a:hover, .seg button:hover { transform: none; } }
 .tabs a, .seg a, .seg button { background-color: rgba(255, 255, 255, 0.3); color: var(--ink-2); }
-.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"] { background-color: rgba(255, 255, 255, 0.95); color: var(--ink); box-shadow: var(--pill-on), var(--glass-shadow-sm); }
+/* The selected pill is solid ink with light words, like the main buttons, so it reads at a glance (2026-10-14, Karan) */
+.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"] { border-color: transparent; background-color: #1D1A16; background-image: none; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+:is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]):hover { background-color: #2B2722; color: #FBF8F3; border-color: transparent; }
+:is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]) .count, :is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]) .count.quiet { background: rgba(251, 248, 243, 0.18); color: #FBF8F3; }
 .tabs { margin: 0 -8px 10px; padding: 6px 8px 16px; }
 .req-status { border: 0; background: rgba(94, 72, 50, 0.08); border-radius: 999px; padding: 3px; }
 .req-status button { border-radius: 999px; min-height: 30px; padding: 0 12px; font-size: 13px; }
@@ -662,7 +665,9 @@ html[data-theme="dark"] .chip.you { background: var(--you-bg); color: var(--you)
 html[data-theme="dark"] .chip.info { background: rgba(80, 140, 230, 0.18); color: #9CC2F5; }
 html[data-theme="dark"] :is(.tabs a, .seg a, .seg button) { background-color: rgba(255, 255, 255, 0.04); color: var(--ink-2); }
 html[data-theme="dark"] :is(.tabs a, .seg a, .seg button):hover { background-color: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.18); box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.7); }
-html[data-theme="dark"] :is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]) { background-color: rgba(255, 255, 255, 0.15); color: var(--ink); }
+html[data-theme="dark"] :is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]) { background-color: #F1EFEA; color: #1D1A16; }
+html[data-theme="dark"] :is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]):hover { background-color: #FFFFFF; color: #1D1A16; }
+html[data-theme="dark"] :is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]) :is(.count, .count.quiet) { background: rgba(29, 26, 22, 0.12); color: #1D1A16; }
 html[data-theme="dark"] .req-status { background: rgba(255, 255, 255, 0.06); }
 html[data-theme="dark"] .req-status button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.15); }
 html[data-theme="dark"] table.grid thead th { background: rgba(255, 255, 255, 0.04); }
@@ -1103,3 +1108,61 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
 .row.ms .icon-btn { width: 44px; height: 44px; }
 .rows.steps-list, .rows[data-list="ms"] { gap: 10px; }
 @media (max-width: 760px) { .row.ms, .rows-head.ms { grid-template-columns: minmax(0, 1fr) 44px; } }
+
+/* ==== One selected look (2026-10-14, Karan: "all the other buttons or selected items appear like this") ========
+ * The chosen pill, chip, tab, step or page is solid ink with light words, a soft shadow and no glass; in the dark
+ * theme it is the inverse (cream fill, ink words). .tabs a and .seg [aria-pressed] above are the reference.
+ * Plan cards in the plan widget keep their orange border and the switches stay switches, by design. */
+.nav a[aria-current="page"], .side-client[aria-current="page"] { background: #1D1A16; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); font-weight: 650; }
+.nav a[aria-current="page"]:hover, .side-client[aria-current="page"]:hover { background: #2B2722; color: #FBF8F3; }
+.nav a[aria-current="page"] .ic { color: #FBF8F3; }
+.nav a[aria-current="page"] .badge, .side-client[aria-current="page"] .badge { background: rgba(251, 248, 243, 0.18); color: #FBF8F3; }
+/* With the sliding pill on (console-fx.js) the pill is the ink and the row on top of it only carries the words. */
+.fx-cur { background: #1D1A16; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+html.fx-cur-on :is(.nav a, .side-client)[aria-current="page"]:hover { background: none; }
+html[data-theme="dark"] :is(.nav a, .side-client)[aria-current="page"] { background: #F1EFEA; color: #1D1A16; }
+html[data-theme="dark"] :is(.nav a, .side-client)[aria-current="page"]:hover { background: #FFFFFF; color: #1D1A16; }
+html[data-theme="dark"] .nav a[aria-current="page"] .ic { color: #1D1A16; }
+html[data-theme="dark"] :is(.nav a, .side-client)[aria-current="page"] .badge { background: rgba(29, 26, 22, 0.12); color: #1D1A16; }
+html[data-theme="dark"] .fx-cur { background: #F1EFEA; box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.7); }
+html.fx-cur-on[data-theme="dark"] :is(.nav a, .side-client)[aria-current="page"], html.fx-cur-on[data-theme="dark"] :is(.nav a, .side-client)[aria-current="page"]:hover { background: none; }
+
+/* Request status (Needs you): a recessed track and the chosen status as an ink pill. */
+.req-status button[aria-pressed="true"] { background: #1D1A16; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+.req-status button[aria-pressed="true"]:hover { background: #2B2722; color: #FBF8F3; }
+html[data-theme="dark"] .req-status button[aria-pressed="true"] { background: #F1EFEA; color: #1D1A16; }
+html[data-theme="dark"] .req-status button[aria-pressed="true"]:hover { background: #FFFFFF; color: #1D1A16; }
+
+/* Team role switch: the same ink pill inside its track. */
+.seg.role-seg button[aria-pressed="true"] { background: #1D1A16; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+.seg.role-seg button[aria-pressed="true"]:hover { background: #2B2722; color: #FBF8F3; }
+html[data-theme="dark"] .seg.role-seg button[aria-pressed="true"] { background: #F1EFEA; color: #1D1A16; }
+html[data-theme="dark"] .seg.role-seg button[aria-pressed="true"]:hover { background: #FFFFFF; color: #1D1A16; }
+
+/* Plan and sign-off choices (radio groups drawn as segmented pills). */
+.seg-radio { flex-wrap: wrap; }
+.seg-radio label { min-height: 38px; padding: 0 14px; border: 0.67px solid var(--glass-edge); border-radius: 999px; background-color: rgba(255, 255, 255, 0.3); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); transition: background-color 160ms var(--ease), color 160ms var(--ease), box-shadow 160ms var(--ease); }
+.seg-radio label:hover { background-color: rgba(255, 255, 255, 0.9); color: var(--ink); }
+.seg-radio label:has(input:checked) { border-color: transparent; background-color: #1D1A16; background-image: none; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+.seg-radio label:has(input:checked):hover { background-color: #2B2722; color: #FBF8F3; }
+html[data-theme="dark"] .seg-radio label { background-color: rgba(255, 255, 255, 0.04); }
+html[data-theme="dark"] .seg-radio label:hover { background-color: rgba(255, 255, 255, 0.12); }
+html[data-theme="dark"] .seg-radio label:has(input:checked) { background-color: #F1EFEA; color: #1D1A16; }
+html[data-theme="dark"] .seg-radio label:has(input:checked):hover { background-color: #FFFFFF; color: #1D1A16; }
+
+/* The open conversation stays a card, with an ink edge on the left so it is clearly the chosen one. */
+.convo[aria-current="true"] { box-shadow: inset 4px 0 0 #1D1A16, var(--glass-shadow-sm); }
+html[data-theme="dark"] .convo[aria-current="true"] { box-shadow: inset 4px 0 0 #F1EFEA, var(--glass-shadow-sm); }
+
+/* A chosen card stays a card: a 2px ink border and a small ink tick in the corner. */
+.pick, label.pick { position: relative; }
+.pick[aria-pressed="true"], label.pick:has(input:checked) { border-color: #1D1A16; box-shadow: inset 0 0 0 1px #1D1A16; }
+.pick[aria-pressed="true"]::after, label.pick:has(input:checked)::after { content: ""; position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; background: #1D1A16 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FBF8F3' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 12.5 4 4 8-9'/></svg>") center / 14px 14px no-repeat; }
+html[data-theme="dark"] .pick[aria-pressed="true"], html[data-theme="dark"] label.pick:has(input:checked) { border-color: #F1EFEA; box-shadow: inset 0 0 0 1px #F1EFEA; }
+html[data-theme="dark"] .pick[aria-pressed="true"]::after, html[data-theme="dark"] label.pick:has(input:checked)::after { background-color: #F1EFEA; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1A16' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 12.5 4 4 8-9'/></svg>"); }
+
+/* "Open now" on a result row: the chosen button is an ink pill. */
+.btn[aria-current="true"] { border-color: transparent; background-color: #1D1A16; background-image: none; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+.btn[aria-current="true"]:hover { background-color: #2B2722; color: #FBF8F3; }
+html[data-theme="dark"] .btn[aria-current="true"] { background-color: #F1EFEA; color: #1D1A16; }
+html[data-theme="dark"] .btn[aria-current="true"]:hover { background-color: #FFFFFF; color: #1D1A16; }

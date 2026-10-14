@@ -254,6 +254,16 @@
         if (!had) rows.push(rec);
         return { data: q.one ? project(rec) : [project(rec)], error: null };
       }
+      // client_profile is one row for each client (tenant_id is its key): an upsert changes the columns it names and keeps the rest,
+      // and the database's checks refuse a sign-off level or card colour that is not on the list (23514).
+      if (q.op === 'upsert' && name === 'client_profile') {
+        const had = rows.find((r) => r.tenant_id === q.payload.tenant_id);
+        const next = Object.assign({}, had || {}, JSON.parse(JSON.stringify(q.payload)), { updated_at: now(), updated_by: 'user_preview_karan' });
+        const CHECKS = { tier: ['bronze', 'silver', 'gold'], approval_level: ['red', 'yellow', 'green'], card_color: ['orange', 'amber', 'lime', 'green', 'teal', 'sky', 'blue', 'violet', 'pink', 'rose'] };
+        for (const col of Object.keys(CHECKS)) if (next[col] != null && !CHECKS[col].includes(next[col])) throw { code: '23514', message: `new row for relation "client_profile" violates check constraint "client_profile_${col}_check"` };
+        if (had) Object.assign(had, next); else rows.push(next);
+        return { data: q.one ? project(next) : [project(next)], error: null };
+      }
       if (q.op === 'upsert') q.op = 'insert';
       if (q.op === 'insert') {
         const rec = { id: `${name}_${++n}`, at: now(), updated_at: now(), status: name === 'requests' ? 'review' : undefined, ...q.payload };
@@ -1831,6 +1841,26 @@
   };
 })();
 </script>
+<script>
+/* stub/90-card-color.js */
+// LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). The preview's client_profile rows (2026-10-14): each of the four
+// preview clients has a card colour, so All work shows the colours at once. The real column is client_profile.card_color (migration
+// 20261014050000_client_card_color.sql); the preview's upsert (preview-stub.js) keeps the same palette check. No sign-off levels are set here,
+// so the clients still show "No sign-off level" as before.
+(function () {
+  'use strict';
+  const S = /** @type {any} */ (window).D8STUB;
+  if (!S) return;
+  S.seeds.push((/** @type {any} */ db) => {
+    const rows = db.client_profile = db.client_profile || [];
+    const colors = { tnt_preview_bayleaf: 'teal', tnt_preview_marlow: 'violet', tnt_preview_osteria: 'orange', tnt_preview_corner: 'pink' };
+    for (const [tenant, card_color] of Object.entries(colors)) {
+      const had = rows.find((/** @type {any} */ r) => r.tenant_id === tenant);
+      if (had) had.card_color = card_color; else rows.push({ tenant_id: tenant, tier: null, approval_level: null, card_color, updated_at: S.now(), updated_by: null });
+    }
+  });
+})();
+</script>
 <style>body::after{content:"Preview: in-memory data, nothing is saved or sent";position:fixed;left:0;right:0;bottom:0;z-index:99;padding:6px;background:#FF5B1F;color:#1D1A16;font:600 13px/1.4 system-ui;text-align:center}</style>
 <style>
 /* Agency console: the Domin8te team's workspace. The client portal's warm neutrals and typeface,
@@ -1885,7 +1915,7 @@ h2 { font-size: 17px; }
 h3 { font-size: 15px; }
 p { margin: 0; }
 strong { font-weight: 650; }
-.num, .when, .badge, .count, td.n, time { font-variant-numeric: tabular-nums; }
+.num, .when, .badge, .count, td.n, time { font-variant-numeric: proportional-nums; }
 .skip { position: absolute; left: 16px; top: -80px; z-index: 100; padding: 10px 14px; border-radius: var(--r); background: var(--ink); color: var(--bg); font-weight: 600; text-decoration: none; }
 .skip:focus { top: 12px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -2129,7 +2159,7 @@ table.grid tbody tr[data-href] { cursor: pointer; }
 .h-day { margin: 18px 0 6px; color: var(--ink-2); font-size: 13.5px; font-weight: 650; }
 .h-day:first-child { margin-top: 0; }
 .h-row { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); }
-.h-time { color: var(--ink-3); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.h-time { color: var(--ink-3); font-size: 13.5px; font-variant-numeric: proportional-nums; }
 .card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; margin-top: 6px; color: var(--ink-3); font-size: 13px; }
 .card-meta .late { color: var(--bad); font-weight: 600; }
 .card-sync { margin-top: 6px; font-size: 13px; }
@@ -2375,7 +2405,10 @@ select { background-color: rgba(255, 255, 255, 0.78); }
 .tabs a:active, .seg a:active, .seg button:active { transform: translateY(0); box-shadow: var(--glass-shadow-sm); }
 @media (prefers-reduced-motion: reduce) { .tabs a:hover, .seg a:hover, .seg button:hover { transform: none; } }
 .tabs a, .seg a, .seg button { background-color: rgba(255, 255, 255, 0.3); color: var(--ink-2); }
-.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"] { background-color: rgba(255, 255, 255, 0.95); color: var(--ink); box-shadow: var(--pill-on), var(--glass-shadow-sm); }
+/* The selected pill is solid ink with light words, like the main buttons, so it reads at a glance (2026-10-14, Karan) */
+.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"] { border-color: transparent; background-color: #1D1A16; background-image: none; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+:is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]):hover { background-color: #2B2722; color: #FBF8F3; border-color: transparent; }
+:is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]) .count, :is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]) .count.quiet { background: rgba(251, 248, 243, 0.18); color: #FBF8F3; }
 .tabs { margin: 0 -8px 10px; padding: 6px 8px 16px; }
 .req-status { border: 0; background: rgba(94, 72, 50, 0.08); border-radius: 999px; padding: 3px; }
 .req-status button { border-radius: 999px; min-height: 30px; padding: 0 12px; font-size: 13px; }
@@ -2497,7 +2530,9 @@ html[data-theme="dark"] .chip.you { background: var(--you-bg); color: var(--you)
 html[data-theme="dark"] .chip.info { background: rgba(80, 140, 230, 0.18); color: #9CC2F5; }
 html[data-theme="dark"] :is(.tabs a, .seg a, .seg button) { background-color: rgba(255, 255, 255, 0.04); color: var(--ink-2); }
 html[data-theme="dark"] :is(.tabs a, .seg a, .seg button):hover { background-color: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.18); box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.7); }
-html[data-theme="dark"] :is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]) { background-color: rgba(255, 255, 255, 0.15); color: var(--ink); }
+html[data-theme="dark"] :is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]) { background-color: #F1EFEA; color: #1D1A16; }
+html[data-theme="dark"] :is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]):hover { background-color: #FFFFFF; color: #1D1A16; }
+html[data-theme="dark"] :is(.tabs a[aria-current="page"], .seg [aria-current="page"], .seg [aria-pressed="true"]) :is(.count, .count.quiet) { background: rgba(29, 26, 22, 0.12); color: #1D1A16; }
 html[data-theme="dark"] .req-status { background: rgba(255, 255, 255, 0.06); }
 html[data-theme="dark"] .req-status button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.15); }
 html[data-theme="dark"] table.grid thead th { background: rgba(255, 255, 255, 0.04); }
@@ -2939,6 +2974,64 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="messages"] :is(mai
 .rows.steps-list, .rows[data-list="ms"] { gap: 10px; }
 @media (max-width: 760px) { .row.ms, .rows-head.ms { grid-template-columns: minmax(0, 1fr) 44px; } }
 
+/* ==== One selected look (2026-10-14, Karan: "all the other buttons or selected items appear like this") ========
+ * The chosen pill, chip, tab, step or page is solid ink with light words, a soft shadow and no glass; in the dark
+ * theme it is the inverse (cream fill, ink words). .tabs a and .seg [aria-pressed] above are the reference.
+ * Plan cards in the plan widget keep their orange border and the switches stay switches, by design. */
+.nav a[aria-current="page"], .side-client[aria-current="page"] { background: #1D1A16; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); font-weight: 650; }
+.nav a[aria-current="page"]:hover, .side-client[aria-current="page"]:hover { background: #2B2722; color: #FBF8F3; }
+.nav a[aria-current="page"] .ic { color: #FBF8F3; }
+.nav a[aria-current="page"] .badge, .side-client[aria-current="page"] .badge { background: rgba(251, 248, 243, 0.18); color: #FBF8F3; }
+/* With the sliding pill on (console-fx.js) the pill is the ink and the row on top of it only carries the words. */
+.fx-cur { background: #1D1A16; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+html.fx-cur-on :is(.nav a, .side-client)[aria-current="page"]:hover { background: none; }
+html[data-theme="dark"] :is(.nav a, .side-client)[aria-current="page"] { background: #F1EFEA; color: #1D1A16; }
+html[data-theme="dark"] :is(.nav a, .side-client)[aria-current="page"]:hover { background: #FFFFFF; color: #1D1A16; }
+html[data-theme="dark"] .nav a[aria-current="page"] .ic { color: #1D1A16; }
+html[data-theme="dark"] :is(.nav a, .side-client)[aria-current="page"] .badge { background: rgba(29, 26, 22, 0.12); color: #1D1A16; }
+html[data-theme="dark"] .fx-cur { background: #F1EFEA; box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.7); }
+html.fx-cur-on[data-theme="dark"] :is(.nav a, .side-client)[aria-current="page"], html.fx-cur-on[data-theme="dark"] :is(.nav a, .side-client)[aria-current="page"]:hover { background: none; }
+
+/* Request status (Needs you): a recessed track and the chosen status as an ink pill. */
+.req-status button[aria-pressed="true"] { background: #1D1A16; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+.req-status button[aria-pressed="true"]:hover { background: #2B2722; color: #FBF8F3; }
+html[data-theme="dark"] .req-status button[aria-pressed="true"] { background: #F1EFEA; color: #1D1A16; }
+html[data-theme="dark"] .req-status button[aria-pressed="true"]:hover { background: #FFFFFF; color: #1D1A16; }
+
+/* Team role switch: the same ink pill inside its track. */
+.seg.role-seg button[aria-pressed="true"] { background: #1D1A16; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+.seg.role-seg button[aria-pressed="true"]:hover { background: #2B2722; color: #FBF8F3; }
+html[data-theme="dark"] .seg.role-seg button[aria-pressed="true"] { background: #F1EFEA; color: #1D1A16; }
+html[data-theme="dark"] .seg.role-seg button[aria-pressed="true"]:hover { background: #FFFFFF; color: #1D1A16; }
+
+/* Plan and sign-off choices (radio groups drawn as segmented pills). */
+.seg-radio { flex-wrap: wrap; }
+.seg-radio label { min-height: 38px; padding: 0 14px; border: 0.67px solid var(--glass-edge); border-radius: 999px; background-color: rgba(255, 255, 255, 0.3); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); transition: background-color 160ms var(--ease), color 160ms var(--ease), box-shadow 160ms var(--ease); }
+.seg-radio label:hover { background-color: rgba(255, 255, 255, 0.9); color: var(--ink); }
+.seg-radio label:has(input:checked) { border-color: transparent; background-color: #1D1A16; background-image: none; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+.seg-radio label:has(input:checked):hover { background-color: #2B2722; color: #FBF8F3; }
+html[data-theme="dark"] .seg-radio label { background-color: rgba(255, 255, 255, 0.04); }
+html[data-theme="dark"] .seg-radio label:hover { background-color: rgba(255, 255, 255, 0.12); }
+html[data-theme="dark"] .seg-radio label:has(input:checked) { background-color: #F1EFEA; color: #1D1A16; }
+html[data-theme="dark"] .seg-radio label:has(input:checked):hover { background-color: #FFFFFF; color: #1D1A16; }
+
+/* The open conversation stays a card, with an ink edge on the left so it is clearly the chosen one. */
+.convo[aria-current="true"] { box-shadow: inset 4px 0 0 #1D1A16, var(--glass-shadow-sm); }
+html[data-theme="dark"] .convo[aria-current="true"] { box-shadow: inset 4px 0 0 #F1EFEA, var(--glass-shadow-sm); }
+
+/* A chosen card stays a card: a 2px ink border and a small ink tick in the corner. */
+.pick, label.pick { position: relative; }
+.pick[aria-pressed="true"], label.pick:has(input:checked) { border-color: #1D1A16; box-shadow: inset 0 0 0 1px #1D1A16; }
+.pick[aria-pressed="true"]::after, label.pick:has(input:checked)::after { content: ""; position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; background: #1D1A16 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FBF8F3' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 12.5 4 4 8-9'/></svg>") center / 14px 14px no-repeat; }
+html[data-theme="dark"] .pick[aria-pressed="true"], html[data-theme="dark"] label.pick:has(input:checked) { border-color: #F1EFEA; box-shadow: inset 0 0 0 1px #F1EFEA; }
+html[data-theme="dark"] .pick[aria-pressed="true"]::after, html[data-theme="dark"] label.pick:has(input:checked)::after { background-color: #F1EFEA; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1A16' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 12.5 4 4 8-9'/></svg>"); }
+
+/* "Open now" on a result row: the chosen button is an ink pill. */
+.btn[aria-current="true"] { border-color: transparent; background-color: #1D1A16; background-image: none; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+.btn[aria-current="true"]:hover { background-color: #2B2722; color: #FBF8F3; }
+html[data-theme="dark"] .btn[aria-current="true"] { background-color: #F1EFEA; color: #1D1A16; }
+html[data-theme="dark"] .btn[aria-current="true"]:hover { background-color: #FFFFFF; color: #1D1A16; }
+
 /* css/00-shared.css */
 /*
  * Shared pieces for the console's plan release parts (2026-10-13): the freshness line under every page title and the usage
@@ -2964,7 +3057,7 @@ html[data-theme="dark"][data-scene="scenes"][data-page] .page-fresh { background
 .cusage { display: grid; gap: 3px; min-width: 0; }
 .cu-line { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
 .cu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cu-fig { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.cu-fig { font-variant-numeric: proportional-nums; font-weight: 600; color: var(--ink); white-space: nowrap; }
 .cu-over { margin-left: 6px; padding: 0 7px; border-radius: 999px; background: var(--bad-bg); color: var(--bad); font-size: 11.5px; font-weight: 650; }
 .cbar { height: 6px; overflow: hidden; border-radius: 999px; background: var(--surface-3); }
 .cbar > i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
@@ -2972,6 +3065,19 @@ html[data-theme="dark"][data-scene="scenes"][data-page] .page-fresh { background
 .cusage.is-full .cbar > i { background: #D43B2F; }
 .cusage.is-warn .cu-fig { color: var(--warn); }
 .cusage.is-full .cu-fig { color: var(--bad); }
+
+/* The history timelines (Settings > Change history, Visible > History, the Billing drawer's history), one look (2026-10-14).
+   A solid dot for each line sits exactly on a thin rail; the rail joins one dot to the next and stops at the last one; the newest
+   dot is filled. The dots are solid so nothing behind shows through. Rail centre: 7px from the list's left edge. */
+:is(.hx-list, .vz-hist, .bd-hist-list) { --tl-gap: 22px; position: relative; display: grid; gap: var(--tl-gap); margin: 0; padding: 0 0 0 30px; border: 0; list-style: none; }
+.bd-hist-list { --tl-gap: 14px; }
+:is(.hx-list, .vz-hist, .bd-hist-list) > li { position: relative; margin: 0; padding: 0; border: 0; }
+:is(.hx-list, .vz-hist, .bd-hist-list) > li::before { content: ""; position: absolute; left: -29px; top: 3px; box-sizing: border-box; width: 14px; height: 14px; border: 2px solid var(--line-2); border-radius: 50%; background: var(--surface); box-shadow: none; }
+:is(.hx-list, .vz-hist, .bd-hist-list) > li:not(:last-child)::after { content: ""; position: absolute; left: -23px; top: 21px; bottom: calc(-1 * var(--tl-gap) + 1px); width: 2px; border-radius: 2px; background: var(--line-2); }
+:is(.hx-list, .vz-hist, .bd-hist-list) > li:first-child::before { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 0 4px var(--you-bg); }
+details :is(.hx-list) > li:first-child::before { border-color: var(--line-2); background: var(--surface); box-shadow: none; }
+details > .hx-list { margin-top: var(--tl-gap); }
+html[data-theme="dark"] :is(.hx-list, .vz-hist, .bd-hist-list) > li::before { background: var(--surface-2); }
 
 /* css/10-needs.css */
 /*
@@ -2983,7 +3089,7 @@ html[data-theme="dark"][data-scene="scenes"][data-page] .page-fresh { background
 .nx-chips { margin: 16px 0 22px; }
 .nx-chips .seg { display: flex; flex-wrap: wrap; max-width: 100%; overflow: visible; padding: 0; }
 .nx-chips .seg button { display: inline-flex; flex: none; align-items: center; gap: 2px; }
-.nx-chips .seg .count { margin-left: 6px; min-width: 20px; padding: 0 6px; font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.nx-chips .seg .count { margin-left: 6px; min-width: 20px; padding: 0 6px; font-size: 12px; line-height: 1.5; font-variant-numeric: proportional-nums; }
 
 /* One glass panel holds the cards; each card is a row of it, set off by a hairline. */
 .nx-panel { margin: 0 0 18px; padding: 4px 26px; }
@@ -3095,7 +3201,7 @@ button.cl-card:hover { background-color: rgba(255, 255, 255, 0.7); box-shadow: v
 .cl-chips { margin: 0 0 14px; }
 .cl-chips .seg, .cl-toolbar .seg { display: flex; flex-wrap: wrap; max-width: 100%; overflow: visible; padding: 0; }
 .cl-chips .seg button, .cl-toolbar .seg button { flex: none; }
-.cl-chips .seg .count, .cl-toolbar .seg .count { margin-left: 6px; min-width: 20px; padding: 0 6px; font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.cl-chips .seg .count, .cl-toolbar .seg .count { margin-left: 6px; min-width: 20px; padding: 0 6px; font-size: 12px; line-height: 1.5; font-variant-numeric: proportional-nums; }
 .cl-toolbar { justify-content: space-between; gap: 10px 16px; margin-bottom: 18px; }
 .cl-more button { min-height: 34px; padding: 5px 13px; font-size: 13.5px; }
 
@@ -3117,7 +3223,7 @@ button.cl-card:hover { background-color: rgba(255, 255, 255, 0.7); box-shadow: v
 .cl-usage .cu-name { grid-column: 1; grid-row: 1; font-size: 12.5px; }
 .cl-usage .cbar { grid-column: 2; grid-row: 1; }
 .cl-usage .cu-fig { grid-column: 3; grid-row: 1; font-size: 12.5px; }
-.cl-month { display: block; margin-top: 8px; color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.cl-month { display: block; margin-top: 8px; color: var(--ink-3); font-size: 12px; font-variant-numeric: proportional-nums; }
 .cl-status { display: grid; gap: 8px; }
 .cl-status .chip { font-size: 13px; }
 .cl-fresh { min-width: 112px; }
@@ -3203,7 +3309,7 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 .wk-all { display: grid; gap: 16px; margin-top: 14px; }
 .wk-group h3 { margin: 0 0 8px; color: var(--ink-3); font-size: 13.5px; font-weight: 650; }
 .wk-all .wk-bars { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 24px; }
-.wk-n { min-width: 20px; padding: 0 6px; border-radius: 999px; background: rgba(94, 72, 50, 0.1); color: var(--ink-2); font-size: 12px; font-weight: 650; line-height: 1.65; text-align: center; font-variant-numeric: tabular-nums; }
+.wk-n { min-width: 20px; padding: 0 6px; border-radius: 999px; background: rgba(94, 72, 50, 0.1); color: var(--ink-2); font-size: 12px; font-weight: 650; line-height: 1.65; text-align: center; font-variant-numeric: proportional-nums; }
 .wk-n.is-bad { background: var(--bad-bg); color: var(--bad); }
 
 /* ---- the filter chips ------------------------------------------------------------------------------------------------------- */
@@ -3211,7 +3317,8 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 .wk-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .wk-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 7px 14px; border: 0.67px solid var(--glass-edge); border-radius: 999px; background-color: rgba(255, 255, 255, 0.34); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); color: var(--ink-2); font-size: 14px; font-weight: 650; cursor: pointer; transition: background-color 160ms var(--ease), color 160ms var(--ease), box-shadow 160ms var(--ease); }
 .wk-chip:hover { background-color: rgba(255, 255, 255, 0.72); color: var(--ink); }
-.wk-chip[aria-pressed="true"] { background-color: rgba(255, 255, 255, 0.96); color: var(--ink); box-shadow: var(--pill-on), var(--glass-shadow-sm); }
+.wk-chip[aria-pressed="true"] { border-color: transparent; background-color: #1D1A16; background-image: none; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+html[data-theme="dark"] .wk-chip[aria-pressed="true"] { background-color: #F1EFEA; color: #1D1A16; }
 .wk-empty, .wk-older { margin-top: 12px; }
 
 /* ---- a card on the board ----------------------------------------------------------------------------------------------------- */
@@ -3285,7 +3392,7 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 }
 
 /* the console styles text, date and search fields; a whole-number field gets the same look */
-.wk-form input[type="number"] { width: 100%; min-height: 42px; padding: 7px 11px; border: 1px solid rgba(94, 72, 50, 0.22); border-radius: 12px; background-color: rgba(255, 255, 255, 0.78); font-size: 15px; font-variant-numeric: tabular-nums; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease); }
+.wk-form input[type="number"] { width: 100%; min-height: 42px; padding: 7px 11px; border: 1px solid rgba(94, 72, 50, 0.22); border-radius: 12px; background-color: rgba(255, 255, 255, 0.78); font-size: 15px; font-variant-numeric: proportional-nums; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease); }
 .wk-form input[type="number"]:focus { outline: none; border-color: rgba(174, 58, 11, 0.55); box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.16); }
 .wk-form input[type="number"]:disabled, .wk-form select:disabled { opacity: 0.6; }
 
@@ -3309,6 +3416,144 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 .board > .col-delete.over .del-zone { color: var(--bad); }
 @media (max-width: 760px) { .wk-strips { scroll-padding: 0 16px; } }
 
+/* ---- "By client": one pill for each client with cards, under the filter chips (2026-10-14) -------------------------------------- */
+.wk-by { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 10px 0 4px; }
+.wk-by-l { padding: 3px 12px; border-radius: 999px; background-color: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); font-size: 13.5px; font-weight: 650; }
+.wk-by-pills { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.wk-pill { gap: 8px; min-height: 34px; padding: 5px 13px; font-size: 13.5px; }
+.wk-pill .cc-dot { width: 10px; height: 10px; }
+@media (max-width: 760px) {
+  .wk-by { flex-wrap: nowrap; margin-right: -16px; margin-left: -16px; padding: 0 16px 8px; overflow-x: auto; scrollbar-width: none; }
+  .wk-by-pills { flex-wrap: nowrap; }
+  .wk-by-l, .wk-pill { flex: none; }
+}
+
+/* ---- the card editor: one field to a row, calm and roomy in a narrow column or a wide one (2026-10-14) ------------------------ */
+.cards { grid-template-columns: minmax(0, 1fr); }
+.card.editing { margin: 0 -9px; padding: 16px 10px 14px; }
+.card-edit { display: grid; gap: 14px; min-width: 0; }
+.card-edit .grid-2 { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.card-edit .field { min-width: 0; gap: 6px; }
+.card-edit input:not([type="checkbox"]), .card-edit select, .card-edit textarea { width: 100%; min-width: 0; max-width: 100%; min-height: 42px; }
+.card-edit select { padding: 7px 22px 7px 9px; background-position: right 7px center; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; }
+.card-edit input[type="date"] { padding-right: 8px; }
+.card-edit textarea { min-height: 112px; line-height: 1.5; }
+/* the switch, its words and the help under them line up in any width: switch and title on one line, the help across the card */
+.card-edit .wk-vis-field { gap: 8px; }
+.card-edit .switch-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px 12px; }
+.card-edit .switch-row input { margin: 0; }
+.card-edit .switch-row > span { display: contents; }
+.card-edit .switch-row .pick-t { font-size: 14.5px; line-height: 1.3; }
+.card-edit .switch-row .pick-d { grid-column: 1 / -1; font-size: 13px; line-height: 1.45; }
+.card-edit .wk-why, .card-edit .wk-keep { margin-left: 0; }
+.card-edit .wk-usage, .card-edit .card-sync { margin: 0; }
+/* Save card and Cancel side by side when there is room, one under the other when there is not; Remove card on its own line */
+.card-edit .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--line); }
+.card-edit .actions .btn { justify-content: center; min-height: 40px; }
+.card-edit .actions .btn-remove { grid-column: 1 / -1; min-height: 34px; color: var(--bad); }
+.card-edit .card-note { margin-top: 0; }
+
+/* dark: the service tag and the unselected filter chips keep their own dark ground, so their words read over the sky too */
+html[data-theme="dark"] .wk-tag { border-color: var(--line-2); background-color: rgba(255, 255, 255, 0.1); color: var(--ink-2); }
+html[data-theme="dark"] .wk-chip:not([aria-pressed="true"]) { background-color: var(--glass-strong); color: var(--ink-2); }
+html[data-theme="dark"] .wk-chip:not([aria-pressed="true"]):hover { color: var(--ink); }
+
+/* css/21-card-color.css */
+/*
+ * A colour for each client (2026-10-14): the palette as tokens, the dot, the pill, the swatches and a card's coloured left edge.
+ * The names are the database's (client_profile.card_color check). Each colour has three tokens: the edge and dot (--cc), a tint for the
+ * pill behind its name (--cc-bg) and the pill's text (--cc-ink). Light, dark and the moving sky all read: the pill sits on its own
+ * near-solid ground (--cc-base), so the sky behind a glass card never changes its contrast, and the text colours are checked at 4.5:1.
+ */
+:root {
+  --cc-orange: #EE6417; --cc-orange-bg: rgba(238, 100, 23, 0.16); --cc-orange-ink: #8F3A06;
+  --cc-amber: #C98700; --cc-amber-bg: rgba(201, 135, 0, 0.16); --cc-amber-ink: #6E4D00;
+  --cc-lime: #6A9A12; --cc-lime-bg: rgba(106, 154, 18, 0.16); --cc-lime-ink: #385505;
+  --cc-green: #259A5C; --cc-green-bg: rgba(37, 154, 92, 0.16); --cc-green-ink: #14623A;
+  --cc-teal: #0F9594; --cc-teal-bg: rgba(15, 149, 148, 0.16); --cc-teal-ink: #0A5654;
+  --cc-sky: #2790D4; --cc-sky-bg: rgba(39, 144, 212, 0.16); --cc-sky-ink: #0F4C78;
+  --cc-blue: #4C6FE0; --cc-blue-bg: rgba(76, 111, 224, 0.16); --cc-blue-ink: #23399A;
+  --cc-violet: #8B5CF0; --cc-violet-bg: rgba(139, 92, 240, 0.16); --cc-violet-ink: #4E2AA6;
+  --cc-pink: #DC4A9F; --cc-pink-bg: rgba(220, 74, 159, 0.16); --cc-pink-ink: #8E1A5D;
+  --cc-rose: #E5484D; --cc-rose-bg: rgba(229, 72, 77, 0.16); --cc-rose-ink: #9A1C22;
+  --cc-base: rgba(255, 255, 255, 0.9);
+}
+html[data-theme="dark"] {
+  --cc-orange: #FF9A63; --cc-orange-bg: rgba(255, 154, 99, 0.22); --cc-orange-ink: #FF9A63;
+  --cc-amber: #F5CF66; --cc-amber-bg: rgba(245, 207, 102, 0.22); --cc-amber-ink: #F5CF66;
+  --cc-lime: #BCE36E; --cc-lime-bg: rgba(188, 227, 110, 0.22); --cc-lime-ink: #BCE36E;
+  --cc-green: #8EDDA8; --cc-green-bg: rgba(142, 221, 168, 0.22); --cc-green-ink: #8EDDA8;
+  --cc-teal: #7ADAD6; --cc-teal-bg: rgba(122, 218, 214, 0.22); --cc-teal-ink: #7ADAD6;
+  --cc-sky: #9AD5F7; --cc-sky-bg: rgba(154, 213, 247, 0.22); --cc-sky-ink: #9AD5F7;
+  --cc-blue: #A9BCFA; --cc-blue-bg: rgba(169, 188, 250, 0.22); --cc-blue-ink: #A9BCFA;
+  --cc-violet: #CDB5FA; --cc-violet-bg: rgba(205, 181, 250, 0.22); --cc-violet-ink: #CDB5FA;
+  --cc-pink: #F5A8D3; --cc-pink-bg: rgba(245, 168, 211, 0.22); --cc-pink-ink: #F5A8D3;
+  --cc-rose: #FFA3A6; --cc-rose-bg: rgba(255, 163, 166, 0.22); --cc-rose-ink: #FFA3A6;
+  --cc-base: rgba(27, 30, 38, 0.92);
+}
+.cc-orange { --cc: var(--cc-orange); --cc-bg: var(--cc-orange-bg); --cc-ink: var(--cc-orange-ink); }
+.cc-amber { --cc: var(--cc-amber); --cc-bg: var(--cc-amber-bg); --cc-ink: var(--cc-amber-ink); }
+.cc-lime { --cc: var(--cc-lime); --cc-bg: var(--cc-lime-bg); --cc-ink: var(--cc-lime-ink); }
+.cc-green { --cc: var(--cc-green); --cc-bg: var(--cc-green-bg); --cc-ink: var(--cc-green-ink); }
+.cc-teal { --cc: var(--cc-teal); --cc-bg: var(--cc-teal-bg); --cc-ink: var(--cc-teal-ink); }
+.cc-sky { --cc: var(--cc-sky); --cc-bg: var(--cc-sky-bg); --cc-ink: var(--cc-sky-ink); }
+.cc-blue { --cc: var(--cc-blue); --cc-bg: var(--cc-blue-bg); --cc-ink: var(--cc-blue-ink); }
+.cc-violet { --cc: var(--cc-violet); --cc-bg: var(--cc-violet-bg); --cc-ink: var(--cc-violet-ink); }
+.cc-pink { --cc: var(--cc-pink); --cc-bg: var(--cc-pink-bg); --cc-ink: var(--cc-pink-ink); }
+.cc-rose { --cc: var(--cc-rose); --cc-bg: var(--cc-rose-bg); --cc-ink: var(--cc-rose-ink); }
+.cc-none { --cc: transparent; --cc-bg: transparent; --cc-ink: var(--ink-2); }
+
+/* the dot: shown only when the client has a colour */
+.cc-dot { display: inline-block; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--cc); box-shadow: 0 0 0 1px rgba(29, 26, 22, 0.18); vertical-align: 0.5px; }
+html[data-theme="dark"] .cc-dot { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28); }
+.cc-dot.cc-none { display: none; }
+.row-link > .cc-dot { margin-right: 8px; }
+.side-client > .cc-dot { margin-left: auto; }
+
+/* the client's name on a card: a small tinted pill with a dot */
+.cc-pill { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; overflow: hidden; padding: 1px 9px 1px 8px; border-radius: 999px; background-color: var(--cc-base); background-image: linear-gradient(var(--cc-bg), var(--cc-bg)); color: var(--cc-ink); font-size: 12.5px; font-weight: 650; line-height: 1.55; }
+.cc-pill .cc-pill-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cc-pill .cc-dot { background: var(--cc); }
+.cc-pill.cc-none { display: none; }
+
+/* a card's coloured left edge: 4px, following the card's round corners */
+.card[class*=" cc-"] { box-shadow: inset 4px 0 0 var(--cc), var(--glass-shadow-sm, 0 1px 2px rgba(40, 30, 20, 0.05)); }
+.card[class*=" cc-"]:hover { box-shadow: inset 4px 0 0 var(--cc), var(--glass-shadow, 0 4px 14px rgba(40, 30, 20, 0.1)); }
+
+/* the dot button in the client's header, and the swatches it opens */
+.cc-wrap { position: relative; display: inline-flex; }
+.cc-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; transition: background 160ms var(--ease); }
+.cc-btn:hover { background: rgba(94, 72, 50, 0.1); }
+html[data-theme="dark"] .cc-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.cc-btn .cc-dot { width: 15px; height: 15px; }
+.cc-btn .cc-dot.cc-none { display: inline-block; background: transparent; box-shadow: none; border: 1.75px dashed var(--ink-3); }
+.cc-btn:focus-visible { outline: 2px solid var(--focus, #AE3A0B); outline-offset: 2px; }
+.cc-pop { position: absolute; z-index: 40; top: calc(100% + 8px); left: -6px; width: max-content; max-width: min(268px, calc(100vw - 32px)); padding: 12px 14px 12px; border: 1px solid var(--line-2); border-radius: 16px; background-color: var(--surface); box-shadow: 0 14px 34px -10px rgba(29, 26, 22, 0.35); }
+.cc-pop[hidden] { display: none; }
+.cc-pop-h { margin: 0 0 8px; color: var(--ink-2); font-size: 13px; font-weight: 650; }
+.cc-pop-s { margin: 8px 0 0; color: var(--ink-3); font-size: 13px; }
+.cc-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.cc-sw { position: relative; display: inline-flex; width: 32px; height: 32px; cursor: pointer; }
+.cc-sw input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.cc-sw-dot { display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--cc); box-shadow: inset 0 0 0 1px rgba(29, 26, 22, 0.2); transition: box-shadow 160ms var(--ease), transform 160ms var(--ease); }
+html[data-theme="dark"] .cc-sw-dot { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); }
+.cc-sw:hover .cc-sw-dot { transform: scale(1.08); }
+/* the chosen one: a ring in the text colour with a gap, and a tick, so it does not rest on colour alone */
+.cc-sw input:checked + .cc-sw-dot { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+.cc-sw input:checked + .cc-sw-dot::after { content: ""; display: block; width: 9px; height: 5px; margin: 11px auto 0; border-left: 2.25px solid #fff; border-bottom: 2.25px solid #fff; rotate: -45deg; filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.55)); }
+.cc-sw input:focus-visible + .cc-sw-dot { outline: 2px solid var(--focus, #AE3A0B); outline-offset: 5px; }
+/* "No colour": an empty ring with a slash */
+.cc-sw.cc-none .cc-sw-dot { background: transparent; box-shadow: inset 0 0 0 1.75px var(--ink-3); background-image: linear-gradient(to top right, transparent calc(50% - 1px), var(--ink-3) calc(50% - 1px), var(--ink-3) calc(50% + 1px), transparent calc(50% + 1px)); }
+.cc-sw.cc-none input:checked + .cc-sw-dot { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink), inset 0 0 0 1.75px var(--ink-3); }
+.cc-sw.cc-none input:checked + .cc-sw-dot::after { border-color: var(--ink); filter: none; }
+
+/* in Setup's "Plan and sign-off" panel */
+.cc-block { display: grid; gap: 8px; margin: 0 0 18px; padding: 0 0 18px; border-bottom: 1px solid var(--line); }
+.cc-block .panel-sub { margin: 0; }
+.cc-block .hint { margin: 0; color: var(--ink-3); font-size: 13.5px; }
+.cc-now { margin: 0; color: var(--ink-2); font-size: 14px; font-weight: 600; }
+.client-head .who .cc-wrap { margin: -3px 0 -3px -4px; }
+
 /* css/22-results.css */
 /*
  * Result entry (C9, 2026-10-13): the Results tab of a client. The form on the left, the publish checklist and what the client sees now on
@@ -3326,7 +3571,7 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 
 /* a value with its unit beside it */
 .rs-unit { position: relative; }
-.rs-unit input { padding-right: 84px; font-variant-numeric: tabular-nums; }
+.rs-unit input { padding-right: 84px; font-variant-numeric: proportional-nums; }
 .rs-suffix { position: absolute; top: 50%; right: 13px; translate: 0 -50%; max-width: 70px; overflow: hidden; color: var(--ink-3); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
 .rs-form .hint:empty { display: none; }
 .rs-form .date-say { min-height: 0; }
@@ -3450,7 +3695,7 @@ html[data-theme="dark"] { --pp-card: rgba(255, 255, 255, 0.05); --pp-card-hover:
 
 .pp-picks { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .pp-picks-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 14px; color: var(--ink-2); font-size: 14px; }
-.pp-count { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+.pp-count { color: var(--ink); font-weight: 650; font-variant-numeric: proportional-nums; }
 .pp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .pp-pick { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 12px 14px; border: 1px solid var(--pp-line); border-radius: 18px; background: var(--pp-card); cursor: pointer; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease), background 160ms var(--ease); }
 .pp-pick:hover { border-color: var(--pp-line-hi); background: var(--pp-card-hover); }
@@ -3540,7 +3785,7 @@ table.bl-grid td.bl-c-act { display: none; }
 .bl-usage .cu-line { font-size: 12.5px; }
 .bl-more { display: inline-block; margin-top: 7px; color: var(--accent-ink); font-size: 12.5px; font-weight: 600; }
 .bl-rems { display: grid; justify-items: start; gap: 5px; }
-.bl-inv-n { display: block; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.bl-inv-n { display: block; font-weight: 650; font-variant-numeric: proportional-nums; overflow-wrap: anywhere; }
 .bl-inv-s { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 4px; }
 .bl-inv-amt { font-weight: 650; }
 .bl-link { display: block; margin-top: 5px; font-size: 12.5px; font-weight: 600; }
@@ -3583,12 +3828,10 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
 .bd-opt-d { grid-column: 2; color: var(--ink-3); font-size: 13.5px; line-height: 1.4; }
 .bd-info { padding: 10px 14px; border-radius: 14px; background: var(--them-bg); color: var(--them); font-size: 13.5px; line-height: 1.4; }
 .bd-reason textarea { min-height: 92px; }
-.bd-reason .hint { text-align: right; font-variant-numeric: tabular-nums; }
+.bd-reason .hint { text-align: right; font-variant-numeric: proportional-nums; }
 .bd-hist h3 { margin-bottom: 10px; font-size: 17px; }
-.bd-hist-list { display: grid; margin: 0; padding: 0 0 0 16px; border-left: 1px solid var(--line-2); list-style: none; }
-.bd-hist-list li { position: relative; display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 12px; padding: 8px 0; font-size: 13.5px; line-height: 1.45; }
-.bd-hist-list li::before { content: ""; position: absolute; left: -20px; top: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--surface-3); box-shadow: 0 0 0 3px var(--pp-sheet); }
-.bd-h-time { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.bd-hist-list li { display: grid; grid-template-columns: 124px minmax(0, 1fr); gap: 12px; font-size: 13.5px; line-height: 20px; }
+.bd-h-time { color: var(--ink-3); font-variant-numeric: proportional-nums; }
 .bd-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 24px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: var(--pp-sheet-foot); }
 .bd-foot-note { color: var(--ink-3); font-size: 13.5px; }
 
@@ -3659,14 +3902,14 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
 .nc-rail ol { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .nc-pill { display: inline-flex; align-items: center; gap: 9px; min-height: 40px; padding: 6px 16px 6px 7px; border: 0.67px solid var(--glass-edge); border-radius: 999px; background-color: var(--pp-soft); box-shadow: var(--glass-shadow-sm); color: var(--ink-2); font-size: 14px; font-weight: 650; cursor: pointer; transition: background 160ms var(--ease), color 160ms var(--ease); }
 .nc-pill:hover { background-color: var(--pp-card-hover); color: var(--ink); }
-.nc-pill-n { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-3); color: var(--ink-2); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.nc-pill-n { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-3); color: var(--ink-2); font-size: 12.5px; font-weight: 700; font-variant-numeric: proportional-nums; }
 .nc-pill-n .ic { width: 14px; height: 14px; stroke-width: 3; }
 .nc-pill.is-done .nc-pill-n { background: var(--good-bg); color: var(--good); }
 
 .nc-step { scroll-margin-top: 16px; }
 .nc-step + .nc-step, .nc-step + .nc-two, .nc-two + .nc-step { margin-top: 0; }
 .nc-step h2 { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 21px; }
-.nc-num { display: grid; flex: none; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: var(--surface); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.nc-num { display: grid; flex: none; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: var(--surface); font-size: 14px; font-weight: 700; font-variant-numeric: proportional-nums; }
 .nc-step.is-done .nc-num { background: var(--good); }
 .nc-sub { max-width: 72ch; margin: -6px 0 18px; color: var(--ink-3); font-size: 14px; line-height: 1.5; }
 .nc-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 18px; }
@@ -3712,6 +3955,14 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
   .nc-actions .btn { flex: 1 1 auto; }
 }
 
+/* The step you are on is the chosen pill: solid ink with light words, like every selected pill (2026-10-14). */
+.nc-pill[aria-current="step"] { border-color: transparent; background-color: #1D1A16; color: #FBF8F3; box-shadow: 0 6px 16px -8px rgba(29, 26, 22, 0.55); }
+.nc-pill[aria-current="step"]:hover { background-color: #2B2722; color: #FBF8F3; }
+.nc-pill[aria-current="step"] .nc-pill-n, .nc-pill[aria-current="step"].is-done .nc-pill-n { background: rgba(251, 248, 243, 0.18); color: #FBF8F3; }
+html[data-theme="dark"] .nc-pill[aria-current="step"] { background-color: #F1EFEA; color: #1D1A16; }
+html[data-theme="dark"] .nc-pill[aria-current="step"]:hover { background-color: #FFFFFF; color: #1D1A16; }
+html[data-theme="dark"] .nc-pill[aria-current="step"] .nc-pill-n, html[data-theme="dark"] .nc-pill[aria-current="step"].is-done .nc-pill-n { background: rgba(29, 26, 22, 0.12); color: #1D1A16; }
+
 /* css/40-settings.css */
 /*
  * Settings (2026-10-13): Plans and limits, Picks and lock, Change history, Reminder emails, the Hermes row, the raw data editor's
@@ -3747,7 +3998,7 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
 .pl-tags .chip::before { flex: none; margin-top: 0.45em; }
 .pl-card.is-edit { gap: 10px; }
 .pl-money { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-weight: 600; }
-.pl-money input { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; }
+.pl-money input { flex: 1; min-width: 0; font-variant-numeric: proportional-nums; }
 
 .pl-wrap { overflow-x: auto; margin: 0 -6px; padding: 0 6px; }
 table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 15px; }
@@ -3763,16 +4014,16 @@ table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; fon
 .pl-grid tbody tr:not(.pl-svc) > :last-child { border-radius: 0 10px 10px 0; }
 .pl-grid td { padding: 10px 14px; }
 .pl-form .pl-grid tbody th[scope="row"] { padding-top: 20px; }
-.pl-n { font-size: 18px; font-weight: 650; letter-spacing: -0.2px; font-variant-numeric: tabular-nums; }
+.pl-n { font-size: 18px; font-weight: 650; letter-spacing: -0.2px; font-variant-numeric: proportional-nums; }
 .pl-n.is-zero, .pl-none { color: var(--ink-3); font-weight: 500; }
 .pl-star { margin-left: 2px; color: var(--accent-ink); font-weight: 700; }
 .pl-hint { display: block; margin-top: 1px; color: var(--ink-3); font-size: 13px; }
-.pl-later { display: block; width: fit-content; max-width: 100%; margin-top: 5px; padding: 2px 9px; border-radius: 12px; background: rgba(60, 120, 210, 0.12); color: #27528C; font-size: 12.5px; font-weight: 600; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.pl-later { display: block; width: fit-content; max-width: 100%; margin-top: 5px; padding: 2px 9px; border-radius: 12px; background: rgba(60, 120, 210, 0.12); color: #27528C; font-size: 12.5px; font-weight: 600; line-height: 1.35; font-variant-numeric: proportional-nums; }
 .pl-foot-note { margin-top: 20px; color: var(--ink-3); font-size: 13.5px; }
 
 /* The same table while it is being edited: a field for each number, and a start day. */
 .pl-edit-line { display: inline-flex; align-items: center; gap: 4px; }
-.pl-grid .pl-in { width: 88px; min-height: 42px; padding: 6px 10px; border: 1px solid rgba(94, 72, 50, 0.22); border-radius: 12px; background: rgba(255, 255, 255, 0.78); color: var(--ink); font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease); }
+.pl-grid .pl-in { width: 88px; min-height: 42px; padding: 6px 10px; border: 1px solid rgba(94, 72, 50, 0.22); border-radius: 12px; background: rgba(255, 255, 255, 0.78); color: var(--ink); font-size: 16px; font-weight: 650; font-variant-numeric: proportional-nums; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease); }
 .pl-grid .pl-hint-in { display: block; width: 100%; max-width: 132px; min-height: 34px; margin-top: 6px; padding: 4px 10px; font-size: 13px; }
 .pl-grid input[aria-invalid="true"], .pl-card input[aria-invalid="true"], .pl-date input[aria-invalid="true"] { border-color: var(--bad); box-shadow: 0 0 0 3px var(--bad-bg); }
 .pl-foot { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
@@ -3784,7 +4035,7 @@ table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; fon
 .pl-check-d { display: block; color: var(--ink-3); font-size: 13.5px; }
 .pl-foot .field-error { margin-top: 12px; }
 .pl-acts { justify-content: flex-end; margin-top: 18px; }
-.pl-count { margin-right: auto; color: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pl-count { margin-right: auto; color: var(--ink-2); font-weight: 600; font-variant-numeric: proportional-nums; }
 
 /* Picks and lock, and the change history. */
 .pk-lead { font-size: 16px; }
@@ -3793,12 +4044,10 @@ table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; fon
 .pk-facts dt { margin-top: 14px; font-size: 13px; font-weight: 600; }
 .pk-facts dd { color: var(--ink); }
 .hx-list { display: grid; margin: 0; padding: 0; list-style: none; }
-.hx-item { position: relative; display: grid; gap: 2px; margin-left: 5px; padding: 0 0 16px 20px; border-left: 2px solid var(--line-2); }
-.hx-item:last-child { padding-bottom: 2px; }
-.hx-item::before { content: ""; position: absolute; left: -7px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--bg); border: 2px solid var(--line-2); }
-.hx-when { color: var(--ink-2); font-size: 14px; }
-.hx-when strong { margin-right: 6px; color: var(--ink); }
-.hx-what { color: var(--ink-2); font-size: 14.5px; }
+.hx-item { display: grid; gap: 4px; }
+.hx-when { color: var(--ink-3); font-size: 13px; font-weight: 600; line-height: 20px; }
+.hx-when strong { margin-right: 8px; padding: 1px 8px; border-radius: 999px; background: var(--surface-3); color: var(--ink); font-size: 12.5px; }
+.hx-what { color: var(--ink-2); font-size: 14.5px; line-height: 1.55; text-wrap: pretty; }
 .set-duo .q-more { margin-top: 10px; }
 
 /* Reminder emails: what the job does and when it last ran on the left, what failed on the right. */
@@ -3902,12 +4151,12 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
 .vz-cols > .panel { margin-top: 0; }
 .vz-side { position: sticky; top: 16px; }
 .vz-side h3 { margin-bottom: 4px; }
-.vz-count { font-variant-numeric: tabular-nums; }
+.vz-count { font-variant-numeric: proportional-nums; }
 
 /* The filter: the console's own pill group, the counts quiet unless something waits for a decision. */
 .vz-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 18px; padding: 0; }
 .vz-filter button { min-height: 36px; padding: 6px 14px; }
-.vz-filter .count { margin-left: 7px; padding: 0 7px; font-variant-numeric: tabular-nums; }
+.vz-filter .count { margin-left: 7px; padding: 0 7px; font-variant-numeric: proportional-nums; }
 .vz-filter .count.quiet { background: var(--surface-3); color: var(--ink-2); }
 
 /* The table. */
@@ -3957,12 +4206,9 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
 .vz-check input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--ink); cursor: pointer; }
 
 /* The history: a quiet timeline. The person is in bold inside the sentence. */
-.vz-hist { display: grid; gap: 24px; margin: 20px 0 0 6px; padding: 0 0 0 22px; border-left: 2px solid var(--line-2); list-style: none; }
-.vz-hist li { position: relative; }
+.vz-hist { margin-top: 20px; }
 .vz-hist li:focus { outline: none; }
-.vz-hist li::before { content: ""; position: absolute; left: -28px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 2px var(--ink-3); }
-.vz-hist li:first-child::before { box-shadow: 0 0 0 2px var(--accent); background: var(--accent); }
-.vz-hist time { display: block; color: var(--ink-3); font-size: 13px; font-weight: 650; letter-spacing: 0.01em; font-variant-numeric: normal; }
+.vz-hist time { display: block; color: var(--ink-3); line-height: 20px; font-size: 13px; font-weight: 650; letter-spacing: 0.01em; font-variant-numeric: normal; }
 .vz-hist p { margin-top: 4px; color: var(--ink-2); font-size: 14.5px; line-height: 1.55; text-wrap: pretty; }
 .vz-hist strong { color: var(--ink); }
 .vz-more { margin-top: 16px; font-size: 14px; }
@@ -4193,7 +4439,7 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
 .hp-frame .hp-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .hp-frame .hp-tile { display: grid; align-content: start; gap: 2px; padding: 14px 16px; }
 .hp-frame .hp-tile-label { color: var(--p-ink-2); font-size: 14px; font-weight: 600; }
-.hp-frame .hp-tile-value { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.hp-frame .hp-tile-value { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; font-variant-numeric: proportional-nums; }
 .hp-frame .hp-tile-value span { margin-left: 5px; color: var(--p-ink-3); font-size: 13.5px; font-weight: 600; letter-spacing: 0; }
 .hp-frame .hp-tile-meta { color: var(--p-ink-3); font-size: 13px; }
 .hp-frame .hp-tile .badge { justify-self: start; margin-top: 8px; }
@@ -4307,6 +4553,8 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
 /* The block on Needs you. */
 .bot-needs .q-client-h { display: flex; align-items: baseline; gap: 12px; }
 .bot-needs .bot-all { margin-left: auto; font-size: 13px; font-weight: 600; }
+/* On the moving sky the link reads in the same light words as the heading it sits in (contrast fix, 2026-10-14). */
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs .bot-all { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
 </style>
 </head>
 <body>
@@ -8037,8 +8285,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
       ${inTab ? '' : `<span class="client">${C0.esc(clientName(r))}</span>`}
       <span>${pill(r)}</span>
       <span class="text"><span class="bot-kind">${C0.esc(r.kind || 'General')}</span> ${C0.esc(short(r.final_text || r.draft, 140))}</span>
-      <span class="when"><time datetime="${C0.esc(r.created_at)}" title="${C0.esc(C0.when(r.created_at))}">${C0.esc(C0.ago(r.created_at))}</time></span>
-      <span class="go" aria-hidden="true">${C0.icon('arrow')}</span></a></li>`;
+      <span class="when"><time datetime="${C0.esc(r.created_at)}" title="${C0.esc(C0.when(r.created_at))}">${C0.esc(C0.ago(r.created_at))}</time></span></a></li>`;
   }
 
   /** The draft with the changed phrases marked. @param {any} r */
@@ -8070,7 +8317,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
     const back = inTab ? `#/client/${inTab}/bot` : '#/bot';
     const draftBlock = open === 'edit'
       ? `<form class="bot-form" id="bot-edit" novalidate>
-          <div class="field"><label for="bot-edit-text">AI draft, edit before you approve</label><textarea id="bot-edit-text" name="text" rows="7" maxlength="20000">${esc(r.draft)}</textarea></div>
+          <div class="field"><label class="sr-only" for="bot-edit-text">AI draft, edit before you approve</label><textarea id="bot-edit-text" name="text" rows="7" maxlength="20000">${esc(r.draft)}</textarea></div>
           <div class="actions"><button class="btn" type="submit">${icon('check')}Save &amp; Approve</button><button class="btn btn-quiet" type="button" data-bot="cancel">Cancel</button></div>
         </form>`
       : `<div class="bot-text">${st === 'approved' && r.final_text && r.final_text !== r.draft ? esc(r.final_text) : marked(r)}</div>`;
@@ -8097,7 +8344,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
         <div class="bot-head"><div><h2 id="bot-h">Change request · ${esc(r.kind || 'General')}</h2>
           <p class="meta">${inTab ? '' : `<a href="#/client/${esc(r.tenant_id)}">${esc(clientName(r))}</a> · `}${by} · <time datetime="${esc(r.created_at)}">${esc(C0.when(r.created_at))}</time></p></div>${pill(r)}</div>
         <section class="bot-part"><h3>Original client request</h3>${r.request ? `<blockquote>${esc(r.request)}</blockquote>` : '<p class="meta">None was sent with this draft.</p>'}</section>
-        <section class="bot-part"><h3>AI draft</h3>${draftBlock}</section>
+        <section class="bot-part"><h3>${open === 'edit' ? 'AI draft · editing' : st === 'approved' && r.final_text && r.final_text !== r.draft ? 'Approved text (edited)' : 'AI draft'}</h3>${draftBlock}</section>
         ${r.change_note ? `<p class="bot-note"><strong>What changed:</strong> ${esc(r.change_note)}</p>` : ''}
         ${notes.length ? `<section class="bot-part"><h3>Notes for another round</h3><ul class="thread">${notes.map((/** @type {any} */ n) => `<li class="msg team"><p>${esc(n.body)}</p><p class="meta">${esc(n.by_name || 'Team')} · ${esc(C0.when(n.at))}</p></li>`).join('')}</ul></section>` : ''}
         ${actions}${decided}
@@ -8391,6 +8638,8 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
     return out;
   }
 
+  /** The client's card colour as a small dot before the name (nothing while it has none; mod-color.js). @param {string} id */
+  const colorDot = (id) => { const k = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.color; return k ? k.dot(id) : ''; };
   /** The line under the client's name: what is next for its plan, else what it is. @param {any} r */
   function noteOf(r) {
     const c = C();
@@ -8535,7 +8784,7 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
       const stamp = c.plans.at || c.all.at;
       const check = !pl.now ? '<span class="chip plain">No plan</span>' : r.unverified ? '<span class="chip warn">Unverified</span>' : '<span class="chip good">Verified</span>';
       return `<tr data-href="#/client/${esc(t.id)}/overview"${t.status !== 'active' ? ' class="paused"' : ''}>
-        <td data-label="Client"><a class="row-link" href="#/client/${esc(t.id)}/overview">${esc(t.name)}</a>${notes.map((x) => `<span class="sub">${esc(x)}</span>`).join('')}${t.clerk_org_id ? '' : '<span class="row-chips"><span class="chip warn">No login yet</span></span>'}</td>
+        <td data-label="Client"><a class="row-link" href="#/client/${esc(t.id)}/overview">${colorDot(t.id)}${esc(t.name)}</a>${notes.map((x) => `<span class="sub">${esc(x)}</span>`).join('')}${t.clerk_org_id ? '' : '<span class="row-chips"><span class="chip warn">No login yet</span></span>'}</td>
         <td data-label="Plan"><div class="cl-v">${pl.nowPlan ? `<strong class="cl-plan-name">${esc(pl.nowPlan.name)}</strong>` : `<a class="chip warn chip-link" href="#/billing/${esc(t.id)}" title="Set their plan and picks in Billing">No plan set</a>`}</div></td>
         <td data-label="Picks this cycle"><div class="cl-v">${pl.now ? esc(picksLine(pl.now)) : '<span class="none">Not set</span>'}</div></td>
         <td data-label="Usage this month" class="cl-usage-cell"><div class="cl-v">${bars ? `<div class="cl-usage">${bars}</div>${more > 0 ? `<span class="cl-sub">and ${c.plural(more, 'more limit')} on their page</span>` : ''}` : '<span class="none">No limits yet</span>'}${period ? `<span class="cl-month">${esc(period)}</span>` : ''}</div></td>
@@ -8830,6 +9079,146 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
 
   EXT.clientview = { changed, pageOf, dashUrl };
   EXT.tabs.view = { label: 'Client view', after: 'home', render };
+})();
+</script>
+<script>
+/* mod-color.js */
+/*
+ * A colour for each client (2026-10-14): staff pick one so a client's cards are easy to tell apart on All work.
+ *
+ * The colour is a NAME from a fixed palette (client_profile.card_color, staff only, checked by the database: migration
+ * 20261014050000_client_card_color.sql). The console turns a name into tokens with the class "cc-<name>" (css/21-card-color.css), so the
+ * same colour works in light, dark and over the moving sky. No colour (null) is the default: nothing is drawn.
+ *
+ * What this file gives the console (window.D8C_EXT.color):
+ *   of(id), cls(id)         the colour name, or the class " cc-<name>" (empty when none)
+ *   dot(id), pill(id, name) a small dot, and the client's name as a tinted pill with a dot
+ *   headerControl(id)       the dot button in the client header that opens the swatches
+ *   setupBlock(id)          the swatches as a block of Setup's "Plan and sign-off" panel
+ * Picking a swatch saves at once through D8C.saveCardColor (the client_profile upsert, like the sign-off level) and every control and dot
+ * on the page changes in place. Clicks and keys are handled here by delegation, so no page has to wire anything.
+ */
+(function () {
+  'use strict';
+  /** @type {any} */
+  const EXT = ((/** @type {any} */ (window)).D8C_EXT = (/** @type {any} */ (window)).D8C_EXT || {});
+  /** @returns {any} */
+  const C = () => /** @type {any} */ (window).D8C;
+  /** @param {any} s */
+  const E = (s) => C().esc(s);
+
+  /** The palette: name and the words staff see. The same names as the database's check. @type {[string, string][]} */
+  const PALETTE = [['orange', 'Orange'], ['amber', 'Amber'], ['lime', 'Lime'], ['green', 'Green'], ['teal', 'Teal'], ['sky', 'Sky blue'], ['blue', 'Blue'], ['violet', 'Violet'], ['pink', 'Pink'], ['rose', 'Rose']];
+  const NAMES = /** @type {Record<string, string>} */ (Object.fromEntries(PALETTE));
+
+  /** The colour name a client has, or ''. @param {string} id */
+  function of(id) {
+    const all = C() && C().all;
+    const p = all && all.profiles && all.profiles[id];
+    const c = p && p.card_color;
+    return typeof c === 'string' && NAMES[c] ? c : '';
+  }
+  /** The class a card or pill takes for a client's colour, with a space in front, or ''. @param {string} id */
+  const cls = (id) => (of(id) ? ` cc-${of(id)}` : '');
+  /** The words for a colour. @param {string} c */
+  const label = (c) => (c ? NAMES[c] : 'No colour');
+
+  /** A small dot in the client's colour (hidden while the client has none). @param {string} id @param {string} [extra] more classes */
+  const dot = (id, extra) => `<span class="cc-dot cc-${of(id) || 'none'}${extra ? ' ' + extra : ''}" data-cc-of="${E(id)}" aria-hidden="true"></span>`;
+  /** The client's name as a small tinted pill with a dot. @param {string} id @param {string} name */
+  const pill = (id, name) => `<span class="cc-pill wk-client cc-${of(id) || 'none'}" data-cc-of="${E(id)}"><span class="cc-dot" aria-hidden="true"></span><span class="cc-pill-t">${E(name)}</span></span>`;
+
+  let seq = 0;
+  /**
+   * The swatches: "No colour" and the palette, as radio buttons (arrow keys move between them, each has its name for a screen reader).
+   * @param {string} id
+   */
+  function picker(id) {
+    const group = `cc-${++seq}`;
+    const cur = of(id);
+    /** @param {string} v */
+    const opt = (v) => `<label class="cc-sw ${v ? 'cc-' + v : 'cc-none'}" title="${E(label(v))}"><input type="radio" name="${group}" value="${v}" data-cc-pick="${E(id)}" aria-label="${E(label(v))}"${v === cur ? ' checked' : ''}><span class="cc-sw-dot" aria-hidden="true"></span></label>`;
+    return `<div class="cc-swatches" role="radiogroup" aria-label="Card colour">${['', ...PALETTE.map(([k]) => k)].map(opt).join('')}</div>`;
+  }
+
+  /** The dot button for the client header; it opens the swatches. @param {string} id */
+  function headerControl(id) {
+    const cur = of(id);
+    return `<span class="cc-wrap" data-cc-wrap="${E(id)}"><button class="cc-btn" type="button" data-cc-open="${E(id)}" aria-haspopup="true" aria-expanded="false" aria-controls="cc-pop-${E(id)}" aria-label="Card colour: ${E(label(cur))}. Change it" title="Card colour: ${E(label(cur))}">${dot(id)}</button>
+      <div class="cc-pop" id="cc-pop-${E(id)}" role="group" aria-label="Card colour" hidden><p class="cc-pop-h">Card colour</p>${picker(id)}<p class="cc-pop-s" data-cc-now="${E(id)}">${E(label(cur))}</p></div></span>`;
+  }
+
+  /** The block in Setup's "Plan and sign-off" panel. @param {string} id */
+  function setupBlock(id) {
+    return `<div class="cc-block"><h3 class="panel-sub">Card colour</h3>
+      <p class="hint">This client’s cards carry the colour on All work and the Work tab, so they are easy to tell apart. Only the team sees it. It saves as soon as you pick it.</p>
+      ${picker(id)}<p class="cc-now" data-cc-now="${E(id)}" aria-live="polite">${E(label(of(id)))}</p></div>`;
+  }
+
+  /** Changes every dot, pill, swatch and label for a client in place. @param {string} id @param {string} color */
+  function apply(id, color) {
+    const sel = (/** @type {string} */ a) => `[${a}="${CSS.escape(id)}"]`;
+    for (const el of document.querySelectorAll(sel('data-cc-of'))) {
+      for (const c of Array.from(el.classList)) if (/^cc-(?!dot$|pill$|btn$)/.test(c) && (c === 'cc-none' || NAMES[c.slice(3)])) el.classList.remove(c);
+      el.classList.add('cc-' + (color || 'none'));
+    }
+    for (const r of /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll(sel('data-cc-pick')))) r.checked = r.value === (color || '');
+    for (const el of document.querySelectorAll(sel('data-cc-now'))) el.textContent = label(color);
+    for (const b of document.querySelectorAll(sel('data-cc-open'))) { b.setAttribute('aria-label', `Card colour: ${label(color)}. Change it`); b.setAttribute('title', `Card colour: ${label(color)}`); }
+  }
+
+  /** Saves a pick: the page changes at once, and goes back if the database refuses. @param {string} id @param {string} color */
+  async function pick(id, color) {
+    const was = of(id);
+    if (color === was) return;
+    apply(id, color);
+    try {
+      await C().saveCardColor(id, color);
+      C().toast(color ? `${label(color)} saved as this client’s card colour.` : 'Card colour cleared.');
+    } catch (x) {
+      apply(id, was);
+      C().toast(C().message(x), true);
+    }
+  }
+
+  /** @param {HTMLElement|null} [except] */
+  function closePops(except) {
+    for (const b of document.querySelectorAll('[data-cc-open][aria-expanded="true"]')) {
+      const wrap = b.closest('.cc-wrap');
+      if (wrap && wrap === except) continue;
+      b.setAttribute('aria-expanded', 'false');
+      const pop = wrap && wrap.querySelector('.cc-pop');
+      if (pop) /** @type {HTMLElement} */ (pop).hidden = true;
+    }
+  }
+
+  document.addEventListener('change', (e) => {
+    const r = /** @type {HTMLElement} */ (e.target);
+    if (!(r instanceof HTMLInputElement) || !r.hasAttribute('data-cc-pick')) return;
+    // (the header's swatches stay open so the arrow keys can try each colour; Escape or a click elsewhere closes them)
+    pick(r.getAttribute('data-cc-pick') || '', r.value);
+  });
+  document.addEventListener('click', (e) => {
+    const t = /** @type {HTMLElement} */ (e.target);
+    const b = /** @type {HTMLElement|null} */ (t.closest ? t.closest('[data-cc-open]') : null);
+    if (!b) { if (!(t.closest && t.closest('.cc-pop'))) closePops(); return; }
+    const wrap = /** @type {HTMLElement} */ (b.closest('.cc-wrap'));
+    const pop = /** @type {HTMLElement} */ (wrap.querySelector('.cc-pop'));
+    const open = b.getAttribute('aria-expanded') !== 'true';
+    closePops(open ? wrap : null);
+    b.setAttribute('aria-expanded', open ? 'true' : 'false');
+    pop.hidden = !open;
+    if (open) { const on = /** @type {HTMLElement|null} */ (pop.querySelector('input:checked') || pop.querySelector('input')); if (on) on.focus(); }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const b = /** @type {HTMLElement|null} */ (document.querySelector('[data-cc-open][aria-expanded="true"]'));
+    if (!b) return;
+    closePops();
+    b.focus();
+  });
+
+  EXT.color = { PALETTE, of, cls, label, dot, pill, picker, headerControl, setupBlock, apply };
 })();
 </script>
 <script>
@@ -10620,10 +11009,24 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     form.addEventListener('change', () => { refresh(); keepDraft(); });
     refresh();
 
+    // The step you are on is the chosen pill in the rail (ink, like every other selected pill): the one you jumped to, typed in, or scrolled to.
+    /** @param {string} id */
+    function markStep(id) {
+      for (const p of Array.from(form.querySelectorAll('.nc-pill'))) {
+        if (p.getAttribute('data-nc-go') === id) p.setAttribute('aria-current', 'step'); else p.removeAttribute('aria-current');
+      }
+    }
+    markStep('nc-s1');
+    form.addEventListener('focusin', (e) => { const st = /** @type {HTMLElement} */ (e.target).closest('.nc-step'); if (st && st.id) markStep(st.id); });
+    if (typeof IntersectionObserver === 'function') {
+      const seen = new IntersectionObserver((rows) => { for (const r of rows) if (r.isIntersecting && r.target.id) markStep(r.target.id); }, { rootMargin: '-30% 0px -60% 0px' });
+      for (const st of Array.from(form.querySelectorAll('.nc-step'))) seen.observe(st);
+    }
+
     form.addEventListener('click', (e) => {
       const t = /** @type {HTMLElement} */ (e.target);
       const go = t.closest('[data-nc-go]');
-      if (go) { const el = document.getElementById(go.getAttribute('data-nc-go') || ''); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+      if (go) { const el = document.getElementById(go.getAttribute('data-nc-go') || ''); if (el) { markStep(el.id); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
       const act = t.closest('[data-nc]');
       if (!act) return;
       if (act.getAttribute('data-nc') === 'draft') {
@@ -12078,12 +12481,16 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const dayText = new Date(g.at).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
       if (g.action === 'plan_cap_version') {
         const v = Math.max(...g.rows.map((/** @type {any} */ d) => Number(d.version) || 1));
-        const bits = g.rows.map((/** @type {any} */ d) => {
+        // A number saved again unchanged (a starred number being confirmed) is not a change: it is counted, not listed as "4 to 4".
+        let same = 0;
+        const bits = g.rows.flatMap((/** @type {any} */ d) => {
           const row = caps.find((/** @type {any} */ c) => c.plan_id === d.plan && c.service === d.service && c.metric === d.metric && c.version === d.version);
           const old = caps.find((/** @type {any} */ c) => c.plan_id === d.plan && c.service === d.service && c.metric === d.metric && c.version === d.version - 1);
           const label = row ? row.label : String(d.metric || '').replace(/_/g, ' ');
-          return `${planName(d.plan)} ${label} ${old ? `${old.monthly_cap} to ${d.cap}` : `set to ${d.cap}`}`;
+          if (old && Number(old.monthly_cap) === Number(d.cap)) { same++; return []; }
+          return [`${planName(d.plan)} ${label} ${old ? `${old.monthly_cap} to ${d.cap}` : `set to ${d.cap}`}`];
         });
+        if (same) bits.push(bits.length ? `${same} more confirmed as they were` : `${same} ${same === 1 ? 'number' : 'numbers'} confirmed as they were`);
         const dates = Array.from(new Set(g.rows.map((/** @type {any} */ d) => String(d.effective_from)))).sort();
         const when = dates.length === 1 ? (dates[0] <= today ? `In force since ${shortDate(dates[0])}` : `Starts ${shortDate(dates[0])}`) : 'Start days differ';
         return { tag: `v${v}`, day: dayText, text: `${bits.slice(0, 3).join(', ')}${bits.length > 3 ? ` and ${bits.length - 3} more` : ''}. ${when}. ${cap1(who)}.` };
@@ -13384,10 +13791,15 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
    */
   function cardView(t, client) {
     const i = infoFor(t);
+    // the client's colour (mod-color.js): a left edge on the card, and the name as a tinted pill with a dot
+    const K = EXT.color;
+    const tint = K ? K.cls(t.tenant_id) : '';
+    const owner = tint ? C().tenant(t.tenant_id) : null;
     const over = !!(i && i.over && OPEN.includes(t.status));
     const svc = t.service ? C().svcLabel(t.service) : '';
     const tag = svc ? `<span class="wk-tag" title="${E(svc)}">${E(svc)}</span>` : '<span class="wk-tag is-plain">General</span>';
-    const head = `<p class="card-client wk-who">${client ? `<span class="wk-client">${E(client)}</span>` : ''}${tag}</p>`;
+    const who = tint ? K.pill(t.tenant_id, client || (owner ? owner.name : '')) : client ? `<span class="wk-client">${E(client)}</span>` : '';
+    const head = `<p class="card-client wk-who">${who}${tag}</p>`;
     let land = '';
     if (i && i.kind === 'counted') land = `<p class="wk-land is-done" title="Counted against ${E(i.line ? lower(i.line.label) : 'a limit')} this month">${E(i.text)}</p>`;
     else if (i && i.kind === 'urgent') land = `<p class="wk-land is-urgent">${E(i.text)}</p>`;
@@ -13405,7 +13817,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         : v === 'shown' ? `<span class="wk-vis is-on" title="Client sees this card: its title, stage and due date on their Work page">${EYE}</span>`
           : v === 'hidden' ? `<span class="wk-vis" title="Hidden from the client">${EYE_OFF}</span>` : ''
       : '';
-    return { cls: over ? ' is-over' : '', head, land, flag, vis };
+    return { cls: (over ? ' is-over' : '') + tint, head, land, flag, vis };
   }
   /** The tooltip line about who sees a card. @param {any} t */
   function seeText(t) {
@@ -13900,6 +14312,12 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       note: !c.plans.ok ? 'Plans have not loaded, so cards show without their limits.' : store.failed ? `Usage did not load (${store.failed}). Cards show without their positions.` : '' });
     const chip = (/** @type {string} */ key, /** @type {string} */ label, /** @type {boolean} */ on, /** @type {string} [extra] */ extra) => `<button class="wk-chip" type="button" data-wk-filter="${E(key)}" aria-pressed="${on ? 'true' : 'false'}">${E(label)}${extra || ''}</button>`;
     const strips = tenants.filter((/** @type {any} */ t) => c.planOf(t.id).now || everyCard.some((/** @type {any} */ k) => k.tenant_id === t.id));
+    // "By client": one pill for each client that has cards, with its colour dot. Only worth a row when there is more than one.
+    const K = EXT.color;
+    const withCards = tenants.filter((/** @type {any} */ t) => everyCard.some((/** @type {any} */ k) => k.tenant_id === t.id));
+    const byClient = withCards.length > 1
+      ? `<div class="wk-by" role="group" aria-label="By client"><span class="wk-by-l" aria-hidden="true">By client</span><div class="wk-by-pills">${withCards.map((/** @type {any} */ t) => `<button class="wk-chip wk-pill" type="button" data-wk-client="${E(t.id)}" data-wk-pill aria-pressed="${st.client === t.id ? 'true' : 'false'}">${K ? K.dot(t.id) : ''}${E(t.name)}</button>`).join('')}</div></div>`
+      : '';
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">All work</h1><p>Every client’s team cards on one board. Each card shows where it lands against that client’s plan limit, so nothing over the limit gets started without a decision.</p></div></div>
       ${fresh}
       ${strips.length ? `<div class="wk-strips" role="group" aria-label="Plan limits by client">${strips.slice(0, 6).map((/** @type {any} */ t) => strip(t.id, { filter: true, pressed: st.client === t.id })).join('')}</div>` : ''}
@@ -13909,6 +14327,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         ${chip('over', 'Over limit', !!st.over, `<span class="wk-n${overN ? ' is-bad' : ''}">${overN}</span>`)}
         ${services.map((/** @type {string} */ s) => chip('service:' + s, c.svcLabel(s), st.service === s)).join('')}
       </div>${st.client ? `<a class="btn btn-quiet btn-sm" href="#/client/${E(st.client)}/work/new">${c.icon('plus')}Add a card for ${E(names[st.client])}</a>` : ''}</div>
+      ${byClient}
       ${shown.length || !everyCard.length ? '' : `<p class="meta wk-empty">No cards match. <button class="linkish" type="button" data-wk-filter="all">Show everything</button></p>`}
       <div class="board" id="board">${o.columns(shown, (/** @type {any} */ t) => o.card(t, names[t.tenant_id]), { doneLabel: 'Done this month' })}</div>
       ${olderDone ? `<p class="meta wk-older">${c.plural(olderDone, 'earlier finished card is', 'earlier finished cards are')} on each client’s own Work tab.</p>` : ''}`;
@@ -13928,7 +14347,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       } else if (k) {
         const id = k.getAttribute('data-wk-client') || '';
         st.client = st.client === id ? '' : id;
-        st.focus = `[data-wk-client="${id}"]`;
+        st.focus = `${k.hasAttribute('data-wk-pill') ? '[data-wk-pill]' : ''}[data-wk-client="${id}"]`;
       }
       o.redraw();
     }, { signal });
@@ -14535,7 +14954,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const dot = d.needs.length ? 'you' : d.waiting.length ? 'them' : t.status === 'active' ? 'ok' : '';
       const title = d.needs.length ? plural(d.needs.length, 'thing needs', 'things need') + ' you' : d.waiting.length ? plural(d.waiting.length, 'thing') + ' waiting on client' : t.status === 'active' ? 'Nothing waiting' : t.status;
       return `<li><a class="side-client${t.status !== 'active' ? ' paused' : ''}" href="#/client/${esc(t.id)}"${t.id === openId ? ' aria-current="page"' : ''} title="${esc(title)}">
-        <span class="dot ${dot}" aria-hidden="true"></span><span class="name">${esc(t.name)}</span></a></li>`;
+        <span class="dot ${dot}" aria-hidden="true"></span><span class="name">${esc(t.name)}</span>${CC() ? CC().dot(t.id) : ''}</a></li>`;
     }).join('');
     $('#side-recent-h').hidden = !recent.length;
     const qb = $('#queue-badge');
@@ -15400,7 +15819,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     ].filter(Boolean);
     main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a>
       <div class="client-head"><div><h1 id="page-title" tabindex="-1">${esc(current.name)}</h1>
-        <div class="who">${statusChip}${warns}<details class="about"><summary>About</summary><p class="about-line">${about.map((x) => `<span class="t">${x}</span>`).join('')}</p></details></div></div></div>
+        <div class="who">${statusChip}${CC() ? CC().headerControl(current.id) : ''}${warns}<details class="about"><summary>About</summary><p class="about-line">${about.map((x) => `<span class="t">${x}</span>`).join('')}</p></details></div></div></div>
       <nav class="tabs" aria-label="Client sections">${allTabs().map(([k, label]) => {
         const count = k === 'talk' && talkCount ? `<span class="count" title="Needs a reply">${talkCount}</span>` : k === 'work' && openCards ? `<span class="count quiet" title="Open cards">${openCards}</span>` : '';
         return `<a href="#/client/${esc(id)}/${k}"${k === t ? ' aria-current="page"' : ''}>${label}${count}</a>`;
@@ -15515,6 +15934,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         </form>`)}
       ${fold('sec-plan', 'plan-h', 'Plan and sign-off', `${esc(partOf('clients').planNameOf(current.id) || 'No plan set')}, ${pf.approval_level && APPROVAL_LEVELS[pf.approval_level] ? `${APPROVAL_LEVELS[pf.approval_level][0]} sign-off` : 'no sign-off level'}. The plan comes from Billing. The sign-off level is for the team only.`, part === 'plan', `
         ${partOf('clients').planPanel(current.id)}
+        ${CC() ? CC().setupBlock(current.id) : ''}
         <form id="profile-form" class="cl-signoff" novalidate>
         ${profilePickers(pf)}
         <div class="actions"><button class="btn" type="submit">Save sign-off level</button></div>
@@ -15791,6 +16211,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
 
   /** All work and the cards' limits, counts, visibility and removal live in mod-work.js (2026-10-13). @returns {any} */
   const wx = () => (/** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.work) || null;
+  /** The client colour part (mod-color.js): a dot, a pill and the swatches. */
+  const CC = () => (/** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.color) || null;
   /**
    * The services a card can be for: what the client's package says, what their plan month includes, and the card's own (so saving a card
    * never quietly drops its service because the list did not know it).
@@ -15911,7 +16333,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   function card(t, client) {
     // mod-work.js adds who and what service, where the card lands against its limit, the over-limit flag and who sees it.
     const v = wx() ? wx().cardView(t, client) : null;
-    return `<li class="card${t.status === 'cancelled' ? ' cancelled' : ''}${v ? v.cls : ''}" draggable="true" data-task="${esc(t.id)}" tabindex="0" aria-label="${esc(t.title)}, ${esc(TASK_STATUS_LABEL[t.status])}${v && v.cls ? ', over its limit' : ''}. Press Enter to edit or move it." title="${esc(cardMore(t))}">
+    return `<li class="card${t.status === 'cancelled' ? ' cancelled' : ''}${v ? v.cls : ''}" draggable="true" data-task="${esc(t.id)}" tabindex="0" aria-label="${esc(t.title)}, ${esc(TASK_STATUS_LABEL[t.status])}${v && v.cls.includes('is-over') ? ', over its limit' : ''}. Press Enter to edit or move it." title="${esc(cardMore(t))}">
       ${v ? v.head : client ? `<p class="card-client">${esc(client)}</p>` : ''}<p class="card-title">${esc(t.title)}</p>
       ${v ? v.land + v.flag : ''}<p class="card-meta">${cardChip(t)}${v ? v.vis : ''}<button class="linkish card-edit-btn" type="button" data-edit="${esc(t.id)}">Edit</button></p>
     </li>`;
@@ -16067,7 +16489,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       </div>
       ${wk ? wk.visibilityField(t) : ''}${wk ? wk.editUsage(t) : ''}
       <p class="card-sync meta">${syncLine(t)}</p>
-      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-quiet btn-sm btn-remove" type="button" data-remove-card style="margin-left:auto">Remove card</button></div>
+      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-quiet btn-sm btn-remove" type="button" data-remove-card>Remove card</button></div>
       ${t.multica_issue_id ? `<div class="card-note"><div class="field"><label for="e-note-${esc(t.id)}">Note on ${esc(t.multica_identifier || 'the issue')} in Multica</label><textarea id="e-note-${esc(t.id)}" name="note" maxlength="4000" placeholder="${FLAGS.hermes ? 'Hermes and the team see' : 'The team sees'} this in the issue's thread."></textarea></div><button class="btn btn-quiet btn-sm" type="button" data-note>Add the note</button></div>` : ''}
     </form>`;
     const f = /** @type {HTMLFormElement} */ ($('form', li));
@@ -16640,6 +17062,18 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const level = levelOld === undefined ? tierOrLevel : levelOld;
     const client = await db();
     const row = check(await client.from('client_profile').upsert({ tenant_id: id, approval_level: level || null }).select('*').single());
+    writes++;
+    if (all) { all.profiles = all.profiles || {}; all.profiles[id] = row; }
+    return row;
+  }
+  /**
+   * Saves the colour of one client's cards (client_profile.card_color: a name from the palette in mod-color.js, or '' for none). The same upsert
+   * as the sign-off level: only the colour is sent, so the level is left as it is.
+   * @param {string} id @param {string} color
+   */
+  async function saveCardColor(id, color) {
+    const client = await db();
+    const row = check(await client.from('client_profile').upsert({ tenant_id: id, card_color: color || null }).select('*').single());
     writes++;
     if (all) { all.profiles = all.profiles || {}; all.profiles[id] = row; }
     return row;
@@ -17889,7 +18323,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     get plans() { return all && all.plans ? all.plans : emptyPlans(); }
   };
   /** More of what the Billing and Add client parts need (mod-billing.js, mod-newclient.js): Stripe, Multica, the sign-off levels and the client record's starting pieces. */
-  Object.assign(/** @type {any} */ (window).D8C, { blankService, agencyAccess, saveProfile, APPROVAL_LEVELS, stripeStatus, stripeReady, stripeModeText, stripeFn, stripeErr, stripeKnown, multica, multicaStatus,
+  Object.assign(/** @type {any} */ (window).D8C, { blankService, agencyAccess, saveProfile, saveCardColor, APPROVAL_LEVELS, stripeStatus, stripeReady, stripeModeText, stripeFn, stripeErr, stripeKnown, multica, multicaStatus,
     /** A raw database refusal (error.code and error.message of an rpc or write answer) in the console's plain words; check() speaks the client portal's words. */
     say: (/** @type {any} */ err) => { const p = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.planpick; return p ? p.say(err) : message(err); } });
   /** @type {any} */ (window).D8C_EXT = /** @type {any} */ (window).D8C_EXT || {};

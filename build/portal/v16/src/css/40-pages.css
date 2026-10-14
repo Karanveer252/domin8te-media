@@ -27,7 +27,7 @@ html { --pg-lock: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/200
 .page-settings .set-card > p { max-width: 66ch; font-size: 16px; line-height: 1.5; color: var(--p-ink-2); }
 .page-settings .set-card > p.meta { font-size: 14.5px; color: var(--p-ink-3); }
 .page-settings .set-card .sec-head { margin-bottom: 2px; }
-.page-settings .set-count { font-size: 14.5px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--p-ink-2); }
+.page-settings .set-count { font-size: 14.5px; font-weight: 600; font-variant-numeric: proportional-nums; color: var(--p-ink-2); }
 .page-settings .set-actions { gap: 10px; margin-top: 16px; }
 
 /* Connected accounts: name, what it does, when it last spoke; the health word on the right, the one button after it. */
@@ -194,10 +194,10 @@ html[data-theme="dark"] .page-messages .msg-compose textarea:focus-visible { box
 .ask-qty { display: grid; grid-template-columns: minmax(0, 1fr) 136px; gap: 0 16px; }
 .ask-qty .field:only-child { grid-column: 1 / -1; }
 .ask-qty .ask-n:only-child { max-width: 200px; }
-.ask-n input { font-variant-numeric: tabular-nums; }
+.ask-n input { font-variant-numeric: proportional-nums; }
 .ask-note-box:empty { display: none; }
 /* The note: one bold lead, the figures in tabular numerals, the bar under them, the sum as a quiet line. */
-.ask-note { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: start; gap: 6px 12px; padding: 16px 18px; border-radius: 16px; font-size: 15.5px; line-height: 1.5; font-variant-numeric: tabular-nums; color: var(--p-ink); }
+.ask-note { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: start; gap: 6px 12px; padding: 16px 18px; border-radius: 16px; font-size: 15.5px; line-height: 1.5; font-variant-numeric: proportional-nums; color: var(--p-ink); }
 .ask-note > .i { width: 20px; height: 20px; margin-top: 2px; }
 .ask-note > div { min-width: 0; }
 .ask-note p { margin: 0; }
@@ -234,3 +234,9 @@ html[data-theme="dark"] .page-messages .msg-compose textarea:focus-visible { box
   .msg-card.is-view-only .msg-keys::before { background: CanvasText; }
   .msg-card.is-view-only textarea { border-style: dashed; }
 }
+
+/* A chosen theme or look card stays a card: a 2px ink border and a small ink tick in the corner (2026-10-14, the one selected look). */
+.theme-opt, .page-settings .theme-opt { padding-right: 46px; }
+.theme-opt:has(input:checked)::before { content: ""; position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; background: var(--p-sel); pointer-events: none; }
+.theme-opt:has(input:checked)::after { content: ""; position: absolute; top: 14px; right: 17.5px; width: 5px; height: 9px; border: solid var(--p-sel-ink); border-width: 0 2.2px 2.2px 0; transform: rotate(45deg); pointer-events: none; }
+.theme-opt:has(input:checked), .page-settings .theme-opt:has(input:checked) { border-color: var(--p-sel); box-shadow: 0 0 0 1px var(--p-sel); }

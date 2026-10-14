@@ -32,7 +32,7 @@
 .pl-tags .chip::before { flex: none; margin-top: 0.45em; }
 .pl-card.is-edit { gap: 10px; }
 .pl-money { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-weight: 600; }
-.pl-money input { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; }
+.pl-money input { flex: 1; min-width: 0; font-variant-numeric: proportional-nums; }
 
 .pl-wrap { overflow-x: auto; margin: 0 -6px; padding: 0 6px; }
 table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 15px; }
@@ -48,16 +48,16 @@ table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; fon
 .pl-grid tbody tr:not(.pl-svc) > :last-child { border-radius: 0 10px 10px 0; }
 .pl-grid td { padding: 10px 14px; }
 .pl-form .pl-grid tbody th[scope="row"] { padding-top: 20px; }
-.pl-n { font-size: 18px; font-weight: 650; letter-spacing: -0.2px; font-variant-numeric: tabular-nums; }
+.pl-n { font-size: 18px; font-weight: 650; letter-spacing: -0.2px; font-variant-numeric: proportional-nums; }
 .pl-n.is-zero, .pl-none { color: var(--ink-3); font-weight: 500; }
 .pl-star { margin-left: 2px; color: var(--accent-ink); font-weight: 700; }
 .pl-hint { display: block; margin-top: 1px; color: var(--ink-3); font-size: 13px; }
-.pl-later { display: block; width: fit-content; max-width: 100%; margin-top: 5px; padding: 2px 9px; border-radius: 12px; background: rgba(60, 120, 210, 0.12); color: #27528C; font-size: 12.5px; font-weight: 600; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.pl-later { display: block; width: fit-content; max-width: 100%; margin-top: 5px; padding: 2px 9px; border-radius: 12px; background: rgba(60, 120, 210, 0.12); color: #27528C; font-size: 12.5px; font-weight: 600; line-height: 1.35; font-variant-numeric: proportional-nums; }
 .pl-foot-note { margin-top: 20px; color: var(--ink-3); font-size: 13.5px; }
 
 /* The same table while it is being edited: a field for each number, and a start day. */
 .pl-edit-line { display: inline-flex; align-items: center; gap: 4px; }
-.pl-grid .pl-in { width: 88px; min-height: 42px; padding: 6px 10px; border: 1px solid rgba(94, 72, 50, 0.22); border-radius: 12px; background: rgba(255, 255, 255, 0.78); color: var(--ink); font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease); }
+.pl-grid .pl-in { width: 88px; min-height: 42px; padding: 6px 10px; border: 1px solid rgba(94, 72, 50, 0.22); border-radius: 12px; background: rgba(255, 255, 255, 0.78); color: var(--ink); font-size: 16px; font-weight: 650; font-variant-numeric: proportional-nums; transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease); }
 .pl-grid .pl-hint-in { display: block; width: 100%; max-width: 132px; min-height: 34px; margin-top: 6px; padding: 4px 10px; font-size: 13px; }
 .pl-grid input[aria-invalid="true"], .pl-card input[aria-invalid="true"], .pl-date input[aria-invalid="true"] { border-color: var(--bad); box-shadow: 0 0 0 3px var(--bad-bg); }
 .pl-foot { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
@@ -69,7 +69,7 @@ table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; fon
 .pl-check-d { display: block; color: var(--ink-3); font-size: 13.5px; }
 .pl-foot .field-error { margin-top: 12px; }
 .pl-acts { justify-content: flex-end; margin-top: 18px; }
-.pl-count { margin-right: auto; color: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pl-count { margin-right: auto; color: var(--ink-2); font-weight: 600; font-variant-numeric: proportional-nums; }
 
 /* Picks and lock, and the change history. */
 .pk-lead { font-size: 16px; }
@@ -78,12 +78,10 @@ table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; fon
 .pk-facts dt { margin-top: 14px; font-size: 13px; font-weight: 600; }
 .pk-facts dd { color: var(--ink); }
 .hx-list { display: grid; margin: 0; padding: 0; list-style: none; }
-.hx-item { position: relative; display: grid; gap: 2px; margin-left: 5px; padding: 0 0 16px 20px; border-left: 2px solid var(--line-2); }
-.hx-item:last-child { padding-bottom: 2px; }
-.hx-item::before { content: ""; position: absolute; left: -7px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--bg); border: 2px solid var(--line-2); }
-.hx-when { color: var(--ink-2); font-size: 14px; }
-.hx-when strong { margin-right: 6px; color: var(--ink); }
-.hx-what { color: var(--ink-2); font-size: 14.5px; }
+.hx-item { display: grid; gap: 4px; }
+.hx-when { color: var(--ink-3); font-size: 13px; font-weight: 600; line-height: 20px; }
+.hx-when strong { margin-right: 8px; padding: 1px 8px; border-radius: 999px; background: var(--surface-3); color: var(--ink); font-size: 12.5px; }
+.hx-what { color: var(--ink-2); font-size: 14.5px; line-height: 1.55; text-wrap: pretty; }
 .set-duo .q-more { margin-top: 10px; }
 
 /* Reminder emails: what the job does and when it last ran on the left, what failed on the right. */

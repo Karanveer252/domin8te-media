@@ -510,12 +510,16 @@
       const dayText = new Date(g.at).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
       if (g.action === 'plan_cap_version') {
         const v = Math.max(...g.rows.map((/** @type {any} */ d) => Number(d.version) || 1));
-        const bits = g.rows.map((/** @type {any} */ d) => {
+        // A number saved again unchanged (a starred number being confirmed) is not a change: it is counted, not listed as "4 to 4".
+        let same = 0;
+        const bits = g.rows.flatMap((/** @type {any} */ d) => {
           const row = caps.find((/** @type {any} */ c) => c.plan_id === d.plan && c.service === d.service && c.metric === d.metric && c.version === d.version);
           const old = caps.find((/** @type {any} */ c) => c.plan_id === d.plan && c.service === d.service && c.metric === d.metric && c.version === d.version - 1);
           const label = row ? row.label : String(d.metric || '').replace(/_/g, ' ');
-          return `${planName(d.plan)} ${label} ${old ? `${old.monthly_cap} to ${d.cap}` : `set to ${d.cap}`}`;
+          if (old && Number(old.monthly_cap) === Number(d.cap)) { same++; return []; }
+          return [`${planName(d.plan)} ${label} ${old ? `${old.monthly_cap} to ${d.cap}` : `set to ${d.cap}`}`];
         });
+        if (same) bits.push(bits.length ? `${same} more confirmed as they were` : `${same} ${same === 1 ? 'number' : 'numbers'} confirmed as they were`);
         const dates = Array.from(new Set(g.rows.map((/** @type {any} */ d) => String(d.effective_from)))).sort();
         const when = dates.length === 1 ? (dates[0] <= today ? `In force since ${shortDate(dates[0])}` : `Starts ${shortDate(dates[0])}`) : 'Start days differ';
         return { tag: `v${v}`, day: dayText, text: `${bits.slice(0, 3).join(', ')}${bits.length > 3 ? ` and ${bits.length - 3} more` : ''}. ${when}. ${cap1(who)}.` };

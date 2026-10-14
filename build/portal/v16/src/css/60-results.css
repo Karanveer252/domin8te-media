@@ -17,7 +17,7 @@ html[data-variant="18h"][data-scene="scenes"]:not([data-theme="dark"]) .page-res
 /* ------------------------------------------------------------------ the top: range, freshness, summary */
 
 .page-results .range-bar { gap: 10px 14px; margin-top: 20px; }
-.page-results .range-text { flex: 1 1 100%; margin: -2px 0 0 2px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.page-results .range-text { flex: 1 1 100%; margin: -2px 0 0 2px; font-size: 14px; font-variant-numeric: proportional-nums; }
 .page-results #results-body > :first-child { margin-top: 24px; }
 .page-results .page-fresh + * { margin-top: 20px; }
 .page-results .page-fresh + .group { margin-top: 32px; }
@@ -55,7 +55,7 @@ html[data-variant="18h"][data-scene="scenes"]:not([data-theme="dark"]) .page-res
 .chart-cap { align-items: center; gap: 6px 16px; margin-bottom: 12px; }
 .chart-title { font-size: 15.5px; font-weight: 650; }
 .legend { font-size: 13.5px; }
-.page-results .c-y, .page-results .c-x { font-variant-numeric: tabular-nums; }
+.page-results .c-y, .page-results .c-x { font-variant-numeric: proportional-nums; }
 .page-results .chart-table { margin-top: 6px; }
 .page-results .chart-table summary { font-size: 14px; color: var(--p-ink-2); }
 .page-results .chart-table summary:hover { color: var(--p-ink); }

@@ -1,0 +1,94 @@
+/*
+ * A colour for each client (2026-10-14): the palette as tokens, the dot, the pill, the swatches and a card's coloured left edge.
+ * The names are the database's (client_profile.card_color check). Each colour has three tokens: the edge and dot (--cc), a tint for the
+ * pill behind its name (--cc-bg) and the pill's text (--cc-ink). Light, dark and the moving sky all read: the pill sits on its own
+ * near-solid ground (--cc-base), so the sky behind a glass card never changes its contrast, and the text colours are checked at 4.5:1.
+ */
+:root {
+  --cc-orange: #EE6417; --cc-orange-bg: rgba(238, 100, 23, 0.16); --cc-orange-ink: #8F3A06;
+  --cc-amber: #C98700; --cc-amber-bg: rgba(201, 135, 0, 0.16); --cc-amber-ink: #6E4D00;
+  --cc-lime: #6A9A12; --cc-lime-bg: rgba(106, 154, 18, 0.16); --cc-lime-ink: #385505;
+  --cc-green: #259A5C; --cc-green-bg: rgba(37, 154, 92, 0.16); --cc-green-ink: #14623A;
+  --cc-teal: #0F9594; --cc-teal-bg: rgba(15, 149, 148, 0.16); --cc-teal-ink: #0A5654;
+  --cc-sky: #2790D4; --cc-sky-bg: rgba(39, 144, 212, 0.16); --cc-sky-ink: #0F4C78;
+  --cc-blue: #4C6FE0; --cc-blue-bg: rgba(76, 111, 224, 0.16); --cc-blue-ink: #23399A;
+  --cc-violet: #8B5CF0; --cc-violet-bg: rgba(139, 92, 240, 0.16); --cc-violet-ink: #4E2AA6;
+  --cc-pink: #DC4A9F; --cc-pink-bg: rgba(220, 74, 159, 0.16); --cc-pink-ink: #8E1A5D;
+  --cc-rose: #E5484D; --cc-rose-bg: rgba(229, 72, 77, 0.16); --cc-rose-ink: #9A1C22;
+  --cc-base: rgba(255, 255, 255, 0.9);
+}
+html[data-theme="dark"] {
+  --cc-orange: #FF9A63; --cc-orange-bg: rgba(255, 154, 99, 0.22); --cc-orange-ink: #FF9A63;
+  --cc-amber: #F5CF66; --cc-amber-bg: rgba(245, 207, 102, 0.22); --cc-amber-ink: #F5CF66;
+  --cc-lime: #BCE36E; --cc-lime-bg: rgba(188, 227, 110, 0.22); --cc-lime-ink: #BCE36E;
+  --cc-green: #8EDDA8; --cc-green-bg: rgba(142, 221, 168, 0.22); --cc-green-ink: #8EDDA8;
+  --cc-teal: #7ADAD6; --cc-teal-bg: rgba(122, 218, 214, 0.22); --cc-teal-ink: #7ADAD6;
+  --cc-sky: #9AD5F7; --cc-sky-bg: rgba(154, 213, 247, 0.22); --cc-sky-ink: #9AD5F7;
+  --cc-blue: #A9BCFA; --cc-blue-bg: rgba(169, 188, 250, 0.22); --cc-blue-ink: #A9BCFA;
+  --cc-violet: #CDB5FA; --cc-violet-bg: rgba(205, 181, 250, 0.22); --cc-violet-ink: #CDB5FA;
+  --cc-pink: #F5A8D3; --cc-pink-bg: rgba(245, 168, 211, 0.22); --cc-pink-ink: #F5A8D3;
+  --cc-rose: #FFA3A6; --cc-rose-bg: rgba(255, 163, 166, 0.22); --cc-rose-ink: #FFA3A6;
+  --cc-base: rgba(27, 30, 38, 0.92);
+}
+.cc-orange { --cc: var(--cc-orange); --cc-bg: var(--cc-orange-bg); --cc-ink: var(--cc-orange-ink); }
+.cc-amber { --cc: var(--cc-amber); --cc-bg: var(--cc-amber-bg); --cc-ink: var(--cc-amber-ink); }
+.cc-lime { --cc: var(--cc-lime); --cc-bg: var(--cc-lime-bg); --cc-ink: var(--cc-lime-ink); }
+.cc-green { --cc: var(--cc-green); --cc-bg: var(--cc-green-bg); --cc-ink: var(--cc-green-ink); }
+.cc-teal { --cc: var(--cc-teal); --cc-bg: var(--cc-teal-bg); --cc-ink: var(--cc-teal-ink); }
+.cc-sky { --cc: var(--cc-sky); --cc-bg: var(--cc-sky-bg); --cc-ink: var(--cc-sky-ink); }
+.cc-blue { --cc: var(--cc-blue); --cc-bg: var(--cc-blue-bg); --cc-ink: var(--cc-blue-ink); }
+.cc-violet { --cc: var(--cc-violet); --cc-bg: var(--cc-violet-bg); --cc-ink: var(--cc-violet-ink); }
+.cc-pink { --cc: var(--cc-pink); --cc-bg: var(--cc-pink-bg); --cc-ink: var(--cc-pink-ink); }
+.cc-rose { --cc: var(--cc-rose); --cc-bg: var(--cc-rose-bg); --cc-ink: var(--cc-rose-ink); }
+.cc-none { --cc: transparent; --cc-bg: transparent; --cc-ink: var(--ink-2); }
+
+/* the dot: shown only when the client has a colour */
+.cc-dot { display: inline-block; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--cc); box-shadow: 0 0 0 1px rgba(29, 26, 22, 0.18); vertical-align: 0.5px; }
+html[data-theme="dark"] .cc-dot { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28); }
+.cc-dot.cc-none { display: none; }
+.row-link > .cc-dot { margin-right: 8px; }
+.side-client > .cc-dot { margin-left: auto; }
+
+/* the client's name on a card: a small tinted pill with a dot */
+.cc-pill { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; overflow: hidden; padding: 1px 9px 1px 8px; border-radius: 999px; background-color: var(--cc-base); background-image: linear-gradient(var(--cc-bg), var(--cc-bg)); color: var(--cc-ink); font-size: 12.5px; font-weight: 650; line-height: 1.55; }
+.cc-pill .cc-pill-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cc-pill .cc-dot { background: var(--cc); }
+.cc-pill.cc-none { display: none; }
+
+/* a card's coloured left edge: 4px, following the card's round corners */
+.card[class*=" cc-"] { box-shadow: inset 4px 0 0 var(--cc), var(--glass-shadow-sm, 0 1px 2px rgba(40, 30, 20, 0.05)); }
+.card[class*=" cc-"]:hover { box-shadow: inset 4px 0 0 var(--cc), var(--glass-shadow, 0 4px 14px rgba(40, 30, 20, 0.1)); }
+
+/* the dot button in the client's header, and the swatches it opens */
+.cc-wrap { position: relative; display: inline-flex; }
+.cc-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; transition: background 160ms var(--ease); }
+.cc-btn:hover { background: rgba(94, 72, 50, 0.1); }
+html[data-theme="dark"] .cc-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.cc-btn .cc-dot { width: 15px; height: 15px; }
+.cc-btn .cc-dot.cc-none { display: inline-block; background: transparent; box-shadow: none; border: 1.75px dashed var(--ink-3); }
+.cc-btn:focus-visible { outline: 2px solid var(--focus, #AE3A0B); outline-offset: 2px; }
+.cc-pop { position: absolute; z-index: 40; top: calc(100% + 8px); left: -6px; width: max-content; max-width: min(268px, calc(100vw - 32px)); padding: 12px 14px 12px; border: 1px solid var(--line-2); border-radius: 16px; background-color: var(--surface); box-shadow: 0 14px 34px -10px rgba(29, 26, 22, 0.35); }
+.cc-pop[hidden] { display: none; }
+.cc-pop-h { margin: 0 0 8px; color: var(--ink-2); font-size: 13px; font-weight: 650; }
+.cc-pop-s { margin: 8px 0 0; color: var(--ink-3); font-size: 13px; }
+.cc-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.cc-sw { position: relative; display: inline-flex; width: 32px; height: 32px; cursor: pointer; }
+.cc-sw input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.cc-sw-dot { display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--cc); box-shadow: inset 0 0 0 1px rgba(29, 26, 22, 0.2); transition: box-shadow 160ms var(--ease), transform 160ms var(--ease); }
+html[data-theme="dark"] .cc-sw-dot { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3); }
+.cc-sw:hover .cc-sw-dot { transform: scale(1.08); }
+/* the chosen one: a ring in the text colour with a gap, and a tick, so it does not rest on colour alone */
+.cc-sw input:checked + .cc-sw-dot { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+.cc-sw input:checked + .cc-sw-dot::after { content: ""; display: block; width: 9px; height: 5px; margin: 11px auto 0; border-left: 2.25px solid #fff; border-bottom: 2.25px solid #fff; rotate: -45deg; filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.55)); }
+.cc-sw input:focus-visible + .cc-sw-dot { outline: 2px solid var(--focus, #AE3A0B); outline-offset: 5px; }
+/* "No colour": an empty ring with a slash */
+.cc-sw.cc-none .cc-sw-dot { background: transparent; box-shadow: inset 0 0 0 1.75px var(--ink-3); background-image: linear-gradient(to top right, transparent calc(50% - 1px), var(--ink-3) calc(50% - 1px), var(--ink-3) calc(50% + 1px), transparent calc(50% + 1px)); }
+.cc-sw.cc-none input:checked + .cc-sw-dot { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink), inset 0 0 0 1.75px var(--ink-3); }
+.cc-sw.cc-none input:checked + .cc-sw-dot::after { border-color: var(--ink); filter: none; }
+
+/* in Setup's "Plan and sign-off" panel */
+.cc-block { display: grid; gap: 8px; margin: 0 0 18px; padding: 0 0 18px; border-bottom: 1px solid var(--line); }
+.cc-block .panel-sub { margin: 0; }
+.cc-block .hint { margin: 0; color: var(--ink-3); font-size: 13.5px; }
+.cc-now { margin: 0; color: var(--ink-2); font-size: 14px; font-weight: 600; }
+.client-head .who .cc-wrap { margin: -3px 0 -3px -4px; }

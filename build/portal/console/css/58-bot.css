@@ -33,3 +33,5 @@
 /* The block on Needs you. */
 .bot-needs .q-client-h { display: flex; align-items: baseline; gap: 12px; }
 .bot-needs .bot-all { margin-left: auto; font-size: 13px; font-weight: 600; }
+/* On the moving sky the link reads in the same light words as the heading it sits in (contrast fix, 2026-10-14). */
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs .bot-all { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }

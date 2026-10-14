@@ -7,7 +7,7 @@
 .nx-chips { margin: 16px 0 22px; }
 .nx-chips .seg { display: flex; flex-wrap: wrap; max-width: 100%; overflow: visible; padding: 0; }
 .nx-chips .seg button { display: inline-flex; flex: none; align-items: center; gap: 2px; }
-.nx-chips .seg .count { margin-left: 6px; min-width: 20px; padding: 0 6px; font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.nx-chips .seg .count { margin-left: 6px; min-width: 20px; padding: 0 6px; font-size: 12px; line-height: 1.5; font-variant-numeric: proportional-nums; }
 
 /* One glass panel holds the cards; each card is a row of it, set off by a hairline. */
 .nx-panel { margin: 0 0 18px; padding: 4px 26px; }

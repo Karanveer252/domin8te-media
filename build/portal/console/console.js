@@ -555,7 +555,7 @@
       const dot = d.needs.length ? 'you' : d.waiting.length ? 'them' : t.status === 'active' ? 'ok' : '';
       const title = d.needs.length ? plural(d.needs.length, 'thing needs', 'things need') + ' you' : d.waiting.length ? plural(d.waiting.length, 'thing') + ' waiting on client' : t.status === 'active' ? 'Nothing waiting' : t.status;
       return `<li><a class="side-client${t.status !== 'active' ? ' paused' : ''}" href="#/client/${esc(t.id)}"${t.id === openId ? ' aria-current="page"' : ''} title="${esc(title)}">
-        <span class="dot ${dot}" aria-hidden="true"></span><span class="name">${esc(t.name)}</span></a></li>`;
+        <span class="dot ${dot}" aria-hidden="true"></span><span class="name">${esc(t.name)}</span>${CC() ? CC().dot(t.id) : ''}</a></li>`;
     }).join('');
     $('#side-recent-h').hidden = !recent.length;
     const qb = $('#queue-badge');
@@ -1420,7 +1420,7 @@
     ].filter(Boolean);
     main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a>
       <div class="client-head"><div><h1 id="page-title" tabindex="-1">${esc(current.name)}</h1>
-        <div class="who">${statusChip}${warns}<details class="about"><summary>About</summary><p class="about-line">${about.map((x) => `<span class="t">${x}</span>`).join('')}</p></details></div></div></div>
+        <div class="who">${statusChip}${CC() ? CC().headerControl(current.id) : ''}${warns}<details class="about"><summary>About</summary><p class="about-line">${about.map((x) => `<span class="t">${x}</span>`).join('')}</p></details></div></div></div>
       <nav class="tabs" aria-label="Client sections">${allTabs().map(([k, label]) => {
         const count = k === 'talk' && talkCount ? `<span class="count" title="Needs a reply">${talkCount}</span>` : k === 'work' && openCards ? `<span class="count quiet" title="Open cards">${openCards}</span>` : '';
         return `<a href="#/client/${esc(id)}/${k}"${k === t ? ' aria-current="page"' : ''}>${label}${count}</a>`;
@@ -1535,6 +1535,7 @@
         </form>`)}
       ${fold('sec-plan', 'plan-h', 'Plan and sign-off', `${esc(partOf('clients').planNameOf(current.id) || 'No plan set')}, ${pf.approval_level && APPROVAL_LEVELS[pf.approval_level] ? `${APPROVAL_LEVELS[pf.approval_level][0]} sign-off` : 'no sign-off level'}. The plan comes from Billing. The sign-off level is for the team only.`, part === 'plan', `
         ${partOf('clients').planPanel(current.id)}
+        ${CC() ? CC().setupBlock(current.id) : ''}
         <form id="profile-form" class="cl-signoff" novalidate>
         ${profilePickers(pf)}
         <div class="actions"><button class="btn" type="submit">Save sign-off level</button></div>
@@ -1811,6 +1812,8 @@
 
   /** All work and the cards' limits, counts, visibility and removal live in mod-work.js (2026-10-13). @returns {any} */
   const wx = () => (/** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.work) || null;
+  /** The client colour part (mod-color.js): a dot, a pill and the swatches. */
+  const CC = () => (/** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.color) || null;
   /**
    * The services a card can be for: what the client's package says, what their plan month includes, and the card's own (so saving a card
    * never quietly drops its service because the list did not know it).
@@ -1931,7 +1934,7 @@
   function card(t, client) {
     // mod-work.js adds who and what service, where the card lands against its limit, the over-limit flag and who sees it.
     const v = wx() ? wx().cardView(t, client) : null;
-    return `<li class="card${t.status === 'cancelled' ? ' cancelled' : ''}${v ? v.cls : ''}" draggable="true" data-task="${esc(t.id)}" tabindex="0" aria-label="${esc(t.title)}, ${esc(TASK_STATUS_LABEL[t.status])}${v && v.cls ? ', over its limit' : ''}. Press Enter to edit or move it." title="${esc(cardMore(t))}">
+    return `<li class="card${t.status === 'cancelled' ? ' cancelled' : ''}${v ? v.cls : ''}" draggable="true" data-task="${esc(t.id)}" tabindex="0" aria-label="${esc(t.title)}, ${esc(TASK_STATUS_LABEL[t.status])}${v && v.cls.includes('is-over') ? ', over its limit' : ''}. Press Enter to edit or move it." title="${esc(cardMore(t))}">
       ${v ? v.head : client ? `<p class="card-client">${esc(client)}</p>` : ''}<p class="card-title">${esc(t.title)}</p>
       ${v ? v.land + v.flag : ''}<p class="card-meta">${cardChip(t)}${v ? v.vis : ''}<button class="linkish card-edit-btn" type="button" data-edit="${esc(t.id)}">Edit</button></p>
     </li>`;
@@ -2087,7 +2090,7 @@
       </div>
       ${wk ? wk.visibilityField(t) : ''}${wk ? wk.editUsage(t) : ''}
       <p class="card-sync meta">${syncLine(t)}</p>
-      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-quiet btn-sm btn-remove" type="button" data-remove-card style="margin-left:auto">Remove card</button></div>
+      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-quiet btn-sm btn-remove" type="button" data-remove-card>Remove card</button></div>
       ${t.multica_issue_id ? `<div class="card-note"><div class="field"><label for="e-note-${esc(t.id)}">Note on ${esc(t.multica_identifier || 'the issue')} in Multica</label><textarea id="e-note-${esc(t.id)}" name="note" maxlength="4000" placeholder="${FLAGS.hermes ? 'Hermes and the team see' : 'The team sees'} this in the issue's thread."></textarea></div><button class="btn btn-quiet btn-sm" type="button" data-note>Add the note</button></div>` : ''}
     </form>`;
     const f = /** @type {HTMLFormElement} */ ($('form', li));
@@ -2660,6 +2663,18 @@
     const level = levelOld === undefined ? tierOrLevel : levelOld;
     const client = await db();
     const row = check(await client.from('client_profile').upsert({ tenant_id: id, approval_level: level || null }).select('*').single());
+    writes++;
+    if (all) { all.profiles = all.profiles || {}; all.profiles[id] = row; }
+    return row;
+  }
+  /**
+   * Saves the colour of one client's cards (client_profile.card_color: a name from the palette in mod-color.js, or '' for none). The same upsert
+   * as the sign-off level: only the colour is sent, so the level is left as it is.
+   * @param {string} id @param {string} color
+   */
+  async function saveCardColor(id, color) {
+    const client = await db();
+    const row = check(await client.from('client_profile').upsert({ tenant_id: id, card_color: color || null }).select('*').single());
     writes++;
     if (all) { all.profiles = all.profiles || {}; all.profiles[id] = row; }
     return row;
@@ -3909,7 +3924,7 @@
     get plans() { return all && all.plans ? all.plans : emptyPlans(); }
   };
   /** More of what the Billing and Add client parts need (mod-billing.js, mod-newclient.js): Stripe, Multica, the sign-off levels and the client record's starting pieces. */
-  Object.assign(/** @type {any} */ (window).D8C, { blankService, agencyAccess, saveProfile, APPROVAL_LEVELS, stripeStatus, stripeReady, stripeModeText, stripeFn, stripeErr, stripeKnown, multica, multicaStatus,
+  Object.assign(/** @type {any} */ (window).D8C, { blankService, agencyAccess, saveProfile, saveCardColor, APPROVAL_LEVELS, stripeStatus, stripeReady, stripeModeText, stripeFn, stripeErr, stripeKnown, multica, multicaStatus,
     /** A raw database refusal (error.code and error.message of an rpc or write answer) in the console's plain words; check() speaks the client portal's words. */
     say: (/** @type {any} */ err) => { const p = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.planpick; return p ? p.say(err) : message(err); } });
   /** @type {any} */ (window).D8C_EXT = /** @type {any} */ (window).D8C_EXT || {};

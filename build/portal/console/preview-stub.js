@@ -232,6 +232,16 @@
         if (!had) rows.push(rec);
         return { data: q.one ? project(rec) : [project(rec)], error: null };
       }
+      // client_profile is one row for each client (tenant_id is its key): an upsert changes the columns it names and keeps the rest,
+      // and the database's checks refuse a sign-off level or card colour that is not on the list (23514).
+      if (q.op === 'upsert' && name === 'client_profile') {
+        const had = rows.find((r) => r.tenant_id === q.payload.tenant_id);
+        const next = Object.assign({}, had || {}, JSON.parse(JSON.stringify(q.payload)), { updated_at: now(), updated_by: 'user_preview_karan' });
+        const CHECKS = { tier: ['bronze', 'silver', 'gold'], approval_level: ['red', 'yellow', 'green'], card_color: ['orange', 'amber', 'lime', 'green', 'teal', 'sky', 'blue', 'violet', 'pink', 'rose'] };
+        for (const col of Object.keys(CHECKS)) if (next[col] != null && !CHECKS[col].includes(next[col])) throw { code: '23514', message: `new row for relation "client_profile" violates check constraint "client_profile_${col}_check"` };
+        if (had) Object.assign(had, next); else rows.push(next);
+        return { data: q.one ? project(next) : [project(next)], error: null };
+      }
       if (q.op === 'upsert') q.op = 'insert';
       if (q.op === 'insert') {
         const rec = { id: `${name}_${++n}`, at: now(), updated_at: now(), status: name === 'requests' ? 'review' : undefined, ...q.payload };

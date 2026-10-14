@@ -61,7 +61,7 @@
    empty slot: the leftover goes to the auto columns, the chip at the start of its column, the figure at the end of its. */
 .run-usage .usage-row { display: grid; grid-auto-flow: column; grid-template-columns: minmax(0, max-content); grid-auto-columns: auto; align-items: baseline; gap: 0 10px; }
 .run-usage .usage-name { font-size: 15px; font-weight: 600; line-height: 1.4; }
-.run-usage .usage-fig { margin-left: 0; justify-self: end; font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--p-ink); font-variant-numeric: tabular-nums; }
+.run-usage .usage-fig { margin-left: 0; justify-self: end; font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--p-ink); font-variant-numeric: proportional-nums; }
 .run-usage .chip-sample { justify-self: start; }
 .run-usage .usage-word { font-size: 13px; }
 .svc-row-wait { padding: 3px 11px; border-radius: 999px; background: linear-gradient(var(--p-attn-bg), var(--p-attn-bg)), var(--p-surface); color: var(--p-attn); font-size: 13.5px; font-weight: 650; line-height: 1.4; white-space: nowrap; }

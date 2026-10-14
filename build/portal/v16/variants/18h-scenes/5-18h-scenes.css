@@ -129,3 +129,25 @@ html[data-variant="18h"].dots-live body *:not(dialog, .account-menu, .rail-tip, 
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+
+/* ---- one selected look (2026-10-14, Karan: "all the other buttons or selected items appear like this") ----
+   The chosen page, tab, filter or range is solid ink with light words and a soft shadow, no glass; in the
+   dark theme the inverse (the tokens --p-sel* in styles.css swap). It is solid, so it reads the same on
+   the paper, on a card and on the moving sky. Plan cards keep their orange border (30-picker.css). */
+html[data-variant="18h"] .seg input:checked + span { background: var(--p-sel); color: var(--p-sel-ink); box-shadow: var(--p-sel-shadow); backdrop-filter: none; -webkit-backdrop-filter: none; }
+html[data-variant="18h"] .seg:hover input:checked + span { background: var(--p-sel-hover); color: var(--p-sel-ink); }
+@media (min-width: 761px) {
+  /* The sliding pill behind the current page (variant.js moves it) is the ink; the row only carries the words. */
+  html[data-variant="18h"] .k-goo > .goo-cur { background: var(--p-sel); box-shadow: var(--p-sel-shadow); }
+  html[data-variant="18h"][data-theme="dark"] .k-goo > .goo-cur { background: var(--p-sel); box-shadow: var(--p-sel-shadow); }
+  html[data-variant="18h"] .side .nav-link[aria-current="page"] .i { color: var(--p-sel-ink); }
+}
+@media (max-width: 760px) {
+  html.lg-heavy .tabbar::before { background: var(--p-sel); box-shadow: var(--p-sel-shadow); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  html.lg-heavy .tab[aria-current="page"], html.lg-heavy .tab[aria-current="page"] .i { color: var(--p-sel-ink); }
+  html[data-variant="18h"] .tab[aria-current="page"] { background: none; box-shadow: none; }
+}
+html[data-variant="18h"] .lg-dock-choice button[aria-checked="true"] { background: var(--p-sel); color: var(--p-sel-ink); box-shadow: var(--p-sel-shadow); }
+html[data-variant="18h"] .work-tab[aria-current="page"] { background: var(--p-sel); color: var(--p-sel-ink); box-shadow: var(--p-sel-shadow); }
+html.lg-heavy .nav-list::before { background: var(--p-sel); box-shadow: var(--p-sel-shadow); }
+html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdrop-filter: none; }

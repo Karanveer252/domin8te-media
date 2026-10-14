@@ -28,7 +28,9 @@ create index if not exists bot_outputs_pending_idx on public.bot_outputs (create
 alter table public.bot_outputs enable row level security;
 revoke all on public.bot_outputs from anon;
 grant select, insert on public.bot_outputs to authenticated;
+drop policy if exists "staff read bot outputs" on public.bot_outputs;
 create policy "staff read bot outputs" on public.bot_outputs for select to authenticated using ((select app.is_staff()));
+drop policy if exists "staff add bot outputs" on public.bot_outputs;
 create policy "staff add bot outputs" on public.bot_outputs for insert to authenticated
   with check ((select app.is_staff()) and status = 'pending' and decided_at is null and final_text is null);
 
@@ -36,7 +38,7 @@ create policy "staff add bot outputs" on public.bot_outputs for insert to authen
 -- reject (p_note required), respond (p_note required, stays pending), expire.
 create or replace function public.bot_output_decide(p_id uuid, p_action text, p_text text default null, p_note text default null)
 returns public.bot_outputs
-language plpgsql security definer set search_path = public, app as $$
+language plpgsql security definer set search_path = '' as $$
 declare
   r public.bot_outputs;
   who text := app.jwt_sub();

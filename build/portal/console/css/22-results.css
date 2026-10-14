@@ -14,7 +14,7 @@
 
 /* a value with its unit beside it */
 .rs-unit { position: relative; }
-.rs-unit input { padding-right: 84px; font-variant-numeric: tabular-nums; }
+.rs-unit input { padding-right: 84px; font-variant-numeric: proportional-nums; }
 .rs-suffix { position: absolute; top: 50%; right: 13px; translate: 0 -50%; max-width: 70px; overflow: hidden; color: var(--ink-3); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
 .rs-form .hint:empty { display: none; }
 .rs-form .date-say { min-height: 0; }
