@@ -34,11 +34,11 @@
     local: 'Google and Apple Maps, reviews, search',
     email: 'Email campaigns and automatic emails, with a welcome email'
   };
-  /** What comes with each plan besides its services. A summary and calls are facts, not limits (release default 20): change them here. */
+  /** What comes with each plan besides its services: change it here. No calls or video walkthroughs on any plan (Karan, 14 Oct 2026). */
   const INCLUDED = {
     starter: ['A monthly summary in your dashboard'],
-    growth: ['A monthly summary in your dashboard', 'A 15 minute call each month'],
-    domin8te: ['A monthly summary in your dashboard', 'A 30 minute call each month', 'A short video walkthrough']
+    growth: ['A monthly summary in your dashboard'],
+    domin8te: ['A monthly summary in your dashboard']
   };
   /** Ad spend is separate from the plan fee (release default 18): change the sentence here. */
   const AD_SPEND = 'Ad spend is paid to Meta and Google directly and is not part of your plan.';

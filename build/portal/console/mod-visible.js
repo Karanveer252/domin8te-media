@@ -307,6 +307,7 @@
       }
       case 'usage_added': return `${who} counted ${esc(d.qty)} for ${esc(String(d.metric || '').replace(/_/g, ' '))}${d.counted === false ? ' (not counted against the limit)' : ''}.`;
       case 'usage_voided': return `${who} took back ${esc(d.qty)} counted for ${esc(String(d.metric || '').replace(/_/g, ' '))}.${because(d.reason)}`;
+      case 'usage_live_set': return `${who} set ${d.metric === 'ads_platforms' ? 'Ad platforms' : 'Live campaigns'} to ${esc(d.now)} (was ${esc(d.was)}).`;
       case 'plan_cycle_insert': case 'plan_cycle_update': return `${who} ${r.action === 'plan_cycle_insert' ? 'set up' : 'changed'} the plan month that starts ${esc(dayText(d.period_start))}.${because(d.reason)}`;
       default: return `${who} ${esc(String(r.action).replace(/[._]/g, ' '))}.`;
     }
@@ -314,7 +315,9 @@
 
   /** The history column. @param {any} C @param {any} D @param {boolean} all */
   function historyHtml(C, D, all) {
-    const rows = D.history;
+    // "Set live count" writes the count and its own line (20261014140000): the count's line is not said twice
+    const liveSet = new Set(D.history.filter((/** @type {any} */ r) => r.action === 'usage_live_set').map((/** @type {any} */ r) => String((r.detail || {}).usage)));
+    const rows = D.history.filter((/** @type {any} */ r) => !(r.action === 'usage_added' && liveSet.has(String((r.detail || {}).usage))));
     if (!rows.length) return '<p class="meta">Nothing recorded yet. Every show, hide and edit lands here.</p>';
     const draw = (/** @type {any[]} */ list) => `<ol class="vz-hist">${list.map((/** @type {any} */ r, /** @type {number} */ i) => `<li${all && i === 10 ? ' id="vz-h11" tabindex="-1"' : ''}><time datetime="${esc(r.at)}">${esc(stamp(r.at))}</time><p>${sentence(C, D, r)}</p></li>`).join('')}</ol>`;
     const cut = all ? rows.length : 10;

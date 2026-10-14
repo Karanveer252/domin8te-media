@@ -222,15 +222,17 @@ test('Billing: what comes with each plan, and ad spend is said to be separate fr
   const ui = load('bayleaf', { ui: true });
   const { INCLUDED, AD_SPEND } = ui.plan;
   assert.deepEqual(Object.keys(INCLUDED).sort(), ['domin8te', 'growth', 'starter']);
-  assert.ok(INCLUDED.starter.some((x) => /monthly summary/.test(x)) && !INCLUDED.starter.some((x) => /call/.test(x)), 'Starter: a summary and no call');
-  assert.ok(INCLUDED.growth.some((x) => /15 minute call/.test(x)), 'Growth adds a 15 minute call');
-  assert.ok(INCLUDED.domin8te.some((x) => /30 minute call/.test(x)) && INCLUDED.domin8te.some((x) => /video walkthrough/.test(x)), 'Domin8te adds a 30 minute call and a video walkthrough');
+  for (const id of ['starter', 'growth', 'domin8te']) {
+    assert.ok(INCLUDED[id].some((x) => /monthly summary/.test(x)), `${id}: a monthly summary`);
+    assert.ok(!INCLUDED[id].some((x) => /call|video|walkthrough/i.test(x)), `${id}: no call or video is promised`);
+  }
   assert.equal(AD_SPEND, 'Ad spend is paid to Meta and Google directly and is not part of your plan.');
   // Growth in the demo is Ads, Social and Website: the card says what is included, and the ad spend line sits under Ads once.
   const { client: cg } = await client('bayleaf');
   const growth = text(ui.plan.overview(plain(await cg.getPlan())));
   assert.match(growth, /Also included/);
-  assert.match(growth, /A 15 minute call each month/);
+  assert.match(growth, /A monthly summary in your dashboard/);
+  assert.doesNotMatch(growth, /minute call|walkthrough/);
   assert.equal((growth.match(/Ad spend is paid to Meta and Google directly/g) || []).length, 1);
   // Starter in the demo has Ads: the line sits under it, once.
   const { client: cs } = await client('cornerbean');

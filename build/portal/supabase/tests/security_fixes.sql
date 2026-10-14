@@ -1,4 +1,4 @@
--- Security fixes (20261014110000, 20261014110100, 20261014130000; critic items 5, 7, 9, 14, 18; S20 staff-only columns). TEST PROJECT ONLY.
+-- Security fixes (20261014110000, 20261014110100, 20261014130000, 20261014140000; critic items 5, 7, 9, 14, 18; S20 staff-only columns). TEST PROJECT ONLY.
 -- Runs in one transaction and rolls back; makes its own sample clients. Every row of the result must say PASS.
 begin;
 create temp table r (n serial, check_name text, expect text, result text) on commit drop;
@@ -319,6 +319,54 @@ select pg_temp.v('S20 signed out cannot call the list functions', 'false/false/f
   || '/' || has_function_privilege('anon', 'public.list_billing_invoices(uuid, boolean)', 'execute')::text
   || '/' || has_function_privilege('anon', 'public.list_plans()', 'execute')::text
   || '/' || has_function_privilege('anon', 'public.list_plan_caps()', 'execute')::text);
+
+
+-- S21 Set live count (20261014140000) ------------------------------------------------------------------------------------------------
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_staff","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:member"}}';
+select pg_temp.v('S21 staff set 3 live campaigns (was 0)', 'true/0/3/3',
+  (select (x->>'done') || '/' || (x->>'was') || '/' || (x->>'now') || '/' || (x->>'cap') from public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_live_campaigns', 3) x));
+select pg_temp.v('S21 the bar reads 3', '3', (select used::text from public.tenant_usage_current where tenant_id = '5ec00000-0000-0000-0000-00000000000a' and metric = 'ads_live_campaigns'));
+select pg_temp.v('S21 lowering to 2 is allowed (was 3)', 'true/3/2',
+  (select (x->>'done') || '/' || (x->>'was') || '/' || (x->>'now') from public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_live_campaigns', 2) x));
+select pg_temp.v('S21 the snapshot is the newest row (2), not the largest or a sum', '2',
+  (select used::text from public.tenant_usage_current where tenant_id = '5ec00000-0000-0000-0000-00000000000a' and metric = 'ads_live_campaigns'));
+select pg_temp.v('S21 the same number again changes nothing', 'false/2/2',
+  (select (x->>'done') || '/' || (x->>'was') || '/' || (x->>'now') from public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_live_campaigns', 2) x));
+select pg_temp.e('S21 4 live is past the cap of 3: refused', '23514', $q$select public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_live_campaigns', 4)$q$);
+select pg_temp.v('S21 and the bar still reads 2', '2', (select used::text from public.tenant_usage_current where tenant_id = '5ec00000-0000-0000-0000-00000000000a' and metric = 'ads_live_campaigns'));
+select pg_temp.e('S21 a number past 100 is refused', '22023', $q$select public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_live_campaigns', 101)$q$);
+select pg_temp.e('S21 a minus number is refused', '22023', $q$select public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_live_campaigns', -1)$q$);
+select pg_temp.e('S21 a monthly limit is not a live count', '22023', $q$select public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'social_posts', 2)$q$);
+select pg_temp.v('S21 ad platforms: 0 in use is allowed', 'true/0',
+  (select (x->>'done') || '/' || (x->>'now') from public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_platforms', 1) y, public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_platforms', 0) x));
+-- a one-off approved in Needs you put 5 live; lowering to 4 (still past the cap) keeps that approval, and lowering further is fine
+select pg_temp.e('S21 a one-off of 5 (as Needs you writes it)', 'ok',
+  $q$insert into public.usage_events (tenant_id, cycle_id, service, metric, qty, over_cap_approved_at) values ('5ec00000-0000-0000-0000-00000000000a','5ec10000-0000-0000-0000-0000000000a1','advertising','ads_live_campaigns',5,now())$q$);
+select pg_temp.e('S21 lowering 5 to 4 (still past the cap) is allowed', 'ok', $q$select public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_live_campaigns', 4)$q$);
+select pg_temp.e('S21 raising 4 back to 5 is refused (a new one-off is needed)', '23514', $q$select public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_live_campaigns', 5)$q$);
+select pg_temp.e('S21 lowering 4 to 1 is allowed', 'ok', $q$select public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_live_campaigns', 1)$q$);
+select pg_temp.v('S21 the bar reads 1', '1', (select used::text from public.tenant_usage_current where tenant_id = '5ec00000-0000-0000-0000-00000000000a' and metric = 'ads_live_campaigns'));
+reset role;
+select pg_temp.v('S21 History has the line with was and now', '3>2',
+  (select string_agg((detail->>'was') || '>' || (detail->>'now'), ',') from public.audit_log
+    where tenant_id = '5ec00000-0000-0000-0000-00000000000a' and action = 'usage_live_set' and detail->>'metric' = 'ads_live_campaigns' and (detail->>'was') = '3'));
+select pg_temp.v('S21 one History line for each change (the same number and the refusals wrote none)', '4',
+  (select count(*)::text from public.audit_log where tenant_id = '5ec00000-0000-0000-0000-00000000000a' and action = 'usage_live_set' and detail->>'metric' = 'ads_live_campaigns'));
+select pg_temp.v('S21 and the guard''s line points at the same row', 'true',
+  (select bool_and(exists (select 1 from public.audit_log g where g.action = 'usage_added' and g.detail->>'usage' = s.detail->>'usage'))::text
+     from public.audit_log s where s.tenant_id = '5ec00000-0000-0000-0000-00000000000a' and s.action = 'usage_live_set'));
+select pg_temp.v('S21 the kept one-off is marked approved', 'true',
+  (select (over_cap_approved_at is not null)::text from public.usage_events where tenant_id = '5ec00000-0000-0000-0000-00000000000a' and metric = 'ads_live_campaigns' and qty = 4));
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_sec_a","role":"authenticated","o":{"id":"org_TEST_sec_a"}}';
+select pg_temp.e('S21 a client cannot set its live count', '42501', $q$select public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_live_campaigns', 0)$q$);
+reset role;
+set local role anon;
+set local request.jwt.claims = '{"role":"anon"}';
+select pg_temp.e('S21 signed out cannot set a live count', '42501', $q$select public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_live_campaigns', 0)$q$);
+reset role;
+select pg_temp.v('S21 nothing changed for the client or signed out', '1', (select used::text from public.tenant_usage_current where tenant_id = '5ec00000-0000-0000-0000-00000000000a' and metric = 'ads_live_campaigns'));
 
 select n, case when result = expect then 'PASS' else 'FAIL' end as outcome, check_name, expect, result from r order by n;
 rollback;

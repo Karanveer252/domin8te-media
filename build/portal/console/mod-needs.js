@@ -108,7 +108,9 @@
   /** A client's services in catalog order, "Ads, Social media and Website". @param {string[]} picks */
   function picksText(picks) {
     const list = SERVICE_ORDER.filter((s) => (picks || []).includes(s)).map(svcName);
-    return list.length < 2 ? list.join('') || 'No services' : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
+    // A name that holds "and" itself (SEO and Google Maps) joins with commas only, so it never reads "Website and SEO and Google Maps".
+    if (list.length < 2) return list.join('') || 'No services';
+    return list.some((x) => / and /.test(x)) ? list.join(', ') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
   }
   /** The services a month holds: its picks, which include Ads on every plan. @param {any} cycle */
   const picksOfCycle = (cycle) => (cycle ? cycle.picks || [] : []);

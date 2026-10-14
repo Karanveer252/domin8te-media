@@ -30,6 +30,12 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 .wk-all { display: grid; gap: 16px; margin-top: 14px; }
 .wk-group h3 { margin: 0 0 8px; color: var(--ink-3); font-size: 13.5px; font-weight: 650; }
 .wk-all .wk-bars { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 24px; }
+/* Set live count (2026-10-14): a small quiet link under a live-at-once bar */
+.wk-livebar { display: grid; gap: 3px; min-width: 0; justify-items: start; }
+.wk-livebar > .cusage { width: 100%; }
+.wk-live { color: var(--ink-3); font-size: 12.5px; font-weight: 600; text-decoration-color: rgba(94, 72, 50, 0.35); }
+.wk-live:hover { color: var(--ink); text-decoration-color: currentColor; }
+.wk-live:disabled { cursor: not-allowed; opacity: 0.6; }
 .wk-n { min-width: 20px; padding: 0 6px; border-radius: 999px; background: rgba(94, 72, 50, 0.1); color: var(--ink-2); font-size: 12px; font-weight: 650; line-height: 1.65; text-align: center; font-variant-numeric: proportional-nums; }
 .wk-n.is-bad { background: var(--bad-bg); color: var(--bad); }
 

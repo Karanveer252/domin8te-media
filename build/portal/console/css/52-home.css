@@ -159,10 +159,10 @@
 .hp-frame .bar { position: relative; height: 8px; overflow: hidden; border-radius: 999px; background: var(--p-well); box-shadow: inset 0 0 0 1px var(--p-line); }
 .hp-frame .bar > span { display: block; height: 100%; border-radius: inherit; background: var(--p-fill-ok); }
 .hp-frame .usage.is-warn .bar > span { background: var(--p-fill-warn); }
-.hp-frame .usage.is-full .bar > span { background: var(--p-ink-3); }
+.hp-frame .usage.is-full .bar > span { background: #B87400; }
 .hp-frame .usage.is-over .bar > span { background: var(--p-fill-full); }
 .hp-frame .usage-word { font-size: 12.5px; font-weight: 650; color: var(--p-warning); }
-.hp-frame .usage.is-full .usage-word { color: var(--p-ink-2); }
+.hp-frame .usage.is-full .usage-word { color: var(--p-warning); }
 .hp-frame .usage.is-over .usage-word { color: var(--p-error); }
 .hp-frame .chg-list { display: grid; gap: 8px; }
 .hp-frame .chg-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--p-glass-strong); box-shadow: inset 0 0 0 1px var(--p-line); }

@@ -1,10 +1,11 @@
 /*
  * Revenue (2026-10-14, rewritten the same day), Karan's private business dashboard (mod-revenue.js). The console's tokens, its glass cards,
- * pill buttons, the ink selected pill of .seg, the .field inputs and the .switch-row switch. Two chart colours of its own (income blue,
- * costs orange; checked for colour-blind separation and contrast in light and dark), profit drawn in ink.
+ * pill buttons, the ink selected pill of .seg, the .field inputs and the .switch-row switch. Two chart colours of its own (income green,
+ * Karan's choice of 2026-10-14, a calmer chart green than the console's --good so it does not read as a status; costs orange; checked for
+ * colour-blind separation and contrast in light and dark), profit drawn in ink. Green is lighter on the dark theme.
  */
-:root { --rv-inc: #3A6EA5; --rv-cost: #E2702F; --rv-prof: var(--ink); --rv-was: rgba(94, 72, 50, 0.22); --rv-track: rgba(94, 72, 50, 0.08); --rv-ring: #FBF9F6; }
-html[data-theme="dark"] { --rv-inc: #5C93D1; --rv-cost: #DE6A2A; --rv-was: rgba(255, 255, 255, 0.2); --rv-track: rgba(255, 255, 255, 0.07); --rv-ring: #252933; }
+:root { --rv-inc: #277A52; --rv-cost: #E2702F; --rv-prof: var(--ink); --rv-was: rgba(94, 72, 50, 0.22); --rv-track: rgba(94, 72, 50, 0.08); --rv-ring: #FBF9F6; }
+html[data-theme="dark"] { --rv-inc: #5CC48E; --rv-cost: #DE6A2A; --rv-was: rgba(255, 255, 255, 0.2); --rv-track: rgba(255, 255, 255, 0.07); --rv-ring: #252933; }
 
 /* The month: a card with the arrows either side (earlier months are in Previous months at the bottom of the Overview). */
 .rv-month { margin: 16px 0 20px; }
@@ -28,12 +29,45 @@ html[data-theme="dark"] { --rv-inc: #5C93D1; --rv-cost: #DE6A2A; --rv-was: rgba(
 /* The sections: Overview, Income, Costs. */
 .rv-views { margin: 0 0 16px; }
 
-/* The charts. */
-.rv-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+/* The dashboard (2026-10-14): a two-column grid of glass cards, the wide ones across both columns. A small bar above it says how many
+   charts show and opens Customize; each card's header has a quiet Hide. */
+.rv-dash-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+.rv-dash-note { color: var(--ink-3); font-size: 13.5px; font-weight: 600; }
+.rv-dash-empty { grid-column: 1 / -1; }
+.rv-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
 .rv-chart { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 18px 22px 20px; border: 0.67px solid var(--glass-edge); border-radius: var(--r-item); background-color: var(--glass-soft); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); }
 .rv-wide { grid-column: 1 / -1; }
+.rv-chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.rv-chart-head > div { min-width: 0; }
 .rv-chart-head h3 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
 .rv-chart-head p, .rv-chart-note { color: var(--ink-3); font-size: 13px; line-height: 1.45; }
+.rv-hide { flex: none; margin: -2px -6px 0 0; padding: 2px 8px; border: 0; border-radius: 999px; background: none; color: var(--ink-3); font: inherit; font-size: 12.5px; font-weight: 650; cursor: pointer; opacity: 0.75; transition: opacity 160ms var(--ease), background-color 160ms var(--ease), color 160ms var(--ease); }
+.rv-chart:hover .rv-hide, .rv-hide:focus-visible { opacity: 1; }
+.rv-hide:hover { background-color: var(--rv-track); color: var(--ink); }
+.rv-hide:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+/* Moving in (only with .rv-anim, which the page adds when the person has not asked for less motion): a card rises as it comes into view,
+   bars grow from the baseline, lines draw from left to right, fills and dots fade in after them, ring slices sweep round. Transforms and
+   opacity only, so nothing shifts and nothing blocks a click. */
+.rv-anim .rv-chart { transition: opacity 500ms var(--ease), translate 500ms var(--ease); }
+.rv-anim .rv-chart:not(.is-in) { opacity: 0; translate: 0 12px; }
+.rv-grow { transform-box: fill-box; transform-origin: 50% 100%; transition: transform 650ms var(--ease); transition-delay: calc(var(--i, 0) * 35ms); }
+.rv-growx { transform-box: fill-box; transform-origin: 0 50%; transition: transform 700ms var(--ease); transition-delay: calc(var(--i, 0) * 70ms); }
+.rv-draw { stroke-dasharray: 1 1; stroke-dashoffset: 0; transition: stroke-dashoffset 1100ms var(--ease) 120ms; }
+.rv-fade { transition: opacity 450ms var(--ease) 650ms; }
+.rv-seg { fill: none; stroke-dasharray: var(--f, 1) calc(1 - var(--f, 1)); transition: stroke-dasharray 800ms var(--ease); transition-delay: calc(120ms + var(--i, 0) * 110ms); }
+.rv-anim .rv-chart:not(.is-in) .rv-grow { transform: scaleY(0.001); }
+.rv-anim .rv-chart:not(.is-in) .rv-growx { transform: scaleX(0.001); }
+.rv-anim .rv-chart:not(.is-in) .rv-draw { stroke-dashoffset: 1; }
+.rv-anim .rv-chart:not(.is-in) .rv-fade { opacity: 0; }
+.rv-anim .rv-chart:not(.is-in) .rv-seg { stroke-dasharray: 0 1; }
+@media (prefers-reduced-motion: reduce) {
+  .rv-anim .rv-chart:not(.is-in) { opacity: 1; translate: none; }
+  .rv-anim .rv-chart:not(.is-in) :is(.rv-grow, .rv-growx) { transform: none; }
+  .rv-anim .rv-chart:not(.is-in) .rv-draw { stroke-dashoffset: 0; }
+  .rv-anim .rv-chart:not(.is-in) .rv-fade { opacity: 1; }
+  .rv-anim .rv-chart:not(.is-in) .rv-seg { stroke-dasharray: var(--f, 1) calc(1 - var(--f, 1)); }
+}
 .rv-chart-empty { color: var(--ink-2); font-size: 14px; }
 .rv-chart-empty a { color: var(--ink); font-weight: 650; text-underline-offset: 3px; }
 .rv-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -4px 0 0; padding: 0; list-style: none; color: var(--ink-2); font-size: 13px; font-weight: 600; }
@@ -59,8 +93,26 @@ html[data-theme="dark"] { --rv-inc: #5C93D1; --rv-cost: #DE6A2A; --rv-was: rgba(
 .rv-f-was { fill: var(--rv-was); }
 .rv-track { fill: var(--rv-track); }
 .rv-line-p { fill: none; stroke: var(--rv-prof); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.rv-line-inc { fill: none; stroke: var(--rv-inc); stroke-width: 2.25; stroke-linejoin: round; stroke-linecap: round; }
+.rv-line-cost { fill: none; stroke: var(--rv-cost); stroke-width: 2.25; stroke-linejoin: round; stroke-linecap: round; }
+.rv-line-was { fill: none; stroke: var(--rv-was); stroke-width: 2; stroke-dasharray: 4 5; stroke-linecap: round; }
+.rv-area-inc { fill: var(--rv-inc); opacity: 0.1; }
+.rv-area-prof { fill: var(--rv-prof); opacity: 0.08; }
 .rv-dot { fill: var(--rv-prof); stroke: var(--rv-ring); stroke-width: 2; }
 .rv-dot.is-neg { fill: var(--bad); }
+.rv-dot-inc { fill: var(--rv-inc); stroke: var(--rv-ring); stroke-width: 2; }
+.rv-dot-cost { fill: var(--rv-cost); stroke: var(--rv-ring); stroke-width: 2; }
+.rv-k-was { background: var(--rv-was); }
+/* The six kinds of cost, in the stacked chart and its legend (costs stay in the warm half; income's blue is kept for income). */
+:root { --rv-once: rgba(226, 112, 47, 0.38); --kc-software: #B5651D; --kc-team: #E2702F; --kc-marketing: #D9A400; --kc-phone: #8A5CC9; --kc-fees: #C2456E; --kc-other: #8C8378; }
+html[data-theme="dark"] { --rv-once: rgba(222, 106, 42, 0.42); --kc-software: #C9823E; --kc-team: #DE6A2A; --kc-marketing: #E4B83A; --kc-phone: #A585DB; --kc-fees: #D9709A; --kc-other: #9C948A; }
+.rv-kc-software { fill: var(--kc-software); background: var(--kc-software); }
+.rv-kc-team { fill: var(--kc-team); background: var(--kc-team); }
+.rv-kc-marketing { fill: var(--kc-marketing); background: var(--kc-marketing); }
+.rv-kc-phone { fill: var(--kc-phone); background: var(--kc-phone); }
+.rv-kc-fees { fill: var(--kc-fees); background: var(--kc-fees); }
+.rv-kc-other { fill: var(--kc-other); background: var(--kc-other); }
+.rv-f-once, .rv-k-once { fill: var(--rv-once); background: var(--rv-once); }
 .rv-hit { fill: transparent; cursor: pointer; }
 .rv-hit.is-on { fill: var(--rv-track); }
 .rv-tip { position: absolute; top: -6px; z-index: 2; display: grid; gap: 3px; min-width: 150px; padding: 9px 12px; border: 0.67px solid var(--glass-edge); border-radius: 12px; background: var(--glass-strong); box-shadow: var(--glass-shadow-sm); color: var(--ink); font-size: 12.5px; pointer-events: none; font-variant-numeric: proportional-nums; }
@@ -78,6 +130,75 @@ html[data-theme="dark"] { --rv-inc: #5C93D1; --rv-cost: #DE6A2A; --rv-was: rgba(
 .rv-hbar { display: block; min-width: 0; }
 .rv-bar-v { color: var(--ink); font-size: 14px; font-weight: 650; text-align: right; white-space: nowrap; font-variant-numeric: proportional-nums; }
 .rv-bar-pct { color: var(--ink-3); font-weight: 500; }
+
+/* Run rate: four small tiles. */
+.rv-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.rv-tile { display: grid; align-content: start; gap: 3px; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--rv-track); }
+.rv-tile-k { color: var(--ink-3); font-size: 12.5px; font-weight: 600; }
+.rv-tile-v { font-size: 24px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.2; font-variant-numeric: proportional-nums; overflow-wrap: anywhere; }
+.rv-tile-v .rv-none { font-size: 16px; }
+.rv-tile-s { color: var(--ink-3); font-size: 12.5px; line-height: 1.4; font-variant-numeric: proportional-nums; }
+
+/* Client mix: a ring with the month's total inside and a legend beside it. */
+.rv-mix { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 20px; }
+.rv-plot.is-fixed { min-height: 0; }
+.rv-ring-track { fill: none; stroke: var(--rv-track); }
+.rv-seg { cursor: default; }
+.rv-ring-v { fill: var(--ink); font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+.rv-ring-k { fill: var(--ink-3); font-size: 12px; font-weight: 600; }
+.rv-mix-legend { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.rv-mix-legend li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 14px; line-height: 1.3; }
+.rv-mix-name { display: inline-flex; align-items: center; gap: 8px; min-width: 0; color: var(--ink); font-weight: 600; }
+.rv-mix-name > span:last-child { min-width: 0; overflow-wrap: break-word; }
+.rv-mix-v { color: var(--ink); font-weight: 650; white-space: nowrap; font-variant-numeric: proportional-nums; }
+
+/* Repeating and one-off costs: a bar split in two, for the month and for the last 12 months. */
+.rv-splits { display: grid; gap: 16px; }
+.rv-split-part { display: grid; gap: 8px; }
+.rv-split-h { margin: 0; color: var(--ink-2); font-size: 13.5px; font-weight: 650; }
+.rv-split { display: block; }
+.rv-split-figs { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; padding: 0; list-style: none; color: var(--ink-2); font-size: 13.5px; }
+.rv-split-figs li { display: inline-flex; align-items: center; gap: 7px; }
+.rv-split-figs strong { color: var(--ink); font-weight: 650; font-variant-numeric: proportional-nums; }
+
+/* Best and worst months: two short ranked lists. */
+.rv-bw { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 28px; }
+.rv-bw-h { margin: 0 0 8px; color: var(--ink-2); font-size: 13.5px; font-weight: 650; }
+.rv-bw-list { display: grid; gap: 6px; margin: 0; padding: 0 0 0 1.6em; }
+.rv-bw-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.rv-bw-list li::marker { color: var(--ink-3); font-weight: 650; font-size: 13px; }
+.rv-bw-list li:last-child { border-bottom: 0; }
+.rv-bw-m { font-weight: 650; }
+.rv-bw-m a { color: var(--ink); text-decoration: none; }
+.rv-bw-m a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.rv-bw-p { grid-column: 2; grid-row: 1; font-weight: 700; font-variant-numeric: proportional-nums; white-space: nowrap; }
+.rv-bw-s { grid-column: 1 / -1; color: var(--ink-3); font-size: 12.5px; font-variant-numeric: proportional-nums; }
+.rv-bw-list.is-best .rv-bw-p { color: var(--good); }
+
+/* Customize: a dialog listing every chart with a switch and up/down, plus Show all and Reset to default. */
+.rv-cust { width: min(540px, calc(100vw - 32px)); max-height: min(86vh, 760px); margin: auto; padding: 0; overflow: hidden; border-radius: 20px; }
+.rv-cust-in { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; max-height: min(86vh, 760px); }
+.rv-cust-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 14px; border-bottom: 1px solid var(--line); }
+.rv-cust-head h2 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+.rv-cust-head p { margin-top: 3px; color: var(--ink-2); font-size: 14px; line-height: 1.45; }
+.rv-cust-x { flex: none; color: var(--ink-2); }
+.rv-cust-x:hover { color: var(--ink); border-color: var(--line-2); }
+.rv-cust-list { display: grid; margin: 0; padding: 6px 10px; overflow: auto; list-style: none; }
+.rv-cust-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 12px; }
+.rv-cust-row + .rv-cust-row { border-top: 1px solid var(--line); border-radius: 0; }
+.rv-cust-sw { align-items: center; gap: 14px; min-width: 0; }
+.rv-cust-sw input { width: 42px; height: 24px; margin: 0; }
+.rv-cust-sw input::after { width: 18px; height: 18px; }
+.rv-cust-sw input:checked::after { transform: translateX(18px); }
+.rv-cust-sw .pick-t { font-size: 14.5px; }
+.rv-cust-sw .pick-d { font-size: 13px; }
+.rv-cust-mv { display: inline-flex; gap: 4px; }
+.rv-cust-mv .icon-btn { width: 30px; height: 30px; color: var(--ink-2); }
+.rv-cust-mv .icon-btn:hover { color: var(--ink); border-color: var(--line-2); }
+.rv-cust-mv .icon-btn[disabled] { opacity: 0.35; cursor: default; }
+.rv-cust-mv .rv-ch-ic { width: 13px; height: 13px; stroke-width: 2; }
+.rv-cust-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 18px 16px; border-top: 1px solid var(--line); }
+.rv-cust-done { margin-left: auto; }
 
 /* This year so far. */
 .rv-ytd { display: grid; gap: 12px; margin: 0; }
@@ -143,6 +264,7 @@ html[data-theme="dark"] :is(.rv-inc-list, .rv-lines, .rv-sums) { background-colo
   .rv-card { padding: 16px 18px; }
   .rv-card-v { font-size: 26px; }
   .rv-charts { grid-template-columns: minmax(0, 1fr); }
+  .rv-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* A phone: everything stacks. */
@@ -154,6 +276,17 @@ html[data-theme="dark"] :is(.rv-inc-list, .rv-lines, .rv-sums) { background-colo
   .rv-chart { padding: 16px 14px 18px; }
   .rv-bar-row { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; }
   .rv-bar-row .rv-hbar { grid-column: 1 / -1; grid-row: 2; }
+  .rv-tiles { grid-template-columns: minmax(0, 1fr); }
+  .rv-tile-v { font-size: 22px; }
+  .rv-mix { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .rv-mix-legend { width: 100%; }
+  .rv-bw { grid-template-columns: minmax(0, 1fr); }
+  .rv-cust { width: 100vw; max-width: 100vw; max-height: 100dvh; margin: auto 0 0; border-radius: 20px 20px 0 0; }
+  .rv-cust-in { max-height: 100dvh; }
+  .rv-cust-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .rv-cust-mv { justify-self: end; }
+  .rv-cust-foot .btn { flex: 1; justify-content: center; }
+  .rv-cust-done { flex-basis: 100%; }
   .rv-form { padding: 18px 14px; }
   .rv-inc { grid-template-columns: minmax(0, 1fr); }
   .rv-inc-amt { grid-template-columns: minmax(0, 1fr) auto; }
@@ -263,4 +396,12 @@ html[data-theme="dark"] .rv-pm-list { background-color: rgba(255, 255, 255, 0.03
 /* The scenes look: Revenue sits on the same light day sky as Clients (and the same night sky in dark), with the same darker inks for words straight on the sky. */
 html[data-scene="scenes"][data-page="revenue"] { --sky-up: #A6C9EA; --sky-low: #D8E8F6; --sky-hz: #FFFFFF; --sky-ground: #AFBFC4; --orb-x: 84%; --orb-y: 9%; --orb-s: 5vmin; --orb-c: #FFF6D6; --orb-glow: rgba(255, 255, 255, 0.8); --stars-a: 0; }
 html[data-scene="scenes"][data-theme="dark"][data-page="revenue"] { --sky-up: #131E38; --sky-low: #2B4064; --sky-hz: #4A6488; --sky-ground: #182430; --orb-x: 13%; --orb-y: 30%; --orb-s: 3vmin; --orb-c: #8C8AA6; --orb-glow: rgba(74, 90, 128, 0.5); --stars-a: 0.55; }
-html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main > .page-head p, #rv-body > p.meta) { color: var(--ink-2); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main > .page-head p, #rv-body > p.meta, .rv-dash-note) { color: var(--ink-2); }
+
+/* Client mix in a narrow card (14 Oct): the legend goes under the ring, so client names read on one line instead of a letter a line.
+   The ring's slices use a dash and gap that add up to the whole circle, so the first slice wraps past 3 o'clock instead of being cut off. */
+.rv-chart:has(.rv-mix) { container: rvmix / inline-size; }
+@container rvmix (max-width: 560px) {
+  .rv-mix { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .rv-mix-legend { width: 100%; }
+}

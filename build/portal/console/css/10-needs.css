@@ -93,3 +93,15 @@
   .nx-chips .seg { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
   .nx-chips .seg::-webkit-scrollbar { display: none; }
 }
+
+/* The compare table sits under the facts. When the card's text column is narrow (the action buttons take the right side), the table drops
+   its left indent, and when it is narrower still it stacks the label above the two values, so no value is squeezed into a sliver (14 Oct). */
+.nx-body { container: nxbody / inline-size; }
+@container nxbody (max-width: 700px) {
+  .nx-detail { margin-left: 0; }
+}
+@container nxbody (max-width: 520px) {
+  .nx-cmp-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .nx-cmp-row .nx-cmp-k { grid-column: 1 / -1; }
+  .nx-cmp-head > :first-child { display: none; }
+}

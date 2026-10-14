@@ -30,10 +30,10 @@ html[data-theme="dark"][data-scene="scenes"][data-page] .page-fresh { background
 .cbar { height: 6px; overflow: hidden; border-radius: 999px; background: var(--surface-3); }
 .cbar > i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
 .cusage.is-warn .cbar > i { background: #E39A0B; }
-.cusage.is-full .cbar > i { background: var(--ink-3); }
+.cusage.is-full .cbar > i { background: #B87400; } /* at the limit: a full, deeper amber (Karan chose amber over grey, 14 Oct) */
 .cusage.is-over .cbar > i { background: #D43B2F; }
 .cusage.is-warn .cu-fig { color: var(--warn); }
-.cusage.is-full .cu-fig { color: var(--ink); }
+.cusage.is-full .cu-fig { color: var(--warn); }
 .cusage.is-over .cu-fig { color: var(--bad); }
 html[data-theme="dark"] .cusage.is-over .cbar > i { background: #FF7A6E; }
 

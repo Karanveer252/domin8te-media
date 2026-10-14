@@ -5,7 +5,7 @@
  * console.js calls this from the board functions it owns (moveTask, card, boardColumns, board, editCard, allBoardPage, deleteCard,
  * wireBoard). Everything here reads the console through window.D8C, which exists only after console.js has run, so each helper asks
  * for it when it is called, never when this file loads. Database: usage_events, set_task_visibility, soft_delete_task, report_exception
- * (migrations 20261013010200, 20261013010400, 20261013010500). Nothing is ever deleted: a count that was a mistake is voided with a reason.
+ * (migrations 20261013010200, 20261013010400, 20261013010500), set_live_count (20261014140000). Nothing is ever deleted: a count that was a mistake is voided with a reason.
  */
 (function () {
   'use strict';
@@ -444,11 +444,14 @@
     } catch (e) { /* the next reload shows it */ }
     forget();
   }
-  /** Asks Needs you to decide (report_exception). True when it was opened now, false when one was already open. @param {any} t @param {string} reason @param {string} message @param {any} last */
-  async function reportException(t, reason, message, last) {
+  /**
+   * Asks Needs you to decide (report_exception). True when it was opened now, false when one was already open.
+   * @param {any} t @param {string} reason @param {string} message @param {any} last @param {string} [kind] what the item is about (a card unless said)
+   */
+  async function reportException(t, reason, message, last, kind) {
     const c = C();
     const db = await c.db();
-    const opened = ok(await db.rpc('report_exception', { p_tenant: t.tenant_id, p_entity_type: 'task', p_entity_id: t.id, p_reason: reason, p_message: message, p_last: last }));
+    const opened = ok(await db.rpc('report_exception', { p_tenant: t.tenant_id, p_entity_type: kind || 'task', p_entity_id: t.id, p_reason: reason, p_message: message, p_last: last }));
     try {
       const res = await db.from('dashboard_exceptions').select('*').eq('tenant_id', t.tenant_id).eq('status', 'open');
       if (!res.error) {
@@ -684,6 +687,135 @@
     });
   }
 
+  /* ---- Set live count (20261014140000) ---------------------------------------------------------------------------------------- */
+
+  /** The live count dialog's words for each live-at-once limit. */
+  const LIVE_ASK = /** @type {Record<string, {q: string, field: string, noun: string}>} */ ({
+    ads_live_campaigns: { q: 'How many campaigns are live right now?', field: 'Live campaigns now', noun: 'Live campaigns' },
+    ads_platforms: { q: 'How many ad platforms are in use right now?', field: 'Ad platforms in use now', noun: 'Ad platforms' }
+  });
+  /** @param {string} s */
+  const cssq = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'));
+  /** Every bar of one client's live limit on the page (a strip can show it twice: at the top and under All limits). @param {string} tid @param {string} metric */
+  const liveBoxes = (tid, metric) => Array.from(document.querySelectorAll(`.wk-livebar[data-wk-live-box="${cssq(metric)}"][data-wk-tenant="${cssq(tid)}"]`));
+  /**
+   * A usage bar, and for a live-at-once limit a quiet "Set live count" button with it. The demo console shows the button switched off.
+   * Billing's drawer uses this too. @param {string} tenantId @param {any} l a planOf() line @param {string} label the bar's name
+   */
+  function liveBar(tenantId, l, label) {
+    const bar = C().usageBar({ ...l, label });
+    if (!LIVE_ASK[l.metric]) return bar;
+    const who = (C().tenant(tenantId) || {}).name || '';
+    const demo = !!(/** @type {any} */ (window).D8DEMO_SITE);
+    return `<div class="wk-livebar" data-wk-live-box="${E(l.metric)}" data-wk-tenant="${E(tenantId)}" data-wk-label="${E(label)}">${bar}<button class="linkish wk-live" type="button" data-wk-live="${E(l.metric)}" data-wk-tenant="${E(tenantId)}" aria-label="Set live count: ${E(label)}${who ? `, ${E(who)}` : ''}"${demo ? ' disabled title="This is a demo. Nothing is saved or sent."' : ''}>Set live count</button></div>`;
+  }
+  /**
+   * How many are live right now: a number from 0 to 100, prefilled with the count now. Resolves the number, or null (Cancel or Esc).
+   * @param {string} tenantId @param {any} line
+   */
+  function liveDialog(tenantId, line) {
+    const w = LIVE_ASK[line.metric];
+    const who = C().tenant(tenantId);
+    const html = `<form class="wk-form" novalidate>
+      <p class="wk-kicker">Set live count</p>
+      <h2 id="wk-live-h">${E(w.q)}</h2>
+      <p class="wk-sub"><strong>${E(who ? who.name : '')}</strong><span>Limit ${E(line.cap)} at once</span></p>
+      <div class="field wk-qty"><label for="wk-live-n">${E(w.field)}</label><input id="wk-live-n" type="number" name="qty" min="0" max="100" step="1" value="${E(line.used)}" inputmode="numeric" aria-describedby="wk-live-says"></div>
+      <p class="wk-lands" id="wk-live-says" aria-live="polite"></p>
+      <div class="actions"><button class="btn btn-quiet" type="button" data-wk-cancel>Cancel</button><button class="btn" type="submit">Save</button></div>
+    </form>`;
+    return modal(html, (dlg, close) => {
+      dlg.setAttribute('aria-labelledby', 'wk-live-h');
+      const f = /** @type {HTMLFormElement} */ (dlg.querySelector('form'));
+      const box = /** @type {HTMLInputElement} */ (f.elements.namedItem('qty'));
+      const says = /** @type {HTMLElement} */ (f.querySelector('#wk-live-says'));
+      const read = () => { const n = Number(box.value); return box.value.trim() !== '' && Number.isInteger(n) && n >= 0 && n <= 100 ? n : null; };
+      const sync = () => {
+        const n = read();
+        const over = n !== null && n > line.cap;
+        const kept = over && n !== null && n < line.used;   // lower, still past the cap: the one-off approved before covers it
+        says.className = `wk-lands${over && !kept ? ' is-over' : ''}`;
+        says.textContent = n === null ? 'A whole number from 0 to 100.'
+          : n === line.used ? `That is the count now: ${n} of ${line.cap}.`
+            : kept ? `${n} of ${line.cap}: still over the limit, under the one-off approved before.`
+              : over ? `That is ${n - line.cap} over the limit of ${line.cap}, so it goes to Needs you first, where a one-off can be approved. Nothing changes until then.`
+                : `${w.noun} go from ${line.used} to ${n} of ${line.cap}.`;
+      };
+      box.addEventListener('input', sync);
+      sync();
+      f.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const n = read();
+        if (n === null) { box.focus(); C().toast('How many: a whole number from 0 to 100.', true); return; }
+        close(n);
+      });
+      /** @type {HTMLElement} */ (f.querySelector('[data-wk-cancel]')).addEventListener('click', () => close(null));
+      box.focus();
+      box.select();
+    });
+  }
+  /** After a live count is written: the strips, the cards and every bar of it on the page show the new number. @param {string} tid @param {string} metric @param {number} n */
+  function applyLive(tid, metric, n) {
+    const c = C();
+    for (const u of c.plans.usage || []) if (u.tenant_id === tid && u.metric === metric) u.used = n;
+    store.loadedAt = 0;
+    forget();
+    const line = c.planOf(tid).lines.find((/** @type {any} */ l) => l.metric === metric);
+    if (!line) return;
+    for (const box of liveBoxes(tid, metric)) box.outerHTML = liveBar(tid, line, box.getAttribute('data-wk-label') || barName(line));
+  }
+  /**
+   * "Set live count": asks how many are live now and writes one snapshot (set_live_count, 20261014140000). The bar updates in place
+   * and focus goes back to the button. Over the cap the database refuses it: the limit is then put in Needs you, where a one-off can be
+   * approved. The same number writes nothing. Resolves true when something was written. @param {HTMLElement} btn @param {() => void} [wrote]
+   */
+  async function setLive(btn, wrote) {
+    const c = C();
+    const tid = btn.getAttribute('data-wk-tenant') || '';
+    const metric = btn.getAttribute('data-wk-live') || '';
+    const w = LIVE_ASK[metric];
+    const plan = c.planOf(tid);
+    const line = plan.lines.find((/** @type {any} */ l) => l.metric === metric);
+    if (!w || !line) return false;
+    // which of the bars it was, so focus comes back to the same one after the bars are drawn again
+    const at = Math.max(0, liveBoxes(tid, metric).indexOf(/** @type {Element} */ (btn.closest('.wk-livebar'))));
+    const back = () => {
+      const el = btn.isConnected ? btn : /** @type {HTMLElement|null} */ ((liveBoxes(tid, metric)[at] || document.createElement('i')).querySelector('[data-wk-live]'));
+      if (el) el.focus();
+    };
+    const n = await liveDialog(tid, line);
+    if (n === null) { back(); return false; }
+    if (n === line.used) { c.toast(`${w.noun} stay at ${n}. Nothing changed.`); back(); return false; }
+    let wroteIt = false;
+    try {
+      const db = await c.db();
+      const res = await db.rpc('set_live_count', { p_tenant: tid, p_metric: metric, p_qty: n });
+      const err = res.error;
+      const said = String((err && err.message) || '');
+      if (err && err.code === 'demo-readonly') { /* the demo console: its note was said, and nothing changed */ }
+      else if (err && err.code === '23514' && /^over_cap/.test(said)) {
+        const opened = await reportException({ tenant_id: tid, id: metric }, 'over_cap',
+          `Over cap: ${c.svcLabel(line.service)} ${line.label} ${n} of ${line.cap} (${plan.nowPlan ? plan.nowPlan.name : 'plan'}).`,
+          { metric, service: line.service, qty: Math.max(1, n - line.used), used: line.used, cap: line.cap, plan: plan.now ? plan.now.plan_id : null, cycle: plan.now ? plan.now.id : null, live: true }, 'live_count');
+        wroteIt = true;
+        c.toast(`${n} is over the limit of ${line.cap}, so nothing changed. ${opened ? 'It is in Needs you now' : 'It is already in Needs you'}, where a one-off can be approved.`, true);
+      } else if (err) {
+        if (/PGRST202|42883|could not find the function/i.test(`${err.code || ''} ${said}`)) throw new Error('Set live count needs the database update from 14 October first. Nothing was saved.');
+        if (/cycle-not-running/.test(said)) throw new Error('This client has no plan month running, so there is nothing to set yet. Set their plan in Billing first.');
+        if (/service_not_picked/.test(said)) throw new Error(`${c.svcLabel(line.service)} is not in this month’s plan, so nothing was saved.`);
+        if (/qty-out-of-range/.test(said)) throw new Error('How many: a whole number from 0 to 100. Nothing was saved.');
+        throw explain(err);
+      } else {
+        const out = res.data || {};
+        if (out.done === false) c.toast(`${w.noun} stay at ${out.now}. Nothing changed.`);
+        else { applyLive(tid, metric, Number(out.now)); wroteIt = true; c.toast(`${w.noun} set to ${out.now} (was ${out.was}).`); }
+      }
+    } catch (e) { c.toast(c.message(e), true); }
+    if (wroteIt && wrote) wrote();
+    back();
+    return wroteIt;
+  }
+
   /* ---- the usage strip ----------------------------------------------------------------------------------------------------------- */
 
   /** @param {any} l a usage line @returns {number} */
@@ -714,9 +846,9 @@
     const groups = c.SERVICE_ORDER.filter((/** @type {string} */ s) => byService.includes(s)).concat(byService.filter((/** @type {string} */ s) => !c.SERVICE_ORDER.includes(s)));
     const body = !p.now || !lines.length
       ? `<p class="wk-none">${p.now ? 'No limits for this plan.' : 'No plan month is running yet.'} <a href="#/billing/${E(t.id)}">${p.now ? 'See the plan' : 'Set the plan'}</a></p>`
-      : `<div class="wk-bars">${top.map((/** @type {any} */ l) => c.usageBar({ ...l, label: barName(l) })).join('')}</div>
+      : `<div class="wk-bars">${top.map((/** @type {any} */ l) => liveBar(t.id, l, barName(l))).join('')}</div>
         ${lines.length > 2 ? `<details class="wk-more"><summary>All limits <span class="wk-n">${lines.length}</span></summary>
-          <div class="wk-all">${groups.map((/** @type {string} */ s) => `<div class="wk-group"><h3>${E(c.svcLabel(s))}</h3><div class="wk-bars">${lines.filter((/** @type {any} */ l) => l.service === s).map((/** @type {any} */ l) => c.usageBar({ ...l, label: barName(l) })).join('')}</div></div>`).join('')}</div></details>` : ''}`;
+          <div class="wk-all">${groups.map((/** @type {string} */ s) => `<div class="wk-group"><h3>${E(c.svcLabel(s))}</h3><div class="wk-bars">${lines.filter((/** @type {any} */ l) => l.service === s).map((/** @type {any} */ l) => liveBar(t.id, l, barName(l))).join('')}</div></div>`).join('')}</div></details>` : ''}`;
     return `<section class="wk-strip${o.pressed ? ' is-on' : ''}${lines.some((/** @type {any} */ l) => l.used > l.cap) ? ' has-over' : ''}" aria-label="${E(t.name)}: plan limits">
       <header class="wk-strip-h">${name}${chips}${picks ? `<span class="wk-picks">${E(picks)}</span>` : ''}</header>${body}</section>`;
   }
@@ -867,6 +999,8 @@
       const target = /** @type {HTMLElement} */ (e.target);
       const askBtn = /** @type {HTMLButtonElement|null} */ (target.closest('[data-wk-ask]'));
       const countBtn = /** @type {HTMLButtonElement|null} */ (target.closest('[data-wk-count]'));
+      const liveBtn = /** @type {HTMLButtonElement|null} */ (target.closest('[data-wk-live]'));
+      if (liveBtn) { e.stopPropagation(); await setLive(liveBtn, wrote); return; }
       if (!askBtn && !countBtn) return;
       e.stopPropagation();
       const c = C();
@@ -895,5 +1029,5 @@
     }, { signal });
   }
 
-  EXT.work = { ready, strip, cardView, seeText, moveBlock, beforeDone, undoCount, askRemove, removeCard, setVisibility, visibilityField, wireVisibility, visibilityChange, editUsage, wireEdit, allWork, wire, clientSees, visState, flagged, infoFor };
+  EXT.work = { ready, strip, cardView, seeText, moveBlock, beforeDone, undoCount, askRemove, removeCard, setVisibility, visibilityField, wireVisibility, visibilityChange, editUsage, wireEdit, allWork, wire, clientSees, visState, flagged, infoFor, liveBar, setLive };
 })();

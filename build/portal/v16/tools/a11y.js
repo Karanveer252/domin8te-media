@@ -30,8 +30,19 @@ const runner = `<script>${fs.readFileSync(AXE, 'utf8').replace(/<\/script/gi, '<
   function ready() { return document.getElementById('page-title') && !document.querySelector('[aria-busy="true"]'); }
   // ?a11yopen=N (Revenue, 2026-10-14): open the first N rows of Previous months before axe looks, and also load the older months.
   var opened = !/[?&]a11yopen=[0-9]/.test(location.search);
+  // ?a11yrev=hide (Revenue dashboard, 2026-10-14): some charts hidden before the page draws; ?a11yrev=cust: the Customize panel open before axe looks.
+  var rev = (/[?&]a11yrev=([a-z]+)/.exec(location.search) || [])[1] || '';
+  try { if (rev === 'hide') localStorage.setItem('d8c.revenue.charts', JSON.stringify({ hidden: ['trend', 'perclient', 'split', 'cumulative', 'runrate'], order: [] })); else localStorage.removeItem('d8c.revenue.charts'); } catch (e) {}
+  var custOpened = rev !== 'cust';
   function go() {
     if (!ready() && tries++ < 80) return setTimeout(go, 100);
+    if (!custOpened) {
+      var cb = document.getElementById('rv-cust-btn');
+      if (!cb && tries++ < 80) return setTimeout(go, 100);
+      custOpened = true;
+      if (cb) cb.click();
+      return setTimeout(go, 400);
+    }
     if (!opened) {
       var n = Number((/[?&]a11yopen=([0-9]+)/.exec(location.search) || [])[1]);
       var btns = document.querySelectorAll('.rv-pm-btn');
@@ -85,7 +96,11 @@ if (/v18h/.test(BUILD)) {
   CASES = CASES.concat([{ route: 'revenue', w: 1440 }, { route: 'revenue', w: 500 }, { route: 'revenue', w: 1440, query: 'theme=dark' }, { route: 'revenue', w: 1440, query: 'scene=scenes' }, { route: 'revenue', w: 1440, query: 'scene=scenes&theme=dark' },
     { route: `revenue/${MONTH_NOW}/costs`, w: 1440 }, { route: `revenue/${MONTH_NOW}/costs`, w: 500 }, { route: `revenue/${MONTH_NOW}/costs`, w: 1440, query: 'theme=dark' }, { route: `revenue/${MONTH_NOW}/income`, w: 1440 }, { route: `revenue/${MONTH_NOW}/income`, w: 500, query: 'theme=dark' },
     // Previous months at the bottom of the Overview, with two rows open and the older months loaded
-    { route: 'revenue', w: 1440, query: 'a11yopen=2' }, { route: 'revenue', w: 500, query: 'a11yopen=2' }, { route: 'revenue', w: 1440, query: 'theme=dark&a11yopen=2' }, { route: 'revenue', w: 1440, query: 'scene=scenes&a11yopen=1' }]);
+    { route: 'revenue', w: 1440, query: 'a11yopen=2' }, { route: 'revenue', w: 500, query: 'a11yopen=2' }, { route: 'revenue', w: 1440, query: 'theme=dark&a11yopen=2' }, { route: 'revenue', w: 1440, query: 'scene=scenes&a11yopen=1' },
+    // The dashboard's Customize panel open, some charts hidden, and the charts with motion turned off (2026-10-14)
+    { route: 'revenue', w: 1440, query: 'a11yrev=cust' }, { route: 'revenue', w: 500, query: 'a11yrev=cust' }, { route: 'revenue', w: 1440, query: 'theme=dark&a11yrev=cust' }, { route: 'revenue', w: 1440, query: 'scene=scenes&a11yrev=cust' },
+    { route: 'revenue', w: 1440, query: 'a11yrev=hide' }, { route: 'revenue', w: 500, query: 'a11yrev=hide' }, { route: 'revenue', w: 1440, query: 'theme=dark&a11yrev=hide' }, { route: 'revenue', w: 1440, query: 'scene=scenes&theme=dark&a11yrev=hide' },
+    { route: 'revenue', w: 1440, reduced: true }, { route: 'revenue', w: 500, reduced: true }, { route: 'revenue', w: 1440, query: 'theme=dark', reduced: true }, { route: 'revenue', w: 1440, query: 'scene=scenes', reduced: true }]);
   CASES = CASES.concat([{ route: `billing/${B}`, w: 1440 }, { route: `billing/${B}`, w: 500 }, { route: `billing/${B}`, w: 1440, query: 'theme=dark' }, { route: 'billing', w: 500 },
     { route: `client/${B}/results`, w: 1440 }, { route: `client/${B}/talk`, w: 1440 }, { route: `client/${B}/home`, w: 1440 }, { route: `client/${B}/home`, w: 500 }, { route: `client/${B}/visible`, w: 1440 }, { route: `client/${B}/visible`, w: 500 }, { route: `client/${B}/visible`, w: 1440, query: 'theme=dark' }, { route: `client/${B}/view`, w: 1440 }, { route: `client/${B}/view`, w: 500 }, { route: `client/${B}/view`, w: 1440, query: 'theme=dark' }, { route: `client/${B}/view`, w: 1440, query: 'theme=dark&scene=scenes' },
     { route: `client/${B}/setup`, w: 1440 }, { route: `client/${B}/advanced`, w: 1440 }, { route: `client/${B}/work`, w: 1440 }, { route: 'client/tnt_preview_marlow/overview', w: 1440 }, { route: 'client/tnt_preview_corner/visible', w: 1440 },
@@ -101,10 +116,10 @@ let failed = 0;
 for (const c of CASES) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'd8axe-'));
   const url = `file:///${FILE}${c.query ? '?' + c.query : ''}#/${c.route}`;
-  const r = spawnSync(CHROME, ['--headless=new', '--disable-gpu', '--no-first-run', `--user-data-dir=${profile}`, '--virtual-time-budget=20000', `--window-size=${c.w},1200`, '--dump-dom', url], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  const r = spawnSync(CHROME, ['--headless=new', '--disable-gpu', '--no-first-run', `--user-data-dir=${profile}`, '--virtual-time-budget=20000', `--window-size=${c.w},1200`, ...(c.reduced ? ['--force-prefers-reduced-motion'] : []), '--dump-dom', url], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   fs.rmSync(profile, { recursive: true, force: true });
   const m = /data-axe="([^"]*)"/.exec(r.stdout || '');
-  const label = `${c.w}px ${c.query ? '?' + c.query + ' ' : ''}#/${c.route}`;
+  const label = `${c.w}px ${c.query ? '?' + c.query + ' ' : ''}${c.reduced ? '(reduced motion) ' : ''}#/${c.route}`;
   if (!m) { failed++; console.log(`FAIL ${label}: axe did not finish`); continue; }
   const v = JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'"));
   if (v.length) {

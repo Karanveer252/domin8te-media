@@ -156,6 +156,8 @@
   });
   /** One usage line as the console's bar. @param {any} l */
   const barOf = (l) => C().usageBar({ ...l, label: BAR[l.metric] || cap1(PP().unitOf(l.metric, l.label, 2)) });
+  /** A bar in one client's drawer: a live-at-once limit gets "Set live count" with it (mod-work.js). @param {string} id @param {any} l */
+  const drawerBar = (id, l) => (EXT.work && EXT.work.liveBar ? EXT.work.liveBar(id, l, BAR[l.metric] || cap1(PP().unitOf(l.metric, l.label, 2))) : barOf(l));
   /** @param {any} r */
   function nowCell(r) {
     if (!r.now) return '<span class="none">Nothing running</span>';
@@ -487,7 +489,7 @@
       <div class="bd-body">
         <p class="bd-lede">The console is the source of truth. The client's dashboard updates after you save, and the client is emailed only if you tick it.</p>
         ${r.now ? `<section class="bd-now" aria-label="Right now"><p class="bd-now-h"><strong>Right now</strong> <span>${nowBits}</span></p><p class="meta">${r.notStarted ? 'The first bill' : 'The next bill'} is ${esc(dayLong(r.bill))}${r.billIn !== null ? `, in ${r.billIn} ${r.billIn === 1 ? 'day' : 'days'}` : ''}.</p>
-          ${usage.length ? `<details class="reveal bd-limits"><summary>This month's limits and use (${usage.length})</summary><div class="bd-usage">${usage.map(barOf).join('')}</div></details>` : ''}</section>` : ''}
+          ${usage.length ? `<details class="reveal bd-limits"><summary>This month's limits and use (${usage.length})</summary><div class="bd-usage">${usage.map((/** @type {any} */ l) => drawerBar(t.id, l)).join('')}</div></details>` : ''}</section>` : ''}
         <fieldset class="bd-sec"><legend>Plan</legend><div id="bd-plans"></div></fieldset>
         <fieldset class="bd-sec"><legend>Picks for the cycle starting <span id="bd-start">${esc(dayLong(target.start))}</span></legend><div id="bd-picks"></div><p class="bd-change" id="bd-change" aria-live="polite"></p></fieldset>
         ${mode === 'running' ? `<fieldset class="bd-sec bd-applies"><legend>Applies</legend>
@@ -566,6 +568,8 @@
     };
     dlg.addEventListener('cancel', (e) => { e.preventDefault(); close(false); });
     dlg.addEventListener('click', (e) => { const x = /** @type {HTMLElement} */ (e.target); if (x === dlg || x.closest('[data-bd="close"]')) close(false); });
+    // "Set live count" on a live-at-once limit: its own small dialog on top; the bar updates in place (mod-work.js)
+    dlg.addEventListener('click', (e) => { const b = /** @type {HTMLElement} */ (e.target).closest('[data-wk-live]'); if (b && EXT.work && EXT.work.setLive) EXT.work.setLive(/** @type {HTMLElement} */ (b)); });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();

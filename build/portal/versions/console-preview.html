@@ -1984,6 +1984,46 @@
 })();
 </script>
 <script>
+/* stub/87-live-count.js */
+// LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). Stand-in for 20261014140000_set_live_count.sql
+// (2026-10-14): "Set live count" writes one snapshot row for a live-at-once limit through the usage guard (stub/86-atomic.js: over the
+// cap is refused unless a one-off was approved, and it writes usage_added), plus its own History line usage_live_set. The same number
+// writes nothing; lowering is always allowed (still past the cap only under a one-off approved before, which it keeps). Loaded after 86.
+(function () {
+  'use strict';
+  const S = /** @type {any} */ (window).D8STUB;
+  if (!S) return;
+  const LIVE = ['ads_live_campaigns', 'ads_platforms'];
+  /** @param {string} code @param {string} message @returns {never} */
+  const fail = (code, message) => { throw { code, message }; };
+  /** @param {string} name */
+  const rows = (name) => (S.db[name] = S.db[name] || []);
+
+  S.rpcs.set_live_count = (/** @type {any} */ a) => {
+    if (!LIVE.includes(a.p_metric)) fail('22023', 'not-a-live-limit');
+    const n = Number(a.p_qty);
+    if (!(Number.isInteger(n) && n >= 0 && n <= 100)) fail('22023', 'qty-out-of-range: a whole number from 0 to 100');
+    const c = rows('tenant_plan_cycles').filter((/** @type {any} */ x) => x.tenant_id === a.p_tenant && x.state === 'active')
+      .sort((/** @type {any} */ x, /** @type {any} */ y) => String(y.period_start).localeCompare(String(x.period_start)))[0];
+    if (!c) fail('23514', 'cycle-not-running');
+    const cap = rows('plan_caps').filter((/** @type {any} */ x) => x.plan_id === c.plan_id && x.metric === a.p_metric && String(x.effective_from) <= String(c.period_start))
+      .sort((/** @type {any} */ x, /** @type {any} */ y) => y.version - x.version)[0];
+    if (!cap) fail('23514', `unknown-metric: ${a.p_metric} for this plan`);
+    const u = rows('tenant_usage_current').find((/** @type {any} */ x) => x.tenant_id === a.p_tenant && x.metric === a.p_metric);
+    const was = u ? Number(u.used) || 0 : 0;
+    const max = Number(cap.monthly_cap);
+    if (was === n) return { done: false, was, now: was, cap: max };
+    const keep = n < was && n > max;
+    const rec = { id: `usage_events_${S.id()}`, tenant_id: a.p_tenant, cycle_id: c.id, service: cap.service, metric: a.p_metric, qty: n, counted: true,
+      task_id: null, request_id: null, note: `Live count set to ${n} (was ${was})${keep ? ', under the one-off approved before' : ''}`, over_cap_approved_at: keep ? S.now() : null };
+    S.hooks.insert.usage_events(rec, S);   // the guard: refuses over the cap, keeps tenant_usage_current in step, writes usage_added
+    rows('usage_events').push(rec);
+    S.audit(a.p_tenant, 'usage_live_set', { usage: rec.id, service: cap.service, metric: a.p_metric, was, now: n, cap: max });
+    return { done: true, was, now: n, cap: max, usage: rec.id };
+  };
+})();
+</script>
+<script>
 /* stub/90-card-color.js */
 // LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). The preview's client_profile rows (2026-10-14): each of the four
 // preview clients has a card colour (two share orange) and one has an edited tag, so All work shows the badges at once. The real column is client_profile.card_color (migration
@@ -2082,7 +2122,11 @@
       const g = shift(m, -k);
       const inc = income().filter((/** @type {any} */ x) => x.month === g);
       const cos = costs().filter((/** @type {any} */ x) => x.month === g);
-      series.push({ month: g, income_minor: sum(inc), costs_minor: sum(cos), income_n: inc.length, costs_n: cos.length });
+      /** @type {Record<string, number>} */ const kinds = {};
+      for (const c of cos) kinds[c.category] = (kinds[c.category] || 0) + c.amount_minor;
+      series.push({ month: g, income_minor: sum(inc), costs_minor: sum(cos), income_n: inc.length, costs_n: cos.length,
+        other_minor: sum(inc.filter((/** @type {any} */ x) => x.kind === 'other')), repeat_minor: sum(cos.filter((/** @type {any} */ x) => x.repeats)), kinds,
+        clients: inc.filter((/** @type {any} */ x) => x.kind === 'client').sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort).map((/** @type {any} */ x) => ({ tenant_id: x.tenant_id, label: x.label, amount_minor: x.amount_minor })) });
     }
     return JSON.parse(JSON.stringify({
       month: m, opened: !!mark, carried_from: mark ? mark.carried_from : null,
@@ -2182,8 +2226,9 @@
     }));
   };
 
-  // Sample figures: 17 months, the oldest 16 months back. Bayleaf from the start (on Growth, then Domin8te for the last 6 months),
-  // Marlow from 12 months back, The Corner Bean from 10 back to last month (paused now), Osteria from 6 back. Costs are the company's own.
+  // Sample figures: 23 months, the oldest 22 months back (so the two-year trend is full). Bayleaf from the start (on Growth, then Domin8te
+  // for the last 6 months), Marlow from 12 months back, The Corner Bean from 10 back to last month (paused now), Osteria from 6 back.
+  // The first months are small: one client, the editor from 20 back, no marketing until 16 back. Costs are the company's own.
   // Nine months back a camera kit makes a loss month; 15 months back has income but no costs entered. This month has income from two clients only (Osteria not entered, so "Use $1,999"
   // shows) and no costs yet: opening it copies last month's repeating costs, as the real database does.
   S.seeds.push((/** @type {any} */ db) => {
@@ -2192,7 +2237,7 @@
     db.business_costs = [];
     const now = thisMonth();
     let k = 0;
-    for (let back = 16; back >= 0; back -= 1) {
+    for (let back = 22; back >= 0; back -= 1) {
       const m = shift(now, -back);
       let s = 0;
       const inc = (/** @type {string|null} */ tenant, /** @type {string} */ label, /** @type {number} */ minor) => db.business_income.push({ id: `bi_seed_${++k}`, month: m, kind: tenant ? 'client' : 'other', tenant_id: tenant, label, amount_minor: minor, sort: ++s, created_at: S.stamp(-back * 30, 0), updated_at: S.stamp(-back * 30, 0) });
@@ -2205,16 +2250,17 @@
       if (back === 12) inc(null, 'Logo refresh for a bakery', 60000);
       if (back === 0) continue;   // this month: no costs yet, and not opened (so the carry-over runs)
       if (back === 15) continue;   // 15 months back: income only, the costs were never entered (Previous months says "Not entered")
-      db.business_months.push({ month: m, carried_from: back === 16 ? null : shift(m, -1), opened_at: S.stamp(-back * 30, 0) });
+      db.business_months.push({ month: m, carried_from: back === 22 ? null : shift(m, -1), opened_at: S.stamp(-back * 30, 0) });
       let c = 0;
       const cost = (/** @type {string} */ category, /** @type {string} */ label, /** @type {number} */ minor, /** @type {boolean} */ repeats) => db.business_costs.push({ id: `bc_seed_${++k}`, month: m, category, label, amount_minor: minor, repeats, sort: ++c, created_at: S.stamp(-back * 30, 0), updated_at: S.stamp(-back * 30, 0) });
       cost('software', 'Adobe and Canva', 9500, true);
       cost('software', 'Hosting and database', back <= 8 ? 6500 : 2500, true);
       if (back <= 4) cost('software', 'Sign-in service', 2500, true);
-      cost('team', back <= 8 ? 'Sam, contractor' : 'Freelance editor', back <= 8 ? 160000 : 60000, true);
-      cost('marketing', 'Meta ads for Domin8te', back <= 3 ? 60000 : 35000, true);
+      if (back <= 20) cost('team', back <= 8 ? 'Sam, contractor' : 'Freelance editor', back <= 8 ? 160000 : 60000, true);
+      if (back <= 16) cost('marketing', 'Meta ads for Domin8te', back <= 3 ? 60000 : 35000, true);
       cost('phone', 'Phone and internet', 11000, true);
-      cost('fees', 'Card fees', Math.round((back <= 5 ? 0.031 : 0.029) * (back <= 5 ? 750000 : 400000)), false);
+      cost('fees', 'Card fees', Math.round((back <= 5 ? 0.031 : 0.029) * (back <= 5 ? 750000 : back <= 12 ? 400000 : 200000)), false);
+      if (back === 19) cost('other', 'Tripod and microphone', 32000, false);
       if (back % 3 === 0) cost('fees', 'Accountant', 25000, false);
       if (back === 9) cost('other', 'Camera kit and lights', 420000, false);
       if (back === 14) cost('other', 'New laptop', 180000, false);
@@ -3435,10 +3481,10 @@ html[data-theme="dark"][data-scene="scenes"][data-page] .page-fresh { background
 .cbar { height: 6px; overflow: hidden; border-radius: 999px; background: var(--surface-3); }
 .cbar > i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
 .cusage.is-warn .cbar > i { background: #E39A0B; }
-.cusage.is-full .cbar > i { background: var(--ink-3); }
+.cusage.is-full .cbar > i { background: #B87400; } /* at the limit: a full, deeper amber (Karan chose amber over grey, 14 Oct) */
 .cusage.is-over .cbar > i { background: #D43B2F; }
 .cusage.is-warn .cu-fig { color: var(--warn); }
-.cusage.is-full .cu-fig { color: var(--ink); }
+.cusage.is-full .cu-fig { color: var(--warn); }
 .cusage.is-over .cu-fig { color: var(--bad); }
 html[data-theme="dark"] .cusage.is-over .cbar > i { background: #FF7A6E; }
 
@@ -3550,6 +3596,18 @@ html[data-theme="dark"] :is(.hx-list, .vz-hist, .bd-hist-list) > li::before { ba
   .nx-sheet { padding: 16px; }
   .nx-chips .seg { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
   .nx-chips .seg::-webkit-scrollbar { display: none; }
+}
+
+/* The compare table sits under the facts. When the card's text column is narrow (the action buttons take the right side), the table drops
+   its left indent, and when it is narrower still it stacks the label above the two values, so no value is squeezed into a sliver (14 Oct). */
+.nx-body { container: nxbody / inline-size; }
+@container nxbody (max-width: 700px) {
+  .nx-detail { margin-left: 0; }
+}
+@container nxbody (max-width: 520px) {
+  .nx-cmp-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .nx-cmp-row .nx-cmp-k { grid-column: 1 / -1; }
+  .nx-cmp-head > :first-child { display: none; }
 }
 
 /* css/12-clients.css */
@@ -3685,6 +3743,12 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 .wk-all { display: grid; gap: 16px; margin-top: 14px; }
 .wk-group h3 { margin: 0 0 8px; color: var(--ink-3); font-size: 13.5px; font-weight: 650; }
 .wk-all .wk-bars { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 24px; }
+/* Set live count (2026-10-14): a small quiet link under a live-at-once bar */
+.wk-livebar { display: grid; gap: 3px; min-width: 0; justify-items: start; }
+.wk-livebar > .cusage { width: 100%; }
+.wk-live { color: var(--ink-3); font-size: 12.5px; font-weight: 600; text-decoration-color: rgba(94, 72, 50, 0.35); }
+.wk-live:hover { color: var(--ink); text-decoration-color: currentColor; }
+.wk-live:disabled { cursor: not-allowed; opacity: 0.6; }
 .wk-n { min-width: 20px; padding: 0 6px; border-radius: 999px; background: rgba(94, 72, 50, 0.1); color: var(--ink-2); font-size: 12px; font-weight: 650; line-height: 1.65; text-align: center; font-variant-numeric: proportional-nums; }
 .wk-n.is-bad { background: var(--bad-bg); color: var(--bad); }
 
@@ -4903,10 +4967,10 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
 .hp-frame .bar { position: relative; height: 8px; overflow: hidden; border-radius: 999px; background: var(--p-well); box-shadow: inset 0 0 0 1px var(--p-line); }
 .hp-frame .bar > span { display: block; height: 100%; border-radius: inherit; background: var(--p-fill-ok); }
 .hp-frame .usage.is-warn .bar > span { background: var(--p-fill-warn); }
-.hp-frame .usage.is-full .bar > span { background: var(--p-ink-3); }
+.hp-frame .usage.is-full .bar > span { background: #B87400; }
 .hp-frame .usage.is-over .bar > span { background: var(--p-fill-full); }
 .hp-frame .usage-word { font-size: 12.5px; font-weight: 650; color: var(--p-warning); }
-.hp-frame .usage.is-full .usage-word { color: var(--p-ink-2); }
+.hp-frame .usage.is-full .usage-word { color: var(--p-warning); }
 .hp-frame .usage.is-over .usage-word { color: var(--p-error); }
 .hp-frame .chg-list { display: grid; gap: 8px; }
 .hp-frame .chg-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--p-glass-strong); box-shadow: inset 0 0 0 1px var(--p-line); }
@@ -5059,11 +5123,12 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs
 /* css/62-revenue.css */
 /*
  * Revenue (2026-10-14, rewritten the same day), Karan's private business dashboard (mod-revenue.js). The console's tokens, its glass cards,
- * pill buttons, the ink selected pill of .seg, the .field inputs and the .switch-row switch. Two chart colours of its own (income blue,
- * costs orange; checked for colour-blind separation and contrast in light and dark), profit drawn in ink.
+ * pill buttons, the ink selected pill of .seg, the .field inputs and the .switch-row switch. Two chart colours of its own (income green,
+ * Karan's choice of 2026-10-14, a calmer chart green than the console's --good so it does not read as a status; costs orange; checked for
+ * colour-blind separation and contrast in light and dark), profit drawn in ink. Green is lighter on the dark theme.
  */
-:root { --rv-inc: #3A6EA5; --rv-cost: #E2702F; --rv-prof: var(--ink); --rv-was: rgba(94, 72, 50, 0.22); --rv-track: rgba(94, 72, 50, 0.08); --rv-ring: #FBF9F6; }
-html[data-theme="dark"] { --rv-inc: #5C93D1; --rv-cost: #DE6A2A; --rv-was: rgba(255, 255, 255, 0.2); --rv-track: rgba(255, 255, 255, 0.07); --rv-ring: #252933; }
+:root { --rv-inc: #277A52; --rv-cost: #E2702F; --rv-prof: var(--ink); --rv-was: rgba(94, 72, 50, 0.22); --rv-track: rgba(94, 72, 50, 0.08); --rv-ring: #FBF9F6; }
+html[data-theme="dark"] { --rv-inc: #5CC48E; --rv-cost: #DE6A2A; --rv-was: rgba(255, 255, 255, 0.2); --rv-track: rgba(255, 255, 255, 0.07); --rv-ring: #252933; }
 
 /* The month: a card with the arrows either side (earlier months are in Previous months at the bottom of the Overview). */
 .rv-month { margin: 16px 0 20px; }
@@ -5087,12 +5152,45 @@ html[data-theme="dark"] { --rv-inc: #5C93D1; --rv-cost: #DE6A2A; --rv-was: rgba(
 /* The sections: Overview, Income, Costs. */
 .rv-views { margin: 0 0 16px; }
 
-/* The charts. */
-.rv-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+/* The dashboard (2026-10-14): a two-column grid of glass cards, the wide ones across both columns. A small bar above it says how many
+   charts show and opens Customize; each card's header has a quiet Hide. */
+.rv-dash-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+.rv-dash-note { color: var(--ink-3); font-size: 13.5px; font-weight: 600; }
+.rv-dash-empty { grid-column: 1 / -1; }
+.rv-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
 .rv-chart { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 18px 22px 20px; border: 0.67px solid var(--glass-edge); border-radius: var(--r-item); background-color: var(--glass-soft); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); }
 .rv-wide { grid-column: 1 / -1; }
+.rv-chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.rv-chart-head > div { min-width: 0; }
 .rv-chart-head h3 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
 .rv-chart-head p, .rv-chart-note { color: var(--ink-3); font-size: 13px; line-height: 1.45; }
+.rv-hide { flex: none; margin: -2px -6px 0 0; padding: 2px 8px; border: 0; border-radius: 999px; background: none; color: var(--ink-3); font: inherit; font-size: 12.5px; font-weight: 650; cursor: pointer; opacity: 0.75; transition: opacity 160ms var(--ease), background-color 160ms var(--ease), color 160ms var(--ease); }
+.rv-chart:hover .rv-hide, .rv-hide:focus-visible { opacity: 1; }
+.rv-hide:hover { background-color: var(--rv-track); color: var(--ink); }
+.rv-hide:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+/* Moving in (only with .rv-anim, which the page adds when the person has not asked for less motion): a card rises as it comes into view,
+   bars grow from the baseline, lines draw from left to right, fills and dots fade in after them, ring slices sweep round. Transforms and
+   opacity only, so nothing shifts and nothing blocks a click. */
+.rv-anim .rv-chart { transition: opacity 500ms var(--ease), translate 500ms var(--ease); }
+.rv-anim .rv-chart:not(.is-in) { opacity: 0; translate: 0 12px; }
+.rv-grow { transform-box: fill-box; transform-origin: 50% 100%; transition: transform 650ms var(--ease); transition-delay: calc(var(--i, 0) * 35ms); }
+.rv-growx { transform-box: fill-box; transform-origin: 0 50%; transition: transform 700ms var(--ease); transition-delay: calc(var(--i, 0) * 70ms); }
+.rv-draw { stroke-dasharray: 1 1; stroke-dashoffset: 0; transition: stroke-dashoffset 1100ms var(--ease) 120ms; }
+.rv-fade { transition: opacity 450ms var(--ease) 650ms; }
+.rv-seg { fill: none; stroke-dasharray: var(--f, 1) calc(1 - var(--f, 1)); transition: stroke-dasharray 800ms var(--ease); transition-delay: calc(120ms + var(--i, 0) * 110ms); }
+.rv-anim .rv-chart:not(.is-in) .rv-grow { transform: scaleY(0.001); }
+.rv-anim .rv-chart:not(.is-in) .rv-growx { transform: scaleX(0.001); }
+.rv-anim .rv-chart:not(.is-in) .rv-draw { stroke-dashoffset: 1; }
+.rv-anim .rv-chart:not(.is-in) .rv-fade { opacity: 0; }
+.rv-anim .rv-chart:not(.is-in) .rv-seg { stroke-dasharray: 0 1; }
+@media (prefers-reduced-motion: reduce) {
+  .rv-anim .rv-chart:not(.is-in) { opacity: 1; translate: none; }
+  .rv-anim .rv-chart:not(.is-in) :is(.rv-grow, .rv-growx) { transform: none; }
+  .rv-anim .rv-chart:not(.is-in) .rv-draw { stroke-dashoffset: 0; }
+  .rv-anim .rv-chart:not(.is-in) .rv-fade { opacity: 1; }
+  .rv-anim .rv-chart:not(.is-in) .rv-seg { stroke-dasharray: var(--f, 1) calc(1 - var(--f, 1)); }
+}
 .rv-chart-empty { color: var(--ink-2); font-size: 14px; }
 .rv-chart-empty a { color: var(--ink); font-weight: 650; text-underline-offset: 3px; }
 .rv-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -4px 0 0; padding: 0; list-style: none; color: var(--ink-2); font-size: 13px; font-weight: 600; }
@@ -5118,8 +5216,26 @@ html[data-theme="dark"] { --rv-inc: #5C93D1; --rv-cost: #DE6A2A; --rv-was: rgba(
 .rv-f-was { fill: var(--rv-was); }
 .rv-track { fill: var(--rv-track); }
 .rv-line-p { fill: none; stroke: var(--rv-prof); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.rv-line-inc { fill: none; stroke: var(--rv-inc); stroke-width: 2.25; stroke-linejoin: round; stroke-linecap: round; }
+.rv-line-cost { fill: none; stroke: var(--rv-cost); stroke-width: 2.25; stroke-linejoin: round; stroke-linecap: round; }
+.rv-line-was { fill: none; stroke: var(--rv-was); stroke-width: 2; stroke-dasharray: 4 5; stroke-linecap: round; }
+.rv-area-inc { fill: var(--rv-inc); opacity: 0.1; }
+.rv-area-prof { fill: var(--rv-prof); opacity: 0.08; }
 .rv-dot { fill: var(--rv-prof); stroke: var(--rv-ring); stroke-width: 2; }
 .rv-dot.is-neg { fill: var(--bad); }
+.rv-dot-inc { fill: var(--rv-inc); stroke: var(--rv-ring); stroke-width: 2; }
+.rv-dot-cost { fill: var(--rv-cost); stroke: var(--rv-ring); stroke-width: 2; }
+.rv-k-was { background: var(--rv-was); }
+/* The six kinds of cost, in the stacked chart and its legend (costs stay in the warm half; income's blue is kept for income). */
+:root { --rv-once: rgba(226, 112, 47, 0.38); --kc-software: #B5651D; --kc-team: #E2702F; --kc-marketing: #D9A400; --kc-phone: #8A5CC9; --kc-fees: #C2456E; --kc-other: #8C8378; }
+html[data-theme="dark"] { --rv-once: rgba(222, 106, 42, 0.42); --kc-software: #C9823E; --kc-team: #DE6A2A; --kc-marketing: #E4B83A; --kc-phone: #A585DB; --kc-fees: #D9709A; --kc-other: #9C948A; }
+.rv-kc-software { fill: var(--kc-software); background: var(--kc-software); }
+.rv-kc-team { fill: var(--kc-team); background: var(--kc-team); }
+.rv-kc-marketing { fill: var(--kc-marketing); background: var(--kc-marketing); }
+.rv-kc-phone { fill: var(--kc-phone); background: var(--kc-phone); }
+.rv-kc-fees { fill: var(--kc-fees); background: var(--kc-fees); }
+.rv-kc-other { fill: var(--kc-other); background: var(--kc-other); }
+.rv-f-once, .rv-k-once { fill: var(--rv-once); background: var(--rv-once); }
 .rv-hit { fill: transparent; cursor: pointer; }
 .rv-hit.is-on { fill: var(--rv-track); }
 .rv-tip { position: absolute; top: -6px; z-index: 2; display: grid; gap: 3px; min-width: 150px; padding: 9px 12px; border: 0.67px solid var(--glass-edge); border-radius: 12px; background: var(--glass-strong); box-shadow: var(--glass-shadow-sm); color: var(--ink); font-size: 12.5px; pointer-events: none; font-variant-numeric: proportional-nums; }
@@ -5137,6 +5253,75 @@ html[data-theme="dark"] { --rv-inc: #5C93D1; --rv-cost: #DE6A2A; --rv-was: rgba(
 .rv-hbar { display: block; min-width: 0; }
 .rv-bar-v { color: var(--ink); font-size: 14px; font-weight: 650; text-align: right; white-space: nowrap; font-variant-numeric: proportional-nums; }
 .rv-bar-pct { color: var(--ink-3); font-weight: 500; }
+
+/* Run rate: four small tiles. */
+.rv-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.rv-tile { display: grid; align-content: start; gap: 3px; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--rv-track); }
+.rv-tile-k { color: var(--ink-3); font-size: 12.5px; font-weight: 600; }
+.rv-tile-v { font-size: 24px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.2; font-variant-numeric: proportional-nums; overflow-wrap: anywhere; }
+.rv-tile-v .rv-none { font-size: 16px; }
+.rv-tile-s { color: var(--ink-3); font-size: 12.5px; line-height: 1.4; font-variant-numeric: proportional-nums; }
+
+/* Client mix: a ring with the month's total inside and a legend beside it. */
+.rv-mix { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 20px; }
+.rv-plot.is-fixed { min-height: 0; }
+.rv-ring-track { fill: none; stroke: var(--rv-track); }
+.rv-seg { cursor: default; }
+.rv-ring-v { fill: var(--ink); font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+.rv-ring-k { fill: var(--ink-3); font-size: 12px; font-weight: 600; }
+.rv-mix-legend { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.rv-mix-legend li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 14px; line-height: 1.3; }
+.rv-mix-name { display: inline-flex; align-items: center; gap: 8px; min-width: 0; color: var(--ink); font-weight: 600; }
+.rv-mix-name > span:last-child { min-width: 0; overflow-wrap: break-word; }
+.rv-mix-v { color: var(--ink); font-weight: 650; white-space: nowrap; font-variant-numeric: proportional-nums; }
+
+/* Repeating and one-off costs: a bar split in two, for the month and for the last 12 months. */
+.rv-splits { display: grid; gap: 16px; }
+.rv-split-part { display: grid; gap: 8px; }
+.rv-split-h { margin: 0; color: var(--ink-2); font-size: 13.5px; font-weight: 650; }
+.rv-split { display: block; }
+.rv-split-figs { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; padding: 0; list-style: none; color: var(--ink-2); font-size: 13.5px; }
+.rv-split-figs li { display: inline-flex; align-items: center; gap: 7px; }
+.rv-split-figs strong { color: var(--ink); font-weight: 650; font-variant-numeric: proportional-nums; }
+
+/* Best and worst months: two short ranked lists. */
+.rv-bw { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 28px; }
+.rv-bw-h { margin: 0 0 8px; color: var(--ink-2); font-size: 13.5px; font-weight: 650; }
+.rv-bw-list { display: grid; gap: 6px; margin: 0; padding: 0 0 0 1.6em; }
+.rv-bw-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.rv-bw-list li::marker { color: var(--ink-3); font-weight: 650; font-size: 13px; }
+.rv-bw-list li:last-child { border-bottom: 0; }
+.rv-bw-m { font-weight: 650; }
+.rv-bw-m a { color: var(--ink); text-decoration: none; }
+.rv-bw-m a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.rv-bw-p { grid-column: 2; grid-row: 1; font-weight: 700; font-variant-numeric: proportional-nums; white-space: nowrap; }
+.rv-bw-s { grid-column: 1 / -1; color: var(--ink-3); font-size: 12.5px; font-variant-numeric: proportional-nums; }
+.rv-bw-list.is-best .rv-bw-p { color: var(--good); }
+
+/* Customize: a dialog listing every chart with a switch and up/down, plus Show all and Reset to default. */
+.rv-cust { width: min(540px, calc(100vw - 32px)); max-height: min(86vh, 760px); margin: auto; padding: 0; overflow: hidden; border-radius: 20px; }
+.rv-cust-in { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; max-height: min(86vh, 760px); }
+.rv-cust-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 14px; border-bottom: 1px solid var(--line); }
+.rv-cust-head h2 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+.rv-cust-head p { margin-top: 3px; color: var(--ink-2); font-size: 14px; line-height: 1.45; }
+.rv-cust-x { flex: none; color: var(--ink-2); }
+.rv-cust-x:hover { color: var(--ink); border-color: var(--line-2); }
+.rv-cust-list { display: grid; margin: 0; padding: 6px 10px; overflow: auto; list-style: none; }
+.rv-cust-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 12px; }
+.rv-cust-row + .rv-cust-row { border-top: 1px solid var(--line); border-radius: 0; }
+.rv-cust-sw { align-items: center; gap: 14px; min-width: 0; }
+.rv-cust-sw input { width: 42px; height: 24px; margin: 0; }
+.rv-cust-sw input::after { width: 18px; height: 18px; }
+.rv-cust-sw input:checked::after { transform: translateX(18px); }
+.rv-cust-sw .pick-t { font-size: 14.5px; }
+.rv-cust-sw .pick-d { font-size: 13px; }
+.rv-cust-mv { display: inline-flex; gap: 4px; }
+.rv-cust-mv .icon-btn { width: 30px; height: 30px; color: var(--ink-2); }
+.rv-cust-mv .icon-btn:hover { color: var(--ink); border-color: var(--line-2); }
+.rv-cust-mv .icon-btn[disabled] { opacity: 0.35; cursor: default; }
+.rv-cust-mv .rv-ch-ic { width: 13px; height: 13px; stroke-width: 2; }
+.rv-cust-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 18px 16px; border-top: 1px solid var(--line); }
+.rv-cust-done { margin-left: auto; }
 
 /* This year so far. */
 .rv-ytd { display: grid; gap: 12px; margin: 0; }
@@ -5202,6 +5387,7 @@ html[data-theme="dark"] :is(.rv-inc-list, .rv-lines, .rv-sums) { background-colo
   .rv-card { padding: 16px 18px; }
   .rv-card-v { font-size: 26px; }
   .rv-charts { grid-template-columns: minmax(0, 1fr); }
+  .rv-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* A phone: everything stacks. */
@@ -5213,6 +5399,17 @@ html[data-theme="dark"] :is(.rv-inc-list, .rv-lines, .rv-sums) { background-colo
   .rv-chart { padding: 16px 14px 18px; }
   .rv-bar-row { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; }
   .rv-bar-row .rv-hbar { grid-column: 1 / -1; grid-row: 2; }
+  .rv-tiles { grid-template-columns: minmax(0, 1fr); }
+  .rv-tile-v { font-size: 22px; }
+  .rv-mix { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .rv-mix-legend { width: 100%; }
+  .rv-bw { grid-template-columns: minmax(0, 1fr); }
+  .rv-cust { width: 100vw; max-width: 100vw; max-height: 100dvh; margin: auto 0 0; border-radius: 20px 20px 0 0; }
+  .rv-cust-in { max-height: 100dvh; }
+  .rv-cust-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .rv-cust-mv { justify-self: end; }
+  .rv-cust-foot .btn { flex: 1; justify-content: center; }
+  .rv-cust-done { flex-basis: 100%; }
   .rv-form { padding: 18px 14px; }
   .rv-inc { grid-template-columns: minmax(0, 1fr); }
   .rv-inc-amt { grid-template-columns: minmax(0, 1fr) auto; }
@@ -5322,7 +5519,15 @@ html[data-theme="dark"] .rv-pm-list { background-color: rgba(255, 255, 255, 0.03
 /* The scenes look: Revenue sits on the same light day sky as Clients (and the same night sky in dark), with the same darker inks for words straight on the sky. */
 html[data-scene="scenes"][data-page="revenue"] { --sky-up: #A6C9EA; --sky-low: #D8E8F6; --sky-hz: #FFFFFF; --sky-ground: #AFBFC4; --orb-x: 84%; --orb-y: 9%; --orb-s: 5vmin; --orb-c: #FFF6D6; --orb-glow: rgba(255, 255, 255, 0.8); --stars-a: 0; }
 html[data-scene="scenes"][data-theme="dark"][data-page="revenue"] { --sky-up: #131E38; --sky-low: #2B4064; --sky-hz: #4A6488; --sky-ground: #182430; --orb-x: 13%; --orb-y: 30%; --orb-s: 3vmin; --orb-c: #8C8AA6; --orb-glow: rgba(74, 90, 128, 0.5); --stars-a: 0.55; }
-html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main > .page-head p, #rv-body > p.meta) { color: var(--ink-2); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main > .page-head p, #rv-body > p.meta, .rv-dash-note) { color: var(--ink-2); }
+
+/* Client mix in a narrow card (14 Oct): the legend goes under the ring, so client names read on one line instead of a letter a line.
+   The ring's slices use a dash and gap that add up to the whole circle, so the first slice wraps past 3 o'clock instead of being cut off. */
+.rv-chart:has(.rv-mix) { container: rvmix / inline-size; }
+@container rvmix (max-width: 560px) {
+  .rv-mix { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .rv-mix-legend { width: 100%; }
+}
 
 /* css/70-touch.css */
 /*
@@ -8241,11 +8446,11 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
     local: 'Google and Apple Maps, reviews, search',
     email: 'Email campaigns and automatic emails, with a welcome email'
   };
-  /** What comes with each plan besides its services. A summary and calls are facts, not limits (release default 20): change them here. */
+  /** What comes with each plan besides its services: change it here. No calls or video walkthroughs on any plan (Karan, 14 Oct 2026). */
   const INCLUDED = {
     starter: ['A monthly summary in your dashboard'],
-    growth: ['A monthly summary in your dashboard', 'A 15 minute call each month'],
-    domin8te: ['A monthly summary in your dashboard', 'A 30 minute call each month', 'A short video walkthrough']
+    growth: ['A monthly summary in your dashboard'],
+    domin8te: ['A monthly summary in your dashboard']
   };
   /** Ad spend is separate from the plan fee (release default 18): change the sentence here. */
   const AD_SPEND = 'Ad spend is paid to Meta and Google directly and is not part of your plan.';
@@ -8592,6 +8797,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
   });
   /** One usage line as the console's bar. @param {any} l */
   const barOf = (l) => C().usageBar({ ...l, label: BAR[l.metric] || cap1(PP().unitOf(l.metric, l.label, 2)) });
+  /** A bar in one client's drawer: a live-at-once limit gets "Set live count" with it (mod-work.js). @param {string} id @param {any} l */
+  const drawerBar = (id, l) => (EXT.work && EXT.work.liveBar ? EXT.work.liveBar(id, l, BAR[l.metric] || cap1(PP().unitOf(l.metric, l.label, 2))) : barOf(l));
   /** @param {any} r */
   function nowCell(r) {
     if (!r.now) return '<span class="none">Nothing running</span>';
@@ -8923,7 +9130,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
       <div class="bd-body">
         <p class="bd-lede">The console is the source of truth. The client's dashboard updates after you save, and the client is emailed only if you tick it.</p>
         ${r.now ? `<section class="bd-now" aria-label="Right now"><p class="bd-now-h"><strong>Right now</strong> <span>${nowBits}</span></p><p class="meta">${r.notStarted ? 'The first bill' : 'The next bill'} is ${esc(dayLong(r.bill))}${r.billIn !== null ? `, in ${r.billIn} ${r.billIn === 1 ? 'day' : 'days'}` : ''}.</p>
-          ${usage.length ? `<details class="reveal bd-limits"><summary>This month's limits and use (${usage.length})</summary><div class="bd-usage">${usage.map(barOf).join('')}</div></details>` : ''}</section>` : ''}
+          ${usage.length ? `<details class="reveal bd-limits"><summary>This month's limits and use (${usage.length})</summary><div class="bd-usage">${usage.map((/** @type {any} */ l) => drawerBar(t.id, l)).join('')}</div></details>` : ''}</section>` : ''}
         <fieldset class="bd-sec"><legend>Plan</legend><div id="bd-plans"></div></fieldset>
         <fieldset class="bd-sec"><legend>Picks for the cycle starting <span id="bd-start">${esc(dayLong(target.start))}</span></legend><div id="bd-picks"></div><p class="bd-change" id="bd-change" aria-live="polite"></p></fieldset>
         ${mode === 'running' ? `<fieldset class="bd-sec bd-applies"><legend>Applies</legend>
@@ -9002,6 +9209,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
     };
     dlg.addEventListener('cancel', (e) => { e.preventDefault(); close(false); });
     dlg.addEventListener('click', (e) => { const x = /** @type {HTMLElement} */ (e.target); if (x === dlg || x.closest('[data-bd="close"]')) close(false); });
+    // "Set live count" on a live-at-once limit: its own small dialog on top; the bar updates in place (mod-work.js)
+    dlg.addEventListener('click', (e) => { const b = /** @type {HTMLElement} */ (e.target).closest('[data-wk-live]'); if (b && EXT.work && EXT.work.setLive) EXT.work.setLive(/** @type {HTMLElement} */ (b)); });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -11188,7 +11397,9 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
   /** A client's services in catalog order, "Ads, Social media and Website". @param {string[]} picks */
   function picksText(picks) {
     const list = SERVICE_ORDER.filter((s) => (picks || []).includes(s)).map(svcName);
-    return list.length < 2 ? list.join('') || 'No services' : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
+    // A name that holds "and" itself (SEO and Google Maps) joins with commas only, so it never reads "Website and SEO and Google Maps".
+    if (list.length < 2) return list.join('') || 'No services';
+    return list.some((x) => / and /.test(x)) ? list.join(', ') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
   }
   /** The services a month holds: its picks, which include Ads on every plan. @param {any} cycle */
   const picksOfCycle = (cycle) => (cycle ? cycle.picks || [] : []);
@@ -13224,9 +13435,16 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
 /*
  * Revenue (#/revenue, #/revenue/<yyyy-mm>, #/revenue/<yyyy-mm>/income, #/revenue/<yyyy-mm>/costs), rewritten 2026-10-14: Karan's private
  * business dashboard. For each month: what the business made (one amount per client, plus other income), what it spent on itself
- * (company costs by category; never a client's costs or ad spend) and what it kept (profit and margin), with charts over the last 12 months,
- * the year so far, costs by category and income by client, and at the bottom the previous months (a page of 12 at a time, each opening to
- * that month's clients, cost lines and shares).
+ * (company costs by category; never a client's costs or ad spend) and what it kept (profit and margin), then a dashboard of charts (added
+ * 2026-10-14: run rate, the last 12 months, profit this year, the year so far, the two-year trend, margin, average income per client, costs
+ * by kind over time, client mix, income by client, costs by kind, repeating against one-off costs, best and worst months), and at the bottom
+ * the previous months (a page of 12 at a time, each opening to that month's clients, cost lines and shares).
+ *
+ * The charts are inline SVG drawn here (no library) in a two-column grid; each one has a hover card with the exact figures and a table
+ * under it. They move in once, the first time they scroll into view (bars grow, lines draw, slices sweep, numbers count), never when the
+ * person asked for less motion. Customize (a dialog) shows or hides each chart and moves it up or down; each card also has Hide. The choice
+ * is kept on this computer (localStorage, d8c.revenue.charts) and in the account (user_prefs.appearance.revenue.charts), so it follows
+ * Karan across devices; the page draws fine when neither can be read or written.
  *
  * Only the business owner sees it (one person, app.business_owner, migration 20261014070000_revenue_ledger.sql): not other owners, not the
  * team, not clients, not the demo. The page asks the database (rpc am_business_owner) before it draws the sidebar item, the jump palette
@@ -13261,9 +13479,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
    * charts reach back), whether the signed-in person is the business owner, and a number that stops a slow answer drawing over a newer page.
    * prev holds the Previous months list for the month on screen: the months read so far (a page at a time), whether older ones exist,
    * and which rows are open.
-   * @type {{ym: string, view: string, seq: number, at: number, error: string, cache: Record<string, any>, owner: {id: string, v: boolean|null, p: Promise<boolean|null>|null}, form: HTMLFormElement|null, ro: ResizeObserver|null, prev: {ym: string, months: any[], more: boolean, busy: boolean, done: boolean, error: string, open: Set<string>}}}
+   * @type {{ym: string, view: string, seq: number, at: number, error: string, cache: Record<string, any>, owner: {id: string, v: boolean|null, p: Promise<boolean|null>|null}, form: HTMLFormElement|null, ro: ResizeObserver|null, io: IntersectionObserver|null, prev: {ym: string, months: any[], more: boolean, busy: boolean, done: boolean, error: string, open: Set<string>}}}
    */
-  const state = { ym: '', view: 'overview', seq: 0, at: 0, error: '', cache: {}, owner: { id: '', v: null, p: null }, form: null, ro: null, prev: { ym: '', months: [], more: false, busy: false, done: false, error: '', open: new Set() } };
+  const state = { ym: '', view: 'overview', seq: 0, at: 0, error: '', cache: {}, owner: { id: '', v: null, p: null }, form: null, ro: null, io: null, prev: { ym: '', months: [], more: false, busy: false, done: false, error: '', open: new Set() } };
   const noPrev = () => ({ ym: '', months: [], more: false, busy: false, done: false, error: '', open: /** @type {Set<string>} */ (new Set()) });
 
   /* ---- who may see it ------------------------------------------------------------------------------------ */
@@ -13400,8 +13618,13 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const num = (/** @type {any} */ v) => Number(v) || 0;
     const income = (j.income || []).map((/** @type {any} */ x) => ({ kind: x.kind === 'client' && x.tenant_id ? 'client' : 'other', tenant_id: x.tenant_id || '', label: String(x.label || ''), amount: num(x.amount_minor), sort: num(x.sort) })).sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort);
     const costs = (j.costs || []).map((/** @type {any} */ x) => ({ category: CATS.some((c) => c[0] === x.category) ? x.category : 'other', label: String(x.label || ''), amount: num(x.amount_minor), repeats: x.repeats !== false, sort: num(x.sort) })).sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort);
-    const series = (j.series || []).map((/** @type {any} */ s) => ({ ym: String(s.month).slice(0, 7), inc: num(s.income_minor), cost: num(s.costs_minor), incN: num(s.income_n), costN: num(s.costs_n) }))
-      .sort((/** @type {any} */ a, /** @type {any} */ b) => monthIndex(a.ym) - monthIndex(b.ym));
+    // each month of the series also carries its costs by kind, what each client paid, its other income and its repeating costs (for the charts)
+    const series = (j.series || []).map((/** @type {any} */ s) => {
+      /** @type {Record<string, number>} */ const kinds = {};
+      for (const [k, v] of Object.entries(s.kinds && typeof s.kinds === 'object' ? s.kinds : {})) if (CATS.some((c) => c[0] === k)) kinds[k] = num(v);
+      const clients = (Array.isArray(s.clients) ? s.clients : []).filter((/** @type {any} */ c) => c && c.tenant_id).map((/** @type {any} */ c) => ({ id: String(c.tenant_id), label: String(c.label || ''), minor: num(c.amount_minor) }));
+      return { ym: String(s.month).slice(0, 7), inc: num(s.income_minor), cost: num(s.costs_minor), incN: num(s.income_n), costN: num(s.costs_n), other: num(s.other_minor), rep: num(s.repeat_minor), kinds, clients };
+    }).sort((/** @type {any} */ a, /** @type {any} */ b) => monthIndex(a.ym) - monthIndex(b.ym));
     return { ym, carriedFrom: j.carried_from ? String(j.carried_from).slice(0, 7) : '', income, costs, series };
   }
   /** Opens a month (the database carries repeating costs forward the first time) and keeps it. @param {string} ym @param {boolean} [again] */
@@ -13484,7 +13707,78 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     return `<nav class="rv-views" aria-label="Revenue sections"><div class="seg" role="group">${items.map(([k, label, tail]) => `<a href="#/revenue/${ym}${tail}"${state.view === k ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div></nav>`;
   }
 
-  /* ---- charts ------------------------------------------------------------------------------------------------------ */
+  /* ---- the dashboard: which charts there are, and what Karan chose to show ------------------------------------------- */
+
+  /** Every chart and card of the Overview in its default order: id, title, whether it spans both columns, and what it shows in a few words. */
+  const CHARTS = /** @type {[string, string, boolean, string][]} */ ([
+    ['runrate', 'Run rate', true, 'What the business is on track for'],
+    ['months', 'Last 12 months', true, 'Income, costs and profit for each month'],
+    ['cumulative', 'Profit this year', false, 'Profit added up from January'],
+    ['ytd', 'This year so far', false, 'Against the same months of last year'],
+    ['trend', 'Income and costs trend', true, 'The last two years, smoothed'],
+    ['margin', 'Profit margin', false, 'How much of each dollar you kept'],
+    ['perclient', 'Average income per client', false, 'What a client paid on average, by month'],
+    ['kinds', 'Costs by kind over time', true, 'The last 12 months, stacked by kind'],
+    ['mix', 'Client mix', false, 'Who paid what share this month'],
+    ['clients', 'Income by client', false, 'This month, largest first'],
+    ['cats', 'Costs by kind', false, 'This month, largest first'],
+    ['split', 'Repeating and one-off costs', false, 'Monthly costs against one-time ones'],
+    ['bestworst', 'Best and worst months', true, 'The last 12 months, ranked by profit']
+  ]);
+  const chartOf = (/** @type {string} */ id) => CHARTS.find((c) => c[0] === id);
+  const CHOICE_KEY = 'd8c.revenue.charts';
+  /** What Karan chose: the charts hidden, and the order of all of them. @type {{hidden: string[], order: string[]}} */
+  let choice = { hidden: [], order: CHARTS.map((c) => c[0]) };
+  let choiceFor = '';   // the signed-in person whose saved choice has been read from the account
+  /** @type {Promise<void>|null} */ let choiceP = null;
+  let saveT = 0;
+  /** A saved choice with only the charts this page knows, every chart in the order once, and the missing ones after. @param {any} p */
+  function cleanChoice(p) {
+    const ids = CHARTS.map((c) => c[0]);
+    const keep = (/** @type {any} */ a) => (Array.isArray(a) ? a.filter((x, i) => typeof x === 'string' && ids.includes(x) && a.indexOf(x) === i) : []);
+    const order = keep(p && p.order);
+    for (const id of ids) if (!order.includes(id)) order.push(id);
+    return { hidden: keep(p && p.hidden), order };
+  }
+  const shown = () => choice.order.filter((id) => !choice.hidden.includes(id));
+  function readLocalChoice() { try { const s = localStorage.getItem(CHOICE_KEY); if (s) choice = cleanChoice(JSON.parse(s)); } catch (e) { /* the default order */ } }
+  /** The choice saved to the account (user_prefs.appearance.revenue.charts, so it follows Karan across devices), read once per signed-in person; the copy on this computer until then. */
+  function readChoice() {
+    const id = meId();
+    if (choiceFor === id) return Promise.resolve();
+    if (choiceP) return choiceP;
+    readLocalChoice();
+    choiceP = (async () => {
+      try {
+        const c = await C().db();
+        const r = await c.from('user_prefs').select('appearance').eq('clerk_user_id', id).maybeSingle();
+        const saved = r.data && r.data.appearance && r.data.appearance.revenue && r.data.appearance.revenue.charts;
+        if (saved) { choice = cleanChoice(saved); try { localStorage.setItem(CHOICE_KEY, JSON.stringify(choice)); } catch (e) { /* this computer only */ } }
+      } catch (e) { /* the copy on this computer is used */ }
+      choiceFor = id;
+      choiceP = null;
+    })();
+    return choiceP;
+  }
+  /** Keeps the choice: on this computer at once, and in the account a moment later. The page works the same when neither can be written. */
+  function saveChoice() {
+    try { localStorage.setItem(CHOICE_KEY, JSON.stringify(choice)); } catch (e) { /* this computer only */ }
+    clearTimeout(saveT);
+    saveT = setTimeout(async () => {
+      const id = meId();
+      if (!id || demo()) return;
+      const mine = JSON.parse(JSON.stringify(choice));
+      try {
+        const c = await C().db();
+        const r = await c.from('user_prefs').select('appearance').eq('clerk_user_id', id).maybeSingle();
+        const was = (r.data && r.data.appearance) || {};
+        const look = { ...was, revenue: { ...(was.revenue || {}), charts: mine } };
+        await c.from('user_prefs').upsert({ clerk_user_id: id, appearance: look }).select('clerk_user_id').maybeSingle();
+      } catch (e) { /* kept on this computer; the next change tries again */ }
+    }, 600);
+  }
+
+  /* ---- charts: the pieces they share ---------------------------------------------------------------------------- */
 
   /** Round tick steps (1, 2, 2.5, 5 times a power of ten) for a range of minor units. @param {number} lo @param {number} hi @param {number} n */
   function ticks(lo, hi, n) {
@@ -13513,6 +13807,64 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (y1 < y0) return `M${x},${y0}V${y1 + r}Q${x},${y1} ${x + r},${y1}H${x + w - r}Q${x + w},${y1} ${x + w},${y1 + r}V${y0}Z`;
     return `M${x},${y0}V${y1 - r}Q${x},${y1} ${x + r},${y1}H${x + w - r}Q${x + w},${y1} ${x + w},${y1 - r}V${y0}Z`;
   }
+  /** A smooth line through points: cubic curves, with the handles held between the neighbours so the line never overshoots a value. @param {{x: number, y: number}[]} p */
+  function smooth(p) {
+    if (p.length < 2) return '';
+    let d = `M${p[0].x.toFixed(1)},${p[0].y.toFixed(1)}`;
+    for (let i = 0; i < p.length - 1; i += 1) {
+      const p0 = p[i - 1] || p[i], p1 = p[i], p2 = p[i + 1], p3 = p[i + 2] || p2;
+      const lo = Math.min(p1.y, p2.y), hi = Math.max(p1.y, p2.y);
+      const c1y = Math.min(hi, Math.max(lo, p1.y + (p2.y - p0.y) / 6));
+      const c2y = Math.min(hi, Math.max(lo, p2.y - (p3.y - p1.y) / 6));
+      d += `C${(p1.x + (p2.x - p0.x) / 6).toFixed(1)},${c1y.toFixed(1)} ${(p2.x - (p3.x - p1.x) / 6).toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+    }
+    return d;
+  }
+  /** Horizontal grid lines with their money labels. @param {number[]} tk @param {(v: number) => number} y @param {number} L @param {number} pw */
+  const gridLines = (tk, y, L, pw) => tk.map((v) => `<line class="rv-grid${v === 0 ? ' is-zero' : ''}" x1="${L}" x2="${L + pw}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="rv-axis" x="${L - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${esc(axisMoney(v))}</text>`).join('');
+  /** The invisible columns a pointer finds, one for each month. @param {number} n @param {number} L @param {number} band @param {number} T @param {number} h */
+  const hitRects = (n, L, band, T, h) => Array.from({ length: n }, (_, i) => `<rect class="rv-hit" data-rv-tip="${i}" x="${(L + band * i).toFixed(1)}" y="${T}" width="${band.toFixed(1)}" height="${h}"/>`).join('');
+  /** The frame every chart draws in. @param {number} width @param {number} height @param {string} label @param {string} inner */
+  const svgOf = (width, height, label, inner) => `<svg class="rv-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(label)}" focusable="false">${inner}</svg>`;
+  /** A number that counts up once when its chart first comes into view (count-up only moves when animation is on). @param {number} v @param {'money'|'signed'|'pct'|'int'} fmt */
+  const num = (v, fmt) => `<span class="rv-num" data-num="${v}" data-fmt="${fmt}">${esc(fmtNum(v, fmt))}</span>`;
+  /** @param {number} v @param {string} fmt */
+  function fmtNum(v, fmt) {
+    if (fmt === 'pct') return `${Math.round(v)}%`;
+    if (fmt === 'int') return String(Math.round(v));
+    return fmt === 'signed' ? signed(Math.round(v)) : money(Math.round(v));
+  }
+  /** Whether the charts move: not when the person asked for less motion, and not without IntersectionObserver. */
+  const anim = () => typeof IntersectionObserver !== 'undefined' && !(typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const sumOf = (/** @type {any[]} */ a, /** @type {string} */ k) => a.reduce((s, x) => s + (Number(x[k]) || 0), 0);
+  /** The months of a year up to the month on screen, this year and last. @param {any} d */
+  function yearRows(d) {
+    const y = d.ym.slice(0, 4);
+    const ly = String(Number(y) - 1);
+    const n = Number(d.ym.slice(5, 7));
+    const pick = (/** @type {string} */ yr) => d.series.filter((/** @type {any} */ r) => r.ym.slice(0, 4) === yr && Number(r.ym.slice(5, 7)) <= n);
+    return { y, ly, n, now: pick(y), was: pick(ly) };
+  }
+  /** A tip's rows: a key, a name and a figure. @param {[string, string, string][]} rows */
+  const tipRows = (rows) => rows.map(([key, name, fig]) => `<span>${key ? `<i class="rv-key ${key}"></i>` : ''}${esc(name)} ${esc(fig)}</span>`).join('');
+  /** A table under a chart, for anyone who would rather read it. @param {string} caption @param {string[]} heads @param {string[][]} rows */
+  const tableOf = (caption, heads, rows) => `<details class="rv-table"><summary>Show as a table</summary><div class="table-wrap"><table class="grid"><caption class="sr-only">${esc(caption)}</caption>
+      <thead><tr>${heads.map((h, i) => `<th scope="col"${i ? ' class="n"' : ''}>${esc(h)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((r) => `<tr>${r.map((c, i) => (i ? `<td class="n">${c}</td>` : `<th scope="row">${c}</th>`)).join('')}</tr>`).join('')}</tbody></table></div></details>`;
+  const NONE = '<span class="none">Not entered</span>';
+  const DASH = '<span class="none">-</span>';
+  /** A month in the table's first column, as a link to it when the page can open it. @param {string} ym */
+  const monthCell = (ym) => (monthIndex(ym) >= monthIndex(currentMonth()) - MONTHS_BACK ? `<a href="#/revenue/${ym}">${esc(monthName(ym))}</a>` : esc(monthName(ym)));
+  /** The six kinds of cost, each with its own colour in the stacked chart and its legend. */
+  const KIND_CLS = /** @type {Record<string, string>} */ ({ software: 'rv-kc-software', team: 'rv-kc-team', marketing: 'rv-kc-marketing', phone: 'rv-kc-phone', fees: 'rv-kc-fees', other: 'rv-kc-other' });
+  /** The colour a client's slice takes: the client's own card colour, or one from a short list when it has none. @param {string} id @param {number} i */
+  function sliceColor(id, i) {
+    const k = EXT.color && typeof EXT.color.of === 'function' ? EXT.color.of(id) : '';
+    const fall = ['blue', 'teal', 'violet', 'amber', 'pink', 'green', 'sky', 'lime', 'rose', 'orange'];
+    return `var(--cc-${k || fall[i % fall.length]})`;
+  }
+
+  /* ---- the SVG charts (drawn at the width they have, again whenever that changes) ------------------------------------ */
 
   /** The last 12 months: income and costs side by side, profit as a line. @param {any} d @param {number} width */
   function monthsSvg(d, width) {
@@ -13528,38 +13880,34 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const y = (/** @type {number} */ v) => T + ph - ((v - lo) / (hi - lo)) * ph;
     const band = pw / rows.length;
     const bw = Math.max(3, Math.min(narrow ? 9 : 16, band * 0.3));
-    let g = '';
-    for (const v of tk) g += `<line class="rv-grid${v === 0 ? ' is-zero' : ''}" x1="${L}" x2="${L + pw}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="rv-axis" x="${L - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${esc(axisMoney(v))}</text>`;
-    let bars = '', xl = '', hits = '', pts = /** @type {string[]} */ ([]), dots = '';
+    let bars = '', xl = '', pts = /** @type {{x: number, y: number}[]} */ ([]), dots = '';
     const y0 = y(0);
     const sel = rows.findIndex((/** @type {any} */ r) => r.ym === d.ym);
     const anchor = sel >= 0 ? sel : rows.length - 1;
     /** @type {string[]} */ const segs = [];
+    const flush = () => { if (pts.length > 1) segs.push(`<path class="rv-line-p rv-draw" pathLength="1" d="${pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('')}"/>`); pts = []; };
     rows.forEach((/** @type {any} */ r, /** @type {number} */ i) => {
       const cx = L + band * i + band / 2;
       const has = r.incN > 0 || r.costN > 0;
       if (r.ym === d.ym) bars += `<rect class="rv-sel" x="${(L + band * i + 1).toFixed(1)}" y="${T}" width="${(band - 2).toFixed(1)}" height="${ph}" rx="6"/>`;
-      if (r.inc > 0) bars += `<path class="rv-f-inc" d="${colPath(cx - bw - 1, y0, y(r.inc), bw)}"/>`;
-      if (r.cost > 0) bars += `<path class="rv-f-cost" d="${colPath(cx + 1, y0, y(r.cost), bw)}"/>`;
+      if (r.inc > 0) bars += `<path class="rv-f-inc rv-grow" style="--i:${i}" d="${colPath(cx - bw - 1, y0, y(r.inc), bw)}"/>`;
+      if (r.cost > 0) bars += `<path class="rv-f-cost rv-grow" style="--i:${i}" d="${colPath(cx + 1, y0, y(r.cost), bw)}"/>`;
       const show = !narrow || (anchor - i) % 2 === 0;   // on a phone every other month, counted from the month on screen
       if (show) xl += `<text class="rv-axis${r.ym === d.ym ? ' is-sel' : ''}" x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="middle">${esc(monthName(r.ym, 'mon'))}</text>`;
       if (has) {
-        pts.push(`${cx.toFixed(1)},${y(r.inc - r.cost).toFixed(1)}`);
-        dots += `<circle class="rv-dot${r.inc - r.cost < 0 ? ' is-neg' : ''}" cx="${cx.toFixed(1)}" cy="${y(r.inc - r.cost).toFixed(1)}" r="4"/>`;
-      } else if (pts.length) { segs.push(pts.join(' ')); pts = []; }
-      hits += `<rect class="rv-hit" data-rv-tip="${i}" x="${(L + band * i).toFixed(1)}" y="${T}" width="${band.toFixed(1)}" height="${ph + B}"/>`;
+        pts.push({ x: cx, y: y(r.inc - r.cost) });
+        dots += `<circle class="rv-dot rv-fade${r.inc - r.cost < 0 ? ' is-neg' : ''}" cx="${cx.toFixed(1)}" cy="${y(r.inc - r.cost).toFixed(1)}" r="4"/>`;
+      } else flush();
     });
-    if (pts.length) segs.push(pts.join(' '));
-    const line = segs.map((s) => (s.includes(' ') ? `<polyline class="rv-line-p" points="${s}"/>` : '')).join('');
-    const sum = summary12(d);
-    return `<svg class="rv-svg" width="${width}" height="${H}" viewBox="0 0 ${width} ${H}" role="img" aria-label="${esc(sum)}" focusable="false">${g}${bars}${line}${dots}${xl}${hits}</svg>`;
+    flush();
+    return svgOf(width, H, summary12(d), `${gridLines(tk, y, L, pw)}${bars}${segs.join('')}${dots}${xl}${hitRects(rows.length, L, band, T, ph + B)}`);
   }
   /** The 12-month chart in one sentence, for screen readers. @param {any} d */
   function summary12(d) {
     const rows = d.series.slice(-12).filter((/** @type {any} */ r) => r.incN || r.costN);
     if (!rows.length) return 'Last 12 months: nothing entered yet.';
-    const inc = rows.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + r.inc, 0);
-    const cost = rows.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + r.cost, 0);
+    const inc = sumOf(rows, 'inc');
+    const cost = sumOf(rows, 'cost');
     const best = rows.slice().sort((/** @type {any} */ a, /** @type {any} */ b) => (b.inc - b.cost) - (a.inc - a.cost))[0];
     return `Last 12 months: income ${money(inc)}, costs ${money(cost)}, profit ${signed(inc - cost, true)}. Best month ${monthName(best.ym)} with ${signed(best.inc - best.cost, true)}. The table below has every month.`;
   }
@@ -13578,86 +13926,474 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const band = pw / rows.length;
     let g = '';
     for (let v = lo; v <= hi; v += step) g += `<line class="rv-grid${v === 0 ? ' is-zero' : ''}" x1="${L}" x2="${L + pw}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="rv-axis" x="${L - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${v}%</text>`;
-    /** @type {string[]} */ const segs = []; let pts = /** @type {string[]} */ ([]); let dots = '', xl = '', end = '';
+    /** @type {string[]} */ const segs = []; let pts = /** @type {{x: number, y: number}[]} */ ([]); let dots = '', xl = '', end = '';
+    const flush = () => { if (pts.length > 1) segs.push(`<path class="rv-line-p rv-draw" pathLength="1" d="${smooth(pts)}"/>`); pts = []; };
     rows.forEach((/** @type {any} */ r, /** @type {number} */ i) => {
       const cx = L + band * i + band / 2;
       if (i === 0 || i === rows.length - 1 || i === Math.floor(rows.length / 2)) xl += `<text class="rv-axis" x="${cx.toFixed(1)}" y="${H - 6}" text-anchor="middle">${esc(monthName(r.ym, 'mon'))}</text>`;
-      if (r.m === null) { if (pts.length) { segs.push(pts.join(' ')); pts = []; } return; }
-      pts.push(`${cx.toFixed(1)},${y(r.m).toFixed(1)}`);
-      if (i === rows.length - 1 || r.ym === d.ym) dots += `<circle class="rv-dot${r.m < 0 ? ' is-neg' : ''}" cx="${cx.toFixed(1)}" cy="${y(r.m).toFixed(1)}" r="4"/>`;
-      if (r.ym === d.ym) end = `<text class="rv-val" x="${Math.min(cx + 8, L + pw + R - 2).toFixed(1)}" y="${(y(r.m) - 8).toFixed(1)}" text-anchor="${cx + 30 > L + pw + R ? 'end' : 'start'}">${r.m}%</text>`;
+      if (r.m === null) { flush(); return; }
+      pts.push({ x: cx, y: y(r.m) });
+      if (i === rows.length - 1 || r.ym === d.ym) dots += `<circle class="rv-dot rv-fade${r.m < 0 ? ' is-neg' : ''}" cx="${cx.toFixed(1)}" cy="${y(r.m).toFixed(1)}" r="4"/>`;
+      if (r.ym === d.ym) end = `<text class="rv-val rv-fade" x="${Math.min(cx + 8, L + pw + R - 2).toFixed(1)}" y="${(y(r.m) - 8).toFixed(1)}" text-anchor="${cx + 30 > L + pw + R ? 'end' : 'start'}">${r.m}%</text>`;
     });
-    if (pts.length) segs.push(pts.join(' '));
-    const line = segs.map((s) => (s.includes(' ') ? `<polyline class="rv-line-p" points="${s}"/>` : '')).join('');
+    flush();
     const label = known.length ? `Profit margin over the last 12 months, from ${Math.min(...ms)}% to ${Math.max(...ms)}%.` : 'Profit margin: no income entered in the last 12 months.';
-    return `<svg class="rv-svg" width="${width}" height="${H}" viewBox="0 0 ${width} ${H}" role="img" aria-label="${esc(label)}" focusable="false">${g}${line}${dots}${end}${xl}</svg>`;
+    return svgOf(width, H, label, `${g}${segs.join('')}${dots}${end}${xl}${hitRects(rows.length, L, band, T, ph + B)}`);
   }
 
-  /** One horizontal bar (inline SVG) at a share of the widest. @param {number} pct @param {string} cls */
-  const hbar = (pct, cls) => `<svg class="rv-hbar" width="100%" height="12" aria-hidden="true" focusable="false"><rect class="rv-track" x="0" y="0" width="100%" height="12" rx="4"/>${pct > 0 ? `<rect class="${cls}" x="0" y="0" width="${Math.max(1.5, Math.min(100, pct)).toFixed(1)}%" height="12" rx="4"/>` : ''}</svg>`;
+  /** Income and costs over 24 months as two smooth lines, income with a soft fill under it, gaps where nothing was entered. @param {any} d @param {number} width */
+  function trendSvg(d, width) {
+    const rows = d.series;
+    const narrow = width < 560;
+    const H = narrow ? 210 : 240, L = narrow ? 40 : 48, R = 10, T = 14, B = 26;
+    const pw = Math.max(10, width - L - R), ph = H - T - B;
+    const vals = rows.flatMap((/** @type {any} */ r) => [r.inc, r.cost]);
+    const tk = ticks(0, Math.max(10000, ...vals), narrow ? 3 : 4);
+    const lo = tk[0], hi = tk[tk.length - 1];
+    const y = (/** @type {number} */ v) => T + ph - ((v - lo) / (hi - lo)) * ph;
+    const band = pw / rows.length;
+    const cxOf = (/** @type {number} */ i) => L + band * i + band / 2;
+    const run = (/** @type {'inc'|'cost'} */ k, /** @type {string} */ cls, /** @type {boolean} */ fill) => {
+      let out = ''; let pts = /** @type {{x: number, y: number}[]} */ ([]);
+      const flush = () => {
+        if (pts.length > 1) {
+          const line = smooth(pts);
+          if (fill) out += `<path class="rv-area-inc rv-fade" d="${line}L${pts[pts.length - 1].x.toFixed(1)},${y(0).toFixed(1)}L${pts[0].x.toFixed(1)},${y(0).toFixed(1)}Z"/>`;
+          out += `<path class="${cls} rv-draw" pathLength="1" d="${line}"/>`;
+        } else if (pts.length === 1) out += `<circle class="${cls === 'rv-line-inc' ? 'rv-dot-inc' : 'rv-dot-cost'} rv-fade" cx="${pts[0].x.toFixed(1)}" cy="${pts[0].y.toFixed(1)}" r="3"/>`;
+        pts = [];
+      };
+      rows.forEach((/** @type {any} */ r, /** @type {number} */ i) => { if (r[k === 'inc' ? 'incN' : 'costN'] > 0) pts.push({ x: cxOf(i), y: y(r[k]) }); else flush(); });
+      flush();
+      return out;
+    };
+    let xl = '';
+    rows.forEach((/** @type {any} */ r, /** @type {number} */ i) => {
+      if (i % (narrow ? 6 : 3) === 0 || i === rows.length - 1) xl += `<text class="rv-axis${r.ym === d.ym ? ' is-sel' : ''}" x="${cxOf(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${esc(`${monthName(r.ym, 'mon')} ${r.ym.slice(2, 4)}`)}</text>`;
+    });
+    const has = rows.filter((/** @type {any} */ r) => r.incN || r.costN);
+    const label = has.length ? `Income and costs over the last 24 months: income from ${money(Math.min(...has.map((/** @type {any} */ r) => r.inc)))} to ${money(Math.max(...has.map((/** @type {any} */ r) => r.inc)))} a month, costs from ${money(Math.min(...has.map((/** @type {any} */ r) => r.cost)))} to ${money(Math.max(...has.map((/** @type {any} */ r) => r.cost)))}. The table below has every month.` : 'Income and costs trend: nothing entered in the last 24 months.';
+    return svgOf(width, H, label, `${gridLines(tk, y, L, pw)}${run('inc', 'rv-line-inc', true)}${run('cost', 'rv-line-cost', false)}${xl}${hitRects(rows.length, L, band, T, ph + B)}`);
+  }
+
+  /** Profit added up from January, as a filled area, with last year's same months as a faint line. @param {any} d @param {number} width */
+  function cumulativeSvg(d, width) {
+    const Y = yearRows(d);
+    const H = 200, L = 46, R = 12, T = 14, B = 26;
+    const pw = Math.max(10, width - L - R), ph = H - T - B;
+    const cum = (/** @type {any[]} */ rows) => { let s = 0; return rows.map((r) => { s += r.inc - r.cost; return s; }); };
+    const now = cum(Y.now), was = cum(Y.was);
+    const vals = now.concat(Y.was.some((/** @type {any} */ r) => r.incN || r.costN) ? was : []);
+    const tk = ticks(Math.min(0, ...vals), Math.max(10000, ...vals), 3);
+    const lo = tk[0], hi = tk[tk.length - 1];
+    const y = (/** @type {number} */ v) => T + ph - ((v - lo) / (hi - lo)) * ph;
+    const n = Y.n;
+    const band = pw / n;
+    const cxOf = (/** @type {number} */ i) => L + band * i + band / 2;
+    const pNow = now.map((v, i) => ({ x: cxOf(i), y: y(v) }));
+    const pWas = was.map((v, i) => ({ x: cxOf(i), y: y(v) }));
+    let body = '';
+    if (pNow.length > 1) {
+      const line = smooth(pNow);
+      body += `<path class="rv-area-prof rv-fade" d="${line}L${pNow[pNow.length - 1].x.toFixed(1)},${y(0).toFixed(1)}L${pNow[0].x.toFixed(1)},${y(0).toFixed(1)}Z"/>`;
+      body += `<path class="rv-line-p rv-draw" pathLength="1" d="${line}"/>`;
+    }
+    if (pWas.length > 1 && vals.length > now.length) body += `<path class="rv-line-was rv-fade" d="${smooth(pWas)}"/>`;
+    const last = now.length - 1;
+    if (last >= 0) body += `<circle class="rv-dot rv-fade${now[last] < 0 ? ' is-neg' : ''}" cx="${pNow[last].x.toFixed(1)}" cy="${pNow[last].y.toFixed(1)}" r="4"/><text class="rv-val rv-fade" x="${Math.min(pNow[last].x + 8, L + pw - 2).toFixed(1)}" y="${(pNow[last].y - 9).toFixed(1)}" text-anchor="${pNow[last].x + 56 > L + pw ? 'end' : 'start'}">${esc(signed(now[last]))}</text>`;
+    let xl = '';
+    for (let i = 0; i < n; i += 1) if (i === 0 || i === n - 1 || (n > 4 && i === Math.floor(n / 2))) xl += `<text class="rv-axis" x="${cxOf(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${esc(monthName(`${Y.y}-${String(i + 1).padStart(2, '0')}`, 'mon'))}</text>`;
+    const label = last >= 0 ? `Profit this year, added up from January: ${signed(now[last], true)} by ${monthName(d.ym)}${pWas.length ? `, against ${signed(was[Math.min(last, was.length - 1)], true)} at the same point of ${Y.ly}` : ''}.` : `Profit this year: nothing entered for ${Y.y} yet.`;
+    return svgOf(width, H, label, `${gridLines(tk, y, L, pw)}${body}${xl}${hitRects(n, L, band, T, ph + B)}`);
+  }
+
+  /** What a client paid on average in each of the last 12 months (client income over the clients who paid). @param {any} d @param {number} width */
+  function perClientSvg(d, width) {
+    const rows = d.series.slice(-12).map((/** @type {any} */ r) => { const paid = r.clients.filter((/** @type {any} */ c) => c.minor > 0); return { ym: r.ym, n: paid.length, avg: paid.length ? Math.round(sumOf(paid, 'minor') / paid.length) : null }; });
+    const H = 200, L = 46, R = 12, T = 14, B = 26;
+    const pw = Math.max(10, width - L - R), ph = H - T - B;
+    const known = rows.filter((r) => r.avg !== null);
+    const tk = ticks(0, Math.max(10000, ...known.map((r) => /** @type {number} */ (r.avg))), 3);
+    const lo = tk[0], hi = tk[tk.length - 1];
+    const y = (/** @type {number} */ v) => T + ph - ((v - lo) / (hi - lo)) * ph;
+    const band = pw / rows.length;
+    /** @type {string[]} */ const segs = []; let pts = /** @type {{x: number, y: number}[]} */ ([]); let dots = '', xl = '';
+    const flush = () => { if (pts.length > 1) segs.push(`<path class="rv-line-inc rv-draw" pathLength="1" d="${smooth(pts)}"/>`); pts = []; };
+    rows.forEach((r, i) => {
+      const cx = L + band * i + band / 2;
+      if (i === 0 || i === rows.length - 1 || i === Math.floor(rows.length / 2)) xl += `<text class="rv-axis" x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="middle">${esc(monthName(r.ym, 'mon'))}</text>`;
+      if (r.avg === null) { flush(); return; }
+      pts.push({ x: cx, y: y(r.avg) });
+      if (r.ym === d.ym) dots += `<circle class="rv-dot-inc rv-fade" cx="${cx.toFixed(1)}" cy="${y(r.avg).toFixed(1)}" r="4"/>`;
+    });
+    flush();
+    const cur = rows[rows.length - 1];
+    const end = cur.avg !== null ? `<text class="rv-val rv-fade" x="${(L + pw - 2).toFixed(1)}" y="${(y(cur.avg) - 9).toFixed(1)}" text-anchor="end">${esc(dollars(cur.avg))}</text>` : '';
+    const label = known.length ? `Average income per client over the last 12 months, from ${money(Math.min(...known.map((r) => /** @type {number} */ (r.avg))))} to ${money(Math.max(...known.map((r) => /** @type {number} */ (r.avg))))} a month.` : 'Average income per client: no client income entered in the last 12 months.';
+    return svgOf(width, H, label, `${gridLines(tk, y, L, pw)}${segs.join('')}${dots}${end}${xl}${hitRects(rows.length, L, band, T, ph + B)}`);
+  }
+
+  /** Costs over 12 months, one column a month, stacked by kind. @param {any} d @param {number} width */
+  function kindsSvg(d, width) {
+    const rows = d.series.slice(-12);
+    const narrow = width < 560;
+    const H = narrow ? 210 : 240, L = narrow ? 40 : 48, R = 8, T = 14, B = 26;
+    const pw = Math.max(10, width - L - R), ph = H - T - B;
+    const tk = ticks(0, Math.max(10000, ...rows.map((/** @type {any} */ r) => r.cost)), narrow ? 3 : 4);
+    const lo = tk[0], hi = tk[tk.length - 1];
+    const y = (/** @type {number} */ v) => T + ph - ((v - lo) / (hi - lo)) * ph;
+    const band = pw / rows.length;
+    const bw = Math.max(6, Math.min(narrow ? 14 : 28, band * 0.5));
+    const sel = rows.findIndex((/** @type {any} */ r) => r.ym === d.ym);
+    const anchor = sel >= 0 ? sel : rows.length - 1;
+    let bars = '', xl = '';
+    rows.forEach((/** @type {any} */ r, /** @type {number} */ i) => {
+      const cx = L + band * i + band / 2;
+      const x = cx - bw / 2;
+      if (r.ym === d.ym) bars += `<rect class="rv-sel" x="${(L + band * i + 1).toFixed(1)}" y="${T}" width="${(band - 2).toFixed(1)}" height="${ph}" rx="6"/>`;
+      const parts = CATS.map(([k]) => [k, Number(r.kinds[k]) || 0]).filter((p) => Number(p[1]) > 0);
+      if (!parts.length) return;
+      let acc = 0; let g = '';
+      parts.forEach((p, j) => {
+        const v = Number(p[1]);
+        const y1 = y(acc + v), y0 = y(acc);
+        g += j === parts.length - 1 ? `<path class="${KIND_CLS[String(p[0])]}" d="${colPath(x, y0, y1, bw)}"/>` : `<rect class="${KIND_CLS[String(p[0])]}" x="${x.toFixed(1)}" y="${y1.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, y0 - y1).toFixed(1)}"/>`;
+        acc += v;
+      });
+      bars += `<g class="rv-grow" style="--i:${i}">${g}</g>`;
+      const show = !narrow || (anchor - i) % 2 === 0;
+      if (show) xl += `<text class="rv-axis${r.ym === d.ym ? ' is-sel' : ''}" x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="middle">${esc(monthName(r.ym, 'mon'))}</text>`;
+    });
+    const totals = CATS.map(([k, name]) => ({ name, minor: rows.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + (Number(r.kinds[k]) || 0), 0) })).filter((x) => x.minor > 0).sort((a, b) => b.minor - a.minor);
+    const label = totals.length ? `Costs by kind over the last 12 months: ${totals.map((x) => `${x.name} ${money(x.minor)}`).join(', ')}. The table below has every month.` : 'Costs by kind over time: no costs entered in the last 12 months.';
+    return svgOf(width, H, label, `${gridLines(tk, y, L, pw)}${bars}${xl}${hitRects(rows.length, L, band, T, ph + B)}`);
+  }
+
+  /** The slices of this month's income: each client that paid, then other income. @param {any} d */
+  function mixSlices(d) {
+    const cur = d.series[d.series.length - 1] || { clients: [], other: 0 };
+    /** @type {{id: string, name: string, minor: number, color: string, other?: boolean}[]} */ const out = [];
+    cur.clients.filter((/** @type {any} */ c) => c.minor > 0).sort((/** @type {any} */ a, /** @type {any} */ b) => b.minor - a.minor)
+      .forEach((/** @type {any} */ c, /** @type {number} */ i) => out.push({ id: c.id, name: clientName(c.id, c.label), minor: c.minor, color: sliceColor(c.id, i) }));
+    if (cur.other > 0) out.push({ id: '', name: 'Other income', minor: cur.other, color: 'var(--ink-3)', other: true });
+    return out;
+  }
+  /** This month's income as a ring: one slice a client, drawn in the client's colour, other income in grey. @param {any} d */
+  function mixSvg(d) {
+    const slices = mixSlices(d);
+    const total = sumOf(slices, 'minor');
+    const S = 176, c = S / 2, r = 66, w = 22;
+    let acc = 0;
+    const segs = slices.map((s, i) => {
+      const f = s.minor / total;
+      const out = `<circle class="rv-seg" data-rv-tip="${i}" style="--f:${f.toFixed(4)};--i:${i};stroke:${s.color}" cx="${c}" cy="${c}" r="${r}" pathLength="1" stroke-dashoffset="${(0.25 - acc).toFixed(4)}"/>`;
+      acc += f;
+      return out;
+    }).join('');
+    const label = `Client mix, ${monthName(d.ym)}: ${slices.map((s) => `${s.name} ${Math.round((s.minor / total) * 100)}%`).join(', ')}.`;
+    return `<svg class="rv-svg rv-ring" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" role="img" aria-label="${esc(label)}" focusable="false"><circle class="rv-ring-track" cx="${c}" cy="${c}" r="${r}" style="stroke-width:${w}px"/><g style="stroke-width:${w}px">${segs}</g>
+      <text class="rv-ring-v" x="${c}" y="${c - 2}" text-anchor="middle">${esc(dollars(total))}</text><text class="rv-ring-k" x="${c}" y="${c + 16}" text-anchor="middle">${slices.length - (slices.some((s) => s.other) ? 1 : 0)} ${slices.length - (slices.some((s) => s.other) ? 1 : 0) === 1 ? 'client' : 'clients'}</text></svg>`;
+  }
+
+  /** The charts drawn into a .rv-plot at its width, by the plot's name. @type {Record<string, (d: any, w: number) => string>} */
+  const PLOTS = { months: monthsSvg, margin: marginSvg, trend: trendSvg, cumulative: cumulativeSvg, perclient: perClientSvg, kinds: kindsSvg };
+  const plotBox = (/** @type {string} */ kind) => `<div class="rv-plot" data-plot="${kind}"><div class="rv-tip" role="presentation" hidden></div></div>`;
+
+  /* ---- the hover card of each chart ------------------------------------------------------------------------------------ */
+
+  /** The exact figures behind the month (or slice) under the pointer, by chart. @type {Record<string, (d: any, i: number) => string>} */
+  const TIPS = {
+    months(d, i) {
+      const r = d.series.slice(-12)[i];
+      if (!r) return '';
+      const pr = r.inc - r.cost;
+      return `<strong>${esc(monthName(r.ym))}</strong>${r.incN || r.costN ? tipRows([['rv-k-inc', 'Income', r.incN ? money(r.inc) : 'not entered'], ['rv-k-cost', 'Costs', r.costN ? money(r.cost) : 'not entered'], ['rv-k-line', 'Profit', signed(pr, true)]]) : '<span>Nothing entered</span>'}`;
+    },
+    trend(d, i) {
+      const r = d.series[i];
+      if (!r) return '';
+      return `<strong>${esc(monthName(r.ym))}</strong>${r.incN || r.costN ? tipRows([['rv-k-inc', 'Income', r.incN ? money(r.inc) : 'not entered'], ['rv-k-cost', 'Costs', r.costN ? money(r.cost) : 'not entered']]) : '<span>Nothing entered</span>'}`;
+    },
+    cumulative(d, i) {
+      const Y = yearRows(d);
+      const r = Y.now[i];
+      if (!r) return '';
+      const sofar = Y.now.slice(0, i + 1).reduce((/** @type {number} */ s, /** @type {any} */ x) => s + x.inc - x.cost, 0);
+      const wasRow = Y.was[i];
+      const wasSo = wasRow ? Y.was.slice(0, i + 1).reduce((/** @type {number} */ s, /** @type {any} */ x) => s + x.inc - x.cost, 0) : null;
+      return `<strong>${esc(monthName(r.ym))}</strong>${tipRows([['rv-k-line', 'That month', r.incN || r.costN ? signed(r.inc - r.cost, true) : 'not entered'], ['rv-k-line', 'Since January', signed(sofar, true)], ...(wasSo !== null && Y.was.some((/** @type {any} */ x) => x.incN || x.costN) ? [/** @type {[string, string, string]} */ (['rv-k-was', `Same point of ${Y.ly}`, signed(wasSo, true)])] : [])])}`;
+    },
+    margin(d, i) {
+      const r = d.series.slice(-12)[i];
+      if (!r) return '';
+      const m = margin(r.inc - r.cost, r.inc);
+      return `<strong>${esc(monthName(r.ym))}</strong>${m === null ? '<span>No income entered</span>' : tipRows([['rv-k-line', 'Margin', `${m}%`], ['rv-k-inc', 'Income', money(r.inc)], ['rv-k-line', 'Profit', signed(r.inc - r.cost, true)]])}`;
+    },
+    perclient(d, i) {
+      const r = d.series.slice(-12)[i];
+      if (!r) return '';
+      const paid = r.clients.filter((/** @type {any} */ c) => c.minor > 0);
+      const tot = sumOf(paid, 'minor');
+      return `<strong>${esc(monthName(r.ym))}</strong>${paid.length ? tipRows([['rv-k-inc', 'Average', money(Math.round(tot / paid.length))], ['', 'Clients who paid', String(paid.length)], ['', 'From clients', money(tot)]]) : '<span>No client income entered</span>'}`;
+    },
+    kinds(d, i) {
+      const r = d.series.slice(-12)[i];
+      if (!r) return '';
+      const parts = CATS.filter(([k]) => Number(r.kinds[k]) > 0).map(([k, name]) => /** @type {[string, string, string]} */ ([KIND_CLS[k], name, money(Number(r.kinds[k]))]));
+      return `<strong>${esc(monthName(r.ym))}</strong>${parts.length ? tipRows(parts.concat([['', 'Total', money(r.cost)]])) : '<span>No costs entered</span>'}`;
+    },
+    mix(d, i) {
+      const slices = mixSlices(d);
+      const s = slices[i];
+      if (!s) return '';
+      const total = sumOf(slices, 'minor');
+      return `<strong>${esc(s.name)}</strong>${tipRows([['', money(s.minor), `${Math.round((s.minor / total) * 100)}% of income`]])}`;
+    }
+  };
+
+  /* ---- the cards -------------------------------------------------------------------------------------------------------- */
+
+  /** One horizontal bar (inline SVG) at a share of the widest; it grows in from the left. @param {number} pct @param {string} cls @param {number} [i] */
+  const hbar = (pct, cls, i) => `<svg class="rv-hbar" width="100%" height="12" aria-hidden="true" focusable="false"><rect class="rv-track" x="0" y="0" width="100%" height="12" rx="4"/>${pct > 0 ? `<rect class="${cls} rv-growx" style="--i:${i || 0}" x="0" y="0" width="${Math.max(1.5, Math.min(100, pct)).toFixed(1)}%" height="12" rx="4"/>` : ''}</svg>`;
 
   /** Bars, largest first: a name, a bar and the amount with its share. @param {{name: string, lead?: string, minor: number}[]} items @param {string} cls @param {string} caption */
   function barList(items, cls, caption) {
     const sorted = items.filter((x) => x.minor > 0).sort((a, b) => b.minor - a.minor);
     const top = sorted.length ? sorted[0].minor : 0;
-    const total = sorted.reduce((s, x) => s + x.minor, 0);
-    return `<ul class="rv-bars" aria-label="${esc(caption)}">${sorted.map((x) => `<li class="rv-bar-row"><span class="rv-bar-name">${x.lead || ''}<span>${esc(x.name)}</span></span>${hbar((x.minor / top) * 100, cls)}<span class="rv-bar-v">${esc(dollars(x.minor))}<span class="rv-bar-pct"> ${Math.round((x.minor / total) * 100)}%</span></span></li>`).join('')}</ul>`;
+    const total = sumOf(sorted, 'minor');
+    return `<ul class="rv-bars" aria-label="${esc(caption)}">${sorted.map((x, i) => `<li class="rv-bar-row"><span class="rv-bar-name">${x.lead || ''}<span>${esc(x.name)}</span></span>${hbar((x.minor / top) * 100, cls, i)}<span class="rv-bar-v">${esc(dollars(x.minor))}<span class="rv-bar-pct"> ${Math.round((x.minor / total) * 100)}%</span></span></li>`).join('')}</ul>`;
   }
+  /** A small stat tile. @param {string} k @param {string} v @param {string} s */
+  const tile = (k, v, s) => `<div class="rv-tile"><p class="rv-tile-k">${k}</p><p class="rv-tile-v">${v}</p><p class="rv-tile-s">${s}</p></div>`;
 
-  /** The year so far against the same months a year before. @param {any} d */
-  function ytd(d) {
-    const ym = d.ym;
-    const y = ym.slice(0, 4);
-    const ly = String(Number(y) - 1);
-    const n = Number(ym.slice(5, 7));
-    const pick = (/** @type {string} */ yr) => d.series.filter((/** @type {any} */ r) => r.ym.slice(0, 4) === yr && Number(r.ym.slice(5, 7)) <= n);
-    const sumOf = (/** @type {any[]} */ a) => ({ inc: a.reduce((s, r) => s + r.inc, 0), cost: a.reduce((s, r) => s + r.cost, 0), has: a.some((r) => r.incN || r.costN) });
-    const now = sumOf(pick(y));
-    const was = sumOf(pick(ly));
-    const span = n === 1 ? monthName(`${y}-01`) : `January to ${monthName(ym)}`;
-    const items = [['Income', now.inc, was.inc, 'rv-f-inc'], ['Costs', now.cost, was.cost, 'rv-f-cost'], ['Profit', now.inc - now.cost, was.inc - was.cost, 'rv-f-prof']];
-    const top = Math.max(1, ...items.flatMap((x) => [Math.abs(Number(x[1])), was.has ? Math.abs(Number(x[2])) : 0]));
-    const rows = items.map(([label, a, b, cls]) => {
-      const av = Number(a), bv = Number(b);
-      const fig = (/** @type {number} */ v) => (label === 'Profit' && v < 0 ? `<span class="rv-neg">-${esc(dollars(-v))} loss</span>` : esc(dollars(v)));
-      return `<div class="rv-ytd-row"><dt>${label}</dt><dd><span class="rv-ytd-fig">${fig(av)}</span>${hbar((Math.abs(av) / top) * 100, String(cls) + (av < 0 ? ' is-neg' : ''))}
-        ${was.has ? `<span class="rv-ytd-was">${esc(ly)}: ${fig(bv)}</span>${hbar((Math.abs(bv) / top) * 100, 'rv-f-was')}` : ''}</dd></div>`;
-    }).join('');
-    return `<section class="rv-chart" aria-labelledby="rv-c-ytd"><div class="rv-chart-head"><h3 id="rv-c-ytd">This year so far</h3><p>${esc(span)}${was.has ? `, against the same months of ${esc(ly)}` : ''}</p></div>
-      ${now.has || was.has ? `<dl class="rv-ytd">${rows}</dl>${was.has ? '' : `<p class="rv-chart-note">No entries for the same months of ${esc(ly)}.</p>`}` : `<p class="rv-chart-empty">Nothing entered for ${esc(y)} yet.</p>`}</section>`;
-  }
-
-  /** Everything under the cards on the Overview. @param {any} d */
-  function overview(d) {
-    const ym = d.ym;
-    const mon = monthName(ym);
-    const rows = d.series.slice(-12);
-    const first = rows[0].ym;
-    const table = `<details class="rv-table"><summary>Show as a table</summary><div class="table-wrap"><table class="grid"><caption class="sr-only">Income, costs and profit for each of the last 12 months</caption>
-      <thead><tr><th scope="col">Month</th><th scope="col" class="n">Income</th><th scope="col" class="n">Costs</th><th scope="col" class="n">Profit</th><th scope="col" class="n">Margin</th></tr></thead>
-      <tbody>${rows.slice().reverse().map((/** @type {any} */ r) => { const has = r.incN || r.costN; const pr = r.inc - r.cost; const mg = margin(pr, r.inc);
-        return `<tr><th scope="row">${esc(monthName(r.ym))}</th><td class="n">${r.incN ? esc(money(r.inc)) : '<span class="none">Not entered</span>'}</td><td class="n">${r.costN ? esc(money(r.cost)) : '<span class="none">Not entered</span>'}</td><td class="n">${has ? (pr < 0 ? `<span class="rv-neg">${esc(signed(pr, true))}</span>` : esc(money(pr))) : '<span class="none">-</span>'}</td><td class="n">${mg === null ? '<span class="none">-</span>' : `${mg}%`}</td></tr>`; }).join('')}</tbody></table></div></details>`;
-    const byCat = CATS.map(([k, label]) => ({ name: label, minor: d.costs.filter((/** @type {any} */ x) => x.category === k).reduce((/** @type {number} */ s, /** @type {any} */ x) => s + x.amount, 0) }));
-    /** @type {Map<string, {name: string, lead: string, minor: number}>} */ const byClient = new Map();
-    for (const x of d.income) {
-      const key = x.kind === 'client' ? `c:${x.tenant_id}` : 'other';
-      const was = byClient.get(key) || { name: x.kind === 'client' ? clientName(x.tenant_id, x.label) : 'Other income', lead: x.kind === 'client' ? badge(x.tenant_id) : '', minor: 0 };
-      was.minor += x.amount;
-      byClient.set(key, was);
+  /** What goes in each card: a line under the title and the body. @type {Record<string, (d: any) => {sub: string, body: string}>} */
+  const RENDER = {
+    runrate(d) {
+      const ym = d.ym;
+      const rows = d.series;
+      const rep = sumOf(d.costs.filter((/** @type {any} */ x) => x.repeats), 'amount');
+      const repHas = d.costs.some((/** @type {any} */ x) => x.repeats);
+      const last3 = rows.slice(-3).filter((/** @type {any} */ r) => r.incN > 0);
+      const avg = last3.length ? Math.round(sumOf(last3, 'inc') / last3.length / 100) * 100 : null;   // whole dollars
+      let run = 0;
+      for (let i = rows.length - 1; i >= 0; i -= 1) { const r = rows[i]; if (!(r.incN || r.costN) || r.inc - r.cost <= 0) break; run += 1; }
+      const pace = avg !== null ? (avg - rep) * 12 : null;
+      const body = `<div class="rv-tiles">
+        ${tile('Repeating costs a year', repHas ? num(rep * 12, 'money') : '<span class="rv-none">Not entered</span>', repHas ? `${esc(money(rep))} a month, from ${esc(monthName(ym, 'mon'))}'s repeating lines` : `No repeating costs entered for ${esc(monthName(ym, 'mon'))}`)}
+        ${tile('Average monthly income', avg !== null ? num(avg, 'money') : '<span class="rv-none">Not entered</span>', avg !== null ? `Over the last ${last3.length === 1 ? 'month' : `${last3.length} months`} with income` : 'No income entered in the last 3 months')}
+        ${tile('Profitable months in a row', num(run, 'int'), run ? `Up to ${esc(monthName(ym))}` : `${esc(monthName(ym))} is not in profit yet`)}
+        ${tile('Profit a year at this pace', pace !== null ? `<span${pace < 0 ? ' class="rv-neg"' : ''}>${num(pace, 'signed')}</span>` : '<span class="rv-none">Not entered</span>', 'Average income minus repeating costs, times 12')}
+      </div>`;
+      return { sub: `If ${esc(monthName(ym))} were every month`, body };
+    },
+    months(d) {
+      const rows = d.series.slice(-12);
+      const table = tableOf('Income, costs and profit for each of the last 12 months', ['Month', 'Income', 'Costs', 'Profit', 'Margin'], rows.slice().reverse().map((/** @type {any} */ r) => {
+        const has = r.incN || r.costN; const pr = r.inc - r.cost; const mg = margin(pr, r.inc);
+        return [monthCell(r.ym), r.incN ? esc(money(r.inc)) : NONE, r.costN ? esc(money(r.cost)) : NONE, has ? (pr < 0 ? `<span class="rv-neg">${esc(signed(pr, true))}</span>` : esc(money(pr))) : DASH, mg === null ? DASH : `${mg}%`];
+      }));
+      return { sub: `${esc(monthName(rows[0].ym))} to ${esc(monthName(d.ym))}. Choose a month to open it.`, body: `<ul class="rv-legend" aria-label="Key"><li><i class="rv-key rv-k-inc" aria-hidden="true"></i>Income</li><li><i class="rv-key rv-k-cost" aria-hidden="true"></i>Costs</li><li><i class="rv-key rv-k-line" aria-hidden="true"></i>Profit</li></ul>${plotBox('months')}${table}` };
+    },
+    cumulative(d) {
+      const Y = yearRows(d);
+      const wasHas = Y.was.some((/** @type {any} */ r) => r.incN || r.costN);
+      const nowHas = Y.now.some((/** @type {any} */ r) => r.incN || r.costN);
+      let a = 0, b = 0;
+      const table = tableOf(`Profit added up from January ${Y.y}`, ['Month', 'Profit', 'Since January', ...(wasHas ? [`Same point of ${Y.ly}`] : [])], Y.now.map((/** @type {any} */ r, /** @type {number} */ i) => {
+        a += r.inc - r.cost; const w = Y.was[i]; if (w) b += w.inc - w.cost;
+        return [monthCell(r.ym), r.incN || r.costN ? esc(signed(r.inc - r.cost, true)) : NONE, esc(signed(a, true)), ...(wasHas ? [w && (w.incN || w.costN) ? esc(signed(b, true)) : DASH] : [])];
+      }));
+      const body = nowHas ? `${wasHas ? `<ul class="rv-legend" aria-label="Key"><li><i class="rv-key rv-k-line" aria-hidden="true"></i>${esc(Y.y)}</li><li><i class="rv-key rv-k-was" aria-hidden="true"></i>${esc(Y.ly)}</li></ul>` : ''}${plotBox('cumulative')}${table}` : `<p class="rv-chart-empty">Nothing entered for ${esc(Y.y)} yet.</p>`;
+      return { sub: Y.n === 1 ? esc(monthName(`${Y.y}-01`)) : `January to ${esc(monthName(d.ym))}${wasHas ? `, with ${esc(Y.ly)} faint` : ''}`, body };
+    },
+    ytd(d) {
+      const Y = yearRows(d);
+      const sum = (/** @type {any[]} */ a) => ({ inc: sumOf(a, 'inc'), cost: sumOf(a, 'cost'), has: a.some((r) => r.incN || r.costN) });
+      const now = sum(Y.now);
+      const was = sum(Y.was);
+      const items = [['Income', now.inc, was.inc, 'rv-f-inc'], ['Costs', now.cost, was.cost, 'rv-f-cost'], ['Profit', now.inc - now.cost, was.inc - was.cost, 'rv-f-prof']];
+      const top = Math.max(1, ...items.flatMap((x) => [Math.abs(Number(x[1])), was.has ? Math.abs(Number(x[2])) : 0]));
+      const rows = items.map(([label, a, b, cls], i) => {
+        const av = Number(a), bv = Number(b);
+        const fig = (/** @type {number} */ v, /** @type {boolean} */ count) => (label === 'Profit' && v < 0 ? `<span class="rv-neg">${count ? num(v, 'signed') : esc(signed(v))} loss</span>` : count ? num(v, 'money') : esc(dollars(v)));
+        return `<div class="rv-ytd-row"><dt>${label}</dt><dd><span class="rv-ytd-fig">${fig(av, true)}</span>${hbar((Math.abs(av) / top) * 100, String(cls) + (av < 0 ? ' is-neg' : ''), i)}
+          ${was.has ? `<span class="rv-ytd-was">${esc(Y.ly)}: ${fig(bv, false)}</span>${hbar((Math.abs(bv) / top) * 100, 'rv-f-was', i)}` : ''}</dd></div>`;
+      }).join('');
+      const span = Y.n === 1 ? monthName(`${Y.y}-01`) : `January to ${monthName(d.ym)}`;
+      return { sub: `${esc(span)}${was.has ? `, against the same months of ${esc(Y.ly)}` : ''}`, body: now.has || was.has ? `<dl class="rv-ytd">${rows}</dl>${was.has ? '' : `<p class="rv-chart-note">No entries for the same months of ${esc(Y.ly)}.</p>`}` : `<p class="rv-chart-empty">Nothing entered for ${esc(Y.y)} yet.</p>` };
+    },
+    trend(d) {
+      const rows = d.series;
+      const table = tableOf('Income and costs for each of the last 24 months', ['Month', 'Income', 'Costs'], rows.slice().reverse().map((/** @type {any} */ r) => [monthCell(r.ym), r.incN ? esc(money(r.inc)) : NONE, r.costN ? esc(money(r.cost)) : NONE]));
+      return { sub: `${esc(monthName(rows[0].ym))} to ${esc(monthName(d.ym))}`, body: `<ul class="rv-legend" aria-label="Key"><li><i class="rv-key rv-k-inc" aria-hidden="true"></i>Income</li><li><i class="rv-key rv-k-cost" aria-hidden="true"></i>Costs</li></ul>${plotBox('trend')}${table}` };
+    },
+    margin(d) {
+      const rows = d.series.slice(-12);
+      const table = tableOf('Profit margin for each of the last 12 months', ['Month', 'Margin', 'Income', 'Profit'], rows.slice().reverse().map((/** @type {any} */ r) => { const mg = margin(r.inc - r.cost, r.inc); return [monthCell(r.ym), mg === null ? DASH : `${mg}%`, r.incN ? esc(money(r.inc)) : NONE, r.incN || r.costN ? esc(signed(r.inc - r.cost, true)) : DASH]; }));
+      return { sub: 'How much of each dollar in you kept, last 12 months', body: `${plotBox('margin')}${table}` };
+    },
+    perclient(d) {
+      const rows = d.series.slice(-12);
+      const table = tableOf('Average income per client for each of the last 12 months', ['Month', 'Average', 'Clients who paid', 'From clients'], rows.slice().reverse().map((/** @type {any} */ r) => { const paid = r.clients.filter((/** @type {any} */ c) => c.minor > 0); const tot = sumOf(paid, 'minor'); return [monthCell(r.ym), paid.length ? esc(money(Math.round(tot / paid.length))) : DASH, String(paid.length), paid.length ? esc(money(tot)) : NONE]; }));
+      return { sub: 'Client income over the clients who paid, each month', body: `${plotBox('perclient')}${table}` };
+    },
+    kinds(d) {
+      const rows = d.series.slice(-12);
+      const used = CATS.filter(([k]) => rows.some((/** @type {any} */ r) => Number(r.kinds[k]) > 0));
+      const table = tableOf('Costs by kind for each of the last 12 months', ['Month', ...used.map((c) => c[1]), 'Total'], rows.slice().reverse().map((/** @type {any} */ r) => [monthCell(r.ym), ...used.map(([k]) => (Number(r.kinds[k]) > 0 ? esc(money(Number(r.kinds[k]))) : DASH)), r.costN ? esc(money(r.cost)) : NONE]));
+      const body = used.length ? `<ul class="rv-legend" aria-label="Key">${used.map(([k, name]) => `<li><i class="rv-key ${KIND_CLS[k]}" aria-hidden="true"></i>${esc(name)}</li>`).join('')}</ul>${plotBox('kinds')}${table}` : '<p class="rv-chart-empty">No costs entered in the last 12 months.</p>';
+      return { sub: `${esc(monthName(rows[0].ym))} to ${esc(monthName(d.ym))}`, body };
+    },
+    mix(d) {
+      const slices = mixSlices(d);
+      const total = sumOf(slices, 'minor');
+      if (!slices.length) return { sub: `${esc(monthName(d.ym))}`, body: `<p class="rv-chart-empty">No income entered for ${esc(monthName(d.ym))}. <a href="#/revenue/${d.ym}/income">Enter income</a></p>` };
+      const legend = `<ul class="rv-mix-legend" aria-label="Share of income">${slices.map((s) => `<li><i class="rv-key" style="background:${s.color}" aria-hidden="true"></i><span class="rv-mix-name">${s.other ? '' : badge(s.id)}<span>${esc(s.name)}</span></span><span class="rv-mix-v">${Math.round((s.minor / total) * 100)}%<span class="rv-bar-pct"> ${esc(dollars(s.minor))}</span></span></li>`).join('')}</ul>`;
+      const table = tableOf(`Share of income, ${monthName(d.ym)}`, ['Who', 'Amount', 'Share'], slices.map((s) => [esc(s.name), esc(money(s.minor)), `${Math.round((s.minor / total) * 100)}%`]));
+      return { sub: `${esc(monthName(d.ym))}, share of income`, body: `<div class="rv-mix"><div class="rv-plot is-fixed" data-plot="mix">${mixSvg(d)}<div class="rv-tip" role="presentation" hidden></div></div>${legend}</div>${table}` };
+    },
+    clients(d) {
+      const mon = monthName(d.ym);
+      /** @type {Map<string, {name: string, lead: string, minor: number}>} */ const byClient = new Map();
+      for (const x of d.income) {
+        const key = x.kind === 'client' ? `c:${x.tenant_id}` : 'other';
+        const was = byClient.get(key) || { name: x.kind === 'client' ? clientName(x.tenant_id, x.label) : 'Other income', lead: x.kind === 'client' ? badge(x.tenant_id) : '', minor: 0 };
+        was.minor += x.amount;
+        byClient.set(key, was);
+      }
+      const items = Array.from(byClient.values());
+      return { sub: `${esc(mon)}, largest first`, body: items.some((x) => x.minor > 0) ? barList(items, 'rv-f-inc', `Income by client, ${mon}`) : `<p class="rv-chart-empty">No income entered for ${esc(mon)}. <a href="#/revenue/${d.ym}/income">Enter income</a></p>` };
+    },
+    cats(d) {
+      const mon = monthName(d.ym);
+      const byCat = CATS.map(([k, label]) => ({ name: label, minor: sumOf(d.costs.filter((/** @type {any} */ x) => x.category === k), 'amount') }));
+      return { sub: `${esc(mon)}, largest first`, body: byCat.some((x) => x.minor > 0) ? barList(byCat, 'rv-f-cost', `Costs by kind, ${mon}`) : `<p class="rv-chart-empty">No costs entered for ${esc(mon)}. <a href="#/revenue/${d.ym}/costs">Enter costs</a></p>` };
+    },
+    split(d) {
+      const mon = monthName(d.ym);
+      const rep = sumOf(d.costs.filter((/** @type {any} */ x) => x.repeats), 'amount');
+      const once = sumOf(d.costs.filter((/** @type {any} */ x) => !x.repeats), 'amount');
+      const rows12 = d.series.slice(-12);
+      const rep12 = sumOf(rows12, 'rep');
+      const all12 = sumOf(rows12, 'cost');
+      const bar = (/** @type {number} */ a, /** @type {number} */ b, /** @type {string} */ what) => {
+        const t = a + b;
+        const pa = t > 0 ? (a / t) * 100 : 0;
+        return `<svg class="rv-split" width="100%" height="14" role="img" aria-label="${esc(what)}: ${esc(money(a))} repeating, ${esc(money(b))} one-off" focusable="false"><rect class="rv-track" x="0" y="0" width="100%" height="14" rx="5"/>${t > 0 ? `<rect class="rv-f-cost rv-growx" x="0" y="0" width="${pa.toFixed(1)}%" height="14" rx="5"/><rect class="rv-f-once rv-growx" style="--i:1" x="${pa.toFixed(1)}%" y="0" width="${(100 - pa).toFixed(1)}%" height="14" rx="5"/>` : ''}</svg>`;
+      };
+      const part = (/** @type {string} */ title, /** @type {number} */ a, /** @type {number} */ b, /** @type {boolean} */ has, /** @type {string} */ none) => `<div class="rv-split-part"><h4 class="rv-split-h">${title}</h4>${has ? `${bar(a, b, title)}<ul class="rv-split-figs"><li><i class="rv-key rv-k-cost" aria-hidden="true"></i>Repeating <strong>${num(a, 'money')}</strong><span class="rv-bar-pct"> ${a + b > 0 ? Math.round((a / (a + b)) * 100) : 0}%</span></li><li><i class="rv-key rv-k-once" aria-hidden="true"></i>One-off <strong>${num(b, 'money')}</strong><span class="rv-bar-pct"> ${a + b > 0 ? Math.round((b / (a + b)) * 100) : 0}%</span></li></ul>` : `<p class="rv-chart-empty">${none}</p>`}</div>`;
+      return { sub: 'Costs that come back every month against one-time ones', body: `<div class="rv-splits">${part(esc(mon), rep, once, d.costs.length > 0, `No costs entered for ${esc(mon)}.`)}${part('Last 12 months', rep12, all12 - rep12, rows12.some((/** @type {any} */ r) => r.costN > 0), 'No costs entered in the last 12 months.')}</div>` };
+    },
+    bestworst(d) {
+      const rows = d.series.slice(-12).filter((/** @type {any} */ r) => r.incN || r.costN).map((/** @type {any} */ r) => ({ ...r, profit: r.inc - r.cost, mg: margin(r.inc - r.cost, r.inc) }));
+      if (!rows.length) return { sub: 'The last 12 months', body: '<p class="rv-chart-empty">Nothing entered in the last 12 months.</p>' };
+      const sorted = rows.slice().sort((a, b) => b.profit - a.profit);
+      const k = Math.max(1, Math.min(3, Math.floor(rows.length / 2)));
+      const best = sorted.slice(0, k);
+      const worst = sorted.slice(-k).reverse().filter((r) => !best.includes(r));
+      const list = (/** @type {any[]} */ xs, /** @type {string} */ cls) => `<ol class="rv-bw-list ${cls}">${xs.map((r) => `<li><span class="rv-bw-m">${monthCell(r.ym)}</span><span class="rv-bw-p${r.profit < 0 ? ' rv-neg' : ''}">${esc(signed(r.profit, true))}</span><span class="rv-bw-s">${r.mg === null ? 'no income' : `${r.mg}% margin`}, ${esc(dollars(r.inc))} in, ${esc(dollars(r.cost))} out</span></li>`).join('')}</ol>`;
+      return { sub: `${esc(monthName(d.series.slice(-12)[0].ym))} to ${esc(monthName(d.ym))}, by profit`, body: `<div class="rv-bw"><div><h4 class="rv-bw-h">Best</h4>${list(best, 'is-best')}</div>${worst.length ? `<div><h4 class="rv-bw-h">Worst</h4>${list(worst, 'is-worst')}</div>` : ''}</div>` };
     }
-    const costList = byCat.some((x) => x.minor > 0) ? barList(byCat, 'rv-f-cost', `Costs by kind, ${mon}`) : `<p class="rv-chart-empty">No costs entered for ${esc(mon)}. <a href="#/revenue/${ym}/costs">Enter costs</a></p>`;
-    const incList = byClient.size && Array.from(byClient.values()).some((x) => x.minor > 0) ? barList(Array.from(byClient.values()), 'rv-f-inc', `Income by client, ${mon}`) : `<p class="rv-chart-empty">No income entered for ${esc(mon)}. <a href="#/revenue/${ym}/income">Enter income</a></p>`;
-    return `<div class="rv-charts">
-      <section class="rv-chart rv-wide" aria-labelledby="rv-c-12"><div class="rv-chart-head"><h3 id="rv-c-12">Last 12 months</h3><p>${esc(monthName(first))} to ${esc(mon)}. Choose a month to open it.</p></div>
-        <ul class="rv-legend" aria-label="Key"><li><i class="rv-key rv-k-inc" aria-hidden="true"></i>Income</li><li><i class="rv-key rv-k-cost" aria-hidden="true"></i>Costs</li><li><i class="rv-key rv-k-line" aria-hidden="true"></i>Profit</li></ul>
-        <div class="rv-plot" data-plot="months"></div>${table}</section>
-      ${ytd(d)}
-      <section class="rv-chart" aria-labelledby="rv-c-mg"><div class="rv-chart-head"><h3 id="rv-c-mg">Profit margin</h3><p>How much of each dollar in you kept, last 12 months</p></div><div class="rv-plot" data-plot="margin"></div></section>
-      <section class="rv-chart" aria-labelledby="rv-c-cat"><div class="rv-chart-head"><h3 id="rv-c-cat">Costs by kind</h3><p>${esc(mon)}, largest first</p></div>${costList}</section>
-      <section class="rv-chart" aria-labelledby="rv-c-cli"><div class="rv-chart-head"><h3 id="rv-c-cli">Income by client</h3><p>${esc(mon)}, largest first</p></div>${incList}</section>
-      ${prevSection(d)}
-    </div>`;
+  };
+
+  /** One chart's card. @param {any} d @param {string} id */
+  function chartCard(d, id) {
+    const def = chartOf(id);
+    if (!def || !RENDER[id]) return '';
+    const r = RENDER[id](d);
+    return `<section class="rv-chart${def[2] ? ' rv-wide' : ''}" data-chart="${id}" aria-labelledby="rv-c-${id}"><div class="rv-chart-head"><div><h3 id="rv-c-${id}">${esc(def[1])}</h3><p>${r.sub}</p></div><button class="rv-hide" type="button" data-rv-hide="${id}" aria-label="Hide ${esc(def[1])}">Hide</button></div>${r.body}</section>`;
   }
+  /** The charts Karan shows, in his order, or a calm note when he hid them all. @param {any} d */
+  function gridInner(d) {
+    const ids = shown();
+    if (!ids.length) return `<div class="empty rv-wide rv-dash-empty"><p><strong>All charts are hidden.</strong></p><p>Pick the ones you want to see.</p><button class="btn btn-quiet" type="button" data-rv-cust>${C().icon('gear')}Customize</button></div>`;
+    return ids.map((id) => chartCard(d, id)).join('');
+  }
+  const dashNote = () => { const n = shown().length; return n === CHARTS.length ? `All ${n} charts` : n === 0 ? 'No charts shown' : `${n} of ${CHARTS.length} charts`; };
+
+  /** Everything under the cards on the Overview: the charts in a grid, Previous months, and the Customize panel. @param {any} d */
+  function overview(d) {
+    return `<div class="rv-dash-bar"><p class="rv-dash-note" id="rv-dash-note">${dashNote()}</p><button class="btn btn-quiet btn-sm" type="button" id="rv-cust-btn" data-rv-cust aria-haspopup="dialog" aria-controls="rv-cust">${C().icon('gear')}Customize</button></div>
+      <div class="rv-charts${anim() ? ' rv-anim' : ''}" id="rv-grid">${gridInner(d)}</div>
+      ${prevSection(d)}
+      ${custDialog()}`;
+  }
+
+  /* ---- the Customize panel ------------------------------------------------------------------------------------------------ */
+
+  function custRows() {
+    const n = choice.order.length;
+    return choice.order.map((id, i) => {
+      const def = chartOf(id);
+      if (!def) return '';
+      const on = !choice.hidden.includes(id);
+      return `<li class="rv-cust-row" data-cust-row="${id}">
+        <label class="switch-row rv-cust-sw"><input type="checkbox" role="switch" data-rv-cust-on="${id}"${on ? ' checked' : ''}><span><span class="pick-t">${esc(def[1])}</span><span class="pick-d">${esc(def[3])}</span></span></label>
+        <span class="rv-cust-mv"><button class="icon-btn" type="button" data-rv-cust-up="${id}" aria-label="Move ${esc(def[1])} up"${i === 0 ? ' disabled' : ''}>${arrowSvg('up')}</button><button class="icon-btn" type="button" data-rv-cust-down="${id}" aria-label="Move ${esc(def[1])} down"${i === n - 1 ? ' disabled' : ''}>${arrowSvg('down')}</button></span>
+      </li>`;
+    }).join('');
+  }
+  function custDialog() {
+    return `<dialog class="rv-cust" id="rv-cust" aria-labelledby="rv-cust-h"><div class="rv-cust-in">
+      <div class="rv-cust-head"><div><h2 id="rv-cust-h">Customize charts</h2><p>Choose what shows on the Overview, and in what order. Your choice is kept.</p></div><button class="icon-btn rv-cust-x" type="button" data-rv-cust-close aria-label="Close">${C().icon('x')}</button></div>
+      <ul class="rv-cust-list" id="rv-cust-list">${custRows()}</ul>
+      <div class="rv-cust-foot"><button class="btn btn-quiet btn-sm" type="button" data-rv-cust-all>Show all</button><button class="btn btn-quiet btn-sm" type="button" data-rv-cust-reset>Reset to default</button><button class="btn btn-sm rv-cust-done" type="button" data-rv-cust-close>Done</button></div>
+    </div></dialog>`;
+  }
+  function openCust() {
+    const dlg = /** @type {HTMLDialogElement|null} */ (document.getElementById('rv-cust'));
+    if (!dlg || dlg.open) return;
+    const from = /** @type {HTMLElement|null} */ (document.activeElement);
+    dlg.addEventListener('close', () => { const b = document.getElementById('rv-cust-btn') || (from && from.isConnected ? from : null); if (b) b.focus(); }, { once: true });
+    dlg.showModal();
+    const first = /** @type {HTMLElement|null} */ (dlg.querySelector('input'));
+    if (first) first.focus();
+  }
+  function closeCust() { const dlg = /** @type {HTMLDialogElement|null} */ (document.getElementById('rv-cust')); if (dlg && dlg.open) dlg.close(); }
+  /** Draws the panel's list again (after a move or a reset) and puts focus back where it was. @param {string} [focusSel] */
+  function paintCust(focusSel) {
+    const list = document.getElementById('rv-cust-list');
+    if (!list) return;
+    list.innerHTML = custRows();
+    const el = focusSel ? /** @type {HTMLElement|null} */ (list.querySelector(focusSel)) : null;
+    if (el) { if (/** @type {any} */ (el).disabled) { const alt = /** @type {HTMLElement|null} */ (el.parentElement && el.parentElement.querySelector('button:not([disabled])')); if (alt) alt.focus(); } else el.focus(); }
+  }
+  /** Draws the grid again after a change of choice (the panel, if open, stays as it is). */
+  function paintGrid() {
+    const d = state.cache[state.ym];
+    const grid = document.getElementById('rv-grid');
+    if (!d || !grid) return;
+    grid.innerHTML = gridInner(d);
+    const note = document.getElementById('rv-dash-note');
+    if (note) note.textContent = dashNote();
+    watchPlots();
+    watchEnter();
+  }
+  /** @param {string} id @param {boolean} on */
+  function setShown(id, on) {
+    if (!chartOf(id)) return;
+    const was = !choice.hidden.includes(id);
+    if (was === on) return;
+    choice.hidden = on ? choice.hidden.filter((x) => x !== id) : choice.hidden.concat([id]);
+    saveChoice();
+    paintGrid();
+    const sw = /** @type {HTMLInputElement|null} */ (document.querySelector(`[data-rv-cust-on="${CSS.escape(id)}"]`));
+    if (sw) sw.checked = on;
+  }
+  /** @param {string} id @param {number} dir */
+  function moveChart(id, dir) {
+    const i = choice.order.indexOf(id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= choice.order.length) return;
+    const o = choice.order.slice();
+    [o[i], o[j]] = [o[j], o[i]];
+    choice.order = o;
+    saveChoice();
+    paintCust(`[data-rv-cust-${dir < 0 ? 'up' : 'down'}="${CSS.escape(id)}"]`);
+    paintGrid();
+  }
+
+  /* ---- drawing, moving in, the hover card -------------------------------------------------------------------------------- */
 
   /** Draws the SVG charts at the width they have now (again whenever that width changes). */
   function drawPlots() {
@@ -13665,10 +14401,12 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (!d || state.view !== 'overview') return;
     for (const el of document.querySelectorAll('#rv-body .rv-plot')) {
       const box = /** @type {HTMLElement} */ (el);
+      const draw = PLOTS[String(box.dataset.plot)];
+      if (!draw) continue;
       const w = Math.floor(box.clientWidth);
       if (!w || Number(box.dataset.w) === w) continue;
       box.dataset.w = String(w);
-      box.innerHTML = (box.dataset.plot === 'months' ? monthsSvg(d, w) : marginSvg(d, w)) + (box.dataset.plot === 'months' ? '<div class="rv-tip" role="presentation" hidden></div>' : '');
+      box.innerHTML = draw(d, w) + '<div class="rv-tip" role="presentation" hidden></div>';
     }
   }
   function watchPlots() {
@@ -13680,27 +14418,64 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     for (const el of body.querySelectorAll('.rv-plot')) state.ro.observe(el);
     drawPlots();
   }
-  /** The 12-month chart's hover card. @param {PointerEvent} e */
+  /** A number counts up from zero to its value, in whole dollars, over about a second. @param {HTMLElement} el */
+  function countUp(el) {
+    const to = Number(el.dataset.num);
+    const fmt = el.dataset.fmt || 'money';
+    if (!Number.isFinite(to) || to === 0) return;
+    const t0 = performance.now();
+    const dur = 900;
+    const step = (/** @type {number} */ t) => {
+      const k = Math.min(1, (t - t0) / dur);
+      const e = 1 - Math.pow(1 - k, 3);
+      if (k >= 1 || !el.isConnected) { el.textContent = fmtNum(to, fmt); return; }
+      const v = fmt === 'money' || fmt === 'signed' ? Math.round((to * e) / 100) * 100 : to * e;
+      el.textContent = fmtNum(v, fmt);
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  /** A card has come into view: its bars grow, its lines draw, its numbers count. @param {Element} el */
+  function enter(el) {
+    if (el.classList.contains('is-in')) return;
+    void /** @type {HTMLElement} */ (el).offsetWidth;   // the hidden state is laid out first, so the change to shown is a transition
+    el.classList.add('is-in');
+    for (const n of el.querySelectorAll('.rv-num')) countUp(/** @type {HTMLElement} */ (n));
+  }
+  /** Each card moves in once, the first time it scrolls into view; the ones already in view go at once. */
+  function watchEnter() {
+    if (state.io) { state.io.disconnect(); state.io = null; }
+    const grid = document.getElementById('rv-grid');
+    if (!grid) return;
+    const cards = Array.from(grid.querySelectorAll('.rv-chart'));
+    if (!grid.classList.contains('rv-anim')) { for (const c of cards) c.classList.add('is-in'); return; }
+    const io = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) { enter(e.target); io.unobserve(e.target); } }, { rootMargin: '0px 0px -6% 0px', threshold: 0.1 });
+    state.io = io;
+    const vh = window.innerHeight || 800;
+    for (const c of cards) {
+      const b = c.getBoundingClientRect();
+      if (b.top < vh * 0.94 && b.bottom > 0) enter(c); else io.observe(c);
+    }
+  }
+  /** The hover card of every chart: the exact figures of the month (or slice) under the pointer. @param {PointerEvent} e */
   function onTip(e) {
     const t = /** @type {Element} */ (e.target);
-    const plot = t && t.closest ? t.closest('.rv-plot[data-plot="months"]') : null;
+    const plot = t && t.closest ? t.closest('.rv-plot') : null;
     const tip = plot ? /** @type {HTMLElement|null} */ (plot.querySelector('.rv-tip')) : null;
     for (const h of document.querySelectorAll('.rv-hit.is-on')) h.classList.remove('is-on');
     if (!plot || !tip) return;
     const hit = t.closest('[data-rv-tip]');
-    if (!hit) { tip.hidden = true; return; }
+    const kind = String(/** @type {HTMLElement} */ (plot).dataset.plot);
     const d = state.cache[state.ym];
-    const r = d && d.series.slice(-12)[Number(hit.getAttribute('data-rv-tip'))];
-    if (!r) return;
-    hit.classList.add('is-on');
-    const has = r.incN || r.costN;
-    const pr = r.inc - r.cost;
-    tip.innerHTML = `<strong>${esc(monthName(r.ym))}</strong>${has ? `<span><i class="rv-key rv-k-inc"></i>Income ${esc(r.incN ? money(r.inc) : 'not entered')}</span><span><i class="rv-key rv-k-cost"></i>Costs ${esc(r.costN ? money(r.cost) : 'not entered')}</span><span><i class="rv-key rv-k-line"></i>Profit ${esc(signed(pr, true))}</span>` : '<span>Nothing entered</span>'}`;
+    const html = hit && d && TIPS[kind] ? TIPS[kind](d, Number(hit.getAttribute('data-rv-tip'))) : '';
+    if (!html) { tip.hidden = true; return; }
+    if (hit && hit.classList.contains('rv-hit')) hit.classList.add('is-on');
+    tip.innerHTML = html;
     tip.hidden = false;
     const pb = plot.getBoundingClientRect();
-    const hb = hit.getBoundingClientRect();
-    const left = Math.min(Math.max(hb.left - pb.left + hb.width / 2 - tip.offsetWidth / 2, 0), pb.width - tip.offsetWidth);
-    tip.style.left = `${left}px`;
+    const hb = /** @type {Element} */ (hit).getBoundingClientRect();
+    const at = hit && hit.classList.contains('rv-seg') ? e.clientX - pb.left : hb.left - pb.left + hb.width / 2;   // a ring's slice: where the pointer is
+    tip.style.left = `${Math.min(Math.max(at - tip.offsetWidth / 2, 0), pb.width - tip.offsetWidth)}px`;
   }
 
   /* ---- previous months (the bottom of the Overview) ------------------------------------------------------------------------ */
@@ -13841,7 +14616,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   }
   /** The Previous months card (its contents fill in when the months arrive). @param {any} d */
   function prevSection(d) {
-    return `<section class="rv-chart rv-wide rv-prev" aria-labelledby="rv-c-prev"><div class="rv-chart-head"><h3 id="rv-c-prev">Previous months</h3><p>Months before ${esc(monthName(d.ym))} with entries, newest first. Open one to see who paid and what it cost.</p></div>
+    return `<section class="rv-chart rv-wide rv-prev" aria-labelledby="rv-c-prev"><div class="rv-chart-head"><div><h3 id="rv-c-prev">Previous months</h3><p>Months before ${esc(monthName(d.ym))} with entries, newest first. Open one to see who paid and what it cost.</p></div></div>
       <div id="rv-prev-in">${prevInner()}</div><p class="sr-only" id="rv-prev-say" aria-live="polite"></p></section>`;
   }
   function paintPrev() { const box = document.getElementById('rv-prev-in'); if (box) box.innerHTML = prevInner(); }
@@ -14106,7 +14881,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     state.form = /** @type {HTMLFormElement|null} */ (C().$('#rv-form', box));
     if (state.form) wireForm(state.form);
     watchPlots();
-    if (state.view === 'overview') void loadPrev();
+    if (state.view === 'overview') { watchEnter(); void loadPrev(); } else if (state.io) { state.io.disconnect(); state.io = null; }
   }
   function paintFresh() {
     const box = C().$('#rv-fresh');
@@ -14127,6 +14902,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     document.title = 'Revenue · Domin8te console';
     const seq = ++state.seq;
     if (state.ro) { state.ro.disconnect(); state.ro = null; }
+    if (state.io) { state.io.disconnect(); state.io = null; }
     state.form = null;
     if (demo()) { privatePage(); return; }
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Revenue</h1></div></div><div id="rv-wait">${c.skeleton(3)}</div>`;
@@ -14149,9 +14925,10 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (body) {
       body.addEventListener('pointermove', onTip);
       body.addEventListener('pointerleave', () => { for (const t of body.querySelectorAll('.rv-tip')) /** @type {HTMLElement} */ (t).hidden = true; });
+      body.addEventListener('change', onChange);
     }
     try {
-      const d = await readMonth(ym);
+      const [d] = await Promise.all([readMonth(ym), readChoice()]);
       if (seq !== state.seq) return;
       paintBody(d);
       paintFresh();
@@ -14169,8 +14946,25 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const t = /** @type {HTMLElement} */ (e.target);
     if (t.closest('[data-rv-retry]')) { e.preventDefault(); state.owner = { id: '', v: null, p: null }; state.cache = {}; state.prev = noPrev(); void page(state.ym, state.view); return; }
     if (t.closest('a')) return;
+    // the dashboard: Customize, its panel, and Hide on a card
+    if (t.closest('[data-rv-cust]')) { openCust(); return; }
+    if (t.closest('[data-rv-cust-close]')) { closeCust(); return; }
+    const dlg = /** @type {HTMLDialogElement|null} */ (document.getElementById('rv-cust'));
+    if (dlg && t === dlg) { closeCust(); return; }   // a click on the backdrop
+    if (t.closest('[data-rv-cust-all]')) { choice.hidden = []; saveChoice(); paintCust(); paintGrid(); const b = /** @type {HTMLElement|null} */ (document.querySelector('[data-rv-cust-all]')); if (b) b.focus(); return; }
+    if (t.closest('[data-rv-cust-reset]')) { choice = cleanChoice(null); saveChoice(); paintCust(); paintGrid(); const b = /** @type {HTMLElement|null} */ (document.querySelector('[data-rv-cust-reset]')); if (b) b.focus(); return; }
+    const up = t.closest('[data-rv-cust-up]');
+    if (up) { moveChart(String(up.getAttribute('data-rv-cust-up')), -1); return; }
+    const down = t.closest('[data-rv-cust-down]');
+    if (down) { moveChart(String(down.getAttribute('data-rv-cust-down')), 1); return; }
+    const hide = t.closest('[data-rv-hide]');
+    if (hide) { setShown(String(hide.getAttribute('data-rv-hide')), false); C().toast('Hidden. Customize brings it back.'); const b = document.getElementById('rv-cust-btn'); if (b) b.focus(); return; }
     const hit = t.closest('[data-rv-tip]');
-    if (hit) { const d = state.cache[state.ym]; const r = d && d.series.slice(-12)[Number(hit.getAttribute('data-rv-tip'))]; if (r && r.ym !== state.ym) location.hash = `#/revenue/${r.ym}`; return; }
+    if (hit) {
+      const plot = hit.closest('.rv-plot');
+      if (!plot || /** @type {HTMLElement} */ (plot).dataset.plot !== 'months') return;   // only the 12-month chart opens a month
+      const d = state.cache[state.ym]; const r = d && d.series.slice(-12)[Number(hit.getAttribute('data-rv-tip'))]; if (r && r.ym !== state.ym) location.hash = `#/revenue/${r.ym}`; return;
+    }
     const pm = t.closest('[data-rv-pm]');
     if (pm) { togglePrev(String(pm.getAttribute('data-rv-pm'))); return; }
     if (t.closest('[data-rv-more]')) { void loadPrev(true); return; }
@@ -14189,7 +14983,13 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     }
   }
 
-  EXT.revenue = { page, sideItem, visible, parse, field, change, margin, ticks };
+  /** A switch in the Customize panel. @param {Event} e */
+  function onChange(e) {
+    const t = /** @type {HTMLInputElement} */ (e.target);
+    if (t && t.matches && t.matches('[data-rv-cust-on]')) setShown(String(t.getAttribute('data-rv-cust-on')), t.checked);
+  }
+
+  EXT.revenue = { page, sideItem, visible, parse, field, change, margin, ticks, CHARTS, get choice() { return choice; } };
 })();
 </script>
 <script>
@@ -15524,6 +16324,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       }
       case 'usage_added': return `${who} counted ${esc(d.qty)} for ${esc(String(d.metric || '').replace(/_/g, ' '))}${d.counted === false ? ' (not counted against the limit)' : ''}.`;
       case 'usage_voided': return `${who} took back ${esc(d.qty)} counted for ${esc(String(d.metric || '').replace(/_/g, ' '))}.${because(d.reason)}`;
+      case 'usage_live_set': return `${who} set ${d.metric === 'ads_platforms' ? 'Ad platforms' : 'Live campaigns'} to ${esc(d.now)} (was ${esc(d.was)}).`;
       case 'plan_cycle_insert': case 'plan_cycle_update': return `${who} ${r.action === 'plan_cycle_insert' ? 'set up' : 'changed'} the plan month that starts ${esc(dayText(d.period_start))}.${because(d.reason)}`;
       default: return `${who} ${esc(String(r.action).replace(/[._]/g, ' '))}.`;
     }
@@ -15531,7 +16332,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
 
   /** The history column. @param {any} C @param {any} D @param {boolean} all */
   function historyHtml(C, D, all) {
-    const rows = D.history;
+    // "Set live count" writes the count and its own line (20261014140000): the count's line is not said twice
+    const liveSet = new Set(D.history.filter((/** @type {any} */ r) => r.action === 'usage_live_set').map((/** @type {any} */ r) => String((r.detail || {}).usage)));
+    const rows = D.history.filter((/** @type {any} */ r) => !(r.action === 'usage_added' && liveSet.has(String((r.detail || {}).usage))));
     if (!rows.length) return '<p class="meta">Nothing recorded yet. Every show, hide and edit lands here.</p>';
     const draw = (/** @type {any[]} */ list) => `<ol class="vz-hist">${list.map((/** @type {any} */ r, /** @type {number} */ i) => `<li${all && i === 10 ? ' id="vz-h11" tabindex="-1"' : ''}><time datetime="${esc(r.at)}">${esc(stamp(r.at))}</time><p>${sentence(C, D, r)}</p></li>`).join('')}</ol>`;
     const cut = all ? rows.length : 10;
@@ -15830,7 +16633,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
  * console.js calls this from the board functions it owns (moveTask, card, boardColumns, board, editCard, allBoardPage, deleteCard,
  * wireBoard). Everything here reads the console through window.D8C, which exists only after console.js has run, so each helper asks
  * for it when it is called, never when this file loads. Database: usage_events, set_task_visibility, soft_delete_task, report_exception
- * (migrations 20261013010200, 20261013010400, 20261013010500). Nothing is ever deleted: a count that was a mistake is voided with a reason.
+ * (migrations 20261013010200, 20261013010400, 20261013010500), set_live_count (20261014140000). Nothing is ever deleted: a count that was a mistake is voided with a reason.
  */
 (function () {
   'use strict';
@@ -16269,11 +17072,14 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     } catch (e) { /* the next reload shows it */ }
     forget();
   }
-  /** Asks Needs you to decide (report_exception). True when it was opened now, false when one was already open. @param {any} t @param {string} reason @param {string} message @param {any} last */
-  async function reportException(t, reason, message, last) {
+  /**
+   * Asks Needs you to decide (report_exception). True when it was opened now, false when one was already open.
+   * @param {any} t @param {string} reason @param {string} message @param {any} last @param {string} [kind] what the item is about (a card unless said)
+   */
+  async function reportException(t, reason, message, last, kind) {
     const c = C();
     const db = await c.db();
-    const opened = ok(await db.rpc('report_exception', { p_tenant: t.tenant_id, p_entity_type: 'task', p_entity_id: t.id, p_reason: reason, p_message: message, p_last: last }));
+    const opened = ok(await db.rpc('report_exception', { p_tenant: t.tenant_id, p_entity_type: kind || 'task', p_entity_id: t.id, p_reason: reason, p_message: message, p_last: last }));
     try {
       const res = await db.from('dashboard_exceptions').select('*').eq('tenant_id', t.tenant_id).eq('status', 'open');
       if (!res.error) {
@@ -16509,6 +17315,135 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     });
   }
 
+  /* ---- Set live count (20261014140000) ---------------------------------------------------------------------------------------- */
+
+  /** The live count dialog's words for each live-at-once limit. */
+  const LIVE_ASK = /** @type {Record<string, {q: string, field: string, noun: string}>} */ ({
+    ads_live_campaigns: { q: 'How many campaigns are live right now?', field: 'Live campaigns now', noun: 'Live campaigns' },
+    ads_platforms: { q: 'How many ad platforms are in use right now?', field: 'Ad platforms in use now', noun: 'Ad platforms' }
+  });
+  /** @param {string} s */
+  const cssq = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'));
+  /** Every bar of one client's live limit on the page (a strip can show it twice: at the top and under All limits). @param {string} tid @param {string} metric */
+  const liveBoxes = (tid, metric) => Array.from(document.querySelectorAll(`.wk-livebar[data-wk-live-box="${cssq(metric)}"][data-wk-tenant="${cssq(tid)}"]`));
+  /**
+   * A usage bar, and for a live-at-once limit a quiet "Set live count" button with it. The demo console shows the button switched off.
+   * Billing's drawer uses this too. @param {string} tenantId @param {any} l a planOf() line @param {string} label the bar's name
+   */
+  function liveBar(tenantId, l, label) {
+    const bar = C().usageBar({ ...l, label });
+    if (!LIVE_ASK[l.metric]) return bar;
+    const who = (C().tenant(tenantId) || {}).name || '';
+    const demo = !!(/** @type {any} */ (window).D8DEMO_SITE);
+    return `<div class="wk-livebar" data-wk-live-box="${E(l.metric)}" data-wk-tenant="${E(tenantId)}" data-wk-label="${E(label)}">${bar}<button class="linkish wk-live" type="button" data-wk-live="${E(l.metric)}" data-wk-tenant="${E(tenantId)}" aria-label="Set live count: ${E(label)}${who ? `, ${E(who)}` : ''}"${demo ? ' disabled title="This is a demo. Nothing is saved or sent."' : ''}>Set live count</button></div>`;
+  }
+  /**
+   * How many are live right now: a number from 0 to 100, prefilled with the count now. Resolves the number, or null (Cancel or Esc).
+   * @param {string} tenantId @param {any} line
+   */
+  function liveDialog(tenantId, line) {
+    const w = LIVE_ASK[line.metric];
+    const who = C().tenant(tenantId);
+    const html = `<form class="wk-form" novalidate>
+      <p class="wk-kicker">Set live count</p>
+      <h2 id="wk-live-h">${E(w.q)}</h2>
+      <p class="wk-sub"><strong>${E(who ? who.name : '')}</strong><span>Limit ${E(line.cap)} at once</span></p>
+      <div class="field wk-qty"><label for="wk-live-n">${E(w.field)}</label><input id="wk-live-n" type="number" name="qty" min="0" max="100" step="1" value="${E(line.used)}" inputmode="numeric" aria-describedby="wk-live-says"></div>
+      <p class="wk-lands" id="wk-live-says" aria-live="polite"></p>
+      <div class="actions"><button class="btn btn-quiet" type="button" data-wk-cancel>Cancel</button><button class="btn" type="submit">Save</button></div>
+    </form>`;
+    return modal(html, (dlg, close) => {
+      dlg.setAttribute('aria-labelledby', 'wk-live-h');
+      const f = /** @type {HTMLFormElement} */ (dlg.querySelector('form'));
+      const box = /** @type {HTMLInputElement} */ (f.elements.namedItem('qty'));
+      const says = /** @type {HTMLElement} */ (f.querySelector('#wk-live-says'));
+      const read = () => { const n = Number(box.value); return box.value.trim() !== '' && Number.isInteger(n) && n >= 0 && n <= 100 ? n : null; };
+      const sync = () => {
+        const n = read();
+        const over = n !== null && n > line.cap;
+        const kept = over && n !== null && n < line.used;   // lower, still past the cap: the one-off approved before covers it
+        says.className = `wk-lands${over && !kept ? ' is-over' : ''}`;
+        says.textContent = n === null ? 'A whole number from 0 to 100.'
+          : n === line.used ? `That is the count now: ${n} of ${line.cap}.`
+            : kept ? `${n} of ${line.cap}: still over the limit, under the one-off approved before.`
+              : over ? `That is ${n - line.cap} over the limit of ${line.cap}, so it goes to Needs you first, where a one-off can be approved. Nothing changes until then.`
+                : `${w.noun} go from ${line.used} to ${n} of ${line.cap}.`;
+      };
+      box.addEventListener('input', sync);
+      sync();
+      f.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const n = read();
+        if (n === null) { box.focus(); C().toast('How many: a whole number from 0 to 100.', true); return; }
+        close(n);
+      });
+      /** @type {HTMLElement} */ (f.querySelector('[data-wk-cancel]')).addEventListener('click', () => close(null));
+      box.focus();
+      box.select();
+    });
+  }
+  /** After a live count is written: the strips, the cards and every bar of it on the page show the new number. @param {string} tid @param {string} metric @param {number} n */
+  function applyLive(tid, metric, n) {
+    const c = C();
+    for (const u of c.plans.usage || []) if (u.tenant_id === tid && u.metric === metric) u.used = n;
+    store.loadedAt = 0;
+    forget();
+    const line = c.planOf(tid).lines.find((/** @type {any} */ l) => l.metric === metric);
+    if (!line) return;
+    for (const box of liveBoxes(tid, metric)) box.outerHTML = liveBar(tid, line, box.getAttribute('data-wk-label') || barName(line));
+  }
+  /**
+   * "Set live count": asks how many are live now and writes one snapshot (set_live_count, 20261014140000). The bar updates in place
+   * and focus goes back to the button. Over the cap the database refuses it: the limit is then put in Needs you, where a one-off can be
+   * approved. The same number writes nothing. Resolves true when something was written. @param {HTMLElement} btn @param {() => void} [wrote]
+   */
+  async function setLive(btn, wrote) {
+    const c = C();
+    const tid = btn.getAttribute('data-wk-tenant') || '';
+    const metric = btn.getAttribute('data-wk-live') || '';
+    const w = LIVE_ASK[metric];
+    const plan = c.planOf(tid);
+    const line = plan.lines.find((/** @type {any} */ l) => l.metric === metric);
+    if (!w || !line) return false;
+    // which of the bars it was, so focus comes back to the same one after the bars are drawn again
+    const at = Math.max(0, liveBoxes(tid, metric).indexOf(/** @type {Element} */ (btn.closest('.wk-livebar'))));
+    const back = () => {
+      const el = btn.isConnected ? btn : /** @type {HTMLElement|null} */ ((liveBoxes(tid, metric)[at] || document.createElement('i')).querySelector('[data-wk-live]'));
+      if (el) el.focus();
+    };
+    const n = await liveDialog(tid, line);
+    if (n === null) { back(); return false; }
+    if (n === line.used) { c.toast(`${w.noun} stay at ${n}. Nothing changed.`); back(); return false; }
+    let wroteIt = false;
+    try {
+      const db = await c.db();
+      const res = await db.rpc('set_live_count', { p_tenant: tid, p_metric: metric, p_qty: n });
+      const err = res.error;
+      const said = String((err && err.message) || '');
+      if (err && err.code === 'demo-readonly') { /* the demo console: its note was said, and nothing changed */ }
+      else if (err && err.code === '23514' && /^over_cap/.test(said)) {
+        const opened = await reportException({ tenant_id: tid, id: metric }, 'over_cap',
+          `Over cap: ${c.svcLabel(line.service)} ${line.label} ${n} of ${line.cap} (${plan.nowPlan ? plan.nowPlan.name : 'plan'}).`,
+          { metric, service: line.service, qty: Math.max(1, n - line.used), used: line.used, cap: line.cap, plan: plan.now ? plan.now.plan_id : null, cycle: plan.now ? plan.now.id : null, live: true }, 'live_count');
+        wroteIt = true;
+        c.toast(`${n} is over the limit of ${line.cap}, so nothing changed. ${opened ? 'It is in Needs you now' : 'It is already in Needs you'}, where a one-off can be approved.`, true);
+      } else if (err) {
+        if (/PGRST202|42883|could not find the function/i.test(`${err.code || ''} ${said}`)) throw new Error('Set live count needs the database update from 14 October first. Nothing was saved.');
+        if (/cycle-not-running/.test(said)) throw new Error('This client has no plan month running, so there is nothing to set yet. Set their plan in Billing first.');
+        if (/service_not_picked/.test(said)) throw new Error(`${c.svcLabel(line.service)} is not in this month’s plan, so nothing was saved.`);
+        if (/qty-out-of-range/.test(said)) throw new Error('How many: a whole number from 0 to 100. Nothing was saved.');
+        throw explain(err);
+      } else {
+        const out = res.data || {};
+        if (out.done === false) c.toast(`${w.noun} stay at ${out.now}. Nothing changed.`);
+        else { applyLive(tid, metric, Number(out.now)); wroteIt = true; c.toast(`${w.noun} set to ${out.now} (was ${out.was}).`); }
+      }
+    } catch (e) { c.toast(c.message(e), true); }
+    if (wroteIt && wrote) wrote();
+    back();
+    return wroteIt;
+  }
+
   /* ---- the usage strip ----------------------------------------------------------------------------------------------------------- */
 
   /** @param {any} l a usage line @returns {number} */
@@ -16539,9 +17474,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const groups = c.SERVICE_ORDER.filter((/** @type {string} */ s) => byService.includes(s)).concat(byService.filter((/** @type {string} */ s) => !c.SERVICE_ORDER.includes(s)));
     const body = !p.now || !lines.length
       ? `<p class="wk-none">${p.now ? 'No limits for this plan.' : 'No plan month is running yet.'} <a href="#/billing/${E(t.id)}">${p.now ? 'See the plan' : 'Set the plan'}</a></p>`
-      : `<div class="wk-bars">${top.map((/** @type {any} */ l) => c.usageBar({ ...l, label: barName(l) })).join('')}</div>
+      : `<div class="wk-bars">${top.map((/** @type {any} */ l) => liveBar(t.id, l, barName(l))).join('')}</div>
         ${lines.length > 2 ? `<details class="wk-more"><summary>All limits <span class="wk-n">${lines.length}</span></summary>
-          <div class="wk-all">${groups.map((/** @type {string} */ s) => `<div class="wk-group"><h3>${E(c.svcLabel(s))}</h3><div class="wk-bars">${lines.filter((/** @type {any} */ l) => l.service === s).map((/** @type {any} */ l) => c.usageBar({ ...l, label: barName(l) })).join('')}</div></div>`).join('')}</div></details>` : ''}`;
+          <div class="wk-all">${groups.map((/** @type {string} */ s) => `<div class="wk-group"><h3>${E(c.svcLabel(s))}</h3><div class="wk-bars">${lines.filter((/** @type {any} */ l) => l.service === s).map((/** @type {any} */ l) => liveBar(t.id, l, barName(l))).join('')}</div></div>`).join('')}</div></details>` : ''}`;
     return `<section class="wk-strip${o.pressed ? ' is-on' : ''}${lines.some((/** @type {any} */ l) => l.used > l.cap) ? ' has-over' : ''}" aria-label="${E(t.name)}: plan limits">
       <header class="wk-strip-h">${name}${chips}${picks ? `<span class="wk-picks">${E(picks)}</span>` : ''}</header>${body}</section>`;
   }
@@ -16692,6 +17627,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const target = /** @type {HTMLElement} */ (e.target);
       const askBtn = /** @type {HTMLButtonElement|null} */ (target.closest('[data-wk-ask]'));
       const countBtn = /** @type {HTMLButtonElement|null} */ (target.closest('[data-wk-count]'));
+      const liveBtn = /** @type {HTMLButtonElement|null} */ (target.closest('[data-wk-live]'));
+      if (liveBtn) { e.stopPropagation(); await setLive(liveBtn, wrote); return; }
       if (!askBtn && !countBtn) return;
       e.stopPropagation();
       const c = C();
@@ -16720,7 +17657,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     }, { signal });
   }
 
-  EXT.work = { ready, strip, cardView, seeText, moveBlock, beforeDone, undoCount, askRemove, removeCard, setVisibility, visibilityField, wireVisibility, visibilityChange, editUsage, wireEdit, allWork, wire, clientSees, visState, flagged, infoFor };
+  EXT.work = { ready, strip, cardView, seeText, moveBlock, beforeDone, undoCount, askRemove, removeCard, setVisibility, visibilityField, wireVisibility, visibilityChange, editUsage, wireEdit, allWork, wire, clientSees, visState, flagged, infoFor, liveBar, setLive };
 })();
 </script>
 <script>
@@ -19191,6 +20128,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   Object.assign(HISTORY_WORDS, {
     usage_added: (/** @type {any} */ d) => d.counted === false ? `logged an urgent fix (${metricWords(d.metric)}), not counted` : `counted ${d.qty || 1} of ${metricWords(d.metric)}${d.over_cap_approved ? ', approved as a one-off' : ''}`,
     usage_voided: (/** @type {any} */ d) => `took ${d.qty || 1} of ${metricWords(d.metric)} off the count${d.reason ? `: ${d.reason}` : ''}`,
+    usage_live_set: (/** @type {any} */ d) => `set ${d.metric === 'ads_platforms' ? 'Ad platforms' : 'Live campaigns'} to ${d.now} (was ${d.was})`,
     task_shown: (/** @type {any} */ d) => `showed the card “${d.title || 'a card'}” to the client${d.reason ? `: ${d.reason}` : ''}`,
     task_hidden: (/** @type {any} */ d) => `hid the card “${d.title || 'a card'}” from the client${d.reason ? `: ${d.reason}` : ''}`,
     task_deleted: (/** @type {any} */ d) => `removed the card “${d.title || 'a card'}” (its history is kept)${d.reason ? `: ${d.reason}` : ''}`,
@@ -19228,9 +20166,12 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const staffNames = Object.fromEntries((check(s) || []).map((/** @type {any} */ x) => [x.clerk_user_id, x.name]));
       const clientName = current.doc.user.firstName || current.name;
       const cards = Object.fromEntries((current.tasks || []).map((/** @type {any} */ t) => [t.id, t.title]));
+      // "Set live count" (20261014140000) writes the count and its own line: the count's line is not said twice.
+      const liveSet = new Set(rows.filter((/** @type {any} */ r) => r.action === 'usage_live_set').map((/** @type {any} */ r) => String((r.detail || {}).usage)));
       // Runs of "saved client info" by the same person on the same day become one line.
       /** @type {any[]} */ const lines = [];
       for (const r of rows) {
+        if (r.action === 'usage_added' && liveSet.has(String((r.detail || {}).usage))) continue;
         // Clerk ids are not names. The dashboard manager is "The system"; a staff-only action by someone not on the team list
         // (they left) is "A team member"; anything else (a message, request or answer) was the client's own.
         const sys = !r.actor || !/^user_/.test(r.actor); // stripe-webhook, dashboard-manager, cron: not a person

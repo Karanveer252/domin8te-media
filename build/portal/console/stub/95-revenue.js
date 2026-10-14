@@ -157,8 +157,9 @@
     }));
   };
 
-  // Sample figures: 17 months, the oldest 16 months back. Bayleaf from the start (on Growth, then Domin8te for the last 6 months),
-  // Marlow from 12 months back, The Corner Bean from 10 back to last month (paused now), Osteria from 6 back. Costs are the company's own.
+  // Sample figures: 23 months, the oldest 22 months back (so the two-year trend is full). Bayleaf from the start (on Growth, then Domin8te
+  // for the last 6 months), Marlow from 12 months back, The Corner Bean from 10 back to last month (paused now), Osteria from 6 back.
+  // The first months are small: one client, the editor from 20 back, no marketing until 16 back. Costs are the company's own.
   // Nine months back a camera kit makes a loss month; 15 months back has income but no costs entered. This month has income from two clients only (Osteria not entered, so "Use $1,999"
   // shows) and no costs yet: opening it copies last month's repeating costs, as the real database does.
   S.seeds.push((/** @type {any} */ db) => {
@@ -167,7 +168,7 @@
     db.business_costs = [];
     const now = thisMonth();
     let k = 0;
-    for (let back = 16; back >= 0; back -= 1) {
+    for (let back = 22; back >= 0; back -= 1) {
       const m = shift(now, -back);
       let s = 0;
       const inc = (/** @type {string|null} */ tenant, /** @type {string} */ label, /** @type {number} */ minor) => db.business_income.push({ id: `bi_seed_${++k}`, month: m, kind: tenant ? 'client' : 'other', tenant_id: tenant, label, amount_minor: minor, sort: ++s, created_at: S.stamp(-back * 30, 0), updated_at: S.stamp(-back * 30, 0) });
@@ -180,16 +181,17 @@
       if (back === 12) inc(null, 'Logo refresh for a bakery', 60000);
       if (back === 0) continue;   // this month: no costs yet, and not opened (so the carry-over runs)
       if (back === 15) continue;   // 15 months back: income only, the costs were never entered (Previous months says "Not entered")
-      db.business_months.push({ month: m, carried_from: back === 16 ? null : shift(m, -1), opened_at: S.stamp(-back * 30, 0) });
+      db.business_months.push({ month: m, carried_from: back === 22 ? null : shift(m, -1), opened_at: S.stamp(-back * 30, 0) });
       let c = 0;
       const cost = (/** @type {string} */ category, /** @type {string} */ label, /** @type {number} */ minor, /** @type {boolean} */ repeats) => db.business_costs.push({ id: `bc_seed_${++k}`, month: m, category, label, amount_minor: minor, repeats, sort: ++c, created_at: S.stamp(-back * 30, 0), updated_at: S.stamp(-back * 30, 0) });
       cost('software', 'Adobe and Canva', 9500, true);
       cost('software', 'Hosting and database', back <= 8 ? 6500 : 2500, true);
       if (back <= 4) cost('software', 'Sign-in service', 2500, true);
-      cost('team', back <= 8 ? 'Sam, contractor' : 'Freelance editor', back <= 8 ? 160000 : 60000, true);
-      cost('marketing', 'Meta ads for Domin8te', back <= 3 ? 60000 : 35000, true);
+      if (back <= 20) cost('team', back <= 8 ? 'Sam, contractor' : 'Freelance editor', back <= 8 ? 160000 : 60000, true);
+      if (back <= 16) cost('marketing', 'Meta ads for Domin8te', back <= 3 ? 60000 : 35000, true);
       cost('phone', 'Phone and internet', 11000, true);
-      cost('fees', 'Card fees', Math.round((back <= 5 ? 0.031 : 0.029) * (back <= 5 ? 750000 : 400000)), false);
+      cost('fees', 'Card fees', Math.round((back <= 5 ? 0.031 : 0.029) * (back <= 5 ? 750000 : back <= 12 ? 400000 : 200000)), false);
+      if (back === 19) cost('other', 'Tripod and microphone', 32000, false);
       if (back % 3 === 0) cost('fees', 'Accountant', 25000, false);
       if (back === 9) cost('other', 'Camera kit and lights', 420000, false);
       if (back === 14) cost('other', 'New laptop', 180000, false);

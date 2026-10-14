@@ -2464,6 +2464,7 @@
   Object.assign(HISTORY_WORDS, {
     usage_added: (/** @type {any} */ d) => d.counted === false ? `logged an urgent fix (${metricWords(d.metric)}), not counted` : `counted ${d.qty || 1} of ${metricWords(d.metric)}${d.over_cap_approved ? ', approved as a one-off' : ''}`,
     usage_voided: (/** @type {any} */ d) => `took ${d.qty || 1} of ${metricWords(d.metric)} off the count${d.reason ? `: ${d.reason}` : ''}`,
+    usage_live_set: (/** @type {any} */ d) => `set ${d.metric === 'ads_platforms' ? 'Ad platforms' : 'Live campaigns'} to ${d.now} (was ${d.was})`,
     task_shown: (/** @type {any} */ d) => `showed the card “${d.title || 'a card'}” to the client${d.reason ? `: ${d.reason}` : ''}`,
     task_hidden: (/** @type {any} */ d) => `hid the card “${d.title || 'a card'}” from the client${d.reason ? `: ${d.reason}` : ''}`,
     task_deleted: (/** @type {any} */ d) => `removed the card “${d.title || 'a card'}” (its history is kept)${d.reason ? `: ${d.reason}` : ''}`,
@@ -2501,9 +2502,12 @@
       const staffNames = Object.fromEntries((check(s) || []).map((/** @type {any} */ x) => [x.clerk_user_id, x.name]));
       const clientName = current.doc.user.firstName || current.name;
       const cards = Object.fromEntries((current.tasks || []).map((/** @type {any} */ t) => [t.id, t.title]));
+      // "Set live count" (20261014140000) writes the count and its own line: the count's line is not said twice.
+      const liveSet = new Set(rows.filter((/** @type {any} */ r) => r.action === 'usage_live_set').map((/** @type {any} */ r) => String((r.detail || {}).usage)));
       // Runs of "saved client info" by the same person on the same day become one line.
       /** @type {any[]} */ const lines = [];
       for (const r of rows) {
+        if (r.action === 'usage_added' && liveSet.has(String((r.detail || {}).usage))) continue;
         // Clerk ids are not names. The dashboard manager is "The system"; a staff-only action by someone not on the team list
         // (they left) is "A team member"; anything else (a message, request or answer) was the client's own.
         const sys = !r.actor || !/^user_/.test(r.actor); // stripe-webhook, dashboard-manager, cron: not a person
