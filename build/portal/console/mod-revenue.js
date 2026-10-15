@@ -166,6 +166,8 @@
   /** A profit margin in whole percent, or null when nothing came in. @param {number} profit @param {number} income */
   const margin = (profit, income) => (income > 0 ? Math.round((profit / income) * 100) : null);
 
+  /** A move bigger than this many percent reads in dollars instead ("up 198039%" says nothing a person can use; R6-3, 15 Oct). */
+  const MAX_PCT = 999;
   /** How a total moved against the month before, in small words; nothing when that month has no entries. @param {number} cur @param {{has: boolean, v: number}} prev @param {string} name */
   function change(cur, prev, name) {
     if (!prev.has) return '';
@@ -174,7 +176,7 @@
     const dir = diff > 0 ? 'up' : 'down';
     if (prev.v > 0 && cur >= 0) {
       const pct = Math.round((Math.abs(diff) / prev.v) * 100);
-      if (pct >= 1) return `${dir} ${pct}% on ${name}`;
+      if (pct >= 1 && pct <= MAX_PCT) return `${dir} ${pct}% on ${name}`;
     }
     return `${dir} ${money(Math.abs(diff))} on ${name}`;
   }
@@ -286,14 +288,18 @@
     const card = (/** @type {string} */ label, /** @type {string} */ value, /** @type {string} */ words, /** @type {string} */ cls, /** @type {string} */ extra, more = '') =>
       `<div class="rv-card"><p class="rv-card-k">${label}${extra || ''}</p><p class="rv-card-v${cls}">${value}</p><p class="rv-card-s">${esc(words)}</p>${more || ''}</div>`;
     const st = d.settings || { incGoal: null, profGoal: null, tax: null };
-    const incMore = (t.incN && st.incGoal ? goalHtml(t.inc, st.incGoal, 'rv-f-inc') : '') + (t.due > 0 ? `<p class="rv-card-x"><span class="chip warn plain">Still to come</span>${esc(money(t.due))}</p>` : '');
+    // The extra lines under a figure share one quiet pattern (design pass, 15 Oct): the words in the card's grey, the money in ink.
+    const incMore = (t.incN && st.incGoal ? goalHtml(t.inc, st.incGoal, 'rv-f-inc') : '') + (t.due > 0 ? `<p class="rv-card-x"><span class="rv-card-xk">Still to come</span><strong>${esc(money(t.due))}</strong></p>` : '');
     let profMore = '';
     if (t.has && st.profGoal) profMore += goalHtml(t.profit, st.profGoal, 'rv-f-prof');
     if (t.has && st.tax) {
+      // One rule for the month and the year (R6-4, 15 Oct): tax is set aside on money received, so income still to come is left out of
+      // both until it is marked received. The year is "so far" only while it runs; a past year's December is its total.
       const Y = yearRows(d);
-      const ytd = Y.now.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + r.inc - r.cost, 0);
-      const put = taxOf(t.profit, st.tax);
-      profMore += `<p class="rv-card-x">${put > 0 ? `Put aside ${esc(dollars(put))} for tax (${esc(pctText(st.tax))})` : 'Nothing to put aside for tax'}${ytd > 0 ? `. ${esc(Y.y)} so far: ${esc(dollars(taxOf(ytd, st.tax)))}` : ''}</p>`;
+      const ytd = Y.now.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + r.inc - r.due - r.cost, 0);
+      const put = taxOf(t.profit - t.due, st.tax);
+      const yName = ym === currentMonth() ? `${Y.y} so far` : Y.n === 12 ? `${Y.y} total` : `${Y.y} to ${monthName(ym, 'mon')}`;
+      profMore += `<p class="rv-card-x">${put > 0 ? `Put aside <strong>${esc(dollars(put))}</strong> for tax (${esc(pctText(st.tax))} of profit on money received)` : 'Nothing to put aside for tax'}${ytd > 0 ? `. ${esc(yName)}: <strong>${esc(dollars(taxOf(ytd, st.tax)))}</strong>` : ''}</p>`;
     }
     const none = '<span class="rv-none">Not entered</span>';
     const inc = t.incN ? card('Income', esc(money(t.inc)), partial ? against(prevHas.inc, p.inc) : change(t.inc, { has: prevHas.inc, v: p.inc }, name) || 'What you made this month', '', '', incMore)
@@ -309,7 +315,7 @@
       const value = t.profit < 0 ? `${esc(signed(t.profit))}<span class="rv-card-unit"> loss</span>` : esc(money(t.profit));
       prof = card('Profit', value, ch ? `${mWords}, ${ch}` : mWords, t.profit < 0 ? ' rv-neg' : '', t.profit < 0 ? ' <span class="chip bad plain">Loss</span>' : '', profMore);
     }
-    return `<div class="rv-cards" role="group" aria-label="${esc(monthName(ym))} totals">${inc}${cost}${prof}</div>`;
+    return `<div class="rv-cards${anim() ? ' rv-anim' : ''}" role="group" aria-label="${esc(monthName(ym))} totals">${inc}${cost}${prof}</div>`;
   }
 
   /** Tax to put aside on a profit (nothing on a loss), in whole cents. @param {number} profit @param {number} pct */
@@ -321,8 +327,9 @@
    * @param {number} v @param {number} goal @param {string} cls
    */
   function goalHtml(v, goal, cls) {
-    const pct = v > 0 ? Math.round((v / goal) * 100) : 0;
-    const words = v >= goal ? `Goal of ${money(goal)} reached${v > goal ? `, ${money(v - goal)} over` : ''}` : `${pct}% of the ${money(goal)} goal, ${money(goal - Math.max(0, v))} to go`;
+    // floor, so 99.6% never reads 100% before the goal is met; "to go" counts from a loss too: -$2,000 against $4,000 is $6,000 to go (R6-1, R6-2)
+    const pct = v > 0 ? Math.min(Math.floor((v / goal) * 100), v >= goal ? 100 : 99) : 0;
+    const words = v >= goal ? `Goal of ${money(goal)} reached${v > goal ? `, ${money(v - goal)} over` : ''}` : `${pct}% of the ${money(goal)} goal, ${money(goal - v)} to go`;
     return `<div class="rv-goal${v >= goal ? ' is-met' : ''}"><span class="rv-goal-bar" aria-hidden="true"><i class="${cls}" style="width:${Math.max(0, Math.min(100, pct))}%"></i></span><span class="rv-goal-t">${esc(words)}</span></div>`;
   }
 
@@ -1135,7 +1142,7 @@
     const dir = diff > 0 ? 'up' : 'down';
     if (prev.v > 0 && cur >= 0) {
       const pct = Math.round((Math.abs(diff) / prev.v) * 100);
-      if (pct >= 1) return { dir, text: `${dir} ${pct}%` };
+      if (pct >= 1 && pct <= MAX_PCT) return { dir, text: `${dir} ${pct}%` };
     }
     return { dir, text: `${dir} ${money(Math.abs(diff))}` };
   }
@@ -1572,7 +1579,7 @@
         </form></section>`;
     }
     const btn = `<button class="btn btn-quiet btn-sm" type="button" id="rv-note-btn" data-rv-note>${d.note ? 'Edit note' : `${c.icon('plus')}Add a note`}</button>`;
-    return `<section class="rv-panel rv-note" aria-labelledby="rv-note-h">${head(btn)}${d.note ? `<p class="rv-note-t">${esc(d.note)}</p>` : `<p class="rv-chart-empty">No note yet. A line about the month helps later, like "slow month, two clients paused".</p>`}</section>`;
+    return `<section class="rv-panel rv-note" aria-labelledby="rv-note-h">${head(btn)}${d.note ? `<p class="rv-note-t">${esc(d.note)}</p>` : '<p class="rv-chart-empty">No note yet. A line about the month helps later.</p>'}</section>`;
   }
   /** The income lines of the month not in yet, each with Mark received. @param {any} d @param {any[]} due */
   function dueCard(d, due) {
@@ -1682,7 +1689,7 @@
     const row = (/** @type {string} */ m) => d.series.find((/** @type {any} */ x) => x.ym === m);
     const st = d.settings || { incGoal: null, profGoal: null, tax: null };
     const sign = (/** @type {number} */ v) => `${v > 0 ? '+' : '-'}${money(Math.abs(v))}`;
-    const pctMove = (/** @type {number} */ a, /** @type {number} */ b) => (b > 0 ? Math.round((Math.abs(a - b) / b) * 100) : 0);
+    const pctMove = (/** @type {number} */ a, /** @type {number} */ b) => { const v = b > 0 ? Math.round((Math.abs(a - b) / b) * 100) : 0; return v <= MAX_PCT ? v : 0; };
     if (!cur.has) return out;
     if (partial) {
       const day = dayOfMonth();
@@ -1771,7 +1778,7 @@
     const tiles = F.months.map((m) => `<div class="rv-tile"><p class="rv-tile-k">${esc(monthName(m.ym))}</p><p class="rv-tile-v${m.profit < 0 ? ' rv-neg' : ''}">${esc(signed(Math.round(m.profit / 100) * 100))}</p><p class="rv-tile-s">About ${esc(dollars(m.inc || 0))} in, ${esc(dollars(m.cost))} out${F.tax && m.tax > 0 ? `, put aside ${esc(dollars(m.tax))}` : ''}</p></div>`).join('');
     const sum = F.months.reduce((x, m) => x + m.profit, 0);
     const table = tableOf('Next 3 months, an estimate', ['Month', 'Income', 'Costs', 'Profit', ...(F.tax ? ['Put aside for tax'] : [])], F.months.map((m) => [esc(monthName(m.ym)), esc(dollars(m.inc || 0)), esc(dollars(m.cost)), m.profit < 0 ? `<span class="rv-neg">${esc(signed(m.profit, true))}</span>` : esc(dollars(m.profit)), ...(F.tax ? [esc(dollars(m.tax))] : [])]));
-    const body = `<div class="rv-fc-total"><span class="chip warn plain">Estimate</span><span>About <strong class="${sum < 0 ? 'rv-neg' : ''}">${esc(signed(Math.round(sum / 100) * 100, true))}</strong> profit over the three months</span></div>
+    const body = `<div class="rv-fc-total"><span class="rv-tag">Estimate</span><span>About <strong class="${sum < 0 ? 'rv-neg' : ''}">${esc(signed(Math.round(sum / 100) * 100, true))}</strong> profit over the three months</span></div>
       <div class="rv-tiles rv-fc">${tiles}</div>
       <p class="rv-chart-note">Not a promise. Income is your average for ${esc(fromWords)}. Costs are the ones that repeat monthly in ${esc(monthName(F.costFrom || d.ym))}; one-off costs are not in it.</p>${table}`;
     return { sub: `${esc(monthName(F.months[0].ym))} to ${esc(monthName(F.months[2].ym))}, an estimate`, body };
@@ -1820,8 +1827,8 @@
 
   /** @param {Map<string, any>} map @param {string} y @param {number} upto months 1 to upto */
   function yearSum(map, y, upto) {
-    const t = { inc: 0, cost: 0, has: false };
-    for (let i = 1; i <= upto; i += 1) { const x = map.get(`${y}-${String(i).padStart(2, '0')}`); if (x && (x.incN || x.costN)) { t.inc += x.inc; t.cost += x.cost; t.has = true; } }
+    const t = { inc: 0, cost: 0, due: 0, has: false };
+    for (let i = 1; i <= upto; i += 1) { const x = map.get(`${y}-${String(i).padStart(2, '0')}`); if (x && (x.incN || x.costN)) { t.inc += x.inc; t.cost += x.cost; t.due += x.due; t.has = true; } }
     return { ...t, profit: t.inc - t.cost };
   }
   /** The Years view from every line. */
@@ -1843,13 +1850,13 @@
       const was = yearSum(map, String(Number(y) - 1), upto);
       const mg = margin(t.profit, t.inc);
       return [`${esc(y)}${y === cy ? ' so far' : ''}`, cell(t.inc, t.has, false), cell(t.cost, t.has, false), cell(t.profit, t.has, true), mg === null ? DASH : `${mg}%`,
-        ...(st.tax ? [t.profit > 0 ? esc(dollars(taxOf(t.profit, st.tax))) : DASH] : []), moveHtml(move(t.profit, { has: was.has, v: was.profit }))];
+        ...(st.tax ? [t.profit - t.due > 0 ? esc(dollars(taxOf(t.profit - t.due, st.tax))) : DASH] : []), moveHtml(move(t.profit, { has: was.has, v: was.profit }))];
     });
     const heads = ['Year', 'Income', 'Costs', 'Profit', 'Margin', ...(st.tax ? [`Tax to put aside (${pctText(st.tax)})`] : []), 'Profit against the year before'];
     const table1 = `<div class="table-wrap" tabindex="0" role="region" aria-label="Year by year, scrolls sideways"><table class="grid rv-ytable"><caption class="sr-only">Each year's income, costs and profit</caption><thead><tr>${heads.map((h, i) => `<th scope="col"${i ? ' class="n"' : ''}>${esc(h)}</th>`).join('')}</tr></thead>
       <tbody>${rows.map((r) => `<tr>${r.map((x, i) => (i ? `<td class="n">${x}</td>` : `<th scope="row">${x}</th>`)).join('')}</tr>`).join('')}</tbody></table></div>`;
     const yearsCard = `<section class="rv-panel" aria-labelledby="rv-y1-h"><div class="rv-chart-head"><div><h3 id="rv-y1-h">Year by year</h3><p>Every year with entries, newest first</p></div><button class="btn btn-quiet btn-sm" type="button" data-rv-exp-go="all">${c.icon('page')}Download everything</button></div>
-      ${table1}<p class="rv-chart-note">${esc(cy)} so far is compared with the same months of ${esc(String(Number(cy) - 1))}.${st.tax ? ` Tax to put aside is ${esc(pctText(st.tax))} of a year's profit.` : ' Set a tax percent in Goals and tax to see what to put aside.'}</p></section>`;
+      ${table1}<p class="rv-chart-note">${esc(cy)} so far is compared with the same months of ${esc(String(Number(cy) - 1))}.${st.tax ? ` Tax to put aside is ${esc(pctText(st.tax))} of a year's profit on money received; income still to come counts once it is marked received.` : ' Set a tax percent in Goals and tax to see what to put aside.'}</p></section>`;
     // 2. one year month by month, against the year before
     const Y = years.includes(state.year) ? state.year : years.includes(state.ym.slice(0, 4)) ? state.ym.slice(0, 4) : years[0];
     const LY = String(Number(Y) - 1);
@@ -1903,7 +1910,7 @@
   /** One CSV cell: quoted when it holds a comma, quote or line break; a leading = + - @ is made plain text so a spreadsheet never runs it. @param {any} v */
   function csvCell(v) {
     let t = String(v === null || v === undefined ? '' : v);
-    if (/^[=+\-@\t\r]/.test(t)) t = `'${t}`;
+    if (/^[=+\-@\t\r]/.test(t) && !/^-\d+\.\d\d$/.test(t)) t = `'${t}`;   // a plain negative amount (the Profit total) stays a number
     return /[",\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
   }
   /**
@@ -1920,11 +1927,15 @@
       for (const x of L.notes.filter((/** @type {any} */ i) => i.ym === ym)) rows.push([ym, 'Note', '', x.note, '', '']);
     }
     const head = ['Month', 'Type', 'Kind', 'Name', 'Amount (USD)', 'Status'];
-    return { text: [head, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n', n: rows.length };
+    // the totals the page shows, after an empty row, so a spreadsheet matches the page without a formula (R6-5, 15 Oct)
+    const inc = sumOf(L.income.filter(inR), 'amount'), cost = sumOf(L.costs.filter(inR), 'amount');
+    const span = months.length ? (months[0] === months[months.length - 1] ? months[0] : `${months[0]} to ${months[months.length - 1]}`) : '';
+    const tot = months.length ? [[], [span, 'Total income', '', '', (inc / 100).toFixed(2), ''], [span, 'Total costs', '', '', (cost / 100).toFixed(2), ''], [span, 'Profit', '', '', ((inc - cost) / 100).toFixed(2), '']] : [];
+    return { text: [head, ...rows, ...tot].map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n', n: rows.length };
   }
   /** Hands the browser a file to save. @param {string} name @param {string} text */
   function download(name, text) {
-    const url = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }));
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + text], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;
     a.download = name;
@@ -2037,11 +2048,29 @@
     try { await loadLines(); } catch (x) { if (r) r.innerHTML = `<p class="field-error">Lines did not load. ${esc(say(x))}</p>`; return; }
     paintFind();
   }
-  /** Text with the part that matched marked. @param {string} text @param {string} q */
+  /**
+   * Text folded for Find, one character at a time, with where each folded character came from in the text: a capital dotted I folds to
+   * two characters, so an index in the folded copy is not an index in the text (R6-7, 15 Oct). @param {string} text
+   */
+  function fold(text) {
+    let low = '';
+    /** @type {number[]} */ const from = [];
+    /** @type {number[]} */ const to = [];
+    let i = 0;
+    for (const ch of text) { const l = ch.toLowerCase(); for (let k = 0; k < l.length; k += 1) { from.push(i); to.push(i + ch.length); } low += l; i += ch.length; }
+    return { low, from, to };
+  }
+  /** Text with every part that matched marked. @param {string} text @param {string} q the folded query */
   function marked(text, q) {
-    const i = text.toLowerCase().indexOf(q);
-    if (i < 0 || !q) return esc(text);
-    return `${esc(text.slice(0, i))}<mark>${esc(text.slice(i, i + q.length))}</mark>${esc(text.slice(i + q.length))}`;
+    if (!q) return esc(text);
+    const f = fold(text);
+    let out = '', last = 0, at = f.low.indexOf(q);
+    while (at >= 0) {
+      const a = f.from[at], b = f.to[at + q.length - 1];
+      if (a >= last) { out += `${esc(text.slice(last, a))}<mark>${esc(text.slice(a, b))}</mark>`; last = b; }
+      at = f.low.indexOf(q, at + q.length);
+    }
+    return out + esc(text.slice(last));
   }
   function paintFind() {
     const inp = /** @type {HTMLInputElement|null} */ (document.getElementById('rv-find-q'));
@@ -2049,11 +2078,11 @@
     const sum = document.getElementById('rv-find-sum');
     const L = state.lines.data;
     if (!inp || !r || !sum || !L) return;
-    const q = inp.value.trim().toLowerCase();
+    const q = fold(inp.value.trim()).low;
     if (q.length < 2) { sum.textContent = ''; r.innerHTML = '<p class="rv-chart-empty">Type two letters or more of a name, like Canva, Sam or a client.</p>'; return; }
     const nameOf = (/** @type {any} */ x) => (x.kind === 'client' ? clientName(x.tenant_id, x.label) : x.label);
-    const costs = L.costs.filter((/** @type {any} */ x) => x.label.toLowerCase().includes(q)).reverse();
-    const inc = L.income.filter((/** @type {any} */ x) => nameOf(x).toLowerCase().includes(q)).reverse();
+    const costs = L.costs.filter((/** @type {any} */ x) => fold(x.label).low.includes(q)).reverse();
+    const inc = L.income.filter((/** @type {any} */ x) => fold(nameOf(x)).low.includes(q)).reverse();
     const span = (/** @type {any[]} */ a) => { const ms = a.map((x) => x.ym).sort(); return ms.length ? (ms[0] === ms[ms.length - 1] ? monthName(ms[0], 'short') : `${monthName(ms[0], 'short')} to ${monthName(ms[ms.length - 1], 'short')}`) : ''; };
     const words = (/** @type {any[]} */ a, /** @type {string} */ what) => `${a.length} ${what} ${a.length === 1 ? 'line' : 'lines'}, ${money(sumOf(a, 'amount'))} in all, ${span(a)}`;
     const MAX = 40;
@@ -2138,16 +2167,27 @@
 
   /** Goals and tax: an income goal and a profit goal for every month, and the tax set-aside percent. */
   /** @param {HTMLElement|null} [opener] */
-  function openGoals(opener) {
+  async function openGoals(opener) {
     const body = document.getElementById('rv-goals-body');
-    if (!body) return;
-    const d = state.cache[state.ym];
-    const st = d && d.settings ? d.settings : { incGoal: null, profGoal: null, tax: null };
+    const gf = document.getElementById('rv-goals-f');
+    if (!body || !gf) return;
+    // The boxes start from the saved goals. Without them, Save would send empty boxes and clear the goals, so the month is read first,
+    // and if that fails the dialog says so and Save refuses (round 6, 15 Oct).
+    delete gf.dataset.ready;
+    let d = state.cache[state.ym] || (state.lines.data ? { settings: state.lines.data.settings } : null);
+    if (!d || !d.settings) { try { d = await readMonth(state.ym); } catch (x) { d = null; } }
+    if (!d || !d.settings) {
+      body.innerHTML = '<p class="field-error" id="rv-g-e" role="alert">Your goals did not load, so they cannot be changed right now. Close this and try again.</p>';
+      openDlg('rv-goals', '', opener);
+      return;
+    }
+    gf.dataset.ready = '1';
+    const st = d.settings;
     const money1 = (/** @type {string} */ id, /** @type {string} */ name, /** @type {string} */ label, /** @type {string} */ hint, /** @type {number|null} */ v) => `<div class="field"><label for="${id}">${label}</label><span class="rv-money"><span class="rv-cur" aria-hidden="true">$</span><input id="${id}" name="${name}" type="text" inputmode="decimal" autocomplete="off" placeholder="No goal" value="${esc(field(v))}" aria-describedby="${id}-h"></span><p class="hint" id="${id}-h">${hint}</p></div>`;
     body.innerHTML = `<div class="rv-qa-grid">
         ${money1('rv-g-inc', 'inc', 'Income goal a month', 'Shows as a bar on the Income card.', st.incGoal)}
         ${money1('rv-g-prof', 'prof', 'Profit goal a month', 'Shows as a bar on the Profit card.', st.profGoal)}
-        <div class="field rv-qa-wide"><label for="rv-g-tax">Put aside for tax</label><span class="rv-pct"><input id="rv-g-tax" name="tax" type="text" inputmode="decimal" autocomplete="off" placeholder="None" value="${st.tax ? esc(String(st.tax)) : ''}" aria-describedby="rv-g-tax-h"><span class="rv-pct-u" aria-hidden="true">% of profit</span></span><p class="hint" id="rv-g-tax-h">For example 25. The Profit card then says how much to put aside, for the month and the year so far. Ask your accountant for the right number.</p></div>
+        <div class="field rv-qa-wide"><label for="rv-g-tax">Put aside for tax</label><span class="rv-pct"><input id="rv-g-tax" name="tax" type="text" inputmode="decimal" autocomplete="off" placeholder="None" value="${st.tax ? esc(String(st.tax)) : ''}" aria-describedby="rv-g-tax-h"><span class="rv-pct-u" aria-hidden="true">% of profit</span></span><p class="hint" id="rv-g-tax-h">For example 25. The Profit card then says how much to put aside on money received, for the month and the year. Ask your accountant for the right number.</p></div>
       </div><p class="field-error" id="rv-g-e" role="alert" hidden></p>`;
     openDlg('rv-goals', '#rv-g-inc', opener);
   }
@@ -2156,6 +2196,7 @@
     const c = C();
     const q = (/** @type {string} */ n) => /** @type {HTMLInputElement} */ (f.elements.namedItem(n));
     const err = /** @type {HTMLElement} */ (document.getElementById('rv-g-e'));
+    if (f.dataset.ready !== '1' || !q('inc') || !q('prof') || !q('tax')) { if (err) { err.textContent = 'Your goals did not load, so nothing was saved. Close this and try again.'; err.hidden = false; } return; }
     const bad = (/** @type {HTMLElement} */ el, /** @type {string} */ text) => { err.textContent = text; err.hidden = false; el.setAttribute('aria-invalid', 'true'); el.focus(); };
     /** @type {(number|null)[]} */ const goals = [];
     for (const [n, what] of [['inc', 'The income goal'], ['prof', 'The profit goal']]) {
@@ -2279,7 +2320,7 @@
     if (opener && opener.hasAttribute('data-rv-qa')) { openQuickAdd(opener); return; }
     if (opener && opener.hasAttribute('data-rv-find')) { void openFind(opener); return; }
     if (opener && opener.hasAttribute('data-rv-exp')) { openDlg('rv-exp', '', opener); return; }
-    if (opener && opener.hasAttribute('data-rv-goals')) { openGoals(opener); return; }
+    if (opener && opener.hasAttribute('data-rv-goals')) { void openGoals(opener); return; }
     if (t.closest('[data-rv-dlg-close]')) { closeDlg(/** @type {HTMLDialogElement|null} */ (t.closest('dialog'))); return; }
     if (t instanceof HTMLDialogElement && t.classList.contains('rv-dlg')) { closeDlg(t); return; }   // a click on the backdrop
     const go = /** @type {HTMLButtonElement|null} */ (t.closest('[data-rv-exp-go]'));

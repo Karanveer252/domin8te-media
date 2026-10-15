@@ -1807,7 +1807,7 @@
 /* stub/80-bot.js */
 // LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). Bot chat's stand-ins (2026-10-14, more on 2026-10-15):
 // sample rows in bot_outputs, bot_output_versions and bot_note_templates, and the database functions with the same refusals as
-// portal/supabase/migrations/20261014040000_bot_outputs.sql and 20261015010000_bot_plus.sql.
+// portal/supabase/migrations/20261014040000_bot_outputs.sql, 20261015010000_bot_plus.sql and 20261015011000_bot_decide_expiry.sql.
 (function () {
   'use strict';
   const S = /** @type {any} */ (window).D8STUB;
@@ -1880,6 +1880,7 @@
   S.rpcs.bot_output_decide = (/** @type {any} */ a) => {
     const r = find(a.p_id);
     if (a.p_action === 'approve') {
+      if (new Date(r.expires_at).getTime() < Date.now()) throw err('22023', 'expired');   // 20261015011000 (critic R7-5)
       if (a.p_text != null && blank(a.p_text)) throw err('22023', 'empty-text');
       Object.assign(r, { status: 'approved', final_text: blank(a.p_text) ? r.working_text || r.draft : String(a.p_text).trim() }, who());
       keepVersion(r);
@@ -5366,28 +5367,59 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs
 /* ==== Bot chat plus (2026-10-15): filters, pick many, stars, snooze, move, saved reasons, edit history, numbers ====
  * Same tokens, glass pills (.seg), buttons and panels as the rest of the console; the selected pill keeps the solid ink look. */
 
-/* The search box and the bot, type and date choices */
-.bot-toolbar { gap: 8px 10px; margin-bottom: 12px; }
+/* The order on the page (design pass, 2026-10-15): the status pills first (they are the main question: waiting, snoozed, decided),
+ * then the quieter search and dropdowns, then the client pills, smaller than the status ones, right above the list. The toolbar
+ * is drawn once and the results after it, so the order is set here: the results box lays its parts out as if they were its
+ * parent's, and each part names its place. */
+#bot-box { display: grid; gap: 12px; align-content: start; }
+#bot-results { display: contents; }
+#bot-results > * { order: 3; }
+#bot-results > .bot-status { order: 1; }
+.bot-toolbar { order: 2; }
+#bot-results > .bot-bulk, #bot-results > .bot-form, #bot-results > .bot-list, #bot-results > .empty, #bot-results > .bot-showing { order: 4; }
+#bot-box > .bot-card-top, #bot-box > .crumb { order: 0; }
+#bot-box > .notice, #bot-box > .bot-card { order: 1; }
+/* The search box and the bot, type and date choices: one quiet row; under 1100px the search takes its own row and the choices share the next */
+.bot-toolbar { gap: 8px 10px; margin-bottom: 0; }
 .bot-toolbar input[type="search"] { flex: 1 1 240px; width: auto; max-width: 360px; }
 .bot-toolbar select { flex: 0 1 170px; width: auto; min-width: 0; max-width: 100%; }
 .bot-starred-only { gap: 6px; }
 .bot-starred-only[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
-.bot-status { margin-bottom: 10px; }
+.bot-status { margin-bottom: 0; }
 .bot-status, .bot-filter { display: flex; flex-wrap: wrap; max-width: 100%; }
-.bot-showing { margin: 0 0 10px; }
+.bot-filter { margin-bottom: 0; }
+.bot-filter button { min-height: 34px; padding: 5px 13px; font-size: 13.5px; }
+.bot-filter .count { font-size: 11px; }
+.bot-showing { margin: -4px 0 0; }
 /* The client dropdown stands in for the client pills on a phone only. */
 .bot-client-pick { display: none; }
+@media (max-width: 1100px) {
+  .bot-toolbar input[type="search"] { flex-basis: 100%; max-width: none; }
+  .bot-toolbar select { flex: 1 1 120px; }
+}
 
-/* Pick many: the bar above the list */
-.bot-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; padding: 6px 12px; border: 1px solid transparent; border-radius: 12px; }
-.bot-bulk.is-on { border-color: var(--line-2); background: var(--surface); box-shadow: var(--shadow); }
+/* Pick many: the bar above the list. With something picked it turns into a panel that stays in view while the list scrolls. */
+.bot-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 -2px; padding: 6px 12px; border: 1px solid transparent; border-radius: 12px; }
+.bot-bulk.is-on { position: sticky; top: 8px; z-index: 5; border-color: var(--line-2); background: var(--surface); box-shadow: var(--shadow); }
+@media (max-width: 900px) { .bot-bulk.is-on { top: 64px; } }
 .bot-pickall { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer; }
 .bot-bulk-btns { display: inline-flex; flex-wrap: wrap; gap: 8px; }
 .bot-bulk + .bot-form { margin: 0 0 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
 .bot-pickall input, .bot-pick input, .bot-keep input { width: 18px; height: 18px; margin: 0; accent-color: var(--ink); cursor: pointer; }
 
-/* A row: pick box, the queue row, a star */
+/* A row: pick box, the queue row, a star. The status chip takes only its own width here (the queue's 160px column left the draft
+ * one word at 1024px); between 761 and 1200px the row is two lines, the draft on its own line, so it still reads at a glance. */
 .bot-list > li.bot-li { display: grid; grid-template-columns: 34px minmax(0, 1fr) 40px; align-items: center; gap: 6px; }
+.bot-list .q-row { grid-template-columns: minmax(140px, 200px) auto minmax(0, 1fr) auto; }
+.bot-list .q-row.no-client { grid-template-columns: auto minmax(0, 1fr) auto; }
+@media (min-width: 761px) and (max-width: 1200px) {
+  .bot-list .q-row { grid-template-columns: minmax(0, max-content) auto minmax(0, 1fr); gap: 6px 12px; }
+  .bot-list .q-row.no-client { grid-template-columns: auto minmax(0, 1fr); }
+  .bot-list .q-row .text { grid-column: 1 / -1; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .bot-list .q-row .when { grid-column: 3; grid-row: 1; justify-self: end; }
+  .bot-list .q-row.no-client .when { grid-column: 2; }
+}
+@media (max-width: 760px) { .bot-list .q-row, .bot-list .q-row.no-client { grid-template-columns: minmax(0, 1fr) auto; } }
 .bot-pick { display: flex; justify-content: center; }
 .bot-pick label { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; }
 .bot-pick label:hover { background: var(--hover); }
@@ -5436,12 +5468,17 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs
 .bot-hist > li p { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-2); }
 .bot-hist > li p strong { color: var(--ink); }
 .bot-diff { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
-.bot-diff ins { background: var(--good-bg); color: var(--good); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
-.bot-diff del { background: var(--bad-bg); color: var(--bad); text-decoration: line-through; }
+:is(.bot-diff, .bot-diff-key) ins { padding: 0 2px; border-radius: 3px; background: var(--good-bg); color: var(--good); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+:is(.bot-diff, .bot-diff-key) del { padding: 0 2px; border-radius: 3px; background: var(--bad-bg); color: var(--bad); text-decoration: line-through; }
+.bot-diff { line-height: 1.6; }
+/* A space or line break that changed on its own: drawn as a mark, so it can be seen (R7-7, 15 Oct) */
+.bot-diff :is(ins, del).bot-ws { padding: 0 4px; font-weight: 700; }
+.bot-ws-note { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 650; color: var(--ink-2); }
 
 /* The numbers */
 .bot-stats .panel-head { align-items: center; }
-.bot-days { display: flex; flex-wrap: wrap; }
+.bot-days { display: flex; flex-wrap: wrap; max-width: 100%; }
+.bot-days button { flex: 1 1 auto; }
 .bot-stats-table table.grid td, .bot-stats-table table.grid th { white-space: nowrap; }
 .bot-stats-table .bot-total th, .bot-stats-table .bot-total td { font-weight: 700; border-top: 2px solid var(--line-2); }
 .bot-stats .table-wrap + .meta { margin-top: 12px; }
@@ -5463,8 +5500,9 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] .bot-tab-
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] :is(main > .page-head p, main > .page-head .meta) { color: rgba(246, 243, 238, 0.9); }
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] .bot-showing .linkish { color: #FFFFFF; }
 
-/* Phones: every control at least 44px */
+/* Phones: every control at least 44px; the head's "Updated" line sits above its buttons instead of pushing one to a third line */
 @media (max-width: 600px) {
+  html[data-page="bot"] .page-head .updated > .meta { flex-basis: 100%; }
   .bot-list > li.bot-li { grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 4px; }
   .bot-pick label { width: 44px; height: 44px; }
   .bot-pickall, .bot-keep { min-height: 44px; }
@@ -5899,14 +5937,23 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
 .rv-bar .rv-views { margin: 0; }
 .rv-tools { display: flex; flex-wrap: wrap; gap: 8px; }
 .rv-tools .btn .ic { margin-right: 6px; }
-.rv-card-x { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 2px; color: var(--ink-2); font-size: 13.5px; font-weight: 600; line-height: 1.45; font-variant-numeric: proportional-nums; }
-.rv-card-x .chip { font-size: 12px; }
-.rv-goal { display: grid; gap: 5px; margin-top: 6px; }
-.rv-goal-bar { display: block; height: 6px; overflow: hidden; border-radius: 999px; background: var(--rv-track); }
-.rv-goal-bar i { display: block; height: 100%; border-radius: 999px; background: var(--rv-inc); }
+/* The lines under a figure (design pass, 15 Oct): every one in the card's grey at the size of the "so far" line, the money in ink, so
+   the figure stays the loudest thing on the card and the goal, the tax and Still to come read as one quiet column. */
+.rv-card-x { display: block; margin-top: 4px; color: var(--ink-3); font-size: 13.5px; font-weight: 500; line-height: 1.45; font-variant-numeric: proportional-nums; }
+.rv-card-x strong { color: var(--ink); font-weight: 650; }
+.rv-card-xk { margin-right: 6px; color: var(--ink-3); }
+.rv-goal { display: grid; gap: 6px; margin-top: 8px; }
+.rv-goal-bar { display: block; height: 5px; overflow: hidden; border-radius: 999px; background: var(--rv-track); }
+.rv-goal-bar i { display: block; height: 100%; border-radius: 999px; background: var(--rv-inc); transform-origin: 0 50%; }
 .rv-goal-bar i.rv-f-prof { background: var(--rv-prof); }
-.rv-goal-t { color: var(--ink-3); font-size: 13px; line-height: 1.4; font-variant-numeric: proportional-nums; }
+.rv-goal-t { color: var(--ink-3); font-size: 13.5px; line-height: 1.45; font-variant-numeric: proportional-nums; }
 .rv-goal.is-met .rv-goal-t { color: var(--ink-2); font-weight: 650; }
+/* The goal bar grows as the figure counts up (the same easing and length as the chart bars); not when less motion is asked for. */
+.rv-anim .rv-goal-bar i { animation: rv-goal-in 700ms var(--ease) 120ms both; }
+@keyframes rv-goal-in { from { transform: scaleX(0.001); } }
+@media (prefers-reduced-motion: reduce) { .rv-anim .rv-goal-bar i { animation: none; } }
+/* A quiet tag (Estimate): words in an outline, no colour of its own. */
+.rv-tag { display: inline-flex; align-items: center; padding: 1px 9px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--ink-2); font-size: 12px; font-weight: 650; line-height: 1.5; white-space: nowrap; }
 
 .rv-panel { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 18px 22px 20px; border: 0.67px solid var(--glass-edge); border-radius: var(--r-item); background-color: var(--glass-soft); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); }
 .rv-extras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0 0 16px; }
@@ -5918,6 +5965,12 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
 .rv-due-list { display: grid; margin: 0; padding: 0; list-style: none; }
 .rv-due-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px 14px; padding: 8px 0; }
 .rv-due-list li + li { border-top: 1px solid var(--line); }
+/* In a narrow panel (the two-column row between 1000 and 1100px) the button drops under the name instead of squeezing it to "Ma...". */
+.rv-due { container: rvdue / inline-size; }
+@container rvdue (max-width: 460px) {
+  .rv-due-list li { grid-template-columns: minmax(0, 1fr) auto; }
+  .rv-due-list li .btn { grid-column: 1 / -1; justify-self: start; }
+}
 
 /* Income: the Received switch beside each amount. */
 .rv-inc-amt { grid-template-columns: 150px auto 8.5em; }
@@ -5934,6 +5987,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
 /* Years. */
 .rv-years { display: grid; gap: 16px; }
 .rv-ytable { min-width: 560px; }
+.rv-ytable th[scope="row"] { white-space: nowrap; } /* "2026 so far" on one line in the scrolling table */
 .rv-ytable td.n, .rv-ytable th.n { text-align: right; white-space: nowrap; font-variant-numeric: proportional-nums; }
 .rv-ytable .none { color: var(--ink-3); }
 .rv-ytable tfoot th, .rv-ytable tfoot td { border-top: 1px solid var(--line-2); font-weight: 700; }
@@ -6001,6 +6055,9 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   .rv-find-list li { grid-template-columns: minmax(0, 1fr) auto; }
   .rv-find-m { grid-column: 1 / -1; }
   .rv-year-notes li { grid-template-columns: minmax(0, 1fr); }
+  /* Years on a phone: the Download button goes under the heading instead of squeezing it into a column of words. */
+  .rv-years .rv-chart-head { flex-wrap: wrap; }
+  .rv-years .rv-chart-head > div { flex: 1 1 100%; }
 }
 @media (max-width: 600px) {
   .rv-exp-opt { min-height: 56px; }
@@ -9903,9 +9960,9 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   /** @param {any} r */
   const fromLine = (r) => { const k = botKey(r.source); return k === 'console' ? 'Added in the console' : k === 'other' ? 'From another bot' : `From ${botName(r.source)}`; };
   /** "Thu 16 Oct 09:00" @param {string} iso */
-  const dayTime = (iso) => new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+  const dayTime = (iso) => new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(/,/g, '');
   /** Minutes in plain words. @param {number|null} m */
-  const minutes = (m) => (m == null ? 'None yet' : m < 60 ? `${Math.max(1, Math.round(m))} min` : m < 48 * 60 ? `${Math.round(m / 6) / 10} hours` : `${Math.round(m / 144) / 10} days`);
+  const minutes = (m) => { if (m == null) return 'None yet'; if (m < 60) return `${Math.max(1, Math.round(m))} min`; const h = m < 48 * 60; const n = h ? Math.round(m / 6) / 10 : Math.round(m / 144) / 10; return `${n} ${h ? 'hour' : 'day'}${n === 1 ? '' : 's'}`; };
 
   /** The database's refusals in plain words. @param {any} x */
   function say(x) {
@@ -10040,7 +10097,19 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     const esc = C().esc;
     const d = diff(a, b);
     if (!d) return `${esc(b)}<span class="meta"> (too long to mark the changes here)</span>`;
-    return d.map(([k, t]) => (k === '=' || /^\s+$/.test(t) ? esc(t) : k === '-' ? `<del><span class="sr-only">[taken out: </span>${esc(t)}<span class="sr-only">]</span></del>` : `<ins><span class="sr-only">[added: </span>${esc(t)}<span class="sr-only">]</span></ins>`)).join('');
+    // Spaces and line breaks that changed on their own are drawn as marks (a line break as ↵, a space as ·), so an edit that
+    // only moved line breaks does not look the same as the draft (critic R7-7). An added line break still breaks the line.
+    const ws = (/** @type {string} */ k, /** @type {string} */ t) => {
+      const breaks = (t.match(/\n/g) || []).length;
+      const spaces = t.replace(/[\r\n]/g, '').length;
+      const words = [breaks ? C().plural(breaks, 'line break') : '', spaces ? C().plural(spaces, 'space') : ''].filter(Boolean).join(' and ');
+      const marks = t.replace(/\r/g, '').replace(/[^\n]/g, '·').replace(/\n/g, k === '+' ? '↵\n' : '↵');
+      const tag = k === '+' ? 'ins' : 'del';
+      return `<${tag} class="bot-ws"><span class="sr-only">[${words} ${k === '+' ? 'added' : 'taken out'}]</span><span aria-hidden="true">${esc(marks)}</span></${tag}>`;
+    };
+    const body = d.map(([k, t]) => (k === '=' ? esc(t) : /^\s+$/.test(t) ? ws(k, t) : k === '-' ? `<del><span class="sr-only">[taken out: </span>${esc(t)}<span class="sr-only">]</span></del>` : `<ins><span class="sr-only">[added: </span>${esc(t)}<span class="sr-only">]</span></ins>`)).join('');
+    const only = d.some(([k]) => k !== '=') && d.every(([k, t]) => k === '=' || /^\s+$/.test(t));
+    return only ? `<span class="bot-ws-note">Only spaces or line breaks changed.</span>${body}` : body;
   }
 
   /* ---- drawing: the list --------------------------------------------------------------------------------------------------------- */
@@ -10150,7 +10219,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     const np = state.picked.size;
     const all = can.length > 0 && np === can.length;
     const pickBar = can.length ? `<div class="bot-bulk${np ? ' is-on' : ''}" role="group" aria-label="Pick many">
-        <label class="bot-pickall"><input type="checkbox" data-bot-pickall${all ? ' checked' : ''}> ${np ? `${np} picked` : `Pick all ${can.length} that can be decided`}</label>
+        <label class="bot-pickall"><input type="checkbox" data-bot-pickall${all ? ' checked' : ''}> ${np ? `${np} picked` : `Pick all ${can.length}`}</label>
         ${np ? `<span class="bot-bulk-btns"><button class="btn btn-sm" type="button" data-bot-bulk="approve">${C0.icon('check')}Approve ${np}</button><button class="btn btn-quiet btn-sm" type="button" data-bot-bulk="reject">${C0.icon('x')}Reject ${np}</button><button class="btn btn-quiet btn-sm" type="button" data-bot-bulk="clear">Clear</button></span>` : ''}
       </div>
       ${np && state.bulk === 'reject' ? noteForm('bot-bulk-reject', 'reject', `Why these ${np} are rejected (kept with each one)`, 'For example: wrong client, ask the bot again.', `Confirm reject ${np}`, ' btn-danger', '') : ''}` : '';
@@ -10230,11 +10299,19 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     if (!vs.length && r.working_text && r.working_text !== r.draft) vs.push({ kind: 'edit', body: r.working_text, by_name: '', at: '' });
     if (!vs.some((x) => x.kind === 'approved') && statusOf(r) === 'approved' && r.final_text && r.final_text !== r.draft) vs.push({ kind: 'approved', body: r.final_text, by_name: r.decided_by_name, at: r.decided_at });
     if (!vs.length) return '';
+    // Approving a saved edit as it was keeps the same text twice (the edit, then the approved text): show it once,
+    // as "Approved as saved", and count it once (critic R7-4).
+    /** @type {any[]} */ const one = [];
+    for (const x of vs) {
+      const last = one[one.length - 1];
+      if (x.kind === 'approved' && last && last.kind === 'edit' && last.body === x.body) one[one.length - 1] = { ...x, asSaved: true };
+      else one.push(x);
+    }
     const item = (/** @type {string} */ title, /** @type {string} */ who, /** @type {string} */ at, /** @type {string} */ body) => `<li><p><strong>${title}</strong>${who ? ` · ${esc(who)}` : ''}${at ? ` · <time datetime="${esc(at)}">${esc(C0.when(at))}</time>` : ''}</p><div class="bot-diff">${body}</div></li>`;
-    const items = vs.slice().reverse().map((x) => item(x.kind === 'approved' ? 'Approved text' : 'Saved edit', x.by_name || '', x.at || '', diffHtml(r.draft, x.body)));
+    const items = one.slice().reverse().map((x) => item(x.kind === 'approved' ? (x.asSaved ? 'Approved as saved' : 'Approved text') : 'Saved edit', x.by_name || '', x.at || '', diffHtml(r.draft, x.body)));
     items.push(item("The bot's draft", botName(r.source), r.created_at, esc(r.draft)));
-    return `<details class="reveal bot-history"><summary>Edit history · ${C0.plural(vs.length + 1, 'version')}</summary>
-        <p class="meta">Each one is compared with the bot's draft: added words are underlined, words taken out are struck through.</p>
+    return `<details class="reveal bot-history"><summary>Edit history · ${C0.plural(one.length + 1, 'version')}</summary>
+        <p class="meta bot-diff-key">Each one against the bot's draft: <ins>added</ins> and <del>taken out</del>.</p>
         <ol class="bd-hist-list bot-hist">${items.join('')}</ol></details>`;
   }
 
@@ -10243,15 +10320,22 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     const d = new Date();
     const exp = new Date(r.expires_at).getTime();
     const mon = ((8 - d.getDay()) % 7) || 7;
+    // On a Sunday tomorrow is Monday: one button, "Tomorrow (Monday) at 9", not two that do the same (critic R7-3).
+    const sunday = mon === 1;
     /** @type {Array<[string, string, number]>} */
-    const all = [['3h', 'For 3 hours', Date.now() + 3 * HOUR], ['tomorrow', 'Tomorrow at 9', new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 9).getTime()], ['monday', 'Monday at 9', new Date(d.getFullYear(), d.getMonth(), d.getDate() + mon, 9).getTime()]];
+    const all = [['3h', 'For 3 hours', Date.now() + 3 * HOUR], ['tomorrow', sunday ? 'Tomorrow (Monday) at 9' : 'Tomorrow at 9', new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 9).getTime()]];
+    if (!sunday) all.push(['monday', 'Monday at 9', new Date(d.getFullYear(), d.getMonth(), d.getDate() + mon, 9).getTime()]);
     return all.filter((x) => x[2] <= exp);
   }
 
+  /** Which card was drawn last, and when it first showed: the "a" key waits a moment on a new card (critic R7-1). */
+  let cardId = '';
+  let cardAt = 0;
   /** The approval card. @param {any} r @param {string} [inTab] the client's id when it is drawn inside their Bot tab */
   function card(r, inTab) {
     const C0 = C();
     const { esc, icon } = C0;
+    if (cardId !== r.id) { cardId = r.id; cardAt = Date.now(); }
     const st = statusOf(r);
     const open = st === 'pending' && state.modeFor === r.id ? state.mode : '';
     const t = C0.tenant(r.tenant_id);
@@ -10370,20 +10454,28 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       <section class="panel bot-stats" aria-labelledby="bot-stats-h"><div class="panel-head"><h2 id="bot-stats-h">Each bot</h2>${seg}</div><div id="bot-stats-box" aria-busy="true"><p class="meta">Counting.</p></div></section>`;
     const box = /** @type {HTMLElement} */ (document.getElementById('bot-stats-box'));
     const days = state.days;
-    let list;
-    try { const data = await call('bot_output_stats', { p_days: days }); list = Array.isArray(data) ? data : []; }
-    catch (x) { list = statsFromRows(days); }
-    if (!box.isConnected || state.days !== days) return;
-    box.innerHTML = statsTable(list);
-    box.removeAttribute('aria-busy');
+    const ask = ++statsAsk;
+    // The day buttons work at once, even while a count is still on its way: a newer press wins and the older answer is
+    // dropped when it comes back (critic R7-6).
     const panel = /** @type {HTMLElement} */ (main.querySelector('.bot-stats'));
     panel.onclick = (e) => {
       const b = /** @type {HTMLElement|null} */ (/** @type {HTMLElement} */ (e.target).closest('[data-bot-days]'));
       if (!b) return;
       state.days = Number(b.getAttribute('data-bot-days')) || 30;
-      statsPage().then(() => { const f = /** @type {HTMLElement|null} */ (document.querySelector(`[data-bot-days="${state.days}"]`)); if (f) f.focus(); });
+      const p = statsPage();
+      const f = /** @type {HTMLElement|null} */ (document.querySelector(`[data-bot-days="${state.days}"]`));
+      if (f) f.focus();
+      p.then(() => { const g = /** @type {HTMLElement|null} */ (document.querySelector(`[data-bot-days="${state.days}"]`)); if (g && document.activeElement === document.body) g.focus(); });
     };
+    let list;
+    try { const data = await call('bot_output_stats', { p_days: days }); list = Array.isArray(data) ? data : []; }
+    catch (x) { list = statsFromRows(days); }
+    if (ask !== statsAsk || !box.isConnected || state.days !== days) return;
+    box.innerHTML = statsTable(list);
+    box.removeAttribute('aria-busy');
   }
+  /** Counts each request for the numbers, so only the newest one is drawn. */
+  let statsAsk = 0;
 
   /* ---- what clicks and forms do ------------------------------------------------------------------------------------------------- */
 
@@ -10395,11 +10487,14 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
 
   /** The last place drawn, so a quiet reload can draw it again. @type {(() => void)|null} */
   let lastAgain = null;
+  /** The data as it was when the place was last drawn, so the poll sees what changed since (a lapsed snooze too). */
+  let drawnSig = '';
 
   /** Clicks, changes and forms of a list or a card, wherever it is drawn. @param {HTMLElement} box @param {() => void} again draws the same place afresh @param {string} [inTab] */
   function wire(box, again, inTab) {
     const C0 = C();
     lastAgain = again;
+    drawnSig = sig();
     const redrawResults = () => {
       const res = document.getElementById('bot-results');
       if (res) { res.innerHTML = results(inTab); wireForms(box, again, inTab); mixed(); } else again();
@@ -10670,7 +10765,8 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     }
     const n = ids.length;
     const edited = ids.filter((id) => { const r = rows.find((x) => x.id === id); return r && r.working_text; }).length;
-    if (!await C0.ask(`Approve ${C0.plural(n, 'draft')}?`, `${n === 1 ? 'It is' : 'They are'} approved as ${n === 1 ? 'it is' : 'they are'}${edited ? `, with your saved edit on ${edited}` : ''}. Nothing is sent to anyone.`, `Approve ${n}`)) return;
+    // A calm yes (not the red one): approving removes nothing and sends nothing.
+    if (!await C0.ask(`Approve ${C0.plural(n, 'draft')}?`, `${n === 1 ? 'It is' : 'They are'} approved as ${n === 1 ? 'it is' : 'they are'}${edited ? `, with your saved edit on ${edited}` : ''}. Nothing is sent to anyone.`, `Approve ${n}`, { cancel: 'Not now', tone: 'default' })) return;
     const done = C0.busy(b, 'Approving');
     try {
       const k = await decideMany(ids, 'approve');
@@ -10686,7 +10782,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     const ids = Array.from(state.picked);
     if (!ids.length) return;
     const n = ids.length;
-    if (!await C0.ask(`Reject ${C0.plural(n, 'draft')}?`, 'The same note is kept with each one. This cannot be undone.', `Reject ${n}`)) return;
+    if (!await C0.ask(`Reject ${C0.plural(n, 'draft')}?`, 'The same note is kept with each one. This cannot be undone.', `Reject ${n}`, { cancel: 'Keep them' })) return;
     const done = C0.busy(sub, 'Rejecting');
     try {
       const k = await decideMany(ids, 'reject', note);
@@ -10714,13 +10810,48 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     const n = pending().length;
     b.textContent = String(n);
     b.hidden = !n;
+    wakeLater();
+  }
+
+  /* ---- a snooze that runs out (or a draft that expires) while the page is open ------------------------------------------------- */
+  // Waiting is a matter of the clock, not only of the data: at the next snooze end or expiry the sidebar count, a Bot chat place
+  // and Needs you are drawn again, without a reload (critic R7-2).
+  let wakeTimer = 0;
+  function wakeLater() {
+    clearTimeout(wakeTimer);
+    const now = Date.now();
+    let next = Infinity;
+    for (const r of rows) {
+      if (statusOf(r) !== 'pending') continue;
+      for (const at of [r.snoozed_until, r.expires_at]) { const t = at ? new Date(at).getTime() : NaN; if (t > now && t < next) next = t; }
+    }
+    if (next === Infinity) return;
+    wakeTimer = window.setTimeout(woke, Math.min(next - now + 500, 2147483000));
+  }
+  function woke() {
+    const C0 = W.D8C;
+    if (!C0) return;
+    sideBadge();
+    const ae = /** @type {HTMLElement|null} */ (document.activeElement);
+    const typing = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.getAttribute('type') !== 'checkbox';
+    if (C0.dirty.size || state.mode || state.bulk || typing || document.querySelector('dialog[open], #main details[open]')) return;
+    if (inBotPlace() && !/^#\/bot\/stats/.test(location.hash) && lastAgain) {
+      const focusId = ae && (ae.getAttribute('data-bot-row') || ae.getAttribute('data-bot-pick') || ae.getAttribute('data-bot-star'));
+      lastAgain();
+      if (focusId) { const f = /** @type {HTMLElement|null} */ (document.querySelector(`[data-bot-row="${focusId}"], [data-bot-pick="${focusId}"], [data-bot-star="${focusId}"]`)); if (f) f.focus(); }
+    } else if (/^#\/queue|^#?\/?$/.test(location.hash || '') && C0.route) {
+      const y = window.scrollY;
+      C0.route();
+      window.scrollTo(0, y);
+    }
   }
 
   /* ---- new drafts show up by themselves (every 20 seconds while a Bot chat place is open) -------------------------------------- */
 
   let pollTimer = 0;
   const inBotPlace = () => /^#\/bot(\/|$)/.test(location.hash) || /^#\/client\/[^/]+\/bot(\/|$)/.test(location.hash);
-  const sig = () => rows.map((r) => `${r.id}:${r.status}:${r.tenant_id}:${!!r.starred}:${r.snoozed_until || ''}:${(r.notes || []).length}:${r.working_text ? r.working_text.length : 0}`).join('|') + '#' + versions.length + '#' + templates.length;
+  // viewStatus is in it, so a snooze that ran out (or an expiry) is a change too (critic R7-2).
+  const sig = () => rows.map((r) => `${r.id}:${r.status}:${viewStatus(r)}:${r.tenant_id}:${!!r.starred}:${r.snoozed_until || ''}:${(r.notes || []).length}:${r.working_text ? r.working_text.length : 0}`).join('|') + '#' + versions.length + '#' + templates.length;
   function startPoll() {
     if (pollTimer) return;
     pollTimer = window.setInterval(async () => {
@@ -10729,7 +10860,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       const ae = /** @type {HTMLElement|null} */ (document.activeElement);
       if (document.visibilityState !== 'visible' || C0.dirty.size || state.mode || state.bulk || /^#\/bot\/stats/.test(location.hash) || document.querySelector('dialog[open], #main details[open]')) return;
       if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.getAttribute('type') !== 'checkbox') return;
-      const before = sig();
+      const before = drawnSig || sig();
       const was = new Set(pending().map((r) => r.id));
       const hash = location.hash;
       try { await load(); } catch (e) { return; }
@@ -10786,7 +10917,8 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     if (s) s.focus();
   });
   document.addEventListener('keydown', (e) => {
-    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || !inBotPlace() || /^#\/bot\/stats/.test(location.hash)) return;
+    // A held key repeats: it must never approve (or star, pick, open) more than once, unseen (critic R7-1).
+    if (e.repeat || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || !inBotPlace() || /^#\/bot\/stats/.test(location.hash)) return;
     const t = /** @type {HTMLElement} */ (e.target);
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) && t.getAttribute('type') !== 'checkbox') return;
     if (t.isContentEditable || document.querySelector('dialog[open]') || !W.D8C) return;
@@ -10798,7 +10930,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       if (card.querySelector('form.bot-form')) return;   // a field is open: its own keys (Escape) only
       if (k === 'j') click('#main [data-bot-next]');
       else if (k === 'k') click('#main [data-bot-prev]');
-      else if (k === 'a') click('#main [data-bot="approve-next"]');
+      else if (k === 'a') { if (Date.now() - cardAt >= 700) click('#main [data-bot="approve-next"]'); else e.preventDefault(); }   // not in the first moment a card shows
       else if (k === 'e') click('#main [data-bot="edit"]');
       else if (k === 'r') click('#main [data-bot="reject"]');
       else if (k === 's') click('#main [data-bot="star"]');
@@ -14947,6 +15079,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   /** A profit margin in whole percent, or null when nothing came in. @param {number} profit @param {number} income */
   const margin = (profit, income) => (income > 0 ? Math.round((profit / income) * 100) : null);
 
+  /** A move bigger than this many percent reads in dollars instead ("up 198039%" says nothing a person can use; R6-3, 15 Oct). */
+  const MAX_PCT = 999;
   /** How a total moved against the month before, in small words; nothing when that month has no entries. @param {number} cur @param {{has: boolean, v: number}} prev @param {string} name */
   function change(cur, prev, name) {
     if (!prev.has) return '';
@@ -14955,7 +15089,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const dir = diff > 0 ? 'up' : 'down';
     if (prev.v > 0 && cur >= 0) {
       const pct = Math.round((Math.abs(diff) / prev.v) * 100);
-      if (pct >= 1) return `${dir} ${pct}% on ${name}`;
+      if (pct >= 1 && pct <= MAX_PCT) return `${dir} ${pct}% on ${name}`;
     }
     return `${dir} ${money(Math.abs(diff))} on ${name}`;
   }
@@ -15067,14 +15201,18 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const card = (/** @type {string} */ label, /** @type {string} */ value, /** @type {string} */ words, /** @type {string} */ cls, /** @type {string} */ extra, more = '') =>
       `<div class="rv-card"><p class="rv-card-k">${label}${extra || ''}</p><p class="rv-card-v${cls}">${value}</p><p class="rv-card-s">${esc(words)}</p>${more || ''}</div>`;
     const st = d.settings || { incGoal: null, profGoal: null, tax: null };
-    const incMore = (t.incN && st.incGoal ? goalHtml(t.inc, st.incGoal, 'rv-f-inc') : '') + (t.due > 0 ? `<p class="rv-card-x"><span class="chip warn plain">Still to come</span>${esc(money(t.due))}</p>` : '');
+    // The extra lines under a figure share one quiet pattern (design pass, 15 Oct): the words in the card's grey, the money in ink.
+    const incMore = (t.incN && st.incGoal ? goalHtml(t.inc, st.incGoal, 'rv-f-inc') : '') + (t.due > 0 ? `<p class="rv-card-x"><span class="rv-card-xk">Still to come</span><strong>${esc(money(t.due))}</strong></p>` : '');
     let profMore = '';
     if (t.has && st.profGoal) profMore += goalHtml(t.profit, st.profGoal, 'rv-f-prof');
     if (t.has && st.tax) {
+      // One rule for the month and the year (R6-4, 15 Oct): tax is set aside on money received, so income still to come is left out of
+      // both until it is marked received. The year is "so far" only while it runs; a past year's December is its total.
       const Y = yearRows(d);
-      const ytd = Y.now.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + r.inc - r.cost, 0);
-      const put = taxOf(t.profit, st.tax);
-      profMore += `<p class="rv-card-x">${put > 0 ? `Put aside ${esc(dollars(put))} for tax (${esc(pctText(st.tax))})` : 'Nothing to put aside for tax'}${ytd > 0 ? `. ${esc(Y.y)} so far: ${esc(dollars(taxOf(ytd, st.tax)))}` : ''}</p>`;
+      const ytd = Y.now.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + r.inc - r.due - r.cost, 0);
+      const put = taxOf(t.profit - t.due, st.tax);
+      const yName = ym === currentMonth() ? `${Y.y} so far` : Y.n === 12 ? `${Y.y} total` : `${Y.y} to ${monthName(ym, 'mon')}`;
+      profMore += `<p class="rv-card-x">${put > 0 ? `Put aside <strong>${esc(dollars(put))}</strong> for tax (${esc(pctText(st.tax))} of profit on money received)` : 'Nothing to put aside for tax'}${ytd > 0 ? `. ${esc(yName)}: <strong>${esc(dollars(taxOf(ytd, st.tax)))}</strong>` : ''}</p>`;
     }
     const none = '<span class="rv-none">Not entered</span>';
     const inc = t.incN ? card('Income', esc(money(t.inc)), partial ? against(prevHas.inc, p.inc) : change(t.inc, { has: prevHas.inc, v: p.inc }, name) || 'What you made this month', '', '', incMore)
@@ -15090,7 +15228,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const value = t.profit < 0 ? `${esc(signed(t.profit))}<span class="rv-card-unit"> loss</span>` : esc(money(t.profit));
       prof = card('Profit', value, ch ? `${mWords}, ${ch}` : mWords, t.profit < 0 ? ' rv-neg' : '', t.profit < 0 ? ' <span class="chip bad plain">Loss</span>' : '', profMore);
     }
-    return `<div class="rv-cards" role="group" aria-label="${esc(monthName(ym))} totals">${inc}${cost}${prof}</div>`;
+    return `<div class="rv-cards${anim() ? ' rv-anim' : ''}" role="group" aria-label="${esc(monthName(ym))} totals">${inc}${cost}${prof}</div>`;
   }
 
   /** Tax to put aside on a profit (nothing on a loss), in whole cents. @param {number} profit @param {number} pct */
@@ -15102,8 +15240,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
    * @param {number} v @param {number} goal @param {string} cls
    */
   function goalHtml(v, goal, cls) {
-    const pct = v > 0 ? Math.round((v / goal) * 100) : 0;
-    const words = v >= goal ? `Goal of ${money(goal)} reached${v > goal ? `, ${money(v - goal)} over` : ''}` : `${pct}% of the ${money(goal)} goal, ${money(goal - Math.max(0, v))} to go`;
+    // floor, so 99.6% never reads 100% before the goal is met; "to go" counts from a loss too: -$2,000 against $4,000 is $6,000 to go (R6-1, R6-2)
+    const pct = v > 0 ? Math.min(Math.floor((v / goal) * 100), v >= goal ? 100 : 99) : 0;
+    const words = v >= goal ? `Goal of ${money(goal)} reached${v > goal ? `, ${money(v - goal)} over` : ''}` : `${pct}% of the ${money(goal)} goal, ${money(goal - v)} to go`;
     return `<div class="rv-goal${v >= goal ? ' is-met' : ''}"><span class="rv-goal-bar" aria-hidden="true"><i class="${cls}" style="width:${Math.max(0, Math.min(100, pct))}%"></i></span><span class="rv-goal-t">${esc(words)}</span></div>`;
   }
 
@@ -15916,7 +16055,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const dir = diff > 0 ? 'up' : 'down';
     if (prev.v > 0 && cur >= 0) {
       const pct = Math.round((Math.abs(diff) / prev.v) * 100);
-      if (pct >= 1) return { dir, text: `${dir} ${pct}%` };
+      if (pct >= 1 && pct <= MAX_PCT) return { dir, text: `${dir} ${pct}%` };
     }
     return { dir, text: `${dir} ${money(Math.abs(diff))}` };
   }
@@ -16353,7 +16492,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         </form></section>`;
     }
     const btn = `<button class="btn btn-quiet btn-sm" type="button" id="rv-note-btn" data-rv-note>${d.note ? 'Edit note' : `${c.icon('plus')}Add a note`}</button>`;
-    return `<section class="rv-panel rv-note" aria-labelledby="rv-note-h">${head(btn)}${d.note ? `<p class="rv-note-t">${esc(d.note)}</p>` : `<p class="rv-chart-empty">No note yet. A line about the month helps later, like "slow month, two clients paused".</p>`}</section>`;
+    return `<section class="rv-panel rv-note" aria-labelledby="rv-note-h">${head(btn)}${d.note ? `<p class="rv-note-t">${esc(d.note)}</p>` : '<p class="rv-chart-empty">No note yet. A line about the month helps later.</p>'}</section>`;
   }
   /** The income lines of the month not in yet, each with Mark received. @param {any} d @param {any[]} due */
   function dueCard(d, due) {
@@ -16463,7 +16602,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const row = (/** @type {string} */ m) => d.series.find((/** @type {any} */ x) => x.ym === m);
     const st = d.settings || { incGoal: null, profGoal: null, tax: null };
     const sign = (/** @type {number} */ v) => `${v > 0 ? '+' : '-'}${money(Math.abs(v))}`;
-    const pctMove = (/** @type {number} */ a, /** @type {number} */ b) => (b > 0 ? Math.round((Math.abs(a - b) / b) * 100) : 0);
+    const pctMove = (/** @type {number} */ a, /** @type {number} */ b) => { const v = b > 0 ? Math.round((Math.abs(a - b) / b) * 100) : 0; return v <= MAX_PCT ? v : 0; };
     if (!cur.has) return out;
     if (partial) {
       const day = dayOfMonth();
@@ -16552,7 +16691,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const tiles = F.months.map((m) => `<div class="rv-tile"><p class="rv-tile-k">${esc(monthName(m.ym))}</p><p class="rv-tile-v${m.profit < 0 ? ' rv-neg' : ''}">${esc(signed(Math.round(m.profit / 100) * 100))}</p><p class="rv-tile-s">About ${esc(dollars(m.inc || 0))} in, ${esc(dollars(m.cost))} out${F.tax && m.tax > 0 ? `, put aside ${esc(dollars(m.tax))}` : ''}</p></div>`).join('');
     const sum = F.months.reduce((x, m) => x + m.profit, 0);
     const table = tableOf('Next 3 months, an estimate', ['Month', 'Income', 'Costs', 'Profit', ...(F.tax ? ['Put aside for tax'] : [])], F.months.map((m) => [esc(monthName(m.ym)), esc(dollars(m.inc || 0)), esc(dollars(m.cost)), m.profit < 0 ? `<span class="rv-neg">${esc(signed(m.profit, true))}</span>` : esc(dollars(m.profit)), ...(F.tax ? [esc(dollars(m.tax))] : [])]));
-    const body = `<div class="rv-fc-total"><span class="chip warn plain">Estimate</span><span>About <strong class="${sum < 0 ? 'rv-neg' : ''}">${esc(signed(Math.round(sum / 100) * 100, true))}</strong> profit over the three months</span></div>
+    const body = `<div class="rv-fc-total"><span class="rv-tag">Estimate</span><span>About <strong class="${sum < 0 ? 'rv-neg' : ''}">${esc(signed(Math.round(sum / 100) * 100, true))}</strong> profit over the three months</span></div>
       <div class="rv-tiles rv-fc">${tiles}</div>
       <p class="rv-chart-note">Not a promise. Income is your average for ${esc(fromWords)}. Costs are the ones that repeat monthly in ${esc(monthName(F.costFrom || d.ym))}; one-off costs are not in it.</p>${table}`;
     return { sub: `${esc(monthName(F.months[0].ym))} to ${esc(monthName(F.months[2].ym))}, an estimate`, body };
@@ -16601,8 +16740,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
 
   /** @param {Map<string, any>} map @param {string} y @param {number} upto months 1 to upto */
   function yearSum(map, y, upto) {
-    const t = { inc: 0, cost: 0, has: false };
-    for (let i = 1; i <= upto; i += 1) { const x = map.get(`${y}-${String(i).padStart(2, '0')}`); if (x && (x.incN || x.costN)) { t.inc += x.inc; t.cost += x.cost; t.has = true; } }
+    const t = { inc: 0, cost: 0, due: 0, has: false };
+    for (let i = 1; i <= upto; i += 1) { const x = map.get(`${y}-${String(i).padStart(2, '0')}`); if (x && (x.incN || x.costN)) { t.inc += x.inc; t.cost += x.cost; t.due += x.due; t.has = true; } }
     return { ...t, profit: t.inc - t.cost };
   }
   /** The Years view from every line. */
@@ -16624,13 +16763,13 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const was = yearSum(map, String(Number(y) - 1), upto);
       const mg = margin(t.profit, t.inc);
       return [`${esc(y)}${y === cy ? ' so far' : ''}`, cell(t.inc, t.has, false), cell(t.cost, t.has, false), cell(t.profit, t.has, true), mg === null ? DASH : `${mg}%`,
-        ...(st.tax ? [t.profit > 0 ? esc(dollars(taxOf(t.profit, st.tax))) : DASH] : []), moveHtml(move(t.profit, { has: was.has, v: was.profit }))];
+        ...(st.tax ? [t.profit - t.due > 0 ? esc(dollars(taxOf(t.profit - t.due, st.tax))) : DASH] : []), moveHtml(move(t.profit, { has: was.has, v: was.profit }))];
     });
     const heads = ['Year', 'Income', 'Costs', 'Profit', 'Margin', ...(st.tax ? [`Tax to put aside (${pctText(st.tax)})`] : []), 'Profit against the year before'];
     const table1 = `<div class="table-wrap" tabindex="0" role="region" aria-label="Year by year, scrolls sideways"><table class="grid rv-ytable"><caption class="sr-only">Each year's income, costs and profit</caption><thead><tr>${heads.map((h, i) => `<th scope="col"${i ? ' class="n"' : ''}>${esc(h)}</th>`).join('')}</tr></thead>
       <tbody>${rows.map((r) => `<tr>${r.map((x, i) => (i ? `<td class="n">${x}</td>` : `<th scope="row">${x}</th>`)).join('')}</tr>`).join('')}</tbody></table></div>`;
     const yearsCard = `<section class="rv-panel" aria-labelledby="rv-y1-h"><div class="rv-chart-head"><div><h3 id="rv-y1-h">Year by year</h3><p>Every year with entries, newest first</p></div><button class="btn btn-quiet btn-sm" type="button" data-rv-exp-go="all">${c.icon('page')}Download everything</button></div>
-      ${table1}<p class="rv-chart-note">${esc(cy)} so far is compared with the same months of ${esc(String(Number(cy) - 1))}.${st.tax ? ` Tax to put aside is ${esc(pctText(st.tax))} of a year's profit.` : ' Set a tax percent in Goals and tax to see what to put aside.'}</p></section>`;
+      ${table1}<p class="rv-chart-note">${esc(cy)} so far is compared with the same months of ${esc(String(Number(cy) - 1))}.${st.tax ? ` Tax to put aside is ${esc(pctText(st.tax))} of a year's profit on money received; income still to come counts once it is marked received.` : ' Set a tax percent in Goals and tax to see what to put aside.'}</p></section>`;
     // 2. one year month by month, against the year before
     const Y = years.includes(state.year) ? state.year : years.includes(state.ym.slice(0, 4)) ? state.ym.slice(0, 4) : years[0];
     const LY = String(Number(Y) - 1);
@@ -16684,7 +16823,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   /** One CSV cell: quoted when it holds a comma, quote or line break; a leading = + - @ is made plain text so a spreadsheet never runs it. @param {any} v */
   function csvCell(v) {
     let t = String(v === null || v === undefined ? '' : v);
-    if (/^[=+\-@\t\r]/.test(t)) t = `'${t}`;
+    if (/^[=+\-@\t\r]/.test(t) && !/^-\d+\.\d\d$/.test(t)) t = `'${t}`;   // a plain negative amount (the Profit total) stays a number
     return /[",\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
   }
   /**
@@ -16701,11 +16840,15 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       for (const x of L.notes.filter((/** @type {any} */ i) => i.ym === ym)) rows.push([ym, 'Note', '', x.note, '', '']);
     }
     const head = ['Month', 'Type', 'Kind', 'Name', 'Amount (USD)', 'Status'];
-    return { text: [head, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n', n: rows.length };
+    // the totals the page shows, after an empty row, so a spreadsheet matches the page without a formula (R6-5, 15 Oct)
+    const inc = sumOf(L.income.filter(inR), 'amount'), cost = sumOf(L.costs.filter(inR), 'amount');
+    const span = months.length ? (months[0] === months[months.length - 1] ? months[0] : `${months[0]} to ${months[months.length - 1]}`) : '';
+    const tot = months.length ? [[], [span, 'Total income', '', '', (inc / 100).toFixed(2), ''], [span, 'Total costs', '', '', (cost / 100).toFixed(2), ''], [span, 'Profit', '', '', ((inc - cost) / 100).toFixed(2), '']] : [];
+    return { text: [head, ...rows, ...tot].map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n', n: rows.length };
   }
   /** Hands the browser a file to save. @param {string} name @param {string} text */
   function download(name, text) {
-    const url = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }));
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + text], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;
     a.download = name;
@@ -16818,11 +16961,29 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     try { await loadLines(); } catch (x) { if (r) r.innerHTML = `<p class="field-error">Lines did not load. ${esc(say(x))}</p>`; return; }
     paintFind();
   }
-  /** Text with the part that matched marked. @param {string} text @param {string} q */
+  /**
+   * Text folded for Find, one character at a time, with where each folded character came from in the text: a capital dotted I folds to
+   * two characters, so an index in the folded copy is not an index in the text (R6-7, 15 Oct). @param {string} text
+   */
+  function fold(text) {
+    let low = '';
+    /** @type {number[]} */ const from = [];
+    /** @type {number[]} */ const to = [];
+    let i = 0;
+    for (const ch of text) { const l = ch.toLowerCase(); for (let k = 0; k < l.length; k += 1) { from.push(i); to.push(i + ch.length); } low += l; i += ch.length; }
+    return { low, from, to };
+  }
+  /** Text with every part that matched marked. @param {string} text @param {string} q the folded query */
   function marked(text, q) {
-    const i = text.toLowerCase().indexOf(q);
-    if (i < 0 || !q) return esc(text);
-    return `${esc(text.slice(0, i))}<mark>${esc(text.slice(i, i + q.length))}</mark>${esc(text.slice(i + q.length))}`;
+    if (!q) return esc(text);
+    const f = fold(text);
+    let out = '', last = 0, at = f.low.indexOf(q);
+    while (at >= 0) {
+      const a = f.from[at], b = f.to[at + q.length - 1];
+      if (a >= last) { out += `${esc(text.slice(last, a))}<mark>${esc(text.slice(a, b))}</mark>`; last = b; }
+      at = f.low.indexOf(q, at + q.length);
+    }
+    return out + esc(text.slice(last));
   }
   function paintFind() {
     const inp = /** @type {HTMLInputElement|null} */ (document.getElementById('rv-find-q'));
@@ -16830,11 +16991,11 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const sum = document.getElementById('rv-find-sum');
     const L = state.lines.data;
     if (!inp || !r || !sum || !L) return;
-    const q = inp.value.trim().toLowerCase();
+    const q = fold(inp.value.trim()).low;
     if (q.length < 2) { sum.textContent = ''; r.innerHTML = '<p class="rv-chart-empty">Type two letters or more of a name, like Canva, Sam or a client.</p>'; return; }
     const nameOf = (/** @type {any} */ x) => (x.kind === 'client' ? clientName(x.tenant_id, x.label) : x.label);
-    const costs = L.costs.filter((/** @type {any} */ x) => x.label.toLowerCase().includes(q)).reverse();
-    const inc = L.income.filter((/** @type {any} */ x) => nameOf(x).toLowerCase().includes(q)).reverse();
+    const costs = L.costs.filter((/** @type {any} */ x) => fold(x.label).low.includes(q)).reverse();
+    const inc = L.income.filter((/** @type {any} */ x) => fold(nameOf(x)).low.includes(q)).reverse();
     const span = (/** @type {any[]} */ a) => { const ms = a.map((x) => x.ym).sort(); return ms.length ? (ms[0] === ms[ms.length - 1] ? monthName(ms[0], 'short') : `${monthName(ms[0], 'short')} to ${monthName(ms[ms.length - 1], 'short')}`) : ''; };
     const words = (/** @type {any[]} */ a, /** @type {string} */ what) => `${a.length} ${what} ${a.length === 1 ? 'line' : 'lines'}, ${money(sumOf(a, 'amount'))} in all, ${span(a)}`;
     const MAX = 40;
@@ -16919,16 +17080,27 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
 
   /** Goals and tax: an income goal and a profit goal for every month, and the tax set-aside percent. */
   /** @param {HTMLElement|null} [opener] */
-  function openGoals(opener) {
+  async function openGoals(opener) {
     const body = document.getElementById('rv-goals-body');
-    if (!body) return;
-    const d = state.cache[state.ym];
-    const st = d && d.settings ? d.settings : { incGoal: null, profGoal: null, tax: null };
+    const gf = document.getElementById('rv-goals-f');
+    if (!body || !gf) return;
+    // The boxes start from the saved goals. Without them, Save would send empty boxes and clear the goals, so the month is read first,
+    // and if that fails the dialog says so and Save refuses (round 6, 15 Oct).
+    delete gf.dataset.ready;
+    let d = state.cache[state.ym] || (state.lines.data ? { settings: state.lines.data.settings } : null);
+    if (!d || !d.settings) { try { d = await readMonth(state.ym); } catch (x) { d = null; } }
+    if (!d || !d.settings) {
+      body.innerHTML = '<p class="field-error" id="rv-g-e" role="alert">Your goals did not load, so they cannot be changed right now. Close this and try again.</p>';
+      openDlg('rv-goals', '', opener);
+      return;
+    }
+    gf.dataset.ready = '1';
+    const st = d.settings;
     const money1 = (/** @type {string} */ id, /** @type {string} */ name, /** @type {string} */ label, /** @type {string} */ hint, /** @type {number|null} */ v) => `<div class="field"><label for="${id}">${label}</label><span class="rv-money"><span class="rv-cur" aria-hidden="true">$</span><input id="${id}" name="${name}" type="text" inputmode="decimal" autocomplete="off" placeholder="No goal" value="${esc(field(v))}" aria-describedby="${id}-h"></span><p class="hint" id="${id}-h">${hint}</p></div>`;
     body.innerHTML = `<div class="rv-qa-grid">
         ${money1('rv-g-inc', 'inc', 'Income goal a month', 'Shows as a bar on the Income card.', st.incGoal)}
         ${money1('rv-g-prof', 'prof', 'Profit goal a month', 'Shows as a bar on the Profit card.', st.profGoal)}
-        <div class="field rv-qa-wide"><label for="rv-g-tax">Put aside for tax</label><span class="rv-pct"><input id="rv-g-tax" name="tax" type="text" inputmode="decimal" autocomplete="off" placeholder="None" value="${st.tax ? esc(String(st.tax)) : ''}" aria-describedby="rv-g-tax-h"><span class="rv-pct-u" aria-hidden="true">% of profit</span></span><p class="hint" id="rv-g-tax-h">For example 25. The Profit card then says how much to put aside, for the month and the year so far. Ask your accountant for the right number.</p></div>
+        <div class="field rv-qa-wide"><label for="rv-g-tax">Put aside for tax</label><span class="rv-pct"><input id="rv-g-tax" name="tax" type="text" inputmode="decimal" autocomplete="off" placeholder="None" value="${st.tax ? esc(String(st.tax)) : ''}" aria-describedby="rv-g-tax-h"><span class="rv-pct-u" aria-hidden="true">% of profit</span></span><p class="hint" id="rv-g-tax-h">For example 25. The Profit card then says how much to put aside on money received, for the month and the year. Ask your accountant for the right number.</p></div>
       </div><p class="field-error" id="rv-g-e" role="alert" hidden></p>`;
     openDlg('rv-goals', '#rv-g-inc', opener);
   }
@@ -16937,6 +17109,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const c = C();
     const q = (/** @type {string} */ n) => /** @type {HTMLInputElement} */ (f.elements.namedItem(n));
     const err = /** @type {HTMLElement} */ (document.getElementById('rv-g-e'));
+    if (f.dataset.ready !== '1' || !q('inc') || !q('prof') || !q('tax')) { if (err) { err.textContent = 'Your goals did not load, so nothing was saved. Close this and try again.'; err.hidden = false; } return; }
     const bad = (/** @type {HTMLElement} */ el, /** @type {string} */ text) => { err.textContent = text; err.hidden = false; el.setAttribute('aria-invalid', 'true'); el.focus(); };
     /** @type {(number|null)[]} */ const goals = [];
     for (const [n, what] of [['inc', 'The income goal'], ['prof', 'The profit goal']]) {
@@ -17060,7 +17233,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (opener && opener.hasAttribute('data-rv-qa')) { openQuickAdd(opener); return; }
     if (opener && opener.hasAttribute('data-rv-find')) { void openFind(opener); return; }
     if (opener && opener.hasAttribute('data-rv-exp')) { openDlg('rv-exp', '', opener); return; }
-    if (opener && opener.hasAttribute('data-rv-goals')) { openGoals(opener); return; }
+    if (opener && opener.hasAttribute('data-rv-goals')) { void openGoals(opener); return; }
     if (t.closest('[data-rv-dlg-close]')) { closeDlg(/** @type {HTMLDialogElement|null} */ (t.closest('dialog'))); return; }
     if (t instanceof HTMLDialogElement && t.classList.contains('rv-dlg')) { closeDlg(t); return; }   // a click on the backdrop
     const go = /** @type {HTMLButtonElement|null} */ (t.closest('[data-rv-exp-go]'));
@@ -20623,14 +20796,21 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
 
   /* ---- dialogs: confirm, and the jump palette --------------------------------------------------------- */
 
-  /** A confirmation in the page's own words. Resolves true when confirmed. @param {string} title @param {string} text @param {string} [ok] */
-  function ask(title, text, ok) {
+  /**
+   * A confirmation in the page's own words. Resolves true when confirmed.
+   * @param {string} title @param {string} text @param {string} [ok]
+   * @param {{cancel?: string, tone?: 'default'|'danger'}} [o] the cancel button's words (default "Keep it") and the yes button's tone:
+   *   red "danger" (the default) for anything that removes or cannot be undone; "default" for a calm yes such as Approve (2026-10-15)
+   */
+  function ask(title, text, ok, o) {
     const dlg = /** @type {HTMLDialogElement} */ ($('#confirm'));
     // One question at a time: a second one would take over this dialog, and one click would answer both.
     if (dlg.open) return Promise.resolve(false);
     $('#confirm-h').textContent = title;
     $('#confirm-p').textContent = text;
     $('[value="ok"]', dlg).textContent = ok || 'Remove';
+    $('[value="ok"]', dlg).className = `btn${o && o.tone === 'default' ? '' : ' btn-danger'}`;
+    $('[value="cancel"]', dlg).textContent = (o && o.cancel) || 'Keep it';
     return new Promise((resolve) => {
       const done = (/** @type {boolean} */ yes) => { dlg.close(); resolve(yes); };
       const onClick = (/** @type {any} */ e) => {

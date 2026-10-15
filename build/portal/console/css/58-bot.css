@@ -41,28 +41,59 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs
 /* ==== Bot chat plus (2026-10-15): filters, pick many, stars, snooze, move, saved reasons, edit history, numbers ====
  * Same tokens, glass pills (.seg), buttons and panels as the rest of the console; the selected pill keeps the solid ink look. */
 
-/* The search box and the bot, type and date choices */
-.bot-toolbar { gap: 8px 10px; margin-bottom: 12px; }
+/* The order on the page (design pass, 2026-10-15): the status pills first (they are the main question: waiting, snoozed, decided),
+ * then the quieter search and dropdowns, then the client pills, smaller than the status ones, right above the list. The toolbar
+ * is drawn once and the results after it, so the order is set here: the results box lays its parts out as if they were its
+ * parent's, and each part names its place. */
+#bot-box { display: grid; gap: 12px; align-content: start; }
+#bot-results { display: contents; }
+#bot-results > * { order: 3; }
+#bot-results > .bot-status { order: 1; }
+.bot-toolbar { order: 2; }
+#bot-results > .bot-bulk, #bot-results > .bot-form, #bot-results > .bot-list, #bot-results > .empty, #bot-results > .bot-showing { order: 4; }
+#bot-box > .bot-card-top, #bot-box > .crumb { order: 0; }
+#bot-box > .notice, #bot-box > .bot-card { order: 1; }
+/* The search box and the bot, type and date choices: one quiet row; under 1100px the search takes its own row and the choices share the next */
+.bot-toolbar { gap: 8px 10px; margin-bottom: 0; }
 .bot-toolbar input[type="search"] { flex: 1 1 240px; width: auto; max-width: 360px; }
 .bot-toolbar select { flex: 0 1 170px; width: auto; min-width: 0; max-width: 100%; }
 .bot-starred-only { gap: 6px; }
 .bot-starred-only[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
-.bot-status { margin-bottom: 10px; }
+.bot-status { margin-bottom: 0; }
 .bot-status, .bot-filter { display: flex; flex-wrap: wrap; max-width: 100%; }
-.bot-showing { margin: 0 0 10px; }
+.bot-filter { margin-bottom: 0; }
+.bot-filter button { min-height: 34px; padding: 5px 13px; font-size: 13.5px; }
+.bot-filter .count { font-size: 11px; }
+.bot-showing { margin: -4px 0 0; }
 /* The client dropdown stands in for the client pills on a phone only. */
 .bot-client-pick { display: none; }
+@media (max-width: 1100px) {
+  .bot-toolbar input[type="search"] { flex-basis: 100%; max-width: none; }
+  .bot-toolbar select { flex: 1 1 120px; }
+}
 
-/* Pick many: the bar above the list */
-.bot-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; padding: 6px 12px; border: 1px solid transparent; border-radius: 12px; }
-.bot-bulk.is-on { border-color: var(--line-2); background: var(--surface); box-shadow: var(--shadow); }
+/* Pick many: the bar above the list. With something picked it turns into a panel that stays in view while the list scrolls. */
+.bot-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 -2px; padding: 6px 12px; border: 1px solid transparent; border-radius: 12px; }
+.bot-bulk.is-on { position: sticky; top: 8px; z-index: 5; border-color: var(--line-2); background: var(--surface); box-shadow: var(--shadow); }
+@media (max-width: 900px) { .bot-bulk.is-on { top: 64px; } }
 .bot-pickall { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer; }
 .bot-bulk-btns { display: inline-flex; flex-wrap: wrap; gap: 8px; }
 .bot-bulk + .bot-form { margin: 0 0 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
 .bot-pickall input, .bot-pick input, .bot-keep input { width: 18px; height: 18px; margin: 0; accent-color: var(--ink); cursor: pointer; }
 
-/* A row: pick box, the queue row, a star */
+/* A row: pick box, the queue row, a star. The status chip takes only its own width here (the queue's 160px column left the draft
+ * one word at 1024px); between 761 and 1200px the row is two lines, the draft on its own line, so it still reads at a glance. */
 .bot-list > li.bot-li { display: grid; grid-template-columns: 34px minmax(0, 1fr) 40px; align-items: center; gap: 6px; }
+.bot-list .q-row { grid-template-columns: minmax(140px, 200px) auto minmax(0, 1fr) auto; }
+.bot-list .q-row.no-client { grid-template-columns: auto minmax(0, 1fr) auto; }
+@media (min-width: 761px) and (max-width: 1200px) {
+  .bot-list .q-row { grid-template-columns: minmax(0, max-content) auto minmax(0, 1fr); gap: 6px 12px; }
+  .bot-list .q-row.no-client { grid-template-columns: auto minmax(0, 1fr); }
+  .bot-list .q-row .text { grid-column: 1 / -1; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .bot-list .q-row .when { grid-column: 3; grid-row: 1; justify-self: end; }
+  .bot-list .q-row.no-client .when { grid-column: 2; }
+}
+@media (max-width: 760px) { .bot-list .q-row, .bot-list .q-row.no-client { grid-template-columns: minmax(0, 1fr) auto; } }
 .bot-pick { display: flex; justify-content: center; }
 .bot-pick label { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; }
 .bot-pick label:hover { background: var(--hover); }
@@ -111,12 +142,17 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs
 .bot-hist > li p { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-2); }
 .bot-hist > li p strong { color: var(--ink); }
 .bot-diff { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
-.bot-diff ins { background: var(--good-bg); color: var(--good); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
-.bot-diff del { background: var(--bad-bg); color: var(--bad); text-decoration: line-through; }
+:is(.bot-diff, .bot-diff-key) ins { padding: 0 2px; border-radius: 3px; background: var(--good-bg); color: var(--good); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+:is(.bot-diff, .bot-diff-key) del { padding: 0 2px; border-radius: 3px; background: var(--bad-bg); color: var(--bad); text-decoration: line-through; }
+.bot-diff { line-height: 1.6; }
+/* A space or line break that changed on its own: drawn as a mark, so it can be seen (R7-7, 15 Oct) */
+.bot-diff :is(ins, del).bot-ws { padding: 0 4px; font-weight: 700; }
+.bot-ws-note { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 650; color: var(--ink-2); }
 
 /* The numbers */
 .bot-stats .panel-head { align-items: center; }
-.bot-days { display: flex; flex-wrap: wrap; }
+.bot-days { display: flex; flex-wrap: wrap; max-width: 100%; }
+.bot-days button { flex: 1 1 auto; }
 .bot-stats-table table.grid td, .bot-stats-table table.grid th { white-space: nowrap; }
 .bot-stats-table .bot-total th, .bot-stats-table .bot-total td { font-weight: 700; border-top: 2px solid var(--line-2); }
 .bot-stats .table-wrap + .meta { margin-top: 12px; }
@@ -138,8 +174,9 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] .bot-tab-
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] :is(main > .page-head p, main > .page-head .meta) { color: rgba(246, 243, 238, 0.9); }
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] .bot-showing .linkish { color: #FFFFFF; }
 
-/* Phones: every control at least 44px */
+/* Phones: every control at least 44px; the head's "Updated" line sits above its buttons instead of pushing one to a third line */
 @media (max-width: 600px) {
+  html[data-page="bot"] .page-head .updated > .meta { flex-basis: 100%; }
   .bot-list > li.bot-li { grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 4px; }
   .bot-pick label { width: 44px; height: 44px; }
   .bot-pickall, .bot-keep { min-height: 44px; }

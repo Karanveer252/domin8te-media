@@ -1,4 +1,4 @@
--- Bot chat plus (20261015010000): stars, snooze, saved edits with versions, move, many at once, saved reasons, per-bot numbers.
+-- Bot chat plus (20261015010000, 20261015011000): stars, snooze, saved edits with versions, move, many at once, saved reasons, per-bot numbers.
 -- Staff only everywhere. TEST PROJECT ONLY. Rolls back; every row must say PASS.
 begin;
 create temp table r (n serial, check_name text, expect text, result text) on commit drop;
@@ -63,6 +63,9 @@ select pg_temp.e('save an edit', 'ok', $q$select public.bot_output_save_edit('c0
 select pg_temp.e('save the same edit again', 'ok', $q$select public.bot_output_save_edit('c0000000-0000-0000-0000-000000000001', 'Draft one, better')$q$);
 select pg_temp.v('one version, still pending, edit kept', '1/pending/Draft one, better', (select (select count(*) from public.bot_output_versions where output_id = b.id) || '/' || b.status || '/' || b.working_text from public.bot_outputs b where b.id = 'c0000000-0000-0000-0000-000000000001'));
 select pg_temp.e('edit an expired draft is refused', '22023', $q$select public.bot_output_save_edit('c0000000-0000-0000-0000-000000000006', 'x')$q$);
+select pg_temp.e('approve an expired draft is refused (R7-5)', '22023', $q$select public.bot_output_decide('c0000000-0000-0000-0000-000000000006', 'approve')$q$);
+select pg_temp.e('approve an expired draft with text is refused too', '22023', $q$select public.bot_output_decide('c0000000-0000-0000-0000-000000000006', 'approve', 'New text')$q$);
+select pg_temp.v('the expired draft is still not approved', 'pending/null', (select status || '/' || coalesce(final_text, 'null') from public.bot_outputs where id = 'c0000000-0000-0000-0000-000000000006'));
 select pg_temp.e('approve with no text', 'ok', $q$select public.bot_output_decide('c0000000-0000-0000-0000-000000000001', 'approve')$q$);
 select pg_temp.v('Approve approves the saved edit', 'approved/Draft one, better', (select status || '/' || final_text from public.bot_outputs where id = 'c0000000-0000-0000-0000-000000000001'));
 select pg_temp.v('the approved text is the last version', 'edit,approved', (select string_agg(kind, ',' order by at, kind desc) from public.bot_output_versions where output_id = 'c0000000-0000-0000-0000-000000000001'));

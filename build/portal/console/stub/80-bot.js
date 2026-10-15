@@ -1,6 +1,6 @@
 // LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). Bot chat's stand-ins (2026-10-14, more on 2026-10-15):
 // sample rows in bot_outputs, bot_output_versions and bot_note_templates, and the database functions with the same refusals as
-// portal/supabase/migrations/20261014040000_bot_outputs.sql and 20261015010000_bot_plus.sql.
+// portal/supabase/migrations/20261014040000_bot_outputs.sql, 20261015010000_bot_plus.sql and 20261015011000_bot_decide_expiry.sql.
 (function () {
   'use strict';
   const S = /** @type {any} */ (window).D8STUB;
@@ -73,6 +73,7 @@
   S.rpcs.bot_output_decide = (/** @type {any} */ a) => {
     const r = find(a.p_id);
     if (a.p_action === 'approve') {
+      if (new Date(r.expires_at).getTime() < Date.now()) throw err('22023', 'expired');   // 20261015011000 (critic R7-5)
       if (a.p_text != null && blank(a.p_text)) throw err('22023', 'empty-text');
       Object.assign(r, { status: 'approved', final_text: blank(a.p_text) ? r.working_text || r.draft : String(a.p_text).trim() }, who());
       keepVersion(r);

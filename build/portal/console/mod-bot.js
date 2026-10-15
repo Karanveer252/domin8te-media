@@ -112,9 +112,9 @@
   /** @param {any} r */
   const fromLine = (r) => { const k = botKey(r.source); return k === 'console' ? 'Added in the console' : k === 'other' ? 'From another bot' : `From ${botName(r.source)}`; };
   /** "Thu 16 Oct 09:00" @param {string} iso */
-  const dayTime = (iso) => new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+  const dayTime = (iso) => new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(/,/g, '');
   /** Minutes in plain words. @param {number|null} m */
-  const minutes = (m) => (m == null ? 'None yet' : m < 60 ? `${Math.max(1, Math.round(m))} min` : m < 48 * 60 ? `${Math.round(m / 6) / 10} hours` : `${Math.round(m / 144) / 10} days`);
+  const minutes = (m) => { if (m == null) return 'None yet'; if (m < 60) return `${Math.max(1, Math.round(m))} min`; const h = m < 48 * 60; const n = h ? Math.round(m / 6) / 10 : Math.round(m / 144) / 10; return `${n} ${h ? 'hour' : 'day'}${n === 1 ? '' : 's'}`; };
 
   /** The database's refusals in plain words. @param {any} x */
   function say(x) {
@@ -249,7 +249,19 @@
     const esc = C().esc;
     const d = diff(a, b);
     if (!d) return `${esc(b)}<span class="meta"> (too long to mark the changes here)</span>`;
-    return d.map(([k, t]) => (k === '=' || /^\s+$/.test(t) ? esc(t) : k === '-' ? `<del><span class="sr-only">[taken out: </span>${esc(t)}<span class="sr-only">]</span></del>` : `<ins><span class="sr-only">[added: </span>${esc(t)}<span class="sr-only">]</span></ins>`)).join('');
+    // Spaces and line breaks that changed on their own are drawn as marks (a line break as ↵, a space as ·), so an edit that
+    // only moved line breaks does not look the same as the draft (critic R7-7). An added line break still breaks the line.
+    const ws = (/** @type {string} */ k, /** @type {string} */ t) => {
+      const breaks = (t.match(/\n/g) || []).length;
+      const spaces = t.replace(/[\r\n]/g, '').length;
+      const words = [breaks ? C().plural(breaks, 'line break') : '', spaces ? C().plural(spaces, 'space') : ''].filter(Boolean).join(' and ');
+      const marks = t.replace(/\r/g, '').replace(/[^\n]/g, '·').replace(/\n/g, k === '+' ? '↵\n' : '↵');
+      const tag = k === '+' ? 'ins' : 'del';
+      return `<${tag} class="bot-ws"><span class="sr-only">[${words} ${k === '+' ? 'added' : 'taken out'}]</span><span aria-hidden="true">${esc(marks)}</span></${tag}>`;
+    };
+    const body = d.map(([k, t]) => (k === '=' ? esc(t) : /^\s+$/.test(t) ? ws(k, t) : k === '-' ? `<del><span class="sr-only">[taken out: </span>${esc(t)}<span class="sr-only">]</span></del>` : `<ins><span class="sr-only">[added: </span>${esc(t)}<span class="sr-only">]</span></ins>`)).join('');
+    const only = d.some(([k]) => k !== '=') && d.every(([k, t]) => k === '=' || /^\s+$/.test(t));
+    return only ? `<span class="bot-ws-note">Only spaces or line breaks changed.</span>${body}` : body;
   }
 
   /* ---- drawing: the list --------------------------------------------------------------------------------------------------------- */
@@ -359,7 +371,7 @@
     const np = state.picked.size;
     const all = can.length > 0 && np === can.length;
     const pickBar = can.length ? `<div class="bot-bulk${np ? ' is-on' : ''}" role="group" aria-label="Pick many">
-        <label class="bot-pickall"><input type="checkbox" data-bot-pickall${all ? ' checked' : ''}> ${np ? `${np} picked` : `Pick all ${can.length} that can be decided`}</label>
+        <label class="bot-pickall"><input type="checkbox" data-bot-pickall${all ? ' checked' : ''}> ${np ? `${np} picked` : `Pick all ${can.length}`}</label>
         ${np ? `<span class="bot-bulk-btns"><button class="btn btn-sm" type="button" data-bot-bulk="approve">${C0.icon('check')}Approve ${np}</button><button class="btn btn-quiet btn-sm" type="button" data-bot-bulk="reject">${C0.icon('x')}Reject ${np}</button><button class="btn btn-quiet btn-sm" type="button" data-bot-bulk="clear">Clear</button></span>` : ''}
       </div>
       ${np && state.bulk === 'reject' ? noteForm('bot-bulk-reject', 'reject', `Why these ${np} are rejected (kept with each one)`, 'For example: wrong client, ask the bot again.', `Confirm reject ${np}`, ' btn-danger', '') : ''}` : '';
@@ -439,11 +451,19 @@
     if (!vs.length && r.working_text && r.working_text !== r.draft) vs.push({ kind: 'edit', body: r.working_text, by_name: '', at: '' });
     if (!vs.some((x) => x.kind === 'approved') && statusOf(r) === 'approved' && r.final_text && r.final_text !== r.draft) vs.push({ kind: 'approved', body: r.final_text, by_name: r.decided_by_name, at: r.decided_at });
     if (!vs.length) return '';
+    // Approving a saved edit as it was keeps the same text twice (the edit, then the approved text): show it once,
+    // as "Approved as saved", and count it once (critic R7-4).
+    /** @type {any[]} */ const one = [];
+    for (const x of vs) {
+      const last = one[one.length - 1];
+      if (x.kind === 'approved' && last && last.kind === 'edit' && last.body === x.body) one[one.length - 1] = { ...x, asSaved: true };
+      else one.push(x);
+    }
     const item = (/** @type {string} */ title, /** @type {string} */ who, /** @type {string} */ at, /** @type {string} */ body) => `<li><p><strong>${title}</strong>${who ? ` · ${esc(who)}` : ''}${at ? ` · <time datetime="${esc(at)}">${esc(C0.when(at))}</time>` : ''}</p><div class="bot-diff">${body}</div></li>`;
-    const items = vs.slice().reverse().map((x) => item(x.kind === 'approved' ? 'Approved text' : 'Saved edit', x.by_name || '', x.at || '', diffHtml(r.draft, x.body)));
+    const items = one.slice().reverse().map((x) => item(x.kind === 'approved' ? (x.asSaved ? 'Approved as saved' : 'Approved text') : 'Saved edit', x.by_name || '', x.at || '', diffHtml(r.draft, x.body)));
     items.push(item("The bot's draft", botName(r.source), r.created_at, esc(r.draft)));
-    return `<details class="reveal bot-history"><summary>Edit history · ${C0.plural(vs.length + 1, 'version')}</summary>
-        <p class="meta">Each one is compared with the bot's draft: added words are underlined, words taken out are struck through.</p>
+    return `<details class="reveal bot-history"><summary>Edit history · ${C0.plural(one.length + 1, 'version')}</summary>
+        <p class="meta bot-diff-key">Each one against the bot's draft: <ins>added</ins> and <del>taken out</del>.</p>
         <ol class="bd-hist-list bot-hist">${items.join('')}</ol></details>`;
   }
 
@@ -452,15 +472,22 @@
     const d = new Date();
     const exp = new Date(r.expires_at).getTime();
     const mon = ((8 - d.getDay()) % 7) || 7;
+    // On a Sunday tomorrow is Monday: one button, "Tomorrow (Monday) at 9", not two that do the same (critic R7-3).
+    const sunday = mon === 1;
     /** @type {Array<[string, string, number]>} */
-    const all = [['3h', 'For 3 hours', Date.now() + 3 * HOUR], ['tomorrow', 'Tomorrow at 9', new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 9).getTime()], ['monday', 'Monday at 9', new Date(d.getFullYear(), d.getMonth(), d.getDate() + mon, 9).getTime()]];
+    const all = [['3h', 'For 3 hours', Date.now() + 3 * HOUR], ['tomorrow', sunday ? 'Tomorrow (Monday) at 9' : 'Tomorrow at 9', new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 9).getTime()]];
+    if (!sunday) all.push(['monday', 'Monday at 9', new Date(d.getFullYear(), d.getMonth(), d.getDate() + mon, 9).getTime()]);
     return all.filter((x) => x[2] <= exp);
   }
 
+  /** Which card was drawn last, and when it first showed: the "a" key waits a moment on a new card (critic R7-1). */
+  let cardId = '';
+  let cardAt = 0;
   /** The approval card. @param {any} r @param {string} [inTab] the client's id when it is drawn inside their Bot tab */
   function card(r, inTab) {
     const C0 = C();
     const { esc, icon } = C0;
+    if (cardId !== r.id) { cardId = r.id; cardAt = Date.now(); }
     const st = statusOf(r);
     const open = st === 'pending' && state.modeFor === r.id ? state.mode : '';
     const t = C0.tenant(r.tenant_id);
@@ -579,20 +606,28 @@
       <section class="panel bot-stats" aria-labelledby="bot-stats-h"><div class="panel-head"><h2 id="bot-stats-h">Each bot</h2>${seg}</div><div id="bot-stats-box" aria-busy="true"><p class="meta">Counting.</p></div></section>`;
     const box = /** @type {HTMLElement} */ (document.getElementById('bot-stats-box'));
     const days = state.days;
-    let list;
-    try { const data = await call('bot_output_stats', { p_days: days }); list = Array.isArray(data) ? data : []; }
-    catch (x) { list = statsFromRows(days); }
-    if (!box.isConnected || state.days !== days) return;
-    box.innerHTML = statsTable(list);
-    box.removeAttribute('aria-busy');
+    const ask = ++statsAsk;
+    // The day buttons work at once, even while a count is still on its way: a newer press wins and the older answer is
+    // dropped when it comes back (critic R7-6).
     const panel = /** @type {HTMLElement} */ (main.querySelector('.bot-stats'));
     panel.onclick = (e) => {
       const b = /** @type {HTMLElement|null} */ (/** @type {HTMLElement} */ (e.target).closest('[data-bot-days]'));
       if (!b) return;
       state.days = Number(b.getAttribute('data-bot-days')) || 30;
-      statsPage().then(() => { const f = /** @type {HTMLElement|null} */ (document.querySelector(`[data-bot-days="${state.days}"]`)); if (f) f.focus(); });
+      const p = statsPage();
+      const f = /** @type {HTMLElement|null} */ (document.querySelector(`[data-bot-days="${state.days}"]`));
+      if (f) f.focus();
+      p.then(() => { const g = /** @type {HTMLElement|null} */ (document.querySelector(`[data-bot-days="${state.days}"]`)); if (g && document.activeElement === document.body) g.focus(); });
     };
+    let list;
+    try { const data = await call('bot_output_stats', { p_days: days }); list = Array.isArray(data) ? data : []; }
+    catch (x) { list = statsFromRows(days); }
+    if (ask !== statsAsk || !box.isConnected || state.days !== days) return;
+    box.innerHTML = statsTable(list);
+    box.removeAttribute('aria-busy');
   }
+  /** Counts each request for the numbers, so only the newest one is drawn. */
+  let statsAsk = 0;
 
   /* ---- what clicks and forms do ------------------------------------------------------------------------------------------------- */
 
@@ -604,11 +639,14 @@
 
   /** The last place drawn, so a quiet reload can draw it again. @type {(() => void)|null} */
   let lastAgain = null;
+  /** The data as it was when the place was last drawn, so the poll sees what changed since (a lapsed snooze too). */
+  let drawnSig = '';
 
   /** Clicks, changes and forms of a list or a card, wherever it is drawn. @param {HTMLElement} box @param {() => void} again draws the same place afresh @param {string} [inTab] */
   function wire(box, again, inTab) {
     const C0 = C();
     lastAgain = again;
+    drawnSig = sig();
     const redrawResults = () => {
       const res = document.getElementById('bot-results');
       if (res) { res.innerHTML = results(inTab); wireForms(box, again, inTab); mixed(); } else again();
@@ -879,7 +917,8 @@
     }
     const n = ids.length;
     const edited = ids.filter((id) => { const r = rows.find((x) => x.id === id); return r && r.working_text; }).length;
-    if (!await C0.ask(`Approve ${C0.plural(n, 'draft')}?`, `${n === 1 ? 'It is' : 'They are'} approved as ${n === 1 ? 'it is' : 'they are'}${edited ? `, with your saved edit on ${edited}` : ''}. Nothing is sent to anyone.`, `Approve ${n}`)) return;
+    // A calm yes (not the red one): approving removes nothing and sends nothing.
+    if (!await C0.ask(`Approve ${C0.plural(n, 'draft')}?`, `${n === 1 ? 'It is' : 'They are'} approved as ${n === 1 ? 'it is' : 'they are'}${edited ? `, with your saved edit on ${edited}` : ''}. Nothing is sent to anyone.`, `Approve ${n}`, { cancel: 'Not now', tone: 'default' })) return;
     const done = C0.busy(b, 'Approving');
     try {
       const k = await decideMany(ids, 'approve');
@@ -895,7 +934,7 @@
     const ids = Array.from(state.picked);
     if (!ids.length) return;
     const n = ids.length;
-    if (!await C0.ask(`Reject ${C0.plural(n, 'draft')}?`, 'The same note is kept with each one. This cannot be undone.', `Reject ${n}`)) return;
+    if (!await C0.ask(`Reject ${C0.plural(n, 'draft')}?`, 'The same note is kept with each one. This cannot be undone.', `Reject ${n}`, { cancel: 'Keep them' })) return;
     const done = C0.busy(sub, 'Rejecting');
     try {
       const k = await decideMany(ids, 'reject', note);
@@ -923,13 +962,48 @@
     const n = pending().length;
     b.textContent = String(n);
     b.hidden = !n;
+    wakeLater();
+  }
+
+  /* ---- a snooze that runs out (or a draft that expires) while the page is open ------------------------------------------------- */
+  // Waiting is a matter of the clock, not only of the data: at the next snooze end or expiry the sidebar count, a Bot chat place
+  // and Needs you are drawn again, without a reload (critic R7-2).
+  let wakeTimer = 0;
+  function wakeLater() {
+    clearTimeout(wakeTimer);
+    const now = Date.now();
+    let next = Infinity;
+    for (const r of rows) {
+      if (statusOf(r) !== 'pending') continue;
+      for (const at of [r.snoozed_until, r.expires_at]) { const t = at ? new Date(at).getTime() : NaN; if (t > now && t < next) next = t; }
+    }
+    if (next === Infinity) return;
+    wakeTimer = window.setTimeout(woke, Math.min(next - now + 500, 2147483000));
+  }
+  function woke() {
+    const C0 = W.D8C;
+    if (!C0) return;
+    sideBadge();
+    const ae = /** @type {HTMLElement|null} */ (document.activeElement);
+    const typing = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.getAttribute('type') !== 'checkbox';
+    if (C0.dirty.size || state.mode || state.bulk || typing || document.querySelector('dialog[open], #main details[open]')) return;
+    if (inBotPlace() && !/^#\/bot\/stats/.test(location.hash) && lastAgain) {
+      const focusId = ae && (ae.getAttribute('data-bot-row') || ae.getAttribute('data-bot-pick') || ae.getAttribute('data-bot-star'));
+      lastAgain();
+      if (focusId) { const f = /** @type {HTMLElement|null} */ (document.querySelector(`[data-bot-row="${focusId}"], [data-bot-pick="${focusId}"], [data-bot-star="${focusId}"]`)); if (f) f.focus(); }
+    } else if (/^#\/queue|^#?\/?$/.test(location.hash || '') && C0.route) {
+      const y = window.scrollY;
+      C0.route();
+      window.scrollTo(0, y);
+    }
   }
 
   /* ---- new drafts show up by themselves (every 20 seconds while a Bot chat place is open) -------------------------------------- */
 
   let pollTimer = 0;
   const inBotPlace = () => /^#\/bot(\/|$)/.test(location.hash) || /^#\/client\/[^/]+\/bot(\/|$)/.test(location.hash);
-  const sig = () => rows.map((r) => `${r.id}:${r.status}:${r.tenant_id}:${!!r.starred}:${r.snoozed_until || ''}:${(r.notes || []).length}:${r.working_text ? r.working_text.length : 0}`).join('|') + '#' + versions.length + '#' + templates.length;
+  // viewStatus is in it, so a snooze that ran out (or an expiry) is a change too (critic R7-2).
+  const sig = () => rows.map((r) => `${r.id}:${r.status}:${viewStatus(r)}:${r.tenant_id}:${!!r.starred}:${r.snoozed_until || ''}:${(r.notes || []).length}:${r.working_text ? r.working_text.length : 0}`).join('|') + '#' + versions.length + '#' + templates.length;
   function startPoll() {
     if (pollTimer) return;
     pollTimer = window.setInterval(async () => {
@@ -938,7 +1012,7 @@
       const ae = /** @type {HTMLElement|null} */ (document.activeElement);
       if (document.visibilityState !== 'visible' || C0.dirty.size || state.mode || state.bulk || /^#\/bot\/stats/.test(location.hash) || document.querySelector('dialog[open], #main details[open]')) return;
       if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.getAttribute('type') !== 'checkbox') return;
-      const before = sig();
+      const before = drawnSig || sig();
       const was = new Set(pending().map((r) => r.id));
       const hash = location.hash;
       try { await load(); } catch (e) { return; }
@@ -995,7 +1069,8 @@
     if (s) s.focus();
   });
   document.addEventListener('keydown', (e) => {
-    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || !inBotPlace() || /^#\/bot\/stats/.test(location.hash)) return;
+    // A held key repeats: it must never approve (or star, pick, open) more than once, unseen (critic R7-1).
+    if (e.repeat || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || !inBotPlace() || /^#\/bot\/stats/.test(location.hash)) return;
     const t = /** @type {HTMLElement} */ (e.target);
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) && t.getAttribute('type') !== 'checkbox') return;
     if (t.isContentEditable || document.querySelector('dialog[open]') || !W.D8C) return;
@@ -1007,7 +1082,7 @@
       if (card.querySelector('form.bot-form')) return;   // a field is open: its own keys (Escape) only
       if (k === 'j') click('#main [data-bot-next]');
       else if (k === 'k') click('#main [data-bot-prev]');
-      else if (k === 'a') click('#main [data-bot="approve-next"]');
+      else if (k === 'a') { if (Date.now() - cardAt >= 700) click('#main [data-bot="approve-next"]'); else e.preventDefault(); }   // not in the first moment a card shows
       else if (k === 'e') click('#main [data-bot="edit"]');
       else if (k === 'r') click('#main [data-bot="reject"]');
       else if (k === 's') click('#main [data-bot="star"]');

@@ -785,14 +785,21 @@
 
   /* ---- dialogs: confirm, and the jump palette --------------------------------------------------------- */
 
-  /** A confirmation in the page's own words. Resolves true when confirmed. @param {string} title @param {string} text @param {string} [ok] */
-  function ask(title, text, ok) {
+  /**
+   * A confirmation in the page's own words. Resolves true when confirmed.
+   * @param {string} title @param {string} text @param {string} [ok]
+   * @param {{cancel?: string, tone?: 'default'|'danger'}} [o] the cancel button's words (default "Keep it") and the yes button's tone:
+   *   red "danger" (the default) for anything that removes or cannot be undone; "default" for a calm yes such as Approve (2026-10-15)
+   */
+  function ask(title, text, ok, o) {
     const dlg = /** @type {HTMLDialogElement} */ ($('#confirm'));
     // One question at a time: a second one would take over this dialog, and one click would answer both.
     if (dlg.open) return Promise.resolve(false);
     $('#confirm-h').textContent = title;
     $('#confirm-p').textContent = text;
     $('[value="ok"]', dlg).textContent = ok || 'Remove';
+    $('[value="ok"]', dlg).className = `btn${o && o.tone === 'default' ? '' : ' btn-danger'}`;
+    $('[value="cancel"]', dlg).textContent = (o && o.cancel) || 'Keep it';
     return new Promise((resolve) => {
       const done = (/** @type {boolean} */ yes) => { dlg.close(); resolve(yes); };
       const onClick = (/** @type {any} */ e) => {

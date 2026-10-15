@@ -415,14 +415,23 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
 .rv-bar .rv-views { margin: 0; }
 .rv-tools { display: flex; flex-wrap: wrap; gap: 8px; }
 .rv-tools .btn .ic { margin-right: 6px; }
-.rv-card-x { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 2px; color: var(--ink-2); font-size: 13.5px; font-weight: 600; line-height: 1.45; font-variant-numeric: proportional-nums; }
-.rv-card-x .chip { font-size: 12px; }
-.rv-goal { display: grid; gap: 5px; margin-top: 6px; }
-.rv-goal-bar { display: block; height: 6px; overflow: hidden; border-radius: 999px; background: var(--rv-track); }
-.rv-goal-bar i { display: block; height: 100%; border-radius: 999px; background: var(--rv-inc); }
+/* The lines under a figure (design pass, 15 Oct): every one in the card's grey at the size of the "so far" line, the money in ink, so
+   the figure stays the loudest thing on the card and the goal, the tax and Still to come read as one quiet column. */
+.rv-card-x { display: block; margin-top: 4px; color: var(--ink-3); font-size: 13.5px; font-weight: 500; line-height: 1.45; font-variant-numeric: proportional-nums; }
+.rv-card-x strong { color: var(--ink); font-weight: 650; }
+.rv-card-xk { margin-right: 6px; color: var(--ink-3); }
+.rv-goal { display: grid; gap: 6px; margin-top: 8px; }
+.rv-goal-bar { display: block; height: 5px; overflow: hidden; border-radius: 999px; background: var(--rv-track); }
+.rv-goal-bar i { display: block; height: 100%; border-radius: 999px; background: var(--rv-inc); transform-origin: 0 50%; }
 .rv-goal-bar i.rv-f-prof { background: var(--rv-prof); }
-.rv-goal-t { color: var(--ink-3); font-size: 13px; line-height: 1.4; font-variant-numeric: proportional-nums; }
+.rv-goal-t { color: var(--ink-3); font-size: 13.5px; line-height: 1.45; font-variant-numeric: proportional-nums; }
 .rv-goal.is-met .rv-goal-t { color: var(--ink-2); font-weight: 650; }
+/* The goal bar grows as the figure counts up (the same easing and length as the chart bars); not when less motion is asked for. */
+.rv-anim .rv-goal-bar i { animation: rv-goal-in 700ms var(--ease) 120ms both; }
+@keyframes rv-goal-in { from { transform: scaleX(0.001); } }
+@media (prefers-reduced-motion: reduce) { .rv-anim .rv-goal-bar i { animation: none; } }
+/* A quiet tag (Estimate): words in an outline, no colour of its own. */
+.rv-tag { display: inline-flex; align-items: center; padding: 1px 9px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--ink-2); font-size: 12px; font-weight: 650; line-height: 1.5; white-space: nowrap; }
 
 .rv-panel { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 18px 22px 20px; border: 0.67px solid var(--glass-edge); border-radius: var(--r-item); background-color: var(--glass-soft); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); }
 .rv-extras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0 0 16px; }
@@ -434,6 +443,12 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
 .rv-due-list { display: grid; margin: 0; padding: 0; list-style: none; }
 .rv-due-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px 14px; padding: 8px 0; }
 .rv-due-list li + li { border-top: 1px solid var(--line); }
+/* In a narrow panel (the two-column row between 1000 and 1100px) the button drops under the name instead of squeezing it to "Ma...". */
+.rv-due { container: rvdue / inline-size; }
+@container rvdue (max-width: 460px) {
+  .rv-due-list li { grid-template-columns: minmax(0, 1fr) auto; }
+  .rv-due-list li .btn { grid-column: 1 / -1; justify-self: start; }
+}
 
 /* Income: the Received switch beside each amount. */
 .rv-inc-amt { grid-template-columns: 150px auto 8.5em; }
@@ -450,6 +465,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
 /* Years. */
 .rv-years { display: grid; gap: 16px; }
 .rv-ytable { min-width: 560px; }
+.rv-ytable th[scope="row"] { white-space: nowrap; } /* "2026 so far" on one line in the scrolling table */
 .rv-ytable td.n, .rv-ytable th.n { text-align: right; white-space: nowrap; font-variant-numeric: proportional-nums; }
 .rv-ytable .none { color: var(--ink-3); }
 .rv-ytable tfoot th, .rv-ytable tfoot td { border-top: 1px solid var(--line-2); font-weight: 700; }
@@ -517,6 +533,9 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   .rv-find-list li { grid-template-columns: minmax(0, 1fr) auto; }
   .rv-find-m { grid-column: 1 / -1; }
   .rv-year-notes li { grid-template-columns: minmax(0, 1fr); }
+  /* Years on a phone: the Download button goes under the heading instead of squeezing it into a column of words. */
+  .rv-years .rv-chart-head { flex-wrap: wrap; }
+  .rv-years .rv-chart-head > div { flex: 1 1 100%; }
 }
 @media (max-width: 600px) {
   .rv-exp-opt { min-height: 56px; }
