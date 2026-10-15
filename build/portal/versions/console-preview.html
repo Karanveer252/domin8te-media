@@ -15240,7 +15240,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
    * @param {number} v @param {number} goal @param {string} cls
    */
   function goalHtml(v, goal, cls) {
-    // floor, so 99.6% never reads 100% before the goal is met; "to go" counts from a loss too: -$2,000 against $4,000 is $6,000 to go (R6-1, R6-2)
+    // floor, so 99.6% never reads 100% before the goal is met; "to go" counts from a loss too: a loss of 2000 against 4000 is 6000 to go (R6-1, R6-2)
     const pct = v > 0 ? Math.min(Math.floor((v / goal) * 100), v >= goal ? 100 : 99) : 0;
     const words = v >= goal ? `Goal of ${money(goal)} reached${v > goal ? `, ${money(v - goal)} over` : ''}` : `${pct}% of the ${money(goal)} goal, ${money(goal - v)} to go`;
     return `<div class="rv-goal${v >= goal ? ' is-met' : ''}"><span class="rv-goal-bar" aria-hidden="true"><i class="${cls}" style="width:${Math.max(0, Math.min(100, pct))}%"></i></span><span class="rv-goal-t">${esc(words)}</span></div>`;

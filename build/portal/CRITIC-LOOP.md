@@ -74,5 +74,6 @@ The machine is slow while agents run: run smoke and a11y in the background if th
 | 4 | full regression sweep A-E | CLEAN 0/0/3 (CRITIC-ROUND-4.md) | R4-1, R4-2 being fixed (Fable); R4-3 supabase_admin defaults: not changeable from postgres, noted | all tools green | CLEAN round 1 of 2 |
 | 5 | final check after R4 fixes | NOT CLEAN 0/2/3 (CRITIC-ROUND-5.md) | R5-1..R5-4 fixed by main session (70-touch.css, 00-shared.css); R5-5 toast stack on Add client open | phone 24/24 (years route is revplus WIP) | phase F builders running |
 | F | phase F builds | revplus 10 done (migration 20261015020000, revenue_plus 122); botplus 10 done (20261015010000, bot_plus 59) | Fable design passes running on both (05:15) | console 32/32, phone 32/32, demo 33/33 | weekly 33% |
-| 6 | Revenue features | NOT CLEAN 0/1/6 | Opus fixer running 08:15 | tools green, SQL privacy ok | |
-| 7 | Bot chat features | NOT CLEAN 0/1/6 (by reading) | Opus fixer running 08:20, must click through for real | tools green | |
+| 6 | Revenue features | NOT CLEAN 0/1/6 | all 7 + 2 unverified fixed (tax on received money only) | lint 93, console 32/32, a11y rev 48 | |
+| 7 | Bot chat features | NOT CLEAN 0/1/6 (by reading) | all 7 fixed, migration 20261015011000, click-through 45/45 | bot_plus 62 | |
+| 8 | final: both features + regression, real click-through | started 08:45 | | full verify 08:40 green (release fixed: price-like comment) | weekly 36% |
