@@ -307,7 +307,7 @@
       }
       case 'usage_added': return `${who} counted ${esc(d.qty)} for ${esc(String(d.metric || '').replace(/_/g, ' '))}${d.counted === false ? ' (not counted against the limit)' : ''}.`;
       case 'usage_voided': return `${who} took back ${esc(d.qty)} counted for ${esc(String(d.metric || '').replace(/_/g, ' '))}.${because(d.reason)}`;
-      case 'usage_live_set': return `${who} set ${d.metric === 'ads_platforms' ? 'Ad platforms' : 'Live campaigns'} to ${esc(d.now)} (was ${esc(d.was)}).`;
+      case 'usage_live_set': return `${who} set ${d.metric === 'ads_platforms' ? 'Ad platforms in use' : 'Live campaigns'} to ${esc(d.now)} (was ${esc(d.was)}).`;
       case 'plan_cycle_insert': case 'plan_cycle_update': return `${who} ${r.action === 'plan_cycle_insert' ? 'set up' : 'changed'} the plan month that starts ${esc(dayText(d.period_start))}.${because(d.reason)}`;
       default: return `${who} ${esc(String(r.action).replace(/[._]/g, ' '))}.`;
     }

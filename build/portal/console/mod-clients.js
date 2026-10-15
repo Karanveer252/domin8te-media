@@ -20,14 +20,10 @@
   /** "About 3 restaurants at a time": a planning hint shown on the page. Nothing in the console or the database enforces it. */
   const CAPACITY_HINT = 3;
   const SERVICE_ORDER = ['advertising', 'social', 'website', 'local', 'email'];
-  /** How each limit is named in a usage bar. A presentation map only: the numbers always come from the database. @type {Record<string, string>} */
-  const BAR_NAME = {
-    social_posts: 'Social posts', social_reels: 'Reels', social_stories: 'Stories', ads_live_campaigns: 'Ads live', ads_new_creatives: 'New ad designs', ads_platforms: 'Ad platforms',
-    web_pages: 'Web pages', web_edits: 'Web edits', seo_google_posts: 'Google posts', seo_photos: 'Local photos', seo_review_replies: 'Review replies', seo_jobs: 'SEO jobs',
-    email_campaigns: 'Email campaigns', email_automations: 'Automations'
-  };
-  /** @type {Record<string, string>} */
-  const SENTENCE_NAME = { social_posts: 'posts', social_reels: 'Reels', social_stories: 'Stories', ads_live_campaigns: 'live campaigns', web_pages: 'new pages', web_edits: 'website edits', seo_jobs: 'SEO jobs' };
+  /** A limit's one name: the shared map in plan-model.js (round 9), so every screen says the same thing. @param {string} m */
+  const LBL = (m) => (W.D8 && W.D8.planModel ? W.D8.planModel.LABEL[m] : '') || '';
+  /** The same name inside a sentence. @param {string} m */
+  const SENTENCE = (m) => { const n = LBL(m); return !n ? '' : /^(Reels|Stories|Google|SEO|Email)/.test(n) ? n : n.charAt(0).toLowerCase() + n.slice(1); };
   /** The most bars one client shows; the rest are one line away on its page. */
   const MAX_BARS = 6;
 
@@ -112,18 +108,18 @@
     if (t.status === 'paused') out.push({ tone: 'warn', text: 'Paused', sub: r.pl.nowPlan && r.pl.nowPlan.max_clients ? `Keeps its ${r.pl.nowPlan.name} spot` : 'Work and billing are on hold' });
     if (r.over.length) {
       const l = r.over[0];
-      out.push({ tone: 'bad', text: `${BAR_NAME[l.metric] || l.label} over by ${l.used - l.cap}` });
+      out.push({ tone: 'bad', text: `${LBL(l.metric) || l.label} over by ${l.used - l.cap}` });
     } else if (r.asks.length) {
       const x = r.asks[0];
       const v = x.last_verified_value || {};
-      const what = v.asked && v.metric ? `Asked for ${v.asked} extra ${SENTENCE_NAME[v.metric] || String(v.metric).replace(/_/g, ' ')}` : '';
+      const what = v.asked && v.metric ? `Asked for ${v.asked} extra ${SENTENCE(v.metric) || String(v.metric).replace(/_/g, ' ')}` : '';
       out.push({ tone: 'bad', text: 'Over-limit request', sub: what });
     } else if (r.lines.some((/** @type {any} */ l) => l.used >= l.cap)) {
       const l = r.lines.find((/** @type {any} */ x) => x.used >= x.cap);
-      out.push({ tone: 'warn', text: 'At the limit', sub: `${BAR_NAME[l.metric] || l.label} ${l.used}/${l.cap}` });
+      out.push({ tone: 'warn', text: 'At the limit', sub: `${LBL(l.metric) || l.label} ${l.used}/${l.cap}` });
     } else if (r.near) {
       const l = r.lines.slice().sort((/** @type {any} */ a, /** @type {any} */ b) => b.used / b.cap - a.used / a.cap)[0];
-      out.push({ tone: 'warn', text: 'Near limit', sub: `${BAR_NAME[l.metric] || l.label} ${l.used}/${l.cap}` });
+      out.push({ tone: 'warn', text: 'Near limit', sub: `${LBL(l.metric) || l.label} ${l.used}/${l.cap}` });
     } else if (!r.pl.now) {
       out.push({ tone: 'warn', text: 'No plan set' });
     } else if (t.status === 'active') {
@@ -215,7 +211,7 @@
     const capCard = `<div class="cl-card"><span class="cl-dot is-hint" aria-hidden="true"></span><div><p class="cl-card-t">Room for about ${CAPACITY_HINT} restaurants at a time</p>
       <p class="cl-card-s">${active} active now${active > CAPACITY_HINT ? ', over the hint' : ''}. A planning hint only: nothing is blocked.</p></div></div>`;
     const warn = rows.filter((r) => r.t.status !== 'archived' && (r.over.length || r.asks.length));
-    const names = warn.map((r) => `${r.t.name} ${r.over.length ? (BAR_NAME[r.over[0].metric] || r.over[0].label).toLowerCase() : 'request'}`);
+    const names = warn.map((r) => `${r.t.name} ${r.over.length ? (LBL(r.over[0].metric) || r.over[0].label).toLowerCase() : 'request'}`);
     const warnCard = `<button class="cl-card cl-card-go" type="button" data-cl-go="${warn.length ? 'over' : 'all'}"><span class="cl-dot ${warn.length ? 'is-over' : 'is-free'}" aria-hidden="true"></span><div><p class="cl-card-t">${warn.length ? `${c.plural(warn.length, 'over-limit warning')}` : 'No over-limit warnings'}</p>
       <p class="cl-card-s">${warn.length ? esc(names.slice(0, 3).join(' · ')) : 'Every client is within this month\'s limits.'}</p></div></button>`;
     return `<div class="cl-cards">${placeCard}${capCard}${warnCard}</div>`;
@@ -273,7 +269,7 @@
         ? `<div class="cl-needs"><span class="chip you">${r.d.needs.length}</span><span class="cl-sub">${esc(r.d.needs[0].label)}${r.d.needs.length > 1 ? ` + ${r.d.needs.length - 1} more` : ''}</span></div>`
         : '<span class="none">Nothing</span>';
       const waiting = r.d.waiting.length ? `<div class="cl-needs cl-wait"><span class="chip them">${r.d.waiting.length}</span><span class="cl-sub">Waiting on client</span></div>` : '';
-      const bars = r.bars.slice(0, MAX_BARS).map((/** @type {any} */ l) => c.usageBar({ label: BAR_NAME[l.metric] || l.label, used: l.used, cap: l.cap, pct: l.pct, tone: l.tone })).join('');
+      const bars = r.bars.slice(0, MAX_BARS).map((/** @type {any} */ l) => c.usageBar({ label: LBL(l.metric) || l.label, used: l.used, cap: l.cap, pct: l.pct, tone: l.tone })).join('');
       const more = r.lines.length - Math.min(r.bars.length, MAX_BARS);
       const stamp = c.plans.at || c.all.at;
       const check = !pl.now ? '<span class="chip plain">No plan</span>' : r.unverified ? '<span class="chip warn">Unverified</span>' : '<span class="chip good">Verified</span>';

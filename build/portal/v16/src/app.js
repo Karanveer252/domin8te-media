@@ -161,12 +161,12 @@
   const billingProblem = () => !!(app.account && app.account.subscription && app.account.subscription.status === 'past_due');
   /**
    * One badge language: a small pill with a count. Home's is quiet; Billing's marks a problem.
-   * Given the list of what is waiting, Home's count leaves out the payment problem while Billing
-   * shows it, so the one item is never counted twice (2026-10-09).
+   * Home's count is every item Home lists, the payment problem included, so the badge always equals "N things need you"
+   * on the page (round 9, 15 Oct 2026). Billing shows its own "1 payment problem" pill as well, a pointer to where to fix it.
    * @param {number|any[]} items
    */
   function setBadges(items) {
-    const n = Array.isArray(items) ? items.filter((x) => !(x && x.kind === 'billing' && billingProblem())).length : Number(items) || 0;
+    const n = Array.isArray(items) ? items.length : Number(items) || 0;
     document.querySelectorAll('[data-badge="home"]').forEach((el) => {
       const b = /** @type {HTMLElement} */ (el);
       b.hidden = !n;
@@ -203,8 +203,8 @@
     // The Preview mode pill is docked at the top of the page in the demo: the page gets room above it.
     $('#app').toggleAttribute('data-demo', D8.data.MODE === 'demo');
     const problem = billingProblem();
-    // The count first, then the same count without the payment problem once the list is known.
-    setBadges(Math.max(0, a.openActions - (problem ? 1 : 0)));
+    // The count first, then the exact list once it is known.
+    setBadges(Math.max(0, a.openActions));
     if (app.client && app.client.getAttention) app.client.getAttention().then(setBadges).catch(() => { /* the first count stays */ });
     document.querySelectorAll('[data-badge="billing"]').forEach((el) => {
       const b = /** @type {HTMLElement} */ (el);

@@ -52,7 +52,9 @@ const collect = `<script>(function () {
 })();</script>`;
 const report = `var m = document.getElementById('main'); var t = m ? (m.innerText || '') : '';
 document.documentElement.setAttribute('data-probe', JSON.stringify({ errs: window.__errs, text: t.slice(0, 60000), fresh: m ? m.querySelectorAll('.page-fresh').length : -1,
-  busy: m ? m.querySelectorAll('[aria-busy="true"]').length : -1, title: document.title, hash: location.hash, over: document.documentElement.scrollWidth > window.innerWidth + 1, heads: m ? m.querySelectorAll('h1').length : -1 }));`;
+  busy: m ? m.querySelectorAll('[aria-busy="true"]').length : -1, title: document.title, hash: location.hash, over: document.documentElement.scrollWidth > window.innerWidth + 1, heads: m ? m.querySelectorAll('h1').length : -1,
+  badge: (function () { var b = document.getElementById('queue-badge'); return b && !b.hidden ? String(b.textContent).trim() : '0'; })(),
+  doNow: (function () { var h = m && m.querySelector('#q-needs h2 .meta'); return h ? String(h.textContent).trim() : null; })() }));`;
 
 function page(route, i) {
   const late = `<script>window.addEventListener('load', function () { setTimeout(function () { ${report} }, 3500); });</script>`;
@@ -255,6 +257,8 @@ function runPhone(route, i) {
       if (/\u2014/.test(r.text)) problems.push('a long dash');
       if (DEMO && /\$\s?(?!0\b)\d|\d\.\d\d\s?USD|\b(999|1,999|3,499)\b/.test(r.text)) problems.push('a price in the demo console');
       if (r.over) problems.push('the page is wider than the window');
+      // Round 9 (R9-1): the sidebar Needs you number is the page's own Do now total, never a different one.
+      if (route === 'queue' && r.doNow !== null && r.badge !== r.doNow) problems.push(`the sidebar Needs you badge says ${r.badge} but the page says Do now ${r.doNow}`);
       if (!/Domin8te console/.test(r.title)) problems.push(`title "${r.title}"`);
       if (r.heads < 1 && !/^client\//.test(route)) problems.push('no page title (h1)');
     }

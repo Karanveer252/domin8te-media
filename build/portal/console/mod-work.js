@@ -28,11 +28,7 @@
   /** The usage columns staff read (the notes and who-did-it columns are not readable through the API: 20261014110000). */
   const USAGE_COLS = 'id, tenant_id, cycle_id, service, metric, qty, counted, task_id, request_id, over_cap_approved_at, created_at, voided_at';
   /** A limit's name on a usage bar. */
-  const NAME = /** @type {Record<string, string>} */ ({
-    social_posts: 'Social posts', social_reels: 'Reels', social_stories: 'Stories', ads_live_campaigns: 'Live campaigns', ads_new_creatives: 'New ad designs', ads_platforms: 'Ad platforms',
-    web_pages: 'New pages', web_edits: 'Web edits', seo_google_posts: 'Google posts', seo_photos: 'Photos', seo_review_replies: 'Review replies', seo_jobs: 'SEO jobs',
-    email_campaigns: 'Email campaigns', email_automations: 'Automations'
-  });
+  const NAME = /** @type {Record<string, string>} */ (window.D8.planModel.LABEL); // the one shared map (plan-model.js)
   /** Words in a card's title that say which limit it uses (the first match wins; otherwise the service's usual one). */
   const GUESS = /** @type {Record<string, [RegExp, string][]>} */ ({
     social: [[/\breels?\b/i, 'social_reels'], [/\bstor(y|ies)\b/i, 'social_stories']],
@@ -692,7 +688,7 @@
   /** The live count dialog's words for each live-at-once limit. */
   const LIVE_ASK = /** @type {Record<string, {q: string, field: string, noun: string}>} */ ({
     ads_live_campaigns: { q: 'How many campaigns are live right now?', field: 'Live campaigns now', noun: 'Live campaigns' },
-    ads_platforms: { q: 'How many ad platforms are in use right now?', field: 'Ad platforms in use now', noun: 'Ad platforms' }
+    ads_platforms: { q: 'How many ad platforms are in use right now?', field: 'Ad platforms in use now', noun: 'Ad platforms in use' }
   });
   /** @param {string} s */
   const cssq = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'));

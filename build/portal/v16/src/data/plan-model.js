@@ -39,14 +39,27 @@
     seo_jobs: ['listing and search task', 'listing and search tasks'],
     email_campaigns: ['email campaign', 'email campaigns'], email_automations: ['automation', 'automations']
   };
+  /**
+   * THE name of each limit, the one every screen uses (the console's usage bars, All work, Billing, Clients, Needs you, Settings and the
+   * client dashboard), so a limit never has two names. Round 9, 15 Oct 2026. @type {Record<string, string>}
+   */
+  const LABEL = {
+    social_posts: 'Posts', social_reels: 'Reels', social_stories: 'Stories',
+    ads_live_campaigns: 'Live campaigns', ads_new_creatives: 'New ad designs', ads_platforms: 'Ad platforms in use',
+    web_pages: 'New pages', web_edits: 'Website edits',
+    seo_google_posts: 'Google posts', seo_photos: 'Photos', seo_review_replies: 'Review replies', seo_jobs: 'Listing and search tasks',
+    email_campaigns: 'Email campaigns', email_automations: 'Automations'
+  };
+  /** @param {string} metric @param {string} [fallback] */
+  const labelOf = (metric, fallback) => LABEL[metric] || cap1(fallback || String(metric || 'work').replace(/_/g, ' '));
   /** @param {string} metric @param {string} label @param {number} n */
   function words(metric, label, n) {
     const f = /** @type {any} */ (NOUN)[metric] || [label, label];
     const noun = n === 1 ? f[0] : f[1];
     // "Live at a time" limits are a count of what runs now (it carries into the next month), not a month's total: "2 of 3 live now", "1 of 2 platforms in use".
-    if (metric === 'ads_live_campaigns') return { name: 'Campaigns live', unit: `${noun} live`, state: true, cap: `Up to ${n} ${noun} live at a time`, used: (/** @type {number} */ u) => `${u} of ${n} live now`, short: `${n} live` };
-    if (metric === 'ads_platforms') return { name: 'Ad platforms', unit: `${noun} in use`, state: true, cap: `${n} ad ${noun}`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} in use`, short: `${n} ${noun}` };
-    return { name: cap1(f[1]), unit: noun, state: false, cap: `Up to ${n} ${noun} a month`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} used`, short: `${n} ${noun}` };
+    if (metric === 'ads_live_campaigns') return { name: LABEL.ads_live_campaigns, unit: `${noun} live`, state: true, cap: `Up to ${n} ${noun} live at a time`, used: (/** @type {number} */ u) => `${u} of ${n} live now`, short: `${n} live` };
+    if (metric === 'ads_platforms') return { name: LABEL.ads_platforms, unit: `${noun} in use`, state: true, cap: `${n} ad ${noun}`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} in use`, short: `${n} ${noun}` };
+    return { name: labelOf(metric, f[1]), unit: noun, state: false, cap: `Up to ${n} ${noun} a month`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} used`, short: `${n} ${noun}` };
   }
 
   /** The services a month holds: what was picked, with Ads (which every plan includes) among them. @param {any} c a cycle */
@@ -251,5 +264,5 @@
     return { known: true, over: would > line.cap, service, metric, line, used: line.used, cap: line.cap, qty: n, would, extra: Math.max(0, would - line.cap), pct: Math.min(100, Math.round((would / line.cap) * 100)) };
   }
 
-  D8.planModel = { ORDER, ordered, picksOf, rule, lines, summary, validate, build, preview, diff, words, lastDayOf, billAfter, askPreview };
+  D8.planModel = { ORDER, ordered, picksOf, rule, lines, summary, validate, build, preview, diff, words, LABEL, labelOf, lastDayOf, billAfter, askPreview };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -76,4 +76,6 @@ The machine is slow while agents run: run smoke and a11y in the background if th
 | F | phase F builds | revplus 10 done (migration 20261015020000, revenue_plus 122); botplus 10 done (20261015010000, bot_plus 59) | Fable design passes running on both (05:15) | console 32/32, phone 32/32, demo 33/33 | weekly 33% |
 | 6 | Revenue features | NOT CLEAN 0/1/6 | all 7 + 2 unverified fixed (tax on received money only) | lint 93, console 32/32, a11y rev 48 | |
 | 7 | Bot chat features | NOT CLEAN 0/1/6 (by reading) | all 7 fixed, migration 20261015011000, click-through 45/45 | bot_plus 62 | |
-| 8 | final: both features + regression, real click-through | started 08:45 | | full verify 08:40 green (release fixed: price-like comment) | weekly 36% |
+| 8 | final: both features + regression, real click-through | CLEAN 0/0/2 (test script regex, migration note) | - | all tools green, a11y console 138/138 | CLEAN 1 of 2 |
+| 9 | fresh full sweep | NOT CLEAN 0/1/7 (badge 31 vs page 38) | all 8 fixed (one label map in plan-model.js, badge = page, palette, plain Settings) | all tools green, a11y 138/57 | need round 10 + 11 clean |
+| 10 | fresh sweep + round 9 fixes | started 10:00 | | | |

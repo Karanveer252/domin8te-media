@@ -56,14 +56,13 @@
   /** @param {string} name */
   const ico = (name) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${/** @type {any} */ (ICONS)[name] || ''}</svg>`;
 
-  /** How each limit reads in a sentence. A presentation map only: the numbers always come from the database. @type {Record<string, string>} */
-  const METRIC_NAME = {
-    social_posts: 'social posts', social_reels: 'Reels', social_stories: 'Stories', ads_live_campaigns: 'live ad campaigns', ads_new_creatives: 'new ad designs',
-    ads_platforms: 'ad platforms', web_pages: 'new pages', web_edits: 'website edits', seo_google_posts: 'Google posts', seo_photos: 'local photos',
-    seo_review_replies: 'review replies', seo_jobs: 'SEO jobs', email_campaigns: 'email campaigns', email_automations: 'email automations'
+  /** A limit's name in a sentence: the one shared name (plan-model.js) in lower case, minus "in use", which the "per period" words add. @param {string} metric @param {string} [fallback] */
+  const metricName = (metric, fallback) => {
+    const n = (W.D8 && W.D8.planModel && W.D8.planModel.LABEL[metric]) || '';
+    if (!n) return fallback || String(metric || 'work').replace(/_/g, ' ');
+    const t = n.replace(/ in use$/, '');
+    return /^(Reels|Stories|Google|SEO|Email)/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1);
   };
-  /** @param {string} metric @param {string} [fallback] */
-  const metricName = (metric, fallback) => METRIC_NAME[metric] || fallback || String(metric || 'work').replace(/_/g, ' ');
   /** The two limits that count what is running now, not a month's work: they read "at once" and "in use", never "a month". @type {Record<string, string>} */
   const NOW_UNIT = { ads_live_campaigns: 'at once', ads_platforms: 'in use' };
   /** "8 page edits a month", "3 live campaigns at once". @param {string} metric @param {string} name */

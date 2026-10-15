@@ -149,11 +149,7 @@
     return { shown: picked, more: Math.max(0, lines.length - picked.length) };
   }
   /** What each limit is called on a usage bar: short, and clear on its own. */
-  const BAR = /** @type {Record<string, string>} */ ({
-    social_posts: 'Posts', social_reels: 'Reels', social_stories: 'Stories', ads_live_campaigns: 'Ad campaigns', ads_new_creatives: 'Ad designs', ads_platforms: 'Ad platforms',
-    web_pages: 'New pages', web_edits: 'Page edits', seo_google_posts: 'Google posts', seo_photos: 'Photos', seo_review_replies: 'Review replies', seo_jobs: 'SEO jobs',
-    email_campaigns: 'Email campaigns', email_automations: 'Automations'
-  });
+  const BAR = /** @type {Record<string, string>} */ (PM().LABEL); // the one shared map (plan-model.js)
   /** One usage line as the console's bar. @param {any} l */
   const barOf = (l) => C().usageBar({ ...l, label: BAR[l.metric] || cap1(PP().unitOf(l.metric, l.label, 2)) });
   /** A bar in one client's drawer: a live-at-once limit gets "Set live count" with it (mod-work.js). @param {string} id @param {any} l */
@@ -338,9 +334,9 @@
     const box = c.$('#bl-fresh');
     if (!box) return;
     const ready = typeof c.stripeReady === 'function' && c.stripeReady();
-    const mode = typeof c.stripeModeText === 'function' ? c.stripeModeText() : 'test mode';
+    const mode = typeof c.stripeModeText === 'function' ? c.stripeModeText() : '';
     box.innerHTML = c.pageFresh({
-      updatedAt: c.plans.at, source: ready ? `Stripe (${mode}) and console` : 'Console and the database',
+      updatedAt: c.plans.at, source: ready ? `Stripe${mode === 'test mode' ? ' (test mode)' : ''} and console` : 'Console and the database',
       status: c.plans.ok ? 'ok' : 'delayed', label: c.plans.ok ? undefined : 'Plans did not load'
     });
   }

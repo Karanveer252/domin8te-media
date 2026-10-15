@@ -16,6 +16,8 @@
   'use strict';
   /** @type {any} */ const W = window;
   const D = () => W.D8C;
+  /** A limit's one name (plan-model.js), so Settings says what every other page says. @param {string} metric @param {string} [fallback] */
+  const mLabel = (metric, fallback) => (W.D8 && W.D8.planModel ? W.D8.planModel.labelOf(metric, fallback) : cap1(fallback || metric));
   const esc = (/** @type {any} */ s) => D().esc(s);
   const $ = (/** @type {string} */ s, /** @type {any} */ el) => D().$(s, el);
   const $$ = (/** @type {string} */ s, /** @type {any} */ el) => D().$$(s, el);
@@ -179,7 +181,7 @@
       const later = c.later ? `<span class="pl-later">${c.later.monthly_cap} from ${esc(shortDate(c.later.effective_from))}${c.later.proposed ? STAR : ''}</span>` : '';
       if (!n) return `<td data-plan="${esc(pl.id)}"><span class="pl-none">None</span>${later}</td>`;
       if (ed) {
-        const who = `${pl.name}, ${s.label}, ${cap1(n.label)}`;
+        const who = `${pl.name}, ${s.label}, ${mLabel(x.metric, n.label)}`;
         const id = `pc-${pl.id}-${x.metric}`;
         return `<td data-plan="${esc(pl.id)}"><span class="pl-edit-line"><label class="sr-only" for="${esc(id)}">${esc(who)}</label><input id="${esc(id)}" class="pl-in" name="cap" data-plan="${esc(pl.id)}" data-service="${esc(s.id)}" data-metric="${esc(x.metric)}" type="number" inputmode="numeric" min="0" max="9999" step="1" value="${n.monthly_cap}">${n.proposed ? STAR : ''}</span>
           ${n.weekly_hint ? `<label class="sr-only" for="${esc(id)}-h">${esc(who)}: weekly note</label><input id="${esc(id)}-h" class="pl-hint-in" name="hint" data-plan="${esc(pl.id)}" data-metric="${esc(x.metric)}" type="text" maxlength="40" value="${esc(n.weekly_hint)}" autocomplete="off">` : ''}${later}</td>`;
@@ -189,7 +191,7 @@
     return `<div class="pl-wrap"><table class="pl-grid"><caption class="sr-only">Monthly limits for each plan</caption>
       <thead><tr><th scope="col" class="pl-corner"><span class="sr-only">Limit</span></th>${m.plans.map((/** @type {any} */ pl) => `<th scope="col">${esc(pl.name)}</th>`).join('')}</tr></thead>
       ${m.services.map((/** @type {any} */ s) => `<tbody><tr class="pl-svc"><th scope="colgroup" colspan="${cols}">${esc(s.label)}${s.id === 'website' && starter ? `<span class="pl-svc-note">${esc(starter.name)} gets one of these each month, chosen with its pick.</span>` : ''}</th></tr>
-        ${s.metrics.map((/** @type {any} */ x) => `<tr><th scope="row">${esc(cap1(x.label))}</th>${m.plans.map((/** @type {any} */ pl) => cellHtml(pl, s, x)).join('')}</tr>`).join('')}</tbody>`).join('')}
+        ${s.metrics.map((/** @type {any} */ x) => `<tr><th scope="row">${esc(mLabel(x.metric, x.label))}</th>${m.plans.map((/** @type {any} */ pl) => cellHtml(pl, s, x)).join('')}</tr>`).join('')}</tbody>`).join('')}
     </table></div>`;
   }
 
@@ -239,7 +241,7 @@
       const plan = input.getAttribute('data-plan'), service = input.getAttribute('data-service'), metric = input.getAttribute('data-metric');
       const c = m.cell(plan, service, metric);
       if (!c.now) continue;
-      const label = `${planName(plan)} ${c.now.label}`;
+      const label = `${planName(plan)} ${mLabel(metric, c.now.label)}`;
       const raw = String(input.value).trim();
       if (!/^\d{1,4}$/.test(raw)) { bad(input, `${label}: use a whole number, 0 or more.`); continue; }
       const n = Number(raw);
@@ -549,7 +551,7 @@
         const bits = g.rows.flatMap((/** @type {any} */ d) => {
           const row = caps.find((/** @type {any} */ c) => c.plan_id === d.plan && c.service === d.service && c.metric === d.metric && c.version === d.version);
           const old = caps.find((/** @type {any} */ c) => c.plan_id === d.plan && c.service === d.service && c.metric === d.metric && c.version === d.version - 1);
-          const label = row ? row.label : String(d.metric || '').replace(/_/g, ' ');
+          const label = mLabel(d.metric, row ? row.label : '').toLowerCase().replace(/^(reels|stories|google|seo)/, (m) => m.charAt(0).toUpperCase() + m.slice(1));
           if (old && Number(old.monthly_cap) === Number(d.cap)) { same++; return []; }
           return [`${planName(d.plan)} ${label} ${old ? `${old.monthly_cap} to ${d.cap}` : `set to ${d.cap}`}`];
         });
@@ -639,10 +641,10 @@
     const next = R.upcoming[0];
     const nextText = next ? `${esc(D().clockTime(next.send_at))}: the ${esc(kindOf(next.kind))} to ${esc(clientOf(next.tenant_id))}. ${R.upcoming.length > 1 ? `${R.upcoming.length} are waiting in all.` : ''}` : 'Nothing is waiting right now.';
     const key = R.key === 'set'
-      ? `<p class="rm-key is-set"><strong>Resend key: set.</strong> A reminder went out through Resend on ${esc(D().clockTime(R.newestSent.sent_at))}, so sending works. The console never sees the key itself.</p>`
+      ? `<p class="rm-key is-set"><strong>Email sending works.</strong> A reminder went out on ${esc(D().clockTime(R.newestSent.sent_at))}. The console never sees the key itself.<span class="meta rm-sub">Details: Resend key, set on the server.</span></p>`
       : R.key === 'not set'
-        ? `<p class="rm-key is-off"><strong>Resend key: not set.</strong> ${esc(plural(R.overdue.length, 'reminder'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no key or no sender. Add them to the server's secrets.</p>`
-        : '<p class="rm-key"><strong>Resend key: not confirmed yet.</strong> No reminder has been due, so nothing shows whether it is set. The console never sees the key itself.</p>';
+        ? `<p class="rm-key is-off"><strong>Email sending is not set up.</strong> ${esc(plural(R.overdue.length, 'reminder'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no email key or sender address. Add them on the server.<span class="meta rm-sub">Details: Resend key and REMINDERS_FROM, in the server secrets.</span></p>`
+        : '<p class="rm-key"><strong>Email sending is not confirmed yet.</strong> No reminder has been due, so nothing shows whether it is set up. The console never sees the key itself.<span class="meta rm-sub">Details: Resend key, set on the server.</span></p>';
     const fail = (/** @type {any} */ r) => `<li class="rm-fail" data-rem="${esc(r.id)}">
         <div class="rm-who"><strong>${esc(clientOf(r.tenant_id))}</strong><span class="meta">${esc(/** @type {any} */ (KIND_WHEN)[r.kind] || r.kind)} · to ${esc(mask(r.to_email))}</span></div>
         <p class="rm-err">Failed ${esc(D().clockTime(r.updated_at))} after ${esc(plural(Number(r.attempts) || 0, 'try', 'tries'))}${r.error ? `: ${esc(r.error)}` : ''}</p>
@@ -653,7 +655,7 @@
         <dl class="facts rm-facts"><dt>Schedule</dt><dd>7 days and 3 days before each bill, at 10:00 AM on the restaurant's clock. The job runs every hour and sends what is due.</dd>
           <dt>Last run</dt><dd>${lastText}<span class="meta rm-sub">The job keeps no log of its own, so this is its newest reminder.</span></dd>
           <dt>Next up</dt><dd>${nextText}</dd>
-          <dt>Sender</dt><dd>The address in REMINDERS_FROM on the server. The console cannot read it.</dd></dl>
+          <dt>Sender</dt><dd>The sender address is set on the server and the console cannot read it.<span class="meta rm-sub">Details: REMINDERS_FROM.</span></dd></dl>
         ${key}</div>
       <div class="rm-fails"><h3 class="rm-h">Failed in the last 30 days <span class="chip ${R.fails.length ? 'warn' : 'good'}">${R.fails.length ? R.fails.length : 'None'}</span></h3>
         ${R.fails.length ? `<ul class="rm-list">${R.fails.map(fail).join('')}</ul>` : '<p class="meta">No reminder has failed in the last 30 days.</p>'}</div></div>`;
@@ -756,10 +758,10 @@
     for (const r of R.skipped) reasons.set(r.error || 'skipped', (reasons.get(r.error || 'skipped') || 0) + 1);
     const skipText = R.skipped.length ? `${esc(plural(R.skipped.length, 'email'))} in the last 30 days: ${esc(Array.from(reasons).map(([why, n]) => `${why} (${n})`).join(', '))}.` : '';
     const key = R.key === 'set'
-      ? `<p class="rm-key is-set"><strong>Resend key: set.</strong> An email went out through Resend on ${esc(D().clockTime(R.sent[0].sent_at))}, so sending works. The console never sees the key itself.</p>`
+      ? `<p class="rm-key is-set"><strong>Email sending works.</strong> An email went out on ${esc(D().clockTime(R.sent[0].sent_at))}. The console never sees the key itself.<span class="meta rm-sub">Details: Resend key, set on the server.</span></p>`
       : R.key === 'not set'
-        ? `<p class="rm-key is-off"><strong>Resend key: not set.</strong> ${esc(plural(R.overdue.length, 'email'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no key or no sender. Add them to the server's secrets.</p>`
-        : '<p class="rm-key"><strong>Resend key: not confirmed yet.</strong> No email has been due, so nothing shows whether it is set. The console never sees the key itself.</p>';
+        ? `<p class="rm-key is-off"><strong>Email sending is not set up.</strong> ${esc(plural(R.overdue.length, 'email'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no email key or sender address. Add them on the server.<span class="meta rm-sub">Details: Resend key and NOTIFY_FROM, in the server secrets.</span></p>`
+        : '<p class="rm-key"><strong>Email sending is not confirmed yet.</strong> No email has been due, so nothing shows whether it is set up. The console never sees the key itself.<span class="meta rm-sub">Details: Resend key, set on the server.</span></p>';
     const team = MN.team;
     const addr = isOwner()
       ? `<form class="mn-team" id="mn-team" novalidate><div class="field"><label class="sr-only" for="mn-email">Team email address</label><input id="mn-email" name="email" type="email" maxlength="200" autocomplete="off" inputmode="email" spellcheck="false" value="${esc(team || '')}" placeholder="name@yourdomain.com"></div><button class="btn btn-sm" type="submit">${team ? 'Save address' : 'Set address'}</button></form>
@@ -777,7 +779,7 @@
           <dt>Last sent</dt><dd>${lastText}</dd>
           <dt>Waiting</dt><dd>${waitText}</dd>
           ${skipText ? `<dt>Skipped</dt><dd>${skipText}<span class="meta rm-sub">Paused and archived clients get no email.</span></dd>` : ''}
-          <dt>Sender</dt><dd>The address in NOTIFY_FROM on the server. The console cannot read it.</dd></dl>
+          <dt>Sender</dt><dd>The sender address is set on the server and the console cannot read it.<span class="meta rm-sub">Details: NOTIFY_FROM.</span></dd></dl>
         ${key}</div>
       <div class="rm-fails"><h3 class="rm-h">Failed in the last 30 days <span class="chip ${R.fails.length ? 'warn' : 'good'}">${R.fails.length ? R.fails.length : 'None'}</span></h3>
         ${R.fails.length ? `<ul class="rm-list">${R.fails.map(fail).join('')}</ul>` : '<p class="meta">No message email has failed in the last 30 days.</p>'}</div></div>`;

@@ -209,7 +209,7 @@
                 <p class="hint">A PNG, JPG, WebP, PDF or CSV up to 10 MB. It is kept privately, for the team only.</p>`}</div>
           </div>
           <div class="rs-hold" data-rs-hold hidden role="status"></div>
-          <div class="rs-vis"><label class="switch-row"><input type="checkbox" role="switch" name="visible" disabled${opened && opened.client_visible ? ' checked' : ''}><span><span class="pick-t">Client sees this <span class="meta">(client_visible)</span></span><span class="pick-d" data-rs-vis-hint>Off until verified</span></span></label></div>
+          <div class="rs-vis"><label class="switch-row"><input type="checkbox" role="switch" name="visible" disabled${opened && opened.client_visible ? ' checked' : ''}><span><span class="pick-t">Client sees this</span><span class="pick-d" data-rs-vis-hint>Off until verified</span></span></label></div>
           <p class="field-error" data-rs-error role="alert" hidden></p>
           <div class="actions rs-actions">
             <button class="btn" type="button" data-rs-publish disabled>Mark verified and publish</button>

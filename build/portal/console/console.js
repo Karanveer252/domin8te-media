@@ -720,15 +720,16 @@
   function renderSide() {
     if (!all || !me) return;
     const list = /** @type {HTMLElement} */ ($('#side-list'));
-    let needsTotal = 0;
+    let needsTotal = reviewCount(null); // the same total the Needs you page shows as "Do now": client approvals plus every need
     for (const t of all.tenants) if (t.status !== 'archived') needsTotal += derive(t).needs.length;
     const openId = current && document.documentElement.dataset.page === 'client' ? current.id : ''; // only while a client's own page is open
     const recent = recentIds().map((id) => tenant(id)).filter(Boolean);
     list.innerHTML = recent.map((/** @type {any} */ t) => {
       const d = derive(t);
-      const title = d.needs.length ? plural(d.needs.length, 'thing needs', 'things need') + ' you' : d.waiting.length ? plural(d.waiting.length, 'thing') + ' waiting on client' : t.status === 'active' ? 'Nothing waiting' : t.status;
+      const nn = d.needs.length + reviewCount(t.id);
+      const title = nn ? plural(nn, 'thing needs', 'things need') + ' you' : d.waiting.length ? plural(d.waiting.length, 'thing') + ' waiting on client' : t.status === 'active' ? 'Nothing waiting' : t.status;
       return `<li><a class="side-client${t.status !== 'active' ? ' paused' : ''}" href="#/client/${esc(t.id)}"${t.id === openId ? ' aria-current="page"' : ''} title="${esc(title)}">
-        ${CC() ? CC().badge(t.id) : ''}<span class="name">${esc(t.name)}</span>${d.needs.length ? `<span class="badge">${d.needs.length}</span>` : ''}</a></li>`;
+        ${CC() ? CC().badge(t.id) : ''}<span class="name">${esc(t.name)}</span>${nn ? `<span class="badge">${nn}</span>` : ''}</a></li>`;
     }).join('');
     $('#side-recent-h').hidden = !recent.length;
     const qb = $('#queue-badge');
@@ -859,11 +860,12 @@
         { name: 'Needs you', hint: 'Page', href: '#/queue', icon: 'inbox' },
         { name: 'Messages', hint: 'Page', href: '#/messages', icon: 'chat' },
         { name: 'Bot chat', hint: 'Page', href: '#/bot', icon: 'bot' },
+        { name: 'Bot numbers', hint: 'Page', href: '#/bot/stats', icon: 'trend' },
         { name: 'Add a client', hint: 'Page', href: '#/new', icon: 'plus' },
         { name: 'Clients', hint: 'Page', href: '#/clients', icon: 'users' },
         { name: 'All work (every client\'s team cards)', hint: 'Page', href: '#/board', icon: 'board' },
         { name: 'Billing', hint: 'Page', href: '#/billing', icon: 'card' },
-        ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }] : []),
+        ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }, { name: 'Revenue: Income', hint: 'Page', href: '#/revenue/income', icon: 'trend' }, { name: 'Revenue: Costs', hint: 'Page', href: '#/revenue/costs', icon: 'trend' }, { name: 'Revenue: Years', hint: 'Page', href: '#/revenue/years', icon: 'trend' }] : []),
         { name: 'Settings', hint: 'Page', href: '#/settings', icon: 'gear' },
         { name: 'Team', hint: 'Settings', href: '#/settings', icon: 'users' },
         { name: 'Reload everything', hint: 'Action', act: 'refresh', icon: 'refresh' },
@@ -872,6 +874,7 @@
       for (const t of (all ? all.tenants : [])) {
         out.push({ name: t.name, hint: 'Client', href: `#/client/${t.id}`, icon: 'store' });
         for (const [k, label] of allTabs()) if (k !== 'overview') out.push({ name: `${t.name}: ${label}`, hint: 'Tab', href: `#/client/${t.id}/${k}`, icon: 'page' });
+        out.push({ name: `${t.name}: Billing`, hint: 'Tab', href: `#/billing/${t.id}`, icon: 'card' });
         out.push({ name: `${t.name}: Messages`, hint: 'Tab', href: `#/messages/${t.id}`, icon: 'chat' });
       }
       return out;
@@ -1504,7 +1507,7 @@
     document.title = 'Add a client · Domin8te console';
     const part = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.newclient;
     if (part) part.page();
-    else main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a><div class="empty"><p><strong>Add client did not load.</strong></p><p>Reload the page. If this stays, tell the team.</p></div>`;
+    else main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a><div class="empty"><p><strong>Add a client did not load.</strong></p><p>Reload the page. If this stays, tell the team.</p></div>`;
   }
 
   /* ---- one client --------------------------------------------------------------------------------- */
@@ -1654,7 +1657,7 @@
       const held = got.needs.filter((/** @type {any} */ x) => x.kind === 'exception' && /^(plan_mismatch|result_outlier)$/.test(x.ex.reason_code)).length;
       const failed = !!(all.reviews && all.reviews.error);
       $('.client-head', main).insertAdjacentHTML('afterend', pageFresh({
-        updatedAt: current.updated_at, source: 'this client\'s record, plan months and usage in the console',
+        updatedAt: all.at, source: `this client's record${current.updated_at ? ` (last changed ${clockTime(current.updated_at)})` : ''}, plan months and usage in the console`,
         status: failed ? 'delayed' : held ? 'kept' : 'ok', label: failed ? 'Some data did not load' : held ? `${held} unverified` : undefined
       }));
     }
@@ -2569,7 +2572,7 @@
   Object.assign(HISTORY_WORDS, {
     usage_added: (/** @type {any} */ d) => d.counted === false ? `logged an urgent fix (${metricWords(d.metric)}), not counted` : `counted ${d.qty || 1} of ${metricWords(d.metric)}${d.over_cap_approved ? ', approved as a one-off' : ''}`,
     usage_voided: (/** @type {any} */ d) => `took ${d.qty || 1} of ${metricWords(d.metric)} off the count${d.reason ? `: ${d.reason}` : ''}`,
-    usage_live_set: (/** @type {any} */ d) => `set ${d.metric === 'ads_platforms' ? 'Ad platforms' : 'Live campaigns'} to ${d.now} (was ${d.was})`,
+    usage_live_set: (/** @type {any} */ d) => `set ${d.metric === 'ads_platforms' ? 'Ad platforms in use' : 'Live campaigns'} to ${d.now} (was ${d.was})`,
     task_shown: (/** @type {any} */ d) => `showed the card “${d.title || 'a card'}” to the client${d.reason ? `: ${d.reason}` : ''}`,
     task_hidden: (/** @type {any} */ d) => `hid the card “${d.title || 'a card'}” from the client${d.reason ? `: ${d.reason}` : ''}`,
     task_deleted: (/** @type {any} */ d) => `removed the card “${d.title || 'a card'}” (its history is kept)${d.reason ? `: ${d.reason}` : ''}`,
@@ -3037,7 +3040,7 @@
   }
   /** A key is set and it is not a refused live key. */
   const stripeReady = () => !!(stripeState && stripeState.configured && !stripeState.refused);
-  const stripeModeText = () => (stripeState && stripeState.mode === 'live' ? 'live' : 'test mode');
+  const stripeModeText = () => (stripeState && stripeState.mode === 'live' ? 'live' : stripeState && stripeState.mode === 'test' ? 'test mode' : 'mode not known');
   /** @param {any} t */
   const stripeIdOf = (t) => (t && t.doc && t.doc.billing && t.doc.billing.stripeCustomerId) || '';
   /** The subscription facts were written by the Stripe webhook, not typed. @param {any} t */
@@ -3070,7 +3073,8 @@
     else if (st.failed) { chip = '<span class="chip warn">Could not check</span>'; body = `<p class="notice bad">${esc(st.failed)}</p>`; }
     else if (st.refused) { chip = '<span class="chip bad">Live key refused</span>'; body = '<p>The server has a live Stripe key, but live mode is off, so Stripe is not used. Put the test key back, or turn on live mode when you are ready. The README says how.</p>'; }
     else if (st.configured && st.mode === 'live') { chip = '<span class="chip good">Live</span>'; body = '<p>Real customers and real payments.</p>'; }
-    else if (st.configured) { chip = '<span class="chip info">Connected (test mode)</span>'; body = '<p>Test customers only. No real money moves.</p>'; }
+    else if (st.configured && st.mode === 'test') { chip = '<span class="chip info">Connected (test mode)</span>'; body = '<p>Test customers only. No real money moves.</p>'; }
+    else if (st.configured) { chip = '<span class="chip info">Connected</span>'; body = '<p>The server has a Stripe key, but the console cannot tell whether it is a test or a live one.</p>'; }
     else {
       chip = '<span class="chip plain">Not set up yet</span>';
       body = `<p>You add the keys yourself. This page never asks for them.</p>
