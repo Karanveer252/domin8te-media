@@ -17,9 +17,11 @@
 // verify_jwt is off because the token is Clerk's, not Supabase's; step 1 is the check.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { allowedOrigins } from "../_shared/origins.ts";
 
 const CLERK = "https://api.clerk.com/v1";
-const ALLOWED = ["https://domin8temedia.com", "https://www.domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
+// The live site; the local preview ports only with ALLOW_LOCAL_ORIGINS=1 (TEST and local, never prod).
+const ALLOWED = allowedOrigins();
 // Clerk ids go into API paths: only the plain shapes are accepted, and every path segment is encoded anyway, so a
 // body value like "../../users/user_X" can never point the secret key at another Clerk object.
 const USER_ID = /^user_[A-Za-z0-9]+$/;

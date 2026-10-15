@@ -180,7 +180,10 @@ select pg_temp.w('M10 staff cannot mark a waiting email as sent', 'blocked',
   $q$update public.message_notifications set status = 'sent' where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and status = 'scheduled'$q$);
 select pg_temp.e('M10 a bad address is refused', '22023',
   $q$update public.message_notifications set status = 'scheduled', to_email = 'nope' where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and status = 'failed'$q$);
-select pg_temp.w('M10 staff put a failed email back in the queue', 'allowed',
+select pg_temp.e('M10 a team member cannot send it to a new address (owners only, 20261014160000)', '42501',
+  $q$update public.message_notifications set status = 'scheduled', to_email = 'team2@example.test' where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and status = 'failed'$q$);
+set local request.jwt.claims = '{"sub":"user_TEST_owner","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:admin"}}';
+select pg_temp.w('M10 an owner puts a failed email back in the queue with a new address', 'allowed',
   $q$update public.message_notifications set status = 'scheduled', to_email = 'team2@example.test' where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and status = 'failed'$q$);
 reset role;
 select pg_temp.v('M10 it is waiting again with a fresh count and the new address', 'scheduled/0/team2@example.test',

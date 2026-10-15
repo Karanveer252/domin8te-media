@@ -62,6 +62,9 @@ if (!demoPages.length) console.log(`note: nothing staged in ${path.relative(PORT
 
 report('T10a no plan price in the demo dashboard or the demo console', hits(demoPages, PRICE));
 report('T10a no plan price as a raw number (99900, 199900, 349900) or $999 form in the demo dashboard or the demo console', hits(demoPages, { test: (line) => PRICE_RAW.test(noPictures(line)) }));
+// T10d (15 Oct): the demo console runs on stand-ins; it holds no live database address, key, team id, staff address or real-looking stub address.
+const LIVE_SETTING = /supabase\.co|sb_publishable_|pk_(live|test)_|org_[A-Za-z0-9]{10,}|(?<!karanhelps)@domin8temedia.com|bayleafkitchen\.com/i;
+report('T10d no live setting or real-looking address in the demo console', hits(demoPages.filter((f) => /console/.test(path.relative(STAGED, f))), { test: (line) => LIVE_SETTING.test(noPictures(line)) }));
 const sources = [
   ...walk(path.join(PORTAL, 'v16', 'src'), (f) => /\.(js|css|html)$/.test(f)),
   ...walk(path.join(PORTAL, 'console'), (f) => /\.(js|css|html)$/.test(f)),

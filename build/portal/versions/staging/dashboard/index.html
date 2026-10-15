@@ -1494,12 +1494,12 @@ html[data-theme="dark"] { --p-fill-ok: var(--p-accent); --p-fill-warn: #F2B544; 
 .bar > span { display: block; height: 100%; border-radius: inherit; background: var(--p-fill-ok); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28); transition: width var(--m-slow) var(--ease); }
 /* Three clear states (2026-10-14): amber near the limit, a calm ink bar with "Limit reached" at it, red with "Over by N" only past it. */
 .usage.is-warn .bar > span { background: var(--p-fill-warn); }
-.usage.is-full .bar > span { background: var(--p-ink-3); }
+.usage.is-full .bar > span { background: #B87400; } /* at the limit: full, deeper amber (Karan, 14 Oct) */
 .usage.is-over .bar > span { background: var(--p-fill-full); }
 .usage-word { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 650; }
 .usage-word::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .usage.is-warn .usage-word { color: var(--p-warning); }
-.usage.is-full .usage-word { color: var(--p-ink-2); }
+.usage.is-full .usage-word { color: var(--p-warning); }
 .usage.is-over .usage-word { color: var(--p-error); }
 .usage-reset { margin-top: 2px; font-size: 13.5px; color: var(--p-ink-3); }
 .chip-sample { display: inline-flex; align-items: center; padding: 1px 9px; border-radius: 999px; background: linear-gradient(var(--p-neutral-bg), var(--p-neutral-bg)), var(--p-surface); color: var(--p-ink-3); font-size: 12.5px; font-weight: 600; line-height: 1.5; white-space: nowrap; }
@@ -6550,11 +6550,17 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   const VIEW = /** @type {any} */ (D8.data).viewAs;
   /** @type {Promise<any>|null} */
   let viewReady = null;
-  /** What the console says about the client and the staff member: { client, tenant: {id, name, clerk_org_id}, staff: {userId, name} }. */
+  /** The only functions the frame may call on the console's client (round 3): an exact list, every other rpc is refused. */
+  const VIEW_READS = ['client_work_cards', 'plan_menu', 'client_results_current'];
+  /** What the console says about the client and the staff member: { client, tenant: {id, name, clerk_org_id}, staff: {userId, name} }.
+   * The client is wrapped read only (lib/view-as.js) before anything here can use it; without the wrapper the frame does not open. */
   function viewCtx() {
     if (!viewReady) {
-      viewReady = Promise.resolve().then(() => VIEW.parent.D8C.viewAs(VIEW.tenantId)).then((ctx) => {
-        if (!ctx || !ctx.client || !ctx.tenant || !ctx.tenant.id) throw new Error('no client');
+      viewReady = Promise.resolve().then(() => VIEW.parent.D8C.viewAs(VIEW.tenantId)).then((got) => {
+        if (!got || !got.client || !got.tenant || !got.tenant.id) throw new Error('no client');
+        const ro = D8.viewAs && D8.viewAs.readOnly;
+        if (typeof ro !== 'function') throw new Error('no read-only guard');
+        const ctx = { tenant: got.tenant, staff: got.staff, client: ro(got.client, VIEW_READS) };
         VIEW.ctx = ctx;
         VIEW.name = String(ctx.tenant.name || '');
         return ctx;
@@ -7105,7 +7111,50 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     } catch (e) { return false; /* the console is gone */ }
   }
 
-  D8.viewAs = { listen, toParent };
+  /**
+   * The console's database client, made read only for the frame (round 3, 15 Oct 2026). The `if (VIEW)` lines in
+   * live-data.js stay; this is the second lock, so a write path added later that forgets them still cannot write as staff.
+   * Only from() and rpc() are offered: from() refuses insert, update, upsert and delete; rpc() runs only the names in
+   * `reads` (an exact list, no prefix); storage, functions, auth and everything else are simply not there.
+   * A refusal answers like a failed query ({ data: null, error: { code: 'view-readonly' } }), wherever it is chained.
+   * @param {any} client @param {string[]} reads @returns {any}
+   */
+  function readOnly(client, reads) {
+    if (!client || typeof client.from !== 'function') throw new Error('no client');
+    const READS = new Set(reads || []);
+    const WRITE = new Set(['insert', 'update', 'upsert', 'delete']);
+    const answer = () => ({ data: null, error: { code: 'view-readonly', message: 'Read only while viewing as a client.' } });
+    /** A query that is refused however it is chained (.insert().select().single()) and answers once awaited. @returns {any} */
+    const refused = () => {
+      /** @type {any} */
+      const q = new Proxy(function () {}, {
+        get(_t, k) {
+          if (k === 'then') return (/** @type {any} */ res, /** @type {any} */ rej) => Promise.resolve(answer()).then(res, rej);
+          if (k === 'catch' || k === 'finally') return (/** @type {any} */ f) => Promise.resolve(answer())[k](f);
+          return () => q;
+        },
+        apply() { return q; }
+      });
+      return q;
+    };
+    return Object.freeze({
+      from(/** @type {string} */ table) {
+        const b = client.from(table);
+        return new Proxy(b, {
+          get(t, k) {
+            if (typeof k === 'string' && WRITE.has(k)) return refused;
+            const v = t[k];
+            return typeof v === 'function' ? v.bind(t) : v;
+          }
+        });
+      },
+      rpc(/** @type {string} */ name, /** @type {any} */ args, /** @type {any} */ opts) {
+        return READS.has(String(name)) ? client.rpc(name, args, opts) : refused();
+      }
+    });
+  }
+
+  D8.viewAs = { listen, toParent, readOnly };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script>
@@ -7728,11 +7777,11 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     local: 'Google and Apple Maps, reviews, search',
     email: 'Email campaigns and automatic emails, with a welcome email'
   };
-  /** What comes with each plan besides its services. A summary and calls are facts, not limits (release default 20): change them here. */
+  /** What comes with each plan besides its services: change it here. No calls or video walkthroughs on any plan (Karan, 14 Oct 2026). */
   const INCLUDED = {
     starter: ['A monthly summary in your dashboard'],
-    growth: ['A monthly summary in your dashboard', 'A 15 minute call each month'],
-    domin8te: ['A monthly summary in your dashboard', 'A 30 minute call each month', 'A short video walkthrough']
+    growth: ['A monthly summary in your dashboard'],
+    domin8te: ['A monthly summary in your dashboard']
   };
   /** Ad spend is separate from the plan fee (release default 18): change the sentence here. */
   const AD_SPEND = 'Ad spend is paid to Meta and Google directly and is not part of your plan.';
@@ -9877,6 +9926,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     // The form shows once the client presses Add someone.
     const add = /** @type {HTMLButtonElement|null} */ (el.querySelector('[data-action="add-login"]'));
     if (add) add.addEventListener('click', () => {
+      if (D8.data.READ_ONLY) D8.dialogs.toast(D8.data.viewAs ? D8.data.DEMO_NOTE : 'This is a demo, so nothing is saved.');
       const open = form.hidden;
       form.hidden = !open;
       add.setAttribute('aria-expanded', String(open));
@@ -9896,8 +9946,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       err.hidden = true;
       if (!first) return bad('first', 'Add their first name.');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return bad('email', 'Enter their email address, like name@restaurant.com.');
-      if (D8.data.viewAs) { status.textContent = D8.data.DEMO_NOTE; return; }
-      if (!D8.live) { status.textContent = 'This is a demo, so nothing was sent. In your own portal, we would get this request.'; return; }
+      if (D8.data.viewAs) { status.textContent = D8.data.DEMO_NOTE; D8.dialogs.toast(D8.data.DEMO_NOTE); return; }
+      if (!D8.live) { status.textContent = 'This is a demo, so nothing was sent. In your own portal, we would get this request.'; D8.dialogs.toast('This is a demo, so nothing is saved.'); return; }
       const btn = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
       btn.disabled = true;
       try {
@@ -9926,6 +9976,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     const status = /** @type {HTMLElement} */ (form.querySelector('#notify-status'));
     const err = /** @type {HTMLElement} */ (form.querySelector('.form-error'));
     let saved = { ...s.prefs };
+    if (D8.data.READ_ONLY) btn.disabled = false; // pressing it says why nothing is saved
     const current = () => {
       /** @type {Record<string, boolean>} */ const p = {};
       // The always-on emails have no switch: they keep their saved value.
@@ -9936,16 +9987,23 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       return p;
     };
     const dirty = () => s.categories.some((c) => current()[c.id] !== saved[c.id]);
-    form.addEventListener('change', () => { btn.disabled = !dirty(); status.textContent = dirty() ? 'You have unsaved changes. Press Save changes to keep them.' : 'No unsaved changes.'; });
+    const demoToast = () => D8.dialogs.toast(D8.data.viewAs ? D8.data.DEMO_NOTE : 'This is a demo, so nothing is saved.');
+    form.addEventListener('change', () => {
+      if (D8.data.READ_ONLY) {
+        // A blocked switch says so and stays as it was (2026-10-14, R2-26).
+        for (const c of s.categories) { const box = /** @type {HTMLInputElement|null} */ (form.elements.namedItem(c.id)); if (box) box.checked = !!saved[c.id]; }
+        demoToast();
+        return;
+      }
+      btn.disabled = !dirty(); status.textContent = dirty() ? 'You have unsaved changes. Press Save changes to keep them.' : 'No unsaved changes.'; });
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      if (!dirty()) return;
+      if (!dirty() && !D8.data.READ_ONLY) return;
       if (D8.data.READ_ONLY) {
         // Nothing was saved, so the switches go back to what is saved (2026-10-14): the page never shows a choice it did not keep.
         for (const c of s.categories) { const box = /** @type {HTMLInputElement|null} */ (form.elements.namedItem(c.id)); if (box) box.checked = !!saved[c.id]; }
-        btn.disabled = true;
         status.textContent = D8.data.DEMO_NOTE;
-        D8.dialogs.toast(D8.data.viewAs ? D8.data.DEMO_NOTE : 'This is a demo, so nothing is saved.');
+        demoToast();
         return;
       }
       btn.disabled = true;

@@ -101,10 +101,23 @@ test("emails: no long dashes, no prices, no results claims", () => {
   }
 });
 
-test("dry run: renders the due emails, sends and claims nothing, even with a key set", async () => {
+test("dry run by default: counts and ids only, never the message text or a rendered email", async () => {
+  const db = fakeDb([TEAM, CLIENT]); let fetched = 0;
+  const out = await runNotifications({ db, env: (k) => ({ ...ENV, MESSAGE_NOTIFY_DRY_RUN: "1" })[k],
+    fetch: async () => { fetched++; return { ok: true, status: 200, json: async () => ({ id: "x" }) }; }, log: () => {} });
+  assert.equal(out.dryRun, true);
+  assert.equal(out.wouldSend, 2);
+  assert.deepEqual(out.due.map((e) => e.direction), ["to_team", "to_client"]);
+  assert.equal(out.emails, undefined, "no emails unless asked with show");
+  assert.ok(!/brunch|samplecafe|doctype|Sample Cafe/i.test(JSON.stringify(out)), "no message, address or name in the answer");
+  assert.equal(fetched, 0);
+  assert.ok(!db.calls.includes("claim_message_notifications"));
+});
+
+test("dry run with show (the secret holder asked): renders the due emails, sends and claims nothing, even with a key set", async () => {
   const db = fakeDb([TEAM, CLIENT]); let fetched = 0; const logs = [];
   const out = await runNotifications({ db, env: (k) => ({ ...ENV, MESSAGE_NOTIFY_DRY_RUN: "1" })[k],
-    fetch: async () => { fetched++; return { ok: true, status: 200, json: async () => ({ id: "x" }) }; }, log: (l) => logs.push(l) });
+    fetch: async () => { fetched++; return { ok: true, status: 200, json: async () => ({ id: "x" }) }; }, log: (l) => logs.push(l) }, { show: true });
   assert.equal(out.dryRun, true);
   assert.equal(out.emails.length, 2);
   assert.deepEqual(out.emails.map((e) => e.direction), ["to_team", "to_client"]);

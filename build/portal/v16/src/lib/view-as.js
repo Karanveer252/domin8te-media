@@ -45,5 +45,48 @@
     } catch (e) { return false; /* the console is gone */ }
   }
 
-  D8.viewAs = { listen, toParent };
+  /**
+   * The console's database client, made read only for the frame (round 3, 15 Oct 2026). The `if (VIEW)` lines in
+   * live-data.js stay; this is the second lock, so a write path added later that forgets them still cannot write as staff.
+   * Only from() and rpc() are offered: from() refuses insert, update, upsert and delete; rpc() runs only the names in
+   * `reads` (an exact list, no prefix); storage, functions, auth and everything else are simply not there.
+   * A refusal answers like a failed query ({ data: null, error: { code: 'view-readonly' } }), wherever it is chained.
+   * @param {any} client @param {string[]} reads @returns {any}
+   */
+  function readOnly(client, reads) {
+    if (!client || typeof client.from !== 'function') throw new Error('no client');
+    const READS = new Set(reads || []);
+    const WRITE = new Set(['insert', 'update', 'upsert', 'delete']);
+    const answer = () => ({ data: null, error: { code: 'view-readonly', message: 'Read only while viewing as a client.' } });
+    /** A query that is refused however it is chained (.insert().select().single()) and answers once awaited. @returns {any} */
+    const refused = () => {
+      /** @type {any} */
+      const q = new Proxy(function () {}, {
+        get(_t, k) {
+          if (k === 'then') return (/** @type {any} */ res, /** @type {any} */ rej) => Promise.resolve(answer()).then(res, rej);
+          if (k === 'catch' || k === 'finally') return (/** @type {any} */ f) => Promise.resolve(answer())[k](f);
+          return () => q;
+        },
+        apply() { return q; }
+      });
+      return q;
+    };
+    return Object.freeze({
+      from(/** @type {string} */ table) {
+        const b = client.from(table);
+        return new Proxy(b, {
+          get(t, k) {
+            if (typeof k === 'string' && WRITE.has(k)) return refused;
+            const v = t[k];
+            return typeof v === 'function' ? v.bind(t) : v;
+          }
+        });
+      },
+      rpc(/** @type {string} */ name, /** @type {any} */ args, /** @type {any} */ opts) {
+        return READS.has(String(name)) ? client.rpc(name, args, opts) : refused();
+      }
+    });
+  }
+
+  D8.viewAs = { listen, toParent, readOnly };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -5,8 +5,8 @@
 --
 -- Who can see it: ONE person, the business owner in app.business_owner (one row). Not other owners or super admins, not the team, not
 -- clients, not anon. The row holds the owner's sign-in id as the session token names it (auth.jwt() ->> 'sub'; the console signs in with
--- Clerk, so this is a "user_..." id, not a Supabase auth.users uuid). The migration seeds it from auth.users by Karan's email when that
--- user exists there (with Clerk sign-in there is none, so Karan sets it once by SQL; see the end of this file). Nothing in the API can
+-- Clerk, so this is a "user_..." id, not a Supabase auth.users uuid). This file does not seed it: 20261014150000 sets it once (the one
+-- place the owner is set; see the end of this file). Nothing in the API can
 -- read or change the row. app.is_business_owner() also requires a team session (app.is_staff()).
 --
 -- Tables: RLS on, the only policy is "the business owner reads"; authenticated gets SELECT only (writes go through the functions below,
@@ -31,10 +31,6 @@ create table if not exists app.business_owner (
 );
 alter table app.business_owner enable row level security;
 revoke all on app.business_owner from public, anon, authenticated;
-
-insert into app.business_owner (user_id)
-  select u.id::text from auth.users u where lower(u.email) = 'kvsd100@gmail.com' order by u.created_at limit 1
-  on conflict (only_one) do nothing;
 
 create or replace function app.is_business_owner()
 returns boolean language sql stable security definer set search_path = '' as $$
@@ -295,5 +291,5 @@ end $$;
 revoke all on function public.business_history(date, integer) from public, anon;
 grant execute on function public.business_history(date, integer) to authenticated;
 
--- 5. Setting the owner (Karan, by SQL only; there is no function for it). His id is the "user_..." id Clerk shows for him:
---   insert into app.business_owner (user_id) values ('user_...') on conflict (only_one) do update set user_id = excluded.user_id;
+-- 5. Setting the owner: 20261014150000 seeds it once and then does nothing. To move it later (Karan, by SQL only; there is no function):
+--   update app.business_owner set user_id = 'user_...' where only_one;

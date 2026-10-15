@@ -36,11 +36,17 @@
   const VIEW = /** @type {any} */ (D8.data).viewAs;
   /** @type {Promise<any>|null} */
   let viewReady = null;
-  /** What the console says about the client and the staff member: { client, tenant: {id, name, clerk_org_id}, staff: {userId, name} }. */
+  /** The only functions the frame may call on the console's client (round 3): an exact list, every other rpc is refused. */
+  const VIEW_READS = ['client_work_cards', 'plan_menu', 'client_results_current'];
+  /** What the console says about the client and the staff member: { client, tenant: {id, name, clerk_org_id}, staff: {userId, name} }.
+   * The client is wrapped read only (lib/view-as.js) before anything here can use it; without the wrapper the frame does not open. */
   function viewCtx() {
     if (!viewReady) {
-      viewReady = Promise.resolve().then(() => VIEW.parent.D8C.viewAs(VIEW.tenantId)).then((ctx) => {
-        if (!ctx || !ctx.client || !ctx.tenant || !ctx.tenant.id) throw new Error('no client');
+      viewReady = Promise.resolve().then(() => VIEW.parent.D8C.viewAs(VIEW.tenantId)).then((got) => {
+        if (!got || !got.client || !got.tenant || !got.tenant.id) throw new Error('no client');
+        const ro = D8.viewAs && D8.viewAs.readOnly;
+        if (typeof ro !== 'function') throw new Error('no read-only guard');
+        const ctx = { tenant: got.tenant, staff: got.staff, client: ro(got.client, VIEW_READS) };
         VIEW.ctx = ctx;
         VIEW.name = String(ctx.tenant.name || '');
         return ctx;

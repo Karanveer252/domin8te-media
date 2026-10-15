@@ -79,7 +79,7 @@
     const rem = (cycle, tenant, kind, sendAt, o) => ({ id: `rem_${cycle}_${kind}`, tenant_id: tenant, cycle_id: cycle, kind, send_at: sendAt, to_email: 'owner@example.com', status: 'scheduled', attempts: 0, provider_id: null, error: null, sent_at: null, created_at: stamp(-8, 0), updated_at: stamp(-1, 0), ...o });
     const next = (t) => db.tenant_plan_cycles.find((/** @type {any} */ c) => c.tenant_id === t && c.state === 'confirmed');
     db.billing_reminders = [];
-    if (next('tnt_preview_bayleaf')) db.billing_reminders.push(rem(next('tnt_preview_bayleaf').id, 'tnt_preview_bayleaf', 'd7', stamp(-1, 0), { status: 'sent', sent_at: stamp(-1, 0), provider_id: 're_preview_1', to_email: 'dani@bayleafkitchen.com' }), rem(next('tnt_preview_bayleaf').id, 'tnt_preview_bayleaf', 'd3', stamp(5, 0), { to_email: 'dani@bayleafkitchen.com' }));
+    if (next('tnt_preview_bayleaf')) db.billing_reminders.push(rem(next('tnt_preview_bayleaf').id, 'tnt_preview_bayleaf', 'd7', stamp(-1, 0), { status: 'sent', sent_at: stamp(-1, 0), provider_id: 're_preview_1', to_email: 'dani@bayleaf.example' }), rem(next('tnt_preview_bayleaf').id, 'tnt_preview_bayleaf', 'd3', stamp(5, 0), { to_email: 'dani@bayleaf.example' }));
     if (next('tnt_preview_marlow')) db.billing_reminders.push(rem(next('tnt_preview_marlow').id, 'tnt_preview_marlow', 'd7', stamp(-4, 0), { status: 'sent', sent_at: stamp(-4, 0), provider_id: 're_preview_2', to_email: 'priya@marlowfinch.example' }), rem(next('tnt_preview_marlow').id, 'tnt_preview_marlow', 'd3', stamp(0, 1), { status: 'failed', attempts: 3, error: 'Resend: hard bounce', to_email: 'priya@marlowfinch.example' }));
 
     // What staff wrote for the client's Home tab.

@@ -208,6 +208,7 @@
       [/reason-required/, () => 'Add a reason first.'],
       [/bad-email/, () => 'That email address does not look right.'],
       [/only-requeue/, () => 'This email is no longer failed, so it cannot be sent again.'],
+      [/owner-only/, () => 'Only an owner can send this email to a different address. Keep the same address, or ask an owner.'],
       [/not-staff/, () => 'Your sign-in is not on the Domin8te team. Sign out and in again.'],
       [/unknown-reason|bad-status|bad-decision/, () => 'The database did not accept that. Reload and try again.']
     ];

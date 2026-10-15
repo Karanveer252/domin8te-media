@@ -1,6 +1,8 @@
 // One run of the message-email job, with its database, settings and fetch passed in (so tests need no network or Deno).
 // 1. lease (one run at a time)
-// 2. dry run (MESSAGE_NOTIFY_DRY_RUN=1): render what is due, send nothing, change nothing
+// 2. dry run (MESSAGE_NOTIFY_DRY_RUN=1): count what is due, send nothing, change nothing. The answer holds counts and ids
+//    only; the rendered emails (with the client's message text) come back only when the secret holder asks with show
+//    (?show=1), so a cron answer kept in net._http_response never holds a message. Never leave dry run on for the prod cron.
 //    otherwise: claim what is due, send each through Resend, report back (retries and Needs you are the database's job)
 // Logs carry counts and masked addresses only: never a key, a secret, a message or an email body.
 import { renderNotification, type NotifyRow } from "./render.ts";
@@ -18,7 +20,7 @@ export const mask = (email: string) => {
 };
 const short = (e: unknown) => String((e as any)?.message || e || "error").replace(/\s+/g, " ").slice(0, 200);
 
-export async function runNotifications(d: Deps): Promise<Record<string, unknown>> {
+export async function runNotifications(d: Deps, opts: { show?: boolean } = {}): Promise<Record<string, unknown>> {
   const log = d.log || ((l: string) => console.log(l));
   const holder = crypto.randomUUID();
   const lease = await d.db.rpc("take_job_lease", { p_name: LEASE, p_holder: holder, p_seconds: 120 });
@@ -28,9 +30,11 @@ export async function runNotifications(d: Deps): Promise<Record<string, unknown>
     if (d.env("MESSAGE_NOTIFY_DRY_RUN") === "1") {
       const due = await d.db.rpc("peek_message_notifications", { p_limit: 20 });
       if (due.error) throw new Error("peek: " + short(due.error));
-      const emails = (due.data || []).map((r: NotifyRow) => ({ id: r.id, direction: r.direction, to: mask(r.to_email), ...renderNotification(r) }));
-      log(`message-notifications dry run: would send ${emails.length}`);
-      return { ok: true, dryRun: true, emails };
+      const rows = (due.data || []) as NotifyRow[];
+      log(`message-notifications dry run: would send ${rows.length}`);
+      const out: Record<string, unknown> = { ok: true, dryRun: true, wouldSend: rows.length, due: rows.map((r) => ({ id: r.id, direction: r.direction })) };
+      if (opts.show) out.emails = rows.map((r) => ({ id: r.id, direction: r.direction, to: mask(r.to_email), ...renderNotification(r) }));
+      return out;
     }
     const key = d.env("RESEND_API_KEY"), from = d.env("NOTIFY_FROM");
     if (!key || !from) {

@@ -213,6 +213,55 @@ test('read only: every write the client could make is refused in the client\'s n
   assert.deepEqual(plain(f.staff.calls.writes), []);
 });
 
+test('second lock (round 3): the client the frame gets is read only, so a write path that forgets `if (VIEW)` still cannot write', async () => {
+  const f = frame();
+  await f.D8.auth.getSession();
+  const sb = f.D8.data.viewAs.ctx.client;
+  assert.notEqual(sb, f.staff, "the frame never holds the console's own client");
+  for (const [table, op] of [['decisions', 'insert'], ['messages', 'insert'], ['requests', 'insert'], ['user_prefs', 'upsert'], ['tenants', 'update'], ['messages', 'delete']]) {
+    const r = await sb.from(table)[op]({ tenant_id: ID }).select('at').single();
+    assert.equal(r.error && r.error.code, 'view-readonly', `${table}.${op} refused`);
+  }
+  for (const name of ['set_next_cycle_picks', 'review_dashboard_item', 'list_something_new', 'get_x', 'search_y', 'console_me']) {
+    const r = await sb.rpc(name, { p_tenant: ID });
+    assert.equal(r.error && r.error.code, 'view-readonly', `${name} refused: only the exact read list runs`);
+  }
+  assert.equal(sb.storage, undefined, 'no storage');
+  assert.equal(sb.functions, undefined, 'no server functions');
+  assert.equal(sb.auth, undefined);
+  assert.throws(() => { sb.from = () => null; }, 'the wrapper cannot be swapped out');
+  assert.deepEqual(plain(f.staff.calls.writes), [], "nothing reached the console's client");
+  assert.ok(!f.staff.calls.rpc.some(([n]) => n !== 'client_work_cards' && n !== 'plan_menu' && n !== 'client_results_current'));
+  // reads still work through it
+  const t = await sb.from('tenants').select('id').eq('id', ID).maybeSingle();
+  assert.equal(t.data.id, ID);
+  assert.ok(Array.isArray((await sb.rpc('client_work_cards', { p_tenant: ID })).data));
+});
+
+test('without the read-only wrapper the frame does not open (fails closed)', async () => {
+  const f = frame();
+  f.D8.viewAs.readOnly = undefined;
+  await assert.rejects(() => f.D8.auth.getSession(), (e) => e.code === 'view-failed');
+  assert.deepEqual(plain(f.staff.calls.writes), []);
+});
+
+test("the console's write guard (round 3): an exact list of read functions, never a get_/list_/search_ prefix, each one a stable function", () => {
+  const src = fs.readFileSync(path.join(SRC, '..', '..', 'console', 'console.js'), 'utf8');
+  const m = src.match(/const READS = new Set\(\[([^\]]*)\]\)/);
+  assert.ok(m, 'READS is a Set of names');
+  assert.ok(!/const READS = \//.test(src), 'no regex');
+  const names = [...m[1].matchAll(/'([a-z0-9_]+)'/g)].map((x) => x[1]);
+  assert.ok(names.length >= 5);
+  const migDir = path.join(SRC, '..', '..', 'supabase', 'migrations');
+  const sql = fs.readdirSync(migDir).filter((f) => f.endsWith('.sql')).sort().map((f) => fs.readFileSync(path.join(migDir, f), 'utf8')).join('\n');
+  for (const n of names) {
+    const defs = [...sql.matchAll(new RegExp('create or replace function public[.]' + n + '[(][^]*?\\bas [$]', 'gi'))].map((x) => x[0]);
+    assert.ok(defs.length, `${n} exists in the migrations`);
+    if (n === 'console_me') continue; // who am I: answered for the console's own sign-in, never a client write
+    assert.match(defs[defs.length - 1], /\bstable\b/i, `${n}: its latest definition is stable (cannot write)`);
+  }
+});
+
 test('the note names the client once known; before that it says "this client"', async () => {
   const f = frame();
   assert.equal(f.D8.data.DEMO_NOTE, 'Viewing as this client: read only. Nothing here changes their account.');

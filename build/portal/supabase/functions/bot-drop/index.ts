@@ -2,8 +2,12 @@
 // Karan tells Grok, Claude or Hermes "drop this in the bot chat for <client>"; the bot POSTs here and a new Pending
 // approval card appears in the console. Nothing is sent to a client and no model is called: this only stores text.
 //
-// Private: headers x-bot-secret (= BOT_DROP_SECRET) and x-bot-name, which must be on BOT_DROP_ALLOWLIST (comma separated;
-// unset = nobody). Hermes also needs HERMES_ENABLED=true. Any failure of those is the same 401, with no detail.
+// Private: headers x-bot-name, which must be on BOT_DROP_ALLOWLIST (comma separated; unset = nobody), and x-bot-secret,
+// which must match that bot's own secret: BOT_DROP_SECRET_<NAME> (the name in capitals, "-" as "_", so grok uses
+// BOT_DROP_SECRET_GROK). A bot's own secret only proves that bot, so one bot cannot claim another's name.
+// Fallback (round 3, 15 Oct 2026): a bot with no secret of its own may still use the old shared BOT_DROP_SECRET, so
+// nothing breaks before the per-bot secrets are set. Once a bot has its own, the shared one no longer works for it.
+// Hermes also needs HERMES_ENABLED=true. Any failure of those is the same 401, with no detail.
 //
 // Body (JSON, 64 KB at most):
 //   client      the client's id (uuid) or their exact name (any case)            required
@@ -32,7 +36,9 @@ function botName(req: Request): string | null {
   const name = (req.headers.get("x-bot-name") || "").trim().toLowerCase();
   if (!/^[a-z0-9-]{1,40}$/.test(name) || !allow.includes(name)) return null;
   if (name === "hermes" && !hermesEnabled()) return null;
-  if (!secretMatches(req.headers.get("x-bot-secret"), Deno.env.get("BOT_DROP_SECRET"))) return null;
+  // The bot's own secret when it has one; otherwise the documented shared fallback.
+  const own = (Deno.env.get("BOT_DROP_SECRET_" + name.toUpperCase().replace(/-/g, "_")) || "").trim();
+  if (!secretMatches(req.headers.get("x-bot-secret"), own || Deno.env.get("BOT_DROP_SECRET"))) return null;
   return name;
 }
 

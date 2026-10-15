@@ -1,4 +1,4 @@
--- Security fixes (20261014110000, 20261014110100, 20261014130000, 20261014140000; critic items 5, 7, 9, 14, 18; S20 staff-only columns). TEST PROJECT ONLY.
+-- Security fixes (20261014110000, 20261014110100, 20261014130000, 20261014140000, 20261014160000 (R3, critic round 3); critic items 5, 7, 9, 14, 18; S20 staff-only columns). TEST PROJECT ONLY.
 -- Runs in one transaction and rolls back; makes its own sample clients. Every row of the result must say PASS.
 begin;
 create temp table r (n serial, check_name text, expect text, result text) on commit drop;
@@ -367,6 +367,113 @@ set local request.jwt.claims = '{"role":"anon"}';
 select pg_temp.e('S21 signed out cannot set a live count', '42501', $q$select public.set_live_count('5ec00000-0000-0000-0000-00000000000a', 'ads_live_campaigns', 0)$q$);
 reset role;
 select pg_temp.v('S21 nothing changed for the client or signed out', '1', (select used::text from public.tenant_usage_current where tenant_id = '5ec00000-0000-0000-0000-00000000000a' and metric = 'ads_live_campaigns'));
+
+-- R3 critic round 3 (20261014160000, 20261014150000) ---------------------------------------------------------------------------------
+reset role;
+-- 1. size limits on what a signed-in client writes
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_sec_a","role":"authenticated","o":{"id":"org_TEST_sec_a"}}';
+select pg_temp.e('R3.1 a client request of 4,001 characters is refused', '23514',
+  $q$insert into public.requests (tenant_id, service, body) values ('5ec00000-0000-0000-0000-00000000000a','website',repeat('x', 4001))$q$);
+select pg_temp.e('R3.1 the longest the dashboard sends (Urgent fix: + 2,000) is stored', 'ok',
+  $q$insert into public.requests (tenant_id, service, body, urgent_fix) values ('5ec00000-0000-0000-0000-00000000000a','website','Urgent fix: ' || repeat('y', 2000),true)$q$);
+reset role;
+select pg_temp.e('R3.1 a name of 101 characters is refused', '23514',
+  $q$insert into public.requests (tenant_id, service, body, by_name) values ('5ec00000-0000-0000-0000-00000000000a','website','r3 name',repeat('n', 101))$q$);
+select pg_temp.e('R3.1 a service that is not in the catalog is refused', '23503',
+  $q$insert into public.requests (tenant_id, service, body) values ('5ec00000-0000-0000-0000-00000000000a','nope','r3 service')$q$);
+select pg_temp.e('R3.1 settings of about 32 KB are refused', '23514',
+  $q$insert into public.user_prefs (clerk_user_id, notifications) values ('user_TEST_r3_big', (select jsonb_build_object('x', string_agg(md5(i::text), '')) from generate_series(1, 1000) i))$q$);
+select pg_temp.e('R3.1 normal settings are stored', 'ok',
+  $q$insert into public.user_prefs (clerk_user_id, notifications, appearance) values ('user_TEST_r3_ok', '{"messages":true,"billing":true}', '{"theme":"light"}')$q$);
+select pg_temp.v('R3.1 every limit is checked on old rows too (validated)', '5/5',
+  (select count(*) filter (where convalidated) || '/' || count(*) from pg_constraint
+    where conname in ('requests_body_len', 'requests_by_name_len', 'requests_service_fkey', 'user_prefs_size', 'client_profile_logo_data_check')));
+
+-- 2. the logo must be real base64
+select pg_temp.e('R3.2 a logo with markup after base64, is refused', '23514',
+  $q$insert into public.client_profile (tenant_id, logo_data) values ('5ec00000-0000-0000-0000-00000000000a', 'data:image/png;base64,x"onerror=alert(1)') on conflict (tenant_id) do update set logo_data = excluded.logo_data$q$);
+select pg_temp.e('R3.2 a real base64 logo is stored', 'ok',
+  $q$insert into public.client_profile (tenant_id, logo_data) values ('5ec00000-0000-0000-0000-00000000000a', 'data:image/png;base64,iVBORw0KGgo=') on conflict (tenant_id) do update set logo_data = excluded.logo_data$q$);
+
+-- 3. no grant to anon anywhere, and new objects start with none for anon or authenticated
+select pg_temp.v('R3.3 anon has no table or column right in public or app', '0',
+  (select (count(*) + (select count(*) from information_schema.column_privileges where grantee = 'anon' and table_schema in ('public', 'app')))::text
+     from information_schema.table_privileges where grantee = 'anon' and table_schema in ('public', 'app')));
+select pg_temp.v('R3.3 anon can run no function in public (and cannot reach app at all, below)', 'none',
+  coalesce((select string_agg(p.oid::regprocedure::text, ', ') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'none'));
+select pg_temp.v('R3.3 anon can use no sequence in public or app and has no way into app', '0/false',
+  (select count(*) || '/' || has_schema_privilege('anon', 'app', 'usage') from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname in ('public', 'app') and c.relkind = 'S' and (has_sequence_privilege('anon', c.oid, 'usage') or has_sequence_privilege('anon', c.oid, 'select'))));
+create table public.r3_probe (id serial primary key, x int);
+select pg_temp.v('R3.3 a new table is not granted to anon or authenticated', 'false/false',
+  has_table_privilege('anon', 'public.r3_probe', 'select,insert,update,delete')::text || '/' || has_table_privilege('authenticated', 'public.r3_probe', 'select,insert,update,delete')::text);
+select pg_temp.v('R3.3 the defaults for new objects in public no longer name anon or authenticated', '0',
+  (select count(*)::text from pg_default_acl where defaclrole = 'postgres'::regrole and defaclnamespace = 'public'::regnamespace
+    and (defaclacl::text like '%anon=%' or defaclacl::text like '%authenticated=%')));
+select pg_temp.v('R3.3 a new sequence is not granted to anon or authenticated', 'false/false',
+  has_sequence_privilege('anon', 'public.r3_probe_id_seq', 'usage,select,update')::text || '/' || has_sequence_privilege('authenticated', 'public.r3_probe_id_seq', 'usage,select,update')::text);
+select pg_temp.v('R3.3 app.settings has RLS on', 'true', (select relrowsecurity::text from pg_class where oid = 'app.settings'::regclass));
+
+-- 4, 5, 6
+select pg_temp.v('R3.4 nobody but the owner can run rls_auto_enable', 'false/false',
+  has_function_privilege('anon', 'public.rls_auto_enable()', 'execute')::text || '/' || has_function_privilege('authenticated', 'public.rls_auto_enable()', 'execute')::text);
+select pg_temp.v('R3.5 no TRIGGER or REFERENCES right for anon or authenticated', '0',
+  (select count(*)::text from information_schema.table_privileges where grantee in ('anon', 'authenticated')
+    and privilege_type in ('TRIGGER', 'REFERENCES') and table_schema in ('public', 'app')));
+select pg_temp.v('R3.6 no function in public or app runs with search_path = public', 'none',
+  coalesce((select string_agg(p.oid::regprocedure::text, ', ') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname in ('public', 'app') and exists (select 1 from unnest(p.proconfig) c where c like 'search_path=%' and c not in ('search_path=""', 'search_path=pg_catalog'))), 'none'));
+select pg_temp.e('R3.6 the lease still works with the empty search path', 'ok', $q$select public.take_dashboard_lease('r3-probe', 'r3', 30)$q$);
+select pg_temp.e('R3.6 and is released', 'ok', $q$select public.release_dashboard_lease('r3-probe', 'r3', 'c1')$q$);
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_staff","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:member"}}';
+select pg_temp.e('R3.6 a team member still cannot switch auto publish', '42501', $q$select public.set_tenant_auto_publish('5ec00000-0000-0000-0000-00000000000a', false)$q$);
+reset role;
+
+-- 7. only an owner may send a reminder or message email to a different address; the audit line has both, masked
+delete from public.billing_reminders where cycle_id = '5ec10000-0000-0000-0000-0000000000a1' and kind = 'd7';
+insert into public.billing_reminders (id, tenant_id, cycle_id, kind, send_at, to_email, status, error) values
+  ('5ec70000-0000-0000-0000-0000000000a1', '5ec00000-0000-0000-0000-00000000000a', '5ec10000-0000-0000-0000-0000000000a1', 'd7', now(), 'old.owner@example.test', 'failed', 'bounced');
+insert into public.message_notifications (id, tenant_id, direction, to_email, status, burst_open) values
+  ('5ec70000-0000-0000-0000-0000000000b1', '5ec00000-0000-0000-0000-00000000000a', 'to_client', 'old.owner@example.test', 'failed', false);
+select set_config('reminders.path', '', true), set_config('notify.path', '', true);
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_TEST_staff","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:member"}}';
+select pg_temp.e('R3.7 a team member cannot send the reminder to a new address', '42501',
+  $q$update public.billing_reminders set status = 'scheduled', to_email = 'someone@example.test' where id = '5ec70000-0000-0000-0000-0000000000a1'$q$);
+select pg_temp.e('R3.7 a team member cannot send the message email to a new address', '42501',
+  $q$update public.message_notifications set status = 'scheduled', to_email = 'someone@example.test' where id = '5ec70000-0000-0000-0000-0000000000b1'$q$);
+select pg_temp.e('R3.7 a team member can still resend to the same address', 'ok',
+  $q$update public.message_notifications set status = 'scheduled', to_email = 'old.owner@example.test' where id = '5ec70000-0000-0000-0000-0000000000b1'$q$);
+set local request.jwt.claims = '{"sub":"user_TEST_owner","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:admin"}}';
+select pg_temp.e('R3.7 an owner can send the reminder to a new address', 'ok',
+  $q$update public.billing_reminders set status = 'scheduled', to_email = 'new.owner@example.test' where id = '5ec70000-0000-0000-0000-0000000000a1'$q$);
+reset role;
+select pg_temp.v('R3.7 the reminder now goes to the new address', 'scheduled/new.owner@example.test',
+  (select status || '/' || to_email from public.billing_reminders where id = '5ec70000-0000-0000-0000-0000000000a1'));
+select pg_temp.v('R3.7 the audit line names the owner and both addresses, masked', 'user_TEST_owner/true/o***@example.test/n***@example.test/false',
+  (select actor || '/' || (detail->>'email_changed') || '/' || (detail->>'old_email') || '/' || (detail->>'new_email') || '/' || (detail::text like '%owner@%')::text
+     from public.audit_log where action = 'reminder_requeued' and detail->>'reminder' = '5ec70000-0000-0000-0000-0000000000a1'));
+select pg_temp.v('R3.7 the same-address resend says no change', 'false/null',
+  (select (detail->>'email_changed') || '/' || coalesce(detail->>'old_email', 'null') from public.audit_log
+    where action = 'message_email_requeued' and detail->>'notification' = '5ec70000-0000-0000-0000-0000000000b1'));
+
+-- 9. the proof bucket
+select pg_temp.v('R3.9 proof files: 10 MB at most, no SVG or HTML', '10485760/false',
+  (select file_size_limit || '/' || exists (select 1 from unnest(allowed_mime_types) m where m like '%svg%' or m like '%html%')::text from storage.buckets where id = 'result-proof'));
+
+-- 10. the owner seed does nothing once an owner is set
+update app.business_owner set user_id = 'user_TEST_moved' where only_one;
+insert into app.business_owner (user_id)
+select coalesce(
+  (select s.clerk_user_id from public.staff s
+    where s.clerk_user_id in ('user_3K4kEyEq3Pe2a6j05PUOUwXokp5', 'user_3K4kEyEq3Pe2a6j05PU0UwXokp5')
+    order by s.clerk_user_id limit 1),
+  'user_3K4kEyEq3Pe2a6j05PUOUwXokp5')
+on conflict (only_one) do nothing;
+select pg_temp.v('R3.10 running the seed again keeps a deliberate move', 'user_TEST_moved', (select user_id from app.business_owner));
 
 select n, case when result = expect then 'PASS' else 'FAIL' end as outcome, check_name, expect, result from r order by n;
 rollback;

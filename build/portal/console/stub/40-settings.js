@@ -74,7 +74,7 @@
     db.billing_reminders = db.billing_reminders || [];
     db.billing_reminders.push(
       rem('rem_settings_1', 'tnt_preview_osteria', 'd7', stamp(-6, 0), { to_email: 'chef@osteria-nove.example', error: 'resend 422 validation_error' }),
-      rem('rem_settings_2', 'tnt_preview_bayleaf', 'picks_confirmed', stamp(-2, 3), { to_email: 'dani@bayleafkitchen.com', error: 'network: fetch failed' }),
+      rem('rem_settings_2', 'tnt_preview_bayleaf', 'picks_confirmed', stamp(-2, 3), { to_email: 'dani@bayleaf.example', error: 'network: fetch failed' }),
       rem('rem_settings_3', 'tnt_preview_corner', 'd3', stamp(-41, 0), { to_email: 'hello@thecornerbean.example', error: 'resend 422 validation_error' })
     );
   });

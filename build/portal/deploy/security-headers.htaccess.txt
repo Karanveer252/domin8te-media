@@ -1,0 +1,36 @@
+# PROPOSAL, not live (15 Oct 2026, critic round 3 item 16). Ships only on Karan's word "deploy".
+# Paste into C:\Work\domin8te-media\.htaccess (below the existing Cache-Control and deflate rules)
+# after testing on staging. Needs mod_headers (the site already uses mod_expires/deflate on Hostinger; check
+# with a header test after upload).
+
+<IfModule mod_headers.c>
+  # Site wide, safe for every page (Meta Pixel, Calendly and Clerk are not affected).
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# The console and the dashboard may only be framed by our own pages (the console's view-as shows the
+# dashboard inside the console, same origin). This stops other sites from framing them to trick a click.
+# The public demo dashboard (/dashboard/demo/) is left out on purpose in case it should stay embeddable;
+# remove the second condition in the <If> below if it should be locked too.
+<IfModule mod_headers.c>
+  <If "%{REQUEST_URI} =~ m#^/(console|dashboard)(/|$)# && %{REQUEST_URI} !~ m#^/dashboard/demo(/|$)#">
+    Header always set Content-Security-Policy "frame-ancestors 'self'"
+    Header always set X-Frame-Options "SAMEORIGIN"
+  </If>
+</IfModule>
+
+# NOT proposed: a full Content-Security-Policy. One written without a live test would break the site.
+# A real one (script-src / connect-src / frame-src / img-src / style-src / font-src) has to allow at least:
+#   Meta Pixel (public pages):  script https://connect.facebook.net ; img/connect https://www.facebook.com
+#   Calendly (marketing page):  script https://assets.calendly.com ; frame https://calendly.com ; style https://assets.calendly.com
+#   Clerk (console, dashboard): script/connect/frame the Clerk frontend host (clerk.domin8temedia.com) and
+#                               https://*.clerk.accounts.dev if a dev key is ever used; img https://img.clerk.com
+#   Supabase:                   connect https://cxnohsykstdudsrummzs.supabase.co (and wss:// for realtime)
+#   Stripe (when switched on):  script https://js.stripe.com ; frame https://js.stripe.com https://hooks.stripe.com ; connect https://api.stripe.com
+#   Scripts and fonts:          https://cdn.jsdelivr.net ; Google Fonts if used (fonts.googleapis.com, fonts.gstatic.com)
+#   Page itself:                inline scripts and styles ('unsafe-inline' or hashes: the console and dashboard are single inlined
+#                               files), data: and blob: images, blob: workers/media for the scrub films.
+# Best path: serve the console and dashboard from their own host name (for example app.domin8temedia.com) so marketing
+# scripts never share an origin with them, then put a script-src CSP on that host only. Roll it out as
+# Content-Security-Policy-Report-Only first.

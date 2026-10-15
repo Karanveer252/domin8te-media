@@ -42,6 +42,8 @@ const noPrices = (s) => (demoSite ? s.replace(PRICE_NUMBERS, 'null') : s);
 let html = fs.readFileSync(path.join(DIR, 'console.html'), 'utf8');
 const mark = 'data:image/webp;base64,' + fs.readFileSync(path.join(__dirname, 'v16', 'src', 'assets', 'mark.webp')).toString('base64');
 html = html.split('src="MARK"').join(`src="${mark}"`);
+// The demo console runs on stand-ins and needs none of the live settings (15 Oct): no database address, keys or team id go in the file.
+if (demoSite) Object.assign(cfg, { supabaseUrl: 'https://demo.example.test', supabaseKey: 'demo', clerkPublishableKey: '', teamOrgId: '' });
 let head = `<script>window.D8CONFIG = ${JSON.stringify({ ...cfg, app: 'console' })};</script>`;
 if (preview) {
   const seed = noPrices(fs.readFileSync(path.join(__dirname, 'v16', 'tests', 'fixture-bayleaf.json'), 'utf8'));
@@ -64,7 +66,7 @@ ${safe(noPrices(fs.readFileSync(path.join(DIR, 'stub', f), 'utf8')))}</script>`;
 html = html.replace('<!--CONFIG-->', () => head);
 // Open the connections the page needs while it is still loading: the scripts' host, the database and
 // the sign-in service (its address is inside the publishable key).
-const hosts = ['https://cdn.jsdelivr.net', cfg.supabaseUrl];
+const hosts = ['https://cdn.jsdelivr.net', demoSite ? '' : cfg.supabaseUrl];
 if (cfg.clerkPublishableKey && !preview) {
   try { hosts.push('https://' + Buffer.from(cfg.clerkPublishableKey.replace(/^pk_(live|test)_/, ''), 'base64').toString('utf8').replace(/\$$/, '')); } catch (e) { /* the key is checked elsewhere */ }
 }
@@ -84,6 +86,8 @@ html = html.replace('</body>', () => require('./growth-cursor')() + '</body>');
 if (demoSite) {
   // The pictures (data: addresses) are left out of the search: their letters are not words on the page.
   const left = html.replace(/data:[a-z]+\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+/gi, '').match(DEMO_PRICE);
+  const live = html.replace(/data:[a-z]+\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+/gi, '').match(/supabase\.co|sb_publishable_|pk_(live|test)_|org_[A-Za-z0-9]{10,}|(?<!karanhelps)@domin8temedia.com|bayleafkitchen\.com/i);
+  if (live) throw new Error(`the demo console still holds a live setting or a real address ("${live[0]}"); nothing was written.`);
   if (left) throw new Error(`the demo console still holds a plan price ("${left[0]}"); nothing was written.`);
 }
 // D8_OUT_SUFFIX=name writes versions/console-preview-name.html instead, so people working side by side do not overwrite each other's build.

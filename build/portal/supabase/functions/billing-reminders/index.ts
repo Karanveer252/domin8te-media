@@ -4,7 +4,8 @@
 //
 // Settings (function secrets; names only here): BILLING_REMINDERS_CRON_SECRET, RESEND_API_KEY, REMINDERS_FROM
 // (for example "Karan at Domin8te <billing@domin8temedia.com>", a Resend-verified sender), optional REMINDERS_REPLY_TO (the emails say "just reply" only when it is set),
-// optional REMINDERS_DRY_RUN=1 (plan and render only; use this on the test project).
+// optional REMINDERS_DRY_RUN=1 (plan and count only; use this on the test project; add ?show=1 to the URL to see the
+// rendered emails; never leave dry run on for the prod cron).
 // No RESEND_API_KEY or REMINDERS_FROM: it still plans the rows, and sends nothing.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -22,7 +23,9 @@ Deno.serve(async (req) => {
   if (!url || !serviceRoleKey) return json(503, { error: "not-configured", message: "The server is missing its Supabase settings." });
   const db = createClient(url, serviceRoleKey, { auth: { persistSession: false } });
   try {
-    return json(200, await runReminders({ db, env: (k) => Deno.env.get(k), fetch: (u, i) => fetch(u, i) }));
+    // ?show=1 (only after the secret check above, and only used in dry run) returns the rendered emails too.
+    const show = new URL(req.url).searchParams.get("show") === "1";
+    return json(200, await runReminders({ db, env: (k) => Deno.env.get(k), fetch: (u, i) => fetch(u, i) }, { show }));
   } catch (e) {
     console.log(`billing-reminders: run failed (${String((e as any)?.message || e).slice(0, 200)})`);
     return json(500, { error: "failed", message: "The reminder run failed. It runs again within the hour." });

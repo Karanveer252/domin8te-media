@@ -4,8 +4,10 @@
 // All writes use server-only service-role credentials. Browser gets no table write policy.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { allowedOrigins } from "../_shared/origins.ts";
 
-const ALLOWED = ["https://domin8temedia.com", "https://www.domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
+// The live site; the local preview ports only with ALLOW_LOCAL_ORIGINS=1 (TEST and local, never prod).
+const ALLOWED = allowedOrigins();
 
 function cors(origin: string | null) {
   const allow = origin && ALLOWED.includes(origin) ? origin : ALLOWED[0];

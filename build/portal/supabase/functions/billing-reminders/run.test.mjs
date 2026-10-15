@@ -25,10 +25,24 @@ function fakeDb(due, finishes = []) {
   } };
 }
 
-test("dry run: plans, renders the due 7 day email, sends and claims nothing", async () => {
+test("dry run by default: counts and ids only, no rendered email in the answer", async () => {
+  const db = fakeDb([ROW]); let fetched = 0;
+  const out = await runReminders({ db, env: (k) => ({ REMINDERS_DRY_RUN: "1", RESEND_API_KEY: KEY, REMINDERS_FROM: "Karan <billing@domin8temedia.com>" })[k],
+    fetch: async () => { fetched++; return { ok: true, status: 200, json: async () => ({ id: "x" }) }; }, log: () => {} });
+  assert.equal(out.dryRun, true);
+  assert.equal(out.wouldSend, 1);
+  assert.deepEqual(out.due, [{ id: ROW.id, kind: "d7" }]);
+  assert.equal(out.emails, undefined, "no emails unless asked with show");
+  const flat = JSON.stringify(out);
+  assert.ok(!/samplecafe|<html|<!doctype|renews/i.test(flat), "no address, subject or body in the answer");
+  assert.equal(fetched, 0);
+  assert.ok(!db.calls.includes("claim_billing_reminders"));
+});
+
+test("dry run with show (the secret holder asked): plans, renders the due 7 day email, sends and claims nothing", async () => {
   const db = fakeDb([ROW]); let fetched = 0; const logs = [];
   const out = await runReminders({ db, env: (k) => ({ REMINDERS_DRY_RUN: "1", RESEND_API_KEY: KEY, REMINDERS_FROM: "Karan <billing@domin8temedia.com>" })[k],
-    fetch: async () => { fetched++; return { ok: true, status: 200, json: async () => ({ id: "x" }) }; }, log: (l) => logs.push(l) });
+    fetch: async () => { fetched++; return { ok: true, status: 200, json: async () => ({ id: "x" }) }; }, log: (l) => logs.push(l) }, { show: true });
   assert.equal(out.dryRun, true);
   assert.equal(out.emails.length, 1);
   assert.equal(out.emails[0].kind, "d7");

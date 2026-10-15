@@ -154,3 +154,30 @@ test("a failed save is a 500 with no database detail", async () => {
   assert.equal(r.status, 500);
   assert.deepEqual(r.body, { error: "save-failed", message: "Could not save it." });
 });
+
+test("a bot with its own secret (BOT_DROP_SECRET_<NAME>) must use it: the shared one no longer works for it, and it cannot claim another bot", async () => {
+  const OWN = { ...BASE, BOT_DROP_SECRET_GROK: "grok-own-TEST", BOT_DROP_SECRET_CLAUDE: "claude-own-TEST" };
+  // grok with its own secret: in.
+  let D = reset(); ENV = { ...OWN };
+  assert.equal((await drop(GOOD, { "x-bot-secret": "grok-own-TEST" })).status, 201);
+  assert.equal(D.inserts[0].source, "grok");
+  // grok with the shared secret: refused, same 401, nothing opened.
+  D = reset(); ENV = { ...OWN };
+  const r = await read(await drop(GOOD, { "x-bot-secret": "bot-secret-TEST" }));
+  assert.equal(r.status, 401);
+  assert.deepEqual(r.body, { error: "unauthorized", message: "Not allowed." });
+  assert.equal(D.made.length, 0);
+  // grok's secret sent as claude: refused.
+  D = reset(); ENV = { ...OWN };
+  assert.equal((await drop(GOOD, { "x-bot-name": "claude", "x-bot-secret": "grok-own-TEST" })).status, 401);
+  assert.equal(D.made.length, 0);
+});
+
+test("the shared BOT_DROP_SECRET stays a fallback only for a bot with no secret of its own", async () => {
+  const D = reset(); ENV = { ...BASE, BOT_DROP_SECRET_GROK: "grok-own-TEST" };
+  assert.equal((await drop(GOOD, { "x-bot-name": "claude", "x-bot-secret": "bot-secret-TEST" })).status, 201);
+  assert.equal(D.inserts[0].source, "claude");
+  // No shared secret and no own secret: refused.
+  reset(); ENV = { ...BASE, BOT_DROP_SECRET: "" , BOT_DROP_SECRET_GROK: "grok-own-TEST" };
+  assert.equal((await drop(GOOD, { "x-bot-name": "claude", "x-bot-secret": "" })).status, 401);
+});

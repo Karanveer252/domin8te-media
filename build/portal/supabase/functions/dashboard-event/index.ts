@@ -15,10 +15,12 @@
 // clientVisible survives only as a publish request. No sender can verify its own records.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { allowedOrigins } from "../_shared/origins.ts";
 import { secretMatches } from "../_shared/secret.ts";
 import { hermesEnabled } from "../_shared/hermes.ts";
 
-const ALLOWED = ["https://domin8temedia.com", "https://www.domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
+// The live site; the local preview ports only with ALLOW_LOCAL_ORIGINS=1 (TEST and local, never prod).
+const ALLOWED = allowedOrigins();
 const MAX_BODY = 64 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

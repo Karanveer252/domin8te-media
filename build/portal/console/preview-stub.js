@@ -50,11 +50,11 @@
   const stripeCustomers = [
     { id: 'cus_PreviewMarlow01', name: 'Marlow & Finch', email: 'priya@marlowfinch.example', created: day(-62), livemode: false, tenantId: 'tnt_preview_marlow' },
     { id: 'cus_PreviewOsteria2', name: 'Osteria Nove', email: 'marco@osterianove.example', created: day(-9), livemode: false, tenantId: null },
-    { id: 'cus_PreviewBayleaf3', name: 'Bayleaf Kitchen', email: 'dani@bayleafkitchen.com', created: day(-200), livemode: false, tenantId: null }
+    { id: 'cus_PreviewBayleaf3', name: 'Bayleaf Kitchen', email: 'dani@bayleaf.example', created: day(-200), livemode: false, tenantId: null }
   ];
   if (seed && seed.billing && seed.billing.subscription) { seed.billing.subscription.startedAt = seed.billing.subscription.startedAt || '2026-03-22'; seed.billing.subscription.amount = seed.billing.subscription.amount || '$799 a month'; }
   const db = {
-    login_requests: [{ id: 'la_preview_1', tenant_id: 'tnt_preview_bayleaf', first_name: 'Priya', email: 'priya@bayleafkitchen.com', role: 'Manager', by_name: 'Dani', status: 'pending', at: stamp(-1, 3) }],
+    login_requests: [{ id: 'la_preview_1', tenant_id: 'tnt_preview_bayleaf', first_name: 'Priya', email: 'priya@bayleaf.example', role: 'Manager', by_name: 'Dani', status: 'pending', at: stamp(-1, 3) }],
     staff: [{ clerk_user_id: 'user_preview_karan', name: 'Karan' }],
     tenants: [
       { id: 'tnt_preview_bayleaf', name: 'Bayleaf Kitchen (preview)', status: 'active', clerk_org_id: 'org_preview_bayleaf', updated_at: stamp(0, 2), doc: seed },
@@ -165,11 +165,11 @@
   const multicaIssues = {};
   // The Domin8te team in Clerk, as the team function would list it.
   const team = [
-    { userId: 'user_preview_karan', name: 'Karan', email: 'karan@domin8temedia.com', role: 'super_admin', since: stamp(-30, 0) },
-    { userId: 'user_preview_sam', name: 'Sam', email: 'sam@domin8temedia.com', role: 'member', since: stamp(-7, 0) }
+    { userId: 'user_preview_karan', name: 'Karan', email: 'karan@staff.example', role: 'super_admin', since: stamp(-30, 0) },
+    { userId: 'user_preview_sam', name: 'Sam', email: 'sam@staff.example', role: 'member', since: stamp(-7, 0) }
   ];
   /** Who can sign in for each preview client. */
-  const logins = { tnt_preview_bayleaf: [{ userId: 'user_preview_dani', name: 'Dani', email: 'dani@bayleafkitchen.com', since: stamp(-60, 0) }] };
+  const logins = { tnt_preview_bayleaf: [{ userId: 'user_preview_dani', name: 'Dani', email: 'dani@bayleaf.example', since: stamp(-60, 0) }] };
   let mul = 44;
   let n = 100;
 
@@ -298,7 +298,7 @@
   }
 
   const clerk = {
-    user: { id: 'user_preview_karan', firstName: 'Karan', primaryEmailAddress: { emailAddress: 'karan@domin8temedia.com' }, organizationMemberships: [] },
+    user: { id: 'user_preview_karan', firstName: 'Karan', primaryEmailAddress: { emailAddress: 'karan@staff.example' }, organizationMemberships: [] },
     organization: null,
     session: { getToken: async () => 'preview-token' },
     async load() {},

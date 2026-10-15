@@ -16,9 +16,11 @@
 // token is Clerk's; the database check is the guard.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { allowedOrigins } from "../_shared/origins.ts";
 
 const CLERK = "https://api.clerk.com/v1";
-const ALLOWED = ["https://domin8temedia.com", "https://www.domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
+// The live site; the local preview ports only with ALLOW_LOCAL_ORIGINS=1 (TEST and local, never prod).
+const ALLOWED = allowedOrigins();
 // Ids go into Clerk API paths: plain shapes only, and every segment encoded, so no value can walk to another object.
 const USER_ID = /^user_[A-Za-z0-9]+$/;
 const seg = encodeURIComponent;
@@ -34,6 +36,12 @@ function cors(origin: string | null) {
 }
 function reply(origin: string | null, status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors(origin), "Content-Type": "application/json" } });
+}
+// A Clerk refusal: a plain sentence for the console, the detail only in the function log (status and Clerk's error
+// code, never the secret, the token or an address).
+function clerkFail(origin: string | null, error: string, message: string, r: { status: number; data: any }) {
+  console.error(`team: ${error} (Clerk ${r.status}${r.data?.errors?.[0]?.code ? ", " + String(r.data.errors[0].code).slice(0, 80) : ""})`);
+  return reply(origin, 502, { error, message });
 }
 async function clerk(path: string, init: RequestInit = {}) {
   const res = await fetch(CLERK + path, {
@@ -115,12 +123,12 @@ Deno.serve(async (req) => {
       }
       else {
         const u = await clerk("/users", { method: "POST", body: JSON.stringify({ email_address: [email], first_name: firstName || undefined, skip_password_requirement: true, create_organization_enabled: false }) });
-        if (!u.ok) return reply(origin, 502, { error: "clerk-user", message: "Clerk would not create the login.", detail: u.data?.errors?.[0]?.message || u.status });
+        if (!u.ok) return clerkFail(origin, "clerk-user", "Clerk would not create the login.", u);
         userId = u.data.id;
       }
       const m = await clerk(`/organizations/${seg(team)}/memberships`, { method: "POST", body: JSON.stringify({ user_id: userId, role: clerkRole(String(body.role || "member")) }) });
       const already = !m.ok && JSON.stringify(m.data || "").includes("already");
-      if (!m.ok && !already) return reply(origin, 502, { error: "clerk-membership", message: "Clerk would not add them to the team.", detail: m.data?.errors?.[0]?.message || m.status });
+      if (!m.ok && !already) return clerkFail(origin, "clerk-membership", "Clerk would not add them to the team.", m);
       return reply(origin, 200, { ok: true, already, members: await members(team) });
     }
 
@@ -135,7 +143,7 @@ Deno.serve(async (req) => {
       const role = String(body.role || "member");
       if (target.role === "super_admin" && role !== "super_admin" && admins <= 1) return reply(origin, 409, { error: "last-admin", message: "The team needs at least one super admin. Make someone else a super admin first." });
       const u = await clerk(`/organizations/${seg(team)}/memberships/${seg(userId)}`, { method: "PATCH", body: JSON.stringify({ role: clerkRole(role) }) });
-      if (!u.ok) return reply(origin, 502, { error: "clerk-role", message: "Clerk would not change the role.", detail: u.data?.errors?.[0]?.message || u.status });
+      if (!u.ok) return clerkFail(origin, "clerk-role", "Clerk would not change the role.", u);
       return reply(origin, 200, { ok: true, members: await members(team) });
     }
 
@@ -143,12 +151,14 @@ Deno.serve(async (req) => {
       if (userId === me) return reply(origin, 409, { error: "self", message: "You cannot remove yourself. Another super admin can." });
       if (target.role === "super_admin" && admins <= 1) return reply(origin, 409, { error: "last-admin", message: "The team needs at least one super admin." });
       const d = await clerk(`/organizations/${seg(team)}/memberships/${seg(userId)}`, { method: "DELETE" });
-      if (!d.ok) return reply(origin, 502, { error: "clerk-remove", message: "Clerk would not remove them.", detail: d.data?.errors?.[0]?.message || d.status });
+      if (!d.ok) return clerkFail(origin, "clerk-remove", "Clerk would not remove them.", d);
       return reply(origin, 200, { ok: true, members: await members(team) });
     }
 
     return reply(origin, 400, { error: "bad-action", message: "Unknown action." });
   } catch (e) {
-    return reply(origin, 502, { error: "clerk", message: (e as Error).message || String(e) });
+    // Plain words only: the raw error can carry Clerk or network detail, so it goes to the log, cut short.
+    console.error(`team: ${action || "?"} failed: ${String((e as Error)?.message || e).slice(0, 200)}`);
+    return reply(origin, 502, { error: "clerk", message: "Clerk did not answer. Refresh and try again in a minute." });
   }
 });

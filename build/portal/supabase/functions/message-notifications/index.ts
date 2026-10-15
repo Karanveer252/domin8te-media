@@ -7,7 +7,8 @@
 //
 // Settings (function secrets; names only here): MESSAGE_NOTIFY_CRON_SECRET, RESEND_API_KEY, NOTIFY_FROM
 // (for example "Domin8te <notifications@domin8temedia.com>", a Resend-verified sender), optional NOTIFY_REPLY_TO,
-// optional MESSAGE_NOTIFY_DRY_RUN=1 (render what is due and return it; never calls Resend; use this on the test project).
+// optional MESSAGE_NOTIFY_DRY_RUN=1 (count what is due and return the ids; never calls Resend; use this on the test project;
+// add ?show=1 to the URL to see the rendered emails; never leave dry run on for the prod cron).
 // The team's own address is a database setting (app.settings notify_team_email), set by an owner in the console Settings.
 // No RESEND_API_KEY or NOTIFY_FROM: it sends nothing, and the rows wait.
 
@@ -26,7 +27,9 @@ Deno.serve(async (req) => {
   if (!url || !serviceRoleKey) return json(503, { error: "not-configured", message: "The server is missing its Supabase settings." });
   const db = createClient(url, serviceRoleKey, { auth: { persistSession: false } });
   try {
-    return json(200, await runNotifications({ db, env: (k) => Deno.env.get(k), fetch: (u, i) => fetch(u, i) }));
+    // ?show=1 (only after the secret check above, and only used in dry run) returns the rendered emails too.
+    const show = new URL(req.url).searchParams.get("show") === "1";
+    return json(200, await runNotifications({ db, env: (k) => Deno.env.get(k), fetch: (u, i) => fetch(u, i) }, { show }));
   } catch (e) {
     console.log(`message-notifications: run failed (${String((e as any)?.message || e).slice(0, 200)})`);
     return json(500, { error: "failed", message: "The message email run failed. It runs again within the minute." });

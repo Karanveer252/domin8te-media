@@ -72,11 +72,11 @@
   const stripeCustomers = [
     { id: 'cus_PreviewMarlow01', name: 'Marlow & Finch', email: 'priya@marlowfinch.example', created: day(-62), livemode: false, tenantId: 'tnt_preview_marlow' },
     { id: 'cus_PreviewOsteria2', name: 'Osteria Nove', email: 'marco@osterianove.example', created: day(-9), livemode: false, tenantId: null },
-    { id: 'cus_PreviewBayleaf3', name: 'Bayleaf Kitchen', email: 'dani@bayleafkitchen.com', created: day(-200), livemode: false, tenantId: null }
+    { id: 'cus_PreviewBayleaf3', name: 'Bayleaf Kitchen', email: 'dani@bayleaf.example', created: day(-200), livemode: false, tenantId: null }
   ];
   if (seed && seed.billing && seed.billing.subscription) { seed.billing.subscription.startedAt = seed.billing.subscription.startedAt || '2026-03-22'; seed.billing.subscription.amount = seed.billing.subscription.amount || '$799 a month'; }
   const db = {
-    login_requests: [{ id: 'la_preview_1', tenant_id: 'tnt_preview_bayleaf', first_name: 'Priya', email: 'priya@bayleafkitchen.com', role: 'Manager', by_name: 'Dani', status: 'pending', at: stamp(-1, 3) }],
+    login_requests: [{ id: 'la_preview_1', tenant_id: 'tnt_preview_bayleaf', first_name: 'Priya', email: 'priya@bayleaf.example', role: 'Manager', by_name: 'Dani', status: 'pending', at: stamp(-1, 3) }],
     staff: [{ clerk_user_id: 'user_preview_karan', name: 'Karan' }],
     tenants: [
       { id: 'tnt_preview_bayleaf', name: 'Bayleaf Kitchen (preview)', status: 'active', clerk_org_id: 'org_preview_bayleaf', updated_at: stamp(0, 2), doc: seed },
@@ -187,11 +187,11 @@
   const multicaIssues = {};
   // The Domin8te team in Clerk, as the team function would list it.
   const team = [
-    { userId: 'user_preview_karan', name: 'Karan', email: 'karan@domin8temedia.com', role: 'super_admin', since: stamp(-30, 0) },
-    { userId: 'user_preview_sam', name: 'Sam', email: 'sam@domin8temedia.com', role: 'member', since: stamp(-7, 0) }
+    { userId: 'user_preview_karan', name: 'Karan', email: 'karan@staff.example', role: 'super_admin', since: stamp(-30, 0) },
+    { userId: 'user_preview_sam', name: 'Sam', email: 'sam@staff.example', role: 'member', since: stamp(-7, 0) }
   ];
   /** Who can sign in for each preview client. */
-  const logins = { tnt_preview_bayleaf: [{ userId: 'user_preview_dani', name: 'Dani', email: 'dani@bayleafkitchen.com', since: stamp(-60, 0) }] };
+  const logins = { tnt_preview_bayleaf: [{ userId: 'user_preview_dani', name: 'Dani', email: 'dani@bayleaf.example', since: stamp(-60, 0) }] };
   let mul = 44;
   let n = 100;
 
@@ -320,7 +320,7 @@
   }
 
   const clerk = {
-    user: { id: 'user_preview_karan', firstName: 'Karan', primaryEmailAddress: { emailAddress: 'karan@domin8temedia.com' }, organizationMemberships: [] },
+    user: { id: 'user_preview_karan', firstName: 'Karan', primaryEmailAddress: { emailAddress: 'karan@staff.example' }, organizationMemberships: [] },
     organization: null,
     session: { getToken: async () => 'preview-token' },
     async load() {},
@@ -533,7 +533,7 @@
     const rem = (cycle, tenant, kind, sendAt, o) => ({ id: `rem_${cycle}_${kind}`, tenant_id: tenant, cycle_id: cycle, kind, send_at: sendAt, to_email: 'owner@example.com', status: 'scheduled', attempts: 0, provider_id: null, error: null, sent_at: null, created_at: stamp(-8, 0), updated_at: stamp(-1, 0), ...o });
     const next = (t) => db.tenant_plan_cycles.find((/** @type {any} */ c) => c.tenant_id === t && c.state === 'confirmed');
     db.billing_reminders = [];
-    if (next('tnt_preview_bayleaf')) db.billing_reminders.push(rem(next('tnt_preview_bayleaf').id, 'tnt_preview_bayleaf', 'd7', stamp(-1, 0), { status: 'sent', sent_at: stamp(-1, 0), provider_id: 're_preview_1', to_email: 'dani@bayleafkitchen.com' }), rem(next('tnt_preview_bayleaf').id, 'tnt_preview_bayleaf', 'd3', stamp(5, 0), { to_email: 'dani@bayleafkitchen.com' }));
+    if (next('tnt_preview_bayleaf')) db.billing_reminders.push(rem(next('tnt_preview_bayleaf').id, 'tnt_preview_bayleaf', 'd7', stamp(-1, 0), { status: 'sent', sent_at: stamp(-1, 0), provider_id: 're_preview_1', to_email: 'dani@bayleaf.example' }), rem(next('tnt_preview_bayleaf').id, 'tnt_preview_bayleaf', 'd3', stamp(5, 0), { to_email: 'dani@bayleaf.example' }));
     if (next('tnt_preview_marlow')) db.billing_reminders.push(rem(next('tnt_preview_marlow').id, 'tnt_preview_marlow', 'd7', stamp(-4, 0), { status: 'sent', sent_at: stamp(-4, 0), provider_id: 're_preview_2', to_email: 'priya@marlowfinch.example' }), rem(next('tnt_preview_marlow').id, 'tnt_preview_marlow', 'd3', stamp(0, 1), { status: 'failed', attempts: 3, error: 'Resend: hard bounce', to_email: 'priya@marlowfinch.example' }));
 
     // What staff wrote for the client's Home tab.
@@ -1323,7 +1323,7 @@
     db.billing_reminders = db.billing_reminders || [];
     db.billing_reminders.push(
       rem('rem_settings_1', 'tnt_preview_osteria', 'd7', stamp(-6, 0), { to_email: 'chef@osteria-nove.example', error: 'resend 422 validation_error' }),
-      rem('rem_settings_2', 'tnt_preview_bayleaf', 'picks_confirmed', stamp(-2, 3), { to_email: 'dani@bayleafkitchen.com', error: 'network: fetch failed' }),
+      rem('rem_settings_2', 'tnt_preview_bayleaf', 'picks_confirmed', stamp(-2, 3), { to_email: 'dani@bayleaf.example', error: 'network: fetch failed' }),
       rem('rem_settings_3', 'tnt_preview_corner', 'd3', stamp(-41, 0), { to_email: 'hello@thecornerbean.example', error: 'resend 422 validation_error' })
     );
   });
@@ -7374,11 +7374,17 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
   const VIEW = /** @type {any} */ (D8.data).viewAs;
   /** @type {Promise<any>|null} */
   let viewReady = null;
-  /** What the console says about the client and the staff member: { client, tenant: {id, name, clerk_org_id}, staff: {userId, name} }. */
+  /** The only functions the frame may call on the console's client (round 3): an exact list, every other rpc is refused. */
+  const VIEW_READS = ['client_work_cards', 'plan_menu', 'client_results_current'];
+  /** What the console says about the client and the staff member: { client, tenant: {id, name, clerk_org_id}, staff: {userId, name} }.
+   * The client is wrapped read only (lib/view-as.js) before anything here can use it; without the wrapper the frame does not open. */
   function viewCtx() {
     if (!viewReady) {
-      viewReady = Promise.resolve().then(() => VIEW.parent.D8C.viewAs(VIEW.tenantId)).then((ctx) => {
-        if (!ctx || !ctx.client || !ctx.tenant || !ctx.tenant.id) throw new Error('no client');
+      viewReady = Promise.resolve().then(() => VIEW.parent.D8C.viewAs(VIEW.tenantId)).then((got) => {
+        if (!got || !got.client || !got.tenant || !got.tenant.id) throw new Error('no client');
+        const ro = D8.viewAs && D8.viewAs.readOnly;
+        if (typeof ro !== 'function') throw new Error('no read-only guard');
+        const ctx = { tenant: got.tenant, staff: got.staff, client: ro(got.client, VIEW_READS) };
         VIEW.ctx = ctx;
         VIEW.name = String(ctx.tenant.name || '');
         return ctx;
@@ -11558,6 +11564,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
       [/reason-required/, () => 'Add a reason first.'],
       [/bad-email/, () => 'That email address does not look right.'],
       [/only-requeue/, () => 'This email is no longer failed, so it cannot be sent again.'],
+      [/owner-only/, () => 'Only an owner can send this email to a different address. Keep the same address, or ask an owner.'],
       [/not-staff/, () => 'Your sign-in is not on the Domin8te team. Sign out and in again.'],
       [/unknown-reason|bad-status|bad-decision/, () => 'The database did not accept that. Reload and try again.']
     ];
@@ -18190,11 +18197,14 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         }
       });
     };
-    const READS = /^(console_me|client_work_cards|client_results_current|plan_menu|get_|list_|search_)/;
+    // The functions that only read (round 3): an exact list, never a prefix, so a new function that writes is refused in the
+    // demo and tells the Client view until it is added here on purpose. Everything not listed counts as a write.
+    const READS = new Set(['console_me', 'client_work_cards', 'client_results_current', 'plan_menu', 'get_notify_team_email',
+      'list_billing_invoices', 'list_dashboard_items', 'list_home_sections', 'list_plan_caps', 'list_plans']);
     client.rpc = (/** @type {string} */ name, /** @type {any} */ args, /** @type {any} */ opts) => {
-      if (DEMO_SITE && !READS.test(String(name))) return demoRefused();
+      if (DEMO_SITE && !READS.has(String(name))) return demoRefused();
       const r = orpc(name, args, opts);
-      if (READS.test(String(name))) return r;
+      if (READS.has(String(name))) return r;
       return guard(r, (args && (args.p_tenant || args.p_tenant_id || args.tenant_id)) || null);
     };
     // File uploads (proof files) are writes too: the demo refuses them the same way.
@@ -20478,7 +20488,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         ${admin && m.userId !== myId
           ? `<span class="team-actions"><span class="seg role-seg" role="group" aria-label="Role for ${esc(m.name || m.email)}">${Object.entries(ROLE_LABEL).map(([k, l]) => `<button type="button" data-team-role="${esc(m.userId)}" data-val="${k}" aria-pressed="${m.role === k}">${l}</button>`).join('')}</span>
              <button class="btn btn-quiet btn-sm btn-remove" type="button" data-team-remove="${esc(m.userId)}" data-name="${esc(m.name || m.email)}">Remove</button></span>`
-          : `<span class="chip ${m.role === 'super_admin' ? 'you' : 'plain'}">${ROLE_LABEL[m.role] || m.role}</span>`}
+          : `<span class="chip ${m.role === 'super_admin' ? 'you' : 'plain'}">${esc(ROLE_LABEL[m.role] || m.role)}</span>`}
       </li>`).join('')}</ul>`;
   }
 

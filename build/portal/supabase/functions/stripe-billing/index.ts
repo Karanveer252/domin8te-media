@@ -20,9 +20,11 @@
 // verify_jwt is off because the token is Clerk's; console_me and row level security are the guards.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { allowedOrigins } from "../_shared/origins.ts";
 import { CUSTOMER_ID, safeCustomer, stripe, stripeError, stripeMode, withCustomerId } from "../_shared/stripe.ts";
 
-const ALLOWED = ["https://domin8temedia.com", "https://www.domin8temedia.com", "http://localhost:4173", "http://localhost:8080"];
+// The live site; the local preview ports only with ALLOW_LOCAL_ORIGINS=1 (TEST and local, never prod).
+const ALLOWED = allowedOrigins();
 const RETURN_URL = "https://domin8temedia.com/dashboard/#/billing";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -65,7 +67,7 @@ async function setCustomer(db: any, tenantId: string, id: string | null, expectC
   return { error: "conflict" };
 }
 
-// Back to the site the client came from, but only an allowed one (www and localhost included); anything else, the apex.
+// Back to the site the client came from, but only an allowed one (www, and localhost only where ALLOW_LOCAL_ORIGINS=1); anything else, the apex.
 function portalReturn(origin: string | null) {
   return origin && ALLOWED.includes(origin) ? `${origin}/dashboard/#/billing` : RETURN_URL;
 }

@@ -1,6 +1,8 @@
 // One run of the reminder job, with its database, settings and fetch passed in (so tests need no network or Deno).
 // 1. lease (one run at a time)  2. plan_billing_reminders(): roll the months, queue the 7 and 3 day rows
-// 3. dry run (REMINDERS_DRY_RUN=1): render what is due, send nothing, change nothing
+// 3. dry run (REMINDERS_DRY_RUN=1): count what is due, send nothing, change nothing. The answer holds counts and ids only;
+//    the rendered emails come back only when the secret holder asks with show (?show=1), so a cron answer kept in
+//    net._http_response never holds an email body. Never leave dry run on for the prod cron.
 //    otherwise: claim what is due, send each through Resend, report back (retries and Needs you are the database's job)
 // Logs carry counts and masked addresses only: never a key, a secret or an email body.
 import { renderReminder, type ReminderRow } from "./render.ts";
@@ -18,7 +20,7 @@ export const mask = (email: string) => {
 };
 const short = (e: unknown) => String((e as any)?.message || e || "error").replace(/\s+/g, " ").slice(0, 200);
 
-export async function runReminders(d: Deps): Promise<Record<string, unknown>> {
+export async function runReminders(d: Deps, opts: { show?: boolean } = {}): Promise<Record<string, unknown>> {
   const log = d.log || ((l: string) => console.log(l));
   const holder = crypto.randomUUID();
   const lease = await d.db.rpc("take_job_lease", { p_name: LEASE, p_holder: holder, p_seconds: 300 });
@@ -31,9 +33,11 @@ export async function runReminders(d: Deps): Promise<Record<string, unknown>> {
     if (d.env("REMINDERS_DRY_RUN") === "1") {
       const due = await d.db.rpc("peek_billing_reminders", { p_limit: 20 });
       if (due.error) throw new Error("peek: " + short(due.error));
-      const emails = (due.data || []).map((r: ReminderRow) => ({ id: r.id, kind: r.kind, to: mask(r.to_email), ...renderReminder(r, !!d.env("REMINDERS_REPLY_TO")) }));
-      log(`billing-reminders dry run: planned ${planned.planned ?? 0}, would send ${emails.length}`);
-      return { ok: true, dryRun: true, planned, emails };
+      const rows = (due.data || []) as ReminderRow[];
+      log(`billing-reminders dry run: planned ${planned.planned ?? 0}, would send ${rows.length}`);
+      const out: Record<string, unknown> = { ok: true, dryRun: true, planned, wouldSend: rows.length, due: rows.map((r) => ({ id: r.id, kind: r.kind })) };
+      if (opts.show) out.emails = rows.map((r) => ({ id: r.id, kind: r.kind, to: mask(r.to_email), ...renderReminder(r, !!d.env("REMINDERS_REPLY_TO")) }));
+      return out;
     }
     const key = d.env("RESEND_API_KEY"), from = d.env("REMINDERS_FROM");
     if (!key || !from) {

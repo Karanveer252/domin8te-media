@@ -390,11 +390,14 @@
         }
       });
     };
-    const READS = /^(console_me|client_work_cards|client_results_current|plan_menu|get_|list_|search_)/;
+    // The functions that only read (round 3): an exact list, never a prefix, so a new function that writes is refused in the
+    // demo and tells the Client view until it is added here on purpose. Everything not listed counts as a write.
+    const READS = new Set(['console_me', 'client_work_cards', 'client_results_current', 'plan_menu', 'get_notify_team_email',
+      'list_billing_invoices', 'list_dashboard_items', 'list_home_sections', 'list_plan_caps', 'list_plans']);
     client.rpc = (/** @type {string} */ name, /** @type {any} */ args, /** @type {any} */ opts) => {
-      if (DEMO_SITE && !READS.test(String(name))) return demoRefused();
+      if (DEMO_SITE && !READS.has(String(name))) return demoRefused();
       const r = orpc(name, args, opts);
-      if (READS.test(String(name))) return r;
+      if (READS.has(String(name))) return r;
       return guard(r, (args && (args.p_tenant || args.p_tenant_id || args.tenant_id)) || null);
     };
     // File uploads (proof files) are writes too: the demo refuses them the same way.
@@ -2678,7 +2681,7 @@
         ${admin && m.userId !== myId
           ? `<span class="team-actions"><span class="seg role-seg" role="group" aria-label="Role for ${esc(m.name || m.email)}">${Object.entries(ROLE_LABEL).map(([k, l]) => `<button type="button" data-team-role="${esc(m.userId)}" data-val="${k}" aria-pressed="${m.role === k}">${l}</button>`).join('')}</span>
              <button class="btn btn-quiet btn-sm btn-remove" type="button" data-team-remove="${esc(m.userId)}" data-name="${esc(m.name || m.email)}">Remove</button></span>`
-          : `<span class="chip ${m.role === 'super_admin' ? 'you' : 'plain'}">${ROLE_LABEL[m.role] || m.role}</span>`}
+          : `<span class="chip ${m.role === 'super_admin' ? 'you' : 'plain'}">${esc(ROLE_LABEL[m.role] || m.role)}</span>`}
       </li>`).join('')}</ul>`;
   }
 
