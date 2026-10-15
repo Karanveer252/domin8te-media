@@ -561,26 +561,36 @@
     /** @type {Record<string, any>} */ const by = {};
     for (const r of rows) {
       if (new Date(r.created_at).getTime() < since) continue;
-      const s = by[r.source] = by[r.source] || { source: r.source, dropped: 0, approved: 0, edited: 0, rejected: 0, expired: 0, waiting: 0, mins: [] };
+      const s = by[r.source] = by[r.source] || { source: r.source, dropped: 0, approved: 0, edited: 0, rejected: 0, expired: 0, waiting: 0, snoozed: 0, mins: [] };
       const st = statusOf(r);
       s.dropped++;
       if (st === 'approved') { s.approved++; if (r.final_text && r.final_text !== r.draft) s.edited++; }
       if (st === 'rejected') s.rejected++;
       if (st === 'expired') s.expired++;
-      if (st === 'pending') s.waiting++;
+      if (st === 'pending') { if (isSnoozed(r)) s.snoozed++; else s.waiting++; }
       if ((st === 'approved' || st === 'rejected') && r.decided_at) s.mins.push((new Date(r.decided_at).getTime() - new Date(r.created_at).getTime()) / 60000);
     }
     return Object.values(by).map((s) => ({ ...s, avg_minutes: s.mins.length ? s.mins.reduce((/** @type {number} */ a, /** @type {number} */ b) => a + b, 0) / s.mins.length : null }));
+  }
+  /** bot_output_stats counts a snoozed draft as waiting. Bot chat and the sidebar leave it out until it wakes, so the snoozed ones
+   * (from the loaded rows, same days) move to their own Snoozed column and Waiting matches them (critic R11-1). @param {any[]} list @param {number} days */
+  function splitSnoozed(list, days) {
+    const since = Date.now() - days * DAY;
+    return list.map((s) => {
+      if (s.snoozed != null) return s;
+      const z = rows.filter((r) => r.source === s.source && new Date(r.created_at).getTime() >= since && isSnoozed(r) && new Date(r.expires_at).getTime() >= Date.now()).length;
+      return { ...s, snoozed: z, waiting: Math.max(0, (Number(s.waiting) || 0) - z) };
+    });
   }
   /** The numbers table, Hermes folded into "Another bot" while its flag is off. @param {any[]} list */
   function statsTable(list) {
     const C0 = C();
     const { esc } = C0;
-    const F = ['dropped', 'approved', 'edited', 'rejected', 'expired', 'waiting'];
+    const F = ['dropped', 'approved', 'edited', 'rejected', 'expired', 'waiting', 'snoozed'];
     /** @type {Record<string, any>} */ const by = {};
     for (const s of list) {
       const k = botKey(s.source);
-      const t = by[k] = by[k] || { key: k, dropped: 0, approved: 0, edited: 0, rejected: 0, expired: 0, waiting: 0, minSum: 0, minN: 0 };
+      const t = by[k] = by[k] || { key: k, dropped: 0, approved: 0, edited: 0, rejected: 0, expired: 0, waiting: 0, snoozed: 0, minSum: 0, minN: 0 };
       for (const f of F) t[f] += Number(s[f]) || 0;
       const decidedN = (Number(s.approved) || 0) + (Number(s.rejected) || 0);
       if (s.avg_minutes != null && decidedN) { t.minSum += Number(s.avg_minutes) * decidedN; t.minN += decidedN; }
@@ -588,12 +598,12 @@
     const list2 = Object.values(by).sort((a, b) => b.dropped - a.dropped || a.key.localeCompare(b.key));
     if (!list2.length) return `<div class="empty"><p><strong>No drafts in this time.</strong></p><p>Numbers show up once a bot drops something in.</p></div>`;
     const rate = (/** @type {any} */ t) => { const d = t.approved + t.rejected + t.expired; return d ? `${Math.round((t.approved / d) * 100)}%` : 'None yet'; };
-    const tr = (/** @type {any} */ t, /** @type {string} */ name, /** @type {boolean} */ total) => `<tr${total ? ' class="bot-total"' : ''}><th scope="row">${esc(name)}</th><td>${t.dropped}</td><td>${t.approved}</td><td>${t.edited}</td><td>${t.rejected}</td><td>${t.expired}</td><td>${t.waiting}</td><td>${rate(t)}</td><td>${esc(minutes(t.minN ? t.minSum / t.minN : null))}</td></tr>`;
-    const sum = list2.reduce((a, t) => { for (const f of F.concat(['minSum', 'minN'])) a[f] += t[f]; return a; }, { dropped: 0, approved: 0, edited: 0, rejected: 0, expired: 0, waiting: 0, minSum: 0, minN: 0 });
+    const tr = (/** @type {any} */ t, /** @type {string} */ name, /** @type {boolean} */ total) => `<tr${total ? ' class="bot-total"' : ''}><th scope="row">${esc(name)}</th><td>${t.dropped}</td><td>${t.approved}</td><td>${t.edited}</td><td>${t.rejected}</td><td>${t.expired}</td><td>${t.waiting}</td><td>${t.snoozed}</td><td>${rate(t)}</td><td>${esc(minutes(t.minN ? t.minSum / t.minN : null))}</td></tr>`;
+    const sum = list2.reduce((a, t) => { for (const f of F.concat(['minSum', 'minN'])) a[f] += t[f]; return a; }, { dropped: 0, approved: 0, edited: 0, rejected: 0, expired: 0, waiting: 0, snoozed: 0, minSum: 0, minN: 0 });
     return `<div class="table-wrap bot-stats-table" tabindex="0" role="region" aria-label="Numbers for each bot"><table class="grid"><caption class="sr-only">Drafts for each bot in the last ${state.days} days</caption>
-      <thead><tr><th scope="col">Bot</th><th scope="col">Drafts</th><th scope="col">Approved</th><th scope="col">Edited first</th><th scope="col">Rejected</th><th scope="col">Expired</th><th scope="col">Waiting</th><th scope="col">Approved share</th><th scope="col">Time to decide</th></tr></thead>
+      <thead><tr><th scope="col">Bot</th><th scope="col">Drafts</th><th scope="col">Approved</th><th scope="col">Edited first</th><th scope="col">Rejected</th><th scope="col">Expired</th><th scope="col">Waiting</th><th scope="col">Snoozed</th><th scope="col">Approved share</th><th scope="col">Time to decide</th></tr></thead>
       <tbody>${list2.map((t) => tr(t, botName(t.key), false)).join('')}${list2.length > 1 ? tr(sum, 'Every bot', true) : ''}</tbody></table></div>
-      <p class="meta">Approved share counts approved against rejected and expired. Time to decide is the average from drop-in to Approve or Reject.</p>`;
+      <p class="meta">Approved share counts approved against rejected and expired. Time to decide is the average from drop-in to Approve or Reject. Snoozed drafts are not in Waiting until they wake.</p>`;
   }
   /** #/bot/stats. */
   async function statsPage() {
@@ -622,6 +632,7 @@
     let list;
     try { const data = await call('bot_output_stats', { p_days: days }); list = Array.isArray(data) ? data : []; }
     catch (x) { list = statsFromRows(days); }
+    list = splitSnoozed(list, days);
     if (ask !== statsAsk || !box.isConnected || state.days !== days) return;
     box.innerHTML = statsTable(list);
     box.removeAttribute('aria-busy');
@@ -955,6 +966,8 @@
     again();
   }
 
+  /** The drafts waiting for one client: the client's Bot tab count, part of the sidebar's. @param {string} id */
+  function waitingFor(id) { return pending().filter((r) => r.tenant_id === id).length; }
   /** The sidebar's waiting count (snoozed drafts are left out until they wake). */
   function sideBadge() {
     const b = document.getElementById('bot-badge');
@@ -962,6 +975,10 @@
     const n = pending().length;
     b.textContent = String(n);
     b.hidden = !n;
+    // The client's Bot tab count follows the sidebar (critic R11-6).
+    const tc = /** @type {HTMLElement|null} */ (document.querySelector('[data-bot-tab-count]'));
+    const cur = C().current;
+    if (tc && cur) { const m = waitingFor(cur.id); tc.textContent = String(m); tc.hidden = !m; }
     wakeLater();
   }
 
@@ -1163,7 +1180,8 @@
   function needsBlock() {
     const p = pending();
     if (!p.length) return '';
-    return `<div class="q-client bot-needs" data-qf="other"><h3 class="q-client-h">Bot outputs waiting · ${p.length} <a class="bot-all" href="#/bot">Open Bot chat</a></h3>
+    return `<div class="q-client bot-needs" data-qf="other"><h3 class="q-client-h">Bot drafts waiting · ${p.length} <a class="bot-all" href="#/bot">Open Bot chat</a></h3>
+      <p class="meta bot-needs-note">Counted in Bot chat, not in the Needs you total above.</p>
       <ul class="q">${p.slice(0, 3).map(plainRow).join('')}</ul>
       ${p.length > 3 ? `<details class="reveal q-more"><summary>Show ${p.length - 3} more</summary><ul class="q">${p.slice(3).map(plainRow).join('')}</ul></details>` : ''}</div>`;
   }
@@ -1182,7 +1200,7 @@
     C().toast(cut ? `Only the first ${max} characters fit in a reply. Read it and trim before you press Send.` : 'The approved text is in the reply box. Read it, then press Send.', cut);
   }
 
-  EXT.bot = { load, page, needsBlock, sideBadge, fillReply, pendingCount: () => pending().length, diff, get loaded() { return loaded; } };
+  EXT.bot = { load, page, needsBlock, sideBadge, fillReply, pendingCount: () => pending().length, waitingFor, diff, get loaded() { return loaded; } };
   // first: true puts it straight after Talk, ahead of the other tabs that also follow Talk.
   EXT.tabs.bot = { label: 'Bot', after: 'talk', first: true, render };
 })();

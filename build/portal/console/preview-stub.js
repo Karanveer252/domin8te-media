@@ -40,9 +40,12 @@
     name: 'The Corner Bean', kind: 'Cafe', first: 'Sam', email: 'sam@cornerbean.example', pkg: 'Starter',
     services: { website: { status: 'paused', objective: 'A simple site with the menu and opening hours.', now: 'Paused at your request until the refit is done', next: null, expected: null, proof: { date: day(-40), text: 'Site launched' }, milestones: [{ title: 'Site launched', date: day(-40), state: 'done' }], completed: [{ date: day(-40), text: 'Launched the site' }], files: [] } }
   });
-  withBilling(osteria, { status: 'active', startedAt: day(-9), nextBilling: day(21), amount: '$399 a month' });
-  withBilling(marlow, { status: 'active', startedAt: day(-62), nextBilling: day(3), amount: '$449 a month' });
-  withBilling(corner, { status: 'paused', startedAt: day(-120), nextBilling: null, amount: '$199 a month' });
+  // The typed amounts are the plan prices in stub/00-plans.js (minor units, which a --demo-site build turns into null), so the demo
+  // console carries none (critic R11-2). The console shows the plan's price anyway; these only fill the old fallback field.
+  const amt = (/** @type {number|null} */ minor) => ((/** @type {any} */ (window).D8DEMO_SITE || minor == null ? undefined : `$${(minor / 100).toLocaleString('en-US')} a month`));
+  withBilling(osteria, { status: 'active', startedAt: day(-9), nextBilling: day(21), amount: amt(199900) });
+  withBilling(marlow, { status: 'active', startedAt: day(-62), nextBilling: day(3), amount: amt(199900) });
+  withBilling(corner, { status: 'paused', startedAt: day(-120), nextBilling: null, amount: amt(99900) });
   // Marlow & Finch is linked to Stripe and their subscription came from it, so their billing fields are read-only.
   marlow.billing.stripeCustomerId = 'cus_PreviewMarlow01';
   marlow.billing.subscription.stripeSubscriptionId = 'sub_preview_marlow';
@@ -52,7 +55,7 @@
     { id: 'cus_PreviewOsteria2', name: 'Osteria Nove', email: 'marco@osterianove.example', created: day(-9), livemode: false, tenantId: null },
     { id: 'cus_PreviewBayleaf3', name: 'Bayleaf Kitchen', email: 'dani@bayleaf.example', created: day(-200), livemode: false, tenantId: null }
   ];
-  if (seed && seed.billing && seed.billing.subscription) { seed.billing.subscription.startedAt = seed.billing.subscription.startedAt || '2026-03-22'; seed.billing.subscription.amount = seed.billing.subscription.amount || '$799 a month'; }
+  if (seed && seed.billing && seed.billing.subscription) { seed.billing.subscription.startedAt = seed.billing.subscription.startedAt || '2026-03-22'; seed.billing.subscription.amount = seed.billing.subscription.amount || amt(349900); }
   const db = {
     login_requests: [{ id: 'la_preview_1', tenant_id: 'tnt_preview_bayleaf', first_name: 'Priya', email: 'priya@bayleaf.example', role: 'Manager', by_name: 'Dani', status: 'pending', at: stamp(-1, 3) }],
     staff: [{ clerk_user_id: 'user_preview_karan', name: 'Karan' }],
@@ -358,7 +361,8 @@
       const fail = (status, error, msg) => out({ error, message: msg }, status);
       const owner = (id) => { const t = db.tenants.find((x) => x.doc && x.doc.billing && x.doc.billing.stripeCustomerId === id); return t ? t.id : null; };
       const safe = (c) => ({ ...c, tenantId: owner(c.id) || c.tenantId || null });
-      if (body.action === 'status') return out({ ok: true, configured: true, mode: 'test', refused: false, liveAllowed: false, webhook: true });
+      // This is a stand-in, not Stripe, so it does not claim a mode: the console then says "Stripe", never "(test mode)" (critic R11-7).
+      if (body.action === 'status') return out({ ok: true, configured: true, mode: null, refused: false, liveAllowed: false, webhook: true });
       if (body.action === 'search') {
         const q = String(body.query || '').trim().toLowerCase();
         if (q.length < 3) return fail(400, 'bad-request', 'Type at least three characters.');

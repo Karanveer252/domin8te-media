@@ -39,7 +39,7 @@
     reminder_failed: { f: 'email', label: 'Reminder failed', tone: 'bad', icon: 'mail', rank: 1 },
     notification_failed: { f: 'email', label: 'Message email failed', tone: 'bad', icon: 'mail', rank: 1 }
   };
-  const FILTERS = [['all', 'All'], ['mismatch', 'Mismatches'], ['limit', 'Over limit'], ['deadline', 'Pick deadlines'], ['email', 'Failed emails'], ['approval', 'Client approvals']];
+  const FILTERS = [['all', 'All'], ['mismatch', 'Mismatches'], ['limit', 'Limit decisions'], ['deadline', 'Pick deadlines'], ['email', 'Failed emails'], ['approval', 'Client approvals']];
   /** The chip in use stays when the page is drawn again after an action. */
   const state = { filter: 'all' };
 

@@ -37,6 +37,9 @@
 .bot-needs .bot-all { margin-left: auto; font-size: 13px; font-weight: 600; }
 /* On the moving sky the link reads in the same light words as the heading it sits in (contrast fix, 2026-10-14). */
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs .bot-all { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+/* "Counted in Bot chat, not in the Needs you total above" (critic R11-9): the same light words on the sky. */
+.bot-needs .bot-needs-note { margin: -2px 0 8px 2px; }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs .bot-needs-note { color: rgba(246, 243, 238, 0.92); text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
 
 /* ==== Bot chat plus (2026-10-15): filters, pick many, stars, snooze, move, saved reasons, edit history, numbers ====
  * Same tokens, glass pills (.seg), buttons and panels as the rest of the console; the selected pill keeps the solid ink look. */

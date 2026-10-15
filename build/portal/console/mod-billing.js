@@ -209,8 +209,11 @@
   /** @param {any} r */
   function remCell(r) {
     if (!r.now && !r.next) return '<span class="none">None</span>';
-    const failed = r.rem.some((/** @type {any} */ x) => x.status === 'failed');
-    return `<div class="bl-rems">${remChip(r, 'd7')}${remChip(r, 'd3')}</div>${failed ? `<a class="bl-more" href="#/queue" aria-label="Fix it in Needs you: ${esc(r.t.name)}'s failed reminder">Fix it in Needs you</a>` : ''}`;
+    // The link goes to the open Needs you item for one of these failed reminders, and shows only when that item exists (critic R11-3).
+    const failedIds = new Set(r.rem.filter((/** @type {any} */ x) => x.status === 'failed').map((/** @type {any} */ x) => String(x.id)));
+    const all = C().all;
+    const need = failedIds.size ? ((all && all.reviews && all.reviews.exceptions) || []).find((/** @type {any} */ x) => x.reason_code === 'reminder_failed' && x.tenant_id === r.t.id && failedIds.has(String(x.entity_id))) : null;
+    return `<div class="bl-rems">${remChip(r, 'd7')}${remChip(r, 'd3')}</div>${need ? `<a class="bl-more" href="#/queue/${esc(need.id)}" aria-label="Fix it in Needs you: ${esc(r.t.name)}'s failed reminder">Fix it in Needs you</a>` : ''}`;
   }
   /** @param {any} r */
   function invoiceCell(r) {

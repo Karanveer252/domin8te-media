@@ -163,8 +163,16 @@
     const minor = Number(d) * 100 + Number((c + '00').slice(0, 2));
     return minor > MAX_MINOR ? { minor: null, why: 'big' } : { minor, why: '' };
   }
+  /**
+   * One rule for every percent on Revenue (critic R11-8): progress towards a goal rounds DOWN (goalPct), so it never reads as
+   * reached before it is; every other percent (margins, shares, changes) rounds to the nearest whole number (pctOf).
+   * @param {number} part @param {number} whole
+   */
+  const pctOf = (part, whole) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
+  /** @param {number} v @param {number} goal */
+  const goalPct = (v, goal) => (v > 0 && goal > 0 ? Math.min(Math.floor((v / goal) * 100), v >= goal ? 100 : 99) : 0);
   /** A profit margin in whole percent, or null when nothing came in. @param {number} profit @param {number} income */
-  const margin = (profit, income) => (income > 0 ? Math.round((profit / income) * 100) : null);
+  const margin = (profit, income) => (income > 0 ? pctOf(profit, income) : null);
 
   /** A move bigger than this many percent reads in dollars instead ("up 198039%" says nothing a person can use; R6-3, 15 Oct). */
   const MAX_PCT = 999;
@@ -328,8 +336,8 @@
    */
   function goalHtml(v, goal, cls) {
     // floor, so 99.6% never reads 100% before the goal is met; "to go" counts from a loss too: a loss of 2000 against 4000 is 6000 to go (R6-1, R6-2)
-    const pct = v > 0 ? Math.min(Math.floor((v / goal) * 100), v >= goal ? 100 : 99) : 0;
-    const words = v >= goal ? `Goal of ${money(goal)} reached${v > goal ? `, ${money(v - goal)} over` : ''}` : `${pct}% of the ${money(goal)} goal, ${money(goal - v)} to go`;
+    const pct = goalPct(v, goal);
+    const words = v >= goal ? `Goal of ${money(goal)} reached${v > goal ? `, ${money(v - goal)} over` : ''}` : `${pct}% of the ${money(goal)} goal so far, ${money(goal - v)} to go`;
     return `<div class="rv-goal${v >= goal ? ' is-met' : ''}"><span class="rv-goal-bar" aria-hidden="true"><i class="${cls}" style="width:${Math.max(0, Math.min(100, pct))}%"></i></span><span class="rv-goal-t">${esc(words)}</span></div>`;
   }
 
@@ -737,7 +745,7 @@
       acc += f;
       return out;
     }).join('');
-    const label = `Client mix, ${monthName(d.ym)}: ${slices.map((s) => `${s.name} ${Math.round((s.minor / total) * 100)}%`).join(', ')}.`;
+    const label = `Client mix, ${monthName(d.ym)}: ${slices.map((s) => `${s.name} ${pctOf(s.minor, total)}%`).join(', ')}.`;
     return `<svg class="rv-svg rv-ring" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" role="img" aria-label="${esc(label)}" focusable="false"><circle class="rv-ring-track" cx="${c}" cy="${c}" r="${r}" style="stroke-width:${w}px"/><g style="stroke-width:${w}px">${segs}</g>
       <text class="rv-ring-v" x="${c}" y="${c - 2}" text-anchor="middle">${esc(dollars(total))}</text><text class="rv-ring-k" x="${c}" y="${c + 16}" text-anchor="middle">${slices.length - (slices.some((s) => s.other) ? 1 : 0)} ${slices.length - (slices.some((s) => s.other) ? 1 : 0) === 1 ? 'client' : 'clients'}</text></svg>`;
   }
@@ -794,7 +802,7 @@
       const s = slices[i];
       if (!s) return '';
       const total = sumOf(slices, 'minor');
-      return `<strong>${esc(s.name)}</strong>${tipRows([['', money(s.minor), `${Math.round((s.minor / total) * 100)}% of income`]])}`;
+      return `<strong>${esc(s.name)}</strong>${tipRows([['', money(s.minor), `${pctOf(s.minor, total)}% of income`]])}`;
     }
   };
 
@@ -808,7 +816,7 @@
     const sorted = items.filter((x) => x.minor > 0).sort((a, b) => b.minor - a.minor);
     const top = sorted.length ? sorted[0].minor : 0;
     const total = sumOf(sorted, 'minor');
-    return `<ul class="rv-bars" aria-label="${esc(caption)}">${sorted.map((x, i) => `<li class="rv-bar-row"><span class="rv-bar-name">${x.lead || ''}<span>${esc(x.name)}</span></span>${hbar((x.minor / top) * 100, cls, i)}<span class="rv-bar-v">${esc(dollars(x.minor))}<span class="rv-bar-pct"> ${Math.round((x.minor / total) * 100)}%</span></span></li>`).join('')}</ul>`;
+    return `<ul class="rv-bars" aria-label="${esc(caption)}">${sorted.map((x, i) => `<li class="rv-bar-row"><span class="rv-bar-name">${x.lead || ''}<span>${esc(x.name)}</span></span>${hbar((x.minor / top) * 100, cls, i)}<span class="rv-bar-v">${esc(dollars(x.minor))}<span class="rv-bar-pct"> ${pctOf(x.minor, total)}%</span></span></li>`).join('')}</ul>`;
   }
   /** A small stat tile. @param {string} k @param {string} v @param {string} s */
   const tile = (k, v, s) => `<div class="rv-tile"><p class="rv-tile-k">${k}</p><p class="rv-tile-v">${v}</p><p class="rv-tile-s">${s}</p></div>`;
@@ -895,8 +903,8 @@
       const slices = mixSlices(d);
       const total = sumOf(slices, 'minor');
       if (!slices.length) return { sub: `${esc(monthName(d.ym))}`, body: `<p class="rv-chart-empty">No income entered for ${esc(monthName(d.ym))}. <a href="#/revenue/${d.ym}/income">Enter income</a></p>` };
-      const legend = `<ul class="rv-mix-legend" aria-label="Share of income">${slices.map((s) => `<li><i class="rv-key" style="background:${s.color}" aria-hidden="true"></i><span class="rv-mix-name">${s.other ? '' : badge(s.id)}<span>${esc(s.name)}</span></span><span class="rv-mix-v">${Math.round((s.minor / total) * 100)}%<span class="rv-bar-pct"> ${esc(dollars(s.minor))}</span></span></li>`).join('')}</ul>`;
-      const table = tableOf(`Share of income, ${monthName(d.ym)}`, ['Who', 'Amount', 'Share'], slices.map((s) => [esc(s.name), esc(money(s.minor)), `${Math.round((s.minor / total) * 100)}%`]));
+      const legend = `<ul class="rv-mix-legend" aria-label="Share of income">${slices.map((s) => `<li><i class="rv-key" style="background:${s.color}" aria-hidden="true"></i><span class="rv-mix-name">${s.other ? '' : badge(s.id)}<span>${esc(s.name)}</span></span><span class="rv-mix-v">${pctOf(s.minor, total)}%<span class="rv-bar-pct"> ${esc(dollars(s.minor))}</span></span></li>`).join('')}</ul>`;
+      const table = tableOf(`Share of income, ${monthName(d.ym)}`, ['Who', 'Amount', 'Share'], slices.map((s) => [esc(s.name), esc(money(s.minor)), `${pctOf(s.minor, total)}%`]));
       return { sub: `${esc(monthName(d.ym))}, share of income`, body: `<div class="rv-mix"><div class="rv-plot is-fixed" data-plot="mix">${mixSvg(d)}<div class="rv-tip" role="presentation" hidden></div></div>${legend}</div>${table}` };
     },
     clients(d) {
@@ -928,7 +936,7 @@
         const pa = t > 0 ? (a / t) * 100 : 0;
         return `<svg class="rv-split" width="100%" height="14" role="img" aria-label="${esc(what)}: ${esc(money(a))} repeating, ${esc(money(b))} one-off" focusable="false"><rect class="rv-track" x="0" y="0" width="100%" height="14" rx="5"/>${t > 0 ? `<rect class="rv-f-cost rv-growx" x="0" y="0" width="${pa.toFixed(1)}%" height="14" rx="5"/><rect class="rv-f-once rv-growx" style="--i:1" x="${pa.toFixed(1)}%" y="0" width="${(100 - pa).toFixed(1)}%" height="14" rx="5"/>` : ''}</svg>`;
       };
-      const part = (/** @type {string} */ title, /** @type {number} */ a, /** @type {number} */ b, /** @type {boolean} */ has, /** @type {string} */ none) => `<div class="rv-split-part"><h4 class="rv-split-h">${title}</h4>${has ? `${bar(a, b, title)}<ul class="rv-split-figs"><li><i class="rv-key rv-k-cost" aria-hidden="true"></i>Repeating <strong>${num(a, 'money')}</strong><span class="rv-bar-pct"> ${a + b > 0 ? Math.round((a / (a + b)) * 100) : 0}%</span></li><li><i class="rv-key rv-k-once" aria-hidden="true"></i>One-off <strong>${num(b, 'money')}</strong><span class="rv-bar-pct"> ${a + b > 0 ? Math.round((b / (a + b)) * 100) : 0}%</span></li></ul>` : `<p class="rv-chart-empty">${none}</p>`}</div>`;
+      const part = (/** @type {string} */ title, /** @type {number} */ a, /** @type {number} */ b, /** @type {boolean} */ has, /** @type {string} */ none) => `<div class="rv-split-part"><h4 class="rv-split-h">${title}</h4>${has ? `${bar(a, b, title)}<ul class="rv-split-figs"><li><i class="rv-key rv-k-cost" aria-hidden="true"></i>Repeating <strong>${num(a, 'money')}</strong><span class="rv-bar-pct"> ${pctOf(a, a + b)}%</span></li><li><i class="rv-key rv-k-once" aria-hidden="true"></i>One-off <strong>${num(b, 'money')}</strong><span class="rv-bar-pct"> ${pctOf(b, a + b)}%</span></li></ul>` : `<p class="rv-chart-empty">${none}</p>`}</div>`;
       return { sub: 'Costs that come back every month against one-time ones', body: `<div class="rv-splits">${part(esc(mon), rep, once, d.costs.length > 0, `No costs entered for ${esc(mon)}.`)}${part('Last 12 months', rep12, all12 - rep12, rows12.some((/** @type {any} */ r) => r.costN > 0), 'No costs entered in the last 12 months.')}</div>` };
     },
     bestworst(d) {
@@ -1201,7 +1209,7 @@
     const c = C();
     const mon = monthName(m.ym);
     const prevName = monthName(m.prev.ym);
-    const pct = (/** @type {number} */ part, /** @type {number} */ whole) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
+    const pct = pctOf;
     const clients = m.income.filter((/** @type {any} */ x) => x.kind === 'client').map((/** @type {any} */ x) => ({ id: x.tenant_id, name: clientName(x.tenant_id, x.label), minor: x.amount, due: !x.received })).sort((/** @type {any} */ a, /** @type {any} */ b) => b.minor - a.minor);
     const other = m.income.filter((/** @type {any} */ x) => x.kind === 'other');
     const topC = clients.length ? clients[0].minor : 0;

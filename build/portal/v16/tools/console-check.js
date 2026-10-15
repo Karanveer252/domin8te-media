@@ -37,7 +37,9 @@ const ROUTES = ['queue', 'messages', 'clients', 'board', 'billing', `billing/${T
   `client/${T}/overview`, `client/${T}/work`, `client/${T}/work/cards`, `client/${T}/results`, `client/${T}/talk`, `client/${T}/home`, `client/${T}/visible`, `client/${T}/view`, `client/${T}/setup`, `client/${T}/advanced`,
   'client/tnt_preview_marlow/overview', 'client/tnt_preview_corner/visible',
   // Bot chat (2026-10-15): the list, a card, a card with a saved edit, an approved card with its history, the numbers, and a client's Bot tab and card.
-  'bot', 'bot/bo_1', 'bot/bo_3', 'bot/bo_5', 'bot/stats', `client/${T}/bot`, `client/${T}/bot/bo_8`].filter((r) => !ONLY || r.includes(ONLY));
+  'bot', 'bot/bo_1', 'bot/bo_3', 'bot/bo_5', 'bot/stats', `client/${T}/bot`, `client/${T}/bot/bo_8`,
+  // Cinematic view (2026-10-15): the full-screen command centre on the same data.
+  'cinema'].filter((r) => !ONLY || r.includes(ONLY));
 
 const collect = `<script>(function () {
   var errs = window.__errs = [];
@@ -55,7 +57,21 @@ document.documentElement.setAttribute('data-probe', JSON.stringify({ errs: windo
   busy: m ? m.querySelectorAll('[aria-busy="true"]').length : -1, title: document.title, hash: location.hash, over: document.documentElement.scrollWidth > window.innerWidth + 1, heads: m ? m.querySelectorAll('h1').length : -1,
   badge: (function () { var b = document.getElementById('queue-badge'); return b && !b.hidden ? String(b.textContent).trim() : '0'; })(),
   clientNeeds: (function () { var cells = m ? m.querySelectorAll('td[data-label="Needs you"] .cl-needs:not(.cl-wait) .chip.you') : []; if (!cells.length) return null; var s = 0; for (var i = 0; i < cells.length; i++) s += parseInt(cells[i].textContent, 10) || 0; return s; })(),
-  doNow: (function () { var h = m && m.querySelector('#q-needs h2 .meta'); return h ? String(h.textContent).trim() : null; })() }));`;
+  doNow: (function () { var h = m && m.querySelector('#q-needs h2 .meta'); return h ? String(h.textContent).trim() : null; })(),
+  r11: (function () { try {
+    var C = window.D8C, n = function (el) { return el && !el.hidden ? parseInt(el.textContent, 10) || 0 : 0; }, o = {};
+    o.botBadge = n(document.getElementById('bot-badge'));
+    var st = m && m.querySelector('.bot-stats-table table');
+    if (st) { var hs = Array.prototype.map.call(st.querySelectorAll('thead th'), function (x) { return String(x.textContent).trim(); }); var rs = st.querySelectorAll('tbody tr'); var last = rs[rs.length - 1]; var cells = last ? last.children : []; o.statsWaiting = parseInt(cells[hs.indexOf('Waiting')] && cells[hs.indexOf('Waiting')].textContent, 10); o.statsSnoozedCol = hs.indexOf('Snoozed') >= 0; }
+    var tc = document.querySelector('[data-bot-tab-count]'); if (tc) o.botTab = n(tc);
+    var bh = m && m.querySelector('.bot-tab-head .meta'); if (bh) { var mm = /([0-9]+) drafts? waiting/.exec(bh.textContent); o.botTabText = mm ? Number(mm[1]) : 0; }
+    var td = m && m.querySelector('[data-todo-ours]'); if (td && C && C.current) { o.todoOurs = Number(td.getAttribute('data-todo-ours')); o.reviewN = C.reviewCount(C.current.id); var sb = document.querySelector('.side-client[aria-current="page"]'); o.sideClient = sb ? n(sb.querySelector('.badge')) : null; }
+    var bn = m && m.querySelector('.bot-needs'); if (bn) { var bm = /([0-9]+)/.exec(bn.querySelector('h3').textContent); o.botNeeds = bm ? Number(bm[1]) : null; o.botNeedsNote = /not in the Needs you total/.test(bn.textContent); }
+    var ov = m && m.querySelector('[data-wk-filter="over"]'); if (ov) o.overLabel = String(ov.textContent).replace(/[0-9]+/g, '').trim();
+    var nl = m && m.querySelector('.next-line'); if (nl && C && C.current) { var rm = /Renews: [^,]*, ([$][0-9,.]+)/.exec(nl.textContent); if (rm) { o.renewAmt = rm[1]; o.planPrice = C.billingOf(C.current).price; } }
+    var fx = m ? Array.prototype.filter.call(m.querySelectorAll('a.bl-more'), function (a) { return /Fix it in Needs you/.test(a.textContent); }) : []; if (fx.length && C) { var ids = ((C.all.reviews && C.all.reviews.exceptions) || []).map(function (x) { return '#/queue/' + x.id; }); o.fixLinks = Array.prototype.map.call(fx, function (a) { return a.getAttribute('href'); }); o.fixMissing = o.fixLinks.filter(function (h) { return ids.indexOf(h) < 0; }); }
+    if (C && typeof C.stripeModeText === 'function' && document.getElementById('bl-fresh')) { o.blFresh = String(document.getElementById('bl-fresh').textContent); o.stripeMode = C.stripeModeText(); }
+    return o; } catch (e) { return { err: String(e) }; } })() }));`;
 
 function page(route, i) {
   const late = `<script>window.addEventListener('load', function () { setTimeout(function () { ${report} }, 3500); });</script>`;
@@ -262,6 +278,19 @@ function runPhone(route, i) {
       if (route === 'queue' && r.doNow !== null && r.badge !== r.doNow) problems.push(`the sidebar Needs you badge says ${r.badge} but the page says Do now ${r.doNow}`);
       // Round 10 (R10-1): the Clients table's Needs you column adds up to the same total as the sidebar badge and the Needs you page.
       if (route === 'clients' && r.clientNeeds !== null && String(r.clientNeeds) !== r.badge) problems.push(`the Clients Needs you column adds up to ${r.clientNeeds} but the sidebar badge says ${r.badge}`);
+      // Round 11: every count pair agrees, and every price comes from the plan.
+      const q = r.r11 || {};
+      if (q.err) problems.push('round 11 probe: ' + q.err);
+      if (route === 'bot/stats' && !Number.isNaN(q.statsWaiting) && q.statsWaiting !== undefined && q.statsWaiting !== q.botBadge) problems.push(`R11-1: Bot numbers says Waiting ${q.statsWaiting} but the sidebar Bot chat says ${q.botBadge}`);
+      if (route === 'bot/stats' && q.statsSnoozedCol === false) problems.push('R11-1: Bot numbers has no Snoozed column');
+      if (/^client\/[^/]+\/bot/.test(route) && q.botTabText !== undefined && q.botTab !== q.botTabText) problems.push(`R11-6: the Bot tab count is ${q.botTab} but the tab says ${q.botTabText} waiting`);
+      if (/^client\//.test(route) && q.botTab === undefined) problems.push('R11-6: the client tabs have no Bot count');
+      if (q.todoOurs !== undefined && q.sideClient !== null && q.todoOurs + q.reviewN !== q.sideClient) problems.push(`R11-4: To do ${q.todoOurs} for you + ${q.reviewN} approvals is not the sidebar's ${q.sideClient}`);
+      if (route === 'queue' && q.botNeeds !== undefined && (q.botNeeds !== q.botBadge || !q.botNeedsNote)) problems.push(`R11-9: the Bot drafts block says ${q.botNeeds} (sidebar ${q.botBadge}) or is not marked as outside the total`);
+      if (route === 'board' && q.overLabel !== undefined && q.overLabel !== 'Cards over limit') problems.push(`R11-5: the board chip reads "${q.overLabel}", not "Cards over limit"`);
+      if (q.renewAmt !== undefined && q.planPrice && !q.renewAmt.startsWith(q.planPrice)) problems.push(`R11-2: Renews says ${q.renewAmt} but the plan is ${q.planPrice}`);
+      if (q.fixMissing && q.fixMissing.length) problems.push(`R11-3: "Fix it in Needs you" points at ${q.fixMissing.join(', ')}, which is not an open item`);
+      if (q.blFresh !== undefined && /test mode/i.test(q.blFresh) && q.stripeMode !== 'test mode') problems.push(`R11-7: Billing says test mode while Stripe's mode is "${q.stripeMode}"`);
       if (!/Domin8te console/.test(r.title)) problems.push(`title "${r.title}"`);
       if (r.heads < 1 && !/^client\//.test(route)) problems.push('no page title (h1)');
     }

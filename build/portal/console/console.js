@@ -587,7 +587,7 @@
     else if (theirs.length > 1) waiting.push({ kind: 'next', label: 'Their next steps', text: `${theirs.length} next steps are theirs`, title: theirs.map((x) => x.text).join('; '), href: go('work', ['site']) });
     const bill = billingOf(t);
     if (bill.status === 'past_due') needs.push({ kind: 'billing', label: 'Payment past due', text: `${bill.plan || 'Plan'}${bill.grace ? `: services pause after ${when(bill.grace)}` : ''}`, dueDate: bill.grace || undefined, href: '#/billing', rank: 1 });
-    else if (bill.renews && bill.status !== 'canceled') { const rd = due(bill.renews); if (rd.days >= 0 && rd.days <= 7) soon.push({ kind: 'renewal', label: 'Renews', text: `${bill.plan || 'Plan'}${bill.amount && !(/** @type {any} */ (window).D8DEMO_SITE) ? `, ${bill.amount}` : ''}`, dueDate: bill.renews, href: '#/billing' }); }
+    else if (bill.renews && bill.status !== 'canceled') { const rd = due(bill.renews); if (rd.days >= 0 && rd.days <= 7) { const amt = bill.price ? `${bill.price} / mo` : bill.amount; soon.push({ kind: 'renewal', label: 'Renews', text: `${bill.plan || 'Plan'}${amt && !(/** @type {any} */ (window).D8DEMO_SITE) ? `, ${amt}` : ''}`, dueDate: bill.renews, href: '#/billing' }); } }
     if (!t.clerk_org_id && t.status === 'active') needs.push({ kind: 'login', label: 'No login yet', text: 'They can\'t open their portal yet. Add one in Setup.', href: go('setup', ['login']), rank: 2 });
     for (const a of asksFor(id)) needs.push({ kind: 'login-ask', label: 'Login request', hint: 'The client asked us to give someone a login. Answer it in Setup.', text: `${a.first_name}${a.role ? ', ' + a.role : ''} (${a.email})`, at: a.at, href: go('setup', ['login']), rank: 1 });
     if (doc.meeting && doc.meeting.at) {
@@ -866,6 +866,7 @@
         { name: 'All work (every client\'s team cards)', hint: 'Page', href: '#/board', icon: 'board' },
         { name: 'Billing', hint: 'Page', href: '#/billing', icon: 'card' },
         ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }, { name: 'Revenue: Income', hint: 'Page', href: '#/revenue/income', icon: 'trend' }, { name: 'Revenue: Costs', hint: 'Page', href: '#/revenue/costs', icon: 'trend' }, { name: 'Revenue: Years', hint: 'Page', href: '#/revenue/years', icon: 'trend' }] : []),
+        { name: 'Cinematic view (full-screen command centre)', hint: 'Page', href: '#/cinema', icon: 'film' },
         { name: 'Settings', hint: 'Page', href: '#/settings', icon: 'gear' },
         { name: 'Team', hint: 'Settings', href: '#/settings', icon: 'users' },
         { name: 'Reload everything', hint: 'Action', act: 'refresh', icon: 'refresh' },
@@ -1170,7 +1171,7 @@
     saveBar();
     // Needs you is always the first page (the old Opening page setting, prefs.start, is no longer read).
     const parts = (location.hash || '#/queue').replace(/^#\//, '').split('/');
-    document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'revenue', 'settings', 'messages', 'bot'].includes(parts[0]) ? parts[0] : 'queue';
+    document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'revenue', 'settings', 'messages', 'bot', 'cinema'].includes(parts[0]) ? parts[0] : 'queue';
     stopInbox();
     main.onclick = null;
     main.onchange = null;
@@ -1184,6 +1185,7 @@
     else if (parts[0] === 'messages') messagesPage(parts[1] || '');
     else if (parts[0] === 'revenue' && partOf('revenue')) partOf('revenue').page(parts[1] || '', parts[2] || '');   // Revenue, owners only (mod-revenue.js, 2026-10-14)
     else if (parts[0] === 'bot' && partOf('bot')) partOf('bot').page(parts[1] || '');   // Bot chat (mod-bot.js, 2026-10-14)
+    else if (parts[0] === 'cinema' && partOf('cinema')) partOf('cinema').page();   // Cinematic view, the full-screen command centre (mod-cinema.js, 2026-10-15)
     else queuePage();
     if (parts[0] !== 'client') stopPulling();
     renderSide();
@@ -1645,7 +1647,9 @@
       <div class="client-head"><div><h1 id="page-title" tabindex="-1">${esc(current.name)}</h1>
         <div class="who">${statusChip}${CC() ? CC().headerControl(current.id) : ''}${warns}<details class="about"><summary>About</summary><p class="about-line">${about.map((x) => `<span class="t">${x}</span>`).join('')}</p></details></div></div></div>
       <nav class="tabs" aria-label="Client sections">${allTabs().map(([k, label]) => {
-        const count = k === 'talk' && talkCount ? `<span class="count" title="Needs a reply">${talkCount}</span>` : k === 'work' && openCards ? `<span class="count quiet" title="Open cards">${openCards}</span>` : '';
+        // The Bot tab counts the drafts waiting for this client, the same ones the sidebar's Bot chat count adds up (critic R11-6).
+        const botN = k === 'bot' && partOf('bot') && partOf('bot').waitingFor ? partOf('bot').waitingFor(id) : 0;
+        const count = k === 'talk' && talkCount ? `<span class="count" title="Needs a reply">${talkCount}</span>` : k === 'work' && openCards ? `<span class="count quiet" title="Open cards">${openCards}</span>` : k === 'bot' ? `<span class="count" title="Drafts waiting" data-bot-tab-count${botN ? '' : ' hidden'}>${botN}</span>` : '';
         return `<a href="#/client/${esc(id)}/${k}"${k === t ? ' aria-current="page"' : ''}>${label}${count}</a>`;
       }).join('')}</nav>
       <div id="tab"></div>`;
@@ -1720,7 +1724,7 @@
     const nd = next ? due(next.dueDate) : null;
     box.innerHTML = `
       ${reviewCount(current.id) || (all.reviews && all.reviews.error) ? dmBlock(current.id) : ''}
-      <section class="panel" aria-labelledby="g-todo"><div class="panel-head"><h2 id="g-todo">To do for this client <span class="meta">${todo.length}</span></h2></div>
+      <section class="panel" aria-labelledby="g-todo"><div class="panel-head"><h2 id="g-todo">To do for this client <span class="meta" data-todo-ours="${got.needs.length}" data-todo-theirs="${got.waiting.length}">${got.needs.length} for you${got.waiting.length ? `, ${got.waiting.length} waiting on them` : ''}</span></h2></div>
         ${todo.length ? `<ul class="todo">${todo.slice(0, 5).map(row).join('')}</ul>${todo.length > 5 ? `<details class="reveal q-more"><summary>Show ${todo.length - 5} more</summary><ul class="todo">${todo.slice(5).map(row).join('')}</ul></details>` : ''}` : '<p class="meta">Nothing to do for them right now.</p>'}
         ${next ? `<p class="next-line">${icon('clock')}<span><b>Next:</b> <a href="${esc(next.href)}">${esc(next.label)}: ${esc(next.text)}</a>, ${esc(nd ? (nd.days === 0 ? 'today' : nd.text) : '')}${got.soon.length > 1 ? ` <span class="meta" title="${esc(got.soon.slice(1).map((x) => `${x.label}: ${x.text}`).join('; '))}">and ${got.soon.length - 1} more this week</span>` : ''}</span></p>` : ''}
       </section>
@@ -1788,7 +1792,7 @@
         <div class="grid-4">
           <div class="field"><label for="o-bstart">Started</label><input id="o-bstart" name="bstart" type="date" value="${esc(billingOf(current).startedAt.slice(0, 10))}"${fromStripe ? ' readonly aria-describedby="o-bstart-h"' : ''}>${fromStripe ? '<p class="hint" id="o-bstart-h">Comes from Stripe</p>' : ''}</div>
           <div class="field"><label for="o-brenew">Renews</label><input id="o-brenew" name="brenew" type="date" value="${esc(billingOf(current).renews.slice(0, 10))}"${fromStripe ? ' readonly aria-describedby="o-brenew-h"' : ''}>${fromStripe ? '<p class="hint" id="o-brenew-h">Comes from Stripe</p>' : ''}</div>
-          <div class="field"><label for="o-bamount">Amount</label><input id="o-bamount" name="bamount" type="text" value="${esc(billingOf(current).amount)}" placeholder="$499 a month" maxlength="40"${fromStripe ? ' readonly aria-describedby="o-bamount-h"' : ''}>${fromStripe ? '<p class="hint" id="o-bamount-h">Comes from Stripe</p>' : ''}</div>
+          ${billingOf(current).price ? `<div class="field"><label for="o-bamount">Amount</label><input id="o-bamount" type="text" value="${DEMO_SITE ? 'Set by their plan' : `${esc(billingOf(current).price)} / mo`}" readonly aria-describedby="o-bamount-h"><p class="hint" id="o-bamount-h">From their plan. Change it in Billing.</p></div>` : `<div class="field"><label for="o-bamount">Amount</label><input id="o-bamount" name="bamount" type="text" value="${esc(billingOf(current).amount)}" placeholder="$499 a month" maxlength="40"${fromStripe ? ' readonly aria-describedby="o-bamount-h"' : ''}>${fromStripe ? '<p class="hint" id="o-bamount-h">Comes from Stripe</p>' : ''}</div>`}
           <div class="field"><label for="o-bstatus">Payment status</label><select id="o-bstatus" name="bstatus"${fromStripe ? ' disabled aria-describedby="o-bstatus-h"' : ''}><option value="">Not set</option>${Object.entries(SUB_STATUS).map(([k, v]) => `<option value="${k}"${billingOf(current).status === k ? ' selected' : ''}>${v[0]}</option>`).join('')}</select>${fromStripe ? '<p class="hint" id="o-bstatus-h">Comes from Stripe</p>' : ''}</div>
           <div class="field span-all"><label for="o-billing">Billing note they see (for example: Billed monthly on the 22nd)</label><input id="o-billing" name="billing" type="text" value="${esc(d.package.billing)}" placeholder="Billed monthly on the 22nd" maxlength="120"></div>
         </div>
@@ -1873,7 +1877,8 @@
         if (!billingFromStripe(current)) {
           sub.startedAt = val(mf, 'bstart') || null;
           sub.nextBilling = val(mf, 'brenew') || null;
-          sub.amount = val(mf, 'bamount') || undefined;
+          // With a plan the price is the plan's (the field is read-only and not sent); the typed Amount is only for a client with no plan (R11-2).
+          if (!billingOf(current).price) sub.amount = val(mf, 'bamount') || undefined;
           sub.status = val(mf, 'bstatus') || null;
         }
         doc.billing = { ...(doc.billing || {}), subscription: sub };

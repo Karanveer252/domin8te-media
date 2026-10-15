@@ -913,7 +913,7 @@
       ${strips.length > 6 ? `<details class="wk-rest"${strips.slice(6).some((/** @type {any} */ t) => st.client === t.id) ? ' open' : ''}><summary>${c.plural(strips.length - 6, 'more client')}</summary><div class="wk-strips">${strips.slice(6).map((/** @type {any} */ t) => strip(t.id, { filter: true, pressed: st.client === t.id })).join('')}</div></details>` : ''}
       <div class="wk-bar"><div class="wk-chips" role="group" aria-label="Filter the board">
         ${chip('all', 'All clients', !st.client && !st.service && !st.over)}
-        ${chip('over', 'Over limit', !!st.over, `<span class="wk-n${overN ? ' is-bad' : ''}">${overN}</span>`)}
+        ${chip('over', 'Cards over limit', !!st.over, `<span class="wk-n${overN ? ' is-bad' : ''}">${overN}</span>`)}
         ${services.map((/** @type {string} */ s) => chip('service:' + s, c.svcLabel(s), st.service === s)).join('')}
       </div><div class="wk-bar-r"><button class="wk-switch" type="button" role="switch" aria-checked="${grouped ? 'true' : 'false'}" data-wk-group><span class="wk-switch-t" aria-hidden="true"></span>Group by client</button>${st.client ? `<a class="btn btn-quiet btn-sm" href="#/client/${E(st.client)}/work/new">${c.icon('plus')}Add a card for ${E(names[st.client])}</a>` : ''}</div></div>
       ${byClient}${spotChip}
