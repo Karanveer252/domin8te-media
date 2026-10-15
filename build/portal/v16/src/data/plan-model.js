@@ -30,11 +30,11 @@
   const svc = (/** @type {string} */ id) => (D8.data && D8.data.SERVICES && D8.data.SERVICES[id]) || { label: id, icon: 'layers' };
   const cap1 = (/** @type {string} */ s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
-  /* How each kind of work reads, in the words a restaurant uses ("Up to 8 page edits a month"). */
+  /* How each kind of work reads, in the words a restaurant uses ("Up to 8 website edits a month"). */
   const NOUN = {
     social_posts: ['post', 'posts'], social_reels: ['Reel', 'Reels'], social_stories: ['Story', 'Stories'],
     ads_live_campaigns: ['campaign', 'campaigns'], ads_new_creatives: ['new ad design', 'new ad designs'], ads_platforms: ['platform', 'platforms'],
-    web_pages: ['new page', 'new pages'], web_edits: ['page edit', 'page edits'],
+    web_pages: ['new page', 'new pages'], web_edits: ['website edit', 'website edits'],
     seo_google_posts: ['Google post', 'Google posts'], seo_photos: ['photo', 'photos'], seo_review_replies: ['review reply', 'review replies'],
     seo_jobs: ['listing and search task', 'listing and search tasks'],
     email_campaigns: ['email campaign', 'email campaigns'], email_automations: ['automation', 'automations']
@@ -89,7 +89,7 @@
   }
   /**
    * One short line for a service's limits: "Up to 12 posts a month · 2 Reels · 8 Stories". A website has a page limit and an
-   * edit limit: on Starter they are a choice of one ("1 new page or 2 page edits a month"), on the others both apply.
+   * edit limit: on Starter they are a choice of one ("1 new page or 2 website edits a month"), on the others both apply.
    * @param {any[]} ls @param {string} [planId]
    */
   function summary(ls, planId) {
@@ -115,7 +115,7 @@
       return { ok: false, code: 'count', error: left > 0 ? `Pick ${left} more ${F.plural(left, 'service', 'services')} for ${plan.name}.` : `${plan.name} has ${r.total} services. Untick ${-left} to continue.` };
     }
     if (planId === 'starter' && list.includes('website') && websiteOption !== 'page' && websiteOption !== 'edits') {
-      return { ok: false, code: 'website-option', error: 'Choose one new page or two page edits a month for your website.' };
+      return { ok: false, code: 'website-option', error: 'Choose one new page or two website edits a month for your website.' };
     }
     return { ok: true, code: '', error: '' };
   }

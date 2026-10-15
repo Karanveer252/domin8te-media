@@ -78,4 +78,5 @@ The machine is slow while agents run: run smoke and a11y in the background if th
 | 7 | Bot chat features | NOT CLEAN 0/1/6 (by reading) | all 7 fixed, migration 20261015011000, click-through 45/45 | bot_plus 62 | |
 | 8 | final: both features + regression, real click-through | CLEAN 0/0/2 (test script regex, migration note) | - | all tools green, a11y console 138/138 | CLEAN 1 of 2 |
 | 9 | fresh full sweep | NOT CLEAN 0/1/7 (badge 31 vs page 38) | all 8 fixed (one label map in plan-model.js, badge = page, palette, plain Settings) | all tools green, a11y 138/57 | need round 10 + 11 clean |
-| 10 | fresh sweep + round 9 fixes | started 10:00 | | | |
+| 10 | fresh sweep + round 9 fixes | NOT CLEAN 0/1/5 (Clients column count) | all 6 fixed (Clients column = page total, labels, Technical details fold, palette words) | all tools green | weekly 39% |
+| 11 | confirm sweep | started 11:25 | | | |

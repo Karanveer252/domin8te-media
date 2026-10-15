@@ -57,9 +57,9 @@
       caps: capsNow()
     };
   }
-  /** "12 posts", "3 live campaigns", "2 SEO jobs": how a limit's unit reads for staff. */
+  /** "12 posts", "3 live campaigns", "2 listing and search tasks": how a limit's unit reads for staff. */
   function unitOf(/** @type {string} */ metric, /** @type {string} */ lab, /** @type {number} */ n) {
-    if (metric === 'seo_jobs') return n === 1 ? 'SEO job' : 'SEO jobs';
+    if (metric === 'seo_jobs') return n === 1 ? 'listing and search task' : 'listing and search tasks';
     if (metric === 'ads_live_campaigns') return n === 1 ? 'live campaign' : 'live campaigns';
     if (metric === 'ads_platforms') return n === 1 ? 'platform' : 'platforms';
     return PM().words(metric, lab, n).unit;
@@ -129,7 +129,7 @@
     if (d.planChanged) parts.push(`Plan ${name(A.planId)} to ${name(B.planId)}`);
     if (d.stops.length) parts.push(`${andList(d.stops.map(label))} off`);
     if (d.adds.length) parts.push(`${andList(d.adds.map(label))} on`);
-    if (d.optionChanged) parts.push(`Website: ${B.websiteOption === 'edits' ? '2 page edits' : '1 new page'}`);
+    if (d.optionChanged) parts.push(`Website: ${B.websiteOption === 'edits' ? '2 website edits' : '1 new page'}`);
     return { differs: d.differs, planChanged: d.planChanged, adds: d.adds, stops: d.stops, optionChanged: d.optionChanged, text: parts.join(', ') };
   }
 
@@ -250,7 +250,7 @@
       if (!v.ok && v.code === 'website-option') {
         const ls = PM().lines(m.caps, p.id, 'website', null);
         const a = ls.find((/** @type {any} */ l) => l.metric === 'web_pages'), b = ls.find((/** @type {any} */ l) => l.metric === 'web_edits');
-        return { ok: false, code: v.code, error: `Choose how the website pick works: ${a ? `${a.cap} ${unitOf(a.metric, a.label, a.cap)}` : '1 new page'} or ${b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)}` : '2 page edits'} a month.` };
+        return { ok: false, code: v.code, error: `Choose how the website pick works: ${a ? `${a.cap} ${unitOf(a.metric, a.label, a.cap)}` : '1 new page'} or ${b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)}` : '2 website edits'} a month.` };
       }
       return v;
     };
@@ -322,7 +322,7 @@
           const ls = PM().lines(caps, 'starter', 'website', null);
           const a = ls.find((/** @type {any} */ l) => l.metric === 'web_pages'), b = ls.find((/** @type {any} */ l) => l.metric === 'web_edits');
           /** @type {HTMLElement} */ (el.querySelector('[data-pp="opt-page"]')).textContent = a ? `${a.cap} ${unitOf(a.metric, a.label, a.cap)} a month` : '1 new page a month';
-          /** @type {HTMLElement} */ (el.querySelector('[data-pp="opt-edits"]')).textContent = b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)} a month` : '2 page edits a month';
+          /** @type {HTMLElement} */ (el.querySelector('[data-pp="opt-edits"]')).textContent = b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)} a month` : '2 website edits a month';
           for (const radio of /** @type {HTMLInputElement[]} */ (Array.from(opt.querySelectorAll('input')))) radio.checked = st.websiteOption === radio.value;
         }
         const msg = /** @type {HTMLElement} */ (el.querySelector('[data-pp="msg"]'));

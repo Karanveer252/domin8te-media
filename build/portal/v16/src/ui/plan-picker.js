@@ -55,7 +55,7 @@
       const option = st.planId === 'starter' && id === 'website' && on
         ? `<fieldset class="web-opt"><legend>How do you want to use your website time?</legend><div class="web-choices">
             <label class="web-choice"><input class="pk-input" type="radio" name="web" value="page"${st.option === 'page' ? ' checked' : ''}><span class="web-pill">${icon('check')}1 new page a month</span></label>
-            <label class="web-choice"><input class="pk-input" type="radio" name="web" value="edits"${st.option === 'edits' ? ' checked' : ''}><span class="web-pill">${icon('check')}2 page edits a month</span></label></div></fieldset>` : '';
+            <label class="web-choice"><input class="pk-input" type="radio" name="web" value="edits"${st.option === 'edits' ? ' checked' : ''}><span class="web-pill">${icon('check')}2 website edits a month</span></label></div></fieldset>` : '';
       return `<div class="svc-opt${on ? ' is-on' : ''}${blocked ? ' is-blocked' : ''}${fixed ? ' is-fixed' : ''}" data-svc="${esc(id)}">
         <label class="so-main"><input class="pk-input" type="checkbox" name="svc" value="${esc(id)}"${on ? ' checked' : ''}${fixed || blocked ? ' disabled' : ''}>
           <span class="so-mark" aria-hidden="true">${icon('check')}</span>

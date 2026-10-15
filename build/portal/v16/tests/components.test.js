@@ -215,7 +215,7 @@ test('the picker: plans and services as cards, Domin8te a plain choice (Ads plus
   const sh = ui.plan.picker(starter);
   assert.match(sh, /How do you want to use your website time\?/);
   assert.match(sh, /1 new page a month/);
-  assert.match(sh, /2 page edits a month/);
+  assert.match(sh, /2 website edits a month/);
 });
 
 test('Billing: what comes with each plan, and ad spend is said to be separate from the plan', async () => {

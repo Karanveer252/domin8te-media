@@ -83,6 +83,8 @@
     return { t, d, pl, lines, bars, over, asks, near, unverified, top: lines.reduce((/** @type {number} */ m, /** @type {any} */ l) => Math.max(m, ratio(l)), 0) };
   }
 
+  /** What waits on staff for one client: its needs plus the approvals under Check before it goes live, the same number the sidebar chip and Needs you show. @param {any} r a row of rowOf */
+  const needN = (r) => r.d.needs.length + (C().reviewCount ? C().reviewCount(r.t.id) : 0);
   /** @param {any} r a row of rowOf */
   function matches(r, st) {
     const q = String(st.q || '').trim().toLowerCase();
@@ -91,7 +93,7 @@
       if (!hay.includes(q)) return false;
     }
     switch (st.filter) {
-      case 'needs': return r.t.status !== 'archived' && r.d.needs.length > 0;
+      case 'needs': return r.t.status !== 'archived' && needN(r) > 0;
       case 'inactive': return r.t.status !== 'active';
       case 'over': return r.t.status !== 'archived' && (r.over.length > 0 || r.asks.length > 0);
       case 'near': return r.t.status !== 'archived' && r.near;
@@ -152,7 +154,7 @@
     switch (st.sort) {
       case 'plan': return r.pl.nowPlan ? r.pl.nowPlan.sort : 99;
       case 'usage': return r.top;
-      case 'needs': return r.d.needs.length;
+      case 'needs': return needN(r);
       default: return 0;
     }
   }
@@ -233,7 +235,15 @@
     const planChips = c.plans.plans.map((/** @type {any} */ p) => [p.id, p.name]);
     const main6 = [['all', 'All'], ...planChips, ['over', 'Over limit'], ['near', 'Near limit (85%+)']];
     const more2 = [['needs', 'Needs you'], ['inactive', 'Paused or archived']];
-    const chip = (/** @type {string[]} */ [k, l]) => `<button type="button" data-filter="${esc(k)}" aria-pressed="${st.filter === k}">${esc(l)}<span class="count quiet">${n[k] === undefined ? 0 : n[k]}</span></button>`;
+    // The three count-style chips say what they count (clients, not items), so they never read like the Needs you page's item counts.
+    const SAY = /** @type {Record<string, (x: number) => string>} */ ({
+      over: (x) => `${x} ${x === 1 ? 'client' : 'clients'} over a limit`,
+      near: (x) => `${x} ${x === 1 ? 'client' : 'clients'} near a limit (85%+)`,
+      needs: (x) => `${x} ${x === 1 ? 'client needs' : 'clients need'} you`
+    });
+    const chip = (/** @type {string[]} */ [k, l]) => SAY[k]
+      ? `<button type="button" data-filter="${esc(k)}" aria-pressed="${st.filter === k}">${esc(SAY[k](n[k] || 0))}</button>`
+      : `<button type="button" data-filter="${esc(k)}" aria-pressed="${st.filter === k}">${esc(l)}<span class="count quiet">${n[k] === undefined ? 0 : n[k]}</span></button>`;
     return `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Clients</h1><p>Every restaurant's plan, picks and how much of this month's limits they have used. The limits come from the plan.</p></div>
       <div class="btns">${canAdd ? `<a class="btn" href="#/new">${c.icon('plus')}Add a client</a>` : ''}</div></div>
       ${fresh}
@@ -265,8 +275,10 @@
       const status = statusOf(r);
       const notes = noteOf(r);
       const period = pl.now ? `${c.when(pl.now.period_start)} to ${c.when(addDays(pl.now.period_end, -1))}` : '';
-      const needsCell = r.d.needs.length
-        ? `<div class="cl-needs"><span class="chip you">${r.d.needs.length}</span><span class="cl-sub">${esc(r.d.needs[0].label)}${r.d.needs.length > 1 ? ` + ${r.d.needs.length - 1} more` : ''}</span></div>`
+      const nn = needN(r);
+      const first = r.d.needs.length ? r.d.needs[0].label : 'Check before it goes live';
+      const needsCell = nn
+        ? `<div class="cl-needs"><span class="chip you">${nn}</span><span class="cl-sub">${esc(first)}${nn > 1 ? ` + ${nn - 1} more` : ''}</span></div>`
         : '<span class="none">Nothing</span>';
       const waiting = r.d.waiting.length ? `<div class="cl-needs cl-wait"><span class="chip them">${r.d.waiting.length}</span><span class="cl-sub">Waiting on client</span></div>` : '';
       const bars = r.bars.slice(0, MAX_BARS).map((/** @type {any} */ l) => c.usageBar({ label: LBL(l.metric) || l.label, used: l.used, cap: l.cap, pct: l.pct, tone: l.tone })).join('');

@@ -886,12 +886,14 @@
       palette.input.focus();
     },
     filter() {
-      const q = palette.input.value.trim().toLowerCase();
-      const words = q.split(/\s+/).filter(Boolean);
+      // Match on words: punctuation in a name ("Bayleaf (preview): Billing") or in what is typed ("Bayleaf: Billing") never gets in the way.
+      const norm = (/** @type {string} */ x) => String(x).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+      const q = norm(palette.input.value);
+      const words = q.split(' ').filter(Boolean);
       const places = palette.places();
       const allowed = places.filter((p) => p.href !== '#/new' || (me && me.role === 'super_admin'));
-      palette.hits = (words.length ? allowed.filter((p) => words.every((w) => p.name.toLowerCase().includes(w))) : allowed.filter((p) => p.hint !== 'Tab'))
-        .sort((a, b) => (q ? Number(b.name.toLowerCase().startsWith(q)) - Number(a.name.toLowerCase().startsWith(q)) : 0))
+      palette.hits = (words.length ? allowed.filter((p) => { const nm = norm(p.name); return words.every((w) => nm.includes(w)); }) : allowed.filter((p) => p.hint !== 'Tab'))
+        .sort((a, b) => (q ? Number(norm(b.name).startsWith(q)) - Number(norm(a.name).startsWith(q)) : 0))
         .slice(0, 12);
       palette.sel = 0;
       palette.render();
@@ -1312,9 +1314,11 @@
 
   /** The newest thing said, with who said it. @param {any} c */
   function convoPreview(c) {
+    // The newest thing wins: when it is an open change request (newer than the last message), the row says so, so "Waiting for your reply" makes sense.
+    const r = c.open.reduce((/** @type {any} */ a, /** @type {any} */ b) => (!a || String(b.at) > String(a.at) ? b : a), null);
+    if (r && (!c.last || String(r.at) > String(c.last.at))) return `${c.fresh.includes(r) ? 'New change request' : 'Change request'}: ${r.body}`;
     if (c.last) return `${c.last.from_staff ? 'You' : c.last.by_name || 'Client'}: ${c.last.body}`;
-    const r = c.open[c.open.length - 1];
-    return r ? `Change request: ${r.body}` : '';
+    return '';
   }
 
   function convoRows() {
@@ -4185,7 +4189,7 @@
     esc, $, $$, icon, toast, undoToast, busy, val, message, failMessage, fieldFail, skeleton, plural, when, ago, due, longDate, dayOf, today, localDay, newId, clone, svcLabel,
     SERVICES, SERVICE_ORDER, STATUS, FLAGS, PORTAL_URL, main,
     db, staffRows, check, ask, track, clean, redraw, afterSave, route, refreshAll, loadAll, callFn, viewAs,
-    tenant, derive, planOf, usageTone, usageBar, money, clockTime, pageFresh, billingOf, convo, allTabs, fromCache, loadClient, save, saveDoc,
+    reviewCount, tenant, derive, planOf, usageTone, usageBar, money, clockTime, pageFresh, billingOf, convo, allTabs, fromCache, loadClient, save, saveDoc,
     get all() { return all; }, get me() { return me; }, get current() { return current; }, get dirty() { return dirty; },
     get plans() { return all && all.plans ? all.plans : emptyPlans(); }
   };

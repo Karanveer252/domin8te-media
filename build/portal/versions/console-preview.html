@@ -3681,9 +3681,9 @@ html[data-theme="dark"][data-scene="scenes"][data-page] .page-fresh { background
 
 /* A usage bar in three clear states (2026-10-14): orange with room (amber from 85 percent), a calm ink bar with a small
    "At limit" tag when full but not over, and red with "over by N" only when a one-off went past the limit. The figures say the same in words. */
-.cusage { display: grid; gap: 3px; min-width: 0; }
+.cusage { display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; min-width: 0; }
 .cu-line { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
-.cu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cu-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cu-fig { font-variant-numeric: proportional-nums; font-weight: 600; color: var(--ink); white-space: nowrap; }
 .cu-over, .cu-at { margin-left: 6px; padding: 0 7px; border-radius: 999px; font-size: 11.5px; font-weight: 650; }
 .cu-over { background: var(--bad-bg); color: var(--bad); }
@@ -3971,7 +3971,7 @@ button.wk-strip-name:hover { background: rgba(94, 72, 50, 0.08); }
 .wk-group h3 { margin: 0 0 8px; color: var(--ink-3); font-size: 13.5px; font-weight: 650; }
 .wk-all .wk-bars { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 24px; }
 /* Set live count (2026-10-14): a small quiet link under a live-at-once bar */
-.wk-livebar { display: grid; gap: 3px; min-width: 0; justify-items: start; }
+.wk-livebar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; min-width: 0; justify-items: start; }
 .wk-livebar > .cusage { width: 100%; }
 .wk-live { color: var(--ink-3); font-size: 12.5px; font-weight: 600; text-decoration-color: rgba(94, 72, 50, 0.35); }
 .wk-live:hover { color: var(--ink); text-decoration-color: currentColor; }
@@ -4851,6 +4851,9 @@ table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; fon
 .rm-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px 44px; align-items: start; }
 .rm-facts { grid-template-columns: minmax(78px, max-content) minmax(0, 1fr); gap: 14px 18px; }
 .rm-sub { display: block; margin-top: 2px; font-size: 13px; }
+.rm-tech { margin-top: 8px; font-size: 13px; color: var(--ink-2); }
+.rm-tech summary { cursor: pointer; width: fit-content; }
+.rm-tech p { margin-top: 4px; }
 .rm-key { margin-top: 20px; padding: 13px 16px; border-radius: 16px; background: var(--glass-soft); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); font-size: 14px; }
 .rm-key strong { color: var(--ink); }
 .rm-key.is-off { background: var(--warn-bg); box-shadow: none; }
@@ -6190,7 +6193,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       <li><a href="#/queue" data-nav="queue"><svg class="ic"><use href="#i-inbox"/></svg>Needs you<span class="badge" id="queue-badge" hidden></span></a></li>
       <li><a href="#/messages" data-nav="messages"><svg class="ic"><use href="#i-chat"/></svg>Messages<span class="badge" id="msg-badge" hidden title="Waiting for your reply"></span></a></li>
       <li><a href="#/bot" data-nav="bot"><svg class="ic"><use href="#i-bot"/></svg>Bot chat<span class="badge" id="bot-badge" hidden title="Pending drafts"></span></a></li>
-      <li><a href="#/new" data-nav="new"><svg class="ic"><use href="#i-plus"/></svg>Add client</a></li>
+      <li><a href="#/new" data-nav="new"><svg class="ic"><use href="#i-plus"/></svg>Add a client</a></li>
       <li><a href="#/clients" data-nav="clients"><svg class="ic"><use href="#i-users"/></svg>Clients</a></li>
       <li><a href="#/board" data-nav="board" title="Every client's team cards on one board"><svg class="ic"><use href="#i-board"/></svg>All work</a></li>
       <li><a href="#/billing" data-nav="billing"><svg class="ic"><use href="#i-card"/></svg>Billing<span class="badge" id="billing-badge" hidden title="Past due"></span></a></li>
@@ -6449,23 +6452,36 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   const svc = (/** @type {string} */ id) => (D8.data && D8.data.SERVICES && D8.data.SERVICES[id]) || { label: id, icon: 'layers' };
   const cap1 = (/** @type {string} */ s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
-  /* How each kind of work reads, in the words a restaurant uses ("Up to 8 page edits a month"). */
+  /* How each kind of work reads, in the words a restaurant uses ("Up to 8 website edits a month"). */
   const NOUN = {
     social_posts: ['post', 'posts'], social_reels: ['Reel', 'Reels'], social_stories: ['Story', 'Stories'],
     ads_live_campaigns: ['campaign', 'campaigns'], ads_new_creatives: ['new ad design', 'new ad designs'], ads_platforms: ['platform', 'platforms'],
-    web_pages: ['new page', 'new pages'], web_edits: ['page edit', 'page edits'],
+    web_pages: ['new page', 'new pages'], web_edits: ['website edit', 'website edits'],
     seo_google_posts: ['Google post', 'Google posts'], seo_photos: ['photo', 'photos'], seo_review_replies: ['review reply', 'review replies'],
     seo_jobs: ['listing and search task', 'listing and search tasks'],
     email_campaigns: ['email campaign', 'email campaigns'], email_automations: ['automation', 'automations']
   };
+  /**
+   * THE name of each limit, the one every screen uses (the console's usage bars, All work, Billing, Clients, Needs you, Settings and the
+   * client dashboard), so a limit never has two names. Round 9, 15 Oct 2026. @type {Record<string, string>}
+   */
+  const LABEL = {
+    social_posts: 'Posts', social_reels: 'Reels', social_stories: 'Stories',
+    ads_live_campaigns: 'Live campaigns', ads_new_creatives: 'New ad designs', ads_platforms: 'Ad platforms in use',
+    web_pages: 'New pages', web_edits: 'Website edits',
+    seo_google_posts: 'Google posts', seo_photos: 'Photos', seo_review_replies: 'Review replies', seo_jobs: 'Listing and search tasks',
+    email_campaigns: 'Email campaigns', email_automations: 'Automations'
+  };
+  /** @param {string} metric @param {string} [fallback] */
+  const labelOf = (metric, fallback) => LABEL[metric] || cap1(fallback || String(metric || 'work').replace(/_/g, ' '));
   /** @param {string} metric @param {string} label @param {number} n */
   function words(metric, label, n) {
     const f = /** @type {any} */ (NOUN)[metric] || [label, label];
     const noun = n === 1 ? f[0] : f[1];
     // "Live at a time" limits are a count of what runs now (it carries into the next month), not a month's total: "2 of 3 live now", "1 of 2 platforms in use".
-    if (metric === 'ads_live_campaigns') return { name: 'Campaigns live', unit: `${noun} live`, state: true, cap: `Up to ${n} ${noun} live at a time`, used: (/** @type {number} */ u) => `${u} of ${n} live now`, short: `${n} live` };
-    if (metric === 'ads_platforms') return { name: 'Ad platforms', unit: `${noun} in use`, state: true, cap: `${n} ad ${noun}`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} in use`, short: `${n} ${noun}` };
-    return { name: cap1(f[1]), unit: noun, state: false, cap: `Up to ${n} ${noun} a month`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} used`, short: `${n} ${noun}` };
+    if (metric === 'ads_live_campaigns') return { name: LABEL.ads_live_campaigns, unit: `${noun} live`, state: true, cap: `Up to ${n} ${noun} live at a time`, used: (/** @type {number} */ u) => `${u} of ${n} live now`, short: `${n} live` };
+    if (metric === 'ads_platforms') return { name: LABEL.ads_platforms, unit: `${noun} in use`, state: true, cap: `${n} ad ${noun}`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} in use`, short: `${n} ${noun}` };
+    return { name: labelOf(metric, f[1]), unit: noun, state: false, cap: `Up to ${n} ${noun} a month`, used: (/** @type {number} */ u) => `${u} of ${n} ${noun} used`, short: `${n} ${noun}` };
   }
 
   /** The services a month holds: what was picked, with Ads (which every plan includes) among them. @param {any} c a cycle */
@@ -6495,7 +6511,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   }
   /**
    * One short line for a service's limits: "Up to 12 posts a month · 2 Reels · 8 Stories". A website has a page limit and an
-   * edit limit: on Starter they are a choice of one ("1 new page or 2 page edits a month"), on the others both apply.
+   * edit limit: on Starter they are a choice of one ("1 new page or 2 website edits a month"), on the others both apply.
    * @param {any[]} ls @param {string} [planId]
    */
   function summary(ls, planId) {
@@ -6521,7 +6537,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       return { ok: false, code: 'count', error: left > 0 ? `Pick ${left} more ${F.plural(left, 'service', 'services')} for ${plan.name}.` : `${plan.name} has ${r.total} services. Untick ${-left} to continue.` };
     }
     if (planId === 'starter' && list.includes('website') && websiteOption !== 'page' && websiteOption !== 'edits') {
-      return { ok: false, code: 'website-option', error: 'Choose one new page or two page edits a month for your website.' };
+      return { ok: false, code: 'website-option', error: 'Choose one new page or two website edits a month for your website.' };
     }
     return { ok: true, code: '', error: '' };
   }
@@ -6670,7 +6686,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     return { known: true, over: would > line.cap, service, metric, line, used: line.used, cap: line.cap, qty: n, would, extra: Math.max(0, would - line.cap), pct: Math.min(100, Math.round((would / line.cap) * 100)) };
   }
 
-  D8.planModel = { ORDER, ordered, picksOf, rule, lines, summary, validate, build, preview, diff, words, lastDayOf, billAfter, askPreview };
+  D8.planModel = { ORDER, ordered, picksOf, rule, lines, summary, validate, build, preview, diff, words, LABEL, labelOf, lastDayOf, billAfter, askPreview };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script>
@@ -9370,11 +9386,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     return { shown: picked, more: Math.max(0, lines.length - picked.length) };
   }
   /** What each limit is called on a usage bar: short, and clear on its own. */
-  const BAR = /** @type {Record<string, string>} */ ({
-    social_posts: 'Posts', social_reels: 'Reels', social_stories: 'Stories', ads_live_campaigns: 'Ad campaigns', ads_new_creatives: 'Ad designs', ads_platforms: 'Ad platforms',
-    web_pages: 'New pages', web_edits: 'Page edits', seo_google_posts: 'Google posts', seo_photos: 'Photos', seo_review_replies: 'Review replies', seo_jobs: 'SEO jobs',
-    email_campaigns: 'Email campaigns', email_automations: 'Automations'
-  });
+  const BAR = /** @type {Record<string, string>} */ (PM().LABEL); // the one shared map (plan-model.js)
   /** One usage line as the console's bar. @param {any} l */
   const barOf = (l) => C().usageBar({ ...l, label: BAR[l.metric] || cap1(PP().unitOf(l.metric, l.label, 2)) });
   /** A bar in one client's drawer: a live-at-once limit gets "Set live count" with it (mod-work.js). @param {string} id @param {any} l */
@@ -9559,9 +9571,9 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     const box = c.$('#bl-fresh');
     if (!box) return;
     const ready = typeof c.stripeReady === 'function' && c.stripeReady();
-    const mode = typeof c.stripeModeText === 'function' ? c.stripeModeText() : 'test mode';
+    const mode = typeof c.stripeModeText === 'function' ? c.stripeModeText() : '';
     box.innerHTML = c.pageFresh({
-      updatedAt: c.plans.at, source: ready ? `Stripe (${mode}) and console` : 'Console and the database',
+      updatedAt: c.plans.at, source: ready ? `Stripe${mode === 'test mode' ? ' (test mode)' : ''} and console` : 'Console and the database',
       status: c.plans.ok ? 'ok' : 'delayed', label: c.plans.ok ? undefined : 'Plans did not load'
     });
   }
@@ -11059,14 +11071,10 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   /** "About 3 restaurants at a time": a planning hint shown on the page. Nothing in the console or the database enforces it. */
   const CAPACITY_HINT = 3;
   const SERVICE_ORDER = ['advertising', 'social', 'website', 'local', 'email'];
-  /** How each limit is named in a usage bar. A presentation map only: the numbers always come from the database. @type {Record<string, string>} */
-  const BAR_NAME = {
-    social_posts: 'Social posts', social_reels: 'Reels', social_stories: 'Stories', ads_live_campaigns: 'Ads live', ads_new_creatives: 'New ad designs', ads_platforms: 'Ad platforms',
-    web_pages: 'Web pages', web_edits: 'Web edits', seo_google_posts: 'Google posts', seo_photos: 'Local photos', seo_review_replies: 'Review replies', seo_jobs: 'SEO jobs',
-    email_campaigns: 'Email campaigns', email_automations: 'Automations'
-  };
-  /** @type {Record<string, string>} */
-  const SENTENCE_NAME = { social_posts: 'posts', social_reels: 'Reels', social_stories: 'Stories', ads_live_campaigns: 'live campaigns', web_pages: 'new pages', web_edits: 'website edits', seo_jobs: 'SEO jobs' };
+  /** A limit's one name: the shared map in plan-model.js (round 9), so every screen says the same thing. @param {string} m */
+  const LBL = (m) => (W.D8 && W.D8.planModel ? W.D8.planModel.LABEL[m] : '') || '';
+  /** The same name inside a sentence. @param {string} m */
+  const SENTENCE = (m) => { const n = LBL(m); return !n ? '' : /^(Reels|Stories|Google|SEO|Email)/.test(n) ? n : n.charAt(0).toLowerCase() + n.slice(1); };
   /** The most bars one client shows; the rest are one line away on its page. */
   const MAX_BARS = 6;
 
@@ -11126,6 +11134,8 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     return { t, d, pl, lines, bars, over, asks, near, unverified, top: lines.reduce((/** @type {number} */ m, /** @type {any} */ l) => Math.max(m, ratio(l)), 0) };
   }
 
+  /** What waits on staff for one client: its needs plus the approvals under Check before it goes live, the same number the sidebar chip and Needs you show. @param {any} r a row of rowOf */
+  const needN = (r) => r.d.needs.length + (C().reviewCount ? C().reviewCount(r.t.id) : 0);
   /** @param {any} r a row of rowOf */
   function matches(r, st) {
     const q = String(st.q || '').trim().toLowerCase();
@@ -11134,7 +11144,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       if (!hay.includes(q)) return false;
     }
     switch (st.filter) {
-      case 'needs': return r.t.status !== 'archived' && r.d.needs.length > 0;
+      case 'needs': return r.t.status !== 'archived' && needN(r) > 0;
       case 'inactive': return r.t.status !== 'active';
       case 'over': return r.t.status !== 'archived' && (r.over.length > 0 || r.asks.length > 0);
       case 'near': return r.t.status !== 'archived' && r.near;
@@ -11151,18 +11161,18 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     if (t.status === 'paused') out.push({ tone: 'warn', text: 'Paused', sub: r.pl.nowPlan && r.pl.nowPlan.max_clients ? `Keeps its ${r.pl.nowPlan.name} spot` : 'Work and billing are on hold' });
     if (r.over.length) {
       const l = r.over[0];
-      out.push({ tone: 'bad', text: `${BAR_NAME[l.metric] || l.label} over by ${l.used - l.cap}` });
+      out.push({ tone: 'bad', text: `${LBL(l.metric) || l.label} over by ${l.used - l.cap}` });
     } else if (r.asks.length) {
       const x = r.asks[0];
       const v = x.last_verified_value || {};
-      const what = v.asked && v.metric ? `Asked for ${v.asked} extra ${SENTENCE_NAME[v.metric] || String(v.metric).replace(/_/g, ' ')}` : '';
+      const what = v.asked && v.metric ? `Asked for ${v.asked} extra ${SENTENCE(v.metric) || String(v.metric).replace(/_/g, ' ')}` : '';
       out.push({ tone: 'bad', text: 'Over-limit request', sub: what });
     } else if (r.lines.some((/** @type {any} */ l) => l.used >= l.cap)) {
       const l = r.lines.find((/** @type {any} */ x) => x.used >= x.cap);
-      out.push({ tone: 'warn', text: 'At the limit', sub: `${BAR_NAME[l.metric] || l.label} ${l.used}/${l.cap}` });
+      out.push({ tone: 'warn', text: 'At the limit', sub: `${LBL(l.metric) || l.label} ${l.used}/${l.cap}` });
     } else if (r.near) {
       const l = r.lines.slice().sort((/** @type {any} */ a, /** @type {any} */ b) => b.used / b.cap - a.used / a.cap)[0];
-      out.push({ tone: 'warn', text: 'Near limit', sub: `${BAR_NAME[l.metric] || l.label} ${l.used}/${l.cap}` });
+      out.push({ tone: 'warn', text: 'Near limit', sub: `${LBL(l.metric) || l.label} ${l.used}/${l.cap}` });
     } else if (!r.pl.now) {
       out.push({ tone: 'warn', text: 'No plan set' });
     } else if (t.status === 'active') {
@@ -11195,7 +11205,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     switch (st.sort) {
       case 'plan': return r.pl.nowPlan ? r.pl.nowPlan.sort : 99;
       case 'usage': return r.top;
-      case 'needs': return r.d.needs.length;
+      case 'needs': return needN(r);
       default: return 0;
     }
   }
@@ -11254,7 +11264,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     const capCard = `<div class="cl-card"><span class="cl-dot is-hint" aria-hidden="true"></span><div><p class="cl-card-t">Room for about ${CAPACITY_HINT} restaurants at a time</p>
       <p class="cl-card-s">${active} active now${active > CAPACITY_HINT ? ', over the hint' : ''}. A planning hint only: nothing is blocked.</p></div></div>`;
     const warn = rows.filter((r) => r.t.status !== 'archived' && (r.over.length || r.asks.length));
-    const names = warn.map((r) => `${r.t.name} ${r.over.length ? (BAR_NAME[r.over[0].metric] || r.over[0].label).toLowerCase() : 'request'}`);
+    const names = warn.map((r) => `${r.t.name} ${r.over.length ? (LBL(r.over[0].metric) || r.over[0].label).toLowerCase() : 'request'}`);
     const warnCard = `<button class="cl-card cl-card-go" type="button" data-cl-go="${warn.length ? 'over' : 'all'}"><span class="cl-dot ${warn.length ? 'is-over' : 'is-free'}" aria-hidden="true"></span><div><p class="cl-card-t">${warn.length ? `${c.plural(warn.length, 'over-limit warning')}` : 'No over-limit warnings'}</p>
       <p class="cl-card-s">${warn.length ? esc(names.slice(0, 3).join(' · ')) : 'Every client is within this month\'s limits.'}</p></div></button>`;
     return `<div class="cl-cards">${placeCard}${capCard}${warnCard}</div>`;
@@ -11276,7 +11286,15 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     const planChips = c.plans.plans.map((/** @type {any} */ p) => [p.id, p.name]);
     const main6 = [['all', 'All'], ...planChips, ['over', 'Over limit'], ['near', 'Near limit (85%+)']];
     const more2 = [['needs', 'Needs you'], ['inactive', 'Paused or archived']];
-    const chip = (/** @type {string[]} */ [k, l]) => `<button type="button" data-filter="${esc(k)}" aria-pressed="${st.filter === k}">${esc(l)}<span class="count quiet">${n[k] === undefined ? 0 : n[k]}</span></button>`;
+    // The three count-style chips say what they count (clients, not items), so they never read like the Needs you page's item counts.
+    const SAY = /** @type {Record<string, (x: number) => string>} */ ({
+      over: (x) => `${x} ${x === 1 ? 'client' : 'clients'} over a limit`,
+      near: (x) => `${x} ${x === 1 ? 'client' : 'clients'} near a limit (85%+)`,
+      needs: (x) => `${x} ${x === 1 ? 'client needs' : 'clients need'} you`
+    });
+    const chip = (/** @type {string[]} */ [k, l]) => SAY[k]
+      ? `<button type="button" data-filter="${esc(k)}" aria-pressed="${st.filter === k}">${esc(SAY[k](n[k] || 0))}</button>`
+      : `<button type="button" data-filter="${esc(k)}" aria-pressed="${st.filter === k}">${esc(l)}<span class="count quiet">${n[k] === undefined ? 0 : n[k]}</span></button>`;
     return `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Clients</h1><p>Every restaurant's plan, picks and how much of this month's limits they have used. The limits come from the plan.</p></div>
       <div class="btns">${canAdd ? `<a class="btn" href="#/new">${c.icon('plus')}Add a client</a>` : ''}</div></div>
       ${fresh}
@@ -11308,11 +11326,13 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       const status = statusOf(r);
       const notes = noteOf(r);
       const period = pl.now ? `${c.when(pl.now.period_start)} to ${c.when(addDays(pl.now.period_end, -1))}` : '';
-      const needsCell = r.d.needs.length
-        ? `<div class="cl-needs"><span class="chip you">${r.d.needs.length}</span><span class="cl-sub">${esc(r.d.needs[0].label)}${r.d.needs.length > 1 ? ` + ${r.d.needs.length - 1} more` : ''}</span></div>`
+      const nn = needN(r);
+      const first = r.d.needs.length ? r.d.needs[0].label : 'Check before it goes live';
+      const needsCell = nn
+        ? `<div class="cl-needs"><span class="chip you">${nn}</span><span class="cl-sub">${esc(first)}${nn > 1 ? ` + ${nn - 1} more` : ''}</span></div>`
         : '<span class="none">Nothing</span>';
       const waiting = r.d.waiting.length ? `<div class="cl-needs cl-wait"><span class="chip them">${r.d.waiting.length}</span><span class="cl-sub">Waiting on client</span></div>` : '';
-      const bars = r.bars.slice(0, MAX_BARS).map((/** @type {any} */ l) => c.usageBar({ label: BAR_NAME[l.metric] || l.label, used: l.used, cap: l.cap, pct: l.pct, tone: l.tone })).join('');
+      const bars = r.bars.slice(0, MAX_BARS).map((/** @type {any} */ l) => c.usageBar({ label: LBL(l.metric) || l.label, used: l.used, cap: l.cap, pct: l.pct, tone: l.tone })).join('');
       const more = r.lines.length - Math.min(r.bars.length, MAX_BARS);
       const stamp = c.plans.at || c.all.at;
       const check = !pl.now ? '<span class="chip plain">No plan</span>' : r.unverified ? '<span class="chip warn">Unverified</span>' : '<span class="chip good">Verified</span>';
@@ -12810,17 +12830,16 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   /** @param {string} name */
   const ico = (name) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${/** @type {any} */ (ICONS)[name] || ''}</svg>`;
 
-  /** How each limit reads in a sentence. A presentation map only: the numbers always come from the database. @type {Record<string, string>} */
-  const METRIC_NAME = {
-    social_posts: 'social posts', social_reels: 'Reels', social_stories: 'Stories', ads_live_campaigns: 'live ad campaigns', ads_new_creatives: 'new ad designs',
-    ads_platforms: 'ad platforms', web_pages: 'new pages', web_edits: 'website edits', seo_google_posts: 'Google posts', seo_photos: 'local photos',
-    seo_review_replies: 'review replies', seo_jobs: 'SEO jobs', email_campaigns: 'email campaigns', email_automations: 'email automations'
+  /** A limit's name in a sentence: the one shared name (plan-model.js) in lower case, minus "in use", which the "per period" words add. @param {string} metric @param {string} [fallback] */
+  const metricName = (metric, fallback) => {
+    const n = (W.D8 && W.D8.planModel && W.D8.planModel.LABEL[metric]) || '';
+    if (!n) return fallback || String(metric || 'work').replace(/_/g, ' ');
+    const t = n.replace(/ in use$/, '');
+    return /^(Reels|Stories|Google|SEO|Email)/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1);
   };
-  /** @param {string} metric @param {string} [fallback] */
-  const metricName = (metric, fallback) => METRIC_NAME[metric] || fallback || String(metric || 'work').replace(/_/g, ' ');
   /** The two limits that count what is running now, not a month's work: they read "at once" and "in use", never "a month". @type {Record<string, string>} */
   const NOW_UNIT = { ads_live_campaigns: 'at once', ads_platforms: 'in use' };
-  /** "8 page edits a month", "3 live campaigns at once". @param {string} metric @param {string} name */
+  /** "8 website edits a month", "3 live campaigns at once". @param {string} metric @param {string} name */
   const perPeriod = (metric, name) => `${name} ${NOW_UNIT[metric] || 'a month'}`;
   /** Whether a limit counts what is live now (a snapshot that carries into the next month, 20261014110100), not a month's work. @param {string} metric */
   const isLive = (metric) => Object.prototype.hasOwnProperty.call(NOW_UNIT, metric);
@@ -14150,9 +14169,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       caps: capsNow()
     };
   }
-  /** "12 posts", "3 live campaigns", "2 SEO jobs": how a limit's unit reads for staff. */
+  /** "12 posts", "3 live campaigns", "2 listing and search tasks": how a limit's unit reads for staff. */
   function unitOf(/** @type {string} */ metric, /** @type {string} */ lab, /** @type {number} */ n) {
-    if (metric === 'seo_jobs') return n === 1 ? 'SEO job' : 'SEO jobs';
+    if (metric === 'seo_jobs') return n === 1 ? 'listing and search task' : 'listing and search tasks';
     if (metric === 'ads_live_campaigns') return n === 1 ? 'live campaign' : 'live campaigns';
     if (metric === 'ads_platforms') return n === 1 ? 'platform' : 'platforms';
     return PM().words(metric, lab, n).unit;
@@ -14222,7 +14241,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (d.planChanged) parts.push(`Plan ${name(A.planId)} to ${name(B.planId)}`);
     if (d.stops.length) parts.push(`${andList(d.stops.map(label))} off`);
     if (d.adds.length) parts.push(`${andList(d.adds.map(label))} on`);
-    if (d.optionChanged) parts.push(`Website: ${B.websiteOption === 'edits' ? '2 page edits' : '1 new page'}`);
+    if (d.optionChanged) parts.push(`Website: ${B.websiteOption === 'edits' ? '2 website edits' : '1 new page'}`);
     return { differs: d.differs, planChanged: d.planChanged, adds: d.adds, stops: d.stops, optionChanged: d.optionChanged, text: parts.join(', ') };
   }
 
@@ -14343,7 +14362,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       if (!v.ok && v.code === 'website-option') {
         const ls = PM().lines(m.caps, p.id, 'website', null);
         const a = ls.find((/** @type {any} */ l) => l.metric === 'web_pages'), b = ls.find((/** @type {any} */ l) => l.metric === 'web_edits');
-        return { ok: false, code: v.code, error: `Choose how the website pick works: ${a ? `${a.cap} ${unitOf(a.metric, a.label, a.cap)}` : '1 new page'} or ${b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)}` : '2 page edits'} a month.` };
+        return { ok: false, code: v.code, error: `Choose how the website pick works: ${a ? `${a.cap} ${unitOf(a.metric, a.label, a.cap)}` : '1 new page'} or ${b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)}` : '2 website edits'} a month.` };
       }
       return v;
     };
@@ -14415,7 +14434,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           const ls = PM().lines(caps, 'starter', 'website', null);
           const a = ls.find((/** @type {any} */ l) => l.metric === 'web_pages'), b = ls.find((/** @type {any} */ l) => l.metric === 'web_edits');
           /** @type {HTMLElement} */ (el.querySelector('[data-pp="opt-page"]')).textContent = a ? `${a.cap} ${unitOf(a.metric, a.label, a.cap)} a month` : '1 new page a month';
-          /** @type {HTMLElement} */ (el.querySelector('[data-pp="opt-edits"]')).textContent = b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)} a month` : '2 page edits a month';
+          /** @type {HTMLElement} */ (el.querySelector('[data-pp="opt-edits"]')).textContent = b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)} a month` : '2 website edits a month';
           for (const radio of /** @type {HTMLInputElement[]} */ (Array.from(opt.querySelectorAll('input')))) radio.checked = st.websiteOption === radio.value;
         }
         const msg = /** @type {HTMLElement} */ (el.querySelector('[data-pp="msg"]'));
@@ -14702,7 +14721,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
                 <p class="hint">A PNG, JPG, WebP, PDF or CSV up to 10 MB. It is kept privately, for the team only.</p>`}</div>
           </div>
           <div class="rs-hold" data-rs-hold hidden role="status"></div>
-          <div class="rs-vis"><label class="switch-row"><input type="checkbox" role="switch" name="visible" disabled${opened && opened.client_visible ? ' checked' : ''}><span><span class="pick-t">Client sees this <span class="meta">(client_visible)</span></span><span class="pick-d" data-rs-vis-hint>Off until verified</span></span></label></div>
+          <div class="rs-vis"><label class="switch-row"><input type="checkbox" role="switch" name="visible" disabled${opened && opened.client_visible ? ' checked' : ''}><span><span class="pick-t">Client sees this</span><span class="pick-d" data-rs-vis-hint>Off until verified</span></span></label></div>
           <p class="field-error" data-rs-error role="alert" hidden></p>
           <div class="actions rs-actions">
             <button class="btn" type="button" data-rs-publish disabled>Mark verified and publish</button>
@@ -17312,6 +17331,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   'use strict';
   /** @type {any} */ const W = window;
   const D = () => W.D8C;
+  /** A limit's one name (plan-model.js), so Settings says what every other page says. @param {string} metric @param {string} [fallback] */
+  const mLabel = (metric, fallback) => (W.D8 && W.D8.planModel ? W.D8.planModel.labelOf(metric, fallback) : cap1(fallback || metric));
   const esc = (/** @type {any} */ s) => D().esc(s);
   const $ = (/** @type {string} */ s, /** @type {any} */ el) => D().$(s, el);
   const $$ = (/** @type {string} */ s, /** @type {any} */ el) => D().$$(s, el);
@@ -17475,7 +17496,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const later = c.later ? `<span class="pl-later">${c.later.monthly_cap} from ${esc(shortDate(c.later.effective_from))}${c.later.proposed ? STAR : ''}</span>` : '';
       if (!n) return `<td data-plan="${esc(pl.id)}"><span class="pl-none">None</span>${later}</td>`;
       if (ed) {
-        const who = `${pl.name}, ${s.label}, ${cap1(n.label)}`;
+        const who = `${pl.name}, ${s.label}, ${mLabel(x.metric, n.label)}`;
         const id = `pc-${pl.id}-${x.metric}`;
         return `<td data-plan="${esc(pl.id)}"><span class="pl-edit-line"><label class="sr-only" for="${esc(id)}">${esc(who)}</label><input id="${esc(id)}" class="pl-in" name="cap" data-plan="${esc(pl.id)}" data-service="${esc(s.id)}" data-metric="${esc(x.metric)}" type="number" inputmode="numeric" min="0" max="9999" step="1" value="${n.monthly_cap}">${n.proposed ? STAR : ''}</span>
           ${n.weekly_hint ? `<label class="sr-only" for="${esc(id)}-h">${esc(who)}: weekly note</label><input id="${esc(id)}-h" class="pl-hint-in" name="hint" data-plan="${esc(pl.id)}" data-metric="${esc(x.metric)}" type="text" maxlength="40" value="${esc(n.weekly_hint)}" autocomplete="off">` : ''}${later}</td>`;
@@ -17485,7 +17506,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     return `<div class="pl-wrap"><table class="pl-grid"><caption class="sr-only">Monthly limits for each plan</caption>
       <thead><tr><th scope="col" class="pl-corner"><span class="sr-only">Limit</span></th>${m.plans.map((/** @type {any} */ pl) => `<th scope="col">${esc(pl.name)}</th>`).join('')}</tr></thead>
       ${m.services.map((/** @type {any} */ s) => `<tbody><tr class="pl-svc"><th scope="colgroup" colspan="${cols}">${esc(s.label)}${s.id === 'website' && starter ? `<span class="pl-svc-note">${esc(starter.name)} gets one of these each month, chosen with its pick.</span>` : ''}</th></tr>
-        ${s.metrics.map((/** @type {any} */ x) => `<tr><th scope="row">${esc(cap1(x.label))}</th>${m.plans.map((/** @type {any} */ pl) => cellHtml(pl, s, x)).join('')}</tr>`).join('')}</tbody>`).join('')}
+        ${s.metrics.map((/** @type {any} */ x) => `<tr><th scope="row">${esc(mLabel(x.metric, x.label))}</th>${m.plans.map((/** @type {any} */ pl) => cellHtml(pl, s, x)).join('')}</tr>`).join('')}</tbody>`).join('')}
     </table></div>`;
   }
 
@@ -17535,7 +17556,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const plan = input.getAttribute('data-plan'), service = input.getAttribute('data-service'), metric = input.getAttribute('data-metric');
       const c = m.cell(plan, service, metric);
       if (!c.now) continue;
-      const label = `${planName(plan)} ${c.now.label}`;
+      const label = `${planName(plan)} ${mLabel(metric, c.now.label)}`;
       const raw = String(input.value).trim();
       if (!/^\d{1,4}$/.test(raw)) { bad(input, `${label}: use a whole number, 0 or more.`); continue; }
       const n = Number(raw);
@@ -17845,7 +17866,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         const bits = g.rows.flatMap((/** @type {any} */ d) => {
           const row = caps.find((/** @type {any} */ c) => c.plan_id === d.plan && c.service === d.service && c.metric === d.metric && c.version === d.version);
           const old = caps.find((/** @type {any} */ c) => c.plan_id === d.plan && c.service === d.service && c.metric === d.metric && c.version === d.version - 1);
-          const label = row ? row.label : String(d.metric || '').replace(/_/g, ' ');
+          const label = mLabel(d.metric, row ? row.label : '').toLowerCase().replace(/^(reels|stories|google|seo)/, (m) => m.charAt(0).toUpperCase() + m.slice(1));
           if (old && Number(old.monthly_cap) === Number(d.cap)) { same++; return []; }
           return [`${planName(d.plan)} ${label} ${old ? `${old.monthly_cap} to ${d.cap}` : `set to ${d.cap}`}`];
         });
@@ -17935,10 +17956,10 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const next = R.upcoming[0];
     const nextText = next ? `${esc(D().clockTime(next.send_at))}: the ${esc(kindOf(next.kind))} to ${esc(clientOf(next.tenant_id))}. ${R.upcoming.length > 1 ? `${R.upcoming.length} are waiting in all.` : ''}` : 'Nothing is waiting right now.';
     const key = R.key === 'set'
-      ? `<p class="rm-key is-set"><strong>Resend key: set.</strong> A reminder went out through Resend on ${esc(D().clockTime(R.newestSent.sent_at))}, so sending works. The console never sees the key itself.</p>`
+      ? `<p class="rm-key is-set"><strong>Email sending works.</strong> A reminder went out on ${esc(D().clockTime(R.newestSent.sent_at))}. The console never sees the key itself.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key, set on the server.</p></details>`
       : R.key === 'not set'
-        ? `<p class="rm-key is-off"><strong>Resend key: not set.</strong> ${esc(plural(R.overdue.length, 'reminder'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no key or no sender. Add them to the server's secrets.</p>`
-        : '<p class="rm-key"><strong>Resend key: not confirmed yet.</strong> No reminder has been due, so nothing shows whether it is set. The console never sees the key itself.</p>';
+        ? `<p class="rm-key is-off"><strong>Email sending is not set up.</strong> ${esc(plural(R.overdue.length, 'reminder'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no email key or sender address. Add them on the server.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key and REMINDERS_FROM, in the server secrets.</p></details>`
+        : '<p class="rm-key"><strong>Email sending is not confirmed yet.</strong> No reminder has been due, so nothing shows whether it is set up. The console never sees the key itself.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key, set on the server.</p></details>';
     const fail = (/** @type {any} */ r) => `<li class="rm-fail" data-rem="${esc(r.id)}">
         <div class="rm-who"><strong>${esc(clientOf(r.tenant_id))}</strong><span class="meta">${esc(/** @type {any} */ (KIND_WHEN)[r.kind] || r.kind)} · to ${esc(mask(r.to_email))}</span></div>
         <p class="rm-err">Failed ${esc(D().clockTime(r.updated_at))} after ${esc(plural(Number(r.attempts) || 0, 'try', 'tries'))}${r.error ? `: ${esc(r.error)}` : ''}</p>
@@ -17949,7 +17970,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         <dl class="facts rm-facts"><dt>Schedule</dt><dd>7 days and 3 days before each bill, at 10:00 AM on the restaurant's clock. The job runs every hour and sends what is due.</dd>
           <dt>Last run</dt><dd>${lastText}<span class="meta rm-sub">The job keeps no log of its own, so this is its newest reminder.</span></dd>
           <dt>Next up</dt><dd>${nextText}</dd>
-          <dt>Sender</dt><dd>The address in REMINDERS_FROM on the server. The console cannot read it.</dd></dl>
+          <dt>Sender</dt><dd>The sender address is set on the server and the console cannot read it.<details class="rm-tech"><summary>Technical details</summary><p class="meta">REMINDERS_FROM.</p></details></dd></dl>
         ${key}</div>
       <div class="rm-fails"><h3 class="rm-h">Failed in the last 30 days <span class="chip ${R.fails.length ? 'warn' : 'good'}">${R.fails.length ? R.fails.length : 'None'}</span></h3>
         ${R.fails.length ? `<ul class="rm-list">${R.fails.map(fail).join('')}</ul>` : '<p class="meta">No reminder has failed in the last 30 days.</p>'}</div></div>`;
@@ -18052,10 +18073,10 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     for (const r of R.skipped) reasons.set(r.error || 'skipped', (reasons.get(r.error || 'skipped') || 0) + 1);
     const skipText = R.skipped.length ? `${esc(plural(R.skipped.length, 'email'))} in the last 30 days: ${esc(Array.from(reasons).map(([why, n]) => `${why} (${n})`).join(', '))}.` : '';
     const key = R.key === 'set'
-      ? `<p class="rm-key is-set"><strong>Resend key: set.</strong> An email went out through Resend on ${esc(D().clockTime(R.sent[0].sent_at))}, so sending works. The console never sees the key itself.</p>`
+      ? `<p class="rm-key is-set"><strong>Email sending works.</strong> An email went out on ${esc(D().clockTime(R.sent[0].sent_at))}. The console never sees the key itself.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key, set on the server.</p></details>`
       : R.key === 'not set'
-        ? `<p class="rm-key is-off"><strong>Resend key: not set.</strong> ${esc(plural(R.overdue.length, 'email'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no key or no sender. Add them to the server's secrets.</p>`
-        : '<p class="rm-key"><strong>Resend key: not confirmed yet.</strong> No email has been due, so nothing shows whether it is set. The console never sees the key itself.</p>';
+        ? `<p class="rm-key is-off"><strong>Email sending is not set up.</strong> ${esc(plural(R.overdue.length, 'email'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no email key or sender address. Add them on the server.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key and NOTIFY_FROM, in the server secrets.</p></details>`
+        : '<p class="rm-key"><strong>Email sending is not confirmed yet.</strong> No email has been due, so nothing shows whether it is set up. The console never sees the key itself.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key, set on the server.</p></details>';
     const team = MN.team;
     const addr = isOwner()
       ? `<form class="mn-team" id="mn-team" novalidate><div class="field"><label class="sr-only" for="mn-email">Team email address</label><input id="mn-email" name="email" type="email" maxlength="200" autocomplete="off" inputmode="email" spellcheck="false" value="${esc(team || '')}" placeholder="name@yourdomain.com"></div><button class="btn btn-sm" type="submit">${team ? 'Save address' : 'Set address'}</button></form>
@@ -18073,7 +18094,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           <dt>Last sent</dt><dd>${lastText}</dd>
           <dt>Waiting</dt><dd>${waitText}</dd>
           ${skipText ? `<dt>Skipped</dt><dd>${skipText}<span class="meta rm-sub">Paused and archived clients get no email.</span></dd>` : ''}
-          <dt>Sender</dt><dd>The address in NOTIFY_FROM on the server. The console cannot read it.</dd></dl>
+          <dt>Sender</dt><dd>The sender address is set on the server and the console cannot read it.<details class="rm-tech"><summary>Technical details</summary><p class="meta">NOTIFY_FROM.</p></details></dd></dl>
         ${key}</div>
       <div class="rm-fails"><h3 class="rm-h">Failed in the last 30 days <span class="chip ${R.fails.length ? 'warn' : 'good'}">${R.fails.length ? R.fails.length : 'None'}</span></h3>
         ${R.fails.length ? `<ul class="rm-list">${R.fails.map(fail).join('')}</ul>` : '<p class="meta">No message email has failed in the last 30 days.</p>'}</div></div>`;
@@ -18670,7 +18691,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       }
       case 'usage_added': return `${who} counted ${esc(d.qty)} for ${esc(String(d.metric || '').replace(/_/g, ' '))}${d.counted === false ? ' (not counted against the limit)' : ''}.`;
       case 'usage_voided': return `${who} took back ${esc(d.qty)} counted for ${esc(String(d.metric || '').replace(/_/g, ' '))}.${because(d.reason)}`;
-      case 'usage_live_set': return `${who} set ${d.metric === 'ads_platforms' ? 'Ad platforms' : 'Live campaigns'} to ${esc(d.now)} (was ${esc(d.was)}).`;
+      case 'usage_live_set': return `${who} set ${d.metric === 'ads_platforms' ? 'Ad platforms in use' : 'Live campaigns'} to ${esc(d.now)} (was ${esc(d.was)}).`;
       case 'plan_cycle_insert': case 'plan_cycle_update': return `${who} ${r.action === 'plan_cycle_insert' ? 'set up' : 'changed'} the plan month that starts ${esc(dayText(d.period_start))}.${because(d.reason)}`;
       default: return `${who} ${esc(String(r.action).replace(/[._]/g, ' '))}.`;
     }
@@ -19002,11 +19023,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   /** The usage columns staff read (the notes and who-did-it columns are not readable through the API: 20261014110000). */
   const USAGE_COLS = 'id, tenant_id, cycle_id, service, metric, qty, counted, task_id, request_id, over_cap_approved_at, created_at, voided_at';
   /** A limit's name on a usage bar. */
-  const NAME = /** @type {Record<string, string>} */ ({
-    social_posts: 'Social posts', social_reels: 'Reels', social_stories: 'Stories', ads_live_campaigns: 'Live campaigns', ads_new_creatives: 'New ad designs', ads_platforms: 'Ad platforms',
-    web_pages: 'New pages', web_edits: 'Web edits', seo_google_posts: 'Google posts', seo_photos: 'Photos', seo_review_replies: 'Review replies', seo_jobs: 'SEO jobs',
-    email_campaigns: 'Email campaigns', email_automations: 'Automations'
-  });
+  const NAME = /** @type {Record<string, string>} */ (window.D8.planModel.LABEL); // the one shared map (plan-model.js)
   /** Words in a card's title that say which limit it uses (the first match wins; otherwise the service's usual one). */
   const GUESS = /** @type {Record<string, [RegExp, string][]>} */ ({
     social: [[/\breels?\b/i, 'social_reels'], [/\bstor(y|ies)\b/i, 'social_stories']],
@@ -19666,7 +19683,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   /** The live count dialog's words for each live-at-once limit. */
   const LIVE_ASK = /** @type {Record<string, {q: string, field: string, noun: string}>} */ ({
     ads_live_campaigns: { q: 'How many campaigns are live right now?', field: 'Live campaigns now', noun: 'Live campaigns' },
-    ads_platforms: { q: 'How many ad platforms are in use right now?', field: 'Ad platforms in use now', noun: 'Ad platforms' }
+    ads_platforms: { q: 'How many ad platforms are in use right now?', field: 'Ad platforms in use now', noun: 'Ad platforms in use' }
   });
   /** @param {string} s */
   const cssq = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'));
@@ -20731,15 +20748,16 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   function renderSide() {
     if (!all || !me) return;
     const list = /** @type {HTMLElement} */ ($('#side-list'));
-    let needsTotal = 0;
+    let needsTotal = reviewCount(null); // the same total the Needs you page shows as "Do now": client approvals plus every need
     for (const t of all.tenants) if (t.status !== 'archived') needsTotal += derive(t).needs.length;
     const openId = current && document.documentElement.dataset.page === 'client' ? current.id : ''; // only while a client's own page is open
     const recent = recentIds().map((id) => tenant(id)).filter(Boolean);
     list.innerHTML = recent.map((/** @type {any} */ t) => {
       const d = derive(t);
-      const title = d.needs.length ? plural(d.needs.length, 'thing needs', 'things need') + ' you' : d.waiting.length ? plural(d.waiting.length, 'thing') + ' waiting on client' : t.status === 'active' ? 'Nothing waiting' : t.status;
+      const nn = d.needs.length + reviewCount(t.id);
+      const title = nn ? plural(nn, 'thing needs', 'things need') + ' you' : d.waiting.length ? plural(d.waiting.length, 'thing') + ' waiting on client' : t.status === 'active' ? 'Nothing waiting' : t.status;
       return `<li><a class="side-client${t.status !== 'active' ? ' paused' : ''}" href="#/client/${esc(t.id)}"${t.id === openId ? ' aria-current="page"' : ''} title="${esc(title)}">
-        ${CC() ? CC().badge(t.id) : ''}<span class="name">${esc(t.name)}</span>${d.needs.length ? `<span class="badge">${d.needs.length}</span>` : ''}</a></li>`;
+        ${CC() ? CC().badge(t.id) : ''}<span class="name">${esc(t.name)}</span>${nn ? `<span class="badge">${nn}</span>` : ''}</a></li>`;
     }).join('');
     $('#side-recent-h').hidden = !recent.length;
     const qb = $('#queue-badge');
@@ -20870,11 +20888,12 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         { name: 'Needs you', hint: 'Page', href: '#/queue', icon: 'inbox' },
         { name: 'Messages', hint: 'Page', href: '#/messages', icon: 'chat' },
         { name: 'Bot chat', hint: 'Page', href: '#/bot', icon: 'bot' },
+        { name: 'Bot numbers', hint: 'Page', href: '#/bot/stats', icon: 'trend' },
         { name: 'Add a client', hint: 'Page', href: '#/new', icon: 'plus' },
         { name: 'Clients', hint: 'Page', href: '#/clients', icon: 'users' },
         { name: 'All work (every client\'s team cards)', hint: 'Page', href: '#/board', icon: 'board' },
         { name: 'Billing', hint: 'Page', href: '#/billing', icon: 'card' },
-        ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }] : []),
+        ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }, { name: 'Revenue: Income', hint: 'Page', href: '#/revenue/income', icon: 'trend' }, { name: 'Revenue: Costs', hint: 'Page', href: '#/revenue/costs', icon: 'trend' }, { name: 'Revenue: Years', hint: 'Page', href: '#/revenue/years', icon: 'trend' }] : []),
         { name: 'Settings', hint: 'Page', href: '#/settings', icon: 'gear' },
         { name: 'Team', hint: 'Settings', href: '#/settings', icon: 'users' },
         { name: 'Reload everything', hint: 'Action', act: 'refresh', icon: 'refresh' },
@@ -20883,6 +20902,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       for (const t of (all ? all.tenants : [])) {
         out.push({ name: t.name, hint: 'Client', href: `#/client/${t.id}`, icon: 'store' });
         for (const [k, label] of allTabs()) if (k !== 'overview') out.push({ name: `${t.name}: ${label}`, hint: 'Tab', href: `#/client/${t.id}/${k}`, icon: 'page' });
+        out.push({ name: `${t.name}: Billing`, hint: 'Tab', href: `#/billing/${t.id}`, icon: 'card' });
         out.push({ name: `${t.name}: Messages`, hint: 'Tab', href: `#/messages/${t.id}`, icon: 'chat' });
       }
       return out;
@@ -20894,12 +20914,14 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       palette.input.focus();
     },
     filter() {
-      const q = palette.input.value.trim().toLowerCase();
-      const words = q.split(/\s+/).filter(Boolean);
+      // Match on words: punctuation in a name ("Bayleaf (preview): Billing") or in what is typed ("Bayleaf: Billing") never gets in the way.
+      const norm = (/** @type {string} */ x) => String(x).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+      const q = norm(palette.input.value);
+      const words = q.split(' ').filter(Boolean);
       const places = palette.places();
       const allowed = places.filter((p) => p.href !== '#/new' || (me && me.role === 'super_admin'));
-      palette.hits = (words.length ? allowed.filter((p) => words.every((w) => p.name.toLowerCase().includes(w))) : allowed.filter((p) => p.hint !== 'Tab'))
-        .sort((a, b) => (q ? Number(b.name.toLowerCase().startsWith(q)) - Number(a.name.toLowerCase().startsWith(q)) : 0))
+      palette.hits = (words.length ? allowed.filter((p) => { const nm = norm(p.name); return words.every((w) => nm.includes(w)); }) : allowed.filter((p) => p.hint !== 'Tab'))
+        .sort((a, b) => (q ? Number(norm(b.name).startsWith(q)) - Number(norm(a.name).startsWith(q)) : 0))
         .slice(0, 12);
       palette.sel = 0;
       palette.render();
@@ -21320,9 +21342,11 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
 
   /** The newest thing said, with who said it. @param {any} c */
   function convoPreview(c) {
+    // The newest thing wins: when it is an open change request (newer than the last message), the row says so, so "Waiting for your reply" makes sense.
+    const r = c.open.reduce((/** @type {any} */ a, /** @type {any} */ b) => (!a || String(b.at) > String(a.at) ? b : a), null);
+    if (r && (!c.last || String(r.at) > String(c.last.at))) return `${c.fresh.includes(r) ? 'New change request' : 'Change request'}: ${r.body}`;
     if (c.last) return `${c.last.from_staff ? 'You' : c.last.by_name || 'Client'}: ${c.last.body}`;
-    const r = c.open[c.open.length - 1];
-    return r ? `Change request: ${r.body}` : '';
+    return '';
   }
 
   function convoRows() {
@@ -21515,7 +21539,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     document.title = 'Add a client · Domin8te console';
     const part = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.newclient;
     if (part) part.page();
-    else main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a><div class="empty"><p><strong>Add client did not load.</strong></p><p>Reload the page. If this stays, tell the team.</p></div>`;
+    else main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a><div class="empty"><p><strong>Add a client did not load.</strong></p><p>Reload the page. If this stays, tell the team.</p></div>`;
   }
 
   /* ---- one client --------------------------------------------------------------------------------- */
@@ -21665,7 +21689,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const held = got.needs.filter((/** @type {any} */ x) => x.kind === 'exception' && /^(plan_mismatch|result_outlier)$/.test(x.ex.reason_code)).length;
       const failed = !!(all.reviews && all.reviews.error);
       $('.client-head', main).insertAdjacentHTML('afterend', pageFresh({
-        updatedAt: current.updated_at, source: 'this client\'s record, plan months and usage in the console',
+        updatedAt: all.at, source: `this client's record${current.updated_at ? ` (last changed ${clockTime(current.updated_at)})` : ''}, plan months and usage in the console`,
         status: failed ? 'delayed' : held ? 'kept' : 'ok', label: failed ? 'Some data did not load' : held ? `${held} unverified` : undefined
       }));
     }
@@ -22580,7 +22604,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   Object.assign(HISTORY_WORDS, {
     usage_added: (/** @type {any} */ d) => d.counted === false ? `logged an urgent fix (${metricWords(d.metric)}), not counted` : `counted ${d.qty || 1} of ${metricWords(d.metric)}${d.over_cap_approved ? ', approved as a one-off' : ''}`,
     usage_voided: (/** @type {any} */ d) => `took ${d.qty || 1} of ${metricWords(d.metric)} off the count${d.reason ? `: ${d.reason}` : ''}`,
-    usage_live_set: (/** @type {any} */ d) => `set ${d.metric === 'ads_platforms' ? 'Ad platforms' : 'Live campaigns'} to ${d.now} (was ${d.was})`,
+    usage_live_set: (/** @type {any} */ d) => `set ${d.metric === 'ads_platforms' ? 'Ad platforms in use' : 'Live campaigns'} to ${d.now} (was ${d.was})`,
     task_shown: (/** @type {any} */ d) => `showed the card “${d.title || 'a card'}” to the client${d.reason ? `: ${d.reason}` : ''}`,
     task_hidden: (/** @type {any} */ d) => `hid the card “${d.title || 'a card'}” from the client${d.reason ? `: ${d.reason}` : ''}`,
     task_deleted: (/** @type {any} */ d) => `removed the card “${d.title || 'a card'}” (its history is kept)${d.reason ? `: ${d.reason}` : ''}`,
@@ -23048,7 +23072,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   }
   /** A key is set and it is not a refused live key. */
   const stripeReady = () => !!(stripeState && stripeState.configured && !stripeState.refused);
-  const stripeModeText = () => (stripeState && stripeState.mode === 'live' ? 'live' : 'test mode');
+  const stripeModeText = () => (stripeState && stripeState.mode === 'live' ? 'live' : stripeState && stripeState.mode === 'test' ? 'test mode' : 'mode not known');
   /** @param {any} t */
   const stripeIdOf = (t) => (t && t.doc && t.doc.billing && t.doc.billing.stripeCustomerId) || '';
   /** The subscription facts were written by the Stripe webhook, not typed. @param {any} t */
@@ -23081,7 +23105,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     else if (st.failed) { chip = '<span class="chip warn">Could not check</span>'; body = `<p class="notice bad">${esc(st.failed)}</p>`; }
     else if (st.refused) { chip = '<span class="chip bad">Live key refused</span>'; body = '<p>The server has a live Stripe key, but live mode is off, so Stripe is not used. Put the test key back, or turn on live mode when you are ready. The README says how.</p>'; }
     else if (st.configured && st.mode === 'live') { chip = '<span class="chip good">Live</span>'; body = '<p>Real customers and real payments.</p>'; }
-    else if (st.configured) { chip = '<span class="chip info">Connected (test mode)</span>'; body = '<p>Test customers only. No real money moves.</p>'; }
+    else if (st.configured && st.mode === 'test') { chip = '<span class="chip info">Connected (test mode)</span>'; body = '<p>Test customers only. No real money moves.</p>'; }
+    else if (st.configured) { chip = '<span class="chip info">Connected</span>'; body = '<p>The server has a Stripe key, but the console cannot tell whether it is a test or a live one.</p>'; }
     else {
       chip = '<span class="chip plain">Not set up yet</span>';
       body = `<p>You add the keys yourself. This page never asks for them.</p>
@@ -24192,7 +24217,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     esc, $, $$, icon, toast, undoToast, busy, val, message, failMessage, fieldFail, skeleton, plural, when, ago, due, longDate, dayOf, today, localDay, newId, clone, svcLabel,
     SERVICES, SERVICE_ORDER, STATUS, FLAGS, PORTAL_URL, main,
     db, staffRows, check, ask, track, clean, redraw, afterSave, route, refreshAll, loadAll, callFn, viewAs,
-    tenant, derive, planOf, usageTone, usageBar, money, clockTime, pageFresh, billingOf, convo, allTabs, fromCache, loadClient, save, saveDoc,
+    reviewCount, tenant, derive, planOf, usageTone, usageBar, money, clockTime, pageFresh, billingOf, convo, allTabs, fromCache, loadClient, save, saveDoc,
     get all() { return all; }, get me() { return me; }, get current() { return current; }, get dirty() { return dirty; },
     get plans() { return all && all.plans ? all.plans : emptyPlans(); }
   };

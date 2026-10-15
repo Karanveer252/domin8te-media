@@ -33,10 +33,10 @@ test('limits come from the plan table: Growth posts 12 (3 a week), Starter websi
   assert.equal(social.lines[0].cap, 12);
   assert.equal(social.lines[0].weeklyHint, '3 a week');
   assert.equal(social.summary, 'Up to 12 posts a month · 2 Reels · 8 Stories');
-  assert.equal(g.services.find((s) => s.id === 'website').summary, 'Up to 2 new pages and 5 page edits a month');
+  assert.equal(g.services.find((s) => s.id === 'website').summary, 'Up to 2 new pages and 5 website edits a month');
   const m = (await (await client('bayleaf')).client.getPlan()).menu;
   const starter = m.find((x) => x.id === 'starter');
-  assert.equal(starter.services.find((s) => s.id === 'website').summary, '1 new page or 2 page edits a month', 'Starter chooses one: a page or edits');
+  assert.equal(starter.services.find((s) => s.id === 'website').summary, '1 new page or 2 website edits a month', 'Starter chooses one: a page or edits');
   assert.equal(starter.services.find((s) => s.id === 'social').lines.some((l) => l.metric === 'social_stories'), false, 'a limit of none is not listed');
   const d = (await (await client('domin8te')).client.getPlan()).now;
   assert.equal(d.services.length, 4, 'Domin8te is Ads plus three picks, not every service');

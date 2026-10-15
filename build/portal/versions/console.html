@@ -2402,6 +2402,9 @@ table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; fon
 .rm-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px 44px; align-items: start; }
 .rm-facts { grid-template-columns: minmax(78px, max-content) minmax(0, 1fr); gap: 14px 18px; }
 .rm-sub { display: block; margin-top: 2px; font-size: 13px; }
+.rm-tech { margin-top: 8px; font-size: 13px; color: var(--ink-2); }
+.rm-tech summary { cursor: pointer; width: fit-content; }
+.rm-tech p { margin-top: 4px; }
 .rm-key { margin-top: 20px; padding: 13px 16px; border-radius: 16px; background: var(--glass-soft); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); font-size: 14px; }
 .rm-key strong { color: var(--ink); }
 .rm-key.is-off { background: var(--warn-bg); box-shadow: none; }
@@ -4000,11 +4003,11 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   const svc = (/** @type {string} */ id) => (D8.data && D8.data.SERVICES && D8.data.SERVICES[id]) || { label: id, icon: 'layers' };
   const cap1 = (/** @type {string} */ s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
-  /* How each kind of work reads, in the words a restaurant uses ("Up to 8 page edits a month"). */
+  /* How each kind of work reads, in the words a restaurant uses ("Up to 8 website edits a month"). */
   const NOUN = {
     social_posts: ['post', 'posts'], social_reels: ['Reel', 'Reels'], social_stories: ['Story', 'Stories'],
     ads_live_campaigns: ['campaign', 'campaigns'], ads_new_creatives: ['new ad design', 'new ad designs'], ads_platforms: ['platform', 'platforms'],
-    web_pages: ['new page', 'new pages'], web_edits: ['page edit', 'page edits'],
+    web_pages: ['new page', 'new pages'], web_edits: ['website edit', 'website edits'],
     seo_google_posts: ['Google post', 'Google posts'], seo_photos: ['photo', 'photos'], seo_review_replies: ['review reply', 'review replies'],
     seo_jobs: ['listing and search task', 'listing and search tasks'],
     email_campaigns: ['email campaign', 'email campaigns'], email_automations: ['automation', 'automations']
@@ -4059,7 +4062,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   }
   /**
    * One short line for a service's limits: "Up to 12 posts a month · 2 Reels · 8 Stories". A website has a page limit and an
-   * edit limit: on Starter they are a choice of one ("1 new page or 2 page edits a month"), on the others both apply.
+   * edit limit: on Starter they are a choice of one ("1 new page or 2 website edits a month"), on the others both apply.
    * @param {any[]} ls @param {string} [planId]
    */
   function summary(ls, planId) {
@@ -4085,7 +4088,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       return { ok: false, code: 'count', error: left > 0 ? `Pick ${left} more ${F.plural(left, 'service', 'services')} for ${plan.name}.` : `${plan.name} has ${r.total} services. Untick ${-left} to continue.` };
     }
     if (planId === 'starter' && list.includes('website') && websiteOption !== 'page' && websiteOption !== 'edits') {
-      return { ok: false, code: 'website-option', error: 'Choose one new page or two page edits a month for your website.' };
+      return { ok: false, code: 'website-option', error: 'Choose one new page or two website edits a month for your website.' };
     }
     return { ok: true, code: '', error: '' };
   }
@@ -8682,6 +8685,8 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     return { t, d, pl, lines, bars, over, asks, near, unverified, top: lines.reduce((/** @type {number} */ m, /** @type {any} */ l) => Math.max(m, ratio(l)), 0) };
   }
 
+  /** What waits on staff for one client: its needs plus the approvals under Check before it goes live, the same number the sidebar chip and Needs you show. @param {any} r a row of rowOf */
+  const needN = (r) => r.d.needs.length + (C().reviewCount ? C().reviewCount(r.t.id) : 0);
   /** @param {any} r a row of rowOf */
   function matches(r, st) {
     const q = String(st.q || '').trim().toLowerCase();
@@ -8690,7 +8695,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       if (!hay.includes(q)) return false;
     }
     switch (st.filter) {
-      case 'needs': return r.t.status !== 'archived' && r.d.needs.length > 0;
+      case 'needs': return r.t.status !== 'archived' && needN(r) > 0;
       case 'inactive': return r.t.status !== 'active';
       case 'over': return r.t.status !== 'archived' && (r.over.length > 0 || r.asks.length > 0);
       case 'near': return r.t.status !== 'archived' && r.near;
@@ -8751,7 +8756,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     switch (st.sort) {
       case 'plan': return r.pl.nowPlan ? r.pl.nowPlan.sort : 99;
       case 'usage': return r.top;
-      case 'needs': return r.d.needs.length;
+      case 'needs': return needN(r);
       default: return 0;
     }
   }
@@ -8832,7 +8837,15 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     const planChips = c.plans.plans.map((/** @type {any} */ p) => [p.id, p.name]);
     const main6 = [['all', 'All'], ...planChips, ['over', 'Over limit'], ['near', 'Near limit (85%+)']];
     const more2 = [['needs', 'Needs you'], ['inactive', 'Paused or archived']];
-    const chip = (/** @type {string[]} */ [k, l]) => `<button type="button" data-filter="${esc(k)}" aria-pressed="${st.filter === k}">${esc(l)}<span class="count quiet">${n[k] === undefined ? 0 : n[k]}</span></button>`;
+    // The three count-style chips say what they count (clients, not items), so they never read like the Needs you page's item counts.
+    const SAY = /** @type {Record<string, (x: number) => string>} */ ({
+      over: (x) => `${x} ${x === 1 ? 'client' : 'clients'} over a limit`,
+      near: (x) => `${x} ${x === 1 ? 'client' : 'clients'} near a limit (85%+)`,
+      needs: (x) => `${x} ${x === 1 ? 'client needs' : 'clients need'} you`
+    });
+    const chip = (/** @type {string[]} */ [k, l]) => SAY[k]
+      ? `<button type="button" data-filter="${esc(k)}" aria-pressed="${st.filter === k}">${esc(SAY[k](n[k] || 0))}</button>`
+      : `<button type="button" data-filter="${esc(k)}" aria-pressed="${st.filter === k}">${esc(l)}<span class="count quiet">${n[k] === undefined ? 0 : n[k]}</span></button>`;
     return `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Clients</h1><p>Every restaurant's plan, picks and how much of this month's limits they have used. The limits come from the plan.</p></div>
       <div class="btns">${canAdd ? `<a class="btn" href="#/new">${c.icon('plus')}Add a client</a>` : ''}</div></div>
       ${fresh}
@@ -8864,8 +8877,10 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       const status = statusOf(r);
       const notes = noteOf(r);
       const period = pl.now ? `${c.when(pl.now.period_start)} to ${c.when(addDays(pl.now.period_end, -1))}` : '';
-      const needsCell = r.d.needs.length
-        ? `<div class="cl-needs"><span class="chip you">${r.d.needs.length}</span><span class="cl-sub">${esc(r.d.needs[0].label)}${r.d.needs.length > 1 ? ` + ${r.d.needs.length - 1} more` : ''}</span></div>`
+      const nn = needN(r);
+      const first = r.d.needs.length ? r.d.needs[0].label : 'Check before it goes live';
+      const needsCell = nn
+        ? `<div class="cl-needs"><span class="chip you">${nn}</span><span class="cl-sub">${esc(first)}${nn > 1 ? ` + ${nn - 1} more` : ''}</span></div>`
         : '<span class="none">Nothing</span>';
       const waiting = r.d.waiting.length ? `<div class="cl-needs cl-wait"><span class="chip them">${r.d.waiting.length}</span><span class="cl-sub">Waiting on client</span></div>` : '';
       const bars = r.bars.slice(0, MAX_BARS).map((/** @type {any} */ l) => c.usageBar({ label: LBL(l.metric) || l.label, used: l.used, cap: l.cap, pct: l.pct, tone: l.tone })).join('');
@@ -10375,7 +10390,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   };
   /** The two limits that count what is running now, not a month's work: they read "at once" and "in use", never "a month". @type {Record<string, string>} */
   const NOW_UNIT = { ads_live_campaigns: 'at once', ads_platforms: 'in use' };
-  /** "8 page edits a month", "3 live campaigns at once". @param {string} metric @param {string} name */
+  /** "8 website edits a month", "3 live campaigns at once". @param {string} metric @param {string} name */
   const perPeriod = (metric, name) => `${name} ${NOW_UNIT[metric] || 'a month'}`;
   /** Whether a limit counts what is live now (a snapshot that carries into the next month, 20261014110100), not a month's work. @param {string} metric */
   const isLive = (metric) => Object.prototype.hasOwnProperty.call(NOW_UNIT, metric);
@@ -11705,9 +11720,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       caps: capsNow()
     };
   }
-  /** "12 posts", "3 live campaigns", "2 SEO jobs": how a limit's unit reads for staff. */
+  /** "12 posts", "3 live campaigns", "2 listing and search tasks": how a limit's unit reads for staff. */
   function unitOf(/** @type {string} */ metric, /** @type {string} */ lab, /** @type {number} */ n) {
-    if (metric === 'seo_jobs') return n === 1 ? 'SEO job' : 'SEO jobs';
+    if (metric === 'seo_jobs') return n === 1 ? 'listing and search task' : 'listing and search tasks';
     if (metric === 'ads_live_campaigns') return n === 1 ? 'live campaign' : 'live campaigns';
     if (metric === 'ads_platforms') return n === 1 ? 'platform' : 'platforms';
     return PM().words(metric, lab, n).unit;
@@ -11777,7 +11792,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (d.planChanged) parts.push(`Plan ${name(A.planId)} to ${name(B.planId)}`);
     if (d.stops.length) parts.push(`${andList(d.stops.map(label))} off`);
     if (d.adds.length) parts.push(`${andList(d.adds.map(label))} on`);
-    if (d.optionChanged) parts.push(`Website: ${B.websiteOption === 'edits' ? '2 page edits' : '1 new page'}`);
+    if (d.optionChanged) parts.push(`Website: ${B.websiteOption === 'edits' ? '2 website edits' : '1 new page'}`);
     return { differs: d.differs, planChanged: d.planChanged, adds: d.adds, stops: d.stops, optionChanged: d.optionChanged, text: parts.join(', ') };
   }
 
@@ -11898,7 +11913,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       if (!v.ok && v.code === 'website-option') {
         const ls = PM().lines(m.caps, p.id, 'website', null);
         const a = ls.find((/** @type {any} */ l) => l.metric === 'web_pages'), b = ls.find((/** @type {any} */ l) => l.metric === 'web_edits');
-        return { ok: false, code: v.code, error: `Choose how the website pick works: ${a ? `${a.cap} ${unitOf(a.metric, a.label, a.cap)}` : '1 new page'} or ${b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)}` : '2 page edits'} a month.` };
+        return { ok: false, code: v.code, error: `Choose how the website pick works: ${a ? `${a.cap} ${unitOf(a.metric, a.label, a.cap)}` : '1 new page'} or ${b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)}` : '2 website edits'} a month.` };
       }
       return v;
     };
@@ -11970,7 +11985,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           const ls = PM().lines(caps, 'starter', 'website', null);
           const a = ls.find((/** @type {any} */ l) => l.metric === 'web_pages'), b = ls.find((/** @type {any} */ l) => l.metric === 'web_edits');
           /** @type {HTMLElement} */ (el.querySelector('[data-pp="opt-page"]')).textContent = a ? `${a.cap} ${unitOf(a.metric, a.label, a.cap)} a month` : '1 new page a month';
-          /** @type {HTMLElement} */ (el.querySelector('[data-pp="opt-edits"]')).textContent = b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)} a month` : '2 page edits a month';
+          /** @type {HTMLElement} */ (el.querySelector('[data-pp="opt-edits"]')).textContent = b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)} a month` : '2 website edits a month';
           for (const radio of /** @type {HTMLInputElement[]} */ (Array.from(opt.querySelectorAll('input')))) radio.checked = st.websiteOption === radio.value;
         }
         const msg = /** @type {HTMLElement} */ (el.querySelector('[data-pp="msg"]'));
@@ -15492,10 +15507,10 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const next = R.upcoming[0];
     const nextText = next ? `${esc(D().clockTime(next.send_at))}: the ${esc(kindOf(next.kind))} to ${esc(clientOf(next.tenant_id))}. ${R.upcoming.length > 1 ? `${R.upcoming.length} are waiting in all.` : ''}` : 'Nothing is waiting right now.';
     const key = R.key === 'set'
-      ? `<p class="rm-key is-set"><strong>Email sending works.</strong> A reminder went out on ${esc(D().clockTime(R.newestSent.sent_at))}. The console never sees the key itself.<span class="meta rm-sub">Details: Resend key, set on the server.</span></p>`
+      ? `<p class="rm-key is-set"><strong>Email sending works.</strong> A reminder went out on ${esc(D().clockTime(R.newestSent.sent_at))}. The console never sees the key itself.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key, set on the server.</p></details>`
       : R.key === 'not set'
-        ? `<p class="rm-key is-off"><strong>Email sending is not set up.</strong> ${esc(plural(R.overdue.length, 'reminder'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no email key or sender address. Add them on the server.<span class="meta rm-sub">Details: Resend key and REMINDERS_FROM, in the server secrets.</span></p>`
-        : '<p class="rm-key"><strong>Email sending is not confirmed yet.</strong> No reminder has been due, so nothing shows whether it is set up. The console never sees the key itself.<span class="meta rm-sub">Details: Resend key, set on the server.</span></p>';
+        ? `<p class="rm-key is-off"><strong>Email sending is not set up.</strong> ${esc(plural(R.overdue.length, 'reminder'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no email key or sender address. Add them on the server.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key and REMINDERS_FROM, in the server secrets.</p></details>`
+        : '<p class="rm-key"><strong>Email sending is not confirmed yet.</strong> No reminder has been due, so nothing shows whether it is set up. The console never sees the key itself.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key, set on the server.</p></details>';
     const fail = (/** @type {any} */ r) => `<li class="rm-fail" data-rem="${esc(r.id)}">
         <div class="rm-who"><strong>${esc(clientOf(r.tenant_id))}</strong><span class="meta">${esc(/** @type {any} */ (KIND_WHEN)[r.kind] || r.kind)} · to ${esc(mask(r.to_email))}</span></div>
         <p class="rm-err">Failed ${esc(D().clockTime(r.updated_at))} after ${esc(plural(Number(r.attempts) || 0, 'try', 'tries'))}${r.error ? `: ${esc(r.error)}` : ''}</p>
@@ -15506,7 +15521,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         <dl class="facts rm-facts"><dt>Schedule</dt><dd>7 days and 3 days before each bill, at 10:00 AM on the restaurant's clock. The job runs every hour and sends what is due.</dd>
           <dt>Last run</dt><dd>${lastText}<span class="meta rm-sub">The job keeps no log of its own, so this is its newest reminder.</span></dd>
           <dt>Next up</dt><dd>${nextText}</dd>
-          <dt>Sender</dt><dd>The sender address is set on the server and the console cannot read it.<span class="meta rm-sub">Details: REMINDERS_FROM.</span></dd></dl>
+          <dt>Sender</dt><dd>The sender address is set on the server and the console cannot read it.<details class="rm-tech"><summary>Technical details</summary><p class="meta">REMINDERS_FROM.</p></details></dd></dl>
         ${key}</div>
       <div class="rm-fails"><h3 class="rm-h">Failed in the last 30 days <span class="chip ${R.fails.length ? 'warn' : 'good'}">${R.fails.length ? R.fails.length : 'None'}</span></h3>
         ${R.fails.length ? `<ul class="rm-list">${R.fails.map(fail).join('')}</ul>` : '<p class="meta">No reminder has failed in the last 30 days.</p>'}</div></div>`;
@@ -15609,10 +15624,10 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     for (const r of R.skipped) reasons.set(r.error || 'skipped', (reasons.get(r.error || 'skipped') || 0) + 1);
     const skipText = R.skipped.length ? `${esc(plural(R.skipped.length, 'email'))} in the last 30 days: ${esc(Array.from(reasons).map(([why, n]) => `${why} (${n})`).join(', '))}.` : '';
     const key = R.key === 'set'
-      ? `<p class="rm-key is-set"><strong>Email sending works.</strong> An email went out on ${esc(D().clockTime(R.sent[0].sent_at))}. The console never sees the key itself.<span class="meta rm-sub">Details: Resend key, set on the server.</span></p>`
+      ? `<p class="rm-key is-set"><strong>Email sending works.</strong> An email went out on ${esc(D().clockTime(R.sent[0].sent_at))}. The console never sees the key itself.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key, set on the server.</p></details>`
       : R.key === 'not set'
-        ? `<p class="rm-key is-off"><strong>Email sending is not set up.</strong> ${esc(plural(R.overdue.length, 'email'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no email key or sender address. Add them on the server.<span class="meta rm-sub">Details: Resend key and NOTIFY_FROM, in the server secrets.</span></p>`
-        : '<p class="rm-key"><strong>Email sending is not confirmed yet.</strong> No email has been due, so nothing shows whether it is set up. The console never sees the key itself.<span class="meta rm-sub">Details: Resend key, set on the server.</span></p>';
+        ? `<p class="rm-key is-off"><strong>Email sending is not set up.</strong> ${esc(plural(R.overdue.length, 'email'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no email key or sender address. Add them on the server.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key and NOTIFY_FROM, in the server secrets.</p></details>`
+        : '<p class="rm-key"><strong>Email sending is not confirmed yet.</strong> No email has been due, so nothing shows whether it is set up. The console never sees the key itself.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key, set on the server.</p></details>';
     const team = MN.team;
     const addr = isOwner()
       ? `<form class="mn-team" id="mn-team" novalidate><div class="field"><label class="sr-only" for="mn-email">Team email address</label><input id="mn-email" name="email" type="email" maxlength="200" autocomplete="off" inputmode="email" spellcheck="false" value="${esc(team || '')}" placeholder="name@yourdomain.com"></div><button class="btn btn-sm" type="submit">${team ? 'Save address' : 'Set address'}</button></form>
@@ -15630,7 +15645,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           <dt>Last sent</dt><dd>${lastText}</dd>
           <dt>Waiting</dt><dd>${waitText}</dd>
           ${skipText ? `<dt>Skipped</dt><dd>${skipText}<span class="meta rm-sub">Paused and archived clients get no email.</span></dd>` : ''}
-          <dt>Sender</dt><dd>The sender address is set on the server and the console cannot read it.<span class="meta rm-sub">Details: NOTIFY_FROM.</span></dd></dl>
+          <dt>Sender</dt><dd>The sender address is set on the server and the console cannot read it.<details class="rm-tech"><summary>Technical details</summary><p class="meta">NOTIFY_FROM.</p></details></dd></dl>
         ${key}</div>
       <div class="rm-fails"><h3 class="rm-h">Failed in the last 30 days <span class="chip ${R.fails.length ? 'warn' : 'good'}">${R.fails.length ? R.fails.length : 'None'}</span></h3>
         ${R.fails.length ? `<ul class="rm-list">${R.fails.map(fail).join('')}</ul>` : '<p class="meta">No message email has failed in the last 30 days.</p>'}</div></div>`;
@@ -18450,12 +18465,14 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       palette.input.focus();
     },
     filter() {
-      const q = palette.input.value.trim().toLowerCase();
-      const words = q.split(/\s+/).filter(Boolean);
+      // Match on words: punctuation in a name ("Bayleaf (preview): Billing") or in what is typed ("Bayleaf: Billing") never gets in the way.
+      const norm = (/** @type {string} */ x) => String(x).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+      const q = norm(palette.input.value);
+      const words = q.split(' ').filter(Boolean);
       const places = palette.places();
       const allowed = places.filter((p) => p.href !== '#/new' || (me && me.role === 'super_admin'));
-      palette.hits = (words.length ? allowed.filter((p) => words.every((w) => p.name.toLowerCase().includes(w))) : allowed.filter((p) => p.hint !== 'Tab'))
-        .sort((a, b) => (q ? Number(b.name.toLowerCase().startsWith(q)) - Number(a.name.toLowerCase().startsWith(q)) : 0))
+      palette.hits = (words.length ? allowed.filter((p) => { const nm = norm(p.name); return words.every((w) => nm.includes(w)); }) : allowed.filter((p) => p.hint !== 'Tab'))
+        .sort((a, b) => (q ? Number(norm(b.name).startsWith(q)) - Number(norm(a.name).startsWith(q)) : 0))
         .slice(0, 12);
       palette.sel = 0;
       palette.render();
@@ -18876,9 +18893,11 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
 
   /** The newest thing said, with who said it. @param {any} c */
   function convoPreview(c) {
+    // The newest thing wins: when it is an open change request (newer than the last message), the row says so, so "Waiting for your reply" makes sense.
+    const r = c.open.reduce((/** @type {any} */ a, /** @type {any} */ b) => (!a || String(b.at) > String(a.at) ? b : a), null);
+    if (r && (!c.last || String(r.at) > String(c.last.at))) return `${c.fresh.includes(r) ? 'New change request' : 'Change request'}: ${r.body}`;
     if (c.last) return `${c.last.from_staff ? 'You' : c.last.by_name || 'Client'}: ${c.last.body}`;
-    const r = c.open[c.open.length - 1];
-    return r ? `Change request: ${r.body}` : '';
+    return '';
   }
 
   function convoRows() {
@@ -21749,7 +21768,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     esc, $, $$, icon, toast, undoToast, busy, val, message, failMessage, fieldFail, skeleton, plural, when, ago, due, longDate, dayOf, today, localDay, newId, clone, svcLabel,
     SERVICES, SERVICE_ORDER, STATUS, FLAGS, PORTAL_URL, main,
     db, staffRows, check, ask, track, clean, redraw, afterSave, route, refreshAll, loadAll, callFn, viewAs,
-    tenant, derive, planOf, usageTone, usageBar, money, clockTime, pageFresh, billingOf, convo, allTabs, fromCache, loadClient, save, saveDoc,
+    reviewCount, tenant, derive, planOf, usageTone, usageBar, money, clockTime, pageFresh, billingOf, convo, allTabs, fromCache, loadClient, save, saveDoc,
     get all() { return all; }, get me() { return me; }, get current() { return current; }, get dirty() { return dirty; },
     get plans() { return all && all.plans ? all.plans : emptyPlans(); }
   };

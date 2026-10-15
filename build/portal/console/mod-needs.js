@@ -65,7 +65,7 @@
   };
   /** The two limits that count what is running now, not a month's work: they read "at once" and "in use", never "a month". @type {Record<string, string>} */
   const NOW_UNIT = { ads_live_campaigns: 'at once', ads_platforms: 'in use' };
-  /** "8 page edits a month", "3 live campaigns at once". @param {string} metric @param {string} name */
+  /** "8 website edits a month", "3 live campaigns at once". @param {string} metric @param {string} name */
   const perPeriod = (metric, name) => `${name} ${NOW_UNIT[metric] || 'a month'}`;
   /** Whether a limit counts what is live now (a snapshot that carries into the next month, 20261014110100), not a month's work. @param {string} metric */
   const isLive = (metric) => Object.prototype.hasOwnProperty.call(NOW_UNIT, metric);

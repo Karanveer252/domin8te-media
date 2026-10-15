@@ -641,10 +641,10 @@
     const next = R.upcoming[0];
     const nextText = next ? `${esc(D().clockTime(next.send_at))}: the ${esc(kindOf(next.kind))} to ${esc(clientOf(next.tenant_id))}. ${R.upcoming.length > 1 ? `${R.upcoming.length} are waiting in all.` : ''}` : 'Nothing is waiting right now.';
     const key = R.key === 'set'
-      ? `<p class="rm-key is-set"><strong>Email sending works.</strong> A reminder went out on ${esc(D().clockTime(R.newestSent.sent_at))}. The console never sees the key itself.<span class="meta rm-sub">Details: Resend key, set on the server.</span></p>`
+      ? `<p class="rm-key is-set"><strong>Email sending works.</strong> A reminder went out on ${esc(D().clockTime(R.newestSent.sent_at))}. The console never sees the key itself.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key, set on the server.</p></details>`
       : R.key === 'not set'
-        ? `<p class="rm-key is-off"><strong>Email sending is not set up.</strong> ${esc(plural(R.overdue.length, 'reminder'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no email key or sender address. Add them on the server.<span class="meta rm-sub">Details: Resend key and REMINDERS_FROM, in the server secrets.</span></p>`
-        : '<p class="rm-key"><strong>Email sending is not confirmed yet.</strong> No reminder has been due, so nothing shows whether it is set up. The console never sees the key itself.<span class="meta rm-sub">Details: Resend key, set on the server.</span></p>';
+        ? `<p class="rm-key is-off"><strong>Email sending is not set up.</strong> ${esc(plural(R.overdue.length, 'reminder'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no email key or sender address. Add them on the server.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key and REMINDERS_FROM, in the server secrets.</p></details>`
+        : '<p class="rm-key"><strong>Email sending is not confirmed yet.</strong> No reminder has been due, so nothing shows whether it is set up. The console never sees the key itself.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key, set on the server.</p></details>';
     const fail = (/** @type {any} */ r) => `<li class="rm-fail" data-rem="${esc(r.id)}">
         <div class="rm-who"><strong>${esc(clientOf(r.tenant_id))}</strong><span class="meta">${esc(/** @type {any} */ (KIND_WHEN)[r.kind] || r.kind)} · to ${esc(mask(r.to_email))}</span></div>
         <p class="rm-err">Failed ${esc(D().clockTime(r.updated_at))} after ${esc(plural(Number(r.attempts) || 0, 'try', 'tries'))}${r.error ? `: ${esc(r.error)}` : ''}</p>
@@ -655,7 +655,7 @@
         <dl class="facts rm-facts"><dt>Schedule</dt><dd>7 days and 3 days before each bill, at 10:00 AM on the restaurant's clock. The job runs every hour and sends what is due.</dd>
           <dt>Last run</dt><dd>${lastText}<span class="meta rm-sub">The job keeps no log of its own, so this is its newest reminder.</span></dd>
           <dt>Next up</dt><dd>${nextText}</dd>
-          <dt>Sender</dt><dd>The sender address is set on the server and the console cannot read it.<span class="meta rm-sub">Details: REMINDERS_FROM.</span></dd></dl>
+          <dt>Sender</dt><dd>The sender address is set on the server and the console cannot read it.<details class="rm-tech"><summary>Technical details</summary><p class="meta">REMINDERS_FROM.</p></details></dd></dl>
         ${key}</div>
       <div class="rm-fails"><h3 class="rm-h">Failed in the last 30 days <span class="chip ${R.fails.length ? 'warn' : 'good'}">${R.fails.length ? R.fails.length : 'None'}</span></h3>
         ${R.fails.length ? `<ul class="rm-list">${R.fails.map(fail).join('')}</ul>` : '<p class="meta">No reminder has failed in the last 30 days.</p>'}</div></div>`;
@@ -758,10 +758,10 @@
     for (const r of R.skipped) reasons.set(r.error || 'skipped', (reasons.get(r.error || 'skipped') || 0) + 1);
     const skipText = R.skipped.length ? `${esc(plural(R.skipped.length, 'email'))} in the last 30 days: ${esc(Array.from(reasons).map(([why, n]) => `${why} (${n})`).join(', '))}.` : '';
     const key = R.key === 'set'
-      ? `<p class="rm-key is-set"><strong>Email sending works.</strong> An email went out on ${esc(D().clockTime(R.sent[0].sent_at))}. The console never sees the key itself.<span class="meta rm-sub">Details: Resend key, set on the server.</span></p>`
+      ? `<p class="rm-key is-set"><strong>Email sending works.</strong> An email went out on ${esc(D().clockTime(R.sent[0].sent_at))}. The console never sees the key itself.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key, set on the server.</p></details>`
       : R.key === 'not set'
-        ? `<p class="rm-key is-off"><strong>Email sending is not set up.</strong> ${esc(plural(R.overdue.length, 'email'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no email key or sender address. Add them on the server.<span class="meta rm-sub">Details: Resend key and NOTIFY_FROM, in the server secrets.</span></p>`
-        : '<p class="rm-key"><strong>Email sending is not confirmed yet.</strong> No email has been due, so nothing shows whether it is set up. The console never sees the key itself.<span class="meta rm-sub">Details: Resend key, set on the server.</span></p>';
+        ? `<p class="rm-key is-off"><strong>Email sending is not set up.</strong> ${esc(plural(R.overdue.length, 'email'))} ${R.overdue.length === 1 ? 'is' : 'are'} past ${R.overdue.length === 1 ? 'its' : 'their'} time and nothing has ever gone out, which is what the job does with no email key or sender address. Add them on the server.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key and NOTIFY_FROM, in the server secrets.</p></details>`
+        : '<p class="rm-key"><strong>Email sending is not confirmed yet.</strong> No email has been due, so nothing shows whether it is set up. The console never sees the key itself.</p><details class="rm-tech"><summary>Technical details</summary><p class="meta">Resend key, set on the server.</p></details>';
     const team = MN.team;
     const addr = isOwner()
       ? `<form class="mn-team" id="mn-team" novalidate><div class="field"><label class="sr-only" for="mn-email">Team email address</label><input id="mn-email" name="email" type="email" maxlength="200" autocomplete="off" inputmode="email" spellcheck="false" value="${esc(team || '')}" placeholder="name@yourdomain.com"></div><button class="btn btn-sm" type="submit">${team ? 'Save address' : 'Set address'}</button></form>
@@ -779,7 +779,7 @@
           <dt>Last sent</dt><dd>${lastText}</dd>
           <dt>Waiting</dt><dd>${waitText}</dd>
           ${skipText ? `<dt>Skipped</dt><dd>${skipText}<span class="meta rm-sub">Paused and archived clients get no email.</span></dd>` : ''}
-          <dt>Sender</dt><dd>The sender address is set on the server and the console cannot read it.<span class="meta rm-sub">Details: NOTIFY_FROM.</span></dd></dl>
+          <dt>Sender</dt><dd>The sender address is set on the server and the console cannot read it.<details class="rm-tech"><summary>Technical details</summary><p class="meta">NOTIFY_FROM.</p></details></dd></dl>
         ${key}</div>
       <div class="rm-fails"><h3 class="rm-h">Failed in the last 30 days <span class="chip ${R.fails.length ? 'warn' : 'good'}">${R.fails.length ? R.fails.length : 'None'}</span></h3>
         ${R.fails.length ? `<ul class="rm-list">${R.fails.map(fail).join('')}</ul>` : '<p class="meta">No message email has failed in the last 30 days.</p>'}</div></div>`;

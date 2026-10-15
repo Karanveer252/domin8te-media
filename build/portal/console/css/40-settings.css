@@ -87,6 +87,9 @@ table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; fon
 .rm-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px 44px; align-items: start; }
 .rm-facts { grid-template-columns: minmax(78px, max-content) minmax(0, 1fr); gap: 14px 18px; }
 .rm-sub { display: block; margin-top: 2px; font-size: 13px; }
+.rm-tech { margin-top: 8px; font-size: 13px; color: var(--ink-2); }
+.rm-tech summary { cursor: pointer; width: fit-content; }
+.rm-tech p { margin-top: 4px; }
 .rm-key { margin-top: 20px; padding: 13px 16px; border-radius: 16px; background: var(--glass-soft); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); font-size: 14px; }
 .rm-key strong { color: var(--ink); }
 .rm-key.is-off { background: var(--warn-bg); box-shadow: none; }

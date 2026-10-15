@@ -54,6 +54,7 @@ const report = `var m = document.getElementById('main'); var t = m ? (m.innerTex
 document.documentElement.setAttribute('data-probe', JSON.stringify({ errs: window.__errs, text: t.slice(0, 60000), fresh: m ? m.querySelectorAll('.page-fresh').length : -1,
   busy: m ? m.querySelectorAll('[aria-busy="true"]').length : -1, title: document.title, hash: location.hash, over: document.documentElement.scrollWidth > window.innerWidth + 1, heads: m ? m.querySelectorAll('h1').length : -1,
   badge: (function () { var b = document.getElementById('queue-badge'); return b && !b.hidden ? String(b.textContent).trim() : '0'; })(),
+  clientNeeds: (function () { var cells = m ? m.querySelectorAll('td[data-label="Needs you"] .cl-needs:not(.cl-wait) .chip.you') : []; if (!cells.length) return null; var s = 0; for (var i = 0; i < cells.length; i++) s += parseInt(cells[i].textContent, 10) || 0; return s; })(),
   doNow: (function () { var h = m && m.querySelector('#q-needs h2 .meta'); return h ? String(h.textContent).trim() : null; })() }));`;
 
 function page(route, i) {
@@ -259,6 +260,8 @@ function runPhone(route, i) {
       if (r.over) problems.push('the page is wider than the window');
       // Round 9 (R9-1): the sidebar Needs you number is the page's own Do now total, never a different one.
       if (route === 'queue' && r.doNow !== null && r.badge !== r.doNow) problems.push(`the sidebar Needs you badge says ${r.badge} but the page says Do now ${r.doNow}`);
+      // Round 10 (R10-1): the Clients table's Needs you column adds up to the same total as the sidebar badge and the Needs you page.
+      if (route === 'clients' && r.clientNeeds !== null && String(r.clientNeeds) !== r.badge) problems.push(`the Clients Needs you column adds up to ${r.clientNeeds} but the sidebar badge says ${r.badge}`);
       if (!/Domin8te console/.test(r.title)) problems.push(`title "${r.title}"`);
       if (r.heads < 1 && !/^client\//.test(route)) problems.push('no page title (h1)');
     }
