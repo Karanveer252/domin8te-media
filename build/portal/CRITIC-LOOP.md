@@ -80,4 +80,10 @@ The machine is slow while agents run: run smoke and a11y in the background if th
 | 9 | fresh full sweep | NOT CLEAN 0/1/7 (badge 31 vs page 38) | all 8 fixed (one label map in plan-model.js, badge = page, palette, plain Settings) | all tools green, a11y 138/57 | need round 10 + 11 clean |
 | 10 | fresh sweep + round 9 fixes | NOT CLEAN 0/1/5 (Clients column count) | all 6 fixed (Clients column = page total, labels, Technical details fold, palette words) | all tools green | weekly 39% |
 | 11 | confirm sweep + count cross-check | NOT CLEAN 0/2/7 (bot waiting 5 vs 4, Overview price from old Amount field) | all 9 fixed + 8 new count-pair assertions in console-check | all tools green | weekly 40% |
-| G | Karan 15 Oct 11:45: console Cinematic view (extra view, #/cinema) | Fable builder running 11:50 (mod-cinema.js, css/66-cinema.css) | | | then a critic round on it |
+| G | Revenue Cinematic view (#/revenue/<month>/cinema), Revenue only per Karan | BUILT (mod-cinema.js, css/66-cinema.css); main session fixed chip letter-spacing + proportional nums | NOT yet critic-checked | console-check revenue 6/6 + phone, a11y cinema 6/6, release clean | next run: critic round on cinema |
+
+## PAUSED FOR WEEKLY LIMIT (15 Oct ~13:20, weekly 46%, stop was 48%)
+Done: rounds 1-11 fixed; round 4 and 8 clean; phase F (10 Bot chat + 10 Revenue features) built, design-passed, critic-checked, fixed; Revenue Cinematic view built.
+NEXT RUN (start here): 1) critic round 12 on everything incl. the Cinematic view (Sonnet, one Chrome at a time); 2) fix; 3) a second clean round; then wrap.
+Open decisions for Karan: tax on received money only (vs include still to come); bot drafts outside the Needs you total; saved reasons shared vs per person; "a" key asks first?; cinema tour speed 7s and caption 5.2s; Cinematic link on every Revenue section or Overview only; keep "checking a newer number" hint; lock demo dashboard framing.
+Prod: 35 migrations 20261013010000..20261015020000 (incl. 011000), plus security-headers proposal deploy/security-headers.htaccess.txt; all on his word "deploy".

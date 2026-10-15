@@ -62,9 +62,12 @@
     name: 'The Corner Bean', kind: 'Cafe', first: 'Sam', email: 'sam@cornerbean.example', pkg: 'Starter',
     services: { website: { status: 'paused', objective: 'A simple site with the menu and opening hours.', now: 'Paused at your request until the refit is done', next: null, expected: null, proof: { date: day(-40), text: 'Site launched' }, milestones: [{ title: 'Site launched', date: day(-40), state: 'done' }], completed: [{ date: day(-40), text: 'Launched the site' }], files: [] } }
   });
-  withBilling(osteria, { status: 'active', startedAt: day(-9), nextBilling: day(21), amount: '$399 a month' });
-  withBilling(marlow, { status: 'active', startedAt: day(-62), nextBilling: day(3), amount: '$449 a month' });
-  withBilling(corner, { status: 'paused', startedAt: day(-120), nextBilling: null, amount: '$199 a month' });
+  // The typed amounts are the plan prices in stub/00-plans.js (minor units, which a --demo-site build turns into null), so the demo
+  // console carries none (critic R11-2). The console shows the plan's price anyway; these only fill the old fallback field.
+  const amt = (/** @type {number|null} */ minor) => ((/** @type {any} */ (window).D8DEMO_SITE || minor == null ? undefined : `$${(minor / 100).toLocaleString('en-US')} a month`));
+  withBilling(osteria, { status: 'active', startedAt: day(-9), nextBilling: day(21), amount: amt(199900) });
+  withBilling(marlow, { status: 'active', startedAt: day(-62), nextBilling: day(3), amount: amt(199900) });
+  withBilling(corner, { status: 'paused', startedAt: day(-120), nextBilling: null, amount: amt(99900) });
   // Marlow & Finch is linked to Stripe and their subscription came from it, so their billing fields are read-only.
   marlow.billing.stripeCustomerId = 'cus_PreviewMarlow01';
   marlow.billing.subscription.stripeSubscriptionId = 'sub_preview_marlow';
@@ -74,7 +77,7 @@
     { id: 'cus_PreviewOsteria2', name: 'Osteria Nove', email: 'marco@osterianove.example', created: day(-9), livemode: false, tenantId: null },
     { id: 'cus_PreviewBayleaf3', name: 'Bayleaf Kitchen', email: 'dani@bayleaf.example', created: day(-200), livemode: false, tenantId: null }
   ];
-  if (seed && seed.billing && seed.billing.subscription) { seed.billing.subscription.startedAt = seed.billing.subscription.startedAt || '2026-03-22'; seed.billing.subscription.amount = seed.billing.subscription.amount || '$799 a month'; }
+  if (seed && seed.billing && seed.billing.subscription) { seed.billing.subscription.startedAt = seed.billing.subscription.startedAt || '2026-03-22'; seed.billing.subscription.amount = seed.billing.subscription.amount || amt(349900); }
   const db = {
     login_requests: [{ id: 'la_preview_1', tenant_id: 'tnt_preview_bayleaf', first_name: 'Priya', email: 'priya@bayleaf.example', role: 'Manager', by_name: 'Dani', status: 'pending', at: stamp(-1, 3) }],
     staff: [{ clerk_user_id: 'user_preview_karan', name: 'Karan' }],
@@ -380,7 +383,8 @@
       const fail = (status, error, msg) => out({ error, message: msg }, status);
       const owner = (id) => { const t = db.tenants.find((x) => x.doc && x.doc.billing && x.doc.billing.stripeCustomerId === id); return t ? t.id : null; };
       const safe = (c) => ({ ...c, tenantId: owner(c.id) || c.tenantId || null });
-      if (body.action === 'status') return out({ ok: true, configured: true, mode: 'test', refused: false, liveAllowed: false, webhook: true });
+      // This is a stand-in, not Stripe, so it does not claim a mode: the console then says "Stripe", never "(test mode)" (critic R11-7).
+      if (body.action === 'status') return out({ ok: true, configured: true, mode: null, refused: false, liveAllowed: false, webhook: true });
       if (body.action === 'search') {
         const q = String(body.query || '').trim().toLowerCase();
         if (q.length < 3) return fail(400, 'bad-request', 'Type at least three characters.');
@@ -5366,6 +5370,9 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
 .bot-needs .bot-all { margin-left: auto; font-size: 13px; font-weight: 600; }
 /* On the moving sky the link reads in the same light words as the heading it sits in (contrast fix, 2026-10-14). */
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs .bot-all { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+/* "Counted in Bot chat, not in the Needs you total above" (critic R11-9): the same light words on the sky. */
+.bot-needs .bot-needs-note { margin: -2px 0 8px 2px; }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs .bot-needs-note { color: rgba(246, 243, 238, 0.92); text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
 
 /* ==== Bot chat plus (2026-10-15): filters, pick many, stars, snooze, move, saved reasons, edit history, numbers ====
  * Same tokens, glass pills (.seg), buttons and panels as the rest of the console; the selected pill keeps the solid ink look. */
@@ -6077,6 +6084,254 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
 .rv-years .table-wrap, .rv-table .table-wrap { position: relative; }
 .rv-years .table-wrap:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
+/* css/66-cinema.css */
+/* ==== Cinematic view of Revenue (#/revenue/<month>/cinema, 2026-10-15) =================================================
+   The month as a full-screen dark stage over the console, in the console's own type: deep ink, income green, costs orange,
+   profit in light ink. Depth comes from layered glows, 3D bars on a floor and a turning ring of clients; motion is transforms
+   and opacity only. The stage stays dark in the light theme (it is a stage), and sits still when less motion is asked for. */
+.cn-stage {
+  --cn-bg: #0B0D12; --cn-glass: rgba(24, 27, 36, 0.72); --cn-glass-2: rgba(30, 34, 45, 0.86); --cn-edge: rgba(255, 255, 255, 0.08); --cn-edge-2: rgba(255, 255, 255, 0.16);
+  --cn-ink: #F1EFEA; --cn-ink-2: #C9C5BE; --cn-ink-3: #9B968E; --cn-orange: #FF6F33; --cn-violet: #B9B3FF;
+  --cn-inc: #5CC48E; --cn-inc-deep: #2E8F5E; --cn-cost: #E9793A; --cn-cost-deep: #B4521C; --cn-good: #8EDDA8; --cn-warn: #F2C46B; --cn-bad: #FF968D;
+  --cn-r: 18px; --mx: 0; --my: 0;
+  position: fixed; inset: 0; z-index: 60; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  padding: 22px 28px 40px; background: var(--cn-bg); color: var(--cn-ink); color-scheme: dark; font-size: 14.5px;
+}
+.cn-stage a { color: inherit; text-decoration: none; }
+.cn-stage .meta { color: var(--cn-ink-3); }
+.cn-stage :focus-visible { outline: 2px solid var(--cn-orange); outline-offset: 3px; }
+.cn-stage kbd { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.16); color: var(--cn-ink-2); }
+@keyframes cn-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cn-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes cn-slide { from { transform: translateY(-14px); } to { transform: none; } }
+/* The console's own chrome sits under the stage: out of sight and out of the tab order while the view is open. */
+body.is-cinema :is(.side, .topbar, .scrim, .save-bar) { visibility: hidden; }
+
+/* ---- the background: two glows, the console's dots, a few stars, each leaning with the pointer ---- */
+.cn-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; animation: cn-fade 900ms var(--ease) both; }
+.cn-bg > div { position: absolute; inset: -8%; will-change: transform; }
+.cn-bg-glow { background: radial-gradient(closest-side at 16% 14%, rgba(92, 196, 142, 0.2), transparent 70%); transform: translate3d(calc(var(--mx) * -14px), calc(var(--my) * -10px), 0); }
+.cn-bg-glow.b { background: radial-gradient(closest-side at 84% 86%, rgba(255, 111, 51, 0.24), transparent 70%); transform: translate3d(calc(var(--mx) * 18px), calc(var(--my) * 14px), 0); }
+.cn-bg-dots { background: radial-gradient(circle, rgba(237, 234, 228, 0.085) 1px, rgba(237, 234, 228, 0) 1.6px) 0 0 / 23px 23px; transform: translate3d(calc(var(--mx) * 6px), calc(var(--my) * 6px), 0); mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 90%); -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 90%); }
+.cn-bg-stars { background: radial-gradient(circle, rgba(255, 255, 255, 0.55) 0.8px, transparent 1.4px) 13px 21px / 97px 89px, radial-gradient(circle, rgba(255, 255, 255, 0.35) 0.7px, transparent 1.3px) 51px 7px / 151px 127px; transform: translate3d(calc(var(--mx) * 10px), calc(var(--my) * 8px), 0); opacity: 0.6; }
+
+/* ---- the head ---- */
+.cn-head { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; animation: cn-slide 700ms var(--ease) both; }
+.cn-kicker { margin: 0 0 2px; color: var(--cn-ink-3); font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em; }
+.cn-title { font-size: 30px; letter-spacing: -0.02em; color: var(--cn-ink); }
+.cn-months { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.cn-mname { min-width: 150px; padding: 0 6px; text-align: center; font-size: 15px; font-weight: 650; color: var(--cn-ink-2); }
+.cn-mnav { display: inline-grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--cn-edge-2); border-radius: 50%; color: var(--cn-ink-2); transition: background 160ms var(--ease), color 160ms var(--ease); }
+.cn-mnav:hover { background: rgba(255, 255, 255, 0.1); color: var(--cn-ink); }
+.cn-mnav.is-off { opacity: 0.35; pointer-events: none; }
+.cn-head-r { display: flex; flex-wrap: wrap; gap: 8px; }
+.cn-btn { min-height: 40px; }
+.cn-stage .btn-quiet.cn-btn { background: rgba(255, 255, 255, 0.06); color: var(--cn-ink); border-color: var(--cn-edge-2); }
+.cn-stage .btn-quiet.cn-btn:hover { background: rgba(255, 255, 255, 0.12); }
+.cn-stage .btn-quiet.cn-btn[aria-pressed="true"] { background: var(--cn-ink); color: #1D1A16; }
+.cn-stage .cn-close { background: var(--cn-orange); color: #1D1A16; border-color: transparent; }
+.cn-stage .cn-close:hover { background: #FF8A57; color: #1D1A16; }
+.cn-foot { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 22px; font-size: 12.5px; }
+.cn-foot kbd + kbd { margin-left: -4px; }
+
+/* ---- the grid of panels ---- */
+.cn-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+.cn-panel { position: relative; display: flex; flex-direction: column; min-width: 0; padding: 18px 20px 20px; border: 1px solid var(--cn-edge); border-radius: var(--cn-r); background: var(--cn-glass);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 18px 40px -20px rgba(0, 0, 0, 0.8);
+  animation: cn-rise 820ms var(--ease) calc(160ms + var(--i, 0) * 90ms) both; transition: opacity 500ms var(--ease), transform 500ms var(--ease), border-color 500ms var(--ease), box-shadow 500ms var(--ease); }
+.cn-panel::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(240px at 22% -40%, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 62%); pointer-events: none; }
+.cn-panel.is-settled, .is-settled .cn-panel, .is-settled .cn-bg, .is-settled .cn-head { animation: none; }
+/* no blur behind any panel: a blurred panel costs a re-blur on every frame the background moves, and leaves faint boxes around 3D parts */
+.cn-p-bars, .cn-p-mix { background: var(--cn-glass-2); }
+.cn-p-hero { grid-column: span 4; }
+.cn-p-bars { grid-column: span 8; }
+.cn-p-mix, .cn-p-kinds, .cn-p-caps { grid-column: span 4; }
+.cn-p-tiles { grid-column: span 12; }
+.cn-ph { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 14px; margin-bottom: 14px; }
+.cn-ph h2 { font-size: 19px; letter-spacing: -0.015em; color: var(--cn-ink); }
+.cn-sub { margin-top: 4px; color: var(--cn-ink-3); font-size: 13px; }
+.cn-go { display: inline-flex; align-items: center; gap: 5px; flex: none; min-height: 32px; padding: 0 10px 0 12px; border: 1px solid var(--cn-edge-2); border-radius: 999px; color: var(--cn-ink-2); font-size: 13px; font-weight: 600; transition: background 160ms var(--ease), color 160ms var(--ease), transform 160ms var(--ease); }
+.cn-go:hover { background: rgba(255, 255, 255, 0.1); color: var(--cn-ink); transform: translateX(2px); }
+.cn-pb { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.cn-pb > * { min-width: 0; }
+.cn-stage .empty { padding: 18px 0; color: var(--cn-ink-2); }
+.cn-stage .empty strong { color: var(--cn-ink); }
+.cn-stage .empty a { color: var(--cn-orange); text-decoration: underline; text-underline-offset: 3px; }
+.cn-more { margin-top: 12px; font-size: 13px; }
+.cn-num { font-variant-numeric: proportional-nums; }
+.cn-key { display: inline-block; width: 10px; height: 10px; margin: 0 4px 0 0; border-radius: 3px; vertical-align: -1px; }
+.cn-key.is-inc { background: var(--cn-inc); }
+.cn-key.is-cost { background: var(--cn-cost); }
+
+/* the tour's spotlight */
+.cn-stage.is-tour .cn-panel:not(.is-spot) { opacity: 0.42; }
+.cn-stage.is-tour .cn-panel.is-spot { opacity: 1; border-color: rgba(255, 111, 51, 0.6); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 0 1px rgba(255, 111, 51, 0.25), 0 0 60px -10px rgba(255, 111, 51, 0.45), 0 24px 50px -20px rgba(0, 0, 0, 0.9); transform: scale(1.012); z-index: 2; }
+
+/* ---- the month: three figures and the goal rings ---- */
+.cn-figs { display: grid; gap: 14px; margin: 0; }
+.cn-figs > div { display: grid; gap: 2px; padding-bottom: 12px; border-bottom: 1px solid var(--cn-edge); animation: cn-rise 600ms var(--ease) calc(500ms + var(--i, 0) * 120ms) both; }
+.cn-figs > div:nth-child(2) { --i: 1; }
+.cn-figs > div:nth-child(3) { --i: 2; }
+.is-settled .cn-figs > div { animation: none; }
+.cn-figs dt { color: var(--cn-ink-3); font-size: 13px; font-weight: 600; }
+.cn-figs dd { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; margin: 0; font-size: 34px; line-height: 1; font-weight: 700; letter-spacing: -0.03em; color: var(--cn-ink); }
+.cn-figs .is-inc dd { color: var(--cn-inc); }
+.cn-figs .is-cost dd { color: var(--cn-cost); }
+.cn-figs .is-neg dd { color: var(--cn-bad); }
+.cn-move { padding: 2px 9px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); color: var(--cn-ink-2); font-size: 12.5px; font-weight: 600; white-space: nowrap; letter-spacing: 0; word-spacing: normal; }
+.cn-move.is-good { background: rgba(80, 190, 120, 0.16); color: var(--cn-good); }
+.cn-move.is-bad { background: rgba(255, 90, 80, 0.16); color: var(--cn-bad); }
+.cn-goals { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px 14px; margin-top: 18px; }
+.cn-goal { position: relative; width: 96px; height: 96px; }
+.cn-goal svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.cn-goal circle { fill: none; stroke-width: 7; }
+.cn-goal-bg { stroke: rgba(255, 255, 255, 0.1); }
+.cn-goal-fg { stroke: var(--cn-inc); stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(92, 196, 142, 0.6)); animation: cn-draw 1400ms var(--ease) 600ms both; }
+.cn-goal.is-prof .cn-goal-fg { stroke: var(--cn-ink); filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.35)); }
+@keyframes cn-draw { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: var(--off); } }
+.is-settled .cn-goal-fg { animation: none; }
+.cn-goal-n { font-variant-numeric: proportional-nums; position: absolute; inset: 0; display: grid; place-items: center; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: var(--cn-ink); }
+.cn-goal-k { color: var(--cn-ink-3); font-size: 13px; line-height: 1.35; }
+.cn-goal-k strong { color: var(--cn-ink); font-size: 15px; }
+.cn-goal-none { grid-column: 1 / -1; }
+
+/* ---- the last 12 months as 3D bars ---- */
+.cn-scene { position: relative; flex: 1; min-height: 330px; border-radius: 14px; perspective: 1900px; perspective-origin: 50% 45%; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; overflow: hidden; }
+.cn-scene:active { cursor: grabbing; }
+.cn-world { --gap: 46px; position: absolute; left: 50%; top: 68%; width: 0; height: 0; transform-style: preserve-3d; will-change: transform; }
+.cn-floor { position: absolute; left: -340px; top: -120px; width: 680px; height: 240px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 55%, transparent 72%); transform: rotateX(90deg); }
+.cn-floor::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px var(--gap, 54px)); mask-image: radial-gradient(ellipse at center, #000 30%, transparent 70%); -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 70%); }
+.cn-mgroup { position: absolute; left: 0; bottom: 0; display: block; width: 38px; height: 200px; margin-left: -19px; transform-style: preserve-3d; transform: translate3d(calc((var(--x) - 5.5) * var(--gap)), 0, 0); border-radius: 6px; }
+.cn-mgroup:focus-visible { outline: none; }
+.cn-mgroup:focus-visible .cn-mlabel, .cn-mgroup:hover .cn-mlabel { color: var(--cn-ink); background: rgba(255, 255, 255, 0.12); }
+.cn-mgroup.is-now .cn-mlabel { color: var(--cn-orange); }
+.cn-mlabel { position: absolute; left: 50%; bottom: -34px; display: grid; justify-items: center; min-width: 40px; padding: 2px 5px; border-radius: 6px; color: var(--cn-ink-3); font-size: 11.5px; font-weight: 600; line-height: 1.2; white-space: nowrap; transform: translateX(-50%) rotateX(-90deg) rotateX(90deg); transition: color 160ms var(--ease), background 160ms var(--ease); }
+.cn-mlabel small { font-size: 10px; font-weight: 500; }
+.cn-box { --w: 15px; position: absolute; bottom: 0; width: var(--w); height: var(--h); transform-style: preserve-3d; transform-origin: 50% 100%; animation: cn-grow 1100ms var(--ease) calc(600ms + var(--i, 0) * 50ms) both; }
+.cn-box.is-inc { left: 2px; --c: var(--cn-inc); --c2: var(--cn-inc-deep); }
+.cn-box.is-cost { left: 21px; --c: var(--cn-cost); --c2: var(--cn-cost-deep); }
+.cn-mgroup.is-empty .cn-box { display: none; }
+@keyframes cn-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.is-settled .cn-box { animation: none; }
+.cn-box i { position: absolute; inset: 0; display: block; backface-visibility: visible; }
+.cn-box .f-front { background: var(--c); transform: translateZ(calc(var(--w) / 2)); }
+.cn-box .f-back { background: var(--c2); transform: rotateY(180deg) translateZ(calc(var(--w) / 2)); }
+.cn-box .f-left { background: var(--c2); transform: rotateY(-90deg) translateZ(calc(var(--w) / 2)); }
+.cn-box .f-right { background: color-mix(in srgb, var(--c) 70%, var(--c2)); transform: rotateY(90deg) translateZ(calc(var(--w) / 2)); }
+.cn-box .f-top { inset: auto 0 auto 0; top: calc(-1 * var(--w) / 2); height: var(--w); background: color-mix(in srgb, var(--c) 70%, #fff); transform: rotateX(90deg); }
+.cn-mgroup:hover .cn-box .f-front, .cn-mgroup:focus-visible .cn-box .f-front { filter: brightness(1.18); }
+.cn-mgroup.is-now .cn-box .f-front { box-shadow: 0 0 18px -2px var(--c); }
+.cn-scene-cap { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 10px; color: var(--cn-ink-3); font-size: 13px; }
+.cn-cap-text { flex-basis: 100%; color: var(--cn-ink-2); }
+
+/* ---- the client mix: a 3D ring of orbs ---- */
+.cn-stage3d { position: relative; flex: 1; min-height: 300px; perspective: 1100px; perspective-origin: 50% 36%; }
+.cn-orbit { --r: 120px; --spin: 0deg; position: absolute; left: 50%; top: 44%; width: 0; height: 0; transform-style: preserve-3d; transform: rotateX(-9deg) rotateY(var(--spin)); }
+.cn-orbit::before { content: ""; position: absolute; left: calc(-1 * var(--r)); top: calc(-1 * var(--r)); width: calc(var(--r) * 2); height: calc(var(--r) * 2); border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 0 40px rgba(92, 196, 142, 0.12), inset 0 0 60px rgba(92, 196, 142, 0.06); transform: rotateX(90deg) translateZ(-40px); }
+.cn-orbit::after { content: ""; position: absolute; left: calc(-1 * var(--r) * 0.55); top: calc(-1 * var(--r) * 0.55); width: calc(var(--r) * 1.1); height: calc(var(--r) * 1.1); border-radius: 50%; background: radial-gradient(circle, rgba(92, 196, 142, 0.16), transparent 70%); transform: rotateX(90deg) translateZ(-40px); }
+.cn-orb { --depth: 1; --size: 64px; position: absolute; left: 0; top: 0; display: grid; justify-items: center; gap: 6px; width: 150px; margin: -60px 0 0 -75px; padding-top: 10px; border-radius: 16px; text-align: center;
+  transform: rotateY(var(--a)) translateZ(var(--r)) rotateY(calc(-1 * var(--a) - var(--spin))) rotateX(9deg) scale(calc(0.78 + var(--depth) * 0.22)); transform-style: preserve-3d; opacity: calc(0.38 + var(--depth) * 0.62);
+  animation: cn-orb-in 900ms var(--ease) calc(520ms + var(--i, 0) * 70ms) both; }
+.is-settled .cn-orb { animation: none; }
+@keyframes cn-orb-in { from { opacity: 0; transform: rotateY(var(--a)) translateZ(40px) rotateY(calc(-1 * var(--a) - var(--spin))) rotateX(9deg) scale(0.4); } }
+.cn-orb-core { position: relative; display: grid; place-items: center; width: var(--size); height: var(--size); border-radius: 50%; overflow: hidden; background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 60%), var(--cc, var(--cn-glass-2)); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.18), 0 14px 30px -12px rgba(0, 0, 0, 0.9), 0 0 24px -4px var(--cc, transparent); transition: transform 240ms var(--ease), box-shadow 240ms var(--ease); }
+.cn-orb-core img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cn-orb-tag { font: 800 14px/1 var(--font); letter-spacing: 0.05em; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
+.cn-orb-name { max-width: 140px; overflow: hidden; color: var(--cn-ink-2); font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; transition: color 200ms var(--ease); }
+.cn-orb-amt { color: var(--cn-ink-3); font-size: 12px; white-space: nowrap; }
+.cn-orb:hover .cn-orb-core, .cn-orb:focus-visible .cn-orb-core, .cn-orb.is-sel .cn-orb-core { transform: translateY(-4px) scale(1.06); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 0 0 1.5px var(--cn-ink), 0 20px 36px -12px rgba(0, 0, 0, 0.95), 0 0 34px -2px var(--cc, transparent); }
+.cn-orb:hover .cn-orb-name, .cn-orb:focus-visible .cn-orb-name, .cn-orb.is-sel .cn-orb-name { color: var(--cn-ink); }
+.cn-orb.is-sel { opacity: 1; z-index: 2; }
+.cn-ring-help { margin-top: 6px; font-size: 12.5px; text-align: center; }
+
+/* ---- costs by kind ---- */
+.cn-kinds { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.cn-kinds li { display: grid; gap: 6px; animation: cn-rise 600ms var(--ease) calc(500ms + var(--i, 0) * 80ms) both; }
+.is-settled .cn-kinds li { animation: none; }
+.cn-kind-h { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; color: var(--cn-ink-2); }
+.cn-kind-h strong { color: var(--cn-ink); font-variant-numeric: proportional-nums; }
+.cn-kind-bar { display: block; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+.cn-kind-bar i { display: block; width: var(--w); height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--cn-cost-deep), var(--cn-cost)); box-shadow: 0 0 12px -2px var(--cn-cost); animation: cn-widen 1100ms var(--ease) calc(700ms + var(--i, 0) * 80ms) both; }
+@keyframes cn-widen { from { width: 0; } }
+.is-settled .cn-kind-bar i { animation: none; }
+
+/* ---- tax, still to come, the year ---- */
+.cn-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.cn-tile { display: grid; gap: 4px; align-content: start; min-height: 44px; padding: 14px 16px; border-radius: 14px; background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px var(--cn-edge); transition: background 160ms var(--ease); }
+.cn-tile:hover { background: rgba(255, 255, 255, 0.1); }
+.cn-tile-k { color: var(--cn-ink-3); font-size: 13px; font-weight: 600; }
+.cn-tile-v { font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -0.03em; color: var(--cn-ink); }
+.cn-tile.is-due .cn-tile-v { color: var(--cn-warn); }
+.cn-tile.is-year .cn-tile-v { color: var(--cn-inc); }
+.cn-tile.is-neg .cn-tile-v { color: var(--cn-bad); }
+.cn-tile-none { color: var(--cn-ink-3); font-size: 18px; font-weight: 600; }
+.cn-tile-s { color: var(--cn-ink-3); font-size: 12.5px; line-height: 1.4; }
+
+/* ---- captions ---- */
+.cn-caps { position: relative; flex: 1; min-height: 150px; display: grid; }
+.cn-cap { grid-area: 1 / 1; align-self: center; margin: 0; font-size: 21px; line-height: 1.35; font-weight: 600; letter-spacing: -0.01em; color: var(--cn-ink); opacity: 0; transform: translateY(10px); visibility: hidden; transition: opacity 600ms var(--ease), transform 600ms var(--ease), visibility 0s 600ms; }
+.cn-cap.is-on { opacity: 1; transform: none; visibility: visible; transition: opacity 600ms var(--ease), transform 600ms var(--ease), visibility 0s; }
+.cn-cap-dots { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 10px; }
+.cn-cap-dot { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; background: none; cursor: pointer; }
+.cn-cap-dot::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.22); transition: background 200ms var(--ease), transform 200ms var(--ease); }
+.cn-cap-dot.is-on::before { background: var(--cn-orange); transform: scale(1.3); }
+.cn-cap-dot:hover::before { background: var(--cn-ink-2); }
+
+/* ---- paused ---- */
+.cn-stage.is-paused .cn-cap { transition: none; }
+
+/* ---- sizes ---- */
+@media (max-width: 1240px) {
+  .cn-p-hero { grid-column: span 5; }
+  .cn-p-bars { grid-column: span 7; }
+  .cn-p-mix, .cn-p-kinds { grid-column: span 6; }
+  .cn-p-caps { grid-column: span 12; }
+  .cn-world { --gap: 46px; }
+  .cn-mgroup { width: 40px; margin-left: -20px; }
+  .cn-box { --w: 16px; }
+  .cn-box.is-cost { left: 22px; }
+}
+@media (max-width: 760px) {
+  .cn-stage { padding: 14px 16px 32px; }
+  .cn-title { font-size: 24px; }
+  .cn-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .cn-grid > .cn-panel { grid-column: span 1; }
+  .cn-panel { padding: 16px; }
+  .cn-figs dd { font-size: 28px; }
+  .cn-scene { min-height: 280px; }
+  .cn-world { --gap: 26px; top: 66%; }
+  .cn-mgroup { width: 22px; margin-left: -11px; height: 200px; }
+  .cn-box { --w: 9px; }
+  .cn-box.is-inc { left: 1px; }
+  .cn-box.is-cost { left: 12px; }
+  .cn-mlabel { min-width: 0; padding: 2px 2px; font-size: 9.5px; }
+  .cn-mlabel small { display: none; }
+  .cn-floor { left: -220px; top: -80px; width: 440px; height: 160px; }
+  /* the ring lies flat on a phone: the same orbs in rows */
+  .cn-stage3d { min-height: 0; perspective: none; }
+  #cn-orbit::before, #cn-orbit::after { display: none; }
+  #cn-orbit { position: static; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 4px; width: auto; height: auto; transform: none; transform-style: flat; }
+  .cn-orb { position: static; width: 104px; margin: 0; padding: 8px 0 12px; transform: none; opacity: 1; animation: cn-rise 500ms var(--ease) calc(400ms + var(--i, 0) * 60ms) both; }
+  .cn-orb-name { max-width: 100px; }
+  .cn-orb .cn-orb-core { transition: none; }
+  .cn-tiles { grid-template-columns: minmax(0, 1fr); }
+  .cn-cap { font-size: 18px; }
+  .cn-foot { display: none; }
+  .cn-ring-help { display: none; }
+}
+@media (max-width: 600px) { .cn-btn { min-height: 44px; } .cn-go { min-height: 44px; } .cn-mnav { width: 44px; height: 44px; } }
+
+/* ---- less motion: the same figures, still ---- */
+@media (prefers-reduced-motion: reduce) {
+  .cn-stage, .cn-stage *, .cn-stage *::before, .cn-stage *::after { animation: none !important; }
+  .cn-bg > div { transform: none !important; }
+  .cn-panel, .cn-orb-core, .cn-go, .cn-mlabel, .cn-tile, .cn-mnav { transition: none; }
+  .cn-cap { transition: none; }
+  .cn-caps { display: grid; gap: 10px; }
+  .cn-cap { grid-area: auto; opacity: 1; transform: none; visibility: visible; font-size: 16px; }
+  .cn-cap-dots { display: none; }
+}
+
 /* css/70-touch.css */
 /*
  * Phone tap targets (2026-10-14): at 600px and under every button, tab, filter chip, switch, summary row and icon button is at
@@ -6182,6 +6437,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></symbol>
   <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 10 5.5 4h13L20 10"/><path d="M4 10a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5.5 12v8h13v-8"/><path d="M10 20v-5h4v5"/></symbol>
   <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7 5v14M17 5v14M3 9.5h4M3 14.5h4M17 9.5h4M17 14.5h4"/></symbol>
 </svg>
 <div class="shell">
   <aside class="side" id="side" hidden aria-label="Console navigation">
@@ -9446,8 +9702,11 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   /** @param {any} r */
   function remCell(r) {
     if (!r.now && !r.next) return '<span class="none">None</span>';
-    const failed = r.rem.some((/** @type {any} */ x) => x.status === 'failed');
-    return `<div class="bl-rems">${remChip(r, 'd7')}${remChip(r, 'd3')}</div>${failed ? `<a class="bl-more" href="#/queue" aria-label="Fix it in Needs you: ${esc(r.t.name)}'s failed reminder">Fix it in Needs you</a>` : ''}`;
+    // The link goes to the open Needs you item for one of these failed reminders, and shows only when that item exists (critic R11-3).
+    const failedIds = new Set(r.rem.filter((/** @type {any} */ x) => x.status === 'failed').map((/** @type {any} */ x) => String(x.id)));
+    const all = C().all;
+    const need = failedIds.size ? ((all && all.reviews && all.reviews.exceptions) || []).find((/** @type {any} */ x) => x.reason_code === 'reminder_failed' && x.tenant_id === r.t.id && failedIds.has(String(x.entity_id))) : null;
+    return `<div class="bl-rems">${remChip(r, 'd7')}${remChip(r, 'd3')}</div>${need ? `<a class="bl-more" href="#/queue/${esc(need.id)}" aria-label="Fix it in Needs you: ${esc(r.t.name)}'s failed reminder">Fix it in Needs you</a>` : ''}`;
   }
   /** @param {any} r */
   function invoiceCell(r) {
@@ -10421,26 +10680,36 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     /** @type {Record<string, any>} */ const by = {};
     for (const r of rows) {
       if (new Date(r.created_at).getTime() < since) continue;
-      const s = by[r.source] = by[r.source] || { source: r.source, dropped: 0, approved: 0, edited: 0, rejected: 0, expired: 0, waiting: 0, mins: [] };
+      const s = by[r.source] = by[r.source] || { source: r.source, dropped: 0, approved: 0, edited: 0, rejected: 0, expired: 0, waiting: 0, snoozed: 0, mins: [] };
       const st = statusOf(r);
       s.dropped++;
       if (st === 'approved') { s.approved++; if (r.final_text && r.final_text !== r.draft) s.edited++; }
       if (st === 'rejected') s.rejected++;
       if (st === 'expired') s.expired++;
-      if (st === 'pending') s.waiting++;
+      if (st === 'pending') { if (isSnoozed(r)) s.snoozed++; else s.waiting++; }
       if ((st === 'approved' || st === 'rejected') && r.decided_at) s.mins.push((new Date(r.decided_at).getTime() - new Date(r.created_at).getTime()) / 60000);
     }
     return Object.values(by).map((s) => ({ ...s, avg_minutes: s.mins.length ? s.mins.reduce((/** @type {number} */ a, /** @type {number} */ b) => a + b, 0) / s.mins.length : null }));
+  }
+  /** bot_output_stats counts a snoozed draft as waiting. Bot chat and the sidebar leave it out until it wakes, so the snoozed ones
+   * (from the loaded rows, same days) move to their own Snoozed column and Waiting matches them (critic R11-1). @param {any[]} list @param {number} days */
+  function splitSnoozed(list, days) {
+    const since = Date.now() - days * DAY;
+    return list.map((s) => {
+      if (s.snoozed != null) return s;
+      const z = rows.filter((r) => r.source === s.source && new Date(r.created_at).getTime() >= since && isSnoozed(r) && new Date(r.expires_at).getTime() >= Date.now()).length;
+      return { ...s, snoozed: z, waiting: Math.max(0, (Number(s.waiting) || 0) - z) };
+    });
   }
   /** The numbers table, Hermes folded into "Another bot" while its flag is off. @param {any[]} list */
   function statsTable(list) {
     const C0 = C();
     const { esc } = C0;
-    const F = ['dropped', 'approved', 'edited', 'rejected', 'expired', 'waiting'];
+    const F = ['dropped', 'approved', 'edited', 'rejected', 'expired', 'waiting', 'snoozed'];
     /** @type {Record<string, any>} */ const by = {};
     for (const s of list) {
       const k = botKey(s.source);
-      const t = by[k] = by[k] || { key: k, dropped: 0, approved: 0, edited: 0, rejected: 0, expired: 0, waiting: 0, minSum: 0, minN: 0 };
+      const t = by[k] = by[k] || { key: k, dropped: 0, approved: 0, edited: 0, rejected: 0, expired: 0, waiting: 0, snoozed: 0, minSum: 0, minN: 0 };
       for (const f of F) t[f] += Number(s[f]) || 0;
       const decidedN = (Number(s.approved) || 0) + (Number(s.rejected) || 0);
       if (s.avg_minutes != null && decidedN) { t.minSum += Number(s.avg_minutes) * decidedN; t.minN += decidedN; }
@@ -10448,12 +10717,12 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     const list2 = Object.values(by).sort((a, b) => b.dropped - a.dropped || a.key.localeCompare(b.key));
     if (!list2.length) return `<div class="empty"><p><strong>No drafts in this time.</strong></p><p>Numbers show up once a bot drops something in.</p></div>`;
     const rate = (/** @type {any} */ t) => { const d = t.approved + t.rejected + t.expired; return d ? `${Math.round((t.approved / d) * 100)}%` : 'None yet'; };
-    const tr = (/** @type {any} */ t, /** @type {string} */ name, /** @type {boolean} */ total) => `<tr${total ? ' class="bot-total"' : ''}><th scope="row">${esc(name)}</th><td>${t.dropped}</td><td>${t.approved}</td><td>${t.edited}</td><td>${t.rejected}</td><td>${t.expired}</td><td>${t.waiting}</td><td>${rate(t)}</td><td>${esc(minutes(t.minN ? t.minSum / t.minN : null))}</td></tr>`;
-    const sum = list2.reduce((a, t) => { for (const f of F.concat(['minSum', 'minN'])) a[f] += t[f]; return a; }, { dropped: 0, approved: 0, edited: 0, rejected: 0, expired: 0, waiting: 0, minSum: 0, minN: 0 });
+    const tr = (/** @type {any} */ t, /** @type {string} */ name, /** @type {boolean} */ total) => `<tr${total ? ' class="bot-total"' : ''}><th scope="row">${esc(name)}</th><td>${t.dropped}</td><td>${t.approved}</td><td>${t.edited}</td><td>${t.rejected}</td><td>${t.expired}</td><td>${t.waiting}</td><td>${t.snoozed}</td><td>${rate(t)}</td><td>${esc(minutes(t.minN ? t.minSum / t.minN : null))}</td></tr>`;
+    const sum = list2.reduce((a, t) => { for (const f of F.concat(['minSum', 'minN'])) a[f] += t[f]; return a; }, { dropped: 0, approved: 0, edited: 0, rejected: 0, expired: 0, waiting: 0, snoozed: 0, minSum: 0, minN: 0 });
     return `<div class="table-wrap bot-stats-table" tabindex="0" role="region" aria-label="Numbers for each bot"><table class="grid"><caption class="sr-only">Drafts for each bot in the last ${state.days} days</caption>
-      <thead><tr><th scope="col">Bot</th><th scope="col">Drafts</th><th scope="col">Approved</th><th scope="col">Edited first</th><th scope="col">Rejected</th><th scope="col">Expired</th><th scope="col">Waiting</th><th scope="col">Approved share</th><th scope="col">Time to decide</th></tr></thead>
+      <thead><tr><th scope="col">Bot</th><th scope="col">Drafts</th><th scope="col">Approved</th><th scope="col">Edited first</th><th scope="col">Rejected</th><th scope="col">Expired</th><th scope="col">Waiting</th><th scope="col">Snoozed</th><th scope="col">Approved share</th><th scope="col">Time to decide</th></tr></thead>
       <tbody>${list2.map((t) => tr(t, botName(t.key), false)).join('')}${list2.length > 1 ? tr(sum, 'Every bot', true) : ''}</tbody></table></div>
-      <p class="meta">Approved share counts approved against rejected and expired. Time to decide is the average from drop-in to Approve or Reject.</p>`;
+      <p class="meta">Approved share counts approved against rejected and expired. Time to decide is the average from drop-in to Approve or Reject. Snoozed drafts are not in Waiting until they wake.</p>`;
   }
   /** #/bot/stats. */
   async function statsPage() {
@@ -10482,6 +10751,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     let list;
     try { const data = await call('bot_output_stats', { p_days: days }); list = Array.isArray(data) ? data : []; }
     catch (x) { list = statsFromRows(days); }
+    list = splitSnoozed(list, days);
     if (ask !== statsAsk || !box.isConnected || state.days !== days) return;
     box.innerHTML = statsTable(list);
     box.removeAttribute('aria-busy');
@@ -10815,6 +11085,8 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     again();
   }
 
+  /** The drafts waiting for one client: the client's Bot tab count, part of the sidebar's. @param {string} id */
+  function waitingFor(id) { return pending().filter((r) => r.tenant_id === id).length; }
   /** The sidebar's waiting count (snoozed drafts are left out until they wake). */
   function sideBadge() {
     const b = document.getElementById('bot-badge');
@@ -10822,6 +11094,10 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     const n = pending().length;
     b.textContent = String(n);
     b.hidden = !n;
+    // The client's Bot tab count follows the sidebar (critic R11-6).
+    const tc = /** @type {HTMLElement|null} */ (document.querySelector('[data-bot-tab-count]'));
+    const cur = C().current;
+    if (tc && cur) { const m = waitingFor(cur.id); tc.textContent = String(m); tc.hidden = !m; }
     wakeLater();
   }
 
@@ -11023,7 +11299,8 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   function needsBlock() {
     const p = pending();
     if (!p.length) return '';
-    return `<div class="q-client bot-needs" data-qf="other"><h3 class="q-client-h">Bot outputs waiting · ${p.length} <a class="bot-all" href="#/bot">Open Bot chat</a></h3>
+    return `<div class="q-client bot-needs" data-qf="other"><h3 class="q-client-h">Bot drafts waiting · ${p.length} <a class="bot-all" href="#/bot">Open Bot chat</a></h3>
+      <p class="meta bot-needs-note">Counted in Bot chat, not in the Needs you total above.</p>
       <ul class="q">${p.slice(0, 3).map(plainRow).join('')}</ul>
       ${p.length > 3 ? `<details class="reveal q-more"><summary>Show ${p.length - 3} more</summary><ul class="q">${p.slice(3).map(plainRow).join('')}</ul></details>` : ''}</div>`;
   }
@@ -11042,9 +11319,453 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     C().toast(cut ? `Only the first ${max} characters fit in a reply. Read it and trim before you press Send.` : 'The approved text is in the reply box. Read it, then press Send.', cut);
   }
 
-  EXT.bot = { load, page, needsBlock, sideBadge, fillReply, pendingCount: () => pending().length, diff, get loaded() { return loaded; } };
+  EXT.bot = { load, page, needsBlock, sideBadge, fillReply, pendingCount: () => pending().length, waitingFor, diff, get loaded() { return loaded; } };
   // first: true puts it straight after Talk, ahead of the other tabs that also follow Talk.
   EXT.tabs.bot = { label: 'Bot', after: 'talk', first: true, render };
+})();
+</script>
+<script>
+/* mod-cinema.js */
+// @ts-check
+/*
+ * Cinematic view of Revenue (#/revenue/<month>/cinema, 2026-10-15): Karan's month as a full-screen dark stage, opened from the
+ * Cinematic view button in the Revenue toolbar or the jump palette ("Revenue: Cinematic view"). Business owner only, like
+ * Revenue itself (mod-revenue.js checks the owner and hands this file the month it already read; nothing is read here, nothing
+ * is written, and the demo never shows it).
+ *
+ * On the stage: the month's income (green), costs (orange) and profit (ink) counting up with the margin and the move on last
+ * month; the income and profit goal rings; the last 12 months as 3D bars you orbit and tilt with the pointer (drag) or the arrow
+ * keys, each month a link to that month on Revenue; the client mix as a slowly turning 3D ring; costs by kind; tax to put aside,
+ * still to come and the year so far; the "What changed" lines as captions that play one after another; and a Tour that moves a
+ * spotlight from panel to panel for a screen on the wall. Space pauses, T tours, Esc or Close goes back to Revenue. With less
+ * motion asked for, the same figures sit still.
+ *
+ * mod-revenue.js calls window.D8C_EXT.cinema.page(d, R) with the month's data and its helpers (totals, insights, goals, names).
+ */
+(function () {
+  'use strict';
+  const W = /** @type {any} */ (window);
+  /** @type {any} */
+  const EXT = (W.D8C_EXT = W.D8C_EXT || {});
+  const C = () => W.D8C;
+  const esc = (/** @type {any} */ s) => C().esc(s);
+  const SPIN_PERIOD = 80000;   // one full turn of the client ring, in ms
+  const TOUR_MS = 7000;
+  const CAPTION_MS = 5200;
+  const rmq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+
+  /** The view on screen, or null. @type {null | {root: HTMLElement, raf: number, spin: number, paused: boolean, sel: number, n: number, rx: number, ry: number, drag: {on: boolean, x: number, y: number, moved: boolean}, idle: number, tour: {on: boolean, i: number, at: number}, cap: {i: number, n: number, at: number}, timers: number[], counts: {el: HTMLElement, to: number, t0: number, text: (n: number) => string}[], off: (() => void)[], last: number, ym: string}} */
+  let live = null;
+  /** When the stage was last drawn: a redraw within a few seconds skips the entrance. */
+  let shownAt = 0;
+
+  /* ---- drawing helpers ------------------------------------------------------------------------------------------------- */
+
+  /** A panel's shell. @param {string} key @param {string} title @param {string} sub @param {string} body @param {string} [href] @param {string} [cta] @param {number} [i] */
+  function panel(key, title, sub, body, href, cta, i) {
+    return `<section class="cn-panel cn-p-${esc(key)}" data-cn-panel="${esc(key)}" style="--i:${i || 0}" aria-labelledby="cn-h-${esc(key)}">
+      <div class="cn-ph"><div><h2 id="cn-h-${esc(key)}">${title}</h2>${sub ? `<p class="cn-sub">${sub}</p>` : ''}</div>${href ? `<a class="cn-go" href="${esc(href)}">${esc(cta || 'Open')}${C().icon('arrow')}</a>` : ''}</div>
+      <div class="cn-pb">${body}</div></section>`;
+  }
+  /** A money figure that counts up when the stage opens. @param {number} minor @param {string} [cls] */
+  const moneyUp = (minor, cls) => `<span class="cn-num${cls ? ' ' + cls : ''}" data-cn-money="${Math.abs(minor)}">${rmq.matches ? esc(C().money(Math.abs(minor), 'USD')) : '$0'}</span>`;
+  /** A plain number that counts up. @param {number} n @param {string} [after] */
+  const countUp = (n, after) => `<span class="cn-num" data-cn-count="${n}"${after ? ` data-cn-after="${esc(after)}"` : ''}>${rmq.matches ? n : 0}${after ? esc(after) : ''}</span>`;
+  /** A goal ring: an SVG circle filled to the percent. @param {number} pct @param {string} label @param {string} cls */
+  function goalRing(pct, label, cls) {
+    const r = 42;
+    const len = 2 * Math.PI * r;
+    return `<div class="cn-goal ${cls}" role="img" aria-label="${esc(label)}"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="cn-goal-bg" cx="50" cy="50" r="${r}"/><circle class="cn-goal-fg" cx="50" cy="50" r="${r}" stroke-dasharray="${len.toFixed(1)}" stroke-dashoffset="${(len * (1 - pct / 100)).toFixed(1)}" style="--len:${len.toFixed(1)};--off:${(len * (1 - pct / 100)).toFixed(1)}"/></svg><span class="cn-goal-n">${countUp(pct, '%')}</span></div>`;
+  }
+
+  /* ---- the panels -------------------------------------------------------------------------------------------------------- */
+
+  /** The month's three figures, the move on last month, the margin and the goal rings. @param {any} d @param {any} R */
+  function heroPanel(d, R) {
+    const K = C();
+    const t = R.totals(d, d.ym);
+    const prev = R.totals(d, R.shift(d.ym, -1));
+    const pn = R.nearName(R.shift(d.ym, -1), d.ym);
+    const mv = (/** @type {number} */ cur, /** @type {number} */ was, /** @type {boolean} */ has, /** @type {boolean} */ costs) => {
+      const m = R.move(cur, { has, v: was });
+      if (!m) return '';
+      const good = m.dir === 'same' ? '' : (m.dir === 'up') !== costs ? ' is-good' : ' is-bad';
+      return `<span class="cn-move${good}">${esc(m.dir === 'same' ? `same as ${pn}` : `${m.text} on ${pn}`)}</span>`;
+    };
+    const mg = R.margin(t.profit, t.inc);
+    const st = d.settings || {};
+    const partial = d.ym === R.currentMonth();
+    const figs = `<dl class="cn-figs">
+      <div class="is-inc"><dt>Income</dt><dd>${moneyUp(t.inc)}${mv(t.inc, prev.inc, prev.incN > 0, false)}</dd></div>
+      <div class="is-cost"><dt>Costs</dt><dd>${moneyUp(t.cost)}${mv(t.cost, prev.cost, prev.costN > 0, true)}</dd></div>
+      <div class="is-prof${t.profit < 0 ? ' is-neg' : ''}"><dt>${t.profit < 0 ? 'Loss' : 'Profit'}</dt><dd><span class="cn-num">${t.profit < 0 ? '-' : ''}${moneyUp(t.profit)}</span>${mg === null ? '' : `<span class="cn-move">${esc(`${mg}% margin`)}</span>`}</dd></div></dl>`;
+    const rings = `<div class="cn-goals">${st.incGoal ? goalRing(R.goalPct(t.inc, st.incGoal), `${R.goalPct(t.inc, st.incGoal)} percent of the income goal of ${K.money(st.incGoal, 'USD')}`, 'is-inc') + `<p class="cn-goal-k">Income goal<br><strong>${esc(K.money(st.incGoal, 'USD'))}</strong></p>` : '<p class="cn-goal-k cn-goal-none">No income goal yet. Set one with Goals and tax on Revenue.</p>'}
+      ${st.profGoal ? goalRing(R.goalPct(t.profit, st.profGoal), `${R.goalPct(t.profit, st.profGoal)} percent of the profit goal of ${K.money(st.profGoal, 'USD')}`, 'is-prof') + `<p class="cn-goal-k">Profit goal<br><strong>${esc(K.money(st.profGoal, 'USD'))}</strong></p>` : ''}</div>`;
+    return panel('hero', esc(R.monthName(d.ym)), t.has ? (partial ? 'So far this month' : 'The month in full') : 'Nothing entered yet', t.has ? figs + rings : `<div class="empty"><p><strong>Nothing entered for ${esc(R.monthName(d.ym))}.</strong></p><p><a href="#/revenue/${esc(d.ym)}/income">Enter income on Revenue</a></p></div>`, `#/revenue/${d.ym}`, 'Revenue', 0);
+  }
+
+  /** The last 12 months as 3D bars: income and costs side by side on a floor, each month a link. @param {any} d @param {any} R */
+  function barsPanel(d, R) {
+    const K = C();
+    const rows = d.series.slice(-12);
+    const max = Math.max(1, ...rows.map((/** @type {any} */ r) => Math.max(r.inc, r.cost)));
+    const H = 160;
+    const groups = rows.map((/** @type {any} */ r, /** @type {number} */ i) => {
+      const hi = Math.round((r.inc / max) * H);
+      const hc = Math.round((r.cost / max) * H);
+      const profit = r.inc - r.cost;
+      const has = r.incN > 0 || r.costN > 0;
+      const words = has ? `income ${K.money(r.inc, 'USD')}, costs ${K.money(r.cost, 'USD')}, ${profit < 0 ? 'loss ' + K.money(-profit, 'USD') : 'profit ' + K.money(profit, 'USD')}` : 'nothing entered';
+      const faces = (/** @type {string} */ cls, /** @type {number} */ h) => `<span class="cn-box ${cls}" style="--h:${Math.max(h, has ? 2 : 0)}px"><i class="f-front"></i><i class="f-back"></i><i class="f-left"></i><i class="f-right"></i><i class="f-top"></i></span>`;
+      return `<a class="cn-mgroup${r.ym === d.ym ? ' is-now' : ''}${has ? '' : ' is-empty'}" href="#/revenue/${esc(r.ym)}" style="--x:${i};--i:${i}" data-cn-month="${esc(r.ym)}" data-cn-words="${esc(`${R.monthName(r.ym)}: ${words}`)}" aria-label="${esc(R.monthName(r.ym))}: ${esc(words)}. Open the month">${faces('is-inc', hi)}${faces('is-cost', hc)}<span class="cn-mlabel">${esc(R.monthName(r.ym, 'mon'))}${r.ym.slice(5) === '01' || i === 0 ? `<small>${esc(r.ym.slice(0, 4))}</small>` : ''}</span></a>`;
+    }).join('');
+    const sum = rows.reduce((/** @type {{inc: number, cost: number}} */ s, /** @type {any} */ r) => ({ inc: s.inc + r.inc, cost: s.cost + r.cost }), { inc: 0, cost: 0 });
+    const body = `<div class="cn-scene" id="cn-scene" tabindex="0" role="group" aria-label="The last 12 months as 3D bars. Drag or use the arrow keys to turn and tilt it. Tab moves between the months." aria-describedby="cn-scene-cap">
+        <div class="cn-world" id="cn-world"><div class="cn-floor" aria-hidden="true"></div>${groups}</div></div>
+      <p class="cn-scene-cap" id="cn-scene-cap" aria-live="polite"><span class="cn-key is-inc"></span>Income <span class="cn-key is-cost"></span>Costs <span class="cn-cap-text" data-cn-scene-cap>Hover or focus a month for its figures. Drag to turn.</span></p>`;
+    return panel('bars', 'Last 12 months', `${esc(K.money(sum.inc, 'USD'))} in, ${esc(K.money(sum.cost, 'USD'))} out over the year`, body, `#/revenue/${d.ym}`, 'Charts', 1);
+  }
+
+  /** The client mix as a turning ring: one orb a client, sized by its share of the month's income. @param {any} d @param {any} R */
+  function mixPanel(d, R) {
+    const K = C();
+    const slices = R.mixSlices(d);
+    const total = slices.reduce((/** @type {number} */ s, /** @type {any} */ x) => s + x.minor, 0);
+    const n = slices.length;
+    const Col = EXT.color && typeof EXT.color === 'object' ? EXT.color : null;
+    const orbs = slices.map((/** @type {any} */ x, /** @type {number} */ i) => {
+      const share = total > 0 ? Math.round((x.minor / total) * 100) : 0;
+      const size = Math.round(52 + (total > 0 ? (x.minor / total) : 0) * 56);
+      const logo = x.id && Col ? Col.logoOf(x.id) : '';
+      const tag = x.id && Col ? Col.tagOf(x.id) : (x.other ? '+' : String(x.name).slice(0, 2).toUpperCase());
+      return `<a class="cn-orb${i === 0 ? ' is-sel' : ''}" href="#/revenue/${esc(d.ym)}/income" data-cn-orb="${i}" style="--a:${(360 / Math.max(1, n)) * i}deg;--i:${i};--size:${size}px;--cc:${esc(x.color)}" aria-label="${esc(x.name)}: ${esc(K.money(x.minor, 'USD'))}, ${share} percent of the month. Open the income list">
+        <span class="cn-orb-core">${logo ? `<img src="${esc(logo)}" alt="" width="48" height="48" decoding="async" draggable="false">` : `<span class="cn-orb-tag">${esc(tag)}</span>`}</span>
+        <span class="cn-orb-name">${esc(x.name)}</span><span class="cn-orb-amt">${esc(K.money(x.minor, 'USD'))} · ${share}%</span></a>`;
+    }).join('');
+    const body = n ? `<div class="cn-stage3d"><div class="cn-orbit" id="cn-orbit" style="--n:${n}">${orbs}</div></div><p class="cn-ring-help meta">Size is the share of the month. Arrow keys move between clients while the ring has the focus.</p>`
+      : `<div class="empty"><p><strong>No income entered for ${esc(R.monthName(d.ym))}.</strong></p></div>`;
+    return panel('mix', 'Client mix', n ? `${n === 1 ? 'One source' : `${n} sources`} of income this month` : 'Who paid what share', body, `#/revenue/${d.ym}/income`, 'Income', 2);
+  }
+
+  /** Costs by kind, largest first. @param {any} d @param {any} R */
+  function kindsPanel(d, R) {
+    const K = C();
+    /** @type {Record<string, number>} */ const by = {};
+    for (const c of d.costs) by[c.category] = (by[c.category] || 0) + c.amount;
+    const list = Object.entries(by).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+    const total = list.reduce((s, [, v]) => s + v, 0);
+    const rep = d.costs.filter((/** @type {any} */ c) => c.repeats).reduce((/** @type {number} */ s, /** @type {any} */ c) => s + c.amount, 0);
+    const rows = list.map(([k, v], i) => `<li style="--i:${i}"><span class="cn-kind-h"><span>${esc(R.catName(k))}</span><strong>${esc(K.money(v, 'USD'))}</strong></span><span class="cn-kind-bar" aria-hidden="true"><i style="--w:${total > 0 ? ((v / total) * 100).toFixed(1) : 0}%"></i></span></li>`).join('');
+    const body = list.length ? `<ol class="cn-kinds">${rows}</ol><p class="meta cn-more">${esc(K.money(rep, 'USD'))} of it repeats every month${total - rep > 0 ? `, ${esc(K.money(total - rep, 'USD'))} is one-off` : ''}.</p>` : `<div class="empty"><p><strong>No costs entered for ${esc(R.monthName(d.ym))}.</strong></p></div>`;
+    return panel('kinds', 'Costs by kind', list.length ? `${esc(K.money(total, 'USD'))} across ${list.length === 1 ? 'one kind' : `${list.length} kinds`}` : 'What the business spent on itself', body, `#/revenue/${d.ym}/costs`, 'Costs', 3);
+  }
+
+  /** Tax to put aside, still to come, and the year so far. @param {any} d @param {any} R */
+  function tilesPanel(d, R) {
+    const K = C();
+    const t = R.totals(d, d.ym);
+    const st = d.settings || {};
+    const due = d.income.filter((/** @type {any} */ x) => !x.received && x.amount > 0);
+    const dueSum = due.reduce((/** @type {number} */ s, /** @type {any} */ x) => s + x.amount, 0);
+    const Y = R.yearRows(d);
+    const ytd = Y.now.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + r.inc - r.cost, 0);
+    const was = Y.was.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + r.inc - r.cost, 0);
+    const hasWas = Y.was.some((/** @type {any} */ r) => r.incN || r.costN);
+    const ytdInc = Y.now.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + r.inc, 0);
+    const taxNow = st.tax ? R.taxOf(t.profit - dueSum, st.tax) : 0;
+    const taxYear = st.tax ? R.taxOf(ytd, st.tax) : 0;
+    const mvY = hasWas ? R.move(ytd, { has: true, v: was }) : null;
+    const tile = (/** @type {string} */ k, /** @type {string} */ v, /** @type {string} */ s, /** @type {string} */ href, /** @type {string} */ cls) => `<a class="cn-tile${cls ? ' ' + cls : ''}" href="${esc(href)}"><span class="cn-tile-k">${k}</span><span class="cn-tile-v">${v}</span><span class="cn-tile-s">${s}</span></a>`;
+    const body = `<div class="cn-tiles">
+      ${tile('Put aside for tax', st.tax ? moneyUp(taxNow) : '<span class="cn-tile-none">Not set</span>', st.tax ? `${esc(R.pctText(st.tax))} of profit on money received. ${esc(Y.y)} so far: ${esc(K.money(taxYear, 'USD'))}` : 'Set a tax percent with Goals and tax', `#/revenue/${d.ym}`, 'is-tax')}
+      ${tile('Still to come', moneyUp(dueSum), due.length ? `${due.length === 1 ? 'One payment' : `${due.length} payments`} not received yet` : 'Everything entered is received', `#/revenue/${d.ym}/income`, 'is-due')}
+      ${tile(`${esc(Y.y)} so far`, `${ytd < 0 ? '-' : ''}${moneyUp(ytd)}`, `${ytd < 0 ? 'Loss' : 'Profit'} on ${esc(K.money(ytdInc, 'USD'))} income${mvY ? `, ${esc(mvY.dir === 'same' ? 'the same as' : mvY.text + ' on')} the same months of ${esc(Y.ly)}` : ''}`, `#/revenue/${d.ym}/years`, ytd < 0 ? 'is-neg' : 'is-year')}</div>`;
+    return panel('tiles', 'Set aside, still to come, the year', 'From the same figures as the Revenue cards', body, `#/revenue/${d.ym}/years`, 'Years', 4);
+  }
+
+  /** The "What changed" lines as captions, one after another. @param {any} d @param {any} R */
+  function captionsPanel(d, R) {
+    const lines = R.insights(d);
+    const body = lines.length
+      ? `<div class="cn-caps" data-cn-caps="${lines.length}">${lines.map((/** @type {string} */ x, /** @type {number} */ i) => `<p class="cn-cap${i === 0 ? ' is-on' : ''}" data-cn-cap="${i}">${esc(x)}</p>`).join('')}</div>
+         <div class="cn-cap-dots" role="group" aria-label="Captions">${lines.map((/** @type {string} */ x, /** @type {number} */ i) => `<button class="cn-cap-dot${i === 0 ? ' is-on' : ''}" type="button" data-cn-dot="${i}" aria-label="Caption ${i + 1} of ${lines.length}" aria-pressed="${i === 0}"></button>`).join('')}</div>
+         <ul class="cn-cap-list sr-only">${lines.map((/** @type {string} */ x) => `<li>${esc(x)}</li>`).join('')}</ul>`
+      : `<div class="empty"><p><strong>Nothing to say yet.</strong></p><p>The captions come from the figures entered for ${esc(R.monthName(d.ym))}.</p></div>`;
+    return panel('caps', 'What changed', lines.length ? `${esc(R.monthName(d.ym))}${d.ym === R.currentMonth() ? ', so far' : ''}, in plain words` : 'The month in plain words', body, `#/revenue/${d.ym}`, 'Revenue', 5);
+  }
+
+  /* ---- the page ------------------------------------------------------------------------------------------------------------ */
+
+  /** Draws the stage into Revenue's body (#rv-body) and starts its motion. @param {any} d the month, from mod-revenue.js @param {any} R Revenue's helpers */
+  function page(d, R) {
+    stop();
+    const K = C();
+    const box = /** @type {HTMLElement|null} */ (K.main.querySelector('#rv-body')) || K.main;
+    const settled = Date.now() - shownAt < 8000;
+    shownAt = Date.now();
+    const ym = d.ym;
+    const prev = R.shift(ym, -1);
+    const next = R.shift(ym, 1);
+    const now = R.currentMonth();
+    const canNext = R.monthIndex(next) <= R.monthIndex(now);
+    const canPrev = R.monthIndex(prev) >= R.monthIndex(now) - R.MONTHS_BACK;
+    document.body.classList.add('is-cinema');   // the sidebar and top bar sit under the stage: hidden while it is open (css/66-cinema.css)
+    box.innerHTML = `<div class="cn-stage${rmq.matches ? ' is-still' : ''}${settled ? ' is-settled' : ''}" id="cn-stage" role="region" aria-label="Cinematic view of Revenue">
+      <div class="cn-bg" aria-hidden="true"><div class="cn-bg-glow a"></div><div class="cn-bg-glow b"></div><div class="cn-bg-dots"></div><div class="cn-bg-stars"></div></div>
+      <header class="cn-head">
+        <div class="cn-head-l"><p class="cn-kicker">Revenue, only you see this</p><h2 class="cn-title" id="cn-title" tabindex="-1">Cinematic view</h2>
+          <nav class="cn-months" aria-label="Month"><a class="cn-mnav${canPrev ? '' : ' is-off'}" href="#/revenue/${esc(prev)}/cinema"${canPrev ? '' : ' aria-disabled="true" tabindex="-1"'} aria-label="${esc(R.monthName(prev))}">${K.icon('back')}</a><span class="cn-mname">${esc(R.monthName(ym))}</span><a class="cn-mnav${canNext ? '' : ' is-off'}" href="#/revenue/${esc(next)}/cinema"${canNext ? '' : ' aria-disabled="true" tabindex="-1"'} aria-label="${esc(R.monthName(next))}">${K.icon('arrow')}</a></nav></div>
+        <div class="cn-head-r">
+          <button class="btn btn-quiet cn-btn" type="button" data-cn="tour" aria-pressed="false" title="Cycle through the panels, for a screen on the wall (T)">${K.icon('refresh')}Tour</button>
+          <button class="btn btn-quiet cn-btn" type="button" data-cn="pause" aria-pressed="false" title="Pause the motion (Space)">${K.icon('clock')}<span data-cn-pause-label>Pause</span></button>
+          <a class="btn cn-btn cn-close" href="#/revenue/${esc(ym)}" data-cn="close" title="Back to Revenue (Esc)">${K.icon('x')}Close</a>
+        </div>
+      </header>
+      <div class="cn-grid">
+        ${heroPanel(d, R)}
+        ${barsPanel(d, R)}
+        ${mixPanel(d, R)}
+        ${kindsPanel(d, R)}
+        ${captionsPanel(d, R)}
+        ${tilesPanel(d, R)}
+      </div>
+      <p class="cn-foot meta"><kbd>←</kbd><kbd>→</kbd> turn <kbd>↑</kbd><kbd>↓</kbd> tilt <kbd>Space</kbd> pause <kbd>T</kbd> tour <kbd>Esc</kbd> close</p>
+    </div>`;
+    const root = /** @type {HTMLElement} */ (box.querySelector('#cn-stage'));
+    const caps = root.querySelector('[data-cn-caps]');
+    const nOrbs = root.querySelectorAll('[data-cn-orb]').length;
+    // a ring of one, two or three starts turned a little, so nobody hides straight behind the first orb
+    live = { root, raf: 0, spin: nOrbs > 1 && nOrbs <= 3 ? 60 : 0, paused: false, sel: 0, n: nOrbs, rx: 14, ry: -22, drag: { on: false, x: 0, y: 0, moved: false }, idle: performance.now(), tour: { on: false, i: -1, at: 0 }, cap: { i: 0, n: caps ? Number(caps.getAttribute('data-cn-caps')) || 0 : 0, at: performance.now() }, timers: [], counts: [], off: [], last: 0, ym };
+    wire(root);
+    collectCounts(root);
+    paintWorld();
+    { const ring = /** @type {HTMLElement|null} */ (root.querySelector('#cn-orbit')); if (ring) ring.style.setProperty('--spin', live.spin + 'deg'); }
+    const h = /** @type {HTMLElement|null} */ (root.querySelector('#cn-title'));
+    if (h) h.focus({ preventScroll: true });
+    if (!rmq.matches) live.raf = requestAnimationFrame(frame);
+    else if (live.cap.n > 1) live.timers.push(window.setInterval(() => { if (live && !live.paused) showCaption(live.cap.i + 1); }, CAPTION_MS));
+  }
+  /** Stops the motion and forgets the stage. */
+  function stop() {
+    document.body.classList.remove('is-cinema');
+    if (!live) return;
+    if (live.raf) cancelAnimationFrame(live.raf);
+    for (const t of live.timers) clearInterval(t);
+    for (const f of live.off) f();
+    live = null;
+  }
+  /** Numbers that count up: found once per drawing. @param {HTMLElement} root */
+  function collectCounts(root) {
+    if (!live || rmq.matches) return;
+    const K = C();
+    const now = performance.now();
+    for (const el of Array.from(root.querySelectorAll('[data-cn-count]'))) {
+      const after = el.getAttribute('data-cn-after') || '';
+      live.counts.push({ el: /** @type {HTMLElement} */ (el), to: Number(el.getAttribute('data-cn-count')) || 0, t0: now + 300, text: (n) => String(n) + after });
+    }
+    for (const el of Array.from(root.querySelectorAll('[data-cn-money]'))) {
+      live.counts.push({ el: /** @type {HTMLElement} */ (el), to: Number(el.getAttribute('data-cn-money')) || 0, t0: now + 300, text: (n) => K.money(n, 'USD') });
+    }
+  }
+
+  /* ---- motion: the bars' turn, the ring, the count-ups, the captions and the tour --------------------------------------------- */
+
+  /** Puts the turn and tilt on the 3D world. */
+  function paintWorld() {
+    if (!live) return;
+    const w = /** @type {HTMLElement|null} */ (live.root.querySelector('#cn-world'));
+    if (w) w.style.transform = `rotateX(${live.rx.toFixed(2)}deg) rotateY(${live.ry.toFixed(2)}deg)`;
+  }
+  /** @param {number} now */
+  function frame(now) {
+    if (!live) return;
+    const L = live;
+    L.raf = requestAnimationFrame(frame);
+    const dt = L.last ? Math.min(100, now - L.last) : 16;
+    L.last = now;
+    if (!L.paused) {
+      // The client ring turns steadily.
+      L.spin = (L.spin + (360 * dt) / SPIN_PERIOD) % 360;
+      // The bars sway gently once nobody has touched them for a while.
+      if (!L.drag.on && now - L.idle > 4000) { L.ry += Math.sin(now / 4800) * 0.008 * dt; paintWorld(); }
+      // Captions play one after another.
+      if (L.cap.n > 1 && now - L.cap.at > CAPTION_MS) showCaption(L.cap.i + 1);
+      if (L.tour.on && now - L.tour.at > TOUR_MS) tourStep();
+    }
+    const ring = /** @type {HTMLElement|null} */ (L.root.querySelector('#cn-orbit'));
+    if (ring) {
+      ring.style.setProperty('--spin', L.spin.toFixed(2) + 'deg');
+      const n = L.n || 1;
+      const orbs = ring.children;
+      for (let i = 0; i < orbs.length; i++) {
+        const a = ((360 / n) * i + L.spin) * (Math.PI / 180);
+        /** @type {HTMLElement} */ (orbs[i]).style.setProperty('--depth', ((Math.cos(a) + 1) / 2).toFixed(3));
+      }
+    }
+    if (L.counts.length) {
+      const keep = [];
+      for (const c of L.counts) {
+        const p = Math.min(1, Math.max(0, (now - c.t0) / 1200));
+        const e = 1 - Math.pow(1 - p, 3);
+        c.el.textContent = c.text(Math.round(c.to * e));
+        if (p < 1) keep.push(c);
+      }
+      L.counts = keep;
+    }
+  }
+  /** Shows one caption. @param {number} i */
+  function showCaption(i) {
+    if (!live || !live.cap.n) return;
+    const L = live;
+    L.cap.i = ((i % L.cap.n) + L.cap.n) % L.cap.n;
+    L.cap.at = performance.now();
+    for (const p of Array.from(L.root.querySelectorAll('[data-cn-cap]'))) p.classList.toggle('is-on', Number(p.getAttribute('data-cn-cap')) === L.cap.i);
+    for (const b of Array.from(L.root.querySelectorAll('[data-cn-dot]'))) { const on = Number(b.getAttribute('data-cn-dot')) === L.cap.i; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', String(on)); }
+  }
+  /** Chooses an orb on the client ring: it comes to the front. @param {number} i @param {boolean} focus */
+  function select(i, focus) {
+    if (!live || !live.n) return;
+    const L = live;
+    L.sel = ((i % L.n) + L.n) % L.n;
+    const orbs = Array.from(L.root.querySelectorAll('[data-cn-orb]'));
+    for (const o of orbs) o.classList.toggle('is-sel', Number(o.getAttribute('data-cn-orb')) === L.sel);
+    L.spin = (360 - (360 / L.n) * L.sel) % 360;
+    if (rmq.matches) { const ring = /** @type {HTMLElement|null} */ (L.root.querySelector('#cn-orbit')); if (ring) ring.style.setProperty('--spin', L.spin + 'deg'); }
+    const el = /** @type {HTMLElement|undefined} */ (orbs[L.sel]);
+    if (focus && el) el.focus({ preventScroll: true });
+  }
+  /** @param {boolean} on */
+  function setPaused(on) {
+    if (!live) return;
+    live.paused = on;
+    live.root.classList.toggle('is-paused', on);
+    const b = live.root.querySelector('[data-cn="pause"]');
+    if (b) { b.setAttribute('aria-pressed', String(on)); const l = b.querySelector('[data-cn-pause-label]'); if (l) l.textContent = on ? 'Play' : 'Pause'; }
+  }
+  /** @param {boolean} on */
+  function setTour(on) {
+    if (!live) return;
+    live.tour.on = on;
+    live.root.classList.toggle('is-tour', on);
+    const b = live.root.querySelector('[data-cn="tour"]');
+    if (b) b.setAttribute('aria-pressed', String(on));
+    if (!on) { for (const p of Array.from(live.root.querySelectorAll('.cn-panel.is-spot'))) p.classList.remove('is-spot'); live.tour.i = -1; return; }
+    tourStep();
+  }
+  /** The next panel takes the spotlight. */
+  function tourStep() {
+    if (!live) return;
+    const L = live;
+    const panels = Array.from(L.root.querySelectorAll('.cn-panel'));
+    if (!panels.length) return;
+    L.tour.i = (L.tour.i + 1) % panels.length;
+    L.tour.at = performance.now();
+    panels.forEach((p, i) => p.classList.toggle('is-spot', i === L.tour.i));
+    const p = /** @type {HTMLElement} */ (panels[L.tour.i]);
+    if (window.innerWidth < 1100) p.scrollIntoView({ block: 'center', behavior: rmq.matches ? 'auto' : 'smooth' });
+    if (p.getAttribute('data-cn-panel') === 'mix' && L.n) select(L.sel + 1, false);
+    if (rmq.matches) L.timers.push(window.setTimeout(() => { if (live && live.tour.on && !live.paused) tourStep(); }, TOUR_MS));
+  }
+  /** Leaves the stage: back to the month on Revenue. */
+  function close() {
+    const ym = live ? live.ym : '';
+    stop();
+    location.hash = ym ? `#/revenue/${ym}` : '#/revenue';
+  }
+
+  /** @param {HTMLElement} root */
+  function wire(root) {
+    if (!live) return;
+    const L = live;
+    root.addEventListener('click', (e) => {
+      const t = /** @type {HTMLElement} */ (e.target);
+      const b = t.closest('[data-cn]');
+      if (b) {
+        const k = b.getAttribute('data-cn');
+        if (k === 'close') { e.preventDefault(); close(); }
+        else if (k === 'pause') setPaused(!L.paused);
+        else if (k === 'tour') setTour(!L.tour.on);
+        return;
+      }
+      const dot = t.closest('[data-cn-dot]');
+      if (dot) { showCaption(Number(dot.getAttribute('data-cn-dot'))); return; }
+      // A drag that moved is not a click on a month.
+      if (L.drag.moved && t.closest('.cn-mgroup')) { e.preventDefault(); L.drag.moved = false; }
+    });
+    root.addEventListener('focusin', (e) => {
+      const t = /** @type {HTMLElement} */ (e.target);
+      const o = t.closest('[data-cn-orb]');
+      if (o) select(Number(o.getAttribute('data-cn-orb')), false);
+      const m = t.closest('[data-cn-words]');
+      if (m) sceneCaption(m.getAttribute('data-cn-words') || '');
+    });
+    root.addEventListener('pointerover', (e) => { const m = /** @type {HTMLElement} */ (e.target).closest('[data-cn-words]'); if (m) sceneCaption(m.getAttribute('data-cn-words') || ''); });
+    // Dragging the 3D scene turns and tilts it.
+    const scene = /** @type {HTMLElement|null} */ (root.querySelector('#cn-scene'));
+    if (scene) {
+      scene.addEventListener('pointerdown', (e) => { if (e.button !== 0) return; L.drag = { on: true, x: e.clientX, y: e.clientY, moved: false }; L.idle = performance.now(); try { scene.setPointerCapture(e.pointerId); } catch (x) { /* a pointer that cannot be held still drags */ } });
+      scene.addEventListener('pointermove', (e) => {
+        if (!L.drag.on) return;
+        const dx = e.clientX - L.drag.x, dy = e.clientY - L.drag.y;
+        if (Math.abs(dx) + Math.abs(dy) > 3) L.drag.moved = true;
+        L.ry += dx * 0.45;
+        L.rx = Math.max(-4, Math.min(64, L.rx - dy * 0.35));
+        L.drag.x = e.clientX; L.drag.y = e.clientY;
+        L.idle = performance.now();
+        paintWorld();
+      });
+      const up = () => { if (L.drag.on) { L.drag.on = false; L.idle = performance.now(); } };
+      scene.addEventListener('pointerup', up);
+      scene.addEventListener('pointercancel', up);
+      scene.addEventListener('lostpointercapture', up);
+    }
+    // Hover holds the client ring still so the names can be read.
+    root.addEventListener('pointerenter', (e) => { const t = /** @type {HTMLElement} */ (e.target); if (t.closest && t.closest('.cn-orbit')) root.classList.add('is-held'); }, true);
+    root.addEventListener('pointerleave', (e) => { const t = /** @type {HTMLElement} */ (e.target); if (t.closest && t.closest('.cn-orbit')) root.classList.remove('is-held'); }, true);
+    // A light parallax with a mouse: the background layers lean towards the pointer.
+    if (finePointer.matches && !rmq.matches) {
+      let queued = false, px = 0, py = 0;
+      root.addEventListener('pointermove', (e) => {
+        px = (e.clientX / window.innerWidth - 0.5) * 2;
+        py = (e.clientY / window.innerHeight - 0.5) * 2;
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => { queued = false; root.style.setProperty('--mx', px.toFixed(3)); root.style.setProperty('--my', py.toFixed(3)); });
+      }, { passive: true });
+    }
+    const keys = (/** @type {KeyboardEvent} */ e) => {
+      if (!live || !root.isConnected) return;
+      if (document.querySelector('dialog[open]')) return;
+      const at = /** @type {HTMLElement} */ (e.target);
+      if (at && (/^(INPUT|TEXTAREA|SELECT)$/.test(at.tagName) || at.isContentEditable)) return;
+      if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const onRing = !!(at && at.closest && at.closest('.cn-orbit'));
+      if (onRing && (e.key === 'ArrowRight' || e.key === 'ArrowDown')) { e.preventDefault(); select(L.sel + 1, true); }
+      else if (onRing && (e.key === 'ArrowLeft' || e.key === 'ArrowUp')) { e.preventDefault(); select(L.sel - 1, true); }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); L.ry += e.key === 'ArrowLeft' ? -12 : 12; L.idle = performance.now(); paintWorld(); }
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); L.rx = Math.max(-4, Math.min(64, L.rx + (e.key === 'ArrowUp' ? 6 : -6))); L.idle = performance.now(); paintWorld(); }
+      else if (e.key === ' ' && !(at && (at.tagName === 'BUTTON' || at.tagName === 'A'))) { e.preventDefault(); setPaused(!L.paused); }
+      else if (e.key === 't' || e.key === 'T') { e.preventDefault(); setTour(!L.tour.on); }
+    };
+    document.addEventListener('keydown', keys);
+    L.off.push(() => document.removeEventListener('keydown', keys));
+    const onHash = () => { if (!/\/cinema$/.test(location.hash)) stop(); };
+    window.addEventListener('hashchange', onHash);
+    L.off.push(() => window.removeEventListener('hashchange', onHash));
+    const vis = () => { if (!live) return; if (document.visibilityState !== 'visible') { if (live.raf) cancelAnimationFrame(live.raf); live.raf = 0; } else if (!live.raf && !rmq.matches) { live.last = 0; live.raf = requestAnimationFrame(frame); } };
+    document.addEventListener('visibilitychange', vis);
+    L.off.push(() => document.removeEventListener('visibilitychange', vis));
+  }
+  /** The caption under the 3D scene. @param {string} words */
+  function sceneCaption(words) {
+    if (!live) return;
+    const el = live.root.querySelector('[data-cn-scene-cap]');
+    if (el && words) el.textContent = words;
+  }
+
+  EXT.cinema = { page, stop, get live() { return live; } };
 })();
 </script>
 <script>
@@ -12813,7 +13534,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     reminder_failed: { f: 'email', label: 'Reminder failed', tone: 'bad', icon: 'mail', rank: 1 },
     notification_failed: { f: 'email', label: 'Message email failed', tone: 'bad', icon: 'mail', rank: 1 }
   };
-  const FILTERS = [['all', 'All'], ['mismatch', 'Mismatches'], ['limit', 'Over limit'], ['deadline', 'Pick deadlines'], ['email', 'Failed emails'], ['approval', 'Client approvals']];
+  const FILTERS = [['all', 'All'], ['mismatch', 'Mismatches'], ['limit', 'Limit decisions'], ['deadline', 'Pick deadlines'], ['email', 'Failed emails'], ['approval', 'Client approvals']];
   /** The chip in use stays when the page is drawn again after an action. */
   const state = { filter: 'all' };
 
@@ -14980,7 +15701,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   const MAX_MINOR = 2147483647;
   const MAX_LINES = 80;
   const MONTHS_BACK = 59;
-  const VIEWS = ['overview', 'income', 'costs', 'years'];
+  const VIEWS = ['overview', 'income', 'costs', 'years', 'cinema'];
 
   /**
    * What the page remembers: the month and section on screen, the months already read (all of them are read again after a save, since the
@@ -15095,8 +15816,16 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const minor = Number(d) * 100 + Number((c + '00').slice(0, 2));
     return minor > MAX_MINOR ? { minor: null, why: 'big' } : { minor, why: '' };
   }
+  /**
+   * One rule for every percent on Revenue (critic R11-8): progress towards a goal rounds DOWN (goalPct), so it never reads as
+   * reached before it is; every other percent (margins, shares, changes) rounds to the nearest whole number (pctOf).
+   * @param {number} part @param {number} whole
+   */
+  const pctOf = (part, whole) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
+  /** @param {number} v @param {number} goal */
+  const goalPct = (v, goal) => (v > 0 && goal > 0 ? Math.min(Math.floor((v / goal) * 100), v >= goal ? 100 : 99) : 0);
   /** A profit margin in whole percent, or null when nothing came in. @param {number} profit @param {number} income */
-  const margin = (profit, income) => (income > 0 ? Math.round((profit / income) * 100) : null);
+  const margin = (profit, income) => (income > 0 ? pctOf(profit, income) : null);
 
   /** A move bigger than this many percent reads in dollars instead ("up 198039%" says nothing a person can use; R6-3, 15 Oct). */
   const MAX_PCT = 999;
@@ -15260,8 +15989,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
    */
   function goalHtml(v, goal, cls) {
     // floor, so 99.6% never reads 100% before the goal is met; "to go" counts from a loss too: a loss of 2000 against 4000 is 6000 to go (R6-1, R6-2)
-    const pct = v > 0 ? Math.min(Math.floor((v / goal) * 100), v >= goal ? 100 : 99) : 0;
-    const words = v >= goal ? `Goal of ${money(goal)} reached${v > goal ? `, ${money(v - goal)} over` : ''}` : `${pct}% of the ${money(goal)} goal, ${money(goal - v)} to go`;
+    const pct = goalPct(v, goal);
+    const words = v >= goal ? `Goal of ${money(goal)} reached${v > goal ? `, ${money(v - goal)} over` : ''}` : `${pct}% of the ${money(goal)} goal so far, ${money(goal - v)} to go`;
     return `<div class="rv-goal${v >= goal ? ' is-met' : ''}"><span class="rv-goal-bar" aria-hidden="true"><i class="${cls}" style="width:${Math.max(0, Math.min(100, pct))}%"></i></span><span class="rv-goal-t">${esc(words)}</span></div>`;
   }
 
@@ -15269,7 +15998,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   function tools() {
     const c = C();
     const b = (/** @type {string} */ id, /** @type {string} */ data, /** @type {string} */ ic, /** @type {string} */ label) => `<button class="btn btn-quiet btn-sm" type="button" id="${id}" ${data} aria-haspopup="dialog">${c.icon(ic)}${label}</button>`;
-    return `<div class="rv-tools" role="group" aria-label="Revenue tools">${b('rv-qa-btn', 'data-rv-qa', 'plus', 'Add a cost')}${b('rv-find-btn', 'data-rv-find', 'search', 'Find')}${b('rv-exp-btn', 'data-rv-exp', 'page', 'Export')}${b('rv-goals-btn', 'data-rv-goals', 'trend', 'Goals and tax')}</div>`;
+    return `<div class="rv-tools" role="group" aria-label="Revenue tools">${b('rv-qa-btn', 'data-rv-qa', 'plus', 'Add a cost')}${b('rv-find-btn', 'data-rv-find', 'search', 'Find')}${b('rv-exp-btn', 'data-rv-exp', 'page', 'Export')}${b('rv-goals-btn', 'data-rv-goals', 'trend', 'Goals and tax')}${EXT.cinema ? `<a class="btn btn-quiet btn-sm" id="rv-cin-btn" href="#/revenue/${state.ym}/cinema" title="The month as a full-screen stage">${c.icon('film')}Cinematic view</a>` : ''}</div>`;
   }
 
   /** The four sections, as the console's segmented pills. @param {string} ym */
@@ -15669,7 +16398,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       acc += f;
       return out;
     }).join('');
-    const label = `Client mix, ${monthName(d.ym)}: ${slices.map((s) => `${s.name} ${Math.round((s.minor / total) * 100)}%`).join(', ')}.`;
+    const label = `Client mix, ${monthName(d.ym)}: ${slices.map((s) => `${s.name} ${pctOf(s.minor, total)}%`).join(', ')}.`;
     return `<svg class="rv-svg rv-ring" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" role="img" aria-label="${esc(label)}" focusable="false"><circle class="rv-ring-track" cx="${c}" cy="${c}" r="${r}" style="stroke-width:${w}px"/><g style="stroke-width:${w}px">${segs}</g>
       <text class="rv-ring-v" x="${c}" y="${c - 2}" text-anchor="middle">${esc(dollars(total))}</text><text class="rv-ring-k" x="${c}" y="${c + 16}" text-anchor="middle">${slices.length - (slices.some((s) => s.other) ? 1 : 0)} ${slices.length - (slices.some((s) => s.other) ? 1 : 0) === 1 ? 'client' : 'clients'}</text></svg>`;
   }
@@ -15726,7 +16455,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const s = slices[i];
       if (!s) return '';
       const total = sumOf(slices, 'minor');
-      return `<strong>${esc(s.name)}</strong>${tipRows([['', money(s.minor), `${Math.round((s.minor / total) * 100)}% of income`]])}`;
+      return `<strong>${esc(s.name)}</strong>${tipRows([['', money(s.minor), `${pctOf(s.minor, total)}% of income`]])}`;
     }
   };
 
@@ -15740,7 +16469,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const sorted = items.filter((x) => x.minor > 0).sort((a, b) => b.minor - a.minor);
     const top = sorted.length ? sorted[0].minor : 0;
     const total = sumOf(sorted, 'minor');
-    return `<ul class="rv-bars" aria-label="${esc(caption)}">${sorted.map((x, i) => `<li class="rv-bar-row"><span class="rv-bar-name">${x.lead || ''}<span>${esc(x.name)}</span></span>${hbar((x.minor / top) * 100, cls, i)}<span class="rv-bar-v">${esc(dollars(x.minor))}<span class="rv-bar-pct"> ${Math.round((x.minor / total) * 100)}%</span></span></li>`).join('')}</ul>`;
+    return `<ul class="rv-bars" aria-label="${esc(caption)}">${sorted.map((x, i) => `<li class="rv-bar-row"><span class="rv-bar-name">${x.lead || ''}<span>${esc(x.name)}</span></span>${hbar((x.minor / top) * 100, cls, i)}<span class="rv-bar-v">${esc(dollars(x.minor))}<span class="rv-bar-pct"> ${pctOf(x.minor, total)}%</span></span></li>`).join('')}</ul>`;
   }
   /** A small stat tile. @param {string} k @param {string} v @param {string} s */
   const tile = (k, v, s) => `<div class="rv-tile"><p class="rv-tile-k">${k}</p><p class="rv-tile-v">${v}</p><p class="rv-tile-s">${s}</p></div>`;
@@ -15827,8 +16556,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const slices = mixSlices(d);
       const total = sumOf(slices, 'minor');
       if (!slices.length) return { sub: `${esc(monthName(d.ym))}`, body: `<p class="rv-chart-empty">No income entered for ${esc(monthName(d.ym))}. <a href="#/revenue/${d.ym}/income">Enter income</a></p>` };
-      const legend = `<ul class="rv-mix-legend" aria-label="Share of income">${slices.map((s) => `<li><i class="rv-key" style="background:${s.color}" aria-hidden="true"></i><span class="rv-mix-name">${s.other ? '' : badge(s.id)}<span>${esc(s.name)}</span></span><span class="rv-mix-v">${Math.round((s.minor / total) * 100)}%<span class="rv-bar-pct"> ${esc(dollars(s.minor))}</span></span></li>`).join('')}</ul>`;
-      const table = tableOf(`Share of income, ${monthName(d.ym)}`, ['Who', 'Amount', 'Share'], slices.map((s) => [esc(s.name), esc(money(s.minor)), `${Math.round((s.minor / total) * 100)}%`]));
+      const legend = `<ul class="rv-mix-legend" aria-label="Share of income">${slices.map((s) => `<li><i class="rv-key" style="background:${s.color}" aria-hidden="true"></i><span class="rv-mix-name">${s.other ? '' : badge(s.id)}<span>${esc(s.name)}</span></span><span class="rv-mix-v">${pctOf(s.minor, total)}%<span class="rv-bar-pct"> ${esc(dollars(s.minor))}</span></span></li>`).join('')}</ul>`;
+      const table = tableOf(`Share of income, ${monthName(d.ym)}`, ['Who', 'Amount', 'Share'], slices.map((s) => [esc(s.name), esc(money(s.minor)), `${pctOf(s.minor, total)}%`]));
       return { sub: `${esc(monthName(d.ym))}, share of income`, body: `<div class="rv-mix"><div class="rv-plot is-fixed" data-plot="mix">${mixSvg(d)}<div class="rv-tip" role="presentation" hidden></div></div>${legend}</div>${table}` };
     },
     clients(d) {
@@ -15860,7 +16589,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         const pa = t > 0 ? (a / t) * 100 : 0;
         return `<svg class="rv-split" width="100%" height="14" role="img" aria-label="${esc(what)}: ${esc(money(a))} repeating, ${esc(money(b))} one-off" focusable="false"><rect class="rv-track" x="0" y="0" width="100%" height="14" rx="5"/>${t > 0 ? `<rect class="rv-f-cost rv-growx" x="0" y="0" width="${pa.toFixed(1)}%" height="14" rx="5"/><rect class="rv-f-once rv-growx" style="--i:1" x="${pa.toFixed(1)}%" y="0" width="${(100 - pa).toFixed(1)}%" height="14" rx="5"/>` : ''}</svg>`;
       };
-      const part = (/** @type {string} */ title, /** @type {number} */ a, /** @type {number} */ b, /** @type {boolean} */ has, /** @type {string} */ none) => `<div class="rv-split-part"><h4 class="rv-split-h">${title}</h4>${has ? `${bar(a, b, title)}<ul class="rv-split-figs"><li><i class="rv-key rv-k-cost" aria-hidden="true"></i>Repeating <strong>${num(a, 'money')}</strong><span class="rv-bar-pct"> ${a + b > 0 ? Math.round((a / (a + b)) * 100) : 0}%</span></li><li><i class="rv-key rv-k-once" aria-hidden="true"></i>One-off <strong>${num(b, 'money')}</strong><span class="rv-bar-pct"> ${a + b > 0 ? Math.round((b / (a + b)) * 100) : 0}%</span></li></ul>` : `<p class="rv-chart-empty">${none}</p>`}</div>`;
+      const part = (/** @type {string} */ title, /** @type {number} */ a, /** @type {number} */ b, /** @type {boolean} */ has, /** @type {string} */ none) => `<div class="rv-split-part"><h4 class="rv-split-h">${title}</h4>${has ? `${bar(a, b, title)}<ul class="rv-split-figs"><li><i class="rv-key rv-k-cost" aria-hidden="true"></i>Repeating <strong>${num(a, 'money')}</strong><span class="rv-bar-pct"> ${pctOf(a, a + b)}%</span></li><li><i class="rv-key rv-k-once" aria-hidden="true"></i>One-off <strong>${num(b, 'money')}</strong><span class="rv-bar-pct"> ${pctOf(b, a + b)}%</span></li></ul>` : `<p class="rv-chart-empty">${none}</p>`}</div>`;
       return { sub: 'Costs that come back every month against one-time ones', body: `<div class="rv-splits">${part(esc(mon), rep, once, d.costs.length > 0, `No costs entered for ${esc(mon)}.`)}${part('Last 12 months', rep12, all12 - rep12, rows12.some((/** @type {any} */ r) => r.costN > 0), 'No costs entered in the last 12 months.')}</div>` };
     },
     bestworst(d) {
@@ -16133,7 +16862,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const c = C();
     const mon = monthName(m.ym);
     const prevName = monthName(m.prev.ym);
-    const pct = (/** @type {number} */ part, /** @type {number} */ whole) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
+    const pct = pctOf;
     const clients = m.income.filter((/** @type {any} */ x) => x.kind === 'client').map((/** @type {any} */ x) => ({ id: x.tenant_id, name: clientName(x.tenant_id, x.label), minor: x.amount, due: !x.received })).sort((/** @type {any} */ a, /** @type {any} */ b) => b.minor - a.minor);
     const other = m.income.filter((/** @type {any} */ x) => x.kind === 'other');
     const topC = clients.length ? clients[0].minor : 0;
@@ -17231,7 +17960,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     try {
       const [d] = await Promise.all([readMonth(ym), readChoice()]);
       if (seq !== state.seq) return;
-      paintBody(d);
+      // Cinematic view (2026-10-15, mod-cinema.js): the month as a full-screen stage, on the same data, back to Revenue with Esc or Close.
+      if (v === 'cinema' && EXT.cinema && typeof EXT.cinema.page === 'function') EXT.cinema.page(d, EXT.revenue);
+      else paintBody(d);
       paintFresh();
     } catch (x) {
       if (seq !== state.seq) return;
@@ -17308,7 +18039,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (t && t.matches && t.matches('[data-rv-cust-on]')) setShown(String(t.getAttribute('data-rv-cust-on')), t.checked);
   }
 
-  EXT.revenue = { page, sideItem, visible, parse, field, change, margin, ticks, CHARTS, csvOf, insights, forecast, taxOf, normLines, get choice() { return choice; } };
+  EXT.revenue = { page, sideItem, visible, parse, field, change, margin, ticks, CHARTS, csvOf, insights, forecast, taxOf, normLines, get choice() { return choice; },
+    // what the Cinematic view (mod-cinema.js) draws from, read only: the month's totals and names, the client mix, the year rows and the moves
+    totals, mixSlices, yearRows, move, goalPct, pctText, catName, monthName, nearName, shift, monthIndex, currentMonth, MONTHS_BACK };
 })();
 </script>
 <script>
@@ -19908,7 +20641,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       ${strips.length > 6 ? `<details class="wk-rest"${strips.slice(6).some((/** @type {any} */ t) => st.client === t.id) ? ' open' : ''}><summary>${c.plural(strips.length - 6, 'more client')}</summary><div class="wk-strips">${strips.slice(6).map((/** @type {any} */ t) => strip(t.id, { filter: true, pressed: st.client === t.id })).join('')}</div></details>` : ''}
       <div class="wk-bar"><div class="wk-chips" role="group" aria-label="Filter the board">
         ${chip('all', 'All clients', !st.client && !st.service && !st.over)}
-        ${chip('over', 'Over limit', !!st.over, `<span class="wk-n${overN ? ' is-bad' : ''}">${overN}</span>`)}
+        ${chip('over', 'Cards over limit', !!st.over, `<span class="wk-n${overN ? ' is-bad' : ''}">${overN}</span>`)}
         ${services.map((/** @type {string} */ s) => chip('service:' + s, c.svcLabel(s), st.service === s)).join('')}
       </div><div class="wk-bar-r"><button class="wk-switch" type="button" role="switch" aria-checked="${grouped ? 'true' : 'false'}" data-wk-group><span class="wk-switch-t" aria-hidden="true"></span>Group by client</button>${st.client ? `<a class="btn btn-quiet btn-sm" href="#/client/${E(st.client)}/work/new">${c.icon('plus')}Add a card for ${E(names[st.client])}</a>` : ''}</div></div>
       ${byClient}${spotChip}
@@ -20615,7 +21348,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     else if (theirs.length > 1) waiting.push({ kind: 'next', label: 'Their next steps', text: `${theirs.length} next steps are theirs`, title: theirs.map((x) => x.text).join('; '), href: go('work', ['site']) });
     const bill = billingOf(t);
     if (bill.status === 'past_due') needs.push({ kind: 'billing', label: 'Payment past due', text: `${bill.plan || 'Plan'}${bill.grace ? `: services pause after ${when(bill.grace)}` : ''}`, dueDate: bill.grace || undefined, href: '#/billing', rank: 1 });
-    else if (bill.renews && bill.status !== 'canceled') { const rd = due(bill.renews); if (rd.days >= 0 && rd.days <= 7) soon.push({ kind: 'renewal', label: 'Renews', text: `${bill.plan || 'Plan'}${bill.amount && !(/** @type {any} */ (window).D8DEMO_SITE) ? `, ${bill.amount}` : ''}`, dueDate: bill.renews, href: '#/billing' }); }
+    else if (bill.renews && bill.status !== 'canceled') { const rd = due(bill.renews); if (rd.days >= 0 && rd.days <= 7) { const amt = bill.price ? `${bill.price} / mo` : bill.amount; soon.push({ kind: 'renewal', label: 'Renews', text: `${bill.plan || 'Plan'}${amt && !(/** @type {any} */ (window).D8DEMO_SITE) ? `, ${amt}` : ''}`, dueDate: bill.renews, href: '#/billing' }); } }
     if (!t.clerk_org_id && t.status === 'active') needs.push({ kind: 'login', label: 'No login yet', text: 'They can\'t open their portal yet. Add one in Setup.', href: go('setup', ['login']), rank: 2 });
     for (const a of asksFor(id)) needs.push({ kind: 'login-ask', label: 'Login request', hint: 'The client asked us to give someone a login. Answer it in Setup.', text: `${a.first_name}${a.role ? ', ' + a.role : ''} (${a.email})`, at: a.at, href: go('setup', ['login']), rank: 1 });
     if (doc.meeting && doc.meeting.at) {
@@ -20893,7 +21626,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         { name: 'Clients', hint: 'Page', href: '#/clients', icon: 'users' },
         { name: 'All work (every client\'s team cards)', hint: 'Page', href: '#/board', icon: 'board' },
         { name: 'Billing', hint: 'Page', href: '#/billing', icon: 'card' },
-        ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }, { name: 'Revenue: Income', hint: 'Page', href: '#/revenue/income', icon: 'trend' }, { name: 'Revenue: Costs', hint: 'Page', href: '#/revenue/costs', icon: 'trend' }, { name: 'Revenue: Years', hint: 'Page', href: '#/revenue/years', icon: 'trend' }] : []),
+        ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }, { name: 'Revenue: Income', hint: 'Page', href: '#/revenue/income', icon: 'trend' }, { name: 'Revenue: Costs', hint: 'Page', href: '#/revenue/costs', icon: 'trend' }, { name: 'Revenue: Years', hint: 'Page', href: '#/revenue/years', icon: 'trend' }, { name: 'Revenue: Cinematic view', hint: 'Page', href: '#/revenue/cinema', icon: 'film' }] : []),
         { name: 'Settings', hint: 'Page', href: '#/settings', icon: 'gear' },
         { name: 'Team', hint: 'Settings', href: '#/settings', icon: 'users' },
         { name: 'Reload everything', hint: 'Action', act: 'refresh', icon: 'refresh' },
@@ -21673,7 +22406,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       <div class="client-head"><div><h1 id="page-title" tabindex="-1">${esc(current.name)}</h1>
         <div class="who">${statusChip}${CC() ? CC().headerControl(current.id) : ''}${warns}<details class="about"><summary>About</summary><p class="about-line">${about.map((x) => `<span class="t">${x}</span>`).join('')}</p></details></div></div></div>
       <nav class="tabs" aria-label="Client sections">${allTabs().map(([k, label]) => {
-        const count = k === 'talk' && talkCount ? `<span class="count" title="Needs a reply">${talkCount}</span>` : k === 'work' && openCards ? `<span class="count quiet" title="Open cards">${openCards}</span>` : '';
+        // The Bot tab counts the drafts waiting for this client, the same ones the sidebar's Bot chat count adds up (critic R11-6).
+        const botN = k === 'bot' && partOf('bot') && partOf('bot').waitingFor ? partOf('bot').waitingFor(id) : 0;
+        const count = k === 'talk' && talkCount ? `<span class="count" title="Needs a reply">${talkCount}</span>` : k === 'work' && openCards ? `<span class="count quiet" title="Open cards">${openCards}</span>` : k === 'bot' ? `<span class="count" title="Drafts waiting" data-bot-tab-count${botN ? '' : ' hidden'}>${botN}</span>` : '';
         return `<a href="#/client/${esc(id)}/${k}"${k === t ? ' aria-current="page"' : ''}>${label}${count}</a>`;
       }).join('')}</nav>
       <div id="tab"></div>`;
@@ -21748,7 +22483,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const nd = next ? due(next.dueDate) : null;
     box.innerHTML = `
       ${reviewCount(current.id) || (all.reviews && all.reviews.error) ? dmBlock(current.id) : ''}
-      <section class="panel" aria-labelledby="g-todo"><div class="panel-head"><h2 id="g-todo">To do for this client <span class="meta">${todo.length}</span></h2></div>
+      <section class="panel" aria-labelledby="g-todo"><div class="panel-head"><h2 id="g-todo">To do for this client <span class="meta" data-todo-ours="${got.needs.length}" data-todo-theirs="${got.waiting.length}">${got.needs.length} for you${got.waiting.length ? `, ${got.waiting.length} waiting on them` : ''}</span></h2></div>
         ${todo.length ? `<ul class="todo">${todo.slice(0, 5).map(row).join('')}</ul>${todo.length > 5 ? `<details class="reveal q-more"><summary>Show ${todo.length - 5} more</summary><ul class="todo">${todo.slice(5).map(row).join('')}</ul></details>` : ''}` : '<p class="meta">Nothing to do for them right now.</p>'}
         ${next ? `<p class="next-line">${icon('clock')}<span><b>Next:</b> <a href="${esc(next.href)}">${esc(next.label)}: ${esc(next.text)}</a>, ${esc(nd ? (nd.days === 0 ? 'today' : nd.text) : '')}${got.soon.length > 1 ? ` <span class="meta" title="${esc(got.soon.slice(1).map((x) => `${x.label}: ${x.text}`).join('; '))}">and ${got.soon.length - 1} more this week</span>` : ''}</span></p>` : ''}
       </section>
@@ -21816,7 +22551,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         <div class="grid-4">
           <div class="field"><label for="o-bstart">Started</label><input id="o-bstart" name="bstart" type="date" value="${esc(billingOf(current).startedAt.slice(0, 10))}"${fromStripe ? ' readonly aria-describedby="o-bstart-h"' : ''}>${fromStripe ? '<p class="hint" id="o-bstart-h">Comes from Stripe</p>' : ''}</div>
           <div class="field"><label for="o-brenew">Renews</label><input id="o-brenew" name="brenew" type="date" value="${esc(billingOf(current).renews.slice(0, 10))}"${fromStripe ? ' readonly aria-describedby="o-brenew-h"' : ''}>${fromStripe ? '<p class="hint" id="o-brenew-h">Comes from Stripe</p>' : ''}</div>
-          <div class="field"><label for="o-bamount">Amount</label><input id="o-bamount" name="bamount" type="text" value="${esc(billingOf(current).amount)}" placeholder="$499 a month" maxlength="40"${fromStripe ? ' readonly aria-describedby="o-bamount-h"' : ''}>${fromStripe ? '<p class="hint" id="o-bamount-h">Comes from Stripe</p>' : ''}</div>
+          ${billingOf(current).price ? `<div class="field"><label for="o-bamount">Amount</label><input id="o-bamount" type="text" value="${DEMO_SITE ? 'Set by their plan' : `${esc(billingOf(current).price)} / mo`}" readonly aria-describedby="o-bamount-h"><p class="hint" id="o-bamount-h">From their plan. Change it in Billing.</p></div>` : `<div class="field"><label for="o-bamount">Amount</label><input id="o-bamount" name="bamount" type="text" value="${esc(billingOf(current).amount)}" placeholder="$499 a month" maxlength="40"${fromStripe ? ' readonly aria-describedby="o-bamount-h"' : ''}>${fromStripe ? '<p class="hint" id="o-bamount-h">Comes from Stripe</p>' : ''}</div>`}
           <div class="field"><label for="o-bstatus">Payment status</label><select id="o-bstatus" name="bstatus"${fromStripe ? ' disabled aria-describedby="o-bstatus-h"' : ''}><option value="">Not set</option>${Object.entries(SUB_STATUS).map(([k, v]) => `<option value="${k}"${billingOf(current).status === k ? ' selected' : ''}>${v[0]}</option>`).join('')}</select>${fromStripe ? '<p class="hint" id="o-bstatus-h">Comes from Stripe</p>' : ''}</div>
           <div class="field span-all"><label for="o-billing">Billing note they see (for example: Billed monthly on the 22nd)</label><input id="o-billing" name="billing" type="text" value="${esc(d.package.billing)}" placeholder="Billed monthly on the 22nd" maxlength="120"></div>
         </div>
@@ -21901,7 +22636,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         if (!billingFromStripe(current)) {
           sub.startedAt = val(mf, 'bstart') || null;
           sub.nextBilling = val(mf, 'brenew') || null;
-          sub.amount = val(mf, 'bamount') || undefined;
+          // With a plan the price is the plan's (the field is read-only and not sent); the typed Amount is only for a client with no plan (R11-2).
+          if (!billingOf(current).price) sub.amount = val(mf, 'bamount') || undefined;
           sub.status = val(mf, 'bstatus') || null;
         }
         doc.billing = { ...(doc.billing || {}), subscription: sub };

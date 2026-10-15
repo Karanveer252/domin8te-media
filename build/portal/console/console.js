@@ -865,8 +865,7 @@
         { name: 'Clients', hint: 'Page', href: '#/clients', icon: 'users' },
         { name: 'All work (every client\'s team cards)', hint: 'Page', href: '#/board', icon: 'board' },
         { name: 'Billing', hint: 'Page', href: '#/billing', icon: 'card' },
-        ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }, { name: 'Revenue: Income', hint: 'Page', href: '#/revenue/income', icon: 'trend' }, { name: 'Revenue: Costs', hint: 'Page', href: '#/revenue/costs', icon: 'trend' }, { name: 'Revenue: Years', hint: 'Page', href: '#/revenue/years', icon: 'trend' }] : []),
-        { name: 'Cinematic view (full-screen command centre)', hint: 'Page', href: '#/cinema', icon: 'film' },
+        ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }, { name: 'Revenue: Income', hint: 'Page', href: '#/revenue/income', icon: 'trend' }, { name: 'Revenue: Costs', hint: 'Page', href: '#/revenue/costs', icon: 'trend' }, { name: 'Revenue: Years', hint: 'Page', href: '#/revenue/years', icon: 'trend' }, { name: 'Revenue: Cinematic view', hint: 'Page', href: '#/revenue/cinema', icon: 'film' }] : []),
         { name: 'Settings', hint: 'Page', href: '#/settings', icon: 'gear' },
         { name: 'Team', hint: 'Settings', href: '#/settings', icon: 'users' },
         { name: 'Reload everything', hint: 'Action', act: 'refresh', icon: 'refresh' },
@@ -1171,7 +1170,7 @@
     saveBar();
     // Needs you is always the first page (the old Opening page setting, prefs.start, is no longer read).
     const parts = (location.hash || '#/queue').replace(/^#\//, '').split('/');
-    document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'revenue', 'settings', 'messages', 'bot', 'cinema'].includes(parts[0]) ? parts[0] : 'queue';
+    document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'revenue', 'settings', 'messages', 'bot'].includes(parts[0]) ? parts[0] : 'queue';
     stopInbox();
     main.onclick = null;
     main.onchange = null;
@@ -1185,7 +1184,6 @@
     else if (parts[0] === 'messages') messagesPage(parts[1] || '');
     else if (parts[0] === 'revenue' && partOf('revenue')) partOf('revenue').page(parts[1] || '', parts[2] || '');   // Revenue, owners only (mod-revenue.js, 2026-10-14)
     else if (parts[0] === 'bot' && partOf('bot')) partOf('bot').page(parts[1] || '');   // Bot chat (mod-bot.js, 2026-10-14)
-    else if (parts[0] === 'cinema' && partOf('cinema')) partOf('cinema').page();   // Cinematic view, the full-screen command centre (mod-cinema.js, 2026-10-15)
     else queuePage();
     if (parts[0] !== 'client') stopPulling();
     renderSide();

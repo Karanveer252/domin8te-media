@@ -38,8 +38,8 @@ const ROUTES = ['queue', 'messages', 'clients', 'board', 'billing', `billing/${T
   'client/tnt_preview_marlow/overview', 'client/tnt_preview_corner/visible',
   // Bot chat (2026-10-15): the list, a card, a card with a saved edit, an approved card with its history, the numbers, and a client's Bot tab and card.
   'bot', 'bot/bo_1', 'bot/bo_3', 'bot/bo_5', 'bot/stats', `client/${T}/bot`, `client/${T}/bot/bo_8`,
-  // Cinematic view (2026-10-15): the full-screen command centre on the same data.
-  'cinema'].filter((r) => !ONLY || r.includes(ONLY));
+  // Cinematic view of Revenue (2026-10-15): the month as a full-screen stage, on Revenue's own data.
+  `revenue/${MONTH_NOW}/cinema`].filter((r) => !ONLY || r.includes(ONLY));
 
 const collect = `<script>(function () {
   var errs = window.__errs = [];
