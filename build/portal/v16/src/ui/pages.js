@@ -784,6 +784,7 @@
     // The form shows once the client presses Add someone.
     const add = /** @type {HTMLButtonElement|null} */ (el.querySelector('[data-action="add-login"]'));
     if (add) add.addEventListener('click', () => {
+      if (D8.data.READ_ONLY) D8.dialogs.toast(D8.data.viewAs ? D8.data.DEMO_NOTE : 'This is a demo, so nothing is saved.');
       const open = form.hidden;
       form.hidden = !open;
       add.setAttribute('aria-expanded', String(open));
@@ -803,8 +804,8 @@
       err.hidden = true;
       if (!first) return bad('first', 'Add their first name.');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return bad('email', 'Enter their email address, like name@restaurant.com.');
-      if (D8.data.viewAs) { status.textContent = D8.data.DEMO_NOTE; return; }
-      if (!D8.live) { status.textContent = 'This is a demo, so nothing was sent. In your own portal, we would get this request.'; return; }
+      if (D8.data.viewAs) { status.textContent = D8.data.DEMO_NOTE; D8.dialogs.toast(D8.data.DEMO_NOTE); return; }
+      if (!D8.live) { status.textContent = 'This is a demo, so nothing was sent. In your own portal, we would get this request.'; D8.dialogs.toast('This is a demo, so nothing is saved.'); return; }
       const btn = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
       btn.disabled = true;
       try {
@@ -833,6 +834,7 @@
     const status = /** @type {HTMLElement} */ (form.querySelector('#notify-status'));
     const err = /** @type {HTMLElement} */ (form.querySelector('.form-error'));
     let saved = { ...s.prefs };
+    if (D8.data.READ_ONLY) btn.disabled = false; // pressing it says why nothing is saved
     const current = () => {
       /** @type {Record<string, boolean>} */ const p = {};
       // The always-on emails have no switch: they keep their saved value.
@@ -843,16 +845,23 @@
       return p;
     };
     const dirty = () => s.categories.some((c) => current()[c.id] !== saved[c.id]);
-    form.addEventListener('change', () => { btn.disabled = !dirty(); status.textContent = dirty() ? 'You have unsaved changes. Press Save changes to keep them.' : 'No unsaved changes.'; });
+    const demoToast = () => D8.dialogs.toast(D8.data.viewAs ? D8.data.DEMO_NOTE : 'This is a demo, so nothing is saved.');
+    form.addEventListener('change', () => {
+      if (D8.data.READ_ONLY) {
+        // A blocked switch says so and stays as it was (2026-10-14, R2-26).
+        for (const c of s.categories) { const box = /** @type {HTMLInputElement|null} */ (form.elements.namedItem(c.id)); if (box) box.checked = !!saved[c.id]; }
+        demoToast();
+        return;
+      }
+      btn.disabled = !dirty(); status.textContent = dirty() ? 'You have unsaved changes. Press Save changes to keep them.' : 'No unsaved changes.'; });
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      if (!dirty()) return;
+      if (!dirty() && !D8.data.READ_ONLY) return;
       if (D8.data.READ_ONLY) {
         // Nothing was saved, so the switches go back to what is saved (2026-10-14): the page never shows a choice it did not keep.
         for (const c of s.categories) { const box = /** @type {HTMLInputElement|null} */ (form.elements.namedItem(c.id)); if (box) box.checked = !!saved[c.id]; }
-        btn.disabled = true;
         status.textContent = D8.data.DEMO_NOTE;
-        D8.dialogs.toast(D8.data.viewAs ? D8.data.DEMO_NOTE : 'This is a demo, so nothing is saved.');
+        demoToast();
         return;
       }
       btn.disabled = true;

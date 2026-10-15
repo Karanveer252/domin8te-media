@@ -212,6 +212,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: rgba(17
 .empty { padding: 26px; border: 1px dashed var(--line-2); border-radius: var(--r-lg); text-align: center; color: var(--ink-2); }
 .empty p + p { margin-top: 5px; }
 .empty .btn { margin-top: 12px; }
+/* The "No clients yet" box and the "Do now" heading after it keep the same room as any two groups (R2-29, 15 Oct). */
+main > .empty + .q-group { margin-top: 22px; }
 
 /* ---- tables ------------------------------------------------------------------------------------- */
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
@@ -313,6 +315,7 @@ table.grid tbody tr[data-href] { cursor: pointer; }
 /* ---- the client page head, tabs ----------------------------------------------------------------- */
 .client-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 18px; margin-bottom: 18px; }
 .client-head .btns { margin-left: auto; }
+.client-head h1 { min-width: 0; overflow-wrap: anywhere; }
 .client-head .who { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 8px; color: var(--ink-3); font-size: 14px; }
 .client-head .who .t + .t::before { content: "\00B7"; margin-right: 12px; color: var(--line-2); }
 .client-head .who a { color: var(--ink-2); }
@@ -353,6 +356,10 @@ table.grid tbody tr[data-href] { cursor: pointer; }
 .msg.team { justify-self: end; border-radius: 14px 14px 4px 14px; background: var(--ink); color: #F4F1EC; }
 .msg.team .meta { color: rgba(244, 241, 236, 0.7); }
 .msg p + p { margin-top: 3px; }
+/* A long link or word wraps inside its bubble instead of stretching it (R2-6, 15 Oct). */
+.msg { min-width: 0; }
+.msg p, .item-card p, .item-card blockquote { overflow-wrap: anywhere; min-width: 0; }
+.convo-log { overflow-x: hidden; }
 .reveal { margin-top: 12px; }
 
 /* ---- the unsaved-changes bar -------------------------------------------------------------------------- */
@@ -405,7 +412,7 @@ main:has(> .signin) { max-width: none; padding: 16px; }
 .notice + * { margin-top: 12px; }
 
 /* ---- toasts, spinner ----------------------------------------------------------------------------------- */
-.toasts { position: fixed; left: 50%; bottom: 20px; z-index: 50; display: grid; gap: 8px; translate: -50% 0; width: min(440px, calc(100vw - 32px)); pointer-events: none; }
+.toasts { position: fixed; left: 50%; bottom: 20px; z-index: 50; display: flex; flex-direction: column; gap: 8px; translate: -50% 0; width: min(440px, calc(100vw - 32px)); pointer-events: none; }
 .toast { padding: 11px 16px; border-radius: 10px; background: var(--ink); color: var(--bg); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18); font-size: 14px; animation: rise 200ms var(--ease); }
 .toast.bad { background: var(--bad); color: #fff; }
 .spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -428,6 +435,13 @@ main:has(> .signin) { max-width: none; padding: 16px; }
   .svc-list li > span:first-child { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; }
   .svc-list li > span:first-child br { display: none; }
   .client-head .btns { margin-left: 0; }
+}
+/* Under 480px the Services rows on Overview give the name its own line, with the status chip and the link under it, so a long name never
+   wraps into a sliver beside the chip (R2-1, 15 Oct). */
+@media (max-width: 480px) {
+  .svc-rows a { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding: 12px 0; }
+  .svc-rows .s-name { grid-column: 1 / -1; }
+  .svc-rows .chip { justify-self: start; }
 }
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; border-right-color: currentColor; opacity: 0.6; }
@@ -547,7 +561,7 @@ select { background-color: rgba(255, 255, 255, 0.78); }
 .tabs { margin: 0 -8px 10px; padding: 6px 8px 16px; }
 /* On a phone the tab row scrolls sideways; its right edge fades out so the cut pill reads as "more this way", not as a mistake (2026-10-14). */
 @media (max-width: 760px) {
-  .tabs { margin-right: -16px; padding-right: 48px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent calc(100% - 8px)); mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent calc(100% - 8px)); }
+  .tabs { margin-right: -16px; padding-right: 64px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 84px), transparent calc(100% - 6px)); mask-image: linear-gradient(to right, #000 calc(100% - 84px), transparent calc(100% - 6px)); }
 }
 .req-status { border: 0; background: rgba(94, 72, 50, 0.08); border-radius: 999px; padding: 3px; }
 .req-status button { border-radius: 999px; min-height: 30px; padding: 0 12px; font-size: 13px; }

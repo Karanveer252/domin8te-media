@@ -8,7 +8,7 @@
   .icon-btn, .icon-btn.icon-btn-sm, .row .icon-btn { width: 44px; height: 44px; }
   .tabs a, .seg a, .seg button, .cv-bar .seg button, .req-status button, .seg.role-seg button, .set-index button, .wk-chip, .wk-pill, .wk-switch, .nc-pill { min-height: 44px; }
   /* the sign-off level radios (Setup): the whole label is the control */
-  .seg-set label:has(> input[type="radio"]) { min-height: 44px; display: inline-flex; align-items: center; }
+  .seg-set label:has(> input[type="radio"]), .seg-radio label { min-height: 44px; display: inline-flex; align-items: center; }
   .brand { min-height: 44px; }
   .side-h a, .side-hint button { min-height: 44px; }
   .side-hint .side-help { width: 44px; height: 44px; margin: -12px 0 -12px -8px; border-radius: 50%; }
@@ -41,5 +41,14 @@
   .bot-needs .bot-all { min-height: 44px; }
   a.chip, button.cc-badge { position: relative; }
   a.chip::after, button.cc-badge::after { content: ""; position: absolute; inset: -8px 0; }
-  button.cc-badge::after { inset: -12px -6px; }
+  button.cc-badge::after { inset: -12px -11px; }
+  /* Round 2 (15 Oct): the sidebar's client rows, the narrow sort buttons, a card's Edit link, a chart's Hide and the Add client
+     tick rows all reach 44px; the words keep their size, only the hit box grows. */
+  .side-client { min-height: 44px; }
+  table.grid th button { min-width: 44px; margin-left: -8px; margin-right: -8px; padding-left: 8px; padding-right: 8px; }
+  .linkish.card-edit-btn { padding-left: 11px; padding-right: 11px; margin-left: -11px; margin-right: -11px; }
+  .card-edit-btn.linkish { margin-left: auto; padding-right: 11px; }
+  .rv-hide { position: relative; }
+  .rv-hide::after { content: ""; position: absolute; inset: -11px -4px; }
+  .nc-check { min-height: 44px; }
 }

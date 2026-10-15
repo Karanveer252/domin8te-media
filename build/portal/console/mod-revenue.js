@@ -114,6 +114,11 @@
     if (kind === 'mon') return d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
     return d.toLocaleDateString('en-US', { month: kind === 'short' ? 'short' : 'long', year: 'numeric', timeZone: 'UTC' });
   }
+  /** Today's day of the month on Karan's clock, 1 to 31. */
+  function dayOfMonth() {
+    try { const v = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Winnipeg', day: 'numeric' }).format(new Date())); if (v >= 1) return v; } catch (e) { /* the computer's own clock is close enough */ }
+    return new Date().getDate();
+  }
   /** "Sep", or "Sep 2025" when the year is not the year of `than`. @param {string} ym @param {string} than */
   const nearName = (ym, than) => (ym.slice(0, 4) === than.slice(0, 4) ? monthName(ym, 'mon') : monthName(ym, 'short'));
   /** A month from the address, or this month when it is missing, in the future or further back than the page goes. @param {string} s */
@@ -141,6 +146,7 @@
     const t = String(s || '').replace(/[\s$,]/g, '');
     if (t === '') return { minor: null, why: '' };
     if (/^-/.test(t) && /^-\d*\.?\d*$/.test(t)) return { minor: null, why: 'neg' };
+    if (/^\d{11,}(\.\d*)?$/.test(t)) return { minor: null, why: 'big' };
     if (!/^\d{1,10}(\.\d{0,2})?$/.test(t) || t === '.') return { minor: null, why: 'bad' };
     const [d, c = ''] = t.split('.');
     const minor = Number(d) * 100 + Number((c + '00').slice(0, 2));
@@ -249,19 +255,25 @@
     const p = totals(d, shift(ym, -1));
     const name = nearName(shift(ym, -1), ym);
     const prevHas = { inc: p.incN > 0, cost: p.costN > 0 };
+    // The month still running is only part way through, so "down 35% on Sep" would read as a bad month. It says how far in it is and
+    // what the last full month came to, and leaves the percent for months that are over (R2-21, 15 Oct).
+    const partial = ym === currentMonth();
+    const day = dayOfMonth();
+    const soFar = `So far, ${day} ${day === 1 ? 'day' : 'days'} in`;
+    const against = (/** @type {boolean} */ has, /** @type {number} */ v) => (has ? `${soFar}. ${name} in full: ${money(v)}` : soFar);
     const card = (/** @type {string} */ label, /** @type {string} */ value, /** @type {string} */ words, /** @type {string} */ cls, /** @type {string} */ extra) =>
       `<div class="rv-card"><p class="rv-card-k">${label}${extra || ''}</p><p class="rv-card-v${cls}">${value}</p><p class="rv-card-s">${esc(words)}</p></div>`;
     const none = '<span class="rv-none">Not entered</span>';
-    const inc = t.incN ? card('Income', esc(money(t.inc)), change(t.inc, { has: prevHas.inc, v: p.inc }, name) || 'What you made this month', '', '')
+    const inc = t.incN ? card('Income', esc(money(t.inc)), partial ? against(prevHas.inc, p.inc) : change(t.inc, { has: prevHas.inc, v: p.inc }, name) || 'What you made this month', '', '')
       : card('Income', none, `Nothing entered for ${monthName(ym, 'mon')} yet`, ' is-none', '');
-    const cost = t.costN ? card('Business costs', esc(money(t.cost)), change(t.cost, { has: prevHas.cost, v: p.cost }, name) || 'What you spent on the business', '', '')
+    const cost = t.costN ? card('Business costs', esc(money(t.cost)), partial ? against(prevHas.cost, p.cost) : change(t.cost, { has: prevHas.cost, v: p.cost }, name) || 'What you spent on the business', '', '')
       : card('Business costs', none, `Nothing entered for ${monthName(ym, 'mon')} yet`, ' is-none', '');
     let prof;
     if (!t.has) prof = card('Profit', none, 'Income minus business costs', ' is-none', '');
     else {
       const mg = margin(t.profit, t.inc);
       const mWords = mg === null ? 'No income this month' : `${mg}% margin`;
-      const ch = change(t.profit, { has: p.has, v: p.profit }, name);
+      const ch = partial ? (p.has ? `${soFar.toLowerCase()}. ${name} in full: ${signed(p.profit, true)}` : soFar.toLowerCase()) : change(t.profit, { has: p.has, v: p.profit }, name);
       const value = t.profit < 0 ? `${esc(signed(t.profit))}<span class="rv-card-unit"> loss</span>` : esc(money(t.profit));
       prof = card('Profit', value, ch ? `${mWords}, ${ch}` : mWords, t.profit < 0 ? ' rv-neg' : '', t.profit < 0 ? ' <span class="chip bad plain">Loss</span>' : '');
     }
@@ -1387,7 +1399,7 @@
     for (const el of f.querySelectorAll('[aria-invalid]')) el.removeAttribute('aria-invalid');
     /** @type {HTMLElement|null} */ let firstBad = null;
     const bad = (/** @type {HTMLElement|null} */ el, /** @type {string} */ sel, /** @type {string} */ text) => { if (el) el.setAttribute('aria-invalid', 'true'); if (!firstBad) { err(sel, text); firstBad = el; } };
-    const why = (/** @type {string} */ w) => (w === 'neg' ? 'An amount cannot be negative.' : w === 'big' ? 'That amount is too large.' : 'Use dollars and cents, like 1250 or 1250.50.');
+    const why = (/** @type {string} */ w) => (w === 'neg' ? 'An amount cannot be negative.' : w === 'big' ? `That is more than the limit of ${money(MAX_MINOR)}.` : 'Use dollars and cents, like 1250 or 1250.50.');
     /** @type {any[]} */ const out = [];
     if (kind === 'income') {
       for (const el of f.querySelectorAll('input[name=client]')) {
@@ -1472,6 +1484,8 @@
     if (state.io) { state.io.disconnect(); state.io = null; }
     state.form = null;
     if (demo()) { privatePage(); return; }
+    // #/revenue/income and #/revenue/costs mean this month's editor (R2-18, 15 Oct).
+    if (!view && VIEWS.includes(month || '')) { view = month; month = ''; }
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Revenue</h1></div></div><div id="rv-wait">${c.skeleton(3)}</div>`;
     const ok = await checkOwner();
     if (seq !== state.seq) return;

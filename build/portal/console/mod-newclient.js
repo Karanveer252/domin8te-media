@@ -283,7 +283,11 @@
       gather();
       const err = $('#n-err');
       err.hidden = true;
-      const fail = (/** @type {string} */ text, /** @type {HTMLElement|null} */ focus) => { err.textContent = text; err.hidden = false; if (focus) focus.focus(); };
+      // A bad field gets its words under it, aria-invalid and the focus (console.js fieldFail, critic R2-23); the rest show at the end.
+      const fail = (/** @type {string} */ text, /** @type {HTMLElement|null} */ focus) => {
+        if (focus && c.fieldFail) { c.fieldFail(focus, text); return; }
+        err.textContent = text; err.hidden = false; if (focus) focus.focus();
+      };
       const name = S.name.trim();
       if (!name) { fail('Give the restaurant a name.', $('#n-name')); return; }
       if (S.email && !EMAIL.test(S.email)) { fail('That email does not look right. Fix it or leave it empty.', $('#n-email')); return; }
@@ -367,7 +371,7 @@
       } catch (x) {
         done();
         if (row) { location.hash = `#/client/${row.id}/overview`; return; }
-        fail(c.message(x), null);
+        fail(c.failMessage ? c.failMessage(x) : c.message(x), null);
       }
     });
     $('#n-name').focus();

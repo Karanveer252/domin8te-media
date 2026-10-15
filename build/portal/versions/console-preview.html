@@ -2271,7 +2271,9 @@
   });
 })();
 </script>
-<style>body::after{content:"Preview: in-memory data, nothing is saved or sent";position:fixed;left:0;right:0;bottom:0;z-index:99;padding:6px;background:#FF5B1F;color:#1D1A16;font:600 13px/1.4 system-ui;text-align:center}</style>
+<style>body::after{content:"Preview: in-memory data, nothing is saved or sent";position:fixed;left:0;right:0;bottom:0;z-index:99;padding:6px;background:#FF5B1F;color:#1D1A16;font:600 13px/1.4 system-ui;text-align:center}
+/* The footer is 30px tall: the sidebar and the toasts stop above it, so nothing is clipped in the preview (R2-5, R2-17, 15 Oct). */
+@media (min-width:901px){body .side{bottom:46px}}@media (max-width:900px){body .side{padding-bottom:30px}}body .toasts{bottom:50px}</style>
 <style>
 /* Agency console: the Domin8te team's workspace. The client portal's warm neutrals and typeface,
    set denser and plainer: a tool for getting through the week's work. One accent (the brand
@@ -2487,6 +2489,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: rgba(17
 .empty { padding: 26px; border: 1px dashed var(--line-2); border-radius: var(--r-lg); text-align: center; color: var(--ink-2); }
 .empty p + p { margin-top: 5px; }
 .empty .btn { margin-top: 12px; }
+/* The "No clients yet" box and the "Do now" heading after it keep the same room as any two groups (R2-29, 15 Oct). */
+main > .empty + .q-group { margin-top: 22px; }
 
 /* ---- tables ------------------------------------------------------------------------------------- */
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
@@ -2588,6 +2592,7 @@ table.grid tbody tr[data-href] { cursor: pointer; }
 /* ---- the client page head, tabs ----------------------------------------------------------------- */
 .client-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 18px; margin-bottom: 18px; }
 .client-head .btns { margin-left: auto; }
+.client-head h1 { min-width: 0; overflow-wrap: anywhere; }
 .client-head .who { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 8px; color: var(--ink-3); font-size: 14px; }
 .client-head .who .t + .t::before { content: "\00B7"; margin-right: 12px; color: var(--line-2); }
 .client-head .who a { color: var(--ink-2); }
@@ -2628,6 +2633,10 @@ table.grid tbody tr[data-href] { cursor: pointer; }
 .msg.team { justify-self: end; border-radius: 14px 14px 4px 14px; background: var(--ink); color: #F4F1EC; }
 .msg.team .meta { color: rgba(244, 241, 236, 0.7); }
 .msg p + p { margin-top: 3px; }
+/* A long link or word wraps inside its bubble instead of stretching it (R2-6, 15 Oct). */
+.msg { min-width: 0; }
+.msg p, .item-card p, .item-card blockquote { overflow-wrap: anywhere; min-width: 0; }
+.convo-log { overflow-x: hidden; }
 .reveal { margin-top: 12px; }
 
 /* ---- the unsaved-changes bar -------------------------------------------------------------------------- */
@@ -2680,7 +2689,7 @@ main:has(> .signin) { max-width: none; padding: 16px; }
 .notice + * { margin-top: 12px; }
 
 /* ---- toasts, spinner ----------------------------------------------------------------------------------- */
-.toasts { position: fixed; left: 50%; bottom: 20px; z-index: 50; display: grid; gap: 8px; translate: -50% 0; width: min(440px, calc(100vw - 32px)); pointer-events: none; }
+.toasts { position: fixed; left: 50%; bottom: 20px; z-index: 50; display: flex; flex-direction: column; gap: 8px; translate: -50% 0; width: min(440px, calc(100vw - 32px)); pointer-events: none; }
 .toast { padding: 11px 16px; border-radius: 10px; background: var(--ink); color: var(--bg); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18); font-size: 14px; animation: rise 200ms var(--ease); }
 .toast.bad { background: var(--bad); color: #fff; }
 .spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -2703,6 +2712,13 @@ main:has(> .signin) { max-width: none; padding: 16px; }
   .svc-list li > span:first-child { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; }
   .svc-list li > span:first-child br { display: none; }
   .client-head .btns { margin-left: 0; }
+}
+/* Under 480px the Services rows on Overview give the name its own line, with the status chip and the link under it, so a long name never
+   wraps into a sliver beside the chip (R2-1, 15 Oct). */
+@media (max-width: 480px) {
+  .svc-rows a { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding: 12px 0; }
+  .svc-rows .s-name { grid-column: 1 / -1; }
+  .svc-rows .chip { justify-self: start; }
 }
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; border-right-color: currentColor; opacity: 0.6; }
@@ -2822,7 +2838,7 @@ select { background-color: rgba(255, 255, 255, 0.78); }
 .tabs { margin: 0 -8px 10px; padding: 6px 8px 16px; }
 /* On a phone the tab row scrolls sideways; its right edge fades out so the cut pill reads as "more this way", not as a mistake (2026-10-14). */
 @media (max-width: 760px) {
-  .tabs { margin-right: -16px; padding-right: 48px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent calc(100% - 8px)); mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent calc(100% - 8px)); }
+  .tabs { margin-right: -16px; padding-right: 64px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 84px), transparent calc(100% - 6px)); mask-image: linear-gradient(to right, #000 calc(100% - 84px), transparent calc(100% - 6px)); }
 }
 .req-status { border: 0; background: rgba(94, 72, 50, 0.08); border-radius: 999px; padding: 3px; }
 .req-status button { border-radius: 999px; min-height: 30px; padding: 0 12px; font-size: 13px; }
@@ -3641,6 +3657,13 @@ button.cl-card:hover { background-color: rgba(255, 255, 255, 0.7); box-shadow: v
 .cl-more button { min-height: 34px; padding: 5px 13px; font-size: 13.5px; }
 
 /* The list: one row for each restaurant, usage bars in a small column of their own. */
+/* Five or more restaurants, or one with a long name, must never push the Freshness column past the panel: the first column wraps its
+   name, the narrow columns keep a floor, and the wrapper scrolls sideways as a last resort instead of clipping (R2-11, 15 Oct). */
+.cl-table { overflow-x: auto; }
+.cl-table table.grid { table-layout: auto; width: 100%; min-width: 0; }
+.cl-table table.grid td:first-child .row-link { white-space: normal; overflow-wrap: anywhere; }
+.cl-table table.grid td:first-child .row-link > .cc-badge { vertical-align: -3px; }
+.cl-table .cl-status, .cl-table .cl-fresh .cl-v { min-width: 0; }
 .cl-table table.grid th, .cl-table table.grid td { padding: 14px 7px; vertical-align: top; }
 .cl-table table.grid th:first-child, .cl-table table.grid td:first-child { padding-left: 20px; min-width: 132px; }
 .cl-table table.grid th:last-child, .cl-table table.grid td:last-child { padding-right: 20px; }
@@ -3852,6 +3875,9 @@ html[data-theme="dark"] .wk-chip[aria-pressed="true"] { background-color: #F1EFE
   .wk-strips > .wk-strip { flex: 0 0 min(84vw, 340px); scroll-snap-align: start; }
   .wk-rest .wk-strips { margin: 0 -16px; }
   .wk-chips { flex-wrap: nowrap; margin: 0 -16px; padding: 4px 16px 10px; overflow-x: auto; scrollbar-width: none; }
+  /* The sideways rows fade out at the right edge so a half card reads as "more this way"; the extra right padding lets the last one
+     scroll clear of the fade (R2-4, 15 Oct). */
+  .wk-strips, .wk-chips, .wk-by { padding-right: 56px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 72px), transparent calc(100% - 6px)); mask-image: linear-gradient(to right, #000 calc(100% - 72px), transparent calc(100% - 6px)); }
   .wk-chip { flex: none; }
   .wk-bar { gap: 0; }
 }
@@ -3874,6 +3900,9 @@ html[data-theme="dark"] .wk-chip[aria-pressed="true"] { background-color: #F1EFE
   .wk-by-pills { flex-wrap: nowrap; }
   .wk-by-l, .wk-pill { flex: none; }
 }
+
+/* A card title that is one long word wraps inside its card instead of running past the edge (R2-16, 15 Oct). */
+.card-title { overflow-wrap: anywhere; min-width: 0; }
 
 /* ---- the card editor: one field to a row, calm and roomy in a narrow column or a wide one (2026-10-14) ------------------------ */
 .cards { grid-template-columns: minmax(0, 1fr); }
@@ -5115,6 +5144,8 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
 .bot-text mark { padding: 1px 3px; border-radius: 4px; background: var(--warn-bg); color: var(--ink); }
 .bot-note { padding: 11px 14px; border-radius: 10px; background: var(--surface-2); color: var(--ink-2); }
 .bot-note strong { color: var(--ink); }
+/* A long word or link in a draft wraps inside the card instead of widening the page (R2-10, 15 Oct). */
+.bot-text, .bot-part blockquote, .bot-after blockquote, .bot-note, .q-row .text { overflow-wrap: anywhere; min-width: 0; }
 .bot-part .thread { margin: 0; }
 .bot-actions, .bot-form .actions, .bot-after .actions { margin-top: 0; }
 .bot-form { display: grid; gap: 12px; }
@@ -5553,7 +5584,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
   .icon-btn, .icon-btn.icon-btn-sm, .row .icon-btn { width: 44px; height: 44px; }
   .tabs a, .seg a, .seg button, .cv-bar .seg button, .req-status button, .seg.role-seg button, .set-index button, .wk-chip, .wk-pill, .wk-switch, .nc-pill { min-height: 44px; }
   /* the sign-off level radios (Setup): the whole label is the control */
-  .seg-set label:has(> input[type="radio"]) { min-height: 44px; display: inline-flex; align-items: center; }
+  .seg-set label:has(> input[type="radio"]), .seg-radio label { min-height: 44px; display: inline-flex; align-items: center; }
   .brand { min-height: 44px; }
   .side-h a, .side-hint button { min-height: 44px; }
   .side-hint .side-help { width: 44px; height: 44px; margin: -12px 0 -12px -8px; border-radius: 50%; }
@@ -5586,7 +5617,16 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
   .bot-needs .bot-all { min-height: 44px; }
   a.chip, button.cc-badge { position: relative; }
   a.chip::after, button.cc-badge::after { content: ""; position: absolute; inset: -8px 0; }
-  button.cc-badge::after { inset: -12px -6px; }
+  button.cc-badge::after { inset: -12px -11px; }
+  /* Round 2 (15 Oct): the sidebar's client rows, the narrow sort buttons, a card's Edit link, a chart's Hide and the Add client
+     tick rows all reach 44px; the words keep their size, only the hit box grows. */
+  .side-client { min-height: 44px; }
+  table.grid th button { min-width: 44px; margin-left: -8px; margin-right: -8px; padding-left: 8px; padding-right: 8px; }
+  .linkish.card-edit-btn { padding-left: 11px; padding-right: 11px; margin-left: -11px; margin-right: -11px; }
+  .card-edit-btn.linkish { margin-left: auto; padding-right: 11px; }
+  .rv-hide { position: relative; }
+  .rv-hide::after { content: ""; position: absolute; inset: -11px -4px; }
+  .nc-check { min-height: 44px; }
 }
 </style>
 </head>
@@ -9055,7 +9095,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
       c.toast(`Invoice ${inv.invoice_number} approved${url ? ' with its Stripe link' : ''}. ${t ? t.name : 'The client'} can see it now.`);
     } catch (x) {
       if (btn.isConnected) done();
-      c.toast(`The invoice was not approved. ${PP().say(x)}`, true);
+      const m = PP().say(x, 'Invoice not approved');
+      c.toast(/^Invoice not approved/.test(m) ? m : `The invoice was not approved. ${m}`, true);
     }
   }
 
@@ -9261,7 +9302,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
         if (/^#\/billing\/./.test(location.hash || '')) location.hash = '#/billing'; else c.route();
       } catch (x) {
         if (btn.isConnected) done();
-        fail(`${PP().say(x)} Nothing was changed.`, null);
+        const m = PP().say(x, 'Not saved');
+        fail(/nothing was changed/i.test(m) ? m : `${m} Nothing was changed.`, null);
       }
     });
 
@@ -9287,7 +9329,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
  * and the Pending count on the sidebar item. Clients never see any of it (the table has no client policy).
  *
  * Statuses: Pending, Approved, Rejected, Expired (a Pending card past its expires_at shows Expired). Actions on a Pending card:
- * Approve (the draft as it is), Edit (the draft becomes a text field, then Save & Approve), Reject (a short reason, kept with
+ * Approve (the draft as it is), Edit (the draft becomes a text field, then Save and approve), Reject (a short reason, kept with
  * the card) and Respond (a note for another round; the card stays Pending). Every change goes through the database function
  * bot_output_decide. Approving sends nothing: the card then offers Copy and "Put in reply to <client>", which opens their
  * conversation in Messages with the text in the reply box, for the team to send by hand.
@@ -9338,7 +9380,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
     if (/empty-text/.test(m)) return 'The text is empty.';
     if (/not-staff|42501/.test(m)) return 'Only the Domin8te team can do this.';
     if (/not-found|P0002/.test(m)) return 'That item was not found. Reload the page.';
-    return C().message(x);
+    // Anything else: the console's one failure wording, with the browser's text on a Details line (critic R2-27).
+    return C().failMessage ? C().failMessage(x) : C().message(x);
   }
 
   /* ---- data ------------------------------------------------------------------------------------------------------ */
@@ -9402,14 +9445,14 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
     const by = r.source && r.source !== 'console' ? `From ${esc(r.source.charAt(0).toUpperCase() + r.source.slice(1))}` : 'Added in the console';
     const back = inTab ? `#/client/${inTab}/bot` : '#/bot';
     const draftBlock = open === 'edit'
-      ? `<form class="bot-form" id="bot-edit" novalidate>
+      ? `<form class="bot-form" id="bot-edit" novalidate data-esc data-esc-focus="[data-bot-id='${esc(r.id)}'] [data-bot='edit']">
           <div class="field"><label class="sr-only" for="bot-edit-text">AI draft, edit before you approve</label><textarea id="bot-edit-text" name="text" rows="7" maxlength="20000">${esc(r.draft)}</textarea></div>
-          <div class="actions"><button class="btn" type="submit">${icon('check')}Save &amp; Approve</button><button class="btn btn-quiet" type="button" data-bot="cancel">Cancel</button></div>
+          <div class="actions"><button class="btn" type="submit">${icon('check')}Save and approve</button><button class="btn btn-quiet" type="button" data-bot="cancel" data-esc-cancel>Cancel</button></div>
         </form>`
       : `<div class="bot-text">${st === 'approved' && r.final_text && r.final_text !== r.draft ? esc(r.final_text) : marked(r)}</div>`;
-    const field = (/** @type {string} */ id, /** @type {string} */ label, /** @type {string} */ ph, /** @type {string} */ ok, /** @type {string} */ cls) => `<form class="bot-form" id="${id}" novalidate>
+    const field = (/** @type {string} */ id, /** @type {string} */ label, /** @type {string} */ ph, /** @type {string} */ ok, /** @type {string} */ cls) => `<form class="bot-form" id="${id}" novalidate data-esc data-esc-focus="[data-bot-id='${esc(r.id)}'] [data-bot='${id === 'bot-reject' ? 'reject' : 'respond'}']">
         <div class="field"><label for="${id}-note">${label}</label><textarea id="${id}-note" name="note" rows="3" maxlength="2000" placeholder="${ph}"></textarea></div>
-        <div class="actions"><button class="btn btn-quiet" type="button" data-bot="cancel">${icon('back')}Back</button><button class="btn${cls}" type="submit">${ok}</button></div>
+        <div class="actions"><button class="btn btn-quiet" type="button" data-bot="cancel" data-esc-cancel>${icon('back')}Back</button><button class="btn${cls}" type="submit">${ok}</button></div>
       </form>`;
     const actions = st !== 'pending' ? ''
       : open === 'reject' ? field('bot-reject', 'Why it is rejected (kept with this item)', 'For example: the offer wording is wrong, they asked for Sunday not Saturday.', 'Confirm reject', ' btn-danger')
@@ -9881,7 +9924,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
     return `<div class="table-wrap cl-table"><table class="grid"><thead><tr>
         ${th('name', 'Client')}${th('plan', 'Plan')}<th scope="col">Picks this cycle</th>${th('usage', 'Usage this month')}${th('needs', 'Needs you')}<th scope="col">Status</th><th scope="col">Freshness</th>
       </tr></thead><tbody>${rows.map(fmt).join('')}</tbody></table></div>
-      <p class="meta cl-foot">${c.plural(rows.length, 'client')}${rows.length !== all.length ? ` of ${all.length}` : ''}. Click a column name to sort. A bar turns amber from 85 percent of a limit, says At limit when it is full, and turns red only when it is over.</p>`;
+      <p class="meta cl-foot">${c.plural(rows.length, 'client')}${rows.length !== all.length ? ` of ${all.length}` : ''}. Click Client, Plan, Usage or Needs you to sort. A bar turns amber from 85 percent of a limit, says At limit when it is full, and turns red only when it is over.</p>`;
   }
 
   /** The plan a client has this month, for the About line and the Setup tab; empty when none is set. @param {string} id */
@@ -12202,9 +12245,11 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         out = await sh.run(f, note);
       } catch (x) {
         done();
-        err.textContent = (x && /** @type {any} */ (x).message) || 'That did not save.';
+        // One failure wording for every save (console.js failMessage, critic R2-27): browser text goes on a Details line.
+        const said = (x && c.failMessage ? c.failMessage(x) : (x && /** @type {any} */ (x).message)) || 'That did not save.';
+        err.textContent = said.replace(/\n/g, ' ');
         err.hidden = false;
-        c.toast(`Not saved. ${err.textContent}`, true);
+        c.toast(/^Not saved\./.test(said) ? said : `Not saved. ${said}`, true);
         // A refusal can mean the page is out of date (somebody else acted first): load it again quietly.
         if (/Reloaded/.test(err.textContent || '')) { try { await c.loadAll(); c.redraw(); } catch (y) { /* the message above already said what happened */ } }
         return;
@@ -12542,7 +12587,11 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       gather();
       const err = $('#n-err');
       err.hidden = true;
-      const fail = (/** @type {string} */ text, /** @type {HTMLElement|null} */ focus) => { err.textContent = text; err.hidden = false; if (focus) focus.focus(); };
+      // A bad field gets its words under it, aria-invalid and the focus (console.js fieldFail, critic R2-23); the rest show at the end.
+      const fail = (/** @type {string} */ text, /** @type {HTMLElement|null} */ focus) => {
+        if (focus && c.fieldFail) { c.fieldFail(focus, text); return; }
+        err.textContent = text; err.hidden = false; if (focus) focus.focus();
+      };
       const name = S.name.trim();
       if (!name) { fail('Give the restaurant a name.', $('#n-name')); return; }
       if (S.email && !EMAIL.test(S.email)) { fail('That email does not look right. Fix it or leave it empty.', $('#n-email')); return; }
@@ -12626,7 +12675,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       } catch (x) {
         done();
         if (row) { location.hash = `#/client/${row.id}/overview`; return; }
-        fail(c.message(x), null);
+        fail(c.failMessage ? c.failMessage(x) : c.message(x), null);
       }
     });
     $('#n-name').focus();
@@ -12776,8 +12825,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
    * A database refusal in plain words (the portal's own mapping in D8.live.dbFail speaks to clients, so the console reads the
    * raw error). Names the cause and, where it helps, what to do.
    * @param {any} err
+   * @param {string} [what] when given, an error that is not a written sentence becomes the one failure wording (console.js failMessage, critic R2-27) starting with these words
    */
-  function say(err) {
+  function say(err, what) {
     const code = String((err && err.code) || '');
     const text = String((err && (err.message || err.details)) || err || '');
     // a locked plan comes first: it is a 23P01 too
@@ -12804,6 +12854,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (/not-a-stripe-link/i.test(text)) return 'That payment link is not a Stripe link, so it was not approved.';
     if (/hidden/i.test(text) && /unhide/i.test(text)) return 'That invoice is hidden. Unhide it first.';
     if (/not-found/i.test(text) || code === 'P0002') return 'That was not found. Reload the page and try again.';
+    if (what && C() && C().failMessage) return C().failMessage(err, what);
     return text ? `That did not save: ${text.replace(/^[a-z-]+:\s*/i, '')}` : 'That did not save. Nothing was changed.';
   }
 
@@ -13253,6 +13304,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
             <button class="btn btn-quiet" type="button" data-rs-keep${frozen ? '' : ' hidden'}>Keep hidden</button>
             ${frozen ? '' : '<button class="btn btn-quiet" type="button" data-rs-draft disabled>Save draft</button>'}
           </div>
+          ${frozen ? '' : '<p class="hint rs-need" data-rs-need role="status"></p>'}
         </form>
         <aside class="rs-side" aria-label="Checklist and what the client sees">
           <section class="panel rs-check"><h2>Publish checklist</h2><ol class="rs-list" data-rs-list></ol></section>
@@ -13337,6 +13389,11 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       publish.title = done ? 'Already published' : all ? '' : 'Needs a value, a period, a named source with its read time, and proof.';
       const draft = /** @type {HTMLButtonElement|null} */ ($('[data-rs-draft]'));
       if (draft) draft.disabled = !(ck.value && ck.period && ck.source && ck.metric);
+      const need = $('[data-rs-need]');
+      if (need) {
+        const miss = [!ck.value && 'the value', !ck.period && 'the period', !ck.source && 'the named source and read time'].filter(Boolean);
+        need.textContent = miss.length ? `Fill in ${miss.join(', ').replace(/, ([^,]*)$/, ' and $1')} first.` : !ck.proof ? 'Attach the proof to publish. You can save a draft now.' : '';
+      }
       const keep = /** @type {HTMLButtonElement|null} */ ($('[data-rs-keep]'));
       if (keep) { keep.hidden = !(opened ? opened.verification_status === 'pending' : !!hold); keep.disabled = !opened && !(ck.value && ck.period && ck.source && ck.metric); }
       if (opened && done) { publish.hidden = true; if (keep) keep.hidden = true; }
@@ -13397,8 +13454,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           const go = publish || keep ? base : `${base}/${item.id}`;
           // the address changes, so the page is drawn again from it; if it is the same address, it is drawn here
           if (location.hash === go) { P.openId = publish || keep ? '' : item.id; draw(C, box, P, signal); } else location.hash = go;
-        } catch (x) { done(); say(C.message(x)); }
-      } catch (x) { say(C.message(x)); }
+        } catch (x) { done(); say(C.failMessage ? C.failMessage(x) : C.message(x)); }
+      } catch (x) { say(C.failMessage ? C.failMessage(x) : C.message(x)); }
     }, on);
     refresh();
   }
@@ -13565,6 +13622,11 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (kind === 'mon') return d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
     return d.toLocaleDateString('en-US', { month: kind === 'short' ? 'short' : 'long', year: 'numeric', timeZone: 'UTC' });
   }
+  /** Today's day of the month on Karan's clock, 1 to 31. */
+  function dayOfMonth() {
+    try { const v = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Winnipeg', day: 'numeric' }).format(new Date())); if (v >= 1) return v; } catch (e) { /* the computer's own clock is close enough */ }
+    return new Date().getDate();
+  }
   /** "Sep", or "Sep 2025" when the year is not the year of `than`. @param {string} ym @param {string} than */
   const nearName = (ym, than) => (ym.slice(0, 4) === than.slice(0, 4) ? monthName(ym, 'mon') : monthName(ym, 'short'));
   /** A month from the address, or this month when it is missing, in the future or further back than the page goes. @param {string} s */
@@ -13592,6 +13654,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const t = String(s || '').replace(/[\s$,]/g, '');
     if (t === '') return { minor: null, why: '' };
     if (/^-/.test(t) && /^-\d*\.?\d*$/.test(t)) return { minor: null, why: 'neg' };
+    if (/^\d{11,}(\.\d*)?$/.test(t)) return { minor: null, why: 'big' };
     if (!/^\d{1,10}(\.\d{0,2})?$/.test(t) || t === '.') return { minor: null, why: 'bad' };
     const [d, c = ''] = t.split('.');
     const minor = Number(d) * 100 + Number((c + '00').slice(0, 2));
@@ -13700,19 +13763,25 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const p = totals(d, shift(ym, -1));
     const name = nearName(shift(ym, -1), ym);
     const prevHas = { inc: p.incN > 0, cost: p.costN > 0 };
+    // The month still running is only part way through, so "down 35% on Sep" would read as a bad month. It says how far in it is and
+    // what the last full month came to, and leaves the percent for months that are over (R2-21, 15 Oct).
+    const partial = ym === currentMonth();
+    const day = dayOfMonth();
+    const soFar = `So far, ${day} ${day === 1 ? 'day' : 'days'} in`;
+    const against = (/** @type {boolean} */ has, /** @type {number} */ v) => (has ? `${soFar}. ${name} in full: ${money(v)}` : soFar);
     const card = (/** @type {string} */ label, /** @type {string} */ value, /** @type {string} */ words, /** @type {string} */ cls, /** @type {string} */ extra) =>
       `<div class="rv-card"><p class="rv-card-k">${label}${extra || ''}</p><p class="rv-card-v${cls}">${value}</p><p class="rv-card-s">${esc(words)}</p></div>`;
     const none = '<span class="rv-none">Not entered</span>';
-    const inc = t.incN ? card('Income', esc(money(t.inc)), change(t.inc, { has: prevHas.inc, v: p.inc }, name) || 'What you made this month', '', '')
+    const inc = t.incN ? card('Income', esc(money(t.inc)), partial ? against(prevHas.inc, p.inc) : change(t.inc, { has: prevHas.inc, v: p.inc }, name) || 'What you made this month', '', '')
       : card('Income', none, `Nothing entered for ${monthName(ym, 'mon')} yet`, ' is-none', '');
-    const cost = t.costN ? card('Business costs', esc(money(t.cost)), change(t.cost, { has: prevHas.cost, v: p.cost }, name) || 'What you spent on the business', '', '')
+    const cost = t.costN ? card('Business costs', esc(money(t.cost)), partial ? against(prevHas.cost, p.cost) : change(t.cost, { has: prevHas.cost, v: p.cost }, name) || 'What you spent on the business', '', '')
       : card('Business costs', none, `Nothing entered for ${monthName(ym, 'mon')} yet`, ' is-none', '');
     let prof;
     if (!t.has) prof = card('Profit', none, 'Income minus business costs', ' is-none', '');
     else {
       const mg = margin(t.profit, t.inc);
       const mWords = mg === null ? 'No income this month' : `${mg}% margin`;
-      const ch = change(t.profit, { has: p.has, v: p.profit }, name);
+      const ch = partial ? (p.has ? `${soFar.toLowerCase()}. ${name} in full: ${signed(p.profit, true)}` : soFar.toLowerCase()) : change(t.profit, { has: p.has, v: p.profit }, name);
       const value = t.profit < 0 ? `${esc(signed(t.profit))}<span class="rv-card-unit"> loss</span>` : esc(money(t.profit));
       prof = card('Profit', value, ch ? `${mWords}, ${ch}` : mWords, t.profit < 0 ? ' rv-neg' : '', t.profit < 0 ? ' <span class="chip bad plain">Loss</span>' : '');
     }
@@ -14838,7 +14907,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     for (const el of f.querySelectorAll('[aria-invalid]')) el.removeAttribute('aria-invalid');
     /** @type {HTMLElement|null} */ let firstBad = null;
     const bad = (/** @type {HTMLElement|null} */ el, /** @type {string} */ sel, /** @type {string} */ text) => { if (el) el.setAttribute('aria-invalid', 'true'); if (!firstBad) { err(sel, text); firstBad = el; } };
-    const why = (/** @type {string} */ w) => (w === 'neg' ? 'An amount cannot be negative.' : w === 'big' ? 'That amount is too large.' : 'Use dollars and cents, like 1250 or 1250.50.');
+    const why = (/** @type {string} */ w) => (w === 'neg' ? 'An amount cannot be negative.' : w === 'big' ? `That is more than the limit of ${money(MAX_MINOR)}.` : 'Use dollars and cents, like 1250 or 1250.50.');
     /** @type {any[]} */ const out = [];
     if (kind === 'income') {
       for (const el of f.querySelectorAll('input[name=client]')) {
@@ -14923,6 +14992,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (state.io) { state.io.disconnect(); state.io = null; }
     state.form = null;
     if (demo()) { privatePage(); return; }
+    // #/revenue/income and #/revenue/costs mean this month's editor (R2-18, 15 Oct).
+    if (!view && VIEWS.includes(month || '')) { view = month; month = ''; }
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Revenue</h1></div></div><div id="rv-wait">${c.skeleton(3)}</div>`;
     const ok = await checkOwner();
     if (seq !== state.seq) return;
@@ -15224,14 +15295,14 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       return head(owner ? '<div class="btns"><button class="btn btn-quiet" type="button" data-pl-edit>Edit limits</button></div>' : '')
         + (owner ? '' : '<p class="meta pl-lock">Only an owner can change plans and limits. Ask an owner on the team.</p>') + body;
     }
-    return `${head('')}<form id="pl-form" class="pl-form" novalidate>${body}
+    return `${head('')}<form id="pl-form" class="pl-form" novalidate data-esc data-esc-focus="[data-pl-edit]">${body}
       <div class="pl-foot">
         <div class="pl-foot-row">
           <div class="field pl-date"><label for="pl-from">New limits start on</label><input id="pl-from" name="from" type="date" value="${nextFirst()}" min="${esc(D().today())}" required aria-describedby="pl-from-h"><p class="hint" id="pl-from-h">Months that start on or after this day use the new limits. Months that already started keep theirs. Plan names and prices change at once.</p></div>
           <label class="pl-check"><input type="checkbox" name="confirm"><span><span class="pl-check-t">Also confirm every starred number</span><span class="pl-check-d">They stop being starred. Their numbers stay as they are.</span></span></label>
         </div>
         <p class="field-error" id="pl-err" role="alert" hidden></p>
-        <div class="actions pl-acts"><span class="pl-count" id="pl-count" aria-live="polite">No changes yet</span><button class="btn btn-quiet" type="button" data-pl-cancel>Cancel</button><button class="btn" type="submit" disabled>Save changes</button></div>
+        <div class="actions pl-acts"><span class="pl-count" id="pl-count" aria-live="polite">No changes yet</span><button class="btn btn-quiet" type="button" data-pl-cancel data-esc-cancel>Cancel</button><button class="btn" type="submit" disabled>Save changes</button></div>
       </div></form>`;
   }
 
@@ -15332,15 +15403,19 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (/owners-only/.test(said) || code === '42501' || code === 'PGRST301') return `Only an owner can lock or unlock ${name}. Nothing was changed.`;
     if (/unknown plan/.test(said)) return 'That plan was not found. Reload the page and try again. Nothing was changed.';
     if (/PGRST202|42883|could not find/i.test(`${code} ${said}`)) return 'The lock is not set up on this database yet. Nothing was changed.';
-    return `${D().say ? D().say(e) : D().message(e)} Nothing was changed.`;
+    // Browser or database text goes on a Details line (console.js failMessage, critic R2-27).
+    const plain = D().say ? D().say(e) : D().message(e);
+    const m = D().failMessage ? D().failMessage({ message: plain }) : plain;
+    return /Nothing was changed/.test(m) ? m : `${m} Nothing was changed.`;
   }
 
   /**
    * The confirm sheet for the lock: the plain words, an optional reason, Cancel and the go-ahead.
-   * Resolves the reason (it may be empty), or null when it was cancelled.
-   * @param {any} pl @param {boolean} want
+   * Resolves the reason (it may be empty) once run(reason) answered '' (done), or null when it was cancelled. When run answers
+   * words (it failed), the sheet stays open with them under the reason, so the typed reason is kept (critic R2-28, 2026-10-15).
+   * @param {any} pl @param {boolean} want @param {(reason: string) => Promise<string>} run
    */
-  function lockSheet(pl, want) {
+  function lockSheet(pl, want, run) {
     let dlg = /** @type {HTMLDialogElement|null} */ (document.getElementById('pl-lock'));
     if (!dlg) {
       dlg = document.createElement('dialog');
@@ -15353,12 +15428,13 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const name = esc(pl.name);
     el.innerHTML = `<form method="dialog" novalidate><h2 id="pl-lock-h">${want ? 'Lock' : 'Unlock'} ${name}?</h2>
       <p>${want ? `Locked: no new client can be put on ${name}, and a client cannot pick it themselves. Clients already on ${name} keep it.` : `Unlocked: new clients can be put on ${name} again, and a client can pick it themselves.`}</p>
-      <div class="field"><label for="pl-lock-why">Reason (optional)</label><textarea id="pl-lock-why" name="why" maxlength="500" rows="3" placeholder="${want ? 'For example: no room for new clients this month' : 'For example: there is room again'}"></textarea><p class="hint">Kept in the history.</p></div>
+      <div class="field"><label for="pl-lock-why">Reason (optional)</label><textarea id="pl-lock-why" name="why" maxlength="500" rows="3" placeholder="${want ? 'For example: no room for new clients this month' : 'For example: there is room again'}"></textarea><p class="hint">Kept in the history.</p><p class="field-error" id="pl-lock-err" role="alert" hidden></p></div>
       <div class="actions"><button class="btn btn-quiet" type="submit" value="cancel" formnovalidate>Cancel</button><button class="btn" type="submit" value="ok">${want ? 'Lock' : 'Unlock'} ${name}</button></div></form>`;
     return new Promise((resolve) => {
       // The answer comes from the buttons and from Escape, not from the dialog's close event: the browser sends that one with the
       // next animation frame, which a tab in the background does not draw, and a dialog remembers its last returnValue.
       let over = false;
+      let running = false;
       /** @param {string|null} answer */
       const finish = (answer) => {
         if (over) return;
@@ -15367,11 +15443,27 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         if (el.open) el.close();
         resolve(answer);
       };
-      const onCancel = () => finish(null);
+      // While the save runs the sheet cannot be closed: its answer decides what the page shows.
+      const onCancel = (/** @type {Event} */ e) => { if (running) { e.preventDefault(); return; } finish(null); };
       el.addEventListener('cancel', onCancel);
-      $('form', el).addEventListener('submit', (/** @type {any} */ e) => {
+      $('form', el).addEventListener('submit', async (/** @type {any} */ e) => {
         e.preventDefault();
-        finish(e.submitter && e.submitter.value === 'ok' ? String(/** @type {HTMLTextAreaElement} */ ($('#pl-lock-why', el)).value || '').trim() : null);
+        if (running) return;
+        if (!(e.submitter && e.submitter.value === 'ok')) { finish(null); return; }
+        const reason = String(/** @type {HTMLTextAreaElement} */ ($('#pl-lock-why', el)).value || '').trim();
+        const err = /** @type {HTMLElement} */ ($('#pl-lock-err', el));
+        err.hidden = true;
+        running = true;
+        const done = D().busy(e.submitter, want ? 'Locking' : 'Unlocking');
+        let said = '';
+        try { said = await run(reason); } catch (x) { said = lockWords(x); }
+        running = false;
+        if (!said) { finish(reason); return; }
+        done();
+        err.textContent = said.replace(/\n/g, ' ');
+        err.hidden = false;
+        D().toast(said, true);
+        e.submitter.focus();
       });
       el.showModal();
       const why = $('#pl-lock-why', el);
@@ -15383,16 +15475,17 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   async function setLocked(btn, want) {
     const pl = D().plans.plans.find((/** @type {any} */ x) => x.id === 'domin8te');
     if (!pl) return;
-    const reason = await lockSheet(pl, want);
+    const reason = await lockSheet(pl, want, async (why) => {
+      /** @type {any} */ let res;
+      try { res = await (await D().db()).rpc('set_plan_locked', { p_plan: pl.id, p_locked: want, p_reason: why || null }); } catch (x) { res = { error: { message: String((x && /** @type {any} */ (x).message) || x) } }; }
+      if (res.error) return lockWords(res.error);
+      // The answer already says how it ended; a read that fails after it must not leave the old state on screen.
+      if (res.data && typeof res.data === 'object') { pl.locked = !!res.data.locked; if (res.data.locked_at) pl.locked_at = res.data.locked_at; }
+      return '';
+    });
     // The row may have been drawn again while the sheet was open: the button to use is the one on screen now.
     const live = /** @type {HTMLButtonElement} */ ($('[data-pl-lock]') || btn);
     if (reason === null) { live.focus(); return; }
-    const done = D().busy(live, want ? 'Locking' : 'Unlocking');
-    /** @type {any} */ let res;
-    try { res = await (await D().db()).rpc('set_plan_locked', { p_plan: pl.id, p_locked: want, p_reason: reason || null }); } catch (x) { res = { error: { message: String((x && /** @type {any} */ (x).message) || x) } }; }
-    if (res.error) { done(); D().toast(lockWords(res.error), true); return; }
-    // The answer already says how it ended; a read that fails after it must not leave the old state on screen.
-    if (res.data && typeof res.data === 'object') { pl.locked = !!res.data.locked; if (res.data.locked_at) pl.locked_at = res.data.locked_at; }
     await reloadPlans();
     loadHistory();
     drawPlans();
@@ -15426,12 +15519,22 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const save = /** @type {HTMLButtonElement} */ ($('button[type=submit]', form));
     const count = $('#pl-count', form);
     const err = $('#pl-err', form);
-    const refresh = () => {
+    /** The first problem in words, and how many more. @param {any} c */
+    const firstProblem = (c) => c.errors[0].msg + (c.errors.length > 1 ? ` (${c.errors.length - 1} more to fix)` : '');
+    // A bad entry is never ignored in silence (critic R2-22, 2026-10-15): the count says it needs fixing, Save stays on so a click
+    // shows the message, and once the field is left (change) the message shows under the form and the field is marked.
+    const refresh = (/** @type {Event} */ ev) => {
       const c = collect(form);
       const n = c.rows.length + c.plans.length;
-      count.textContent = n ? `${plural(n, 'change')}` : 'No changes yet';
-      save.disabled = n === 0;
-      if (!err.hidden) { err.hidden = true; for (const el of $$('[aria-invalid]', form)) el.removeAttribute('aria-invalid'); }
+      const nBad = c.errors.length;
+      count.textContent = nBad ? (nBad === 1 ? '1 entry needs fixing' : `${nBad} entries need fixing`) : n ? `${plural(n, 'change')}` : 'No changes yet';
+      save.disabled = n === 0 && nBad === 0;
+      const badEls = new Set(c.errors.map((/** @type {any} */ x) => x.el).filter(Boolean));
+      for (const el of $$('[aria-invalid]', form)) if (!badEls.has(el)) el.removeAttribute('aria-invalid');
+      const left = !!ev && ev.type === 'change';
+      if (left) for (const el of badEls) el.setAttribute('aria-invalid', 'true');
+      if (!nBad) err.hidden = true;
+      else if (left || !err.hidden) { err.textContent = firstProblem(c); err.hidden = false; }
     };
     form.addEventListener('input', refresh);
     form.addEventListener('change', refresh);
@@ -15440,9 +15543,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       e.preventDefault();
       const c = collect(form);
       if (c.errors.length) {
-        err.textContent = c.errors[0].msg + (c.errors.length > 1 ? ` (${c.errors.length - 1} more to fix)` : '');
+        err.textContent = firstProblem(c);
         err.hidden = false;
-        for (const x of c.errors) x.el.setAttribute('aria-invalid', 'true');
+        for (const x of c.errors) if (x.el) x.el.setAttribute('aria-invalid', 'true');
         c.errors[0].el.focus();
         return;
       }
@@ -15474,7 +15577,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         }
       } catch (x) {
         done();
-        D().toast(/** @type {any} */ (x).message, true);
+        // Nothing saved yet: the one failure wording (console.js failMessage); a half-done save keeps its own words.
+        D().toast(saved || !D().failMessage ? /** @type {any} */ (x).message : D().failMessage(x), true);
         // Someone else's newer version: show their numbers, still in the edit form, so the next save builds on them.
         if (/** @type {any} */ (x).conflict) { await reloadPlans(); loadHistory(); D().clean(form); drawPlans(); }
         else if (saved) { await reloadPlans(); loadHistory(); ST.editing = false; D().clean(form); drawPlans(); }
@@ -15667,7 +15771,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       D().toast(`Queued. It goes out in the next hourly check.${tail}`, !!tail);
     } catch (x) {
       done();
-      D().toast(/** @type {any} */ (x).message, true);
+      D().toast(D().failMessage ? D().failMessage(x) : /** @type {any} */ (x).message, true);
     }
   }
 
@@ -15817,7 +15921,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       D().toast(`Queued. It goes out within the minute.${tail}`, !!tail);
     } catch (x) {
       done();
-      D().toast(/** @type {any} */ (x).message, true);
+      D().toast(D().failMessage ? D().failMessage(x) : /** @type {any} */ (x).message, true);
     }
   }
 
@@ -15846,7 +15950,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         D().toast(MN.team ? `Saved. New client messages are emailed to ${MN.team}.` : 'Cleared. Nobody is emailed about new client messages.');
       } catch (x) {
         done();
-        D().toast(/** @type {any} */ (x).message, true);
+        D().toast(D().failMessage ? D().failMessage(x) : /** @type {any} */ (x).message, true);
       }
     });
   }
@@ -15988,13 +16092,26 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
       err.hidden = true;
+      ta.removeAttribute('aria-invalid');
       /** @type {any} */ let doc;
       try {
         doc = JSON.parse(ta.value);
         if (!doc || typeof doc !== 'object' || Array.isArray(doc)) throw new Error('The record must be one JSON object.');
       } catch (x) {
-        err.textContent = `That isn't valid: ${D().message(x)}`;
+        // Plain words, not the browser's JSON wording (critic R2-24, 2026-10-15): the line comes from its "line N" or "position N".
+        const said = String((x && /** @type {any} */ (x).message) || '');
+        let line = 0;
+        const ln = /line (\d+)/i.exec(said);
+        const pos = /position (\d+)/i.exec(said);
+        if (ln) line = Number(ln[1]);
+        else if (pos) line = ta.value.slice(0, Number(pos[1])).split('\n').length;
+        else if (/end of (json )?input|unexpected end/i.test(said)) line = ta.value.split('\n').length;
+        err.textContent = x instanceof SyntaxError
+          ? `That is not valid JSON${line ? ` near line ${line}` : ''}. Look for a missing comma, quote mark or bracket. Nothing was saved.`
+          : `That isn't valid: ${D().message(x)}`;
         err.hidden = false;
+        ta.setAttribute('aria-invalid', 'true');
+        ta.focus();
         return;
       }
       // The Save in the unsaved-changes bar skips the disabled button, so the check is made here too.
@@ -16009,7 +16126,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         D().clean(f);
       } catch (x) {
         done();
-        D().toast(D().message(x), true);
+        D().toast(D().failMessage ? D().failMessage(x) : D().message(x), true);
         return;
       }
       // The save went through. The history line is a second write: if it fails, say so, because the edit is not in the history.
@@ -16129,7 +16246,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   /** Whether a failure means the page shows old rows (someone else got there first). @param {any} e */
   const wasStale = (e) => /^stale|not-found|nothing-to-approve|Someone already|Already hidden|Not found|already exists/i.test(String((e && (e.raw || e.message)) || '')) || (e && e.code === '23505');
   /** A failure as one sentence: what failed, and that nothing changed (unless the sentence already says what is still fine). @param {any} C @param {any} x */
-  const failText = (C, x) => { const m = C.message(x); return /nothing (was )?(changed|saved)|reloaded|still open|still fine/i.test(m) ? m : `${m} Nothing was changed.`; };
+  const failText = (C, x) => { const m = C.failMessage ? C.failMessage(x) : C.message(x); return /nothing (was )?(changed|saved)|reloaded|still open|still fine/i.test(m) ? m : `${m} Nothing was changed.`; };
 
   /* ---- loading --------------------------------------------------------------------------------------------- */
 
@@ -17580,7 +17697,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     }
     for (const b of main.querySelectorAll('.cc-badge[data-wk-spot]')) b.setAttribute('aria-pressed', st.spot && b.getAttribute('data-wk-spot') === st.spot ? 'true' : 'false');
     document.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape' || !st.spot || document.documentElement.dataset.page !== 'board' || document.querySelector('dialog[open]')) return;
+      // An Escape that closed an inline card editor (console.js, data-esc) is not also a "clear the spotlight".
+      if (e.key !== 'Escape' || e.defaultPrevented || !st.spot || document.documentElement.dataset.page !== 'board' || document.querySelector('dialog[open]')) return;
       st.spot = '';
       st.focus = '[data-wk-filter="all"]';
       o.redraw();
@@ -17829,16 +17947,35 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     };
     if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
   }
-  /** @param {string} text @param {boolean} [bad] */
+  /**
+   * A short note at the bottom. A line after a newline ("Details: ...", from failMessage) shows smaller under the first.
+   * The same words while that toast is still on screen do not stack (critic R2-20): its timer starts again instead.
+   * @param {string} text @param {boolean} [bad]
+   */
   function toast(text, bad) {
     // The demo console (2026-10-14): right after a refused write, the demo note has said why, so no "Saved" or error words follow it.
     if (DEMO_SITE && !demoSaying && Date.now() - demoSaidAt < 4000) return;
     const box = /** @type {HTMLElement} */ (document.getElementById('toasts'));
-    const t = document.createElement('div');
+    const key = (bad ? 'bad:' : 'ok:') + text;
+    const ms = bad ? 7000 : 3500;
+    for (const old of /** @type {any[]} */ (Array.from(box.children))) {
+      if (old.__d8Key !== key) continue;
+      clearTimeout(old.__d8Gone);
+      old.__d8Gone = setTimeout(() => old.remove(), ms);
+      return;
+    }
+    const t = /** @type {any} */ (document.createElement('div'));
     t.className = 'toast' + (bad ? ' bad' : '');
-    t.textContent = text;
+    const [head, ...more] = String(text).split('\n');
+    t.textContent = head;
+    if (more.length) {
+      const small = document.createElement('small');
+      small.textContent = more.join(' ');
+      t.append(document.createElement('br'), small);
+    }
+    t.__d8Key = key;
     box.appendChild(t);
-    setTimeout(() => t.remove(), bad ? 7000 : 3500);
+    t.__d8Gone = setTimeout(() => t.remove(), ms);
   }
   /** A toast with an Undo button for a few seconds. @param {string} text @param {() => Promise<void>} undo */
   function undoToast(text, undo) {
@@ -17852,7 +17989,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     /** @type {HTMLButtonElement} */ ($('button', t)).addEventListener('click', async () => {
       clearTimeout(gone);
       t.remove();
-      try { await undo(); } catch (x) { toast(message(x), true); }
+      try { await undo(); } catch (x) { toast(failMessage(x, 'Not undone'), true); }
     }, { once: true });
   }
   /** @param {HTMLButtonElement} btn @param {string} label */
@@ -17867,6 +18004,37 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const el = /** @type {any} */ (f.elements.namedItem(name));
     return el ? String(el.value || '').trim() : '';
   };
+  /**
+   * A form check that failed (critic R2-23, 2026-10-15): the words go in the field's own .field-error (role alert, made when the
+   * field has none), the field is marked aria-invalid and described by them, and it gets the focus. The first edit clears it.
+   * @param {HTMLElement|null} el @param {string} msg
+   */
+  function fieldFail(el, msg) {
+    if (!el) { toast(msg, true); return; }
+    const field = /** @type {HTMLElement} */ (el.closest('.field') || el.parentElement || el);
+    let p = /** @type {HTMLElement|null} */ ((el.id && document.getElementById(`${el.id}-err`)) || field.querySelector('.field-error'));
+    if (!p) {
+      p = document.createElement('p');
+      p.className = 'field-error';
+      p.setAttribute('role', 'alert');
+      p.id = `${el.id || 'field'}-err`;
+      field.appendChild(p);
+    }
+    const pid = p.id;
+    const box = p;
+    box.textContent = msg;
+    box.hidden = false;
+    el.setAttribute('aria-invalid', 'true');
+    const said = (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+    if (pid && !said.includes(pid)) el.setAttribute('aria-describedby', said.concat(pid).join(' '));
+    el.addEventListener('input', () => {
+      box.hidden = true;
+      el.removeAttribute('aria-invalid');
+      const left = (el.getAttribute('aria-describedby') || '').split(/\s+/).filter((x) => x && x !== pid);
+      if (left.length) el.setAttribute('aria-describedby', left.join(' ')); else el.removeAttribute('aria-describedby');
+    }, { once: true });
+    el.focus();
+  }
   /** @param {number} n */
   const skeleton = (n) => `<div class="sk" aria-busy="true" aria-label="Loading">${'<div class="sk-block"></div>'.repeat(n)}</div>`;
   /** An error in words; when the sign-in was missing, says what happened to it. @param {string} err */
@@ -17880,6 +18048,19 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     }
     return text;
   };
+  /** Words that show an error is the browser's or the database's own, not a sentence written for staff. */
+  const TECH_ERROR = /failed to fetch|network ?(request )?(failed|error)|networkerror|load failed|timed? ?out|aborterror|operation was aborted|couldn't reach|could not reach|typeerror|referenceerror|syntaxerror|unexpected token|at position \d|is not a function|cannot read|undefined|\bnull\b|pgrst|sqlstate|violates|duplicate key|constraint|does not exist|permission denied|jwt|status code|internal server error|bad gateway|service unavailable|^\s*\d{3}\b|^[a-z0-9_-]+:\s/i;
+  /**
+   * One way to say a save failed (critic R2-27, 2026-10-15): "Not saved. Nothing was changed. Try again." with the technical
+   * text on a Details line (toast() shows it smaller). A sentence the console already wrote for staff (it changed elsewhere,
+   * only an owner can, sign in again) is kept as it is. @param {any} e @param {string} [what] the first words, "Not saved" by default
+   */
+  function failMessage(e, what) {
+    const text = String(message(e) || '').trim();
+    if (text && !TECH_ERROR.test(text)) return text;
+    const tech = text.replace(/\s*Nothing was changed\.?\s*$/i, '').replace(/^(not saved|that did not save|nothing was saved)[.:]?\s*/i, '');
+    return `${what || 'Not saved'}. Nothing was changed. Try again.${tech ? `\nDetails: ${tech}` : ''}`;
+  }
 
   /* ---- state -------------------------------------------------------------------------------------- */
 
@@ -18551,6 +18732,32 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       if (tab) { e.preventDefault(); location.hash = `#/client/${current.id}/${tab[0]}`; }
     }
   });
+  /*
+   * Escape closes an inline editor (critic R2-8 and R2-15, 2026-10-15), the same as its Cancel or Back button: a form marked
+   * data-esc with that button marked data-esc-cancel (the Bot chat Edit, Reject and Respond fields, the All work card editor).
+   * Unsaved words ask first. Focus goes back to what opened it (data-esc-focus). Not while a dialog is open: Escape is the dialog's.
+   * Other Escape handlers (the board spotlight in mod-work.js) skip an Escape this one used (defaultPrevented).
+   */
+  document.addEventListener('keydown', async (e) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || $('dialog[open]')) return;
+    const at = /** @type {HTMLElement} */ (e.target);
+    let form = /** @type {HTMLFormElement|null} */ (at && at.closest ? at.closest('form[data-esc]') : null);
+    // Focus on the page itself (after a click on empty space): the one open editor, if there is only one.
+    if (!form && (!at || at === document.body || at === main)) { const open = $$('form[data-esc]'); if (open.length === 1) form = /** @type {HTMLFormElement} */ (open[0]); }
+    const cancel = form && /** @type {HTMLElement|null} */ (form.querySelector('[data-esc-cancel]'));
+    if (!form || !cancel) return;
+    e.preventDefault();
+    if (dirty.has(form) && !await ask('Close without saving?', 'What you changed here is not kept.', 'Close without saving')) return;
+    const back = form.getAttribute('data-esc-focus') || '';
+    if (!form.isConnected) return;
+    cancel.click();
+    // Some places draw again a moment later (the board), so the focus is tried again for a short while.
+    if (back) {
+      let tries = 0;
+      const put = () => { const el = /** @type {HTMLElement|null} */ (document.querySelector(back)); if (el) el.focus(); if ((!el || document.activeElement !== el) && ++tries < 8) setTimeout(put, 50); };
+      put();
+    }
+  });
 
   /* ---- sign-in and the staff check ------------------------------------------------------------- */
 
@@ -18938,6 +19145,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       </form>`;
   }
 
+  /** Unsent replies per client while the console is open (critic R2-7, 2026-10-15): switching conversation keeps each one. */
+  const replyDrafts = new Map();
   /** @param {string} openId */
   function messagesPage(openId) {
     document.title = 'Messages · Domin8te console';
@@ -18964,16 +19173,20 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const f = /** @type {HTMLFormElement} */ ($('#convo-reply'));
     if (f && shown) {
       track(f, 'Reply');
-      { const B = partOf('bot'); if (B) B.fillReply(shown.id); }   // an approved Bot chat draft handed over to send by hand
       const ta = /** @type {HTMLTextAreaElement} */ ($('#convo-body', f));
+      const kept = replyDrafts.get(shown.id);
+      if (kept && !ta.value) ta.value = kept;
+      ta.addEventListener('input', () => { if (ta.value.trim()) replyDrafts.set(shown.id, ta.value); else replyDrafts.delete(shown.id); });
+      { const B = partOf('bot'); if (B) B.fillReply(shown.id); }   // an approved Bot chat draft handed over to send by hand
       ta.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); const sub = /** @type {HTMLButtonElement|null} */ (f.querySelector('button[type=submit]')); if (sub && sub.disabled) return; f.requestSubmit(); } });
       f.addEventListener('submit', async (e) => {
         e.preventDefault();
         const body = val(f, 'body');
-        if (!body) { toast('Write the reply first.', true); ta.focus(); return; }
+        if (!body) { fieldFail(ta, 'Write the reply first.'); return; }
         const done = busy($('button[type=submit]', f), 'Sending');
         try {
           await sendReply(shown.id, body);
+          replyDrafts.delete(shown.id);
           clean(f);
           toast('Reply sent.');
           const to = `#/messages/${shown.id}`;
@@ -18981,7 +19194,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           else { route(); const again = $('#convo-body'); if (again) again.focus({ preventScroll: true }); }
         } catch (x) {
           done();
-          toast(message(x), true);
+          toast(failMessage(x, 'Not sent'), true);
         }
       });
     }
@@ -18993,7 +19206,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       if (!r || r.status === sel.value) return;
       sel.disabled = true;
       try { await setRequestStatus(id, sel.value); sel.disabled = false; redrawInbox(); }
-      catch (x) { sel.disabled = false; sel.value = r.status; toast(message(x), true); }
+      catch (x) { sel.disabled = false; sel.value = r.status; toast(failMessage(x), true); }
     };
     toBottom();
     let seen = inboxSig();
@@ -19390,7 +19603,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         clean(pfm);
         toast('Sign-off level saved.');
         afterSave(done);
-      } catch (x) { done(); toast(message(x), true); }
+      } catch (x) { done(); toast(failMessage(x), true); }
     });
     const f = /** @type {HTMLFormElement} */ ($('#ov-form', box));
     track(f, 'Details');
@@ -19411,7 +19624,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         afterSave(done);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
     const mf = /** @type {HTMLFormElement} */ ($('#more-form', box));
@@ -19454,7 +19667,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         afterSave(done);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
     const lf = /** @type {HTMLFormElement} */ ($('#login-form', box));
@@ -19535,7 +19748,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           toast(`${name} can no longer sign in.`);
         } catch (x) {
           done();
-          toast(message(x), true);
+          toast(failMessage(x), true);
           // The removal may have gone through even though the answer did not come back: show the list as it really is.
           callFn('client-login', { action: 'list', tenantId: id }).then((r) => { if (current && current.id === id) drawPeople(r.people || []); }).catch(() => { /* the list stays as it was */ });
         }
@@ -19565,7 +19778,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           all.loginAsks = (all.loginAsks || []).filter((/** @type {any} */ x) => x.id !== askId);
           toast('Declined.');
           redraw();
-        } catch (x) { toast(message(x), true); }
+        } catch (x) { toast(failMessage(x), true); }
       }
     });
   }
@@ -19842,7 +20055,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         mirror(row);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
 
@@ -19881,7 +20094,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     li.classList.add('editing');
     li.draggable = false;
     li.removeAttribute('title');
-    li.innerHTML = `<form class="card-edit" novalidate>
+    li.innerHTML = `<form class="card-edit" novalidate data-esc data-esc-focus="[data-edit='${esc(t.id)}']">
       <div class="field"><label for="e-title-${esc(t.id)}">Title</label><input id="e-title-${esc(t.id)}" name="title" type="text" value="${esc(t.title)}" maxlength="200" required></div>
       <div class="field"><label for="e-status-${esc(t.id)}">Column</label><select id="e-status-${esc(t.id)}" name="status">${Object.entries(TASK_STATUS_LABEL).map(([k, l]) => `<option value="${k}"${t.status === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label for="e-detail-${esc(t.id)}">Details</label><textarea id="e-detail-${esc(t.id)}" name="detail" maxlength="4000">${esc(t.detail)}</textarea></div>
@@ -19893,7 +20106,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       </div>
       ${wk ? wk.visibilityField(t) : ''}${wk ? wk.editUsage(t) : ''}
       <p class="card-sync meta">${syncLine(t)}</p>
-      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-quiet btn-sm btn-remove" type="button" data-remove-card>Remove card</button></div>
+      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel data-esc-cancel>Cancel</button><button class="btn btn-quiet btn-sm btn-remove" type="button" data-remove-card>Remove card</button></div>
       ${t.multica_issue_id ? `<div class="card-note"><div class="field"><label for="e-note-${esc(t.id)}">Note on ${esc(t.multica_identifier || 'the issue')} in Multica</label><textarea id="e-note-${esc(t.id)}" name="note" maxlength="4000" placeholder="${FLAGS.hermes ? 'Hermes and the team see' : 'The team sees'} this in the issue's thread."></textarea></div><button class="btn btn-quiet btn-sm" type="button" data-note>Add the note</button></div>` : ''}
     </form>`;
     const f = /** @type {HTMLFormElement} */ ($('form', li));
@@ -19931,7 +20144,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         // A new column goes through moveTask, as a drag does (it mirrors to Multica); otherwise the card is mirrored here.
         if (status && status !== t.status) { await moveTask(t, status); done(); back(); }
         else { toast('Card saved.'); done(); back(); mirror(t); }
-      } catch (x) { done(); toast(message(x), true); }
+      } catch (x) { done(); toast(failMessage(x), true); }
     });
     f.addEventListener('click', async (e) => {
       const target = /** @type {HTMLElement} */ (e.target);
@@ -19951,7 +20164,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           await multica({ action: 'comment', taskId: t.id, text });
           /** @type {any} */ (f.elements.namedItem('note')).value = '';
           toast(`Note added to ${t.multica_identifier || 'the issue'} in Multica.`);
-        } catch (x) { toast(message(x), true); }
+        } catch (x) { toast(failMessage(x), true); }
         done();
         return;
       }
@@ -19989,7 +20202,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       if (all && all.tasks) all.tasks = all.tasks.filter((/** @type {any} */ x) => x.id !== t.id);
       toast('Card removed. Its history is kept.');
       return true;
-    } catch (x) { toast(message(x), true); return false; }
+    } catch (x) { toast(failMessage(x), true); return false; }
   }
 
   /** Each board's listeners, so a redraw replaces them instead of adding another set. @type {WeakMap<HTMLElement, AbortController>} */
@@ -20059,7 +20272,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const status = col.getAttribute('data-col') || 'todo';
       if (status === '__delete') { if (await deleteCard(t)) after(); return; }
       if (!t || t.status === status) return;
-      try { await moveTask(t, status); after(); } catch (x) { toast(message(x), true); }
+      try { await moveTask(t, status); after(); } catch (x) { toast(failMessage(x), true); }
     }, on);
     box.addEventListener('change', async (e) => {
       const sel = /** @type {HTMLSelectElement} */ (e.target);
@@ -20067,7 +20280,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       if (!id) return;
       const t = find(id);
       if (!t) return;
-      try { await moveTask(t, sel.value); after(); } catch (x) { sel.value = t.status; toast(message(x), true); }
+      try { await moveTask(t, sel.value); after(); } catch (x) { sel.value = t.status; toast(failMessage(x), true); }
     }, on);
     return ac.signal;
   }
@@ -20316,7 +20529,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           const differs = !!(have && have.role !== role);
           toast(`${email} was already on the team.${differs ? ` Their role was NOT changed (they are ${(ROLE_LABEL[have.role] || have.role).toLowerCase()}). Use the role buttons in the list.` : ''}`, differs);
         } else toast(`${email} is on the team. They sign in at this page with their email.`);
-      } catch (x) { toast(message(x), true); relist(); }
+      } catch (x) { toast(failMessage(x), true); relist(); }
       done();
     });
     list.addEventListener('click', async (e) => {
@@ -20334,7 +20547,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         show(r.members || []);
         toast(`Role changed to ${ROLE_LABEL[role]}.`);
       } catch (x) {
-        toast(message(x), true);
+        toast(failMessage(x), true);
         // If the list cannot be read either, the buttons go back as they were instead of staying stuck.
         relist().then(() => { if (group.isConnected) for (const x of $$('button', group)) { x.disabled = false; x.setAttribute('aria-pressed', String(x === was)); } });
       }
@@ -20348,7 +20561,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         const r = await callFn('team', { action: 'remove', userId: b.getAttribute('data-team-remove') });
         show(r.members || []);
         toast(`${name} is off the team.`);
-      } catch (x) { toast(message(x), true); relist(); }
+      } catch (x) { toast(failMessage(x), true); relist(); }
     });
   }
 
@@ -20416,7 +20629,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           if (location.hash.startsWith('#/settings')) afterSave(done);
         } catch (x) {
           done();
-          toast(message(x), true);
+          toast(failMessage(x), true);
         }
       });
     }
@@ -20918,7 +21131,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         });
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
     f.addEventListener('submit', async (e) => {
@@ -20948,7 +21161,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         afterSave(done);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
   }
@@ -21101,7 +21314,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     rf.addEventListener('submit', async (e) => {
       e.preventDefault();
       const body = val(rf, 'body');
-      if (!body) { toast('Write the reply first.', true); $('#reply', box).focus(); return; }
+      if (!body) { fieldFail($('#reply', box), 'Write the reply first.'); return; }
       const done = busy($('button[type=submit]', rf), 'Sending');
       try {
         await sendReply(current.id, body);
@@ -21110,7 +21323,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         back(rf, done);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x, 'Not sent'), true);
       }
     });
     $('[name="kind"]', af).addEventListener('change', (/** @type {any} */ e) => {
@@ -21119,7 +21332,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     af.addEventListener('submit', async (e) => {
       e.preventDefault();
       const title = val(af, 'title');
-      if (!title) { toast('Say what they are approving.', true); $('#a-title', box).focus(); return; }
+      if (!title) { fieldFail($('#a-title', box), 'Say what they are approving.'); return; }
       const kind = val(af, 'kind');
       const url = val(af, 'url');
       if (kind === 'link' && !/^https:\/\//.test(url)) { toast('The link must start with https://', true); $('#a-url', box).focus(); return; }
@@ -21153,13 +21366,13 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         back(af, done);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x, 'Not sent'), true);
       }
     });
     uf.addEventListener('submit', async (e) => {
       e.preventDefault();
       const title = val(uf, 'title');
-      if (!title) { toast('Give the update a headline.', true); $('#u-title', box).focus(); return; }
+      if (!title) { fieldFail($('#u-title', box), 'Give the update a headline.'); return; }
       const done = busy($('button[type=submit]', uf), 'Posting');
       try {
         /** @type {any} */
@@ -21171,7 +21384,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         back(uf, done);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
     box.addEventListener('click', async (e) => {
@@ -21197,7 +21410,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           });
           toast('Removed.');
           redraw(); // keeps a reply or form being written here
-        } catch (x) { toast(message(x), true); }
+        } catch (x) { toast(failMessage(x), true); }
         return;
       }
       const ru = target.closest('[data-remove-upd]');
@@ -21209,7 +21422,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           await saveDoc((doc) => { doc.updates = doc.updates.filter((/** @type {any} */ x) => x.id !== id); });
           toast('Removed.');
           redraw();
-        } catch (x) { toast(message(x), true); }
+        } catch (x) { toast(failMessage(x), true); }
       }
     });
     box.addEventListener('change', async (e) => {
@@ -21227,7 +21440,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       } catch (x) {
         sel.disabled = false;
         sel.value = r.status;
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
   }
@@ -21520,7 +21733,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       }
       await loadReviews();
       route();
-    } catch (x) { done(); toast(message(x), true); dmRecover(); }
+    } catch (x) { done(); toast(failMessage(x), true); dmRecover(); }
   }
   document.addEventListener('click', (e) => {
     const b = /** @type {HTMLButtonElement} */ (/** @type {HTMLElement} */ (e.target).closest('[data-dm]'));
@@ -21583,7 +21796,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       await loadReviews();
       route();
       // clean: the queue is drawn again after a refusal, so the card shows what changed (and its new stamp)
-    } catch (x) { done(); clean(f); toast(message(x), true); dmRecover(); }
+    } catch (x) { done(); clean(f); toast(failMessage(x), true); dmRecover(); }
   });
 
   /** Settings, super admins only: the four rollout gates and the per-client auto-publish switch. @param {HTMLElement} box */
@@ -21624,7 +21837,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const gate = GATES.find(([k]) => k === val(f, 'gate'));
       if (!await ask('Record this safety check?', `This says “${gate ? gate[1] : 'the check'}” has passed, with this evidence: ${evidence}. Once all four are recorded, an owner can switch on automatic publishing.`, 'Record')) return;
       const done = busy($('button[type=submit]', f), 'Recording');
-      try { dmCheck(await client.rpc('record_publish_gate', { p_gate: val(f, 'gate'), p_evidence_ref: evidence })); toast('Safety check recorded.'); gatesPanel(box); } catch (x) { done(); toast(message(x), true); }
+      try { dmCheck(await client.rpc('record_publish_gate', { p_gate: val(f, 'gate'), p_evidence_ref: evidence })); toast('Safety check recorded.'); gatesPanel(box); } catch (x) { done(); toast(failMessage(x), true); }
     });
     // onchange, not addEventListener: the panel redraws itself after each change and must not stack handlers.
     box.onchange = async (e) => {
@@ -21636,7 +21849,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const who = clientName(id);
       if (!await ask(want ? `Turn on auto-publish for ${who}?` : `Turn off auto-publish for ${who}?`, want ? 'Items the team asked to publish can then go live on their dashboard without your click, once the safety checks pass and the owner\'s switch is on. Invoices still wait for you.' : 'Everything for them waits for your approval again.', want ? 'Turn on' : 'Turn off')) { t.checked = !want; return; }
       t.disabled = true;
-      try { dmCheck(await client.rpc('set_tenant_auto_publish', { p_tenant: id, p_enabled: t.checked })); toast(t.checked ? 'On for this client. The owner\'s switch (AUTO_PUBLISH_ENABLED on the server) must also be on.' : 'Off for this client.'); } catch (x) { t.checked = !t.checked; toast(message(x), true); }
+      try { dmCheck(await client.rpc('set_tenant_auto_publish', { p_tenant: id, p_enabled: t.checked })); toast(t.checked ? 'On for this client. The owner\'s switch (AUTO_PUBLISH_ENABLED on the server) must also be on.' : 'Off for this client.'); } catch (x) { t.checked = !t.checked; toast(failMessage(x), true); }
       gatesPanel(box);
     };
   }
@@ -21755,7 +21968,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
    * ways to save and redraw. A part registers itself on window.D8C_EXT.<name> and is called from here with this object.
    */
   /** @type {any} */ (window).D8C = {
-    esc, $, $$, icon, toast, undoToast, busy, val, message, skeleton, plural, when, ago, due, longDate, dayOf, today, localDay, newId, clone, svcLabel,
+    esc, $, $$, icon, toast, undoToast, busy, val, message, failMessage, fieldFail, skeleton, plural, when, ago, due, longDate, dayOf, today, localDay, newId, clone, svcLabel,
     SERVICES, SERVICE_ORDER, STATUS, FLAGS, PORTAL_URL, main,
     db, staffRows, check, ask, track, clean, redraw, afterSave, route, refreshAll, loadAll, callFn, viewAs,
     tenant, derive, planOf, usageTone, usageBar, money, clockTime, pageFresh, billingOf, convo, allTabs, fromCache, loadClient, save, saveDoc,

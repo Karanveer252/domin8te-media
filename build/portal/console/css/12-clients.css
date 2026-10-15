@@ -28,6 +28,13 @@ button.cl-card:hover { background-color: rgba(255, 255, 255, 0.7); box-shadow: v
 .cl-more button { min-height: 34px; padding: 5px 13px; font-size: 13.5px; }
 
 /* The list: one row for each restaurant, usage bars in a small column of their own. */
+/* Five or more restaurants, or one with a long name, must never push the Freshness column past the panel: the first column wraps its
+   name, the narrow columns keep a floor, and the wrapper scrolls sideways as a last resort instead of clipping (R2-11, 15 Oct). */
+.cl-table { overflow-x: auto; }
+.cl-table table.grid { table-layout: auto; width: 100%; min-width: 0; }
+.cl-table table.grid td:first-child .row-link { white-space: normal; overflow-wrap: anywhere; }
+.cl-table table.grid td:first-child .row-link > .cc-badge { vertical-align: -3px; }
+.cl-table .cl-status, .cl-table .cl-fresh .cl-v { min-width: 0; }
 .cl-table table.grid th, .cl-table table.grid td { padding: 14px 7px; vertical-align: top; }
 .cl-table table.grid th:first-child, .cl-table table.grid td:first-child { padding-left: 20px; min-width: 132px; }
 .cl-table table.grid th:last-child, .cl-table table.grid td:last-child { padding-right: 20px; }

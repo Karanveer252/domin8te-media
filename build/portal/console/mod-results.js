@@ -216,6 +216,7 @@
             <button class="btn btn-quiet" type="button" data-rs-keep${frozen ? '' : ' hidden'}>Keep hidden</button>
             ${frozen ? '' : '<button class="btn btn-quiet" type="button" data-rs-draft disabled>Save draft</button>'}
           </div>
+          ${frozen ? '' : '<p class="hint rs-need" data-rs-need role="status"></p>'}
         </form>
         <aside class="rs-side" aria-label="Checklist and what the client sees">
           <section class="panel rs-check"><h2>Publish checklist</h2><ol class="rs-list" data-rs-list></ol></section>
@@ -300,6 +301,11 @@
       publish.title = done ? 'Already published' : all ? '' : 'Needs a value, a period, a named source with its read time, and proof.';
       const draft = /** @type {HTMLButtonElement|null} */ ($('[data-rs-draft]'));
       if (draft) draft.disabled = !(ck.value && ck.period && ck.source && ck.metric);
+      const need = $('[data-rs-need]');
+      if (need) {
+        const miss = [!ck.value && 'the value', !ck.period && 'the period', !ck.source && 'the named source and read time'].filter(Boolean);
+        need.textContent = miss.length ? `Fill in ${miss.join(', ').replace(/, ([^,]*)$/, ' and $1')} first.` : !ck.proof ? 'Attach the proof to publish. You can save a draft now.' : '';
+      }
       const keep = /** @type {HTMLButtonElement|null} */ ($('[data-rs-keep]'));
       if (keep) { keep.hidden = !(opened ? opened.verification_status === 'pending' : !!hold); keep.disabled = !opened && !(ck.value && ck.period && ck.source && ck.metric); }
       if (opened && done) { publish.hidden = true; if (keep) keep.hidden = true; }
@@ -360,8 +366,8 @@
           const go = publish || keep ? base : `${base}/${item.id}`;
           // the address changes, so the page is drawn again from it; if it is the same address, it is drawn here
           if (location.hash === go) { P.openId = publish || keep ? '' : item.id; draw(C, box, P, signal); } else location.hash = go;
-        } catch (x) { done(); say(C.message(x)); }
-      } catch (x) { say(C.message(x)); }
+        } catch (x) { done(); say(C.failMessage ? C.failMessage(x) : C.message(x)); }
+      } catch (x) { say(C.failMessage ? C.failMessage(x) : C.message(x)); }
     }, on);
     refresh();
   }

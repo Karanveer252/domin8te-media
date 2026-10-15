@@ -934,7 +934,8 @@
     }
     for (const b of main.querySelectorAll('.cc-badge[data-wk-spot]')) b.setAttribute('aria-pressed', st.spot && b.getAttribute('data-wk-spot') === st.spot ? 'true' : 'false');
     document.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape' || !st.spot || document.documentElement.dataset.page !== 'board' || document.querySelector('dialog[open]')) return;
+      // An Escape that closed an inline card editor (console.js, data-esc) is not also a "clear the spotlight".
+      if (e.key !== 'Escape' || e.defaultPrevented || !st.spot || document.documentElement.dataset.page !== 'board' || document.querySelector('dialog[open]')) return;
       st.spot = '';
       st.focus = '[data-wk-filter="all"]';
       o.redraw();

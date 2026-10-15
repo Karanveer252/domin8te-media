@@ -289,7 +289,7 @@
     return `<div class="table-wrap cl-table"><table class="grid"><thead><tr>
         ${th('name', 'Client')}${th('plan', 'Plan')}<th scope="col">Picks this cycle</th>${th('usage', 'Usage this month')}${th('needs', 'Needs you')}<th scope="col">Status</th><th scope="col">Freshness</th>
       </tr></thead><tbody>${rows.map(fmt).join('')}</tbody></table></div>
-      <p class="meta cl-foot">${c.plural(rows.length, 'client')}${rows.length !== all.length ? ` of ${all.length}` : ''}. Click a column name to sort. A bar turns amber from 85 percent of a limit, says At limit when it is full, and turns red only when it is over.</p>`;
+      <p class="meta cl-foot">${c.plural(rows.length, 'client')}${rows.length !== all.length ? ` of ${all.length}` : ''}. Click Client, Plan, Usage or Needs you to sort. A bar turns amber from 85 percent of a limit, says At limit when it is full, and turns red only when it is over.</p>`;
   }
 
   /** The plan a client has this month, for the About line and the Setup tab; empty when none is set. @param {string} id */

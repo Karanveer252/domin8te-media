@@ -94,7 +94,7 @@
   /** Whether a failure means the page shows old rows (someone else got there first). @param {any} e */
   const wasStale = (e) => /^stale|not-found|nothing-to-approve|Someone already|Already hidden|Not found|already exists/i.test(String((e && (e.raw || e.message)) || '')) || (e && e.code === '23505');
   /** A failure as one sentence: what failed, and that nothing changed (unless the sentence already says what is still fine). @param {any} C @param {any} x */
-  const failText = (C, x) => { const m = C.message(x); return /nothing (was )?(changed|saved)|reloaded|still open|still fine/i.test(m) ? m : `${m} Nothing was changed.`; };
+  const failText = (C, x) => { const m = C.failMessage ? C.failMessage(x) : C.message(x); return /nothing (was )?(changed|saved)|reloaded|still open|still fine/i.test(m) ? m : `${m} Nothing was changed.`; };
 
   /* ---- loading --------------------------------------------------------------------------------------------- */
 

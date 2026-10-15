@@ -59,4 +59,5 @@ The machine is slow while agents run: run smoke and a11y in the background if th
 | 0 | whole build | 23 items | all but perf leftovers | all green 13:10 | CRITIC-2026-10-14.md |
 | - | follow-ups | Karan's asks | revcharts, livecount, mix ring, owner seed | lint 93, revenue 138, security 151, smoke 90 | paused 14:45 at 5-hour 97% |
 | 1 | A + C (partial: console light 1440-900 only; machine ran out of memory) | 0/2/8 | F1 tool fix (a11y retry), F3-F10 fixed (Fable), F8/part F9 not defects | console-check 24/24, phone 24/24, a11y console 85/85 | round 2 must cover the gaps: console 768-360, dark, scenes, whole dashboard sweep, tap targets, focus, Customize dialog. ONE headless Chrome at a time. |
-| 2 | B + E + round 1 gaps (console 768-360, dark, scenes, dashboard sweep, tap/focus, Customize) | started 00:56 | | lint 93, console-check 24/24, release clean, a11y dash 57/57, smoke 90/90 | |
+| 2 | B + E + round 1 gaps | 0/6/22 (CRITIC-ROUND-2.md) | all 28 fixed (Fable 15, Opus 9, Sonnet 3); failMessage rollout to 6 more modules running (Sonnet) | lint 93, console-check 24/24, release clean, a11y dash 57/57, smoke 90/90 | |
+| 3 | D leak-proofing + Client view live | started 02:20 | | | |

@@ -7,7 +7,7 @@
  * and the Pending count on the sidebar item. Clients never see any of it (the table has no client policy).
  *
  * Statuses: Pending, Approved, Rejected, Expired (a Pending card past its expires_at shows Expired). Actions on a Pending card:
- * Approve (the draft as it is), Edit (the draft becomes a text field, then Save & Approve), Reject (a short reason, kept with
+ * Approve (the draft as it is), Edit (the draft becomes a text field, then Save and approve), Reject (a short reason, kept with
  * the card) and Respond (a note for another round; the card stays Pending). Every change goes through the database function
  * bot_output_decide. Approving sends nothing: the card then offers Copy and "Put in reply to <client>", which opens their
  * conversation in Messages with the text in the reply box, for the team to send by hand.
@@ -58,7 +58,8 @@
     if (/empty-text/.test(m)) return 'The text is empty.';
     if (/not-staff|42501/.test(m)) return 'Only the Domin8te team can do this.';
     if (/not-found|P0002/.test(m)) return 'That item was not found. Reload the page.';
-    return C().message(x);
+    // Anything else: the console's one failure wording, with the browser's text on a Details line (critic R2-27).
+    return C().failMessage ? C().failMessage(x) : C().message(x);
   }
 
   /* ---- data ------------------------------------------------------------------------------------------------------ */
@@ -122,14 +123,14 @@
     const by = r.source && r.source !== 'console' ? `From ${esc(r.source.charAt(0).toUpperCase() + r.source.slice(1))}` : 'Added in the console';
     const back = inTab ? `#/client/${inTab}/bot` : '#/bot';
     const draftBlock = open === 'edit'
-      ? `<form class="bot-form" id="bot-edit" novalidate>
+      ? `<form class="bot-form" id="bot-edit" novalidate data-esc data-esc-focus="[data-bot-id='${esc(r.id)}'] [data-bot='edit']">
           <div class="field"><label class="sr-only" for="bot-edit-text">AI draft, edit before you approve</label><textarea id="bot-edit-text" name="text" rows="7" maxlength="20000">${esc(r.draft)}</textarea></div>
-          <div class="actions"><button class="btn" type="submit">${icon('check')}Save &amp; Approve</button><button class="btn btn-quiet" type="button" data-bot="cancel">Cancel</button></div>
+          <div class="actions"><button class="btn" type="submit">${icon('check')}Save and approve</button><button class="btn btn-quiet" type="button" data-bot="cancel" data-esc-cancel>Cancel</button></div>
         </form>`
       : `<div class="bot-text">${st === 'approved' && r.final_text && r.final_text !== r.draft ? esc(r.final_text) : marked(r)}</div>`;
-    const field = (/** @type {string} */ id, /** @type {string} */ label, /** @type {string} */ ph, /** @type {string} */ ok, /** @type {string} */ cls) => `<form class="bot-form" id="${id}" novalidate>
+    const field = (/** @type {string} */ id, /** @type {string} */ label, /** @type {string} */ ph, /** @type {string} */ ok, /** @type {string} */ cls) => `<form class="bot-form" id="${id}" novalidate data-esc data-esc-focus="[data-bot-id='${esc(r.id)}'] [data-bot='${id === 'bot-reject' ? 'reject' : 'respond'}']">
         <div class="field"><label for="${id}-note">${label}</label><textarea id="${id}-note" name="note" rows="3" maxlength="2000" placeholder="${ph}"></textarea></div>
-        <div class="actions"><button class="btn btn-quiet" type="button" data-bot="cancel">${icon('back')}Back</button><button class="btn${cls}" type="submit">${ok}</button></div>
+        <div class="actions"><button class="btn btn-quiet" type="button" data-bot="cancel" data-esc-cancel>${icon('back')}Back</button><button class="btn${cls}" type="submit">${ok}</button></div>
       </form>`;
     const actions = st !== 'pending' ? ''
       : open === 'reject' ? field('bot-reject', 'Why it is rejected (kept with this item)', 'For example: the offer wording is wrong, they asked for Sunday not Saturday.', 'Confirm reject', ' btn-danger')

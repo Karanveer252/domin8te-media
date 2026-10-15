@@ -57,7 +57,9 @@ ${safe(noPrices(fs.readFileSync(path.join(DIR, 'preview-stub.js'), 'utf8')))}</s
 /* stub/${f} */
 ${safe(noPrices(fs.readFileSync(path.join(DIR, 'stub', f), 'utf8')))}</script>`;
   head += `
-<style>body::after{content:"${demoSite ? 'Demo console: sample clients, nothing is saved or sent' : 'Preview: in-memory data, nothing is saved or sent'}";position:fixed;left:0;right:0;bottom:0;z-index:99;padding:6px;background:#FF5B1F;color:#1D1A16;font:600 13px/1.4 system-ui;text-align:center}</style>`;
+<style>body::after{content:"${demoSite ? 'Demo console: sample clients, nothing is saved or sent' : 'Preview: in-memory data, nothing is saved or sent'}";position:fixed;left:0;right:0;bottom:0;z-index:99;padding:6px;background:#FF5B1F;color:#1D1A16;font:600 13px/1.4 system-ui;text-align:center}
+/* The footer is 30px tall: the sidebar and the toasts stop above it, so nothing is clipped in the preview (R2-5, R2-17, 15 Oct). */
+@media (min-width:901px){body .side{bottom:46px}}@media (max-width:900px){body .side{padding-bottom:30px}}body .toasts{bottom:50px}</style>`;
 }
 html = html.replace('<!--CONFIG-->', () => head);
 // Open the connections the page needs while it is still loading: the scripts' host, the database and

@@ -137,8 +137,9 @@
    * A database refusal in plain words (the portal's own mapping in D8.live.dbFail speaks to clients, so the console reads the
    * raw error). Names the cause and, where it helps, what to do.
    * @param {any} err
+   * @param {string} [what] when given, an error that is not a written sentence becomes the one failure wording (console.js failMessage, critic R2-27) starting with these words
    */
-  function say(err) {
+  function say(err, what) {
     const code = String((err && err.code) || '');
     const text = String((err && (err.message || err.details)) || err || '');
     // a locked plan comes first: it is a 23P01 too
@@ -165,6 +166,7 @@
     if (/not-a-stripe-link/i.test(text)) return 'That payment link is not a Stripe link, so it was not approved.';
     if (/hidden/i.test(text) && /unhide/i.test(text)) return 'That invoice is hidden. Unhide it first.';
     if (/not-found/i.test(text) || code === 'P0002') return 'That was not found. Reload the page and try again.';
+    if (what && C() && C().failMessage) return C().failMessage(err, what);
     return text ? `That did not save: ${text.replace(/^[a-z-]+:\s*/i, '')}` : 'That did not save. Nothing was changed.';
   }
 

@@ -18,6 +18,8 @@
 .bot-text mark { padding: 1px 3px; border-radius: 4px; background: var(--warn-bg); color: var(--ink); }
 .bot-note { padding: 11px 14px; border-radius: 10px; background: var(--surface-2); color: var(--ink-2); }
 .bot-note strong { color: var(--ink); }
+/* A long word or link in a draft wraps inside the card instead of widening the page (R2-10, 15 Oct). */
+.bot-text, .bot-part blockquote, .bot-after blockquote, .bot-note, .q-row .text { overflow-wrap: anywhere; min-width: 0; }
 .bot-part .thread { margin: 0; }
 .bot-actions, .bot-form .actions, .bot-after .actions { margin-top: 0; }
 .bot-form { display: grid; gap: 12px; }

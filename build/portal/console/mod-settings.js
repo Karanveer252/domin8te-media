@@ -210,14 +210,14 @@
       return head(owner ? '<div class="btns"><button class="btn btn-quiet" type="button" data-pl-edit>Edit limits</button></div>' : '')
         + (owner ? '' : '<p class="meta pl-lock">Only an owner can change plans and limits. Ask an owner on the team.</p>') + body;
     }
-    return `${head('')}<form id="pl-form" class="pl-form" novalidate>${body}
+    return `${head('')}<form id="pl-form" class="pl-form" novalidate data-esc data-esc-focus="[data-pl-edit]">${body}
       <div class="pl-foot">
         <div class="pl-foot-row">
           <div class="field pl-date"><label for="pl-from">New limits start on</label><input id="pl-from" name="from" type="date" value="${nextFirst()}" min="${esc(D().today())}" required aria-describedby="pl-from-h"><p class="hint" id="pl-from-h">Months that start on or after this day use the new limits. Months that already started keep theirs. Plan names and prices change at once.</p></div>
           <label class="pl-check"><input type="checkbox" name="confirm"><span><span class="pl-check-t">Also confirm every starred number</span><span class="pl-check-d">They stop being starred. Their numbers stay as they are.</span></span></label>
         </div>
         <p class="field-error" id="pl-err" role="alert" hidden></p>
-        <div class="actions pl-acts"><span class="pl-count" id="pl-count" aria-live="polite">No changes yet</span><button class="btn btn-quiet" type="button" data-pl-cancel>Cancel</button><button class="btn" type="submit" disabled>Save changes</button></div>
+        <div class="actions pl-acts"><span class="pl-count" id="pl-count" aria-live="polite">No changes yet</span><button class="btn btn-quiet" type="button" data-pl-cancel data-esc-cancel>Cancel</button><button class="btn" type="submit" disabled>Save changes</button></div>
       </div></form>`;
   }
 
@@ -318,15 +318,19 @@
     if (/owners-only/.test(said) || code === '42501' || code === 'PGRST301') return `Only an owner can lock or unlock ${name}. Nothing was changed.`;
     if (/unknown plan/.test(said)) return 'That plan was not found. Reload the page and try again. Nothing was changed.';
     if (/PGRST202|42883|could not find/i.test(`${code} ${said}`)) return 'The lock is not set up on this database yet. Nothing was changed.';
-    return `${D().say ? D().say(e) : D().message(e)} Nothing was changed.`;
+    // Browser or database text goes on a Details line (console.js failMessage, critic R2-27).
+    const plain = D().say ? D().say(e) : D().message(e);
+    const m = D().failMessage ? D().failMessage({ message: plain }) : plain;
+    return /Nothing was changed/.test(m) ? m : `${m} Nothing was changed.`;
   }
 
   /**
    * The confirm sheet for the lock: the plain words, an optional reason, Cancel and the go-ahead.
-   * Resolves the reason (it may be empty), or null when it was cancelled.
-   * @param {any} pl @param {boolean} want
+   * Resolves the reason (it may be empty) once run(reason) answered '' (done), or null when it was cancelled. When run answers
+   * words (it failed), the sheet stays open with them under the reason, so the typed reason is kept (critic R2-28, 2026-10-15).
+   * @param {any} pl @param {boolean} want @param {(reason: string) => Promise<string>} run
    */
-  function lockSheet(pl, want) {
+  function lockSheet(pl, want, run) {
     let dlg = /** @type {HTMLDialogElement|null} */ (document.getElementById('pl-lock'));
     if (!dlg) {
       dlg = document.createElement('dialog');
@@ -339,12 +343,13 @@
     const name = esc(pl.name);
     el.innerHTML = `<form method="dialog" novalidate><h2 id="pl-lock-h">${want ? 'Lock' : 'Unlock'} ${name}?</h2>
       <p>${want ? `Locked: no new client can be put on ${name}, and a client cannot pick it themselves. Clients already on ${name} keep it.` : `Unlocked: new clients can be put on ${name} again, and a client can pick it themselves.`}</p>
-      <div class="field"><label for="pl-lock-why">Reason (optional)</label><textarea id="pl-lock-why" name="why" maxlength="500" rows="3" placeholder="${want ? 'For example: no room for new clients this month' : 'For example: there is room again'}"></textarea><p class="hint">Kept in the history.</p></div>
+      <div class="field"><label for="pl-lock-why">Reason (optional)</label><textarea id="pl-lock-why" name="why" maxlength="500" rows="3" placeholder="${want ? 'For example: no room for new clients this month' : 'For example: there is room again'}"></textarea><p class="hint">Kept in the history.</p><p class="field-error" id="pl-lock-err" role="alert" hidden></p></div>
       <div class="actions"><button class="btn btn-quiet" type="submit" value="cancel" formnovalidate>Cancel</button><button class="btn" type="submit" value="ok">${want ? 'Lock' : 'Unlock'} ${name}</button></div></form>`;
     return new Promise((resolve) => {
       // The answer comes from the buttons and from Escape, not from the dialog's close event: the browser sends that one with the
       // next animation frame, which a tab in the background does not draw, and a dialog remembers its last returnValue.
       let over = false;
+      let running = false;
       /** @param {string|null} answer */
       const finish = (answer) => {
         if (over) return;
@@ -353,11 +358,27 @@
         if (el.open) el.close();
         resolve(answer);
       };
-      const onCancel = () => finish(null);
+      // While the save runs the sheet cannot be closed: its answer decides what the page shows.
+      const onCancel = (/** @type {Event} */ e) => { if (running) { e.preventDefault(); return; } finish(null); };
       el.addEventListener('cancel', onCancel);
-      $('form', el).addEventListener('submit', (/** @type {any} */ e) => {
+      $('form', el).addEventListener('submit', async (/** @type {any} */ e) => {
         e.preventDefault();
-        finish(e.submitter && e.submitter.value === 'ok' ? String(/** @type {HTMLTextAreaElement} */ ($('#pl-lock-why', el)).value || '').trim() : null);
+        if (running) return;
+        if (!(e.submitter && e.submitter.value === 'ok')) { finish(null); return; }
+        const reason = String(/** @type {HTMLTextAreaElement} */ ($('#pl-lock-why', el)).value || '').trim();
+        const err = /** @type {HTMLElement} */ ($('#pl-lock-err', el));
+        err.hidden = true;
+        running = true;
+        const done = D().busy(e.submitter, want ? 'Locking' : 'Unlocking');
+        let said = '';
+        try { said = await run(reason); } catch (x) { said = lockWords(x); }
+        running = false;
+        if (!said) { finish(reason); return; }
+        done();
+        err.textContent = said.replace(/\n/g, ' ');
+        err.hidden = false;
+        D().toast(said, true);
+        e.submitter.focus();
       });
       el.showModal();
       const why = $('#pl-lock-why', el);
@@ -369,16 +390,17 @@
   async function setLocked(btn, want) {
     const pl = D().plans.plans.find((/** @type {any} */ x) => x.id === 'domin8te');
     if (!pl) return;
-    const reason = await lockSheet(pl, want);
+    const reason = await lockSheet(pl, want, async (why) => {
+      /** @type {any} */ let res;
+      try { res = await (await D().db()).rpc('set_plan_locked', { p_plan: pl.id, p_locked: want, p_reason: why || null }); } catch (x) { res = { error: { message: String((x && /** @type {any} */ (x).message) || x) } }; }
+      if (res.error) return lockWords(res.error);
+      // The answer already says how it ended; a read that fails after it must not leave the old state on screen.
+      if (res.data && typeof res.data === 'object') { pl.locked = !!res.data.locked; if (res.data.locked_at) pl.locked_at = res.data.locked_at; }
+      return '';
+    });
     // The row may have been drawn again while the sheet was open: the button to use is the one on screen now.
     const live = /** @type {HTMLButtonElement} */ ($('[data-pl-lock]') || btn);
     if (reason === null) { live.focus(); return; }
-    const done = D().busy(live, want ? 'Locking' : 'Unlocking');
-    /** @type {any} */ let res;
-    try { res = await (await D().db()).rpc('set_plan_locked', { p_plan: pl.id, p_locked: want, p_reason: reason || null }); } catch (x) { res = { error: { message: String((x && /** @type {any} */ (x).message) || x) } }; }
-    if (res.error) { done(); D().toast(lockWords(res.error), true); return; }
-    // The answer already says how it ended; a read that fails after it must not leave the old state on screen.
-    if (res.data && typeof res.data === 'object') { pl.locked = !!res.data.locked; if (res.data.locked_at) pl.locked_at = res.data.locked_at; }
     await reloadPlans();
     loadHistory();
     drawPlans();
@@ -412,12 +434,22 @@
     const save = /** @type {HTMLButtonElement} */ ($('button[type=submit]', form));
     const count = $('#pl-count', form);
     const err = $('#pl-err', form);
-    const refresh = () => {
+    /** The first problem in words, and how many more. @param {any} c */
+    const firstProblem = (c) => c.errors[0].msg + (c.errors.length > 1 ? ` (${c.errors.length - 1} more to fix)` : '');
+    // A bad entry is never ignored in silence (critic R2-22, 2026-10-15): the count says it needs fixing, Save stays on so a click
+    // shows the message, and once the field is left (change) the message shows under the form and the field is marked.
+    const refresh = (/** @type {Event} */ ev) => {
       const c = collect(form);
       const n = c.rows.length + c.plans.length;
-      count.textContent = n ? `${plural(n, 'change')}` : 'No changes yet';
-      save.disabled = n === 0;
-      if (!err.hidden) { err.hidden = true; for (const el of $$('[aria-invalid]', form)) el.removeAttribute('aria-invalid'); }
+      const nBad = c.errors.length;
+      count.textContent = nBad ? (nBad === 1 ? '1 entry needs fixing' : `${nBad} entries need fixing`) : n ? `${plural(n, 'change')}` : 'No changes yet';
+      save.disabled = n === 0 && nBad === 0;
+      const badEls = new Set(c.errors.map((/** @type {any} */ x) => x.el).filter(Boolean));
+      for (const el of $$('[aria-invalid]', form)) if (!badEls.has(el)) el.removeAttribute('aria-invalid');
+      const left = !!ev && ev.type === 'change';
+      if (left) for (const el of badEls) el.setAttribute('aria-invalid', 'true');
+      if (!nBad) err.hidden = true;
+      else if (left || !err.hidden) { err.textContent = firstProblem(c); err.hidden = false; }
     };
     form.addEventListener('input', refresh);
     form.addEventListener('change', refresh);
@@ -426,9 +458,9 @@
       e.preventDefault();
       const c = collect(form);
       if (c.errors.length) {
-        err.textContent = c.errors[0].msg + (c.errors.length > 1 ? ` (${c.errors.length - 1} more to fix)` : '');
+        err.textContent = firstProblem(c);
         err.hidden = false;
-        for (const x of c.errors) x.el.setAttribute('aria-invalid', 'true');
+        for (const x of c.errors) if (x.el) x.el.setAttribute('aria-invalid', 'true');
         c.errors[0].el.focus();
         return;
       }
@@ -460,7 +492,8 @@
         }
       } catch (x) {
         done();
-        D().toast(/** @type {any} */ (x).message, true);
+        // Nothing saved yet: the one failure wording (console.js failMessage); a half-done save keeps its own words.
+        D().toast(saved || !D().failMessage ? /** @type {any} */ (x).message : D().failMessage(x), true);
         // Someone else's newer version: show their numbers, still in the edit form, so the next save builds on them.
         if (/** @type {any} */ (x).conflict) { await reloadPlans(); loadHistory(); D().clean(form); drawPlans(); }
         else if (saved) { await reloadPlans(); loadHistory(); ST.editing = false; D().clean(form); drawPlans(); }
@@ -653,7 +686,7 @@
       D().toast(`Queued. It goes out in the next hourly check.${tail}`, !!tail);
     } catch (x) {
       done();
-      D().toast(/** @type {any} */ (x).message, true);
+      D().toast(D().failMessage ? D().failMessage(x) : /** @type {any} */ (x).message, true);
     }
   }
 
@@ -803,7 +836,7 @@
       D().toast(`Queued. It goes out within the minute.${tail}`, !!tail);
     } catch (x) {
       done();
-      D().toast(/** @type {any} */ (x).message, true);
+      D().toast(D().failMessage ? D().failMessage(x) : /** @type {any} */ (x).message, true);
     }
   }
 
@@ -832,7 +865,7 @@
         D().toast(MN.team ? `Saved. New client messages are emailed to ${MN.team}.` : 'Cleared. Nobody is emailed about new client messages.');
       } catch (x) {
         done();
-        D().toast(/** @type {any} */ (x).message, true);
+        D().toast(D().failMessage ? D().failMessage(x) : /** @type {any} */ (x).message, true);
       }
     });
   }
@@ -974,13 +1007,26 @@
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
       err.hidden = true;
+      ta.removeAttribute('aria-invalid');
       /** @type {any} */ let doc;
       try {
         doc = JSON.parse(ta.value);
         if (!doc || typeof doc !== 'object' || Array.isArray(doc)) throw new Error('The record must be one JSON object.');
       } catch (x) {
-        err.textContent = `That isn't valid: ${D().message(x)}`;
+        // Plain words, not the browser's JSON wording (critic R2-24, 2026-10-15): the line comes from its "line N" or "position N".
+        const said = String((x && /** @type {any} */ (x).message) || '');
+        let line = 0;
+        const ln = /line (\d+)/i.exec(said);
+        const pos = /position (\d+)/i.exec(said);
+        if (ln) line = Number(ln[1]);
+        else if (pos) line = ta.value.slice(0, Number(pos[1])).split('\n').length;
+        else if (/end of (json )?input|unexpected end/i.test(said)) line = ta.value.split('\n').length;
+        err.textContent = x instanceof SyntaxError
+          ? `That is not valid JSON${line ? ` near line ${line}` : ''}. Look for a missing comma, quote mark or bracket. Nothing was saved.`
+          : `That isn't valid: ${D().message(x)}`;
         err.hidden = false;
+        ta.setAttribute('aria-invalid', 'true');
+        ta.focus();
         return;
       }
       // The Save in the unsaved-changes bar skips the disabled button, so the check is made here too.
@@ -995,7 +1041,7 @@
         D().clean(f);
       } catch (x) {
         done();
-        D().toast(D().message(x), true);
+        D().toast(D().failMessage ? D().failMessage(x) : D().message(x), true);
         return;
       }
       // The save went through. The history line is a second write: if it fails, say so, because the edit is not in the history.

@@ -132,6 +132,9 @@ html[data-theme="dark"] .wk-chip[aria-pressed="true"] { background-color: #F1EFE
   .wk-strips > .wk-strip { flex: 0 0 min(84vw, 340px); scroll-snap-align: start; }
   .wk-rest .wk-strips { margin: 0 -16px; }
   .wk-chips { flex-wrap: nowrap; margin: 0 -16px; padding: 4px 16px 10px; overflow-x: auto; scrollbar-width: none; }
+  /* The sideways rows fade out at the right edge so a half card reads as "more this way"; the extra right padding lets the last one
+     scroll clear of the fade (R2-4, 15 Oct). */
+  .wk-strips, .wk-chips, .wk-by { padding-right: 56px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 72px), transparent calc(100% - 6px)); mask-image: linear-gradient(to right, #000 calc(100% - 72px), transparent calc(100% - 6px)); }
   .wk-chip { flex: none; }
   .wk-bar { gap: 0; }
 }
@@ -154,6 +157,9 @@ html[data-theme="dark"] .wk-chip[aria-pressed="true"] { background-color: #F1EFE
   .wk-by-pills { flex-wrap: nowrap; }
   .wk-by-l, .wk-pill { flex: none; }
 }
+
+/* A card title that is one long word wraps inside its card instead of running past the edge (R2-16, 15 Oct). */
+.card-title { overflow-wrap: anywhere; min-width: 0; }
 
 /* ---- the card editor: one field to a row, calm and roomy in a narrow column or a wide one (2026-10-14) ------------------------ */
 .cards { grid-template-columns: minmax(0, 1fr); }

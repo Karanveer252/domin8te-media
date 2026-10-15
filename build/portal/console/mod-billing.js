@@ -400,7 +400,8 @@
       c.toast(`Invoice ${inv.invoice_number} approved${url ? ' with its Stripe link' : ''}. ${t ? t.name : 'The client'} can see it now.`);
     } catch (x) {
       if (btn.isConnected) done();
-      c.toast(`The invoice was not approved. ${PP().say(x)}`, true);
+      const m = PP().say(x, 'Invoice not approved');
+      c.toast(/^Invoice not approved/.test(m) ? m : `The invoice was not approved. ${m}`, true);
     }
   }
 
@@ -606,7 +607,8 @@
         if (/^#\/billing\/./.test(location.hash || '')) location.hash = '#/billing'; else c.route();
       } catch (x) {
         if (btn.isConnected) done();
-        fail(`${PP().say(x)} Nothing was changed.`, null);
+        const m = PP().say(x, 'Not saved');
+        fail(/nothing was changed/i.test(m) ? m : `${m} Nothing was changed.`, null);
       }
     });
 

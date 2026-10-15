@@ -147,16 +147,35 @@
     };
     if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
   }
-  /** @param {string} text @param {boolean} [bad] */
+  /**
+   * A short note at the bottom. A line after a newline ("Details: ...", from failMessage) shows smaller under the first.
+   * The same words while that toast is still on screen do not stack (critic R2-20): its timer starts again instead.
+   * @param {string} text @param {boolean} [bad]
+   */
   function toast(text, bad) {
     // The demo console (2026-10-14): right after a refused write, the demo note has said why, so no "Saved" or error words follow it.
     if (DEMO_SITE && !demoSaying && Date.now() - demoSaidAt < 4000) return;
     const box = /** @type {HTMLElement} */ (document.getElementById('toasts'));
-    const t = document.createElement('div');
+    const key = (bad ? 'bad:' : 'ok:') + text;
+    const ms = bad ? 7000 : 3500;
+    for (const old of /** @type {any[]} */ (Array.from(box.children))) {
+      if (old.__d8Key !== key) continue;
+      clearTimeout(old.__d8Gone);
+      old.__d8Gone = setTimeout(() => old.remove(), ms);
+      return;
+    }
+    const t = /** @type {any} */ (document.createElement('div'));
     t.className = 'toast' + (bad ? ' bad' : '');
-    t.textContent = text;
+    const [head, ...more] = String(text).split('\n');
+    t.textContent = head;
+    if (more.length) {
+      const small = document.createElement('small');
+      small.textContent = more.join(' ');
+      t.append(document.createElement('br'), small);
+    }
+    t.__d8Key = key;
     box.appendChild(t);
-    setTimeout(() => t.remove(), bad ? 7000 : 3500);
+    t.__d8Gone = setTimeout(() => t.remove(), ms);
   }
   /** A toast with an Undo button for a few seconds. @param {string} text @param {() => Promise<void>} undo */
   function undoToast(text, undo) {
@@ -170,7 +189,7 @@
     /** @type {HTMLButtonElement} */ ($('button', t)).addEventListener('click', async () => {
       clearTimeout(gone);
       t.remove();
-      try { await undo(); } catch (x) { toast(message(x), true); }
+      try { await undo(); } catch (x) { toast(failMessage(x, 'Not undone'), true); }
     }, { once: true });
   }
   /** @param {HTMLButtonElement} btn @param {string} label */
@@ -185,6 +204,37 @@
     const el = /** @type {any} */ (f.elements.namedItem(name));
     return el ? String(el.value || '').trim() : '';
   };
+  /**
+   * A form check that failed (critic R2-23, 2026-10-15): the words go in the field's own .field-error (role alert, made when the
+   * field has none), the field is marked aria-invalid and described by them, and it gets the focus. The first edit clears it.
+   * @param {HTMLElement|null} el @param {string} msg
+   */
+  function fieldFail(el, msg) {
+    if (!el) { toast(msg, true); return; }
+    const field = /** @type {HTMLElement} */ (el.closest('.field') || el.parentElement || el);
+    let p = /** @type {HTMLElement|null} */ ((el.id && document.getElementById(`${el.id}-err`)) || field.querySelector('.field-error'));
+    if (!p) {
+      p = document.createElement('p');
+      p.className = 'field-error';
+      p.setAttribute('role', 'alert');
+      p.id = `${el.id || 'field'}-err`;
+      field.appendChild(p);
+    }
+    const pid = p.id;
+    const box = p;
+    box.textContent = msg;
+    box.hidden = false;
+    el.setAttribute('aria-invalid', 'true');
+    const said = (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+    if (pid && !said.includes(pid)) el.setAttribute('aria-describedby', said.concat(pid).join(' '));
+    el.addEventListener('input', () => {
+      box.hidden = true;
+      el.removeAttribute('aria-invalid');
+      const left = (el.getAttribute('aria-describedby') || '').split(/\s+/).filter((x) => x && x !== pid);
+      if (left.length) el.setAttribute('aria-describedby', left.join(' ')); else el.removeAttribute('aria-describedby');
+    }, { once: true });
+    el.focus();
+  }
   /** @param {number} n */
   const skeleton = (n) => `<div class="sk" aria-busy="true" aria-label="Loading">${'<div class="sk-block"></div>'.repeat(n)}</div>`;
   /** An error in words; when the sign-in was missing, says what happened to it. @param {string} err */
@@ -198,6 +248,19 @@
     }
     return text;
   };
+  /** Words that show an error is the browser's or the database's own, not a sentence written for staff. */
+  const TECH_ERROR = /failed to fetch|network ?(request )?(failed|error)|networkerror|load failed|timed? ?out|aborterror|operation was aborted|couldn't reach|could not reach|typeerror|referenceerror|syntaxerror|unexpected token|at position \d|is not a function|cannot read|undefined|\bnull\b|pgrst|sqlstate|violates|duplicate key|constraint|does not exist|permission denied|jwt|status code|internal server error|bad gateway|service unavailable|^\s*\d{3}\b|^[a-z0-9_-]+:\s/i;
+  /**
+   * One way to say a save failed (critic R2-27, 2026-10-15): "Not saved. Nothing was changed. Try again." with the technical
+   * text on a Details line (toast() shows it smaller). A sentence the console already wrote for staff (it changed elsewhere,
+   * only an owner can, sign in again) is kept as it is. @param {any} e @param {string} [what] the first words, "Not saved" by default
+   */
+  function failMessage(e, what) {
+    const text = String(message(e) || '').trim();
+    if (text && !TECH_ERROR.test(text)) return text;
+    const tech = text.replace(/\s*Nothing was changed\.?\s*$/i, '').replace(/^(not saved|that did not save|nothing was saved)[.:]?\s*/i, '');
+    return `${what || 'Not saved'}. Nothing was changed. Try again.${tech ? `\nDetails: ${tech}` : ''}`;
+  }
 
   /* ---- state -------------------------------------------------------------------------------------- */
 
@@ -869,6 +932,32 @@
       if (tab) { e.preventDefault(); location.hash = `#/client/${current.id}/${tab[0]}`; }
     }
   });
+  /*
+   * Escape closes an inline editor (critic R2-8 and R2-15, 2026-10-15), the same as its Cancel or Back button: a form marked
+   * data-esc with that button marked data-esc-cancel (the Bot chat Edit, Reject and Respond fields, the All work card editor).
+   * Unsaved words ask first. Focus goes back to what opened it (data-esc-focus). Not while a dialog is open: Escape is the dialog's.
+   * Other Escape handlers (the board spotlight in mod-work.js) skip an Escape this one used (defaultPrevented).
+   */
+  document.addEventListener('keydown', async (e) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || $('dialog[open]')) return;
+    const at = /** @type {HTMLElement} */ (e.target);
+    let form = /** @type {HTMLFormElement|null} */ (at && at.closest ? at.closest('form[data-esc]') : null);
+    // Focus on the page itself (after a click on empty space): the one open editor, if there is only one.
+    if (!form && (!at || at === document.body || at === main)) { const open = $$('form[data-esc]'); if (open.length === 1) form = /** @type {HTMLFormElement} */ (open[0]); }
+    const cancel = form && /** @type {HTMLElement|null} */ (form.querySelector('[data-esc-cancel]'));
+    if (!form || !cancel) return;
+    e.preventDefault();
+    if (dirty.has(form) && !await ask('Close without saving?', 'What you changed here is not kept.', 'Close without saving')) return;
+    const back = form.getAttribute('data-esc-focus') || '';
+    if (!form.isConnected) return;
+    cancel.click();
+    // Some places draw again a moment later (the board), so the focus is tried again for a short while.
+    if (back) {
+      let tries = 0;
+      const put = () => { const el = /** @type {HTMLElement|null} */ (document.querySelector(back)); if (el) el.focus(); if ((!el || document.activeElement !== el) && ++tries < 8) setTimeout(put, 50); };
+      put();
+    }
+  });
 
   /* ---- sign-in and the staff check ------------------------------------------------------------- */
 
@@ -1256,6 +1345,8 @@
       </form>`;
   }
 
+  /** Unsent replies per client while the console is open (critic R2-7, 2026-10-15): switching conversation keeps each one. */
+  const replyDrafts = new Map();
   /** @param {string} openId */
   function messagesPage(openId) {
     document.title = 'Messages · Domin8te console';
@@ -1282,16 +1373,20 @@
     const f = /** @type {HTMLFormElement} */ ($('#convo-reply'));
     if (f && shown) {
       track(f, 'Reply');
-      { const B = partOf('bot'); if (B) B.fillReply(shown.id); }   // an approved Bot chat draft handed over to send by hand
       const ta = /** @type {HTMLTextAreaElement} */ ($('#convo-body', f));
+      const kept = replyDrafts.get(shown.id);
+      if (kept && !ta.value) ta.value = kept;
+      ta.addEventListener('input', () => { if (ta.value.trim()) replyDrafts.set(shown.id, ta.value); else replyDrafts.delete(shown.id); });
+      { const B = partOf('bot'); if (B) B.fillReply(shown.id); }   // an approved Bot chat draft handed over to send by hand
       ta.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); const sub = /** @type {HTMLButtonElement|null} */ (f.querySelector('button[type=submit]')); if (sub && sub.disabled) return; f.requestSubmit(); } });
       f.addEventListener('submit', async (e) => {
         e.preventDefault();
         const body = val(f, 'body');
-        if (!body) { toast('Write the reply first.', true); ta.focus(); return; }
+        if (!body) { fieldFail(ta, 'Write the reply first.'); return; }
         const done = busy($('button[type=submit]', f), 'Sending');
         try {
           await sendReply(shown.id, body);
+          replyDrafts.delete(shown.id);
           clean(f);
           toast('Reply sent.');
           const to = `#/messages/${shown.id}`;
@@ -1299,7 +1394,7 @@
           else { route(); const again = $('#convo-body'); if (again) again.focus({ preventScroll: true }); }
         } catch (x) {
           done();
-          toast(message(x), true);
+          toast(failMessage(x, 'Not sent'), true);
         }
       });
     }
@@ -1311,7 +1406,7 @@
       if (!r || r.status === sel.value) return;
       sel.disabled = true;
       try { await setRequestStatus(id, sel.value); sel.disabled = false; redrawInbox(); }
-      catch (x) { sel.disabled = false; sel.value = r.status; toast(message(x), true); }
+      catch (x) { sel.disabled = false; sel.value = r.status; toast(failMessage(x), true); }
     };
     toBottom();
     let seen = inboxSig();
@@ -1708,7 +1803,7 @@
         clean(pfm);
         toast('Sign-off level saved.');
         afterSave(done);
-      } catch (x) { done(); toast(message(x), true); }
+      } catch (x) { done(); toast(failMessage(x), true); }
     });
     const f = /** @type {HTMLFormElement} */ ($('#ov-form', box));
     track(f, 'Details');
@@ -1729,7 +1824,7 @@
         afterSave(done);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
     const mf = /** @type {HTMLFormElement} */ ($('#more-form', box));
@@ -1772,7 +1867,7 @@
         afterSave(done);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
     const lf = /** @type {HTMLFormElement} */ ($('#login-form', box));
@@ -1853,7 +1948,7 @@
           toast(`${name} can no longer sign in.`);
         } catch (x) {
           done();
-          toast(message(x), true);
+          toast(failMessage(x), true);
           // The removal may have gone through even though the answer did not come back: show the list as it really is.
           callFn('client-login', { action: 'list', tenantId: id }).then((r) => { if (current && current.id === id) drawPeople(r.people || []); }).catch(() => { /* the list stays as it was */ });
         }
@@ -1883,7 +1978,7 @@
           all.loginAsks = (all.loginAsks || []).filter((/** @type {any} */ x) => x.id !== askId);
           toast('Declined.');
           redraw();
-        } catch (x) { toast(message(x), true); }
+        } catch (x) { toast(failMessage(x), true); }
       }
     });
   }
@@ -2160,7 +2255,7 @@
         mirror(row);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
 
@@ -2199,7 +2294,7 @@
     li.classList.add('editing');
     li.draggable = false;
     li.removeAttribute('title');
-    li.innerHTML = `<form class="card-edit" novalidate>
+    li.innerHTML = `<form class="card-edit" novalidate data-esc data-esc-focus="[data-edit='${esc(t.id)}']">
       <div class="field"><label for="e-title-${esc(t.id)}">Title</label><input id="e-title-${esc(t.id)}" name="title" type="text" value="${esc(t.title)}" maxlength="200" required></div>
       <div class="field"><label for="e-status-${esc(t.id)}">Column</label><select id="e-status-${esc(t.id)}" name="status">${Object.entries(TASK_STATUS_LABEL).map(([k, l]) => `<option value="${k}"${t.status === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label for="e-detail-${esc(t.id)}">Details</label><textarea id="e-detail-${esc(t.id)}" name="detail" maxlength="4000">${esc(t.detail)}</textarea></div>
@@ -2211,7 +2306,7 @@
       </div>
       ${wk ? wk.visibilityField(t) : ''}${wk ? wk.editUsage(t) : ''}
       <p class="card-sync meta">${syncLine(t)}</p>
-      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel>Cancel</button><button class="btn btn-quiet btn-sm btn-remove" type="button" data-remove-card>Remove card</button></div>
+      <div class="actions"><button class="btn btn-sm" type="submit">Save card</button><button class="btn btn-quiet btn-sm" type="button" data-cancel data-esc-cancel>Cancel</button><button class="btn btn-quiet btn-sm btn-remove" type="button" data-remove-card>Remove card</button></div>
       ${t.multica_issue_id ? `<div class="card-note"><div class="field"><label for="e-note-${esc(t.id)}">Note on ${esc(t.multica_identifier || 'the issue')} in Multica</label><textarea id="e-note-${esc(t.id)}" name="note" maxlength="4000" placeholder="${FLAGS.hermes ? 'Hermes and the team see' : 'The team sees'} this in the issue's thread."></textarea></div><button class="btn btn-quiet btn-sm" type="button" data-note>Add the note</button></div>` : ''}
     </form>`;
     const f = /** @type {HTMLFormElement} */ ($('form', li));
@@ -2249,7 +2344,7 @@
         // A new column goes through moveTask, as a drag does (it mirrors to Multica); otherwise the card is mirrored here.
         if (status && status !== t.status) { await moveTask(t, status); done(); back(); }
         else { toast('Card saved.'); done(); back(); mirror(t); }
-      } catch (x) { done(); toast(message(x), true); }
+      } catch (x) { done(); toast(failMessage(x), true); }
     });
     f.addEventListener('click', async (e) => {
       const target = /** @type {HTMLElement} */ (e.target);
@@ -2269,7 +2364,7 @@
           await multica({ action: 'comment', taskId: t.id, text });
           /** @type {any} */ (f.elements.namedItem('note')).value = '';
           toast(`Note added to ${t.multica_identifier || 'the issue'} in Multica.`);
-        } catch (x) { toast(message(x), true); }
+        } catch (x) { toast(failMessage(x), true); }
         done();
         return;
       }
@@ -2307,7 +2402,7 @@
       if (all && all.tasks) all.tasks = all.tasks.filter((/** @type {any} */ x) => x.id !== t.id);
       toast('Card removed. Its history is kept.');
       return true;
-    } catch (x) { toast(message(x), true); return false; }
+    } catch (x) { toast(failMessage(x), true); return false; }
   }
 
   /** Each board's listeners, so a redraw replaces them instead of adding another set. @type {WeakMap<HTMLElement, AbortController>} */
@@ -2377,7 +2472,7 @@
       const status = col.getAttribute('data-col') || 'todo';
       if (status === '__delete') { if (await deleteCard(t)) after(); return; }
       if (!t || t.status === status) return;
-      try { await moveTask(t, status); after(); } catch (x) { toast(message(x), true); }
+      try { await moveTask(t, status); after(); } catch (x) { toast(failMessage(x), true); }
     }, on);
     box.addEventListener('change', async (e) => {
       const sel = /** @type {HTMLSelectElement} */ (e.target);
@@ -2385,7 +2480,7 @@
       if (!id) return;
       const t = find(id);
       if (!t) return;
-      try { await moveTask(t, sel.value); after(); } catch (x) { sel.value = t.status; toast(message(x), true); }
+      try { await moveTask(t, sel.value); after(); } catch (x) { sel.value = t.status; toast(failMessage(x), true); }
     }, on);
     return ac.signal;
   }
@@ -2634,7 +2729,7 @@
           const differs = !!(have && have.role !== role);
           toast(`${email} was already on the team.${differs ? ` Their role was NOT changed (they are ${(ROLE_LABEL[have.role] || have.role).toLowerCase()}). Use the role buttons in the list.` : ''}`, differs);
         } else toast(`${email} is on the team. They sign in at this page with their email.`);
-      } catch (x) { toast(message(x), true); relist(); }
+      } catch (x) { toast(failMessage(x), true); relist(); }
       done();
     });
     list.addEventListener('click', async (e) => {
@@ -2652,7 +2747,7 @@
         show(r.members || []);
         toast(`Role changed to ${ROLE_LABEL[role]}.`);
       } catch (x) {
-        toast(message(x), true);
+        toast(failMessage(x), true);
         // If the list cannot be read either, the buttons go back as they were instead of staying stuck.
         relist().then(() => { if (group.isConnected) for (const x of $$('button', group)) { x.disabled = false; x.setAttribute('aria-pressed', String(x === was)); } });
       }
@@ -2666,7 +2761,7 @@
         const r = await callFn('team', { action: 'remove', userId: b.getAttribute('data-team-remove') });
         show(r.members || []);
         toast(`${name} is off the team.`);
-      } catch (x) { toast(message(x), true); relist(); }
+      } catch (x) { toast(failMessage(x), true); relist(); }
     });
   }
 
@@ -2734,7 +2829,7 @@
           if (location.hash.startsWith('#/settings')) afterSave(done);
         } catch (x) {
           done();
-          toast(message(x), true);
+          toast(failMessage(x), true);
         }
       });
     }
@@ -3236,7 +3331,7 @@
         });
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
     f.addEventListener('submit', async (e) => {
@@ -3266,7 +3361,7 @@
         afterSave(done);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
   }
@@ -3419,7 +3514,7 @@
     rf.addEventListener('submit', async (e) => {
       e.preventDefault();
       const body = val(rf, 'body');
-      if (!body) { toast('Write the reply first.', true); $('#reply', box).focus(); return; }
+      if (!body) { fieldFail($('#reply', box), 'Write the reply first.'); return; }
       const done = busy($('button[type=submit]', rf), 'Sending');
       try {
         await sendReply(current.id, body);
@@ -3428,7 +3523,7 @@
         back(rf, done);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x, 'Not sent'), true);
       }
     });
     $('[name="kind"]', af).addEventListener('change', (/** @type {any} */ e) => {
@@ -3437,7 +3532,7 @@
     af.addEventListener('submit', async (e) => {
       e.preventDefault();
       const title = val(af, 'title');
-      if (!title) { toast('Say what they are approving.', true); $('#a-title', box).focus(); return; }
+      if (!title) { fieldFail($('#a-title', box), 'Say what they are approving.'); return; }
       const kind = val(af, 'kind');
       const url = val(af, 'url');
       if (kind === 'link' && !/^https:\/\//.test(url)) { toast('The link must start with https://', true); $('#a-url', box).focus(); return; }
@@ -3471,13 +3566,13 @@
         back(af, done);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x, 'Not sent'), true);
       }
     });
     uf.addEventListener('submit', async (e) => {
       e.preventDefault();
       const title = val(uf, 'title');
-      if (!title) { toast('Give the update a headline.', true); $('#u-title', box).focus(); return; }
+      if (!title) { fieldFail($('#u-title', box), 'Give the update a headline.'); return; }
       const done = busy($('button[type=submit]', uf), 'Posting');
       try {
         /** @type {any} */
@@ -3489,7 +3584,7 @@
         back(uf, done);
       } catch (x) {
         done();
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
     box.addEventListener('click', async (e) => {
@@ -3515,7 +3610,7 @@
           });
           toast('Removed.');
           redraw(); // keeps a reply or form being written here
-        } catch (x) { toast(message(x), true); }
+        } catch (x) { toast(failMessage(x), true); }
         return;
       }
       const ru = target.closest('[data-remove-upd]');
@@ -3527,7 +3622,7 @@
           await saveDoc((doc) => { doc.updates = doc.updates.filter((/** @type {any} */ x) => x.id !== id); });
           toast('Removed.');
           redraw();
-        } catch (x) { toast(message(x), true); }
+        } catch (x) { toast(failMessage(x), true); }
       }
     });
     box.addEventListener('change', async (e) => {
@@ -3545,7 +3640,7 @@
       } catch (x) {
         sel.disabled = false;
         sel.value = r.status;
-        toast(message(x), true);
+        toast(failMessage(x), true);
       }
     });
   }
@@ -3838,7 +3933,7 @@
       }
       await loadReviews();
       route();
-    } catch (x) { done(); toast(message(x), true); dmRecover(); }
+    } catch (x) { done(); toast(failMessage(x), true); dmRecover(); }
   }
   document.addEventListener('click', (e) => {
     const b = /** @type {HTMLButtonElement} */ (/** @type {HTMLElement} */ (e.target).closest('[data-dm]'));
@@ -3901,7 +3996,7 @@
       await loadReviews();
       route();
       // clean: the queue is drawn again after a refusal, so the card shows what changed (and its new stamp)
-    } catch (x) { done(); clean(f); toast(message(x), true); dmRecover(); }
+    } catch (x) { done(); clean(f); toast(failMessage(x), true); dmRecover(); }
   });
 
   /** Settings, super admins only: the four rollout gates and the per-client auto-publish switch. @param {HTMLElement} box */
@@ -3942,7 +4037,7 @@
       const gate = GATES.find(([k]) => k === val(f, 'gate'));
       if (!await ask('Record this safety check?', `This says “${gate ? gate[1] : 'the check'}” has passed, with this evidence: ${evidence}. Once all four are recorded, an owner can switch on automatic publishing.`, 'Record')) return;
       const done = busy($('button[type=submit]', f), 'Recording');
-      try { dmCheck(await client.rpc('record_publish_gate', { p_gate: val(f, 'gate'), p_evidence_ref: evidence })); toast('Safety check recorded.'); gatesPanel(box); } catch (x) { done(); toast(message(x), true); }
+      try { dmCheck(await client.rpc('record_publish_gate', { p_gate: val(f, 'gate'), p_evidence_ref: evidence })); toast('Safety check recorded.'); gatesPanel(box); } catch (x) { done(); toast(failMessage(x), true); }
     });
     // onchange, not addEventListener: the panel redraws itself after each change and must not stack handlers.
     box.onchange = async (e) => {
@@ -3954,7 +4049,7 @@
       const who = clientName(id);
       if (!await ask(want ? `Turn on auto-publish for ${who}?` : `Turn off auto-publish for ${who}?`, want ? 'Items the team asked to publish can then go live on their dashboard without your click, once the safety checks pass and the owner\'s switch is on. Invoices still wait for you.' : 'Everything for them waits for your approval again.', want ? 'Turn on' : 'Turn off')) { t.checked = !want; return; }
       t.disabled = true;
-      try { dmCheck(await client.rpc('set_tenant_auto_publish', { p_tenant: id, p_enabled: t.checked })); toast(t.checked ? 'On for this client. The owner\'s switch (AUTO_PUBLISH_ENABLED on the server) must also be on.' : 'Off for this client.'); } catch (x) { t.checked = !t.checked; toast(message(x), true); }
+      try { dmCheck(await client.rpc('set_tenant_auto_publish', { p_tenant: id, p_enabled: t.checked })); toast(t.checked ? 'On for this client. The owner\'s switch (AUTO_PUBLISH_ENABLED on the server) must also be on.' : 'Off for this client.'); } catch (x) { t.checked = !t.checked; toast(failMessage(x), true); }
       gatesPanel(box);
     };
   }
@@ -4073,7 +4168,7 @@
    * ways to save and redraw. A part registers itself on window.D8C_EXT.<name> and is called from here with this object.
    */
   /** @type {any} */ (window).D8C = {
-    esc, $, $$, icon, toast, undoToast, busy, val, message, skeleton, plural, when, ago, due, longDate, dayOf, today, localDay, newId, clone, svcLabel,
+    esc, $, $$, icon, toast, undoToast, busy, val, message, failMessage, fieldFail, skeleton, plural, when, ago, due, longDate, dayOf, today, localDay, newId, clone, svcLabel,
     SERVICES, SERVICE_ORDER, STATUS, FLAGS, PORTAL_URL, main,
     db, staffRows, check, ask, track, clean, redraw, afterSave, route, refreshAll, loadAll, callFn, viewAs,
     tenant, derive, planOf, usageTone, usageBar, money, clockTime, pageFresh, billingOf, convo, allTabs, fromCache, loadClient, save, saveDoc,

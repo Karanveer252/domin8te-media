@@ -895,9 +895,11 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         out = await sh.run(f, note);
       } catch (x) {
         done();
-        err.textContent = (x && /** @type {any} */ (x).message) || 'That did not save.';
+        // One failure wording for every save (console.js failMessage, critic R2-27): browser text goes on a Details line.
+        const said = (x && c.failMessage ? c.failMessage(x) : (x && /** @type {any} */ (x).message)) || 'That did not save.';
+        err.textContent = said.replace(/\n/g, ' ');
         err.hidden = false;
-        c.toast(`Not saved. ${err.textContent}`, true);
+        c.toast(/^Not saved\./.test(said) ? said : `Not saved. ${said}`, true);
         // A refusal can mean the page is out of date (somebody else acted first): load it again quietly.
         if (/Reloaded/.test(err.textContent || '')) { try { await c.loadAll(); c.redraw(); } catch (y) { /* the message above already said what happened */ } }
         return;
