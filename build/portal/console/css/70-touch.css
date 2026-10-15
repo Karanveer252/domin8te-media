@@ -35,6 +35,7 @@
   .wk-more > summary, .wk-rest > summary { min-height: 44px; }
   /* inline links and text buttons keep their look; the hit area grows above and below the words */
   .linkish { padding-top: 13px; padding-bottom: 13px; margin-top: -13px; margin-bottom: -13px; }
+  .rm-acts .linkish, .cc-logo-act .linkish { min-height: 44px; margin: 0; }
   .crumb { min-height: 44px; margin-top: -12px; margin-bottom: -4px; }
   main .meta > a, .nx-who a, .convo-head h2 a, a.bl-more, a.row-link, .q-client-h a:not(.bot-all), .summary-jump, main p > a:not(.btn):not(.chip):not(.icon-btn), main li > a:not(.btn):not(.chip):not(.icon-btn), main dd > a, main td a:not(.btn):not(.chip), .msg a:not(.btn), .item-card a:not(.btn):not(.chip), .wk-flag a { padding-top: 14px; padding-bottom: 14px; }
   .bot-needs .bot-all { min-height: 44px; }

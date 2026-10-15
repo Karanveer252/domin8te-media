@@ -156,6 +156,8 @@ html[data-theme="dark"] .cc-sw-dot { box-shadow: inset 0 0 0 1px rgba(255, 255, 
 .cc-logo-prev .cc-badge { min-width: 46px; height: 34px; padding: 0 8px; border-radius: 10px; font-size: 14px; }
 .cc-logo-prev .cc-badge.has-logo { width: 44px; height: 44px; min-width: 0; padding: 0; border-radius: 50%; }
 .cc-logo-act { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
+/* "Remove logo" stands as tall as the Replace button beside it (15 Oct). */
+.cc-logo-act .linkish { display: inline-flex; align-items: center; min-height: 36px; margin: 0; padding: 6px 0; }
 .cc-logo .hint, .cc-logo .field-error { margin: 0; font-size: 13px; line-height: 1.4; }
 .cc-logo .field-error { color: var(--bad); }
 .cc-logo .field-error[hidden], .cc-logo [hidden] { display: none; }

@@ -51,10 +51,12 @@ The machine is slow while agents run: run smoke and a11y in the background if th
 - DONE 14 Oct 14:45: Clerk id seeded by 20261014150000_business_owner_seed.sql (TEST applied twice; matches staff row O/0).
   revcharts (13 charts, green income, Customize) and livecount (20261014140000 set_live_count) both finished and verified.
   Client mix ring + legend fixed by main session. Prod migrations now 31 (add 140000 and 150000 at the end).
-- NEXT: round 1 (area A) once the 5-hour limit has reset (it was 97% at 14:45, resets 16:30 local).
+- 16:34 round 1 STARTED (areas A + C together, Sonnet critic, report -> CRITIC-ROUND-1.md). Plan: round 2 = B + E, round 3 = D, then repeat until two clean rounds.
 
 ## Round log
 | Round | Area | Critic found (H/M/L) | Fixed | Checks | Notes |
 |---|---|---|---|---|---|
 | 0 | whole build | 23 items | all but perf leftovers | all green 13:10 | CRITIC-2026-10-14.md |
 | - | follow-ups | Karan's asks | revcharts, livecount, mix ring, owner seed | lint 93, revenue 138, security 151, smoke 90 | paused 14:45 at 5-hour 97% |
+| 1 | A + C (partial: console light 1440-900 only; machine ran out of memory) | 0/2/8 | F1 tool fix (a11y retry), F3-F10 fixed (Fable), F8/part F9 not defects | console-check 24/24, phone 24/24, a11y console 85/85 | round 2 must cover the gaps: console 768-360, dark, scenes, whole dashboard sweep, tap targets, focus, Customize dialog. ONE headless Chrome at a time. |
+| 2 | B + E + round 1 gaps (console 768-360, dark, scenes, dashboard sweep, tap/focus, Customize) | started 00:56 | | lint 93, console-check 24/24, release clean, a11y dash 57/57, smoke 90/90 | |

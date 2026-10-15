@@ -34,6 +34,8 @@
 .hp-chips .chip { padding-left: 11px; }
 .hp-stop { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--ink-3); }
 .hp-form { display: grid; gap: 14px; margin-top: 18px; }
+/* The text boxes open at two lines and grow with what is typed (mod-home.js grow); the handle still lets them be pulled taller. */
+.hp-form textarea { min-height: 58px; overflow: hidden; }
 .hp-hint { text-align: right; }
 .hp-hint[id$="-c"] { margin-top: -1px; }
 .hp-error { margin: 0; }

@@ -114,11 +114,16 @@ if (/v18h/.test(BUILD)) {
 if (ONLY.length) CASES = CASES.filter((c) => ONLY.some((o) => `${c.w}px ${c.query ? '?' + c.query + ' ' : ''}#/${c.route}`.includes(o)));
 let failed = 0;
 for (const c of CASES) {
-  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'd8axe-'));
   const url = `file:///${FILE}${c.query ? '?' + c.query : ''}#/${c.route}`;
-  const r = spawnSync(CHROME, ['--headless=new', '--disable-gpu', '--no-first-run', `--user-data-dir=${profile}`, '--virtual-time-budget=20000', `--window-size=${c.w},1200`, ...(c.reduced ? ['--force-prefers-reduced-motion'] : []), '--dump-dom', url], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-  fs.rmSync(profile, { recursive: true, force: true });
-  const m = /data-axe="([^"]*)"/.exec(r.stdout || '');
+  // Under load Chrome can be slow to start or paint, so a page gets up to two tries: the second with a longer
+  // virtual-time budget and a hard wall-clock limit. Only a page that fails both tries is reported as a failure.
+  let m = null;
+  for (let attempt = 0; attempt < 2 && !m; attempt++) {
+    const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'd8axe-'));
+    const r = spawnSync(CHROME, ['--headless=new', '--disable-gpu', '--no-first-run', `--user-data-dir=${profile}`, `--virtual-time-budget=${attempt ? 45000 : 20000}`, `--window-size=${c.w},1200`, ...(c.reduced ? ['--force-prefers-reduced-motion'] : []), '--dump-dom', url], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: attempt ? 180000 : 90000, killSignal: 'SIGKILL' });
+    try { fs.rmSync(profile, { recursive: true, force: true }); } catch (e) {}
+    m = /data-axe="([^"]*)"/.exec(r.stdout || '');
+  }
   const label = `${c.w}px ${c.query ? '?' + c.query + ' ' : ''}${c.reduced ? '(reduced motion) ' : ''}#/${c.route}`;
   if (!m) { failed++; console.log(`FAIL ${label}: axe did not finish`); continue; }
   const v = JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'"));

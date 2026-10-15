@@ -92,10 +92,12 @@ table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; fon
 .rm-key.is-off { background: var(--warn-bg); box-shadow: none; }
 .rm-h { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 15px; }
 .rm-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.rm-fail { display: grid; gap: 6px; padding: 14px 16px; border-radius: 18px; background: var(--glass-soft); box-shadow: inset 0 0 0 1px var(--line); }
+.rm-fail { display: grid; gap: 8px; padding: 14px 16px; border-radius: 18px; background: var(--glass-soft); box-shadow: inset 0 0 0 1px var(--line); }
 .rm-who { display: grid; gap: 1px; }
 .rm-err { color: var(--bad); font-size: 13.5px; }
-.rm-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 4px; }
+.rm-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+/* "Use another address" stands as tall as the Send again button beside it, so the row reads as one line (15 Oct). */
+.rm-acts .linkish { display: inline-flex; align-items: center; min-height: 36px; margin: 0; padding: 6px 0; }
 .rm-addr { display: grid; gap: 10px; margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
 .rm-addr .btn { justify-self: start; }
 

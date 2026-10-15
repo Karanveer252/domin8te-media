@@ -38,7 +38,7 @@
 .nx-facts dd { margin: 0; color: var(--ink); font-size: 14.5px; line-height: 1.5; text-wrap: pretty; }
 .nx-facts > div:last-child dd { color: var(--ink-2); }
 .nx-hint { margin: 0; color: var(--ink-3); font-size: 13.5px; }
-.nx-detail { margin: 4px 0 2px 136px; min-width: 0; }
+.nx-detail { margin: 0 0 0 136px; min-width: 0; }
 
 /* Two columns side by side: the console's value and the client dashboard's. A value that differs reads red on the client's side. */
 .nx-compare { display: grid; gap: 0; padding: 4px 14px; border-radius: 14px; background: rgba(94, 72, 50, 0.06); font-size: 14px; }

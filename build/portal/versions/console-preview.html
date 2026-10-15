@@ -3542,7 +3542,7 @@ html[data-theme="dark"] :is(.hx-list, .vz-hist, .bd-hist-list) > li::before { ba
 .nx-facts dd { margin: 0; color: var(--ink); font-size: 14.5px; line-height: 1.5; text-wrap: pretty; }
 .nx-facts > div:last-child dd { color: var(--ink-2); }
 .nx-hint { margin: 0; color: var(--ink-3); font-size: 13.5px; }
-.nx-detail { margin: 4px 0 2px 136px; min-width: 0; }
+.nx-detail { margin: 0 0 0 136px; min-width: 0; }
 
 /* Two columns side by side: the console's value and the client dashboard's. A value that differs reads red on the client's side. */
 .nx-compare { display: grid; gap: 0; padding: 4px 14px; border-radius: 14px; background: rgba(94, 72, 50, 0.06); font-size: 14px; }
@@ -3617,7 +3617,8 @@ html[data-theme="dark"] :is(.hx-list, .vz-hist, .bd-hist-list) > li::before { ba
  */
 
 /* The three cards: the Domin8te place, the capacity hint and the over-limit warnings. */
-.cl-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 18px 0 20px; }
+/* Three equal columns, so the third card never sits alone with a hole beside it (15 Oct); one column from 860px down. */
+.cl-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 18px 0 20px; }
 .cl-card { display: flex; align-items: flex-start; gap: 12px; min-width: 0; padding: 16px 20px; border: 0.67px solid var(--glass-edge, rgba(255, 255, 255, 0.76)); border-radius: 20px; background-color: var(--glass-soft, rgba(255, 255, 255, 0.42)); background-image: var(--glass-hi, none); box-shadow: var(--glass-shadow-sm, var(--shadow)); color: var(--ink); text-align: left; }
 .cl-card > div { min-width: 0; }
 button.cl-card { width: 100%; font: inherit; cursor: pointer; transition: box-shadow 160ms var(--ease), background-color 160ms var(--ease); }
@@ -3671,7 +3672,8 @@ button.cl-card:hover { background-color: rgba(255, 255, 255, 0.7); box-shadow: v
   .cl-table table.grid, .cl-table table.grid tbody { display: block; }
   .cl-table table.grid thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .cl-table table.grid tbody { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-  .cl-table table.grid tbody tr { display: grid; align-content: start; gap: 4px; padding: 18px 20px 14px; border: 0.67px solid var(--glass-edge, rgba(255, 255, 255, 0.76)); border-radius: 24px; background-color: var(--glass-soft, rgba(255, 255, 255, 0.5)); background-image: var(--glass-hi, none); box-shadow: var(--glass-shadow-sm, var(--shadow)); }
+  /* Each card spans its seven rows on the list's own grid (subgrid), so Plan, Usage, Status and the rest start at the same height in both cards of a row (15 Oct). */
+  .cl-table table.grid tbody tr { display: grid; grid-row: span 7; grid-template-rows: subgrid; align-content: start; gap: 4px; padding: 18px 20px 14px; border: 0.67px solid var(--glass-edge, rgba(255, 255, 255, 0.76)); border-radius: 24px; background-color: var(--glass-soft, rgba(255, 255, 255, 0.5)); background-image: var(--glass-hi, none); box-shadow: var(--glass-shadow-sm, var(--shadow)); }
   .cl-table table.grid tbody tr:hover { background-color: rgba(255, 255, 255, 0.6); }
   .cl-table table.grid td, .cl-table table.grid td:first-child, .cl-table table.grid td:last-child { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 4px 12px; padding: 7px 0; border: 0; min-width: 0; }
   .cl-table table.grid td::before { content: attr(data-label); color: var(--ink-3); font-size: 12.5px; font-weight: 600; line-height: 1.7; }
@@ -3685,6 +3687,11 @@ button.cl-card:hover { background-color: rgba(255, 255, 255, 0.7); box-shadow: v
   .cl-usage .cusage { grid-template-columns: 124px minmax(40px, 1fr) max-content; }
   .cl-fresh { min-width: 0; }
   .cl-foot { margin-top: 2px; }
+}
+/* With the sidebar open and the page under 1100px the six filter chips do not fit one row, so they sit as an even 3 by 2 block instead of five and one (15 Oct). */
+@media (min-width: 901px) and (max-width: 1100px) {
+  .cl-chips .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cl-chips .seg button { display: inline-flex; align-items: center; justify-content: center; min-width: 0; }
 }
 @media (max-width: 860px) {
   .cl-cards { grid-template-columns: minmax(0, 1fr); gap: 10px; }
@@ -4096,6 +4103,8 @@ html[data-theme="dark"] .cc-sw-dot { box-shadow: inset 0 0 0 1px rgba(255, 255, 
 .cc-logo-prev .cc-badge { min-width: 46px; height: 34px; padding: 0 8px; border-radius: 10px; font-size: 14px; }
 .cc-logo-prev .cc-badge.has-logo { width: 44px; height: 44px; min-width: 0; padding: 0; border-radius: 50%; }
 .cc-logo-act { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
+/* "Remove logo" stands as tall as the Replace button beside it (15 Oct). */
+.cc-logo-act .linkish { display: inline-flex; align-items: center; min-height: 36px; margin: 0; padding: 6px 0; }
 .cc-logo .hint, .cc-logo .field-error { margin: 0; font-size: 13px; line-height: 1.4; }
 .cc-logo .field-error { color: var(--bad); }
 .cc-logo .field-error[hidden], .cc-logo [hidden] { display: none; }
@@ -4493,7 +4502,7 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
 .nc-check input:disabled + span { color: var(--ink-3); }
 .nc-step .hint { margin-top: 6px; color: var(--ink-3); font-size: 13.5px; }
 
-.nc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 4px; }
+.nc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 0; }
 .nc-status { flex: 1 1 260px; font-size: 14px; }
 .nc-foot { margin-top: -6px; }
 .fold-more .seg-set { margin-top: 12px; }
@@ -4621,10 +4630,12 @@ table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; fon
 .rm-key.is-off { background: var(--warn-bg); box-shadow: none; }
 .rm-h { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 15px; }
 .rm-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.rm-fail { display: grid; gap: 6px; padding: 14px 16px; border-radius: 18px; background: var(--glass-soft); box-shadow: inset 0 0 0 1px var(--line); }
+.rm-fail { display: grid; gap: 8px; padding: 14px 16px; border-radius: 18px; background: var(--glass-soft); box-shadow: inset 0 0 0 1px var(--line); }
 .rm-who { display: grid; gap: 1px; }
 .rm-err { color: var(--bad); font-size: 13.5px; }
-.rm-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 4px; }
+.rm-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+/* "Use another address" stands as tall as the Send again button beside it, so the row reads as one line (15 Oct). */
+.rm-acts .linkish { display: inline-flex; align-items: center; min-height: 36px; margin: 0; padding: 6px 0; }
 .rm-addr { display: grid; gap: 10px; margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
 .rm-addr .btn { justify-self: start; }
 
@@ -4842,6 +4853,8 @@ html[data-page="settings"][data-theme="dark"] .page-fresh { background: var(--gl
 .hp-chips .chip { padding-left: 11px; }
 .hp-stop { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--ink-3); }
 .hp-form { display: grid; gap: 14px; margin-top: 18px; }
+/* The text boxes open at two lines and grow with what is typed (mod-home.js grow); the handle still lets them be pulled taller. */
+.hp-form textarea { min-height: 58px; overflow: hidden; }
 .hp-hint { text-align: right; }
 .hp-hint[id$="-c"] { margin-top: -1px; }
 .hp-error { margin: 0; }
@@ -5567,6 +5580,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
   .wk-more > summary, .wk-rest > summary { min-height: 44px; }
   /* inline links and text buttons keep their look; the hit area grows above and below the words */
   .linkish { padding-top: 13px; padding-bottom: 13px; margin-top: -13px; margin-bottom: -13px; }
+  .rm-acts .linkish, .cc-logo-act .linkish { min-height: 44px; margin: 0; }
   .crumb { min-height: 44px; margin-top: -12px; margin-bottom: -4px; }
   main .meta > a, .nx-who a, .convo-head h2 a, a.bl-more, a.row-link, .q-client-h a:not(.bot-all), .summary-jump, main p > a:not(.btn):not(.chip):not(.icon-btn), main li > a:not(.btn):not(.chip):not(.icon-btn), main dd > a, main td a:not(.btn):not(.chip), .msg a:not(.btn), .item-card a:not(.btn):not(.chip), .wk-flag a { padding-top: 14px; padding-bottom: 14px; }
   .bot-needs .bot-all { min-height: 44px; }
@@ -10957,9 +10971,9 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
       const fid = `hp-${k}-${f}`;
       const ph = esc(sec.ph[f] || '');
       if (f === 'title') return `<div class="field"><label for="${fid}">Title</label><input id="${fid}" name="title" type="text" maxlength="${LIMIT.title}" autocomplete="off" value="${esc(w.title)}" placeholder="${ph}" aria-describedby="${fid}-c"><p class="hint hp-hint" id="${fid}-c"><span data-count="title">${w.title.length}</span> of ${LIMIT.title}</p></div>`;
-      if (f === 'body') return `<div class="field"><label for="${fid}">${k === 'nothing_to_do' ? 'Message' : 'Note'}</label><textarea id="${fid}" name="body" rows="${k === 'nothing_to_do' ? 3 : 4}" maxlength="${LIMIT.body}" placeholder="${ph}" aria-describedby="${fid}-c">${esc(w.body)}</textarea><p class="hint hp-hint" id="${fid}-c"><span data-count="body">${w.body.length.toLocaleString('en-GB')}</span> of ${LIMIT.body.toLocaleString('en-GB')}</p></div>`;
+      if (f === 'body') return `<div class="field"><label for="${fid}">${k === 'nothing_to_do' ? 'Message' : 'Note'}</label><textarea id="${fid}" name="body" rows="2" maxlength="${LIMIT.body}" placeholder="${ph}" aria-describedby="${fid}-c">${esc(w.body)}</textarea><p class="hint hp-hint" id="${fid}-c"><span data-count="body">${w.body.length.toLocaleString('en-GB')}</span> of ${LIMIT.body.toLocaleString('en-GB')}</p></div>`;
       const n = w.items.split('\n').map((x) => x.trim()).filter(Boolean).length;
-      return `<div class="field"><label for="${fid}">Short lines</label><textarea id="${fid}" name="items" rows="3" placeholder="${ph}" aria-describedby="${fid}-c">${esc(w.items)}</textarea><p class="hint hp-hint" id="${fid}-c">One line each, up to ${LIMIT.items} lines of ${LIMIT.line} characters. <span data-count="items">${n}</span> of ${LIMIT.items} used.</p></div>`;
+      return `<div class="field"><label for="${fid}">Short lines</label><textarea id="${fid}" name="items" rows="2" placeholder="${ph}" aria-describedby="${fid}-c">${esc(w.items)}</textarea><p class="hint hp-hint" id="${fid}-c">One line each, up to ${LIMIT.items} lines of ${LIMIT.line} characters. <span data-count="items">${n}</span> of ${LIMIT.items} used.</p></div>`;
     }
 
     /** The history under a card. @param {string} k */
@@ -11071,12 +11085,15 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
     }
     let pending = 0;
     const soon = () => { if (!pending) pending = window.requestAnimationFrame(() => { pending = 0; drawPreview(); }); };
+    /** A text box opens at two lines and grows to fit what is in it, so a one-line value is not a tall empty box. @param {HTMLTextAreaElement} t */
+    const grow = (t) => { t.style.height = 'auto'; t.style.height = `${t.scrollHeight + 2}px`; };
 
     function drawCard(/** @type {string} */ k, /** @type {string} */ focus) {
       const slot = box.querySelector(`[data-slot="${k}"]`);
       if (!slot) return;
       cleanForms(slot);
       slot.innerHTML = cardHtml(k);
+      slot.querySelectorAll('textarea').forEach((t) => grow(/** @type {HTMLTextAreaElement} */ (t)));
       const form = /** @type {HTMLFormElement|null} */ (slot.querySelector('.hp-form'));
       if (form) C.track(form, `${/** @type {any} */ (SECS.find((x) => x.key === k)).name} (Home tab)`);
       const pf = slot.querySelector('.vz-pform');
@@ -11229,6 +11246,7 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
       const name = /** @type {'title'|'body'|'items'|'source'} */ (t.getAttribute('name') || '');
       if (!['title', 'body', 'items', 'source'].includes(name)) return;
       w[name] = t.value;
+      if (t.tagName === 'TEXTAREA') grow(/** @type {HTMLTextAreaElement} */ (t));
       ui(k).error = '';
       // counts and the state line change in place, so typing never loses the caret
       const count = form.querySelector(`[data-count="${name}"]`);

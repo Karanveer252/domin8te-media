@@ -4,7 +4,8 @@
  */
 
 /* The three cards: the Domin8te place, the capacity hint and the over-limit warnings. */
-.cl-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 18px 0 20px; }
+/* Three equal columns, so the third card never sits alone with a hole beside it (15 Oct); one column from 860px down. */
+.cl-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 18px 0 20px; }
 .cl-card { display: flex; align-items: flex-start; gap: 12px; min-width: 0; padding: 16px 20px; border: 0.67px solid var(--glass-edge, rgba(255, 255, 255, 0.76)); border-radius: 20px; background-color: var(--glass-soft, rgba(255, 255, 255, 0.42)); background-image: var(--glass-hi, none); box-shadow: var(--glass-shadow-sm, var(--shadow)); color: var(--ink); text-align: left; }
 .cl-card > div { min-width: 0; }
 button.cl-card { width: 100%; font: inherit; cursor: pointer; transition: box-shadow 160ms var(--ease), background-color 160ms var(--ease); }
@@ -58,7 +59,8 @@ button.cl-card:hover { background-color: rgba(255, 255, 255, 0.7); box-shadow: v
   .cl-table table.grid, .cl-table table.grid tbody { display: block; }
   .cl-table table.grid thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .cl-table table.grid tbody { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-  .cl-table table.grid tbody tr { display: grid; align-content: start; gap: 4px; padding: 18px 20px 14px; border: 0.67px solid var(--glass-edge, rgba(255, 255, 255, 0.76)); border-radius: 24px; background-color: var(--glass-soft, rgba(255, 255, 255, 0.5)); background-image: var(--glass-hi, none); box-shadow: var(--glass-shadow-sm, var(--shadow)); }
+  /* Each card spans its seven rows on the list's own grid (subgrid), so Plan, Usage, Status and the rest start at the same height in both cards of a row (15 Oct). */
+  .cl-table table.grid tbody tr { display: grid; grid-row: span 7; grid-template-rows: subgrid; align-content: start; gap: 4px; padding: 18px 20px 14px; border: 0.67px solid var(--glass-edge, rgba(255, 255, 255, 0.76)); border-radius: 24px; background-color: var(--glass-soft, rgba(255, 255, 255, 0.5)); background-image: var(--glass-hi, none); box-shadow: var(--glass-shadow-sm, var(--shadow)); }
   .cl-table table.grid tbody tr:hover { background-color: rgba(255, 255, 255, 0.6); }
   .cl-table table.grid td, .cl-table table.grid td:first-child, .cl-table table.grid td:last-child { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 4px 12px; padding: 7px 0; border: 0; min-width: 0; }
   .cl-table table.grid td::before { content: attr(data-label); color: var(--ink-3); font-size: 12.5px; font-weight: 600; line-height: 1.7; }
@@ -72,6 +74,11 @@ button.cl-card:hover { background-color: rgba(255, 255, 255, 0.7); box-shadow: v
   .cl-usage .cusage { grid-template-columns: 124px minmax(40px, 1fr) max-content; }
   .cl-fresh { min-width: 0; }
   .cl-foot { margin-top: 2px; }
+}
+/* With the sidebar open and the page under 1100px the six filter chips do not fit one row, so they sit as an even 3 by 2 block instead of five and one (15 Oct). */
+@media (min-width: 901px) and (max-width: 1100px) {
+  .cl-chips .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cl-chips .seg button { display: inline-flex; align-items: center; justify-content: center; min-width: 0; }
 }
 @media (max-width: 860px) {
   .cl-cards { grid-template-columns: minmax(0, 1fr); gap: 10px; }

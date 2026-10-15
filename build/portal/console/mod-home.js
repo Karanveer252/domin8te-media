@@ -315,9 +315,9 @@
       const fid = `hp-${k}-${f}`;
       const ph = esc(sec.ph[f] || '');
       if (f === 'title') return `<div class="field"><label for="${fid}">Title</label><input id="${fid}" name="title" type="text" maxlength="${LIMIT.title}" autocomplete="off" value="${esc(w.title)}" placeholder="${ph}" aria-describedby="${fid}-c"><p class="hint hp-hint" id="${fid}-c"><span data-count="title">${w.title.length}</span> of ${LIMIT.title}</p></div>`;
-      if (f === 'body') return `<div class="field"><label for="${fid}">${k === 'nothing_to_do' ? 'Message' : 'Note'}</label><textarea id="${fid}" name="body" rows="${k === 'nothing_to_do' ? 3 : 4}" maxlength="${LIMIT.body}" placeholder="${ph}" aria-describedby="${fid}-c">${esc(w.body)}</textarea><p class="hint hp-hint" id="${fid}-c"><span data-count="body">${w.body.length.toLocaleString('en-GB')}</span> of ${LIMIT.body.toLocaleString('en-GB')}</p></div>`;
+      if (f === 'body') return `<div class="field"><label for="${fid}">${k === 'nothing_to_do' ? 'Message' : 'Note'}</label><textarea id="${fid}" name="body" rows="2" maxlength="${LIMIT.body}" placeholder="${ph}" aria-describedby="${fid}-c">${esc(w.body)}</textarea><p class="hint hp-hint" id="${fid}-c"><span data-count="body">${w.body.length.toLocaleString('en-GB')}</span> of ${LIMIT.body.toLocaleString('en-GB')}</p></div>`;
       const n = w.items.split('\n').map((x) => x.trim()).filter(Boolean).length;
-      return `<div class="field"><label for="${fid}">Short lines</label><textarea id="${fid}" name="items" rows="3" placeholder="${ph}" aria-describedby="${fid}-c">${esc(w.items)}</textarea><p class="hint hp-hint" id="${fid}-c">One line each, up to ${LIMIT.items} lines of ${LIMIT.line} characters. <span data-count="items">${n}</span> of ${LIMIT.items} used.</p></div>`;
+      return `<div class="field"><label for="${fid}">Short lines</label><textarea id="${fid}" name="items" rows="2" placeholder="${ph}" aria-describedby="${fid}-c">${esc(w.items)}</textarea><p class="hint hp-hint" id="${fid}-c">One line each, up to ${LIMIT.items} lines of ${LIMIT.line} characters. <span data-count="items">${n}</span> of ${LIMIT.items} used.</p></div>`;
     }
 
     /** The history under a card. @param {string} k */
@@ -429,12 +429,15 @@
     }
     let pending = 0;
     const soon = () => { if (!pending) pending = window.requestAnimationFrame(() => { pending = 0; drawPreview(); }); };
+    /** A text box opens at two lines and grows to fit what is in it, so a one-line value is not a tall empty box. @param {HTMLTextAreaElement} t */
+    const grow = (t) => { t.style.height = 'auto'; t.style.height = `${t.scrollHeight + 2}px`; };
 
     function drawCard(/** @type {string} */ k, /** @type {string} */ focus) {
       const slot = box.querySelector(`[data-slot="${k}"]`);
       if (!slot) return;
       cleanForms(slot);
       slot.innerHTML = cardHtml(k);
+      slot.querySelectorAll('textarea').forEach((t) => grow(/** @type {HTMLTextAreaElement} */ (t)));
       const form = /** @type {HTMLFormElement|null} */ (slot.querySelector('.hp-form'));
       if (form) C.track(form, `${/** @type {any} */ (SECS.find((x) => x.key === k)).name} (Home tab)`);
       const pf = slot.querySelector('.vz-pform');
@@ -587,6 +590,7 @@
       const name = /** @type {'title'|'body'|'items'|'source'} */ (t.getAttribute('name') || '');
       if (!['title', 'body', 'items', 'source'].includes(name)) return;
       w[name] = t.value;
+      if (t.tagName === 'TEXTAREA') grow(/** @type {HTMLTextAreaElement} */ (t));
       ui(k).error = '';
       // counts and the state line change in place, so typing never loses the caret
       const count = form.querySelector(`[data-count="${name}"]`);

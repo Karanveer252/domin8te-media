@@ -41,7 +41,7 @@
 .nc-check input:disabled + span { color: var(--ink-3); }
 .nc-step .hint { margin-top: 6px; color: var(--ink-3); font-size: 13.5px; }
 
-.nc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 4px; }
+.nc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 0; }
 .nc-status { flex: 1 1 260px; font-size: 14px; }
 .nc-foot { margin-top: -6px; }
 .fold-more .seg-set { margin-top: 12px; }
