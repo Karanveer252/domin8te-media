@@ -48,7 +48,7 @@
   const MAX_MINOR = 2147483647;
   const MAX_LINES = 80;
   const MONTHS_BACK = 59;
-  const VIEWS = ['overview', 'income', 'costs', 'years', 'cinema'];
+  const VIEWS = ['overview', 'income', 'costs', 'years'];
 
   /**
    * What the page remembers: the month and section on screen, the months already read (all of them are read again after a save, since the
@@ -345,7 +345,7 @@
   function tools() {
     const c = C();
     const b = (/** @type {string} */ id, /** @type {string} */ data, /** @type {string} */ ic, /** @type {string} */ label) => `<button class="btn btn-quiet btn-sm" type="button" id="${id}" ${data} aria-haspopup="dialog">${c.icon(ic)}${label}</button>`;
-    return `<div class="rv-tools" role="group" aria-label="Revenue tools">${b('rv-qa-btn', 'data-rv-qa', 'plus', 'Add a cost')}${b('rv-find-btn', 'data-rv-find', 'search', 'Find')}${b('rv-exp-btn', 'data-rv-exp', 'page', 'Export')}${b('rv-goals-btn', 'data-rv-goals', 'trend', 'Goals and tax')}${EXT.cinema ? `<a class="btn btn-quiet btn-sm" id="rv-cin-btn" href="#/revenue/${state.ym}/cinema" title="The month as a full-screen stage">${c.icon('film')}Cinematic view</a>` : ''}</div>`;
+    return `<div class="rv-tools" role="group" aria-label="Revenue tools">${b('rv-qa-btn', 'data-rv-qa', 'plus', 'Add a cost')}${b('rv-find-btn', 'data-rv-find', 'search', 'Find')}${b('rv-exp-btn', 'data-rv-exp', 'page', 'Export')}${b('rv-goals-btn', 'data-rv-goals', 'trend', 'Goals and tax')}</div>`;
   }
 
   /** The four sections, as the console's segmented pills. @param {string} ym */
@@ -2307,9 +2307,7 @@
     try {
       const [d] = await Promise.all([readMonth(ym), readChoice()]);
       if (seq !== state.seq) return;
-      // Cinematic view (2026-10-15, mod-cinema.js): the month as a full-screen stage, on the same data, back to Revenue with Esc or Close.
-      if (v === 'cinema' && EXT.cinema && typeof EXT.cinema.page === 'function') EXT.cinema.page(d, EXT.revenue);
-      else paintBody(d);
+      paintBody(d);
       paintFresh();
     } catch (x) {
       if (seq !== state.seq) return;
@@ -2386,7 +2384,5 @@
     if (t && t.matches && t.matches('[data-rv-cust-on]')) setShown(String(t.getAttribute('data-rv-cust-on')), t.checked);
   }
 
-  EXT.revenue = { page, sideItem, visible, parse, field, change, margin, ticks, CHARTS, csvOf, insights, forecast, taxOf, normLines, get choice() { return choice; },
-    // what the Cinematic view (mod-cinema.js) draws from, read only: the month's totals and names, the client mix, the year rows and the moves
-    totals, mixSlices, yearRows, move, goalPct, pctText, catName, monthName, nearName, shift, monthIndex, currentMonth, MONTHS_BACK };
+  EXT.revenue = { page, sideItem, visible, parse, field, change, margin, ticks, CHARTS, csvOf, insights, forecast, taxOf, normLines, get choice() { return choice; } };
 })();

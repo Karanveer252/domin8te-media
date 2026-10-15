@@ -1,0 +1,36 @@
+/*
+ * Pinned clients in the sidebar (2026-10-15). Each client row ends in a small pin button: it shows on hover or keyboard focus,
+ * and always on touch screens and at 600px and under (a 44px hit area there). Pinned rows carry a small pin before the name.
+ * When there are pinned and recent rows, "Recent" heads the second group (the sidebar's own heading then says "Pinned").
+ * The row link stays as it was (badge, name, count, aria-current, the sliding pill aims at it); the button sits on top of its right end.
+ */
+.side-row { position: relative; }
+.side-pin { position: absolute; top: 50%; right: 6px; z-index: 2; display: grid; place-items: center; width: 28px; height: 28px; margin-top: -14px; padding: 0; border: 0; border-radius: 999px; background: none; color: var(--ink-3); cursor: pointer; opacity: 0; transition: opacity 140ms var(--ease), background 140ms var(--ease), color 140ms var(--ease); }
+.side-pin .ic { width: 15px; height: 15px; }
+.side-pin[aria-pressed="true"] .ic { fill: currentColor; }
+.side-pin:hover { background: var(--hover); color: var(--ink); }
+.side-row:is(:hover, :focus-within) .side-pin { opacity: 1; }
+.side-row:is(:hover, :focus-within) .side-client { padding-right: 40px; }
+.side-pin[aria-disabled="true"] { cursor: not-allowed; }
+.side-pin[aria-disabled="true"] .ic { opacity: 0.45; }
+/* on the selected (ink) row the pin reads light; in the dark theme the selected row is light, so the pin reads ink */
+.side-client[aria-current="page"] + .side-pin { color: rgba(251, 248, 243, 0.82); }
+.side-client[aria-current="page"] + .side-pin:hover { background: rgba(251, 248, 243, 0.16); color: #FBF8F3; }
+html[data-theme="dark"] .side-client[aria-current="page"] + .side-pin { color: rgba(29, 26, 22, 0.75); }
+html[data-theme="dark"] .side-client[aria-current="page"] + .side-pin:hover { background: rgba(29, 26, 22, 0.1); color: #1D1A16; }
+.side-pin-mark { width: 12px; height: 12px; flex: none; margin-right: -5px; color: var(--ink-3); fill: currentColor; }
+.side-client[aria-current="page"] .side-pin-mark { color: inherit; opacity: 0.8; }
+.side-group { margin-top: 2px; }
+.side-sub { margin: 14px 14px 6px; color: var(--ink-3); font-size: 12.5px; font-weight: 600; }
+.side-sub-list { margin: 0; padding: 0; list-style: none; }
+/* the client header's Pin to sidebar / Unpin */
+.client-head .who .pin-head { margin: -4px 0; }
+.pin-head[aria-disabled="true"] { cursor: not-allowed; opacity: 0.6; }
+@media (hover: none), (max-width: 600px) {
+  .side-pin { opacity: 1; }
+  .side-row .side-client { padding-right: 40px; }
+}
+@media (max-width: 600px) {
+  .side-pin { right: 0; width: 44px; height: 44px; margin-top: -22px; }
+  .side-row .side-client { padding-right: 46px; }
+}

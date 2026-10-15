@@ -38,12 +38,8 @@ const runner = `<script>${fs.readFileSync(AXE, 'utf8').replace(/<\/script/gi, '<
   var custOpened = !REV_BTN[rev];
   var bot = (/[?&]a11ybot=([a-z]+)/.exec(location.search) || [])[1] || '';
   var botOpened = !bot;
-  // ?a11ywait=<ms> (Cinematic view, 2026-10-15): axe looks only after the page's entrance has played, so half-faded words are not measured.
-  var waitMs = Number((/[?&]a11ywait=([0-9]+)/.exec(location.search) || [])[1]) || 0;
-  var waited = !waitMs;
   function go() {
     if (!ready() && tries++ < 80) return setTimeout(go, 100);
-    if (!waited) { waited = true; return setTimeout(go, waitMs); }
     if (!custOpened) {
       var cb = document.getElementById(REV_BTN[rev]);
       if (!cb && tries++ < 80) return setTimeout(go, 100);
@@ -142,9 +138,6 @@ if (/v18h/.test(BUILD)) {
     { route: 'bot', w: 1440, query: 'a11ybot=bulk' }, { route: 'bot', w: 500, query: 'a11ybot=bulk' }, { route: 'bot', w: 1440, query: 'scene=scenes&a11ybot=bulk' }, { route: 'bot', w: 1440, query: 'theme=dark&a11ybot=confirm' },
     { route: 'bot/stats', w: 1440 }, { route: 'bot/stats', w: 500 }, { route: 'bot/stats', w: 1440, query: 'theme=dark' }, { route: 'bot/stats', w: 1440, query: 'scene=scenes' },
     { route: `client/${B}/bot`, w: 1440 }, { route: `client/${B}/bot`, w: 1440, query: 'scene=scenes' }, { route: `client/${B}/bot/bo_8`, w: 500, query: 'a11ybot=menus' }]);
-  // Cinematic view of Revenue (2026-10-15): the month's stage at 1440 and phone width, in the light and dark theme choice, on Scenes, and with less motion.
-  const CIN = `revenue/${MONTH_NOW}/cinema`;
-  CASES = CASES.concat([{ route: CIN, w: 1440, query: 'a11ywait=2500' }, { route: CIN, w: 500, query: 'a11ywait=2500' }, { route: CIN, w: 1440, query: 'theme=dark&a11ywait=2500' }, { route: CIN, w: 1440, query: 'scene=scenes&a11ywait=2500' }, { route: CIN, w: 1440, reduced: true }, { route: CIN, w: 500, query: 'theme=dark', reduced: true }]);
 } else if (BUILD !== 'v16') {
   // Variants: every main page in light, then dark, a phone width and the all-caught-up state.
   CASES = ['home', 'work', 'results', 'billing', 'settings'].map((route) => ({ route, w: 1440 }))

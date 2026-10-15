@@ -9,7 +9,10 @@
       "mcp__honcho__create_session",
       "mcp__honcho__add_peers_to_session",
       "Bash(mkdir -p /c/Users/kvsd1/.claude/honcho-sync)",
-      "Read(//c/Users/kvsd1/.claude/honcho-sync/**)"
+      "Read(//c/Users/kvsd1/.claude/honcho-sync/**)",
+      "Read(//c/Users/kvsd1/.herenow/**)",
+      "Bash(curl -s -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'User-Agent: Mozilla/5.0' https://here.now/api/v1/publishes)",
+      "mcp__5621de68-69ea-4d8a-bc9e-89a4f65e8229__COMPOSIO_MULTI_EXECUTE_TOOL"
     ]
   }
 }

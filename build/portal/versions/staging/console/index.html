@@ -2185,6 +2185,25 @@
   });
 })();
 </script>
+<script>
+/* stub/92-pins.js */
+// LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). Pinned clients in the sidebar (2026-10-15): Karan's account row in
+// user_prefs has Bayleaf Kitchen pinned, so the Pinned group shows at once. The preview's database lives in memory, so after a reload the
+// account copy is made again from this computer's copy (d8c.pinned), the way the real account would still have it.
+(function () {
+  'use strict';
+  const S = /** @type {any} */ (window).D8STUB;
+  if (!S) return;
+  S.seeds.push((/** @type {any} */ db) => {
+    /** @type {any} */ let pinned = ['tnt_preview_bayleaf'];
+    try { const kept = JSON.parse(localStorage.getItem('d8c.pinned') || 'null'); if (Array.isArray(kept)) pinned = kept; } catch (e) { /* the default pin */ }
+    const rows = db.user_prefs = db.user_prefs || [];
+    const had = rows.find((/** @type {any} */ r) => r.clerk_user_id === 'user_preview_karan');
+    if (had) had.appearance = { ...(had.appearance || {}), sidebar: { pinned } };
+    else rows.push({ clerk_user_id: 'user_preview_karan', appearance: { sidebar: { pinned } } });
+  });
+})();
+</script>
 <style>body::after{content:"Demo console: sample clients, nothing is saved or sent";position:fixed;left:0;right:0;bottom:0;z-index:99;padding:6px;background:#FF5B1F;color:#1D1A16;font:600 13px/1.4 system-ui;text-align:center}
 /* The footer is 30px tall: the sidebar and the toasts stop above it, so nothing is clipped in the preview (R2-5, R2-17, 15 Oct). */
 @media (min-width:901px){body .side{bottom:46px}}@media (max-width:900px){body .side{padding-bottom:30px}}body .toasts{bottom:50px}</style>
@@ -2280,6 +2299,7 @@ kbd { display: inline-block; min-width: 20px; padding: 1px 5px; border: 1px soli
 .side-client { min-height: 36px; padding: 5px 10px; font-weight: 500; }
 .side-client .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side-client.paused .name { color: var(--ink-3); }
+.side-client.paused[aria-current="page"] .name { color: inherit; opacity: 0.8; } /* a paused name stays readable on the selected ink pill (15 Oct) */
 .side-client .dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--surface-3); border: 1px solid var(--line-2); }
 .side-client .dot.you { background: var(--accent); border-color: transparent; }
 .side-client .dot.them { background: #7A70E0; border-color: transparent; }
@@ -4143,6 +4163,44 @@ html[data-theme="dark"] :is(.nc-actions, .nc-foot) { background-color: var(--gla
 .rs-form input:disabled:not([role="switch"]), .rs-form select:disabled { background-color: rgba(255, 255, 255, 0.55); color: var(--ink); -webkit-text-fill-color: var(--ink); opacity: 1; cursor: default; }
 
 
+/* css/24-side-pin.css */
+/*
+ * Pinned clients in the sidebar (2026-10-15). Each client row ends in a small pin button: it shows on hover or keyboard focus,
+ * and always on touch screens and at 600px and under (a 44px hit area there). Pinned rows carry a small pin before the name.
+ * When there are pinned and recent rows, "Recent" heads the second group (the sidebar's own heading then says "Pinned").
+ * The row link stays as it was (badge, name, count, aria-current, the sliding pill aims at it); the button sits on top of its right end.
+ */
+.side-row { position: relative; }
+.side-pin { position: absolute; top: 50%; right: 6px; z-index: 2; display: grid; place-items: center; width: 28px; height: 28px; margin-top: -14px; padding: 0; border: 0; border-radius: 999px; background: none; color: var(--ink-3); cursor: pointer; opacity: 0; transition: opacity 140ms var(--ease), background 140ms var(--ease), color 140ms var(--ease); }
+.side-pin .ic { width: 15px; height: 15px; }
+.side-pin[aria-pressed="true"] .ic { fill: currentColor; }
+.side-pin:hover { background: var(--hover); color: var(--ink); }
+.side-row:is(:hover, :focus-within) .side-pin { opacity: 1; }
+.side-row:is(:hover, :focus-within) .side-client { padding-right: 40px; }
+.side-pin[aria-disabled="true"] { cursor: not-allowed; }
+.side-pin[aria-disabled="true"] .ic { opacity: 0.45; }
+/* on the selected (ink) row the pin reads light; in the dark theme the selected row is light, so the pin reads ink */
+.side-client[aria-current="page"] + .side-pin { color: rgba(251, 248, 243, 0.82); }
+.side-client[aria-current="page"] + .side-pin:hover { background: rgba(251, 248, 243, 0.16); color: #FBF8F3; }
+html[data-theme="dark"] .side-client[aria-current="page"] + .side-pin { color: rgba(29, 26, 22, 0.75); }
+html[data-theme="dark"] .side-client[aria-current="page"] + .side-pin:hover { background: rgba(29, 26, 22, 0.1); color: #1D1A16; }
+.side-pin-mark { width: 12px; height: 12px; flex: none; margin-right: -5px; color: var(--ink-3); fill: currentColor; }
+.side-client[aria-current="page"] .side-pin-mark { color: inherit; opacity: 0.8; }
+.side-group { margin-top: 2px; }
+.side-sub { margin: 14px 14px 6px; color: var(--ink-3); font-size: 12.5px; font-weight: 600; }
+.side-sub-list { margin: 0; padding: 0; list-style: none; }
+/* the client header's Pin to sidebar / Unpin */
+.client-head .who .pin-head { margin: -4px 0; }
+.pin-head[aria-disabled="true"] { cursor: not-allowed; opacity: 0.6; }
+@media (hover: none), (max-width: 600px) {
+  .side-pin { opacity: 1; }
+  .side-row .side-client { padding-right: 40px; }
+}
+@media (max-width: 600px) {
+  .side-pin { right: 0; width: 44px; height: 44px; margin-top: -22px; }
+  .side-row .side-client { padding-right: 46px; }
+}
+
 /* css/30-billing.css */
 /*
  * Billing and the plan rule widget (2026-10-13). The Billing page (a summary strip, a table of every client's plan, picks,
@@ -5086,6 +5144,9 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
 .bot-needs .bot-all { margin-left: auto; font-size: 13px; font-weight: 600; }
 /* On the moving sky the link reads in the same light words as the heading it sits in (contrast fix, 2026-10-14). */
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs .bot-all { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+/* "Counted in Bot chat, not in the Needs you total above" (critic R11-9): the same light words on the sky. */
+.bot-needs .bot-needs-note { margin: -2px 0 8px 2px; }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs .bot-needs-note { color: rgba(246, 243, 238, 0.92); text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
 
 /* ==== Bot chat plus (2026-10-15): filters, pick many, stars, snooze, move, saved reasons, edit history, numbers ====
  * Same tokens, glass pills (.seg), buttons and panels as the rest of the console; the selected pill keeps the solid ink look. */
@@ -5901,6 +5962,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   <symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M4 10v4h3l7 4V6l-7 4z"/><path d="M18 9a4 4 0 0 1 0 6"/></symbol>
   <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></symbol>
   <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 10 5.5 4h13L20 10"/><path d="M4 10a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5.5 12v8h13v-8"/><path d="M10 20v-5h4v5"/></symbol>
+  <symbol id="i-pushpin" viewBox="0 0 24 24"><path d="M9 3.5h6l-1 5.5 3.5 3.5v2h-11v-2L10 9z"/><path d="M12 14.5V21"/></symbol>
   <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
 </svg>
 <div class="shell">
@@ -20072,12 +20134,26 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   applyPrefs();
   /** The account's saved look (user_prefs.appearance), so the portal's own choices are kept. @type {any} */
   let accountLook = null;
+  /*
+   * Pinned clients (2026-10-15): up to 8 clients that always show first in the sidebar, in the order they were pinned. Kept per person in
+   * user_prefs.appearance.sidebar.pinned (so they follow you across devices) and on this computer (d8c.pinned) when the account cannot be read.
+   */
+  const PIN_KEY = 'd8c.pinned';
+  const PIN_MAX = 8;
+  /** Only ids, each once, 8 at most. @param {any} v @returns {string[]} */
+  const cleanPins = (v) => (Array.isArray(v) ? Array.from(new Set(v.filter((/** @type {any} */ x) => typeof x === 'string' && x))).slice(0, PIN_MAX) : []);
+  /** @type {string[]} */
+  let pinned = (() => { try { return cleanPins(JSON.parse(localStorage.getItem(PIN_KEY) || '[]')); } catch (e) { return []; } })();
   /** @param {string} userId */
   async function loadAccountPrefs(userId) {
     try {
       const client = await db();
       const r = await client.from('user_prefs').select('appearance').eq('clerk_user_id', userId).maybeSingle();
       accountLook = (r.data && r.data.appearance) || {};
+      if (accountLook.sidebar && Array.isArray(accountLook.sidebar.pinned)) {
+        pinned = cleanPins(accountLook.sidebar.pinned);
+        try { localStorage.setItem(PIN_KEY, JSON.stringify(pinned)); } catch (e) { /* this computer only */ }
+      }
       if (accountLook.console) {
         prefs = { ...PREF_DEFAULTS, ...accountLook.console };
         try { localStorage.setItem('d8c.prefs', JSON.stringify(prefs)); } catch (e) { /* this computer only */ }
@@ -20093,9 +20169,27 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     applyPrefs();
     try {
       const client = await db();
-      const look = { ...(accountLook || {}), console: prefs };
+      // read first (2026-10-15): the pins and Revenue's chart choice, saved from another device or part of the console, are kept
+      const was = await client.from('user_prefs').select('appearance').eq('clerk_user_id', me.userId).maybeSingle();
+      const look = { ...((was && !was.error && was.data && was.data.appearance) || accountLook || {}), console: prefs };
       check(await client.from('user_prefs').upsert({ clerk_user_id: me.userId, appearance: look }).select('clerk_user_id').maybeSingle());
       writes++;
+      accountLook = look;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  /** Keeps the pinned clients: on this computer at once, then in the account (read, change, write). Resolves true when the account has them. @param {string[]} next */
+  async function savePins(next) {
+    pinned = cleanPins(next);
+    try { localStorage.setItem(PIN_KEY, JSON.stringify(pinned)); } catch (e) { /* this computer only */ }
+    try {
+      const client = await db();
+      const row = check(await client.from('user_prefs').select('appearance').eq('clerk_user_id', me.userId).maybeSingle());
+      const was = (row && row.appearance) || {};
+      const look = { ...was, sidebar: { ...(was.sidebar || {}), pinned } };
+      check(await client.from('user_prefs').upsert({ clerk_user_id: me.userId, appearance: look }).select('clerk_user_id').maybeSingle());
       accountLook = look;
       return true;
     } catch (e) {
@@ -20485,13 +20579,13 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
 
   /* ---- the sidebar --------------------------------------------------------------------------------- */
 
-  /** The last 3 clients opened on this computer, newest first. */
+  /** The clients opened last on this computer, newest first (11 kept, so 3 still show after up to 8 pinned ones). */
   function recentIds() {
     try { const v = JSON.parse(localStorage.getItem('d8c.recent') || '[]'); return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []; } catch (e) { return []; }
   }
   /** @param {string} id */
   function rememberRecent(id) {
-    try { localStorage.setItem('d8c.recent', JSON.stringify([id, ...recentIds().filter((x) => x !== id)].slice(0, 3))); } catch (e) { /* a nicety */ }
+    try { localStorage.setItem('d8c.recent', JSON.stringify([id, ...recentIds().filter((x) => x !== id)].slice(0, PIN_MAX + 3))); } catch (e) { /* a nicety */ }
   }
 
   function renderSide() {
@@ -20500,15 +20594,21 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     let needsTotal = reviewCount(null); // the same total the Needs you page shows as "Do now": client approvals plus every need
     for (const t of all.tenants) if (t.status !== 'archived') needsTotal += derive(t).needs.length;
     const openId = current && document.documentElement.dataset.page === 'client' ? current.id : ''; // only while a client's own page is open
-    const recent = recentIds().map((id) => tenant(id)).filter(Boolean);
-    list.innerHTML = recent.map((/** @type {any} */ t) => {
+    // Pinned clients first, in the order pinned (2026-10-15); then Recent as before, without the pinned ones, 3 at most.
+    const pins = pinned.map((id) => tenant(id)).filter(Boolean);
+    const recent = recentIds().filter((id) => !pinned.includes(id)).map((id) => tenant(id)).filter(Boolean).slice(0, 3);
+    const row = (/** @type {any} */ t, /** @type {boolean} */ isPin) => {
       const d = derive(t);
       const nn = d.needs.length + reviewCount(t.id);
       const title = nn ? plural(nn, 'thing needs', 'things need') + ' you' : d.waiting.length ? plural(d.waiting.length, 'thing') + ' waiting on client' : t.status === 'active' ? 'Nothing waiting' : t.status;
-      return `<li><a class="side-client${t.status !== 'active' ? ' paused' : ''}" href="#/client/${esc(t.id)}"${t.id === openId ? ' aria-current="page"' : ''} title="${esc(title)}">
-        ${CC() ? CC().badge(t.id) : ''}<span class="name">${esc(t.name)}</span>${nn ? `<span class="badge">${nn}</span>` : ''}</a></li>`;
-    }).join('');
-    $('#side-recent-h').hidden = !recent.length;
+      return `<li class="side-row"><a class="side-client${t.status !== 'active' ? ' paused' : ''}" href="#/client/${esc(t.id)}"${t.id === openId ? ' aria-current="page"' : ''} title="${esc(title)}">
+        ${CC() ? CC().badge(t.id) : ''}${isPin ? '<svg class="ic side-pin-mark" aria-hidden="true"><use href="#i-pushpin"/></svg>' : ''}<span class="name">${esc(t.name)}</span>${nn ? `<span class="badge">${nn}</span>` : ''}</a>${pinButton(t, isPin)}</li>`;
+    };
+    list.innerHTML = pins.map((/** @type {any} */ t) => row(t, true)).join('') + (pins.length && recent.length
+      ? `<li class="side-group"><p class="side-sub" id="side-recent-sub">Recent</p><ul class="side-sub-list" aria-labelledby="side-recent-sub">${recent.map((/** @type {any} */ t) => row(t, false)).join('')}</ul></li>`
+      : recent.map((/** @type {any} */ t) => row(t, false)).join(''));
+    $('#side-recent-h').hidden = !pins.length && !recent.length;
+    { const h = $('span', $('#side-recent-h')); if (h) h.textContent = pins.length ? 'Pinned' : 'Recent'; }
     const qb = $('#queue-badge');
     qb.textContent = String(needsTotal);
     qb.hidden = !needsTotal;
@@ -20529,6 +20629,39 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       else a.removeAttribute('aria-current');
     }
   }
+
+  /** The pin toggle at the end of a sidebar client row (drawn switched off in the demo; a press there says the demo note). @param {any} t @param {boolean} isPin */
+  function pinButton(t, isPin) {
+    return `<button class="side-pin" type="button" data-pin="${esc(t.id)}" aria-pressed="${isPin}" aria-label="Pin ${esc(t.name)}" title="${DEMO_SITE ? DEMO_NOTE : isPin ? 'Unpin' : 'Pin to sidebar'}"${DEMO_SITE ? ' aria-disabled="true"' : ''}>${icon('pushpin')}</button>`;
+  }
+  /** The "Pin to sidebar" / "Unpin" button in a client's header. @param {string} id */
+  function pinHead(id) {
+    const on = pinned.includes(id);
+    return `<button class="btn btn-quiet btn-sm pin-head" type="button" data-pin="${esc(id)}" data-pin-head${DEMO_SITE ? ` aria-disabled="true" title="${DEMO_NOTE}"` : ''}>${icon('pushpin')}<span>${on ? 'Unpin' : 'Pin to sidebar'}</span></button>`;
+  }
+  /** Pins or unpins a client (from a sidebar row, the client header or Ctrl K). 8 at most; the demo refuses. @param {string} id @param {HTMLElement|null} [from] */
+  async function togglePin(id, from) {
+    const t = tenant(id);
+    if (!t || !me) return;
+    if (DEMO_SITE) { demoRefused(); return; }
+    const on = pinned.includes(id);
+    const kept = pinned.filter((x) => x !== id && tenant(x));   // a removed client never holds one of the 8 places
+    if (!on && kept.length >= PIN_MAX) { toast(`You can pin ${PIN_MAX} clients. Unpin one first.`); return; }
+    const inSide = !!(from && from.closest('.side'));   // asked before the rows are drawn again (the old button leaves the page)
+    const done = savePins(on ? kept : [...kept, id]);
+    renderSide();
+    for (const b of $$('[data-pin-head]')) { const s = $('span', b); if (s) s.textContent = pinned.includes(String(b.getAttribute('data-pin'))) ? 'Unpin' : 'Pin to sidebar'; }
+    // focus stays on the row's pin button, which may have moved to the other group
+    if (inSide) { const b = /** @type {HTMLElement|null} */ ($(`.side [data-pin="${CSS.escape(id)}"]`)); if (b) b.focus(); }
+    toast(on ? `${t.name} unpinned` : `${t.name} pinned to the sidebar`);
+    await done;
+  }
+  document.addEventListener('click', (e) => {
+    const b = /** @type {HTMLElement|null} */ (/** @type {HTMLElement} */ (e.target).closest('[data-pin]'));
+    if (!b) return;
+    e.preventDefault();
+    togglePin(String(b.getAttribute('data-pin')), b);
+  });
 
   function openSide() { $('#side').classList.add('open'); $('#scrim').classList.add('open'); }
   function closeSide() { $('#side').classList.remove('open'); $('#scrim').classList.remove('open'); }
@@ -20634,6 +20767,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     places() {
       /** @type {any[]} */
       const out = [
+        // the open client (2026-10-15): pin it to the sidebar, or unpin it
+        ...(current && document.documentElement.dataset.page === 'client' ? [{ name: `${pinned.includes(current.id) ? 'Unpin' : 'Pin'} ${current.name}`, hint: 'Action', act: 'pin', id: current.id, icon: 'pushpin' }] : []),
         { name: 'Needs you', hint: 'Page', href: '#/queue', icon: 'inbox' },
         { name: 'Messages', hint: 'Page', href: '#/messages', icon: 'chat' },
         { name: 'Bot chat', hint: 'Page', href: '#/bot', icon: 'bot' },
@@ -20692,6 +20827,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       palette.dlg.close();
       if (p.act === 'refresh') refreshAll();
       else if (p.act === 'shortcuts') openKeys();
+      else if (p.act === 'pin') togglePin(p.id, null);
       else location.hash = p.href;
     }
   };
@@ -21420,7 +21556,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     ].filter(Boolean);
     main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a>
       <div class="client-head"><div><h1 id="page-title" tabindex="-1">${esc(current.name)}</h1>
-        <div class="who">${statusChip}${CC() ? CC().headerControl(current.id) : ''}${warns}<details class="about"><summary>About</summary><p class="about-line">${about.map((x) => `<span class="t">${x}</span>`).join('')}</p></details></div></div></div>
+        <div class="who">${statusChip}${CC() ? CC().headerControl(current.id) : ''}${pinHead(current.id)}${warns}<details class="about"><summary>About</summary><p class="about-line">${about.map((x) => `<span class="t">${x}</span>`).join('')}</p></details></div></div></div>
       <nav class="tabs" aria-label="Client sections">${allTabs().map(([k, label]) => {
         // The Bot tab counts the drafts waiting for this client, the same ones the sidebar's Bot chat count adds up (critic R11-6).
         const botN = k === 'bot' && partOf('bot') && partOf('bot').waitingFor ? partOf('bot').waitingFor(id) : 0;
