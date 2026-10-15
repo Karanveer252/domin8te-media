@@ -53,6 +53,16 @@ The machine is slow while agents run: run smoke and a11y in the background if th
   Client mix ring + legend fixed by main session. Prod migrations now 31 (add 140000 and 150000 at the end).
 - 16:34 round 1 STARTED (areas A + C together, Sonnet critic, report -> CRITIC-ROUND-1.md). Plan: round 2 = B + E, round 3 = D, then repeat until two clean rounds.
 
+
+## UPDATE 15 Oct ~04:25 (Karan, before sleeping): new limit and new work
+- The weekly stop is now 48% (he said "until the limit is close to 50", replacing the 38% rule). Same 5-hour pause rule.
+- Keep fixing everything found, as much as possible.
+- NEW PHASE F: 10 new features or changes each for Bot chat and Revenue (builders' choice, judged on usefulness and productivity),
+  then critic rounds on them until clean. No bugs. Builders: Opus "botplus" (mod-bot.js, css/58-bot.css, stub/80-bot.js, migrations
+  20261015010000-019999) and Opus "revplus" (mod-revenue.js, css/62-revenue.css, stub/95-revenue.js, migrations 20261015020000-029999;
+  may rewrite 20261014070000 only if truly needed, TEST only), then a Fable design pass on both, then Sonnet critics.
+- Then continue rounds A-E until clean twice, or the weekly limit is near 48%. Then wrap up (RESUME, memory, sync, summary).
+
 ## Round log
 | Round | Area | Critic found (H/M/L) | Fixed | Checks | Notes |
 |---|---|---|---|---|---|
@@ -61,4 +71,6 @@ The machine is slow while agents run: run smoke and a11y in the background if th
 | 1 | A + C (partial: console light 1440-900 only; machine ran out of memory) | 0/2/8 | F1 tool fix (a11y retry), F3-F10 fixed (Fable), F8/part F9 not defects | console-check 24/24, phone 24/24, a11y console 85/85 | round 2 must cover the gaps: console 768-360, dark, scenes, whole dashboard sweep, tap targets, focus, Customize dialog. ONE headless Chrome at a time. |
 | 2 | B + E + round 1 gaps | 0/6/22 (CRITIC-ROUND-2.md) | all 28 fixed (Fable 15, Opus 9, Sonnet 3); failMessage rollout to 6 more modules running (Sonnet) | lint 93, console-check 24/24, release clean, a11y dash 57/57, smoke 90/90 | |
 | 3 | D leak-proofing + Client view live | 0/2/18 (CRITIC-ROUND-3.md) | 19 fixed, item 8 kept on purpose (dashboard uses it); migration 20261014160000; headers proposal deploy/security-headers.htaccess.txt | lint 93, npm 114, fns 98, console 24/24, demo 25/25, release clean, all SQL suites green (security 182) | Client view live: updates in 1.8s, read-only held |
-| 4 | full regression sweep A-E (quick) | started 03:50 | | | weekly 29% at start |
+| 4 | full regression sweep A-E | CLEAN 0/0/3 (CRITIC-ROUND-4.md) | R4-1, R4-2 being fixed (Fable); R4-3 supabase_admin defaults: not changeable from postgres, noted | all tools green | CLEAN round 1 of 2 |
+| 5 | final check after R4 fixes | NOT CLEAN 0/2/3 (CRITIC-ROUND-5.md) | R5-1..R5-4 fixed by main session (70-touch.css, 00-shared.css); R5-5 toast stack on Add client open | phone 24/24 (years route is revplus WIP) | phase F builders running |
+| F | phase F builds | revplus 10 done (migration 20261015020000, revenue_plus 122); botplus 10 done (20261015010000, bot_plus 59) | Fable design passes running on both (05:15) | console 32/32, phone 32/32, demo 33/33 | weekly 33% |

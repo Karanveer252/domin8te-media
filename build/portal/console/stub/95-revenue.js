@@ -1,6 +1,9 @@
 // LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). Revenue, Karan's business dashboard (2026-10-14): the database
 // functions am_business_owner, business_open_month, business_save_income, business_save_costs and business_history with the same owner rule, carry-over and
 // refusals as portal/supabase/migrations/20261014070000_revenue_ledger.sql, and 17 months of sample figures so every chart has something.
+// Revenue plus (2026-10-15, 20261015020000_revenue_plus.sql): goals and tax (business_save_settings), month notes (business_save_note),
+// expected income (received on each income line, business_mark_received), Quick add (business_add_cost) and every line for export, the
+// year view and search (business_lines).
 // In the preview Karan is the business owner. To see what everyone else gets, run D8STUB.businessOwner = false in the browser's console
 // and reload the page (no sidebar item, "This page is private").
 (function () {
@@ -43,6 +46,10 @@
   const months = () => (S.db.business_months = S.db.business_months || []);
   const income = () => (S.db.business_income = S.db.business_income || []);
   const costs = () => (S.db.business_costs = S.db.business_costs || []);
+  const notes = () => (S.db.business_notes = S.db.business_notes || []);
+  /** app.business_settings_json. */
+  const settings = () => { const x = S.db.business_settings; return { income_goal_minor: x ? x.income_goal_minor : null, profit_goal_minor: x ? x.profit_goal_minor : null, tax_pct: x ? x.tax_pct : null }; };
+  const noteOf = (/** @type {string} */ m) => { const n = notes().find((/** @type {any} */ x) => x.month === m); return n ? n.note : null; };
   const sum = (/** @type {any[]} */ a) => a.reduce((s, x) => s + (Number(x.amount_minor) || 0), 0);
 
   /** app.business_json. @param {string} m */
@@ -56,12 +63,12 @@
       /** @type {Record<string, number>} */ const kinds = {};
       for (const c of cos) kinds[c.category] = (kinds[c.category] || 0) + c.amount_minor;
       series.push({ month: g, income_minor: sum(inc), costs_minor: sum(cos), income_n: inc.length, costs_n: cos.length,
-        other_minor: sum(inc.filter((/** @type {any} */ x) => x.kind === 'other')), repeat_minor: sum(cos.filter((/** @type {any} */ x) => x.repeats)), kinds,
+        other_minor: sum(inc.filter((/** @type {any} */ x) => x.kind === 'other')), due_minor: sum(inc.filter((/** @type {any} */ x) => x.received === false)), repeat_minor: sum(cos.filter((/** @type {any} */ x) => x.repeats)), kinds,
         clients: inc.filter((/** @type {any} */ x) => x.kind === 'client').sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort).map((/** @type {any} */ x) => ({ tenant_id: x.tenant_id, label: x.label, amount_minor: x.amount_minor })) });
     }
     return JSON.parse(JSON.stringify({
-      month: m, opened: !!mark, carried_from: mark ? mark.carried_from : null,
-      income: income().filter((/** @type {any} */ x) => x.month === m).sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort).map((/** @type {any} */ x) => ({ id: x.id, kind: x.kind, tenant_id: x.tenant_id, label: x.label, amount_minor: x.amount_minor, sort: x.sort })),
+      month: m, opened: !!mark, carried_from: mark ? mark.carried_from : null, note: noteOf(m), settings: settings(),
+      income: income().filter((/** @type {any} */ x) => x.month === m).sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort).map((/** @type {any} */ x) => ({ id: x.id, kind: x.kind, tenant_id: x.tenant_id, label: x.label, amount_minor: x.amount_minor, received: x.received !== false, sort: x.sort })),
       costs: costs().filter((/** @type {any} */ x) => x.month === m).sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort).map((/** @type {any} */ x) => ({ id: x.id, category: x.category, label: x.label, amount_minor: x.amount_minor, repeats: x.repeats, sort: x.sort })),
       series
     }));
@@ -106,6 +113,7 @@
     const seen = new Set();
     for (const el of lines) {
       amount(el);
+      if ('received' in el && typeof el.received !== 'boolean') fail('22023', 'bad-received');
       if (el.tenant_id) {
         if (!S.db.tenants.some((/** @type {any} */ t) => t.id === el.tenant_id)) fail('P0002', 'not-found');
         if (seen.has(el.tenant_id)) fail('22023', 'duplicate-client');
@@ -115,7 +123,7 @@
     S.db.business_income = income().filter((/** @type {any} */ x) => x.month !== m);
     lines.forEach((/** @type {any} */ el, /** @type {number} */ i) => {
       const t = el.tenant_id ? S.db.tenants.find((/** @type {any} */ x) => x.id === el.tenant_id) : null;
-      income().push({ id: `bi_${S.id()}`, month: m, kind: t ? 'client' : 'other', tenant_id: t ? t.id : null, label: t ? String(t.name).slice(0, 60) : labelOf(el), amount_minor: el.amount_minor, sort: i + 1, created_at: S.now(), updated_at: S.now() });
+      income().push({ id: `bi_${S.id()}`, month: m, kind: t ? 'client' : 'other', tenant_id: t ? t.id : null, label: t ? String(t.name).slice(0, 60) : labelOf(el), amount_minor: el.amount_minor, received: el.received !== false, sort: i + 1, created_at: S.now(), updated_at: S.now() });
     });
     return monthJson(m);
   };
@@ -150,10 +158,74 @@
       before: m, more: all.length > lim,
       months: ms.map((g) => ({
         month: g,
-        income: income().filter((/** @type {any} */ x) => x.month === g).sort(bySort).map((/** @type {any} */ x) => ({ kind: x.kind, tenant_id: x.tenant_id, label: x.label, amount_minor: x.amount_minor, sort: x.sort })),
+        note: noteOf(g),
+        income: income().filter((/** @type {any} */ x) => x.month === g).sort(bySort).map((/** @type {any} */ x) => ({ kind: x.kind, tenant_id: x.tenant_id, label: x.label, amount_minor: x.amount_minor, received: x.received !== false, sort: x.sort })),
         costs: costs().filter((/** @type {any} */ x) => x.month === g).sort(bySort).map((/** @type {any} */ x) => ({ category: x.category, label: x.label, amount_minor: x.amount_minor, repeats: x.repeats, sort: x.sort })),
         prev: tot(shift(g, -1))
       }))
+    }));
+  };
+
+  // Goals and tax (public.business_save_settings): a null clears one; goals over zero, tax over 0 and at most 60 with one decimal.
+  S.rpcs.business_save_settings = (/** @type {any} */ a) => {
+    owner();
+    const g = (/** @type {any} */ v) => (v === null || v === undefined ? null : v);
+    const ig = g(a.p_income_goal), pg = g(a.p_profit_goal), tx = g(a.p_tax_pct);
+    for (const v of [ig, pg]) if (v !== null && (!Number.isInteger(v) || v < 1 || v > MAX)) fail('22023', 'bad-goal');
+    if (tx !== null && (typeof tx !== 'number' || !(tx > 0) || tx > 60 || Math.abs(Math.round(tx * 10) - tx * 10) > 1e-9)) fail('22023', 'bad-tax');
+    S.db.business_settings = { income_goal_minor: ig, profit_goal_minor: pg, tax_pct: tx, updated_at: S.now() };
+    return settings();
+  };
+  // A note for a month (public.business_save_note): up to 500 characters, an empty one removes it.
+  S.rpcs.business_save_note = (/** @type {any} */ a) => {
+    owner();
+    const m = monthOf(a.p_month);
+    const t = String(a.p_note == null ? '' : a.p_note).trim();
+    if (t.length > 500) fail('22023', 'bad-note');
+    S.db.business_notes = notes().filter((/** @type {any} */ x) => x.month !== m);
+    if (t) notes().push({ month: m, note: t, updated_at: S.now() });
+    return monthJson(m);
+  };
+  // Quick add (public.business_add_cost): the month is opened first (carry-over), then the line goes last; one-off unless it says so.
+  S.rpcs.business_add_cost = (/** @type {any} */ a) => {
+    owner();
+    const m = monthOf(a.p_month);
+    const el = a.p_line;
+    if (!el || typeof el !== 'object' || Array.isArray(el)) fail('22023', 'bad-lines');
+    amount(el);
+    if (!CATS.includes(el.category)) fail('22023', 'bad-category');
+    const label = labelOf(el);
+    if ('repeats' in el && typeof el.repeats !== 'boolean') fail('22023', 'bad-repeats');
+    S.rpcs.business_open_month({ p_month: m });
+    const mine = costs().filter((/** @type {any} */ x) => x.month === m);
+    if (mine.length >= 80) fail('22023', 'too-many-lines');
+    costs().push({ id: `bc_${S.id()}`, month: m, category: el.category, label, amount_minor: el.amount_minor, repeats: el.repeats === true, sort: mine.reduce((/** @type {number} */ s, /** @type {any} */ x) => Math.max(s, x.sort), 0) + 1, created_at: S.now(), updated_at: S.now() });
+    return monthJson(m);
+  };
+  // One income line received or still to come (public.business_mark_received).
+  S.rpcs.business_mark_received = (/** @type {any} */ a) => {
+    owner();
+    if (!a.p_id || typeof a.p_received !== 'boolean') fail('22023', 'bad-lines');
+    const x = income().find((/** @type {any} */ l) => l.id === a.p_id);
+    if (!x) fail('P0002', 'not-found');
+    x.received = a.p_received;
+    x.updated_at = S.now();
+    return monthJson(x.month);
+  };
+  // Every line in a range, read only (public.business_lines): export, the year view and search. At most 240 months.
+  S.rpcs.business_lines = (/** @type {any} */ a) => {
+    owner();
+    const b = monthOf(a.p_to || thisMonth());
+    let f = monthOf(a.p_from || '2000-01-01');
+    if (f > b) fail('22023', 'bad-range');
+    if (f < shift(b, -239)) f = shift(b, -239);
+    const inRange = (/** @type {any} */ x) => x.month >= f && x.month <= b;
+    const bySort = (/** @type {any} */ x, /** @type {any} */ y) => (x.month < y.month ? -1 : x.month > y.month ? 1 : x.sort - y.sort);
+    return JSON.parse(JSON.stringify({
+      from: f, to: b, settings: settings(),
+      income: income().filter(inRange).sort(bySort).map((/** @type {any} */ x) => ({ month: x.month, kind: x.kind, tenant_id: x.tenant_id, label: x.label, amount_minor: x.amount_minor, received: x.received !== false })),
+      costs: costs().filter(inRange).sort(bySort).map((/** @type {any} */ x) => ({ month: x.month, category: x.category, label: x.label, amount_minor: x.amount_minor, repeats: x.repeats })),
+      notes: notes().filter(inRange).sort((/** @type {any} */ x, /** @type {any} */ y) => (x.month < y.month ? -1 : 1)).map((/** @type {any} */ x) => ({ month: x.month, note: x.note }))
     }));
   };
 
@@ -166,6 +238,12 @@
     db.business_months = [];
     db.business_income = [];
     db.business_costs = [];
+    // goals and tax, a few notes, and one payment still to come this month (Marlow & Finch)
+    db.business_settings = { income_goal_minor: 800000, profit_goal_minor: 400000, tax_pct: 25, updated_at: S.stamp(-20, 0) };
+    db.business_notes = [
+      { month: shift(thisMonth(), -9), note: 'Bought the camera kit and lights. A loss month on purpose.', updated_at: S.stamp(-270, 0) },
+      { month: shift(thisMonth(), -1), note: 'The Corner Bean paused from next month.', updated_at: S.stamp(-20, 0) }
+    ];
     const now = thisMonth();
     let k = 0;
     for (let back = 22; back >= 0; back -= 1) {
@@ -173,7 +251,7 @@
       let s = 0;
       const inc = (/** @type {string|null} */ tenant, /** @type {string} */ label, /** @type {number} */ minor) => db.business_income.push({ id: `bi_seed_${++k}`, month: m, kind: tenant ? 'client' : 'other', tenant_id: tenant, label, amount_minor: minor, sort: ++s, created_at: S.stamp(-back * 30, 0), updated_at: S.stamp(-back * 30, 0) });
       inc('tnt_preview_bayleaf', 'Bayleaf Kitchen (preview)', back <= 5 ? 349900 : 199900);
-      if (back <= 12) inc('tnt_preview_marlow', 'Marlow & Finch', 199900);
+      if (back <= 12) { inc('tnt_preview_marlow', 'Marlow & Finch', 199900); if (back === 0) db.business_income[db.business_income.length - 1].received = false; }
       if (back <= 10 && back >= 1) inc('tnt_preview_corner', 'The Corner Bean', 99900);
       if (back <= 6 && back >= 1) inc('tnt_preview_osteria', 'Osteria Nove', 199900);
       if (back === 7) inc(null, 'Menu photo day, one-off', 120000);

@@ -22,6 +22,15 @@
  * transaction), and the read-only business_history(p_before, p_limit) for Previous months. Money is kept in minor units (cents, USD) and
  * shown in dollars. Charts are inline SVG drawn here, no library.
  *
+ * Revenue plus (2026-10-15, migration 20261015020000_revenue_plus.sql), ten more things so nothing goes in a notebook: monthly goals for
+ * income and profit with progress on the cards; a tax set-aside percent ("Put aside $X for tax", with the year so far); income marked
+ * received or still to come (a switch on each income line, "Still to come" with Mark received on the Overview); a short note for each
+ * month; Export to a CSV file (a month, a year, or everything); a Years view (each year against the one before, month by month);
+ * Next 3 months (an estimate from the recent months and the costs that repeat); Find (every cost and income line ever entered);
+ * Add a cost (Quick add, from any part of Revenue); and What changed (the month in plain words). The toolbar beside the sections holds
+ * Add a cost, Find, Export and Goals and tax; each opens a dialog. New reads and writes: business_save_settings, business_save_note,
+ * business_add_cost, business_mark_received and the read-only business_lines (export, years and Find).
+ *
  * console.js calls window.D8C_EXT.revenue.page(month, view) from its router, sideItem() while it draws the sidebar and visible() for the
  * jump palette. Client badges come from mod-color.js when it is there.
  */
@@ -39,16 +48,18 @@
   const MAX_MINOR = 2147483647;
   const MAX_LINES = 80;
   const MONTHS_BACK = 59;
-  const VIEWS = ['overview', 'income', 'costs'];
+  const VIEWS = ['overview', 'income', 'costs', 'years'];
 
   /**
    * What the page remembers: the month and section on screen, the months already read (all of them are read again after a save, since the
    * charts reach back), whether the signed-in person is the business owner, and a number that stops a slow answer drawing over a newer page.
    * prev holds the Previous months list for the month on screen: the months read so far (a page at a time), whether older ones exist,
    * and which rows are open.
-   * @type {{ym: string, view: string, seq: number, at: number, error: string, cache: Record<string, any>, owner: {id: string, v: boolean|null, p: Promise<boolean|null>|null}, form: HTMLFormElement|null, ro: ResizeObserver|null, io: IntersectionObserver|null, prev: {ym: string, months: any[], more: boolean, busy: boolean, done: boolean, error: string, open: Set<string>}}}
+   * lines holds every line ever entered (business_lines, read when Years, Export or Find first needs it, dropped after any save); year is the
+   * year the Years view compares; noteEdit is true while the month's note is being edited.
+   * @type {{ym: string, view: string, seq: number, at: number, error: string, cache: Record<string, any>, owner: {id: string, v: boolean|null, p: Promise<boolean|null>|null}, form: HTMLFormElement|null, ro: ResizeObserver|null, io: IntersectionObserver|null, prev: {ym: string, months: any[], more: boolean, busy: boolean, done: boolean, error: string, open: Set<string>}, lines: {data: any, p: Promise<any>|null}, year: string, noteEdit: boolean}}
    */
-  const state = { ym: '', view: 'overview', seq: 0, at: 0, error: '', cache: {}, owner: { id: '', v: null, p: null }, form: null, ro: null, io: null, prev: { ym: '', months: [], more: false, busy: false, done: false, error: '', open: new Set() } };
+  const state = { ym: '', view: 'overview', seq: 0, at: 0, error: '', cache: {}, owner: { id: '', v: null, p: null }, form: null, ro: null, io: null, prev: { ym: '', months: [], more: false, busy: false, done: false, error: '', open: new Set() }, lines: { data: null, p: null }, year: '', noteEdit: false };
   const noPrev = () => ({ ym: '', months: [], more: false, busy: false, done: false, error: '', open: /** @type {Set<string>} */ (new Set()) });
 
   /* ---- who may see it ------------------------------------------------------------------------------------ */
@@ -182,23 +193,34 @@
     if (/duplicate-client/.test(m)) return 'A client is in the list twice. Reload the page.';
     if (/too-many-lines/.test(m)) return `That is more lines than one month holds (${MAX_LINES}).`;
     if (/future-month|bad-month/.test(m)) return 'That month has not started yet.';
-    if (/not-found|P0002/.test(m)) return 'A client was not found. Reload the page.';
+    if (/bad-note/.test(m)) return 'A note can be up to 500 characters.';
+    if (/bad-goal/.test(m)) return 'A goal must be more than $0.';
+    if (/bad-tax/.test(m)) return 'The tax set-aside must be more than 0% and at most 60%, like 25 or 27.5.';
+    if (/bad-received/.test(m)) return 'Something in the form was not right. Reload the page and try again.';
+    if (/bad-range/.test(m)) return 'That range of months is not right.';
+    if (/not-found|P0002/.test(m)) return 'A line was not found. Reload the page.';
     return C().message(x);
   }
 
   /** The database's answer for a month, in the shapes the page draws from. @param {any} j @param {string} ym */
   function norm(j, ym) {
     const num = (/** @type {any} */ v) => Number(v) || 0;
-    const income = (j.income || []).map((/** @type {any} */ x) => ({ kind: x.kind === 'client' && x.tenant_id ? 'client' : 'other', tenant_id: x.tenant_id || '', label: String(x.label || ''), amount: num(x.amount_minor), sort: num(x.sort) })).sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort);
+    const income = (j.income || []).map((/** @type {any} */ x) => ({ id: String(x.id || ''), kind: x.kind === 'client' && x.tenant_id ? 'client' : 'other', tenant_id: x.tenant_id || '', label: String(x.label || ''), amount: num(x.amount_minor), received: x.received !== false, sort: num(x.sort) })).sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort);
     const costs = (j.costs || []).map((/** @type {any} */ x) => ({ category: CATS.some((c) => c[0] === x.category) ? x.category : 'other', label: String(x.label || ''), amount: num(x.amount_minor), repeats: x.repeats !== false, sort: num(x.sort) })).sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort);
     // each month of the series also carries its costs by kind, what each client paid, its other income and its repeating costs (for the charts)
     const series = (j.series || []).map((/** @type {any} */ s) => {
       /** @type {Record<string, number>} */ const kinds = {};
       for (const [k, v] of Object.entries(s.kinds && typeof s.kinds === 'object' ? s.kinds : {})) if (CATS.some((c) => c[0] === k)) kinds[k] = num(v);
       const clients = (Array.isArray(s.clients) ? s.clients : []).filter((/** @type {any} */ c) => c && c.tenant_id).map((/** @type {any} */ c) => ({ id: String(c.tenant_id), label: String(c.label || ''), minor: num(c.amount_minor) }));
-      return { ym: String(s.month).slice(0, 7), inc: num(s.income_minor), cost: num(s.costs_minor), incN: num(s.income_n), costN: num(s.costs_n), other: num(s.other_minor), rep: num(s.repeat_minor), kinds, clients };
+      return { ym: String(s.month).slice(0, 7), inc: num(s.income_minor), cost: num(s.costs_minor), incN: num(s.income_n), costN: num(s.costs_n), other: num(s.other_minor), due: num(s.due_minor), rep: num(s.repeat_minor), kinds, clients };
     }).sort((/** @type {any} */ a, /** @type {any} */ b) => monthIndex(a.ym) - monthIndex(b.ym));
-    return { ym, carriedFrom: j.carried_from ? String(j.carried_from).slice(0, 7) : '', income, costs, series };
+    return { ym, carriedFrom: j.carried_from ? String(j.carried_from).slice(0, 7) : '', note: j.note ? String(j.note) : '', settings: normSettings(j.settings), income, costs, series };
+  }
+  /** Goals and tax as the page uses them: whole cents over zero or null, and a percent over 0 up to 60 or null. @param {any} x */
+  function normSettings(x) {
+    const goal = (/** @type {any} */ v) => { const n = Number(v); return v !== null && v !== undefined && Number.isInteger(n) && n > 0 ? n : null; };
+    const t = x ? Number(x.tax_pct) : NaN;
+    return { incGoal: goal(x && x.income_goal_minor), profGoal: goal(x && x.profit_goal_minor), tax: x && x.tax_pct !== null && x.tax_pct !== undefined && t > 0 && t <= 60 ? t : null };
   }
   /** Opens a month (the database carries repeating costs forward the first time) and keeps it. @param {string} ym @param {boolean} [again] */
   async function readMonth(ym, again) {
@@ -213,7 +235,7 @@
   }
   /** One month's totals from the series (zeros and "nothing entered" when the month is not in it). @param {any} d @param {string} ym */
   function totals(d, ym) {
-    const s = d.series.find((/** @type {any} */ x) => x.ym === ym) || { ym, inc: 0, cost: 0, incN: 0, costN: 0 };
+    const s = d.series.find((/** @type {any} */ x) => x.ym === ym) || { ym, inc: 0, cost: 0, incN: 0, costN: 0, due: 0 };
     return { ...s, profit: s.inc - s.cost, has: s.incN > 0 || s.costN > 0 };
   }
   /** The clients the income list shows: everyone not archived, and an archived client only when it has money in the month. @param {any} d */
@@ -261,10 +283,20 @@
     const day = dayOfMonth();
     const soFar = `So far, ${day} ${day === 1 ? 'day' : 'days'} in`;
     const against = (/** @type {boolean} */ has, /** @type {number} */ v) => (has ? `${soFar}. ${name} in full: ${money(v)}` : soFar);
-    const card = (/** @type {string} */ label, /** @type {string} */ value, /** @type {string} */ words, /** @type {string} */ cls, /** @type {string} */ extra) =>
-      `<div class="rv-card"><p class="rv-card-k">${label}${extra || ''}</p><p class="rv-card-v${cls}">${value}</p><p class="rv-card-s">${esc(words)}</p></div>`;
+    const card = (/** @type {string} */ label, /** @type {string} */ value, /** @type {string} */ words, /** @type {string} */ cls, /** @type {string} */ extra, more = '') =>
+      `<div class="rv-card"><p class="rv-card-k">${label}${extra || ''}</p><p class="rv-card-v${cls}">${value}</p><p class="rv-card-s">${esc(words)}</p>${more || ''}</div>`;
+    const st = d.settings || { incGoal: null, profGoal: null, tax: null };
+    const incMore = (t.incN && st.incGoal ? goalHtml(t.inc, st.incGoal, 'rv-f-inc') : '') + (t.due > 0 ? `<p class="rv-card-x"><span class="chip warn plain">Still to come</span>${esc(money(t.due))}</p>` : '');
+    let profMore = '';
+    if (t.has && st.profGoal) profMore += goalHtml(t.profit, st.profGoal, 'rv-f-prof');
+    if (t.has && st.tax) {
+      const Y = yearRows(d);
+      const ytd = Y.now.reduce((/** @type {number} */ s, /** @type {any} */ r) => s + r.inc - r.cost, 0);
+      const put = taxOf(t.profit, st.tax);
+      profMore += `<p class="rv-card-x">${put > 0 ? `Put aside ${esc(dollars(put))} for tax (${esc(pctText(st.tax))})` : 'Nothing to put aside for tax'}${ytd > 0 ? `. ${esc(Y.y)} so far: ${esc(dollars(taxOf(ytd, st.tax)))}` : ''}</p>`;
+    }
     const none = '<span class="rv-none">Not entered</span>';
-    const inc = t.incN ? card('Income', esc(money(t.inc)), partial ? against(prevHas.inc, p.inc) : change(t.inc, { has: prevHas.inc, v: p.inc }, name) || 'What you made this month', '', '')
+    const inc = t.incN ? card('Income', esc(money(t.inc)), partial ? against(prevHas.inc, p.inc) : change(t.inc, { has: prevHas.inc, v: p.inc }, name) || 'What you made this month', '', '', incMore)
       : card('Income', none, `Nothing entered for ${monthName(ym, 'mon')} yet`, ' is-none', '');
     const cost = t.costN ? card('Business costs', esc(money(t.cost)), partial ? against(prevHas.cost, p.cost) : change(t.cost, { has: prevHas.cost, v: p.cost }, name) || 'What you spent on the business', '', '')
       : card('Business costs', none, `Nothing entered for ${monthName(ym, 'mon')} yet`, ' is-none', '');
@@ -275,14 +307,35 @@
       const mWords = mg === null ? 'No income this month' : `${mg}% margin`;
       const ch = partial ? (p.has ? `${soFar.toLowerCase()}. ${name} in full: ${signed(p.profit, true)}` : soFar.toLowerCase()) : change(t.profit, { has: p.has, v: p.profit }, name);
       const value = t.profit < 0 ? `${esc(signed(t.profit))}<span class="rv-card-unit"> loss</span>` : esc(money(t.profit));
-      prof = card('Profit', value, ch ? `${mWords}, ${ch}` : mWords, t.profit < 0 ? ' rv-neg' : '', t.profit < 0 ? ' <span class="chip bad plain">Loss</span>' : '');
+      prof = card('Profit', value, ch ? `${mWords}, ${ch}` : mWords, t.profit < 0 ? ' rv-neg' : '', t.profit < 0 ? ' <span class="chip bad plain">Loss</span>' : '', profMore);
     }
     return `<div class="rv-cards" role="group" aria-label="${esc(monthName(ym))} totals">${inc}${cost}${prof}</div>`;
   }
 
-  /** The three sections, as the console's segmented pills. @param {string} ym */
+  /** Tax to put aside on a profit (nothing on a loss), in whole cents. @param {number} profit @param {number} pct */
+  const taxOf = (profit, pct) => (profit > 0 ? Math.round((profit * pct) / 100) : 0);
+  /** 25%, or 27.5% @param {number} pct */
+  const pctText = (pct) => `${Number.isInteger(pct) ? pct : pct.toFixed(1)}%`;
+  /**
+   * A goal's progress under a card's figure: a thin bar (hidden from screen readers) and the words, which carry it.
+   * @param {number} v @param {number} goal @param {string} cls
+   */
+  function goalHtml(v, goal, cls) {
+    const pct = v > 0 ? Math.round((v / goal) * 100) : 0;
+    const words = v >= goal ? `Goal of ${money(goal)} reached${v > goal ? `, ${money(v - goal)} over` : ''}` : `${pct}% of the ${money(goal)} goal, ${money(goal - Math.max(0, v))} to go`;
+    return `<div class="rv-goal${v >= goal ? ' is-met' : ''}"><span class="rv-goal-bar" aria-hidden="true"><i class="${cls}" style="width:${Math.max(0, Math.min(100, pct))}%"></i></span><span class="rv-goal-t">${esc(words)}</span></div>`;
+  }
+
+  /** The toolbar beside the sections: Quick add, Find, Export, Goals and tax. Each opens a dialog. */
+  function tools() {
+    const c = C();
+    const b = (/** @type {string} */ id, /** @type {string} */ data, /** @type {string} */ ic, /** @type {string} */ label) => `<button class="btn btn-quiet btn-sm" type="button" id="${id}" ${data} aria-haspopup="dialog">${c.icon(ic)}${label}</button>`;
+    return `<div class="rv-tools" role="group" aria-label="Revenue tools">${b('rv-qa-btn', 'data-rv-qa', 'plus', 'Add a cost')}${b('rv-find-btn', 'data-rv-find', 'search', 'Find')}${b('rv-exp-btn', 'data-rv-exp', 'page', 'Export')}${b('rv-goals-btn', 'data-rv-goals', 'trend', 'Goals and tax')}</div>`;
+  }
+
+  /** The four sections, as the console's segmented pills. @param {string} ym */
   function views(ym) {
-    const items = [['overview', 'Overview', ''], ['income', 'Income', '/income'], ['costs', 'Costs', '/costs']];
+    const items = [['overview', 'Overview', ''], ['income', 'Income', '/income'], ['costs', 'Costs', '/costs'], ['years', 'Years', '/years']];
     return `<nav class="rv-views" aria-label="Revenue sections"><div class="seg" role="group">${items.map(([k, label, tail]) => `<a href="#/revenue/${ym}${tail}"${state.view === k ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div></nav>`;
   }
 
@@ -291,7 +344,9 @@
   /** Every chart and card of the Overview in its default order: id, title, whether it spans both columns, and what it shows in a few words. */
   const CHARTS = /** @type {[string, string, boolean, string][]} */ ([
     ['runrate', 'Run rate', true, 'What the business is on track for'],
+    ['insights', 'What changed', true, 'The month in plain words'],
     ['months', 'Last 12 months', true, 'Income, costs and profit for each month'],
+    ['forecast', 'Next 3 months', true, 'An estimate from your recent months'],
     ['cumulative', 'Profit this year', false, 'Profit added up from January'],
     ['ytd', 'This year so far', false, 'Against the same months of last year'],
     ['trend', 'Income and costs trend', true, 'The last two years, smoothed'],
@@ -316,7 +371,13 @@
     const ids = CHARTS.map((c) => c[0]);
     const keep = (/** @type {any} */ a) => (Array.isArray(a) ? a.filter((x, i) => typeof x === 'string' && ids.includes(x) && a.indexOf(x) === i) : []);
     const order = keep(p && p.order);
-    for (const id of ids) if (!order.includes(id)) order.push(id);
+    // a chart that is new since the choice was saved goes where it sits by default (after the nearest earlier one), not at the end
+    ids.forEach((id, i) => {
+      if (order.includes(id)) return;
+      let at = -1;
+      for (let k = i - 1; k >= 0 && at < 0; k -= 1) at = order.indexOf(ids[k]);
+      order.splice(at + 1, 0, id);
+    });
     return { hidden: keep(p && p.hidden), order };
   }
   const shown = () => choice.order.filter((id) => !choice.hidden.includes(id));
@@ -892,7 +953,7 @@
 
   /** Everything under the cards on the Overview: the charts in a grid, Previous months, and the Customize panel. @param {any} d */
   function overview(d) {
-    return `<div class="rv-dash-bar"><p class="rv-dash-note" id="rv-dash-note">${dashNote()}</p><button class="btn btn-quiet btn-sm" type="button" id="rv-cust-btn" data-rv-cust aria-haspopup="dialog" aria-controls="rv-cust">${C().icon('gear')}Customize</button></div>
+    return `${extras(d)}<div class="rv-dash-bar"><p class="rv-dash-note" id="rv-dash-note">${dashNote()}</p><button class="btn btn-quiet btn-sm" type="button" id="rv-cust-btn" data-rv-cust aria-haspopup="dialog" aria-controls="rv-cust">${C().icon('gear')}Customize</button></div>
       <div class="rv-charts${anim() ? ' rv-anim' : ''}" id="rv-grid">${gridInner(d)}</div>
       ${prevSection(d)}
       ${custDialog()}`;
@@ -1091,7 +1152,7 @@
     const ym = String(x.month).slice(0, 7);
     const d = norm({ income: x.income, costs: x.costs }, ym);
     const p = x.prev || {};
-    return { ym, income: d.income, costs: d.costs, inc: d.income.reduce((/** @type {number} */ s, /** @type {any} */ l) => s + l.amount, 0), cost: d.costs.reduce((/** @type {number} */ s, /** @type {any} */ l) => s + l.amount, 0),
+    return { ym, note: x.note ? String(x.note) : '', income: d.income, costs: d.costs, inc: d.income.reduce((/** @type {number} */ s, /** @type {any} */ l) => s + l.amount, 0), cost: d.costs.reduce((/** @type {number} */ s, /** @type {any} */ l) => s + l.amount, 0),
       incN: d.income.length, costN: d.costs.length, prev: { ym: p.month ? String(p.month).slice(0, 7) : shift(ym, -1), inc: num(p.income_minor), cost: num(p.costs_minor), incN: num(p.income_n), costN: num(p.costs_n) } };
   }
   /** The next page of earlier months, before `before`. @param {string} before */
@@ -1134,7 +1195,7 @@
     const mon = monthName(m.ym);
     const prevName = monthName(m.prev.ym);
     const pct = (/** @type {number} */ part, /** @type {number} */ whole) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
-    const clients = m.income.filter((/** @type {any} */ x) => x.kind === 'client').map((/** @type {any} */ x) => ({ id: x.tenant_id, name: clientName(x.tenant_id, x.label), minor: x.amount })).sort((/** @type {any} */ a, /** @type {any} */ b) => b.minor - a.minor);
+    const clients = m.income.filter((/** @type {any} */ x) => x.kind === 'client').map((/** @type {any} */ x) => ({ id: x.tenant_id, name: clientName(x.tenant_id, x.label), minor: x.amount, due: !x.received })).sort((/** @type {any} */ a, /** @type {any} */ b) => b.minor - a.minor);
     const other = m.income.filter((/** @type {any} */ x) => x.kind === 'other');
     const topC = clients.length ? clients[0].minor : 0;
     const share = (/** @type {number} */ v, /** @type {number} */ top, /** @type {string} */ cls) => hbar(top > 0 ? (v / top) * 100 : 0, cls);
@@ -1156,8 +1217,8 @@
 
     // income: clients largest first, with their share, then the other lines
     const incHtml = !m.incN ? `<p class="rv-chart-empty">No income entered for ${esc(mon)}.</p>`
-      : `${clients.length ? `<ul class="rv-bars rv-pm-bars" aria-label="Income by client, ${esc(mon)}">${clients.map((/** @type {any} */ x) => `<li class="rv-bar-row"><span class="rv-bar-name">${badge(x.id)}<span>${esc(x.name)}</span></span>${share(x.minor, topC, 'rv-f-inc')}<span class="rv-bar-v">${esc(money(x.minor))}<span class="rv-bar-pct"> ${pct(x.minor, m.inc)}%</span></span></li>`).join('')}</ul>` : ''}
-        ${other.length ? `<h6 class="rv-pm-sub">Other income</h6><ul class="rv-pm-lines">${other.map((/** @type {any} */ x) => `<li><span class="rv-pm-ll">${esc(x.label)}</span><span class="rv-pm-la">${esc(money(x.amount))}<span class="rv-bar-pct"> ${pct(x.amount, m.inc)}%</span></span></li>`).join('')}</ul>` : ''}`;
+      : `${clients.length ? `<ul class="rv-bars rv-pm-bars" aria-label="Income by client, ${esc(mon)}">${clients.map((/** @type {any} */ x) => `<li class="rv-bar-row"><span class="rv-bar-name">${badge(x.id)}<span>${esc(x.name)}</span>${x.due ? ' <span class="rv-pm-rep">Still to come</span>' : ''}</span>${share(x.minor, topC, 'rv-f-inc')}<span class="rv-bar-v">${esc(money(x.minor))}<span class="rv-bar-pct"> ${pct(x.minor, m.inc)}%</span></span></li>`).join('')}</ul>` : ''}
+        ${other.length ? `<h6 class="rv-pm-sub">Other income</h6><ul class="rv-pm-lines">${other.map((/** @type {any} */ x) => `<li><span class="rv-pm-ll">${esc(x.label)}${x.received ? '' : ' <span class="rv-pm-rep">Still to come</span>'}</span><span class="rv-pm-la">${esc(money(x.amount))}<span class="rv-bar-pct"> ${pct(x.amount, m.inc)}%</span></span></li>`).join('')}</ul>` : ''}`;
 
     // costs: grouped by kind, largest kind first, each with its share and its lines
     const kinds = CATS.map(([k, label]) => { const lines = m.costs.filter((/** @type {any} */ x) => x.category === k); return { k, label, lines, minor: lines.reduce((/** @type {number} */ s, /** @type {any} */ x) => s + x.amount, 0) }; })
@@ -1171,6 +1232,7 @@
     const openLink = monthIndex(m.ym) >= monthIndex(currentMonth()) - MONTHS_BACK
       ? `<a class="btn btn-quiet btn-sm" href="#/revenue/${esc(m.ym)}" aria-label="Open ${esc(mon)}">Open this month${c.icon('arrow')}</a>` : '';
     return `<div class="rv-pm-in">
+      ${m.note ? `<p class="rv-pm-note"><span class="rv-pm-note-k">Note</span><span class="rv-note-t">${esc(m.note)}</span></p>` : ''}
       <div class="rv-pm-glance">${t1}${t2}${t3}</div>
       <div class="rv-pm-two">
         <div class="rv-pm-part"><h5>Income by client</h5>${incHtml}</div>
@@ -1248,12 +1310,15 @@
 
   /* ---- the income editor ---------------------------------------------------------------------------------------------- */
 
-  /** @param {{label: string, amount: string}[]} lines */
+  /** A "Received" switch: on = the money is in, off = still to come. @param {string} label @param {boolean} on @param {string} [tenant] */
+  const recvSwitch = (label, on, tenant) => `<label class="switch-row rv-rep rv-recv"><input type="checkbox" role="switch" name="received"${tenant ? ` data-tenant="${tenant}"` : ''}${on ? ' checked' : ''} aria-label="${esc(label)}: received"><span aria-hidden="true">Received</span></label>`;
+  /** @param {{label: string, amount: string, received?: boolean}[]} lines */
   function otherHtml(lines) {
     const c = C();
     return lines.map((l, i) => `<li class="rv-line rv-other" data-line="${i}">
         <input type="text" name="label" value="${esc(l.label)}" maxlength="60" placeholder="Where it came from" aria-label="Other income ${i + 1}: where it came from" autocomplete="off">
         <span class="rv-money"><span class="rv-cur" aria-hidden="true">$</span><input type="text" name="amount" value="${esc(l.amount)}" inputmode="decimal" placeholder="0" aria-label="Other income ${i + 1}: amount in dollars" autocomplete="off"></span>
+        ${recvSwitch(`Other income ${i + 1}`, l.received !== false)}
         <button class="icon-btn rv-del" type="button" data-rv-del="${i}" aria-label="Remove ${esc(l.label || 'other income ' + (i + 1))}">${c.icon('trash')}</button>
       </li>`).join('');
   }
@@ -1262,10 +1327,11 @@
     const c = C();
     const ym = d.ym;
     const paid = new Map(d.income.filter((/** @type {any} */ x) => x.kind === 'client').map((/** @type {any} */ x) => [x.tenant_id, x.amount]));
+    const recv = new Map(d.income.filter((/** @type {any} */ x) => x.kind === 'client').map((/** @type {any} */ x) => [x.tenant_id, x.received]));
     const list = clientsFor(d);
     const known = new Set(list.map((/** @type {any} */ t) => t.id));
     // money from a client that is gone (or not in the list) stays as an other-income line with the name it was saved under
-    const other = d.income.filter((/** @type {any} */ x) => x.kind === 'other' || !known.has(x.tenant_id)).map((/** @type {any} */ x) => ({ label: x.kind === 'client' ? clientName(x.tenant_id, x.label) : x.label, amount: field(x.amount) }));
+    const other = d.income.filter((/** @type {any} */ x) => x.kind === 'other' || !known.has(x.tenant_id)).map((/** @type {any} */ x) => ({ label: x.kind === 'client' ? clientName(x.tenant_id, x.label) : x.label, amount: field(x.amount), received: x.received }));
     const rows = list.map((/** @type {any} */ t) => {
       const k = esc(t.id);
       const h = planHint(t);
@@ -1273,18 +1339,19 @@
       return `<li class="rv-inc" data-tenant="${k}">
         <div class="rv-inc-who">${badge(t.id)}<span class="rv-inc-name"><span class="rv-inc-line"><label for="rv-i-${k}">${esc(t.name)}</label>${t.status === 'paused' ? ' <span class="chip off plain">Paused</span>' : t.status === 'archived' ? ' <span class="chip off plain">Archived</span>' : ''}</span><span class="rv-inc-plan">${h ? `${esc(h.name)} plan, ${esc(money(h.minor))} a month` : 'No plan price'}</span></span></div>
         <div class="rv-inc-amt"><span class="rv-money"><span class="rv-cur" aria-hidden="true">$</span><input id="rv-i-${k}" type="text" name="client" data-tenant="${k}" value="${esc(v)}" inputmode="decimal" placeholder="Not entered" autocomplete="off"></span>
+          ${recvSwitch(String(t.name), recv.has(t.id) ? recv.get(t.id) !== false : true, k)}
           ${h ? `<button class="btn btn-quiet btn-sm rv-use" type="button" data-rv-use="${k}" data-minor="${h.minor}" aria-label="Use ${esc(money(h.minor))} for ${esc(t.name)}">Use ${esc(money(h.minor))}</button>` : '<span class="rv-use-gap" aria-hidden="true"></span>'}</div>
       </li>`;
     }).join('');
     return `<form class="rv-form" id="rv-form" data-kind="income" novalidate aria-labelledby="rv-f-h">
-      <div class="panel-head"><div><h2 id="rv-f-h">Income, ${esc(monthName(ym))}</h2><p>What each client paid you this month. Leave a client empty until you know.</p></div></div>
+      <div class="panel-head"><div><h2 id="rv-f-h">Income, ${esc(monthName(ym))}</h2><p>What each client paid you this month. Leave a client empty until you know. Turn Received off for money you expect but do not have yet.</p></div></div>
       ${list.length ? `<ul class="rv-inc-list" aria-label="Clients">${rows}</ul>` : '<p class="meta">No clients yet.</p>'}
       <p class="field-error" id="rv-inc-e" role="alert" hidden></p>
       <div class="rv-sub"><h3 id="rv-other-h">Other income</h3><p class="meta">Money not from a client, like a one-off job.</p></div>
       <ul class="rv-lines" id="rv-lines" aria-labelledby="rv-other-h">${otherHtml(other)}</ul>
       <p class="field-error" id="rv-lines-e" role="alert" hidden></p>
       <div class="rv-add"><button class="btn btn-quiet btn-sm" type="button" data-rv-add>${c.icon('plus')}Add other income</button></div>
-      <dl class="rv-sums"><div class="rv-profit"><dt>Total income</dt><dd data-rv-total>$0</dd></div></dl>
+      <dl class="rv-sums"><div><dt>Still to come</dt><dd data-rv-due>$0</dd></div><div class="rv-profit"><dt>Total income</dt><dd data-rv-total>$0</dd></div></dl>
       <div class="actions"><button class="btn" type="submit">${c.icon('check')}Save income</button><button class="btn btn-quiet" type="button" data-rv-undo>Undo changes</button></div>
     </form>`;
   }
@@ -1328,25 +1395,28 @@
       const q = (/** @type {string} */ n) => /** @type {HTMLInputElement|null} */ (li.querySelector(`[name=${n}]`));
       return kind === 'costs'
         ? { category: (q('category') || { value: 'other' }).value, label: (q('label') || { value: '' }).value, amount: (q('amount') || { value: '' }).value, repeats: !!(q('repeats') && /** @type {HTMLInputElement} */ (q('repeats')).checked) }
-        : { label: (q('label') || { value: '' }).value, amount: (q('amount') || { value: '' }).value };
+        : { label: (q('label') || { value: '' }).value, amount: (q('amount') || { value: '' }).value, received: !q('received') || /** @type {HTMLInputElement} */ (q('received')).checked };
     });
   }
   /** Totals again, as soon as a number changes. @param {HTMLFormElement} f */
   function recalc(f) {
-    let total = 0, rep = 0;
+    let total = 0, rep = 0, due = 0;
     if (f.dataset.kind === 'income') {
       for (const el of f.querySelectorAll('input[name=client]')) {
         const inp = /** @type {HTMLInputElement} */ (el);
         const v = parse(inp.value).minor;
         total += v || 0;
+        const sw = /** @type {HTMLInputElement|null} */ (f.querySelector(`input[name=received][data-tenant="${CSS.escape(inp.dataset.tenant || '')}"]`));
+        if (sw && !sw.checked) due += v || 0;
         const use = /** @type {HTMLElement|null} */ (f.querySelector(`[data-rv-use="${CSS.escape(inp.dataset.tenant || '')}"]`));
         if (use) use.classList.toggle('is-same', v !== null && v === Number(use.dataset.minor));
       }
     }
-    for (const l of readLines(f)) { const v = parse(l.amount).minor || 0; total += v; if (/** @type {any} */ (l).repeats) rep += v; }
+    for (const l of readLines(f)) { const v = parse(l.amount).minor || 0; total += v; if (/** @type {any} */ (l).repeats) rep += v; if (/** @type {any} */ (l).received === false) due += v; }
     const set = (/** @type {string} */ sel, /** @type {string} */ text) => { const el = f.querySelector(sel); if (el) el.textContent = text; };
     set('[data-rv-total]', money(total));
     set('[data-rv-rep]', money(rep));
+    set('[data-rv-due]', money(due));
   }
   /** @param {HTMLFormElement} f */
   function wireForm(f) {
@@ -1407,7 +1477,8 @@
         const a = parse(inp.value);
         const t = c.tenant(inp.dataset.tenant || '');
         if (a.why) { bad(inp, '#rv-inc-e', `${t ? t.name : 'A client'}: ${why(a.why)}`); continue; }
-        if (a.minor !== null) out.push({ tenant_id: inp.dataset.tenant, amount_minor: a.minor });
+        const sw = /** @type {HTMLInputElement|null} */ (f.querySelector(`input[name=received][data-tenant="${CSS.escape(inp.dataset.tenant || '')}"]`));
+        if (a.minor !== null) out.push({ tenant_id: inp.dataset.tenant, amount_minor: a.minor, received: !sw || sw.checked });
       }
     }
     Array.from(f.querySelectorAll('#rv-lines > .rv-line')).forEach((li, i) => {
@@ -1424,7 +1495,7 @@
         const cat = /** @type {HTMLSelectElement} */ (li.querySelector('[name=category]')).value;
         const rep = /** @type {HTMLInputElement} */ (li.querySelector('[name=repeats]')).checked;
         out.push({ category: cat, label, amount_minor: a.minor, repeats: rep });
-      } else out.push({ label, amount_minor: a.minor });
+      } else { const sw = /** @type {HTMLInputElement|null} */ (li.querySelector('[name=received]')); out.push({ label, amount_minor: a.minor, received: !sw || sw.checked }); }
     });
     if (firstBad) { /** @type {HTMLElement} */ (firstBad).focus(); c.toast('Some lines need fixing before this can be saved.', true); return; }
     const btn = /** @type {HTMLButtonElement|null} */ (f.querySelector('button[type=submit]'));
@@ -1433,8 +1504,7 @@
       const cl = await c.db();
       const res = await cl.rpc(kind === 'costs' ? 'business_save_costs' : 'business_save_income', { p_month: `${ym}-01`, p_lines: out });
       if (res.error) throw res.error;
-      for (const k of Object.keys(state.cache)) delete state.cache[k];   // every month's charts reach back over this one
-      state.prev = noPrev();   // and so does every later month's Previous months list
+      dropAll();   // every month's charts reach back over this one, and so do Previous months, Years, Export and Find
       const d = norm(res.data || {}, ym);
       state.cache[ym] = d;
       state.at = Date.now();
@@ -1448,6 +1518,677 @@
     }
   }
 
+  /* ---- Revenue plus (2026-10-15): what every save forgets, and drawing again ---------------------------------------- */
+
+  /** After any write: every month read so far, Previous months and every line (Years, Export, Find) are read again when next needed. */
+  function dropAll() {
+    for (const k of Object.keys(state.cache)) delete state.cache[k];
+    state.prev = noPrev();
+    state.lines = { data: null, p: null };
+  }
+  /** Draws a month again after a dialog saved something. A form with unsaved changes is left alone: only the three totals change. @param {any} d */
+  function repaint(d) {
+    const dirty = C().dirty;
+    if (state.form && dirty && dirty.has(state.form)) {
+      const el = document.querySelector('#rv-body .rv-cards');
+      if (el) el.outerHTML = cards(d);
+      paintFresh();
+      return;
+    }
+    // a note being written keeps its words when the page is drawn again
+    const nf = document.getElementById('rv-note-f');
+    const nta = nf && dirty && dirty.has(/** @type {HTMLFormElement} */ (nf)) ? /** @type {HTMLTextAreaElement|null} */ (nf.querySelector('textarea')) : null;
+    const keep = nta ? nta.value : null;
+    paintBody(d);
+    paintFresh();
+    const ta = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('rv-note-ta'));
+    if (keep !== null && ta) { ta.value = keep; ta.dispatchEvent(new Event('input', { bubbles: true })); }
+  }
+  /** The month on screen again from the database (after a dialog saved something that touches it); focus goes back to the toolbar button. @param {string} focusId */
+  async function refreshScreen(focusId) {
+    const ym = state.ym;
+    const seq = state.seq;
+    const d = await readMonth(ym, true);
+    if (seq !== state.seq || state.ym !== ym || !/^#\/revenue/.test(location.hash || '')) return;
+    repaint(d);
+    const a = document.activeElement;
+    const el = document.getElementById(focusId);
+    if (el && (!a || a === document.body || !a.isConnected) && !document.querySelector('dialog[open]')) el.focus();
+  }
+
+  /* ---- a note for the month, and the money still to come (the top of the Overview) -------------------------------------- */
+
+  /** @param {any} d */
+  function noteCard(d) {
+    const c = C();
+    const mon = monthName(d.ym);
+    const head = (/** @type {string} */ btn) => `<div class="rv-chart-head"><div><h3 id="rv-note-h">Note</h3><p>${esc(mon)}</p></div>${btn}</div>`;
+    if (state.noteEdit) {
+      return `<section class="rv-panel rv-note" aria-labelledby="rv-note-h">${head('')}
+        <form class="rv-note-f" id="rv-note-f" novalidate>
+          <div class="field"><label for="rv-note-ta">Note for ${esc(mon)}</label><textarea id="rv-note-ta" name="note" rows="3" maxlength="500" aria-describedby="rv-note-n" placeholder="For example: slow month, two clients paused">${esc(d.note)}</textarea>
+          <p class="hint" id="rv-note-n">${d.note.length} of 500 characters</p><p class="field-error" id="rv-note-e" role="alert" hidden></p></div>
+          <div class="actions"><button class="btn btn-sm" type="submit">${c.icon('check')}Save note</button><button class="btn btn-quiet btn-sm" type="button" data-rv-note-cancel>Cancel</button></div>
+        </form></section>`;
+    }
+    const btn = `<button class="btn btn-quiet btn-sm" type="button" id="rv-note-btn" data-rv-note>${d.note ? 'Edit note' : `${c.icon('plus')}Add a note`}</button>`;
+    return `<section class="rv-panel rv-note" aria-labelledby="rv-note-h">${head(btn)}${d.note ? `<p class="rv-note-t">${esc(d.note)}</p>` : `<p class="rv-chart-empty">No note yet. A line about the month helps later, like "slow month, two clients paused".</p>`}</section>`;
+  }
+  /** The income lines of the month not in yet, each with Mark received. @param {any} d @param {any[]} due */
+  function dueCard(d, due) {
+    const c = C();
+    const total = sumOf(due, 'amount');
+    const nameOf = (/** @type {any} */ x) => (x.kind === 'client' ? clientName(x.tenant_id, x.label) : x.label);
+    return `<section class="rv-panel rv-due" aria-labelledby="rv-due-h"><div class="rv-chart-head"><div><h3 id="rv-due-h">Still to come</h3><p>${esc(money(total))} expected for ${esc(monthName(d.ym))} and not in yet</p></div></div>
+      <ul class="rv-due-list">${due.map((x) => `<li><span class="rv-bar-name">${x.kind === 'client' ? badge(x.tenant_id) : ''}<span>${esc(nameOf(x))}</span></span><span class="rv-bar-v">${esc(money(x.amount))}</span><button class="btn btn-quiet btn-sm" type="button" data-rv-recv="${esc(x.id)}" aria-label="Mark ${esc(nameOf(x))}, ${esc(money(x.amount))}, received">${c.icon('check')}Mark received</button></li>`).join('')}</ul></section>`;
+  }
+  /** The note and Still to come, above the charts. @param {any} d */
+  function extras(d) {
+    const due = d.income.filter((/** @type {any} */ x) => !x.received && x.amount > 0 && x.id);
+    return `<div class="rv-extras${due.length ? '' : ' is-one'}" id="rv-extras">${noteCard(d)}${due.length ? dueCard(d, due) : ''}</div>`;
+  }
+  function paintExtras() {
+    const d = state.cache[state.ym];
+    const box = document.getElementById('rv-extras');
+    if (!d || !box) return;
+    const old = /** @type {HTMLFormElement|null} */ (document.getElementById('rv-note-f'));
+    if (old) C().clean(old);
+    box.outerHTML = extras(d);
+    wireNote();
+  }
+  /** The note's form, when it is open: the count, the unsaved-changes bar, and Save. */
+  function wireNote() {
+    const f = /** @type {HTMLFormElement|null} */ (document.getElementById('rv-note-f'));
+    if (!f) return;
+    const ta = /** @type {HTMLTextAreaElement} */ (f.querySelector('textarea'));
+    const n = document.getElementById('rv-note-n');
+    C().track(f, `Note for ${monthName(state.ym)}`);
+    f.addEventListener('input', () => { if (n) n.textContent = `${ta.value.length} of 500 characters`; const e = document.getElementById('rv-note-e'); if (e) e.hidden = true; ta.removeAttribute('aria-invalid'); });
+    f.addEventListener('submit', (e) => { e.preventDefault(); void saveNote(f); });
+  }
+  /** @param {HTMLFormElement} f */
+  async function saveNote(f) {
+    const c = C();
+    const ym = state.ym;
+    const ta = /** @type {HTMLTextAreaElement} */ (f.querySelector('textarea'));
+    const text = ta.value.trim();
+    const err = /** @type {HTMLElement} */ (document.getElementById('rv-note-e'));
+    if (text.length > 500) { err.textContent = 'A note can be up to 500 characters.'; err.hidden = false; ta.setAttribute('aria-invalid', 'true'); ta.focus(); return; }
+    const btn = /** @type {HTMLButtonElement} */ (f.querySelector('button[type=submit]'));
+    const done = c.busy(btn, 'Saving');
+    try {
+      const cl = await c.db();
+      const r = await cl.rpc('business_save_note', { p_month: `${ym}-01`, p_note: text });
+      if (r.error) throw r.error;
+      c.clean(f);
+      dropAll();
+      const d = norm(r.data || {}, ym);
+      state.cache[ym] = d;
+      state.at = Date.now();
+      state.noteEdit = false;
+      if (state.ym === ym && /^#\/revenue/.test(location.hash || '')) { paintExtras(); const b = document.getElementById('rv-note-btn'); if (b) b.focus(); }
+      c.toast(text ? `Note saved for ${monthName(ym)}.` : `Note removed from ${monthName(ym)}.`);
+    } catch (x) {
+      if (btn.isConnected) done();
+      err.textContent = `Not saved. ${say(x)}`;
+      err.hidden = false;
+    }
+  }
+  /** One income line received (or back to still to come, for Undo). @param {string} id @param {boolean} yes @param {HTMLButtonElement|null} btn */
+  async function markReceived(id, yes, btn) {
+    const c = C();
+    const ym = state.ym;
+    const d0 = state.cache[ym];
+    const line = d0 ? d0.income.find((/** @type {any} */ x) => x.id === id) : null;
+    const name = line ? (line.kind === 'client' ? clientName(line.tenant_id, line.label) : line.label) : 'That payment';
+    const done = btn ? c.busy(btn, 'Saving') : () => {};
+    try {
+      const cl = await c.db();
+      const r = await cl.rpc('business_mark_received', { p_id: id, p_received: yes });
+      if (r.error) throw r.error;
+      dropAll();
+      const d = norm(r.data || {}, String((r.data && r.data.month) || `${ym}-01`).slice(0, 7));
+      state.cache[d.ym] = d;
+      state.at = Date.now();
+      if (state.ym === d.ym && /^#\/revenue/.test(location.hash || '')) {
+        repaint(d);
+        const next = /** @type {HTMLElement|null} */ (document.querySelector('[data-rv-recv]') || document.getElementById('rv-note-btn') || document.getElementById('rv-qa-btn'));
+        if (next) next.focus();
+      }
+      if (yes) c.undoToast(`${name} marked received.`, () => markReceived(id, false, null));
+      else c.toast(`${name} is back to still to come.`);
+    } catch (x) {
+      if (btn && btn.isConnected) done();
+      c.toast(`Not saved. ${say(x)}`, true);
+    }
+  }
+
+  /* ---- What changed: the month in plain words, and Next 3 months -------------------------------------------------------- */
+
+  /**
+   * Up to six short sentences about the month on screen: how income and costs moved and what moved them, the biggest client, the
+   * margin against the 12-month average, the year so far, money still to come and the goals. A month still running is described so far.
+   * @param {any} d @returns {string[]}
+   */
+  function insights(d) {
+    /** @type {string[]} */ const out = [];
+    const ym = d.ym;
+    const mon = monthName(ym, 'mon');
+    const partial = ym === currentMonth();
+    const cur = totals(d, ym);
+    const pYm = shift(ym, -1);
+    const p = totals(d, pYm);
+    const pn = nearName(pYm, ym);
+    const row = (/** @type {string} */ m) => d.series.find((/** @type {any} */ x) => x.ym === m);
+    const st = d.settings || { incGoal: null, profGoal: null, tax: null };
+    const sign = (/** @type {number} */ v) => `${v > 0 ? '+' : '-'}${money(Math.abs(v))}`;
+    const pctMove = (/** @type {number} */ a, /** @type {number} */ b) => (b > 0 ? Math.round((Math.abs(a - b) / b) * 100) : 0);
+    if (!cur.has) return out;
+    if (partial) {
+      const day = dayOfMonth();
+      out.push(`${day} ${day === 1 ? 'day' : 'days'} into ${mon}: ${money(cur.inc)} in and ${money(cur.cost)} out so far.`);
+    } else {
+      // income, and the client (or other income) behind most of the move
+      if (cur.incN && p.incN && cur.inc !== p.inc) {
+        const a = row(ym), b = row(pYm);
+        /** @type {Map<string, {name: string, v: number}>} */ const by = new Map();
+        const add = (/** @type {string} */ k, /** @type {string} */ name, /** @type {number} */ v) => { const w = by.get(k) || { name, v: 0 }; w.v += v; by.set(k, w); };
+        for (const x of (a ? a.clients : [])) add(x.id, clientName(x.id, x.label), x.minor);
+        for (const x of (b ? b.clients : [])) add(x.id, clientName(x.id, x.label), -x.minor);
+        add('other', 'other income', (a ? a.other : 0) - (b ? b.other : 0));
+        const up = cur.inc > p.inc;
+        const lead = Array.from(by.values()).filter((x) => (up ? x.v > 0 : x.v < 0)).sort((x, y) => Math.abs(y.v) - Math.abs(x.v))[0];
+        const pc = pctMove(cur.inc, p.inc);
+        out.push(`Income ${up ? 'rose' : 'fell'} ${pc >= 1 ? `${pc}%` : money(Math.abs(cur.inc - p.inc))} on ${pn}${lead ? `, mostly from ${lead.name} (${sign(lead.v)})` : ''}.`);
+      }
+      // costs, and the kind behind most of the move
+      if (cur.costN && p.costN && cur.cost !== p.cost) {
+        const a = row(ym), b = row(pYm);
+        const up = cur.cost > p.cost;
+        const lead = CATS.map(([k, name]) => ({ name, v: ((a && a.kinds[k]) || 0) - ((b && b.kinds[k]) || 0) })).filter((x) => (up ? x.v > 0 : x.v < 0)).sort((x, y) => Math.abs(y.v) - Math.abs(x.v))[0];
+        const pc = pctMove(cur.cost, p.cost);
+        out.push(`Costs ${up ? 'rose' : 'fell'} ${pc >= 1 ? `${pc}%` : money(Math.abs(cur.cost - p.cost))} on ${pn}${lead ? `, mostly from ${lead.name} (${sign(lead.v)})` : ''}.`);
+      }
+      // the margin against the average of the 12 months before
+      const mg = margin(cur.profit, cur.inc);
+      const before = d.series.slice(-13, -1).filter((/** @type {any} */ r) => r.incN > 0).map((/** @type {any} */ r) => /** @type {number} */ (margin(r.inc - r.cost, r.inc)));
+      if (mg !== null && before.length >= 3) {
+        const avg = Math.round(before.reduce((x, y) => x + y, 0) / before.length);
+        out.push(mg === avg ? `Margin was ${mg}%, the same as your average of the ${before.length} months before.` : `Margin was ${mg}%, ${mg > avg ? 'above' : 'below'} your average of ${avg}% over the ${before.length} months before.`);
+      }
+    }
+    // the biggest client of the month
+    const r0 = row(ym);
+    const paid = r0 ? r0.clients.filter((/** @type {any} */ x) => x.minor > 0).sort((/** @type {any} */ x, /** @type {any} */ y) => y.minor - x.minor) : [];
+    if (paid.length && cur.inc > 0) {
+      const share = Math.round((paid[0].minor / cur.inc) * 100);
+      out.push(paid.length === 1 ? `${clientName(paid[0].id, paid[0].label)} is the only client with income entered for ${mon}.` : `${clientName(paid[0].id, paid[0].label)} brought in the most: ${share}% of ${mon}'s income.`);
+    }
+    // money still to come
+    const due = d.income.filter((/** @type {any} */ x) => !x.received && x.amount > 0);
+    if (due.length) out.push(`${money(sumOf(due, 'amount'))} is still to come for ${mon}, from ${due.length === 1 ? 'one payment' : `${due.length} payments`}.`);
+    // goals
+    if (st.incGoal && cur.incN) out.push(cur.inc >= st.incGoal ? `The income goal of ${money(st.incGoal)} is reached.` : `${money(st.incGoal - cur.inc)} more income reaches the goal of ${money(st.incGoal)}.`);
+    // the year so far against the same months of last year
+    const Y = yearRows(d);
+    const has = (/** @type {any[]} */ a) => a.some((r) => r.incN || r.costN);
+    if (has(Y.now) && has(Y.was)) {
+      const a = Y.now.reduce((/** @type {number} */ x, /** @type {any} */ r) => x + r.inc - r.cost, 0);
+      const b = Y.was.reduce((/** @type {number} */ x, /** @type {any} */ r) => x + r.inc - r.cost, 0);
+      const mv = move(a, { has: true, v: b });
+      out.push(`Profit in ${Y.y} so far is ${signed(Math.round(a / 100) * 100, true)}${mv ? (mv.dir === 'same' ? `, the same as the same months of ${Y.ly}` : `, ${mv.text} on the same months of ${Y.ly}`) : ''}.`);
+    }
+    return out.slice(0, 6);
+  }
+  RENDER.insights = (d) => {
+    const items = insights(d);
+    const body = items.length ? `<ul class="rv-ins">${items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : `<p class="rv-chart-empty">Nothing entered for ${esc(monthName(d.ym))} yet. <a href="#/revenue/${d.ym}/income">Enter income</a></p>`;
+    return { sub: `${esc(monthName(d.ym))}${d.ym === currentMonth() ? ', so far' : ''}, in plain words`, body };
+  };
+
+  /**
+   * The three months after the one on screen, as an estimate: income is the average of the last three full months with income, costs
+   * are the lines that repeat monthly in the latest month that has costs (one-off costs are left out), and tax is the set-aside percent.
+   * @param {any} d
+   */
+  function forecast(d) {
+    const partial = d.ym === currentMonth();
+    const full = d.series.filter((/** @type {any} */ r) => !(partial && r.ym === d.ym));
+    const recent = full.slice(-3).filter((/** @type {any} */ r) => r.incN > 0);
+    const inc = recent.length ? Math.round(sumOf(recent, 'inc') / recent.length) : null;
+    const withCost = d.series.slice().reverse().find((/** @type {any} */ r) => r.costN > 0);
+    const rep = withCost ? withCost.rep : 0;
+    const tax = d.settings && d.settings.tax ? d.settings.tax : null;
+    const months = [1, 2, 3].map((k) => { const ym = shift(d.ym, k); const profit = inc === null ? 0 : inc - rep; return { ym, inc, cost: rep, profit, tax: tax ? taxOf(profit, tax) : 0 }; });
+    return { inc, rep, from: recent.map((/** @type {any} */ r) => r.ym), costFrom: withCost ? withCost.ym : '', tax, months };
+  }
+  RENDER.forecast = (d) => {
+    if (d.ym !== currentMonth()) return { sub: 'An estimate for the months ahead', body: `<p class="rv-chart-empty">The estimate looks ahead from this month. <a href="#/revenue/${currentMonth()}">Open ${esc(monthName(currentMonth()))}</a></p>` };
+    const F = forecast(d);
+    if (F.inc === null) return { sub: 'An estimate', body: '<p class="rv-chart-empty">Not enough entered yet. The estimate needs at least one full month with income.</p>' };
+    const names = F.from.map((/** @type {string} */ m) => monthName(m, 'mon'));
+    const fromWords = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+    const tiles = F.months.map((m) => `<div class="rv-tile"><p class="rv-tile-k">${esc(monthName(m.ym))}</p><p class="rv-tile-v${m.profit < 0 ? ' rv-neg' : ''}">${esc(signed(Math.round(m.profit / 100) * 100))}</p><p class="rv-tile-s">About ${esc(dollars(m.inc || 0))} in, ${esc(dollars(m.cost))} out${F.tax && m.tax > 0 ? `, put aside ${esc(dollars(m.tax))}` : ''}</p></div>`).join('');
+    const sum = F.months.reduce((x, m) => x + m.profit, 0);
+    const table = tableOf('Next 3 months, an estimate', ['Month', 'Income', 'Costs', 'Profit', ...(F.tax ? ['Put aside for tax'] : [])], F.months.map((m) => [esc(monthName(m.ym)), esc(dollars(m.inc || 0)), esc(dollars(m.cost)), m.profit < 0 ? `<span class="rv-neg">${esc(signed(m.profit, true))}</span>` : esc(dollars(m.profit)), ...(F.tax ? [esc(dollars(m.tax))] : [])]));
+    const body = `<div class="rv-fc-total"><span class="chip warn plain">Estimate</span><span>About <strong class="${sum < 0 ? 'rv-neg' : ''}">${esc(signed(Math.round(sum / 100) * 100, true))}</strong> profit over the three months</span></div>
+      <div class="rv-tiles rv-fc">${tiles}</div>
+      <p class="rv-chart-note">Not a promise. Income is your average for ${esc(fromWords)}. Costs are the ones that repeat monthly in ${esc(monthName(F.costFrom || d.ym))}; one-off costs are not in it.</p>${table}`;
+    return { sub: `${esc(monthName(F.months[0].ym))} to ${esc(monthName(F.months[2].ym))}, an estimate`, body };
+  };
+
+  /* ---- every line ever entered (Years, Export, Find) ------------------------------------------------------------------ */
+
+  /** business_lines in the shapes the page uses. @param {any} j */
+  function normLines(j) {
+    const num = (/** @type {any} */ v) => Number(v) || 0;
+    const ymOf = (/** @type {any} */ m) => String(m || '').slice(0, 7);
+    return {
+      income: (j.income || []).map((/** @type {any} */ x) => ({ ym: ymOf(x.month), kind: x.kind === 'client' && x.tenant_id ? 'client' : 'other', tenant_id: x.tenant_id || '', label: String(x.label || ''), amount: num(x.amount_minor), received: x.received !== false })),
+      costs: (j.costs || []).map((/** @type {any} */ x) => ({ ym: ymOf(x.month), category: CATS.some((c) => c[0] === x.category) ? x.category : 'other', label: String(x.label || ''), amount: num(x.amount_minor), repeats: x.repeats !== false })),
+      notes: (j.notes || []).map((/** @type {any} */ x) => ({ ym: ymOf(x.month), note: String(x.note || '') })),
+      settings: normSettings(j.settings)
+    };
+  }
+  /** Every line, read once and kept until the next save. @returns {Promise<any>} */
+  function loadLines() {
+    if (state.lines.data) return Promise.resolve(state.lines.data);
+    if (state.lines.p) return state.lines.p;
+    const box = state.lines;
+    const p = (async () => {
+      const c = await C().db();
+      const r = await c.rpc('business_lines', { p_from: null, p_to: null });
+      if (r.error) throw r.error;
+      const data = normLines(r.data || {});
+      if (state.lines === box) { box.data = data; box.p = null; }
+      return data;
+    })();
+    box.p = p;
+    p.catch(() => { if (state.lines === box) box.p = null; });
+    return p;
+  }
+  /** Each month's totals from every line. @param {any} L @returns {Map<string, {inc: number, cost: number, incN: number, costN: number, due: number}>} */
+  function monthTotals(L) {
+    const m = new Map();
+    const at = (/** @type {string} */ ym) => { let x = m.get(ym); if (!x) { x = { inc: 0, cost: 0, incN: 0, costN: 0, due: 0 }; m.set(ym, x); } return x; };
+    for (const x of L.income) { const t = at(x.ym); t.inc += x.amount; t.incN += 1; if (!x.received) t.due += x.amount; }
+    for (const x of L.costs) { const t = at(x.ym); t.cost += x.amount; t.costN += 1; }
+    return m;
+  }
+
+  /* ---- Years: each year against the one before, and one year month by month ------------------------------------------------ */
+
+  /** @param {Map<string, any>} map @param {string} y @param {number} upto months 1 to upto */
+  function yearSum(map, y, upto) {
+    const t = { inc: 0, cost: 0, has: false };
+    for (let i = 1; i <= upto; i += 1) { const x = map.get(`${y}-${String(i).padStart(2, '0')}`); if (x && (x.incN || x.costN)) { t.inc += x.inc; t.cost += x.cost; t.has = true; } }
+    return { ...t, profit: t.inc - t.cost };
+  }
+  /** The Years view from every line. */
+  function yearsHtml() {
+    const c = C();
+    const L = state.lines.data;
+    const map = monthTotals(L);
+    const st = (state.cache[state.ym] && state.cache[state.ym].settings) || L.settings;
+    const now = currentMonth();
+    const cy = now.slice(0, 4);
+    const nowM = Number(now.slice(5, 7));
+    const years = Array.from(new Set(Array.from(map.entries()).filter(([, x]) => x.incN || x.costN).map(([k]) => k.slice(0, 4)))).sort().reverse();
+    if (!years.length) return `<section class="rv-panel"><div class="rv-chart-head"><div><h3>Years</h3><p>Each year against the one before</p></div></div><p class="rv-chart-empty">Nothing entered yet. <a href="#/revenue/${now}/income">Enter income</a></p></section>`;
+    const cell = (/** @type {number} */ v, /** @type {boolean} */ has, /** @type {boolean} */ sign) => (!has ? NONE : sign && v < 0 ? `<span class="rv-neg">${esc(signed(v, true))}</span>` : esc(money(v)));
+    // 1. year by year
+    const rows = years.map((y) => {
+      const upto = y === cy ? nowM : 12;
+      const t = yearSum(map, y, upto);
+      const was = yearSum(map, String(Number(y) - 1), upto);
+      const mg = margin(t.profit, t.inc);
+      return [`${esc(y)}${y === cy ? ' so far' : ''}`, cell(t.inc, t.has, false), cell(t.cost, t.has, false), cell(t.profit, t.has, true), mg === null ? DASH : `${mg}%`,
+        ...(st.tax ? [t.profit > 0 ? esc(dollars(taxOf(t.profit, st.tax))) : DASH] : []), moveHtml(move(t.profit, { has: was.has, v: was.profit }))];
+    });
+    const heads = ['Year', 'Income', 'Costs', 'Profit', 'Margin', ...(st.tax ? [`Tax to put aside (${pctText(st.tax)})`] : []), 'Profit against the year before'];
+    const table1 = `<div class="table-wrap" tabindex="0" role="region" aria-label="Year by year, scrolls sideways"><table class="grid rv-ytable"><caption class="sr-only">Each year's income, costs and profit</caption><thead><tr>${heads.map((h, i) => `<th scope="col"${i ? ' class="n"' : ''}>${esc(h)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((r) => `<tr>${r.map((x, i) => (i ? `<td class="n">${x}</td>` : `<th scope="row">${x}</th>`)).join('')}</tr>`).join('')}</tbody></table></div>`;
+    const yearsCard = `<section class="rv-panel" aria-labelledby="rv-y1-h"><div class="rv-chart-head"><div><h3 id="rv-y1-h">Year by year</h3><p>Every year with entries, newest first</p></div><button class="btn btn-quiet btn-sm" type="button" data-rv-exp-go="all">${c.icon('page')}Download everything</button></div>
+      ${table1}<p class="rv-chart-note">${esc(cy)} so far is compared with the same months of ${esc(String(Number(cy) - 1))}.${st.tax ? ` Tax to put aside is ${esc(pctText(st.tax))} of a year's profit.` : ' Set a tax percent in Goals and tax to see what to put aside.'}</p></section>`;
+    // 2. one year month by month, against the year before
+    const Y = years.includes(state.year) ? state.year : years.includes(state.ym.slice(0, 4)) ? state.ym.slice(0, 4) : years[0];
+    const LY = String(Number(Y) - 1);
+    const upto = Y === cy ? nowM : 12;
+    const pick = `<div class="seg rv-year-pick" role="group" aria-label="Year to compare">${years.slice(0, 8).map((y) => `<button type="button" data-rv-year="${esc(y)}" aria-pressed="${y === Y}">${esc(y)}</button>`).join('')}</div>`;
+    let tA = 0, tB = 0, pA = 0, pB = 0, hasA = false, hasB = false;
+    const mRows = [];
+    for (let i = 1; i <= upto; i += 1) {
+      const k = String(i).padStart(2, '0');
+      const a = map.get(`${Y}-${k}`), b = map.get(`${LY}-${k}`);
+      const ha = !!(a && (a.incN || a.costN)), hb = !!(b && (b.incN || b.costN));
+      const ap = ha && a ? a.inc - a.cost : 0, bp = hb && b ? b.inc - b.cost : 0;
+      if (ha && a) { tA += a.inc; pA += ap; hasA = true; }
+      if (hb && b) { tB += b.inc; pB += bp; hasB = true; }
+      mRows.push([monthCell(`${Y}-${k}`), cell(a ? a.inc : 0, !!(a && a.incN), false), cell(b ? b.inc : 0, !!(b && b.incN), false), cell(ap, ha, true), cell(bp, hb, true), ha ? moveHtml(move(ap, { has: hb, v: bp })) : DASH]);
+    }
+    const h2 = ['Month', `Income ${Y}`, `Income ${LY}`, `Profit ${Y}`, `Profit ${LY}`, 'Change in profit'];
+    const foot = ['Total', cell(tA, hasA, false), cell(tB, hasB, false), cell(pA, hasA, true), cell(pB, hasB, true), hasA ? moveHtml(move(pA, { has: hasB, v: pB })) : DASH];
+    const table2 = `<div class="table-wrap" tabindex="0" role="region" aria-label="${esc(Y)} month by month, scrolls sideways"><table class="grid rv-ytable"><caption class="sr-only">${esc(Y)} month by month against ${esc(LY)}</caption><thead><tr>${h2.map((h, i) => `<th scope="col"${i ? ' class="n"' : ''}>${esc(h)}</th>`).join('')}</tr></thead>
+      <tbody>${mRows.map((r) => `<tr>${r.map((x, i) => (i ? `<td class="n">${x}</td>` : `<th scope="row">${x}</th>`)).join('')}</tr>`).join('')}</tbody>
+      <tfoot><tr>${foot.map((x, i) => (i ? `<td class="n">${x}</td>` : `<th scope="row">${x}</th>`)).join('')}</tr></tfoot></table></div>`;
+    const notes = L.notes.filter((/** @type {any} */ n) => n.ym.slice(0, 4) === Y);
+    const notesHtml = notes.length ? `<h4 class="rv-split-h">Notes in ${esc(Y)}</h4><ul class="rv-year-notes">${notes.map((/** @type {any} */ n) => `<li><span class="rv-bw-m">${monthCell(n.ym)}</span><span class="rv-note-t">${esc(n.note)}</span></li>`).join('')}</ul>` : '';
+    const monthCard = `<section class="rv-panel" aria-labelledby="rv-y2-h"><div class="rv-chart-head"><div><h3 id="rv-y2-h">${esc(Y)} month by month</h3><p>Against the same months of ${esc(LY)}${Y === cy ? `, up to ${esc(monthName(now, 'mon'))}` : ''}</p></div><button class="btn btn-quiet btn-sm" type="button" data-rv-exp-go="year" data-year="${esc(Y)}">${c.icon('page')}Download ${esc(Y)}</button></div>
+      ${years.length > 1 ? pick : ''}${table2}${notesHtml}</section>`;
+    return `<div class="rv-years">${yearsCard}${monthCard}</div>`;
+  }
+  /** Reads every line (once) and draws the Years view. @param {string} [focusSel] */
+  async function paintYears(focusSel) {
+    const seq = state.seq;
+    const box = document.getElementById('rv-years');
+    if (!box) return;
+    if (!state.lines.data) { box.setAttribute('aria-busy', 'true'); }
+    try { await loadLines(); } catch (x) {
+      if (seq !== state.seq) return;
+      const b = document.getElementById('rv-years');
+      if (b) { b.removeAttribute('aria-busy'); b.innerHTML = `<div class="empty"><p><strong>The years did not load.</strong></p><p>${esc(say(x))}</p><button class="btn btn-quiet" type="button" data-rv-years-retry>Try again</button></div>`; }
+      return;
+    }
+    const b = document.getElementById('rv-years');
+    if (seq !== state.seq || state.view !== 'years' || !b) return;
+    b.innerHTML = yearsHtml();
+    b.removeAttribute('aria-busy');
+    b.removeAttribute('aria-label');
+    const f = focusSel ? /** @type {HTMLElement|null} */ (b.querySelector(focusSel)) : null;
+    if (f) f.focus();
+  }
+
+  /* ---- Export: a CSV file of a month, a year or everything ------------------------------------------------------------------ */
+
+  /** One CSV cell: quoted when it holds a comma, quote or line break; a leading = + - @ is made plain text so a spreadsheet never runs it. @param {any} v */
+  function csvCell(v) {
+    let t = String(v === null || v === undefined ? '' : v);
+    if (/^[=+\-@\t\r]/.test(t)) t = `'${t}`;
+    return /[",\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  }
+  /**
+   * Every line from `from` to `to` (both "yyyy-mm", inclusive) as CSV: month, type, kind, name, amount in dollars, status. Notes are rows too.
+   * @param {any} L @param {string} from @param {string} to @returns {{text: string, n: number}}
+   */
+  function csvOf(L, from, to) {
+    const inR = (/** @type {any} */ x) => x.ym >= from && x.ym <= to;
+    /** @type {string[][]} */ const rows = [];
+    const months = Array.from(new Set([...L.income, ...L.costs, ...L.notes].filter(inR).map((x) => x.ym))).sort();
+    for (const ym of months) {
+      for (const x of L.income.filter((/** @type {any} */ i) => i.ym === ym)) rows.push([ym, 'Income', x.kind === 'client' ? 'Client' : 'Other income', x.kind === 'client' ? clientName(x.tenant_id, x.label) : x.label, (x.amount / 100).toFixed(2), x.received ? 'Received' : 'Still to come']);
+      for (const x of L.costs.filter((/** @type {any} */ i) => i.ym === ym)) rows.push([ym, 'Cost', catName(x.category), x.label, (x.amount / 100).toFixed(2), x.repeats ? 'Repeats monthly' : 'One-off']);
+      for (const x of L.notes.filter((/** @type {any} */ i) => i.ym === ym)) rows.push([ym, 'Note', '', x.note, '', '']);
+    }
+    const head = ['Month', 'Type', 'Kind', 'Name', 'Amount (USD)', 'Status'];
+    return { text: [head, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n', n: rows.length };
+  }
+  /** Hands the browser a file to save. @param {string} name @param {string} text */
+  function download(name, text) {
+    const url = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.hidden = true;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+  /** @param {string} kind month, year or all @param {string} year @param {HTMLButtonElement} btn */
+  async function doExport(kind, year, btn) {
+    const c = C();
+    const now = currentMonth();
+    const y = /^\d{4}$/.test(year) ? year : state.ym.slice(0, 4);
+    const r = kind === 'month' ? { from: state.ym, to: state.ym, name: `domin8te-revenue-${state.ym}.csv`, what: monthName(state.ym) }
+      : kind === 'year' ? { from: `${y}-01`, to: `${y}-12` < now ? `${y}-12` : now, name: `domin8te-revenue-${y}.csv`, what: y }
+      : { from: '0000-00', to: now, name: 'domin8te-revenue-all.csv', what: 'everything' };
+    const done = c.busy(btn, 'Preparing');
+    try {
+      const L = await loadLines();
+      const out = csvOf(L, r.from, r.to);
+      if (btn.isConnected) done();
+      if (!out.n) { c.toast(`Nothing entered for ${r.what} yet, so there is no file.`, true); return; }
+      download(r.name, out.text);
+      closeDlg(/** @type {HTMLDialogElement|null} */ (btn.closest('dialog')));
+      c.toast(`Downloaded ${r.name}: ${out.n} ${out.n === 1 ? 'line' : 'lines'}.`);
+    } catch (x) {
+      if (btn.isConnected) done();
+      c.toast(`No file made. ${say(x)}`, true);
+    }
+  }
+
+  /* ---- the dialogs: Add a cost, Find, Export, Goals and tax ------------------------------------------------------------------ */
+
+  /** @param {string} id @param {string} title @param {string} sub */
+  const dlgHead = (id, title, sub) => `<div class="rv-cust-head"><div><h2 id="${id}-h">${title}</h2>${sub ? `<p id="${id}-p">${sub}</p>` : ''}</div><button class="icon-btn rv-cust-x" type="button" data-rv-dlg-close aria-label="Close">${C().icon('x')}</button></div>`;
+  function dialogs() {
+    const c = C();
+    return `<dialog class="rv-cust rv-dlg" id="rv-qa" aria-labelledby="rv-qa-h"><form class="rv-cust-in" id="rv-qa-f" novalidate>${dlgHead('rv-qa', 'Add a cost', 'One cost for the business, saved straight away. Not client costs or client ad spend.')}
+        <div class="rv-dlg-body" id="rv-qa-body"></div>
+        <div class="rv-cust-foot"><button class="btn btn-quiet btn-sm" type="button" data-rv-dlg-close>Cancel</button><button class="btn btn-sm rv-cust-done" type="submit">${c.icon('check')}Add cost</button></div></form></dialog>
+      <dialog class="rv-cust rv-dlg" id="rv-find" aria-labelledby="rv-find-h"><div class="rv-cust-in">${dlgHead('rv-find', 'Find', 'Every cost and income line you have entered, in every month.')}
+        <div class="rv-dlg-body"><div class="field"><label for="rv-find-q">Name to find</label><input id="rv-find-q" type="search" autocomplete="off" placeholder="For example: Canva" maxlength="60" aria-describedby="rv-find-sum"></div>
+        <p class="rv-find-sum" id="rv-find-sum" aria-live="polite"></p><div id="rv-find-r"></div></div>
+        <div class="rv-cust-foot"><button class="btn btn-sm rv-cust-done" type="button" data-rv-dlg-close>Done</button></div></div></dialog>
+      <dialog class="rv-cust rv-dlg" id="rv-exp" aria-labelledby="rv-exp-h"><div class="rv-cust-in">${dlgHead('rv-exp', 'Export', 'A CSV file that opens in Excel, Numbers or Google Sheets: every income and cost line, and the notes.')}
+        <div class="rv-dlg-body"><ul class="rv-exp-list" id="rv-exp-list"></ul></div>
+        <div class="rv-cust-foot"><button class="btn btn-sm rv-cust-done" type="button" data-rv-dlg-close>Done</button></div></div></dialog>
+      <dialog class="rv-cust rv-dlg" id="rv-goals" aria-labelledby="rv-goals-h"><form class="rv-cust-in" id="rv-goals-f" novalidate>${dlgHead('rv-goals', 'Goals and tax', 'Targets for every month, and how much of the profit to put aside for tax. Leave a box empty for none.')}
+        <div class="rv-dlg-body" id="rv-goals-body"></div>
+        <div class="rv-cust-foot"><button class="btn btn-quiet btn-sm" type="button" data-rv-dlg-close>Cancel</button><button class="btn btn-sm rv-cust-done" type="submit">${c.icon('check')}Save</button></div></form></dialog>`;
+  }
+  let findT = 0;
+  function wireDialogs() {
+    const qa = document.getElementById('rv-qa-f');
+    if (qa) qa.addEventListener('submit', (e) => { e.preventDefault(); void submitQuickAdd(/** @type {HTMLFormElement} */ (qa)); });
+    const gf = document.getElementById('rv-goals-f');
+    if (gf) gf.addEventListener('submit', (e) => { e.preventDefault(); void submitGoals(/** @type {HTMLFormElement} */ (gf)); });
+    for (const f of [qa, gf]) if (f) f.addEventListener('input', (e) => { const el = /** @type {HTMLElement} */ (e.target); if (el) el.removeAttribute('aria-invalid'); const er = f.querySelector('.field-error'); if (er) /** @type {HTMLElement} */ (er).hidden = true; });
+    const q = document.getElementById('rv-find-q');
+    if (q) q.addEventListener('input', () => { clearTimeout(findT); findT = setTimeout(paintFind, 180); });
+  }
+  /**
+   * Opens one of the dialogs (closing any other first); focus goes back to the button that opened it (by its id, since the toolbar may
+   * be drawn again while the dialog is open), or to what had the focus.
+   * @param {string} id @param {string} [focusSel] @param {HTMLElement|null} [opener]
+   */
+  function openDlg(id, focusSel, opener) {
+    const dlg = /** @type {HTMLDialogElement|null} */ (document.getElementById(id));
+    if (!dlg) return null;
+    if (id === 'rv-exp') paintExportList();
+    if (dlg.open) return dlg;
+    for (const o of document.querySelectorAll('dialog.rv-cust[open]')) /** @type {HTMLDialogElement} */ (o).close();
+    const from = opener || /** @type {HTMLElement|null} */ (document.activeElement);
+    const fromId = from && from.id ? from.id : '';
+    back.set(dlg, () => (fromId && document.getElementById(fromId)) || (from && from.isConnected ? from : null));
+    dlg.addEventListener('close', () => refocus(dlg), { once: true });
+    dlg.showModal();
+    const first = /** @type {HTMLElement|null} */ (focusSel ? dlg.querySelector(focusSel) : dlg.querySelector('.rv-dlg-body input, .rv-dlg-body select, .rv-dlg-body button'));
+    if (first) first.focus();
+    return dlg;
+  }
+  /** Where focus goes when each open dialog closes. @type {WeakMap<HTMLDialogElement, () => HTMLElement|null>} */
+  const back = new WeakMap();
+  /** Focus back on the button that opened the dialog (at once when a button closes it, and again on the close event for Escape). @param {HTMLDialogElement} dlg */
+  function refocus(dlg) {
+    const f = back.get(dlg);
+    const b = f ? f() : null;
+    if (b && !document.querySelector('dialog[open]') && !dlg.contains(b)) b.focus();
+  }
+  /** @param {HTMLDialogElement|null} dlg */
+  function closeDlg(dlg) { if (dlg && dlg.open) { dlg.close(); refocus(dlg); } }
+  function paintExportList() {
+    const ul = document.getElementById('rv-exp-list');
+    if (!ul) return;
+    const y = state.ym.slice(0, 4);
+    const opt = (/** @type {string} */ kind, /** @type {string} */ title, /** @type {string} */ sub) => `<li><button class="rv-exp-opt" type="button" data-rv-exp-go="${kind}"${kind === 'year' ? ` data-year="${esc(y)}"` : ''}><span class="pick-t">${esc(title)}</span><span class="pick-d">${esc(sub)}</span></button></li>`;
+    ul.innerHTML = opt('month', `This month: ${monthName(state.ym)}`, 'Its income, costs and note')
+      + opt('year', `This year: ${y}`, `Every month of ${y} with entries`)
+      + opt('all', 'Everything', 'Every month you have entered');
+  }
+
+  /** Find: matches as you type, newest first, with how many and how much in all. */
+  /** @param {HTMLElement|null} [opener] */
+  async function openFind(opener) {
+    const dlg = openDlg('rv-find', '#rv-find-q', opener);
+    if (!dlg) return;
+    const r = document.getElementById('rv-find-r');
+    if (!state.lines.data && r) r.innerHTML = `<div aria-busy="true" aria-label="Loading every line">${C().skeleton(2)}</div>`;
+    try { await loadLines(); } catch (x) { if (r) r.innerHTML = `<p class="field-error">Lines did not load. ${esc(say(x))}</p>`; return; }
+    paintFind();
+  }
+  /** Text with the part that matched marked. @param {string} text @param {string} q */
+  function marked(text, q) {
+    const i = text.toLowerCase().indexOf(q);
+    if (i < 0 || !q) return esc(text);
+    return `${esc(text.slice(0, i))}<mark>${esc(text.slice(i, i + q.length))}</mark>${esc(text.slice(i + q.length))}`;
+  }
+  function paintFind() {
+    const inp = /** @type {HTMLInputElement|null} */ (document.getElementById('rv-find-q'));
+    const r = document.getElementById('rv-find-r');
+    const sum = document.getElementById('rv-find-sum');
+    const L = state.lines.data;
+    if (!inp || !r || !sum || !L) return;
+    const q = inp.value.trim().toLowerCase();
+    if (q.length < 2) { sum.textContent = ''; r.innerHTML = '<p class="rv-chart-empty">Type two letters or more of a name, like Canva, Sam or a client.</p>'; return; }
+    const nameOf = (/** @type {any} */ x) => (x.kind === 'client' ? clientName(x.tenant_id, x.label) : x.label);
+    const costs = L.costs.filter((/** @type {any} */ x) => x.label.toLowerCase().includes(q)).reverse();
+    const inc = L.income.filter((/** @type {any} */ x) => nameOf(x).toLowerCase().includes(q)).reverse();
+    const span = (/** @type {any[]} */ a) => { const ms = a.map((x) => x.ym).sort(); return ms.length ? (ms[0] === ms[ms.length - 1] ? monthName(ms[0], 'short') : `${monthName(ms[0], 'short')} to ${monthName(ms[ms.length - 1], 'short')}`) : ''; };
+    const words = (/** @type {any[]} */ a, /** @type {string} */ what) => `${a.length} ${what} ${a.length === 1 ? 'line' : 'lines'}, ${money(sumOf(a, 'amount'))} in all, ${span(a)}`;
+    const MAX = 40;
+    const link = (/** @type {string} */ ym, /** @type {string} */ tail) => (monthIndex(ym) >= monthIndex(currentMonth()) - MONTHS_BACK ? `<a href="#/revenue/${ym}/${tail}">${esc(monthName(ym, 'short'))}</a>` : esc(monthName(ym, 'short')));
+    const group = (/** @type {string} */ title, /** @type {any[]} */ a, /** @type {(x: any) => string} */ li) => (a.length ? `<section class="rv-find-g" aria-label="${esc(title)}"><h3 class="rv-find-h">${esc(title)}</h3><ul class="rv-find-list">${a.slice(0, MAX).map(li).join('')}</ul>${a.length > MAX ? `<p class="meta">And ${a.length - MAX} older. Export has every line.</p>` : ''}</section>` : '');
+    const cHtml = group('Costs', costs, (x) => `<li><span class="rv-find-m">${link(x.ym, 'costs')}</span><span class="rv-find-n"><span>${marked(x.label, q)}</span><span class="rv-find-k">${esc(catName(x.category))}${x.repeats ? ', repeats monthly' : ''}</span></span><span class="rv-find-a">${esc(money(x.amount))}</span></li>`);
+    const iHtml = group('Income', inc, (x) => `<li><span class="rv-find-m">${link(x.ym, 'income')}</span><span class="rv-find-n"><span>${marked(nameOf(x), q)}</span><span class="rv-find-k">${x.kind === 'client' ? 'Client' : 'Other income'}${x.received ? '' : ', still to come'}</span></span><span class="rv-find-a">${esc(money(x.amount))}</span></li>`);
+    const shown = inp.value.trim();
+    sum.textContent = costs.length || inc.length ? `"${shown}": ${[costs.length ? words(costs, 'cost') : '', inc.length ? words(inc, 'income') : ''].filter(Boolean).join('; ')}.` : `Nothing matches "${shown}".`;
+    r.innerHTML = cHtml + iHtml;
+  }
+
+  /** Add a cost: the month (this one and the 12 before), the kind, what it was for, the amount, and whether it repeats. */
+  /** @param {HTMLElement|null} [opener] */
+  function openQuickAdd(opener) {
+    const body = document.getElementById('rv-qa-body');
+    if (!body) return;
+    const now = currentMonth();
+    const months = Array.from({ length: 13 }, (_, i) => shift(now, -i));
+    if (!months.includes(state.ym)) months.push(state.ym);
+    const inForm = state.view === 'costs' && !!state.form;
+    body.innerHTML = `<div class="rv-qa-grid">
+        <div class="field"><label for="rv-qa-m">Month</label><select id="rv-qa-m" name="month">${months.map((m) => `<option value="${m}"${m === state.ym ? ' selected' : ''}>${esc(monthName(m))}</option>`).join('')}</select></div>
+        <div class="field"><label for="rv-qa-k">Kind</label><select id="rv-qa-k" name="category">${CATS.map(([k, label]) => `<option value="${k}">${esc(label)}</option>`).join('')}</select></div>
+        <div class="field rv-qa-wide"><label for="rv-qa-l">What it was for</label><input id="rv-qa-l" name="label" type="text" maxlength="60" autocomplete="off" placeholder="For example: Canva"></div>
+        <div class="field"><label for="rv-qa-a">Amount</label><span class="rv-money"><span class="rv-cur" aria-hidden="true">$</span><input id="rv-qa-a" name="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0"></span></div>
+        <label class="switch-row rv-rep rv-qa-rep"><input type="checkbox" role="switch" name="repeats"><span>Repeats monthly</span></label>
+      </div>
+      ${inForm ? `<p class="notice">It goes into the costs list below for you to check. Press Save costs to keep it.</p>` : ''}
+      <p class="field-error" id="rv-qa-e" role="alert" hidden></p>`;
+    openDlg('rv-qa', '#rv-qa-l', opener);
+  }
+  /** @param {HTMLFormElement} f */
+  async function submitQuickAdd(f) {
+    const c = C();
+    const q = (/** @type {string} */ n) => /** @type {any} */ (f.elements.namedItem(n));
+    const ym = String(q('month').value);
+    const category = String(q('category').value);
+    const label = String(q('label').value).trim();
+    const a = parse(String(q('amount').value));
+    const repeats = !!q('repeats').checked;
+    const err = /** @type {HTMLElement} */ (document.getElementById('rv-qa-e'));
+    const bad = (/** @type {HTMLElement} */ el, /** @type {string} */ text) => { err.textContent = text; err.hidden = false; el.setAttribute('aria-invalid', 'true'); el.focus(); };
+    if (!label) { bad(q('label'), 'Say what it was for, like Canva.'); return; }
+    if (a.why) { bad(q('amount'), a.why === 'neg' ? 'An amount cannot be negative.' : a.why === 'big' ? `That is more than the limit of ${money(MAX_MINOR)}.` : 'Use dollars and cents, like 15 or 15.99.'); return; }
+    if (a.minor === null) { bad(q('amount'), 'Enter the amount.'); return; }
+    const dlg = /** @type {HTMLDialogElement} */ (document.getElementById('rv-qa'));
+    // On the Costs list of the same month, the line joins the list (unsaved) so it can be checked with the rest.
+    if (state.view === 'costs' && state.form && ym === state.ym) {
+      const f2 = state.form;
+      const lines = readLines(f2).filter((l) => l.label.trim() || l.amount.trim());
+      if (lines.length >= MAX_LINES) { bad(q('label'), `That is as many lines as one month holds (${MAX_LINES}).`); return; }
+      lines.push({ category, label, amount: field(a.minor), repeats });
+      const ul = f2.querySelector('#rv-lines');
+      if (ul) ul.innerHTML = costHtml(/** @type {any} */ (lines));
+      f2.dispatchEvent(new Event('input', { bubbles: true }));
+      closeDlg(dlg);
+      const last = /** @type {HTMLElement|null} */ (f2.querySelector('#rv-lines > .rv-line:last-child [name=amount]'));
+      if (last) last.focus();
+      c.toast(`${label} is in the list. Press Save costs to keep it.`);
+      return;
+    }
+    const btn = /** @type {HTMLButtonElement} */ (f.querySelector('button[type=submit]'));
+    const done = c.busy(btn, 'Adding');
+    try {
+      const cl = await c.db();
+      const r = await cl.rpc('business_add_cost', { p_month: `${ym}-01`, p_line: { category, label, amount_minor: a.minor, repeats } });
+      if (r.error) throw r.error;
+      dropAll();
+      state.cache[ym] = norm(r.data || {}, ym);
+      state.at = Date.now();
+      done();
+      closeDlg(dlg);
+      c.toast(`Added ${label}, ${money(a.minor)}, to ${monthName(ym)} costs.`);
+      await refreshScreen('rv-qa-btn');
+    } catch (x) {
+      if (btn.isConnected) done();
+      err.textContent = `Not added. ${say(x)}`;
+      err.hidden = false;
+    }
+  }
+
+  /** Goals and tax: an income goal and a profit goal for every month, and the tax set-aside percent. */
+  /** @param {HTMLElement|null} [opener] */
+  function openGoals(opener) {
+    const body = document.getElementById('rv-goals-body');
+    if (!body) return;
+    const d = state.cache[state.ym];
+    const st = d && d.settings ? d.settings : { incGoal: null, profGoal: null, tax: null };
+    const money1 = (/** @type {string} */ id, /** @type {string} */ name, /** @type {string} */ label, /** @type {string} */ hint, /** @type {number|null} */ v) => `<div class="field"><label for="${id}">${label}</label><span class="rv-money"><span class="rv-cur" aria-hidden="true">$</span><input id="${id}" name="${name}" type="text" inputmode="decimal" autocomplete="off" placeholder="No goal" value="${esc(field(v))}" aria-describedby="${id}-h"></span><p class="hint" id="${id}-h">${hint}</p></div>`;
+    body.innerHTML = `<div class="rv-qa-grid">
+        ${money1('rv-g-inc', 'inc', 'Income goal a month', 'Shows as a bar on the Income card.', st.incGoal)}
+        ${money1('rv-g-prof', 'prof', 'Profit goal a month', 'Shows as a bar on the Profit card.', st.profGoal)}
+        <div class="field rv-qa-wide"><label for="rv-g-tax">Put aside for tax</label><span class="rv-pct"><input id="rv-g-tax" name="tax" type="text" inputmode="decimal" autocomplete="off" placeholder="None" value="${st.tax ? esc(String(st.tax)) : ''}" aria-describedby="rv-g-tax-h"><span class="rv-pct-u" aria-hidden="true">% of profit</span></span><p class="hint" id="rv-g-tax-h">For example 25. The Profit card then says how much to put aside, for the month and the year so far. Ask your accountant for the right number.</p></div>
+      </div><p class="field-error" id="rv-g-e" role="alert" hidden></p>`;
+    openDlg('rv-goals', '#rv-g-inc', opener);
+  }
+  /** @param {HTMLFormElement} f */
+  async function submitGoals(f) {
+    const c = C();
+    const q = (/** @type {string} */ n) => /** @type {HTMLInputElement} */ (f.elements.namedItem(n));
+    const err = /** @type {HTMLElement} */ (document.getElementById('rv-g-e'));
+    const bad = (/** @type {HTMLElement} */ el, /** @type {string} */ text) => { err.textContent = text; err.hidden = false; el.setAttribute('aria-invalid', 'true'); el.focus(); };
+    /** @type {(number|null)[]} */ const goals = [];
+    for (const [n, what] of [['inc', 'The income goal'], ['prof', 'The profit goal']]) {
+      const a = parse(q(n).value);
+      if (a.why) { bad(q(n), `${what}: ${a.why === 'neg' ? 'it cannot be negative.' : a.why === 'big' ? 'that is over the limit.' : 'use dollars, like 8000.'}`); return; }
+      if (a.minor === 0) { bad(q(n), `${what} must be more than $0. Leave it empty for no goal.`); return; }
+      goals.push(a.minor);
+    }
+    const tt = q('tax').value.trim().replace(/%$/, '').trim();
+    let tax = null;
+    if (tt) {
+      const v = Number(tt);
+      if (!/^\d{1,2}(\.\d)?$/.test(tt) || !(v > 0) || v > 60) { bad(q('tax'), 'Use a percent over 0 and up to 60, like 25 or 27.5. Leave it empty for none.'); return; }
+      tax = v;
+    }
+    const btn = /** @type {HTMLButtonElement} */ (f.querySelector('button[type=submit]'));
+    const done = c.busy(btn, 'Saving');
+    try {
+      const cl = await c.db();
+      const r = await cl.rpc('business_save_settings', { p_income_goal: goals[0], p_profit_goal: goals[1], p_tax_pct: tax });
+      if (r.error) throw r.error;
+      dropAll();
+      done();
+      closeDlg(/** @type {HTMLDialogElement|null} */ (document.getElementById('rv-goals')));
+      c.toast('Goals and tax saved.');
+      await refreshScreen('rv-goals-btn');
+    } catch (x) {
+      if (btn.isConnected) done();
+      err.textContent = `Not saved. ${say(x)}`;
+      err.hidden = false;
+    }
+  }
+
   /* ---- the page ------------------------------------------------------------------------------------------------- */
 
   /** @param {any} d */
@@ -1455,12 +2196,16 @@
     const box = C().$('#rv-body');
     if (!box) return;
     if (state.form) C().clean(state.form);
-    const part = state.view === 'income' ? incomeForm(d) : state.view === 'costs' ? costsForm(d) : overview(d);
-    box.innerHTML = `${selector(state.ym)}${cards(d)}${views(state.ym)}<div class="rv-part">${part}</div>`;
+    const note = /** @type {HTMLFormElement|null} */ (C().$('#rv-note-f', box));
+    if (note) C().clean(note);
+    const part = state.view === 'income' ? incomeForm(d) : state.view === 'costs' ? costsForm(d) : state.view === 'years' ? `<div id="rv-years" aria-busy="true" aria-label="Loading the years">${C().skeleton(2)}</div>` : overview(d);
+    box.innerHTML = `${selector(state.ym)}${cards(d)}<div class="rv-bar">${views(state.ym)}${tools()}</div><div class="rv-part">${part}</div>`;
     state.form = /** @type {HTMLFormElement|null} */ (C().$('#rv-form', box));
     if (state.form) wireForm(state.form);
+    wireNote();
     watchPlots();
     if (state.view === 'overview') { watchEnter(); void loadPrev(); } else if (state.io) { state.io.disconnect(); state.io = null; }
+    if (state.view === 'years') void paintYears();
   }
   function paintFresh() {
     const box = C().$('#rv-fresh');
@@ -1495,12 +2240,14 @@
     const v = VIEWS.includes(view || '') ? String(view) : 'overview';
     const want = `#/revenue/${ym}${v === 'overview' ? '' : '/' + v}`;
     if ((month || view) && location.hash !== want) history.replaceState(null, '', want);
+    if (ym !== state.ym) { state.noteEdit = false; state.year = ''; }
     state.ym = ym;
     state.view = v;
     state.error = '';
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Revenue</h1><p>Your business only: what you made, what you spent, what you kept. Only you can see this page.</p></div></div>
-      <div id="rv-fresh"></div><div id="rv-body" aria-live="off"><div id="rv-wait">${c.skeleton(3)}</div></div>`;
+      <div id="rv-fresh"></div><div id="rv-body" aria-live="off"><div id="rv-wait">${c.skeleton(3)}</div></div><div id="rv-dlgs">${dialogs()}</div>`;
     paintFresh();
+    wireDialogs();
     main.onclick = onClick;
     const body = c.$('#rv-body');
     if (body) {
@@ -1525,13 +2272,31 @@
   /** @param {MouseEvent} e */
   function onClick(e) {
     const t = /** @type {HTMLElement} */ (e.target);
-    if (t.closest('[data-rv-retry]')) { e.preventDefault(); state.owner = { id: '', v: null, p: null }; state.cache = {}; state.prev = noPrev(); void page(state.ym, state.view); return; }
-    if (t.closest('a')) return;
+    if (t.closest('[data-rv-retry]')) { e.preventDefault(); state.owner = { id: '', v: null, p: null }; dropAll(); void page(state.ym, state.view); return; }
+    if (t.closest('a')) { const inDlg = /** @type {HTMLDialogElement|null} */ (t.closest('dialog.rv-dlg')); if (inDlg && inDlg.open) inDlg.close(); return; }
+    // Revenue plus (2026-10-15): the toolbar, its dialogs, the note, Still to come and the Years view
+    const opener = /** @type {HTMLElement|null} */ (t.closest('[data-rv-qa], [data-rv-find], [data-rv-exp], [data-rv-goals]'));
+    if (opener && opener.hasAttribute('data-rv-qa')) { openQuickAdd(opener); return; }
+    if (opener && opener.hasAttribute('data-rv-find')) { void openFind(opener); return; }
+    if (opener && opener.hasAttribute('data-rv-exp')) { openDlg('rv-exp', '', opener); return; }
+    if (opener && opener.hasAttribute('data-rv-goals')) { openGoals(opener); return; }
+    if (t.closest('[data-rv-dlg-close]')) { closeDlg(/** @type {HTMLDialogElement|null} */ (t.closest('dialog'))); return; }
+    if (t instanceof HTMLDialogElement && t.classList.contains('rv-dlg')) { closeDlg(t); return; }   // a click on the backdrop
+    const go = /** @type {HTMLButtonElement|null} */ (t.closest('[data-rv-exp-go]'));
+    if (go) { void doExport(String(go.dataset.rvExpGo), String(go.dataset.year || ''), go); return; }
+    if (t.closest('[data-rv-note]')) { state.noteEdit = true; paintExtras(); const ta = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('rv-note-ta')); if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } return; }
+    if (t.closest('[data-rv-note-cancel]')) { const nf = /** @type {HTMLFormElement|null} */ (document.getElementById('rv-note-f')); if (nf) C().clean(nf); state.noteEdit = false; paintExtras(); const b = document.getElementById('rv-note-btn'); if (b) b.focus(); return; }
+    const recvBtn = /** @type {HTMLButtonElement|null} */ (t.closest('[data-rv-recv]'));
+    if (recvBtn) { void markReceived(String(recvBtn.dataset.rvRecv), true, recvBtn); return; }
+    const yb = /** @type {HTMLElement|null} */ (t.closest('[data-rv-year]'));
+    if (yb) { state.year = String(yb.dataset.rvYear); void paintYears(`[data-rv-year="${CSS.escape(state.year)}"]`); return; }
+    if (t.closest('[data-rv-years-retry]')) { void paintYears(); return; }
     // the dashboard: Customize, its panel, and Hide on a card
     if (t.closest('[data-rv-cust]')) { openCust(); return; }
     if (t.closest('[data-rv-cust-close]')) { closeCust(); return; }
     const dlg = /** @type {HTMLDialogElement|null} */ (document.getElementById('rv-cust'));
     if (dlg && t === dlg) { closeCust(); return; }   // a click on the backdrop
+    if (t.closest('dialog.rv-dlg')) return;   // anything else inside a Revenue plus dialog is handled by its own form
     if (t.closest('[data-rv-cust-all]')) { choice.hidden = []; saveChoice(); paintCust(); paintGrid(); const b = /** @type {HTMLElement|null} */ (document.querySelector('[data-rv-cust-all]')); if (b) b.focus(); return; }
     if (t.closest('[data-rv-cust-reset]')) { choice = cleanChoice(null); saveChoice(); paintCust(); paintGrid(); const b = /** @type {HTMLElement|null} */ (document.querySelector('[data-rv-cust-reset]')); if (b) b.focus(); return; }
     const up = t.closest('[data-rv-cust-up]');
@@ -1570,5 +2335,5 @@
     if (t && t.matches && t.matches('[data-rv-cust-on]')) setShown(String(t.getAttribute('data-rv-cust-on')), t.checked);
   }
 
-  EXT.revenue = { page, sideItem, visible, parse, field, change, margin, ticks, CHARTS, get choice() { return choice; } };
+  EXT.revenue = { page, sideItem, visible, parse, field, change, margin, ticks, CHARTS, csvOf, insights, forecast, taxOf, normLines, get choice() { return choice; } };
 })();

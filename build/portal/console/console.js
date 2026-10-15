@@ -393,7 +393,7 @@
     // The functions that only read (round 3): an exact list, never a prefix, so a new function that writes is refused in the
     // demo and tells the Client view until it is added here on purpose. Everything not listed counts as a write.
     const READS = new Set(['console_me', 'client_work_cards', 'client_results_current', 'plan_menu', 'get_notify_team_email',
-      'list_billing_invoices', 'list_dashboard_items', 'list_home_sections', 'list_plan_caps', 'list_plans']);
+      'list_billing_invoices', 'list_dashboard_items', 'list_home_sections', 'list_plan_caps', 'list_plans', 'bot_output_stats']);
     client.rpc = (/** @type {string} */ name, /** @type {any} */ args, /** @type {any} */ opts) => {
       if (DEMO_SITE && !READS.has(String(name))) return demoRefused();
       const r = orpc(name, args, opts);

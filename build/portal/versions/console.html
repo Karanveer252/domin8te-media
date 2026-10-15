@@ -2431,6 +2431,9 @@ table.pl-grid { width: 100%; table-layout: fixed; border-collapse: collapse; fon
 @media (max-width: 760px) {
   .set-index { flex-wrap: nowrap; margin-inline: -16px; padding: 2px 16px 6px; overflow-x: auto; scrollbar-width: none; }
   .set-index button { flex: none; }
+  /* The row fades out at its right edge so a cut pill reads as "more this way", the same mask as the client tabs and the board rows;
+     the extra right padding lets the last pill scroll clear of the fade (R4-2, 15 Oct). */
+  .set-index { padding-right: 56px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 72px), transparent calc(100% - 6px)); mask-image: linear-gradient(to right, #000 calc(100% - 72px), transparent calc(100% - 6px)); }
   .pl-cards { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-bottom: 22px; }
   .pl-card { padding: 14px 16px; }
   .pl-amt { font-size: 24px; }
@@ -3030,7 +3033,8 @@ html[data-theme="dark"] { --rv-once: rgba(222, 106, 42, 0.42); --kc-software: #C
 .rv-tip { position: absolute; top: -6px; z-index: 2; display: grid; gap: 3px; min-width: 150px; padding: 9px 12px; border: 0.67px solid var(--glass-edge); border-radius: 12px; background: var(--glass-strong); box-shadow: var(--glass-shadow-sm); color: var(--ink); font-size: 12.5px; pointer-events: none; font-variant-numeric: proportional-nums; }
 .rv-tip span { display: flex; align-items: center; gap: 7px; color: var(--ink-2); }
 .rv-table summary { width: max-content; cursor: pointer; color: var(--ink-2); font-size: 13px; font-weight: 650; }
-.rv-table .table-wrap { margin-top: 10px; }
+.rv-table { min-width: 0; max-width: 100%; }
+.rv-table .table-wrap { margin-top: 10px; max-width: 100%; overflow-x: auto; } /* an open table scrolls inside its card, never the page (14 Oct) */
 .rv-table td.n, .rv-table th.n { text-align: right; white-space: nowrap; font-variant-numeric: proportional-nums; }
 .rv-table .none { color: var(--ink-3); }
 
@@ -3372,6 +3376,13 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
   .rv-hide { position: relative; }
   .rv-hide::after { content: ""; position: absolute; inset: -11px -4px; }
   .nc-check { min-height: 44px; }
+  /* Round 4 (15 Oct): Revenue. The month links in a chart's table head (th, not td) and in the best and worst months list get the same padded hit area as the links in its
+     cells (inline padding, so the rows stay as tall as they are); the Costs kind select reaches 44px like every other select on a phone
+     (62-revenue.css sets 38px with a stronger selector); the "Repeats monthly" row is a 44px tall label, the 28px switch inside it
+     unchanged. The About line's contact link (client header) is the one link the p > a rule above does not reach. */
+  main th a:not(.btn):not(.chip), .rv-bw-m a, .about-line a { padding-top: 14px; padding-bottom: 14px; }
+  .rv-line select, .rv-line input[type="text"] { min-height: 44px; }
+  .rv-rep { min-height: 44px; }
 }
 </style>
 </head>

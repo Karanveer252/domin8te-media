@@ -118,7 +118,8 @@ html[data-theme="dark"] { --rv-once: rgba(222, 106, 42, 0.42); --kc-software: #C
 .rv-tip { position: absolute; top: -6px; z-index: 2; display: grid; gap: 3px; min-width: 150px; padding: 9px 12px; border: 0.67px solid var(--glass-edge); border-radius: 12px; background: var(--glass-strong); box-shadow: var(--glass-shadow-sm); color: var(--ink); font-size: 12.5px; pointer-events: none; font-variant-numeric: proportional-nums; }
 .rv-tip span { display: flex; align-items: center; gap: 7px; color: var(--ink-2); }
 .rv-table summary { width: max-content; cursor: pointer; color: var(--ink-2); font-size: 13px; font-weight: 650; }
-.rv-table .table-wrap { margin-top: 10px; }
+.rv-table { min-width: 0; max-width: 100%; }
+.rv-table .table-wrap { margin-top: 10px; max-width: 100%; overflow-x: auto; } /* an open table scrolls inside its card, never the page (14 Oct) */
 .rv-table td.n, .rv-table th.n { text-align: right; white-space: nowrap; font-variant-numeric: proportional-nums; }
 .rv-table .none { color: var(--ink-3); }
 
@@ -405,3 +406,129 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="revenue"] :is(main
   .rv-mix { grid-template-columns: minmax(0, 1fr); justify-items: center; }
   .rv-mix-legend { width: 100%; }
 }
+
+/* Revenue plus (2026-10-15). The sections and the toolbar share one row; the toolbar's quiet pill buttons open dialogs drawn like
+   Customize. Goals are a thin bar under a card's figure (green for income, ink for profit), with the words beside it. The note and
+   Still to come are glass panels above the charts. Years are two tables. Nothing new is coloured except through the income, cost and
+   ink tokens above. */
+.rv-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 0 0 16px; }
+.rv-bar .rv-views { margin: 0; }
+.rv-tools { display: flex; flex-wrap: wrap; gap: 8px; }
+.rv-tools .btn .ic { margin-right: 6px; }
+.rv-card-x { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 2px; color: var(--ink-2); font-size: 13.5px; font-weight: 600; line-height: 1.45; font-variant-numeric: proportional-nums; }
+.rv-card-x .chip { font-size: 12px; }
+.rv-goal { display: grid; gap: 5px; margin-top: 6px; }
+.rv-goal-bar { display: block; height: 6px; overflow: hidden; border-radius: 999px; background: var(--rv-track); }
+.rv-goal-bar i { display: block; height: 100%; border-radius: 999px; background: var(--rv-inc); }
+.rv-goal-bar i.rv-f-prof { background: var(--rv-prof); }
+.rv-goal-t { color: var(--ink-3); font-size: 13px; line-height: 1.4; font-variant-numeric: proportional-nums; }
+.rv-goal.is-met .rv-goal-t { color: var(--ink-2); font-weight: 650; }
+
+.rv-panel { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 18px 22px 20px; border: 0.67px solid var(--glass-edge); border-radius: var(--r-item); background-color: var(--glass-soft); background-image: var(--glass-hi); box-shadow: var(--glass-shadow-sm); }
+.rv-extras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0 0 16px; }
+.rv-extras.is-one { grid-template-columns: minmax(0, 1fr); }
+.rv-note-t { color: var(--ink); font-size: 14.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rv-note-f { display: grid; gap: 10px; }
+.rv-note-f textarea { width: 100%; min-height: 84px; resize: vertical; }
+.rv-note-f .actions { margin-top: 0; }
+.rv-due-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.rv-due-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px 14px; padding: 8px 0; }
+.rv-due-list li + li { border-top: 1px solid var(--line); }
+
+/* Income: the Received switch beside each amount. */
+.rv-inc-amt { grid-template-columns: 150px auto 8.5em; }
+.rv-other { grid-template-columns: minmax(0, 1fr) 150px auto 38px; }
+
+/* What changed, and Next 3 months. */
+.rv-ins { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.rv-ins li { position: relative; padding-left: 18px; color: var(--ink); font-size: 14.5px; line-height: 1.5; }
+.rv-ins li::before { content: ""; position: absolute; left: 2px; top: 0.62em; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.rv-fc-total { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; color: var(--ink-2); font-size: 14px; }
+.rv-fc-total strong { color: var(--ink); font-variant-numeric: proportional-nums; }
+.rv-fc { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* Years. */
+.rv-years { display: grid; gap: 16px; }
+.rv-ytable { min-width: 560px; }
+.rv-ytable td.n, .rv-ytable th.n { text-align: right; white-space: nowrap; font-variant-numeric: proportional-nums; }
+.rv-ytable .none { color: var(--ink-3); }
+.rv-ytable tfoot th, .rv-ytable tfoot td { border-top: 1px solid var(--line-2); font-weight: 700; }
+.rv-ytable a { color: var(--ink); }
+.rv-year-pick { margin: -2px 0 2px; }
+.rv-year-notes { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.rv-year-notes li { display: grid; grid-template-columns: 9em minmax(0, 1fr); gap: 4px 12px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.rv-year-notes li:last-child { border-bottom: 0; }
+
+/* A note in an open Previous month. */
+.rv-pm-note { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--rv-track); }
+.rv-pm-note-k { color: var(--ink-3); font-size: 12.5px; font-weight: 650; line-height: 1.9; }
+
+/* The dialogs (drawn like Customize). */
+.rv-dlg-body { display: grid; align-content: start; gap: 14px; min-height: 0; padding: 16px 22px; overflow: auto; }
+.rv-qa-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+.rv-qa-wide { grid-column: 1 / -1; }
+.rv-qa-grid select, .rv-qa-grid input[type="text"] { width: 100%; min-height: 40px; }
+.rv-qa-rep { grid-column: 1 / -1; align-items: center; gap: 12px; font-size: 14px; color: var(--ink); }
+.rv-pct { position: relative; display: flex; align-items: center; gap: 10px; }
+.rv-qa-grid .rv-pct input[type="text"] { width: 7em; text-align: right; font-variant-numeric: proportional-nums; }
+.rv-pct-u { color: var(--ink-2); font-size: 14px; }
+.rv-exp-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.rv-exp-opt { display: grid; gap: 2px; width: 100%; min-height: 52px; padding: 11px 14px; border: 1px solid var(--line-2); border-radius: 12px; background: rgba(255, 255, 255, 0.5); color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: background-color 160ms var(--ease), border-color 160ms var(--ease); }
+.rv-exp-opt:hover { background-color: rgba(255, 255, 255, 0.9); border-color: rgba(94, 72, 50, 0.3); }
+.rv-exp-opt:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.rv-exp-opt[disabled] { cursor: default; opacity: 0.7; }
+.rv-exp-opt .pick-d { font-size: 13px; }
+.rv-find-sum { min-height: 1.4em; color: var(--ink-2); font-size: 13.5px; font-weight: 600; }
+.rv-find-g { display: grid; gap: 6px; }
+.rv-find-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 4px 0 0; font-size: 14.5px; font-weight: 700; }
+.rv-find-h span { color: var(--ink-3); font-size: 12.5px; font-weight: 600; }
+.rv-find-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.rv-find-list li { display: grid; grid-template-columns: 6.2em minmax(0, 1fr) auto; align-items: baseline; gap: 4px 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.rv-find-list li:last-child { border-bottom: 0; }
+.rv-find-m { color: var(--ink-2); font-weight: 650; white-space: nowrap; }
+.rv-find-m a { color: var(--ink); }
+.rv-find-n { display: grid; min-width: 0; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+.rv-find-k { color: var(--ink-3); font-size: 12.5px; font-weight: 500; }
+.rv-find-a { font-weight: 650; white-space: nowrap; font-variant-numeric: proportional-nums; }
+.rv-find-n mark { padding: 0 1px; border-radius: 3px; background: rgba(39, 122, 82, 0.16); color: inherit; }
+html[data-theme="dark"] .rv-find-n mark { background: rgba(92, 196, 142, 0.24); }
+html[data-theme="dark"] .rv-exp-opt { background: rgba(255, 255, 255, 0.04); }
+html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
+
+@media (max-width: 1000px) {
+  .rv-extras { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .rv-bar { align-items: stretch; }
+  .rv-tools { width: 100%; }
+  .rv-tools .btn { flex: 1 1 calc(50% - 8px); justify-content: center; }
+  .rv-inc-amt { grid-template-columns: minmax(0, 1fr) auto; }
+  .rv-inc-amt .rv-use { grid-column: 1 / -1; justify-self: start; }
+  .rv-inc-amt .rv-use-gap { display: none; }
+  .rv-other { grid-template-columns: minmax(0, 1fr) 38px; }
+  .rv-other .rv-money { grid-column: 1 / -1; grid-row: 2; }
+  .rv-other .rv-recv { grid-column: 1 / -1; grid-row: 3; }
+  .rv-other .rv-del { grid-column: 2; grid-row: 1; }
+  .rv-fc { grid-template-columns: minmax(0, 1fr); }
+  .rv-due-list li { grid-template-columns: minmax(0, 1fr) auto; }
+  .rv-due-list li .btn { grid-column: 1 / -1; justify-self: start; }
+  .rv-qa-grid { grid-template-columns: minmax(0, 1fr); }
+  .rv-dlg-body { padding: 14px 16px; }
+  .rv-find-list li { grid-template-columns: minmax(0, 1fr) auto; }
+  .rv-find-m { grid-column: 1 / -1; }
+  .rv-year-notes li { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .rv-exp-opt { min-height: 56px; }
+  .rv-qa-grid select, .rv-qa-grid input[type="text"], .rv-qa-grid .rv-pct input[type="text"] { min-height: 44px; }
+  .rv-qa-rep, .rv-recv { min-height: 44px; }
+  .rv-find-m a, .rv-year-notes a { display: inline-block; padding-top: 12px; padding-bottom: 12px; margin-top: -12px; margin-bottom: -12px; }
+}
+/* Years: a wide table scrolls inside its card, never the page (390px). */
+.rv-years, .rv-years .rv-panel { min-width: 0; }
+.rv-years .table-wrap { min-width: 0; max-width: 100%; overflow-x: auto; }
+.rv-years, .rv-panel { grid-template-columns: minmax(0, 1fr); }
+.rv-ytable thead th { position: static; }
+/* the hidden words inside a cell (.sr-only, positioned) stay inside the scrolling box, so they never widen the page */
+.rv-years .table-wrap, .rv-table .table-wrap { position: relative; }
+.rv-years .table-wrap:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

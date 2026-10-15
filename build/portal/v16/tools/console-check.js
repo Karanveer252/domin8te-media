@@ -33,9 +33,11 @@ const T = 'tnt_preview_bayleaf';
 // Revenue (2026-10-14): this month on Karan's clock (Winnipeg) and the month before it, as the page works them out.
 const MONTH_NOW = (() => { const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Winnipeg', year: 'numeric', month: '2-digit' }).formatToParts(new Date()); return `${p.find((x) => x.type === 'year').value}-${p.find((x) => x.type === 'month').value}`; })();
 const MONTH_LAST = (() => { const [y, m] = MONTH_NOW.split('-').map(Number); const t = y * 12 + (m - 1) - 1; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}`; })();
-const ROUTES = ['queue', 'messages', 'clients', 'board', 'billing', `billing/${T}`, 'revenue', `revenue/${MONTH_LAST}`, `revenue/${MONTH_NOW}/income`, `revenue/${MONTH_NOW}/costs`, 'new', 'settings',
+const ROUTES = ['queue', 'messages', 'clients', 'board', 'billing', `billing/${T}`, 'revenue', `revenue/${MONTH_LAST}`, `revenue/${MONTH_NOW}/income`, `revenue/${MONTH_NOW}/costs`, `revenue/${MONTH_NOW}/years`, 'new', 'settings',
   `client/${T}/overview`, `client/${T}/work`, `client/${T}/work/cards`, `client/${T}/results`, `client/${T}/talk`, `client/${T}/home`, `client/${T}/visible`, `client/${T}/view`, `client/${T}/setup`, `client/${T}/advanced`,
-  'client/tnt_preview_marlow/overview', 'client/tnt_preview_corner/visible'].filter((r) => !ONLY || r.includes(ONLY));
+  'client/tnt_preview_marlow/overview', 'client/tnt_preview_corner/visible',
+  // Bot chat (2026-10-15): the list, a card, a card with a saved edit, an approved card with its history, the numbers, and a client's Bot tab and card.
+  'bot', 'bot/bo_1', 'bot/bo_3', 'bot/bo_5', 'bot/stats', `client/${T}/bot`, `client/${T}/bot/bo_8`].filter((r) => !ONLY || r.includes(ONLY));
 
 const collect = `<script>(function () {
   var errs = window.__errs = [];
@@ -116,12 +118,15 @@ async function demoProbe() {
   }
   const words = /^(Save|Approve|Decline|Reject|Send|Respond|Remove|Hide|Show again|Show it|Show to client|Mark|Publish|Lock|Unlock|Confirm|Add|Give|Create|Link|Count|Void|Post|Record|Fix|Use|Edit, then|With my edits|Ask for an OK|Keep)/;
   const bot = (S.db.bot_outputs || []).find((/** @type {any} */ x) => x.status === 'pending');
-  const places = [`messages/${T}`, `client/${T}/talk`, 'settings', 'queue', `client/${T}/work/cards`, `client/${T}/setup`, 'billing', `billing/${T}`, bot ? `bot/${bot.id}` : 'bot'];
+  const places = [`messages/${T}`, `client/${T}/talk`, 'settings', 'queue', `client/${T}/work/cards`, `client/${T}/setup`, 'billing', `billing/${T}`, bot ? `bot/${bot.id}` : 'bot', 'bot'];
   for (const place of places) {
     location.hash = '#/' + place;
     await wait(1600);
     out.locked[place] = document.querySelectorAll(`[title="${NOTE}"]`).length;
     let used = 0;
+    // Bot chat (2026-10-15): pick every draft first, so Approve many and Reject many are on screen to be tried; and every star, snooze and saved-reason control.
+    if (place === 'bot') { const pa = /** @type {HTMLElement|null} */ (document.querySelector('[data-bot-pickall]')); if (pa) { pa.click(); await wait(400); } }
+    for (const b of Array.from(document.querySelectorAll('#main [data-bot-star], #main [data-bot="star"], #main [data-bot-snooze], #main [data-bot-unsave]'))) { /** @type {HTMLButtonElement} */ (b).disabled = false; /** @type {HTMLButtonElement} */ (b).click(); used++; await wait(300); const dlg = document.querySelector('dialog[open]'); if (dlg) { const ok = /** @type {HTMLElement|null} */ (dlg.querySelector('button[value=ok]')); if (ok) ok.click(); await wait(300); } }
     if (/work\/cards$/.test(place)) { const card = /** @type {HTMLElement|null} */ (document.querySelector('#main .card[data-task]')); if (card) { card.click(); await wait(800); } }
     const file = /** @type {HTMLInputElement|null} */ (document.querySelector('input[data-cc-logo-file]'));
     if (file && /setup$/.test(place)) {

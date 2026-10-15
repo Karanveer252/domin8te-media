@@ -49,3 +49,6 @@ html[data-theme="dark"] .cusage.is-over .cbar > i { background: #FF7A6E; }
 details :is(.hx-list) > li:first-child::before { border-color: var(--line-2); background: var(--surface); box-shadow: none; }
 details > .hx-list { margin-top: var(--tl-gap); }
 html[data-theme="dark"] :is(.hx-list, .vz-hist, .bd-hist-list) > li::before { background: var(--surface-2); }
+
+/* A field marked wrong also shows it: a red edge, not only the words under it (15 Oct, R5-3). */
+:is(input, textarea, select)[aria-invalid="true"] { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }

@@ -262,6 +262,19 @@ test("the console's write guard (round 3): an exact list of read functions, neve
   }
 });
 
+test('Bot chat (2026-10-15): its one read function is on the exact read list, and every Bot chat function that writes is not', () => {
+  const src = fs.readFileSync(path.join(SRC, '..', '..', 'console', 'console.js'), 'utf8');
+  const names = [...src.match(/const READS = new Set\(\[([^\]]*)\]\)/)[1].matchAll(/'([a-z0-9_]+)'/g)].map((x) => x[1]);
+  assert.ok(names.includes('bot_output_stats'), 'the numbers page reads in the demo too');
+  for (const w of ['bot_output_decide', 'bot_output_decide_many', 'bot_output_save_edit', 'bot_output_star', 'bot_output_snooze', 'bot_output_move', 'bot_template_add', 'bot_template_remove']) {
+    assert.ok(!names.includes(w), `${w} writes, so the demo refuses it`);
+  }
+  const mod = fs.readFileSync(path.join(SRC, '..', '..', 'console', 'mod-bot.js'), 'utf8');
+  const called = [...mod.matchAll(/call\('([a-z0-9_]+)'/g)].map((x) => x[1]);
+  for (const n of called) assert.ok(n === 'bot_output_stats' || !names.includes(n), `${n}: only the numbers are a read`);
+  assert.ok(called.includes('bot_output_stats') && called.includes('bot_output_star'), 'mod-bot.js calls them through one helper');
+});
+
 test('the note names the client once known; before that it says "this client"', async () => {
   const f = frame();
   assert.equal(f.D8.data.DEMO_NOTE, 'Viewing as this client: read only. Nothing here changes their account.');

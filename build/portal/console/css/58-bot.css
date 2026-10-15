@@ -37,3 +37,121 @@
 .bot-needs .bot-all { margin-left: auto; font-size: 13px; font-weight: 600; }
 /* On the moving sky the link reads in the same light words as the heading it sits in (contrast fix, 2026-10-14). */
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs .bot-all { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+
+/* ==== Bot chat plus (2026-10-15): filters, pick many, stars, snooze, move, saved reasons, edit history, numbers ====
+ * Same tokens, glass pills (.seg), buttons and panels as the rest of the console; the selected pill keeps the solid ink look. */
+
+/* The search box and the bot, type and date choices */
+.bot-toolbar { gap: 8px 10px; margin-bottom: 12px; }
+.bot-toolbar input[type="search"] { flex: 1 1 240px; width: auto; max-width: 360px; }
+.bot-toolbar select { flex: 0 1 170px; width: auto; min-width: 0; max-width: 100%; }
+.bot-starred-only { gap: 6px; }
+.bot-starred-only[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.bot-status { margin-bottom: 10px; }
+.bot-status, .bot-filter { display: flex; flex-wrap: wrap; max-width: 100%; }
+.bot-showing { margin: 0 0 10px; }
+/* The client dropdown stands in for the client pills on a phone only. */
+.bot-client-pick { display: none; }
+
+/* Pick many: the bar above the list */
+.bot-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; padding: 6px 12px; border: 1px solid transparent; border-radius: 12px; }
+.bot-bulk.is-on { border-color: var(--line-2); background: var(--surface); box-shadow: var(--shadow); }
+.bot-pickall { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer; }
+.bot-bulk-btns { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+.bot-bulk + .bot-form { margin: 0 0 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+.bot-pickall input, .bot-pick input, .bot-keep input { width: 18px; height: 18px; margin: 0; accent-color: var(--ink); cursor: pointer; }
+
+/* A row: pick box, the queue row, a star */
+.bot-list > li.bot-li { display: grid; grid-template-columns: 34px minmax(0, 1fr) 40px; align-items: center; gap: 6px; }
+.bot-pick { display: flex; justify-content: center; }
+.bot-pick label { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; }
+.bot-pick label:hover { background: var(--hover); }
+.bot-li.is-picked > .q-row { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.q-row .bot-src { color: var(--ink-3); }
+.bot-star { color: var(--ink-3); }
+.bot-star:hover { color: var(--ink); }
+.bot-star-ic.is-on { fill: #E0A21A; stroke: #A86F00; }
+.bot-star[aria-pressed="true"] { color: #A86F00; }
+
+/* The card: Previous and Next, the star by the status, the tools row and its small menus */
+.bot-card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin-bottom: 8px; }
+.bot-card-top .crumb { margin-bottom: 0; }
+.bot-pager { display: inline-flex; align-items: center; gap: 8px; }
+.bot-pager .meta { min-width: 56px; text-align: center; }
+.bot-head-r { display: inline-flex; align-items: center; gap: 6px; }
+/* A long client name in "Put in reply to ..." wraps instead of widening the card at phone width. */
+.bot-card > * { min-width: 0; }
+.bot-card .actions .btn { max-width: 100%; white-space: normal; text-align: left; }
+.bot-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.bot-tools { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.bot-menu { position: relative; }
+.bot-menu > summary { list-style: none; gap: 6px; cursor: pointer; }
+.bot-menu > summary::-webkit-details-marker { display: none; }
+.bot-menu[open] > summary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.bot-menu-box { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); min-width: 200px; }
+.bot-menu-box .btn { justify-content: flex-start; }
+.bot-move label { color: var(--ink-2); font-size: 13.5px; font-weight: 600; }
+.bot-move select { width: 100%; }
+
+/* Saved reasons and notes */
+.bot-saved { display: grid; gap: 8px; }
+.bot-saved .meta { margin: 0; }
+.bot-saved-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.bot-saved-list li { display: inline-flex; align-items: center; max-width: 100%; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface-2); }
+.bot-use { min-height: 34px; max-width: 100%; padding: 6px 4px 6px 13px; border: 0; background: none; color: var(--ink); font-size: 13.5px; font-weight: 550; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.bot-use:hover { text-decoration: underline; text-underline-offset: 3px; }
+.bot-unsave { flex: none; color: var(--ink-3); }
+.bot-keep { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; color: var(--ink-2); font-size: 13.5px; cursor: pointer; }
+
+/* Edit history: the shared timeline, with the changes marked against the draft from the bot */
+.bot-history > summary { color: var(--ink-2); font-weight: 650; font-size: 13.5px; cursor: pointer; }
+.bot-history[open] > summary { margin-bottom: 10px; }
+.bot-history > .meta { margin: 0 0 12px; }
+.bot-hist > li { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.bot-hist > li p { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-2); }
+.bot-hist > li p strong { color: var(--ink); }
+.bot-diff { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
+.bot-diff ins { background: var(--good-bg); color: var(--good); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+.bot-diff del { background: var(--bad-bg); color: var(--bad); text-decoration: line-through; }
+
+/* The numbers */
+.bot-stats .panel-head { align-items: center; }
+.bot-days { display: flex; flex-wrap: wrap; }
+.bot-stats-table table.grid td, .bot-stats-table table.grid th { white-space: nowrap; }
+.bot-stats-table .bot-total th, .bot-stats-table .bot-total td { font-weight: 700; border-top: 2px solid var(--line-2); }
+.bot-stats .table-wrap + .meta { margin-top: 12px; }
+.bot-keys-btn { font-weight: 700; font-size: 15px; }
+
+/* Dark theme */
+html[data-theme="dark"] .bot-star-ic.is-on { fill: #F0C04A; stroke: #F0C04A; }
+html[data-theme="dark"] .bot-star[aria-pressed="true"] { color: #F0C04A; }
+html[data-theme="dark"] .bot-saved-list li { background: rgba(255, 255, 255, 0.05); }
+html[data-theme="dark"] :is(.bot-bulk.is-on, .bot-menu-box, .bot-bulk + .bot-form) { background: var(--surface-2); }
+
+/* Scenes: the new parts sit on glass like the rest of the page; words straight on the sky turn light */
+html[data-scene="scenes"] :is(.bot-bulk.is-on, .bot-menu-box, .bot-bulk + .bot-form) { background-color: rgba(255, 255, 255, 0.94); -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2); }
+html[data-scene="scenes"][data-theme="dark"] :is(.bot-bulk.is-on, .bot-menu-box, .bot-bulk + .bot-form) { background-color: rgba(18, 20, 28, 0.94); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] :is(main > .page-head, main > .crumb, .bot-showing, .bot-bulk:not(.is-on) .bot-pickall, .bot-card-top .crumb, .bot-card-top .bot-pager .meta) { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+/* The client's Bot tab sits on the light sky of a client's page: the darker inks, as the rest of that page */
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.bot-tab-head .meta, .bot-tab .bot-showing, .bot-tab .bot-bulk:not(.is-on) .bot-pickall, .bot-tab .bot-card-top .bot-pager .meta) { color: var(--ink-2); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] .bot-tab-head .linkish { color: var(--ink); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] :is(main > .page-head p, main > .page-head .meta) { color: rgba(246, 243, 238, 0.9); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] .bot-showing .linkish { color: #FFFFFF; }
+
+/* Phones: every control at least 44px */
+@media (max-width: 600px) {
+  .bot-list > li.bot-li { grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 4px; }
+  .bot-pick label { width: 44px; height: 44px; }
+  .bot-pickall, .bot-keep { min-height: 44px; }
+  .bot-use { min-height: 44px; }
+  .bot-toolbar input[type="search"] { flex-basis: 100%; max-width: none; }
+  .bot-toolbar select { flex: 1 1 130px; }
+  .bot-client-pick { display: contents; }
+  .bot-filter { display: none; }
+  .bot-pager { width: 100%; justify-content: space-between; }
+  .bot-menu, .bot-menu > summary { width: 100%; }
+  .bot-menu-box { position: static; margin-top: 8px; }
+  .bot-tools > .btn { width: 100%; }
+  .bot-bulk-btns { width: 100%; }
+  .bot-bulk-btns .btn { flex: 1 1 auto; }
+}

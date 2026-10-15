@@ -51,4 +51,23 @@
   .rv-hide { position: relative; }
   .rv-hide::after { content: ""; position: absolute; inset: -11px -4px; }
   .nc-check { min-height: 44px; }
+  /* Round 4 (15 Oct): Revenue. The month links in a chart's table head (th, not td) and in the best and worst months list get the same padded hit area as the links in its
+     cells (inline padding, so the rows stay as tall as they are); the Costs kind select reaches 44px like every other select on a phone
+     (62-revenue.css sets 38px with a stronger selector); the "Repeats monthly" row is a 44px tall label, the 28px switch inside it
+     unchanged. The About line's contact link (client header) is the one link the p > a rule above does not reach. */
+  main th a:not(.btn):not(.chip), .rv-bw-m a, .about-line a { padding-top: 14px; padding-bottom: 14px; }
+  .rv-line select, .rv-line input[type="text"] { min-height: 44px; }
+  .rv-rep { min-height: 44px; }
+}
+
+/* Round 5 fixes (15 Oct): Customize move arrows reach 44px; Needs you chips and the Clients segment fade at the edge when they scroll. */
+@media (max-width: 600px) {
+  .rv-cust-mv .icon-btn { width: 44px; height: 44px; }
+  .nx-chips .seg, .cl-chips .seg { padding-right: 56px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 72px), transparent calc(100% - 6px)); mask-image: linear-gradient(to right, #000 calc(100% - 72px), transparent calc(100% - 6px)); }
+}
+/* Settings at 360: a facts list inside a fold stacks, so its chips and notes never squeeze to a sliver. */
+@media (max-width: 420px) {
+  .fold-panel .facts { grid-template-columns: minmax(0, 1fr); gap: 2px 0; }
+  .fold-panel .facts dd { margin-bottom: 8px; }
+  .fold-panel .facts dd .chip { white-space: normal; }
 }

@@ -33,15 +33,20 @@ const runner = `<script>${fs.readFileSync(AXE, 'utf8').replace(/<\/script/gi, '<
   // ?a11yrev=hide (Revenue dashboard, 2026-10-14): some charts hidden before the page draws; ?a11yrev=cust: the Customize panel open before axe looks.
   var rev = (/[?&]a11yrev=([a-z]+)/.exec(location.search) || [])[1] || '';
   try { if (rev === 'hide') localStorage.setItem('d8c.revenue.charts', JSON.stringify({ hidden: ['trend', 'perclient', 'split', 'cumulative', 'runrate'], order: [] })); else localStorage.removeItem('d8c.revenue.charts'); } catch (e) {}
-  var custOpened = rev !== 'cust';
+  // Revenue plus (2026-10-15): ?a11yrev=add|find|export|goals opens that dialog (find also types a name), ?a11yrev=note opens the note editor.
+  var REV_BTN = { cust: 'rv-cust-btn', add: 'rv-qa-btn', find: 'rv-find-btn', export: 'rv-exp-btn', goals: 'rv-goals-btn', note: 'rv-note-btn' };
+  var custOpened = !REV_BTN[rev];
+  var bot = (/[?&]a11ybot=([a-z]+)/.exec(location.search) || [])[1] || '';
+  var botOpened = !bot;
   function go() {
     if (!ready() && tries++ < 80) return setTimeout(go, 100);
     if (!custOpened) {
-      var cb = document.getElementById('rv-cust-btn');
+      var cb = document.getElementById(REV_BTN[rev]);
       if (!cb && tries++ < 80) return setTimeout(go, 100);
       custOpened = true;
       if (cb) cb.click();
-      return setTimeout(go, 400);
+      if (rev === 'find') setTimeout(function () { var q = document.getElementById('rv-find-q'); if (q) { q.value = 'can'; q.dispatchEvent(new Event('input', { bubbles: true })); } }, 300);
+      return setTimeout(go, rev === 'find' ? 1200 : 400);
     }
     if (!opened) {
       var n = Number((/[?&]a11yopen=([0-9]+)/.exec(location.search) || [])[1]);
@@ -52,6 +57,17 @@ const runner = `<script>${fs.readFileSync(AXE, 'utf8').replace(/<\/script/gi, '<
       var more = document.querySelector('[data-rv-more]');
       if (more) more.click();
       return setTimeout(go, 600);
+    }
+    // Bot chat plus (2026-10-15): ?a11ybot=keys|reject|menus|bulk|confirm opens that dialog, field or menu before axe looks.
+    if (!botOpened) {
+      botOpened = true;
+      var bq = function (s) { return document.querySelector(s); };
+      var bclick = function (s) { var el = bq(s); if (el) el.click(); };
+      if (bot === 'keys') bclick('[data-bot-keys]');
+      else if (bot === 'reject') bclick('[data-bot="reject"]');
+      else if (bot === 'menus') document.querySelectorAll('details.bot-menu, details.bot-history').forEach(function (d) { d.open = true; });
+      else if (bot === 'bulk' || bot === 'confirm') { bclick('[data-bot-pickall]'); setTimeout(function () { bclick(bot === 'bulk' ? '[data-bot-bulk="reject"]' : '[data-bot-bulk="approve"]'); }, 300); }
+      return setTimeout(go, 900);
     }
     axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] } }).then(function (r) {
       var out = r.violations.map(function (v) { return { id: v.id, impact: v.impact, n: v.nodes.length, help: v.help, at: v.nodes.slice(0, 3).map(function (n) { return n.target.join(' '); }) }; });
@@ -100,11 +116,28 @@ if (/v18h/.test(BUILD)) {
     // The dashboard's Customize panel open, some charts hidden, and the charts with motion turned off (2026-10-14)
     { route: 'revenue', w: 1440, query: 'a11yrev=cust' }, { route: 'revenue', w: 500, query: 'a11yrev=cust' }, { route: 'revenue', w: 1440, query: 'theme=dark&a11yrev=cust' }, { route: 'revenue', w: 1440, query: 'scene=scenes&a11yrev=cust' },
     { route: 'revenue', w: 1440, query: 'a11yrev=hide' }, { route: 'revenue', w: 500, query: 'a11yrev=hide' }, { route: 'revenue', w: 1440, query: 'theme=dark&a11yrev=hide' }, { route: 'revenue', w: 1440, query: 'scene=scenes&theme=dark&a11yrev=hide' },
-    { route: 'revenue', w: 1440, reduced: true }, { route: 'revenue', w: 500, reduced: true }, { route: 'revenue', w: 1440, query: 'theme=dark', reduced: true }, { route: 'revenue', w: 1440, query: 'scene=scenes', reduced: true }]);
+    { route: 'revenue', w: 1440, reduced: true }, { route: 'revenue', w: 500, reduced: true }, { route: 'revenue', w: 1440, query: 'theme=dark', reduced: true }, { route: 'revenue', w: 1440, query: 'scene=scenes', reduced: true },
+    // Revenue plus (2026-10-15): the Years view, and the Add a cost, Find, Export and Goals and tax dialogs and the note editor, light, dark, scenes and phone
+    { route: `revenue/${MONTH_NOW}/years`, w: 1440 }, { route: `revenue/${MONTH_NOW}/years`, w: 500 }, { route: `revenue/${MONTH_NOW}/years`, w: 1440, query: 'theme=dark' }, { route: `revenue/${MONTH_NOW}/years`, w: 1440, query: 'scene=scenes' },
+    ...['add', 'find', 'export', 'goals', 'note'].flatMap((k) => [{ route: 'revenue', w: 1440, query: `a11yrev=${k}` }, { route: 'revenue', w: 500, query: `a11yrev=${k}` }, { route: 'revenue', w: 1440, query: `theme=dark&a11yrev=${k}` }]),
+    { route: 'revenue', w: 1440, query: 'scene=scenes&a11yrev=find' }, { route: 'revenue', w: 1440, query: 'scene=scenes&theme=dark&a11yrev=goals' }, { route: `revenue/${MONTH_NOW}/costs`, w: 1440, query: 'a11yrev=add' }]);
   CASES = CASES.concat([{ route: `billing/${B}`, w: 1440 }, { route: `billing/${B}`, w: 500 }, { route: `billing/${B}`, w: 1440, query: 'theme=dark' }, { route: 'billing', w: 500 },
     { route: `client/${B}/results`, w: 1440 }, { route: `client/${B}/talk`, w: 1440 }, { route: `client/${B}/home`, w: 1440 }, { route: `client/${B}/home`, w: 500 }, { route: `client/${B}/visible`, w: 1440 }, { route: `client/${B}/visible`, w: 500 }, { route: `client/${B}/visible`, w: 1440, query: 'theme=dark' }, { route: `client/${B}/view`, w: 1440 }, { route: `client/${B}/view`, w: 500 }, { route: `client/${B}/view`, w: 1440, query: 'theme=dark' }, { route: `client/${B}/view`, w: 1440, query: 'theme=dark&scene=scenes' },
     { route: `client/${B}/setup`, w: 1440 }, { route: `client/${B}/advanced`, w: 1440 }, { route: `client/${B}/work`, w: 1440 }, { route: 'client/tnt_preview_marlow/overview', w: 1440 }, { route: 'client/tnt_preview_corner/visible', w: 1440 },
     { route: 'new', w: 500 }, { route: 'new', w: 1440, query: 'theme=dark' }, { route: 'clients', w: 500 }, { route: 'clients', w: 1440, query: 'theme=dark' }, { route: 'board', w: 1440 }, { route: 'board', w: 500 }, { route: 'settings', w: 500 }, { route: 'new', w: 1440, query: 'scene=scenes' }]);
+  // Bot chat plus (2026-10-15): the list, a card, a saved edit with its history, the numbers and a client's Bot tab, in light, dark,
+  // scenes and phone width; and open: the keys dialog, the reject field with saved reasons, the Snooze and Move menus with the
+  // history, the reject-many field and the approve-many confirm.
+  CASES = CASES.concat([
+    ...['', 'theme=dark', 'scene=scenes', 'scene=scenes&theme=dark'].map((query) => ({ route: 'bot', w: 1440, query })), { route: 'bot', w: 500 },
+    { route: 'bot/bo_1', w: 1440 }, { route: 'bot/bo_1', w: 500 }, { route: 'bot/bo_1', w: 1440, query: 'theme=dark' }, { route: 'bot/bo_1', w: 1440, query: 'scene=scenes' },
+    { route: 'bot/bo_1', w: 1440, query: 'a11ybot=reject' }, { route: 'bot/bo_1', w: 500, query: 'theme=dark&a11ybot=reject' }, { route: 'bot/bo_1', w: 1440, query: 'scene=scenes&a11ybot=reject' },
+    { route: 'bot/bo_1', w: 1440, query: 'a11ybot=menus' }, { route: 'bot/bo_1', w: 500, query: 'a11ybot=menus' }, { route: 'bot/bo_1', w: 1440, query: 'scene=scenes&a11ybot=menus' },
+    { route: 'bot/bo_3', w: 1440, query: 'a11ybot=menus' }, { route: 'bot/bo_3', w: 1440, query: 'theme=dark&a11ybot=menus' }, { route: 'bot/bo_5', w: 1440, query: 'a11ybot=menus' },
+    { route: 'bot', w: 1440, query: 'a11ybot=keys' }, { route: 'bot', w: 500, query: 'theme=dark&a11ybot=keys' },
+    { route: 'bot', w: 1440, query: 'a11ybot=bulk' }, { route: 'bot', w: 500, query: 'a11ybot=bulk' }, { route: 'bot', w: 1440, query: 'scene=scenes&a11ybot=bulk' }, { route: 'bot', w: 1440, query: 'theme=dark&a11ybot=confirm' },
+    { route: 'bot/stats', w: 1440 }, { route: 'bot/stats', w: 500 }, { route: 'bot/stats', w: 1440, query: 'theme=dark' }, { route: 'bot/stats', w: 1440, query: 'scene=scenes' },
+    { route: `client/${B}/bot`, w: 1440 }, { route: `client/${B}/bot`, w: 1440, query: 'scene=scenes' }, { route: `client/${B}/bot/bo_8`, w: 500, query: 'a11ybot=menus' }]);
 } else if (BUILD !== 'v16') {
   // Variants: every main page in light, then dark, a phone width and the all-caught-up state.
   CASES = ['home', 'work', 'results', 'billing', 'settings'].map((route) => ({ route, w: 1440 }))
