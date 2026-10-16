@@ -340,11 +340,21 @@
   /** The primary button's weight follows the severity: solid orange only for the urgent one. */
   const PRIMARY_STYLE = { critical: 'btn btn-primary', approval: 'btn btn-tint', connection: 'btn btn-glass', scheduled: 'btn btn-glass' };
 
+  /**
+   * An approval answers on the card itself (2026-10-16, Karan: one tap to approve, one to ask for changes): Approve
+   * saves after a short Undo window, Ask for changes opens the item with the note box ready. Anything else keeps its
+   * one button.
+   */
   function actionPrimary(a, cls) {
-    return a.primary.does === 'approval'
-      ? `<button class="${cls}" type="button" data-action="approve" data-id="${esc(a.approvalId)}" title="Opens it so you can look, then say yes or ask for changes.">${esc(a.primary.label)}</button>`
-      : `<button class="${cls}" type="button" data-action="external" data-kind="${esc(a.primary.does)}">${esc(a.primary.label)}</button>`;
+    if (a.primary.does !== 'approval') return `<button class="${cls}" type="button" data-action="external" data-kind="${esc(a.primary.does)}">${esc(a.primary.label)}</button>`;
+    const yes = /^confirm/i.test(a.primary.label) ? a.primary.label : 'Approve';
+    return `<button class="${cls}" type="button" data-action="quick-approve" data-id="${esc(a.approvalId)}">${icon('check')}${esc(yes)}<span class="sr-only">: ${esc(a.title)}</span></button>
+      <button class="btn btn-glass" type="button" data-action="approve" data-note="1" data-id="${esc(a.approvalId)}">Ask for changes<span class="sr-only">: ${esc(a.title)}</span></button>`;
   }
+  /** "See it first": the full item (the posts, the hours) in the review window. */
+  const seeFirst = (a) => (a.primary.does === 'approval'
+    ? `<button class="link-btn act-see" type="button" data-action="approve" data-id="${esc(a.approvalId)}">See it first<span class="sr-only">: ${esc(a.title)}</span></button>`
+    : '');
 
   /**
    * One thing the client needs to do: what, why it matters, the deadline or consequence, one
@@ -368,12 +378,12 @@
       : '';
     const toggle = more ? `<button class="link-btn act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span></button>` : '';
     // No severity chip (2026-10-09): the order (red first), the red tint and the icon carry it.
-    return `<li class="act-card sev-${esc(a.severity)}" data-row="${esc(a.id)}">
+    return `<li class="act-card sev-${esc(a.severity)}" data-row="${esc(a.id)}"${a.approvalId ? ` data-approval="${esc(a.approvalId)}"` : ''}>
       <span class="act-icon">${icon(kindIcon)}</span>
       <div class="act-main">
         <h3 class="act-title">${esc(a.title)}</h3>
         <p class="act-detail">${esc(a.detail)}</p>
-        ${when || toggle ? `<p class="act-when">${when}${toggle}</p>` : ''}
+        ${when || toggle || seeFirst(a) ? `<p class="act-when">${when}${seeFirst(a)}${toggle}</p>` : ''}
         ${more}
       </div>
       <div class="act-do">${actionPrimary(a, PRIMARY_STYLE[a.severity] || 'btn btn-glass')}</div>

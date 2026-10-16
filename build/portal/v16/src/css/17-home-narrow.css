@@ -1,0 +1,76 @@
+/*
+ * Home, narrowed (2026-10-16): Waiting for you with answers on the card, This week, Your next step, and everything
+ * else folded under "More about your plan". Every rule sits under .page-home. Tokens only; the cards keep the
+ * portal's glass, radius and type.
+ */
+
+/* The three parts, top to bottom, at one even rhythm; the fold stands a little apart. */
+.page-home .sec-week, .page-home .sec-next { margin-top: 32px; }
+.page-home .sec-week > .sec-head, .page-home .sec-next > .sec-head { margin-bottom: 12px; }
+
+/* ------------------------------------------------------------------ the approval card's two answers */
+
+/* Approve and Ask for changes side by side under the words on a wide screen, stacked in the card's column otherwise. */
+.page-home .act-do .btn .i { width: 16px; height: 16px; margin-right: 6px; }
+.page-home .act-see { min-height: 32px; font-size: 14.5px; }
+/* Approved, in its Undo window, then saved: the card turns to the success tint and stops lifting on hover. */
+.page-home .act-card.is-held, .page-home .act-card.is-done { --sev: var(--p-success); --sev-bg: var(--p-success-bg); --sev-line: var(--p-line); background-image: linear-gradient(100deg, var(--p-success-bg), transparent 60%); }
+.page-home .act-card.is-held:hover, .page-home .act-card.is-done:hover { transform: none; }
+.page-home .act-card.is-done .act-do { display: none; }
+
+/* ------------------------------------------------------------------ This week */
+
+.week-card { padding: 22px 26px; }
+.week-lead { font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -0.012em; }
+.week-nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 22px; margin: 16px 0 0; padding: 0; list-style: none; }
+.wn { display: grid; gap: 2px; align-content: start; min-width: 0; padding-left: 14px; border-left: 2px solid var(--p-line); }
+.wn.is-up { border-left-color: var(--p-success); }
+.wn-val { font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.wn-word { font-size: 15px; font-weight: 600; color: var(--p-ink); }
+.wn-was { font-size: 14px; color: var(--p-ink-3); font-variant-numeric: tabular-nums; }
+.week-extras { margin-top: 16px; font-size: 15px; line-height: 1.5; color: var(--p-ink-2); }
+.week-meta { margin-top: 12px; }
+.week-meta .link { font-size: 14px; }
+
+/* ------------------------------------------------------------------ Your next step */
+
+.next-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px 18px; padding: 16px 18px 16px 20px; background: var(--p-glass-soft); }
+.next-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line); color: var(--p-ink-2); }
+.next-icon .i { width: 20px; height: 20px; }
+.next-text { font-size: 16px; line-height: 1.45; color: var(--p-ink); text-wrap: pretty; }
+.next-card .btn { white-space: nowrap; }
+
+/* ------------------------------------------------------------------ More about your plan */
+
+.home-more { margin-top: 40px; border-top: 1px solid var(--p-line); }
+.home-more-sum { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; min-height: 56px; padding: 14px 0; list-style: none; cursor: pointer; }
+.home-more-sum::-webkit-details-marker { display: none; }
+.hm-title { grid-column: 1; font-size: 17px; font-weight: 650; color: var(--p-ink); }
+.hm-sub { grid-column: 1; font-size: 14px; color: var(--p-ink-3); }
+.home-more-sum .hm-chev { grid-column: 2; grid-row: 1 / span 2; width: 20px; height: 20px; color: var(--p-ink-2); transition: transform var(--m) var(--ease); }
+.home-more[open] > .home-more-sum .hm-chev { transform: rotate(180deg); }
+.home-more-sum:hover .hm-title { color: var(--p-accent-ink); }
+.home-more-sum:focus-visible { outline: 2px solid var(--p-accent); outline-offset: 4px; border-radius: 6px; }
+.page-home .home-more-body > .home-plan { margin-top: 8px; }
+
+/* ------------------------------------------------------------------ phone */
+
+@container page (max-width: 560px) {
+  .week-nums { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .wn { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: 0 10px; }
+  .wn-val { grid-row: 1 / span 2; font-size: 26px; }
+  .next-card { grid-template-columns: auto minmax(0, 1fr); }
+  .next-card .btn { grid-column: 1 / -1; width: 100%; white-space: normal; }
+}
+@media (max-width: 760px) {
+  .page-home .sec-week, .page-home .sec-next { margin-top: 28px; }
+  .week-card { padding: 20px; }
+  .home-more { margin-top: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-more-sum .hm-chev { transition: none; }
+}
+@media (forced-colors: active) {
+  .wn { border-left-color: CanvasText; }
+  .next-icon { border: 1px solid CanvasText; }
+}

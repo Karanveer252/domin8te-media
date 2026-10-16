@@ -141,29 +141,102 @@
     return `<p class="pb-facts">${bits.join('')}</p>`;
   }
 
+  /* Home, narrowed (2026-10-16, Karan: "the first screen must feel light, not like work"). By default it shows three
+     things only: what is waiting for the client (approve on the card, or ask for changes), this week against last week
+     in plain words with up to three numbers, and one next step. The plan, the 30-day numbers and the meeting strip fold
+     under "More about your plan" and load only when it is opened. */
+
+  /** The short word for a number on Home's "This week" ([one, many]); anything else uses its own unit. */
+  const WEEK_WORD = {
+    calls: ['call', 'calls'], directions: ['direction request', 'directions'], bookings: ['booking', 'bookings'], orders: ['order', 'orders'],
+    visits: ['website visit', 'website visits'], facebookViews: ['Facebook view', 'Facebook views'], instagramViews: ['Instagram view', 'Instagram views'],
+    adClicks: ['ad click', 'ad clicks'], profileViews: ['Google profile view', 'Google profile views']
+  };
+  /** @param {any} n one weekly number @param {number} v */
+  const weekWord = (n, v) => { const w = /** @type {any} */ (WEEK_WORD)[n.id]; return w ? F.plural(v, w[0], w[1]) : String(n.unit || ''); };
+  const hasNum = (/** @type {any} */ v) => v !== null && v !== undefined;
+
+  /** "This week": one sentence, up to three numbers with last week's beside them, and what staff recorded. @param {any} wk */
+  function weekBlock(wk) {
+    if (!wk || !wk.numbers || !wk.numbers.length) {
+      return UI.EmptyState({ icon: 'results', title: 'Your first weekly summary comes on Monday.', text: 'It puts this week next to last week: calls, directions and bookings, in plain words.' });
+    }
+    const nums = wk.numbers;
+    const compared = nums.filter((/** @type {any} */ n) => hasNum(n.before));
+    const ups = compared.filter((/** @type {any} */ n) => n.now > n.before).length;
+    const downs = compared.filter((/** @type {any} */ n) => n.now < n.before).length;
+    const lead = !compared.length ? 'Your first week of numbers.' : ups > downs ? 'Busier than last week.' : downs > ups ? 'Quieter than last week.' : 'About the same as last week.';
+    const said = (/** @type {'now'|'before'} */ k) => nums.filter((/** @type {any} */ n) => hasNum(n[k])).map((/** @type {any} */ n) => `${F.num(n[k])} ${weekWord(n, n[k])}`).join(', ');
+    const extras = (wk.extras || []).filter((/** @type {any} */ x) => x && x.label).map((/** @type {any} */ x) => `${x.label}: ${x.value}.`).join(' ');
+    const line = `${compared.length ? `Last week: ${said('before')}. ` : ''}This week: ${said('now')}.`;
+    const cells = nums.map((/** @type {any} */ n) => {
+      const had = hasNum(n.before);
+      const dir = !had ? '' : n.now > n.before ? 'up' : n.now < n.before ? 'down' : 'flat';
+      return `<li class="wn${dir ? ' is-' + dir : ''}"><span class="wn-val">${esc(F.num(n.now))}</span><span class="wn-word">${esc(weekWord(n, n.now))}</span>${had ? `<span class="wn-was">${esc(F.num(n.before))} last week</span>` : ''}</li>`;
+    }).join('');
+    return `<div class="card week-card" data-week="${esc(wk.id || '')}">
+      <p class="week-lead">${esc(lead)}</p>
+      <p class="sr-only">${esc(line)}</p>
+      <ul class="week-nums" aria-hidden="true">${cells}</ul>
+      ${extras ? `<p class="week-extras">${esc(extras)}</p>` : ''}
+      <p class="meta week-meta">${wk.from && wk.to ? `${esc(F.range(wk.from, wk.to))}. ` : ''}<a class="link" href="#/results">See all results</a></p>
+    </div>`;
+  }
+
+  /**
+   * One next step, picked by a fixed order: answer what is waiting, read our reply, the meeting this week, otherwise
+   * how to ask for something. Always one sentence and one button.
+   * @param {number} waiting @param {number} unread @param {any} a the account @param {Date} now
+   */
+  function nextStep(waiting, unread, a, now) {
+    const m = a.meeting;
+    const gap = m && m.at ? D8.time.dayNum(m.at) - D8.time.dayNum(now) : -1;
+    const soon = m && m.at && (!m.status || m.status === 'confirmed') && gap >= 0 && gap <= 7;
+    const timed = soon && /[T ]\d\d:\d\d/.test(String(m.at));
+    /** @type {string[]} icon, words, button */
+    let s;
+    if (waiting > 0) s = ['check', waiting === 1 ? 'Answer the one thing above and you are done for now.' : `Answer the ${waiting} things above. It takes about a minute.`, '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Start with the first</button>'];
+    else if (unread > 0) s = ['message', unread === 1 ? 'We replied to your message.' : `We sent you ${unread} replies.`, `<a class="btn btn-tint btn-sm" href="#/messages">Read ${unread === 1 ? 'it' : 'them'}</a>`];
+    else if (soon) s = ['calendar', `Our next meeting is ${day(m.at)}${timed ? ` at ${F.time(m.at)}` : ''}. Anything to add first?`, '<a class="btn btn-glass btn-sm" href="#/messages">Message us</a>'];
+    else s = ['message', 'Nothing needed from you. New hours, a special or a change? Tell us here and we do it.', '<a class="btn btn-glass btn-sm" href="#/messages">Ask for something</a>'];
+    return `<div class="card next-card"><span class="next-icon">${icon(s[0])}</span><p class="next-text">${esc(s[1])}</p>${s[2]}</div>`;
+  }
+
+  /** The Undo window after Approve on a card, before the answer is saved. */
+  const HOLD_MS = 5000;
+
   const home = {
     title: () => 'Home',
     render(ctx) {
       const now = ctx.client.now();
       const a = ctx.account;
-      const parts = {
-        attention: `<section class="sec sec-attention" aria-labelledby="h-attention">
-          ${UI.SectionHead('h-attention', 'Waiting for you')}
-          <div id="home-attention">${UI.Skeleton('row', 2)}</div>
-        </section>`,
-        plan: `<div class="sec home-plan" id="home-plan">${UI.Skeleton('card', 2)}</div>`,
-        strip: `<section class="sec sec-strip" aria-labelledby="h-strip">
-          ${UI.SectionHead('h-strip', 'Last 30 days')}
-          <div id="home-strip">${UI.Skeleton('strip', 3)}</div>
-          ${checkedLine(a, now)}
-        </section>`
-      };
-      const order = ['attention', 'plan', 'strip'];
-      return `<div class="page page-home">
+      return `<div class="page page-home is-narrow">
         ${UI.PageHeader({ cls: 'is-home', title: `${F.greeting(now)}, ${a.user.firstName}.`, intro: '<span id="home-summary">Checking your account.</span>', introHtml: true, sample: a.business.name })}
         ${UI.PageFresh({ updatedAt: a.updatedAt || D8.time.isoTime(now), source: 'Domin8te console', zone: a.zoneAbbr, status: a.problems && a.problems.length ? 'delayed' : 'ok', label: a.problems && a.problems.length ? `${a.problems.length} ${F.plural(a.problems.length, 'account needs', 'accounts need')} a look` : '' })}
-        ${order.map((k) => parts[k] || '').join('\n        ')}
-        ${contactStrip(a, now)}
+        <section class="sec sec-attention" aria-labelledby="h-attention">
+          ${UI.SectionHead('h-attention', 'Waiting for you')}
+          <div id="home-attention">${UI.Skeleton('row', 2)}</div>
+        </section>
+        <section class="sec sec-week" aria-labelledby="h-week">
+          ${UI.SectionHead('h-week', 'This week')}
+          <div id="home-week">${UI.Skeleton('card', 1)}</div>
+        </section>
+        <section class="sec sec-next" aria-labelledby="h-next">
+          ${UI.SectionHead('h-next', 'Your next step')}
+          <div id="home-next">${UI.Skeleton('row', 1)}</div>
+        </section>
+        <details class="home-more" id="home-more">
+          <summary class="home-more-sum"><span class="hm-title">More about your plan</span><span class="hm-sub">This month, the last 30 days and your next meeting</span>${icon('chevron-down', 'hm-chev')}</summary>
+          <div class="home-more-body">
+            <div class="sec home-plan" id="home-plan">${UI.Skeleton('card', 2)}</div>
+            <section class="sec sec-strip" aria-labelledby="h-strip">
+              ${UI.SectionHead('h-strip', 'Last 30 days')}
+              <div id="home-strip">${UI.Skeleton('strip', 3)}</div>
+              ${checkedLine(a, now)}
+            </section>
+            ${contactStrip(a, now)}
+          </div>
+        </details>
       </div>`;
     },
     mount(ctx, r, el) {
@@ -175,50 +248,144 @@
         if (count === null) return;
         setText(el, '#home-summary', count < 0 ? 'We could not check what is waiting for you just now.' : count ? `${count} ${F.plural(count, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.');
       };
+      const more = /** @type {HTMLDetailsElement|null} */ (el.querySelector('#home-more'));
+      const moreOpen = () => !!(more && more.open);
+      /** @type {Record<string, () => any>} */
       const loaders = {
-        strip: () => section(el, '#home-strip', () => ctx.client.getStrip(30), (d) => {
+        attention: () => section(el, '#home-attention', () => Promise.all([ctx.client.getAttention(), ctx.client.getPlan().catch(() => null)])
+          .then(([items, plan]) => (items.length ? { items, plan, highlights: null } : ctx.client.getHighlights().catch(() => null).then((h) => ({ items, plan, highlights: h })))), (d) => {
+          count = d.items.length;
+          summary();
+          ctx.setBadges(d.items);
+          loaders.next();
+          const ok = d.plan && d.plan.state === 'ok';
+          const sec = el.querySelector('.sec-attention');
+          if (sec) sec.classList.toggle('is-calm', !count && !!ok);
+          if (count) return UI.ActionNeededList(d.items, now());
+          return ok ? D8.plan.banner(d.plan, { staff: staffSection('nothing_to_do'), facts: calmFacts(d.highlights) }) : UI.CaughtUp(d.highlights);
+        }, () => { count = -1; summary(); loaders.next(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
+        week: () => section(el, '#home-week', () => ctx.client.getWeekly(), (wk) => weekBlock(wk),
+          () => ({ title: "We couldn't load this week's numbers.", text: 'The rest of this page works.', retry: 'week' })),
+        // Waits for the attention count; the unread replies are a best effort (no reply count is not an error).
+        next: () => {
+          if (count === null) return Promise.resolve(null);
+          return section(el, '#home-next', () => ctx.client.getUnreadReplies().catch(() => 0),
+            (n) => nextStep(Math.max(count || 0, 0), Number(n) || 0, ctx.account, now()),
+            () => ({ title: "We couldn't work out your next step.", text: 'The rest of this page works.', retry: 'next' }));
+        },
+        strip: () => (moreOpen() ? section(el, '#home-strip', () => ctx.client.getStrip(30), (d) => {
           const verified = d.mode === 'verified';
           const head = el.querySelector('#h-strip');
           if (head) head.textContent = verified ? 'Latest checked numbers' : 'Last 30 days';
           const list = d.items.filter((/** @type {any} */ x) => x.state !== 'pending' || !verified).slice(0, 3);
           if (!list.length) return UI.EmptyState({ icon: 'results', title: 'No checked numbers yet.', text: 'They show here once we have checked them against your accounts.' });
           return `<div class="strip is-3">${list.map((/** @type {any} */ t) => UI.ResultTile(t, now(), { compact: true, delta: !verified, days: 30 })).join('')}</div>`;
-        }, () => ({ title: "We couldn't load your numbers.", text: 'The rest of this page works.', retry: 'strip' })),
-        // When nothing needs the client, the section turns into one calm banner that says where the plan stands.
-        attention: () => section(el, '#home-attention', () => Promise.all([ctx.client.getAttention(), ctx.client.getPlan().catch(() => null)])
-          .then(([items, plan]) => (items.length ? { items, plan, highlights: null } : ctx.client.getHighlights().catch(() => null).then((h) => ({ items, plan, highlights: h })))), (d) => {
-          count = d.items.length;
-          summary();
-          ctx.setBadges(d.items);
-          const ok = d.plan && d.plan.state === 'ok';
-          const sec = el.querySelector('.sec-attention');
-          if (sec) sec.classList.toggle('is-calm', !count && !!ok);
-          if (count) return UI.ActionNeededList(d.items, now());
-          return ok ? D8.plan.banner(d.plan, { staff: staffSection('nothing_to_do'), facts: calmFacts(d.highlights) }) : UI.CaughtUp(d.highlights);
-        }, () => { count = -1; summary(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
+        }, () => ({ title: "We couldn't load your numbers.", text: 'The rest of this page works.', retry: 'strip' })) : Promise.resolve(null)),
         // The plan this month, what is used, and what comes next.
-        plan: () => section(el, '#home-plan', () => Promise.all([ctx.client.getPlan(), ctx.client.getWorkSummary(), ctx.client.getAttention().catch(() => [])]), ([m, list, acts]) => {
+        plan: () => (moreOpen() ? section(el, '#home-plan', () => Promise.all([ctx.client.getPlan(), ctx.client.getWorkSummary(), ctx.client.getAttention().catch(() => [])]), ([m, list, acts]) => {
           if (m.state !== 'ok') return D8.plan.notSetUp(m);
           const changing = m.confirmed && m.changes.differs;
           const note = staffSection('note');
           return `<div class="home-cols">${D8.plan.runningNow(m, { summary: list, actions: acts, staff: staffSection('running_now') })}${changing ? D8.plan.whatChanges(m, staffSection('next_month')) : D8.plan.comingUp(m, staffSection('next_month'), ctx.account.user.email)}</div>${note && D8.plan.staffNote(note) ? `<section class="card home-note" aria-label="A note from Domin8te">${D8.plan.staffNote(note)}</section>` : ''}`;
-        }, () => ({ title: "We couldn't load your plan.", text: 'The rest of this page works.', retry: 'plan' }))
+        }, () => ({ title: "We couldn't load your plan.", text: 'The rest of this page works.', retry: 'plan' })) : Promise.resolve(null))
       };
-      Object.values(loaders).forEach((load) => load());
+      // The folded part loads the first time it opens, and again on every refresh while it is open.
+      let moreLoaded = false;
+      if (more) more.addEventListener('toggle', () => { if (more.open && !moreLoaded) { moreLoaded = true; loaders.plan(); loaders.strip(); } });
+      loaders.attention();
+      loaders.week();
+
+      /* ---- approve on the card: Approve, a short Undo window, then saved ---------------------------------------- */
+      /** @type {Map<string, {timer: any, li: HTMLElement, html: string, title: string}>} */
+      const held = new Map();
+      const cardFor = (/** @type {string} */ id) => /** @type {HTMLElement|null} */ ([...el.querySelectorAll('.act-card[data-approval]')].find((c) => c.getAttribute('data-approval') === id) || null);
+      /** @param {HTMLElement} li @param {string} title @param {string} text @param {string} btn */
+      const cardState = (li, title, text, btn) => {
+        li.innerHTML = `<span class="act-icon">${icon('check')}</span><div class="act-main"><h3 class="act-title">${esc(title)}</h3><p class="act-detail" role="status">${esc(text)}</p></div>${btn ? `<div class="act-do">${btn}</div>` : ''}`;
+      };
+      /** @param {string} id */
+      const restore = (id) => {
+        const h = held.get(id);
+        if (!h) return null;
+        clearTimeout(h.timer);
+        held.delete(id);
+        h.li.classList.remove('is-held');
+        h.li.innerHTML = h.html;
+        return h;
+      };
+      /** @param {string} id */
+      const commit = (id) => {
+        const h = held.get(id);
+        if (!h) return;
+        clearTimeout(h.timer);
+        held.delete(id);
+        cardState(h.li, `${h.title}: approved.`, 'Saving your answer.', '');
+        const done = () => {
+          h.li.classList.remove('is-held');
+          h.li.classList.add('is-done');
+          cardState(h.li, `${h.title}: approved.`, "Thanks. We'll take it from here.", '');
+          D8.dialogs.toast(`${h.title}: approved.`);
+          if (count !== null && count > 0) { count -= 1; summary(); loaders.next(); }
+          ctx.client.getAttention().then((/** @type {any[]} */ items) => ctx.setBadges(items)).catch(() => {});
+        };
+        D8.dialogs.slow(ctx.client.decide(id, 'approved', ''), 'Home').then(done).catch((/** @type {any} */ err) => {
+          if (err && err.code === 'already-decided') { done(); return; }
+          h.li.classList.remove('is-held');
+          h.li.innerHTML = h.html;
+          D8.dialogs.toast(err && err.code === 'slow' ? err.message : `We couldn't save your answer, so nothing changed. ${(err && err.message) || ''} Try again.`, { tone: 'error' });
+        });
+      };
+      const flush = () => { [...held.keys()].forEach(commit); };
+      root.addEventListener('pagehide', flush);
+
       return {
         refresh() {
           const c = el.querySelector('#home-checked');
           if (c) c.innerHTML = checkedText(ctx.account, now());
-          Object.values(loaders).forEach((load) => load());
+          // an answer still in its Undo window is saved first, so a refresh never drops it
+          flush();
+          loaders.attention();
+          loaders.week();
+          if (moreLoaded) { loaders.plan(); loaders.strip(); }
         },
+        /** @param {string} which */
         retry(which) {
           const f = loaders[which];
           if (!f) return;
-          const box = /** @type {HTMLElement|null} */ (el.querySelector({ strip: '#home-strip', attention: '#home-attention', plan: '#home-plan' }[which] || ''));
+          const box = /** @type {HTMLElement|null} */ (el.querySelector(/** @type {any} */ ({ strip: '#home-strip', attention: '#home-attention', plan: '#home-plan', week: '#home-week', next: '#home-next' })[which] || ''));
           // A section that never loaded goes back to its placeholder; one with content keeps it, dimmed.
-          if (box && !box.hasAttribute('data-loaded')) box.innerHTML = UI.Skeleton({ strip: 'strip', attention: 'row', plan: 'card' }[which] || 'block', which === 'strip' ? 3 : which === 'plan' ? 2 : 1);
+          if (box && !box.hasAttribute('data-loaded')) box.innerHTML = UI.Skeleton(/** @type {any} */ ({ strip: 'strip', attention: 'row', plan: 'card', week: 'card', next: 'row' })[which] || 'block', which === 'strip' ? 3 : which === 'plan' ? 2 : 1);
           f();
-        }
+        },
+        /** @param {string} act @param {HTMLElement} t */
+        action(act, t) {
+          if (act === 'go-first') {
+            const b = /** @type {HTMLElement|null} */ (el.querySelector('#home-attention .act-card .act-do .btn'));
+            if (b) { b.scrollIntoView({ block: 'center', behavior: 'smooth' }); b.focus({ preventScroll: true }); }
+            return;
+          }
+          const id = t.dataset.id || '';
+          if (act === 'undo-approve') {
+            const h = restore(id);
+            if (!h) return;
+            const b = /** @type {HTMLElement|null} */ (h.li.querySelector('[data-action="quick-approve"]'));
+            if (b) b.focus();
+            D8.dialogs.toast(`${h.title}: not approved yet.`);
+            return;
+          }
+          if (act !== 'quick-approve' || held.has(id)) return;
+          if (D8.data.READ_ONLY || D8.data.viewAs) { D8.dialogs.toast(D8.data.DEMO_NOTE, { tone: 'error' }); return; }
+          const li = cardFor(id);
+          if (!li) return;
+          const title = (li.querySelector('.act-title') || {}).textContent || 'This';
+          held.set(id, { timer: setTimeout(() => commit(id), HOLD_MS), li, html: li.innerHTML, title });
+          li.classList.add('is-held');
+          cardState(li, `${title}: approved.`, 'Saving in 5 seconds. Changed your mind? Press Undo.', `<button class="btn btn-glass" type="button" data-action="undo-approve" data-id="${esc(id)}">Undo<span class="sr-only">: ${esc(title)}</span></button>`);
+          const u = /** @type {HTMLElement|null} */ (li.querySelector('[data-action="undo-approve"]'));
+          if (u) u.focus();
+        },
+        /** Leaving Home saves any answer still in its Undo window. */
+        leave() { flush(); root.removeEventListener('pagehide', flush); }
       };
     }
   };

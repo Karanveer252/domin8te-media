@@ -185,7 +185,8 @@
   }
 
   /** Review an item and approve it or ask for changes, with an optional note. */
-  function approval(id, trigger, ctx) {
+  /** @param {string} id @param {HTMLElement} trigger @param {any} ctx @param {{note?: boolean}} [o] note: open with the note box ready (Ask for changes) */
+  function approval(id, trigger, ctx, o) {
     let changed = false;
     open(head('Loading', '') + `<div class="dlg-body">${D8.ui.Skeleton('text', 3)}</div>`, trigger, () => { if (changed) ctx.afterChange(); });
     const my = gen;
@@ -220,6 +221,7 @@
         </form></div>`;
       focusTitle();
       const form = /** @type {HTMLFormElement} */ (inner().querySelector('form'));
+      if (o && o.note) { const box = /** @type {HTMLTextAreaElement|null} */ (form.querySelector('#apv-comment')); if (box) box.focus(); }
       // Older Safari does not say which button sent the form; never guess "approved" from that.
       /** @type {HTMLButtonElement|null} */ let clicked = null;
       form.querySelectorAll('button[type=submit]').forEach((b) => b.addEventListener('click', () => { clicked = /** @type {HTMLButtonElement} */ (b); }));

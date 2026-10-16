@@ -373,6 +373,8 @@
     $('#app').classList.toggle('is-auth', !!page.standalone);
     const main = $('#main');
     const ctx = context();
+    // the page being left finishes what it holds (Home saves an approval still in its Undo window)
+    if (app.page && app.page.leave) { try { app.page.leave(); } catch (e) { countError(); } }
     try {
       main.innerHTML = page.render(ctx, r);
       document.title = page.title(ctx, r) + ' · Domin8te portal';
@@ -486,7 +488,8 @@
     }
     const act = t.getAttribute('data-action');
     const ctx = context();
-    if (act === 'approve') D8.dialogs.approval(t.dataset.id, t, ctx);
+    if (act === 'approve') D8.dialogs.approval(t.dataset.id, t, ctx, { note: t.dataset.note === '1' });
+    else if (act === 'quick-approve' || act === 'undo-approve' || act === 'go-first') { if (app.page && app.page.action) app.page.action(act, t); }
     else if (act === 'external') D8.dialogs.external(t.dataset.kind, t.dataset.id, t, ctx);
     else if (act === 'account') D8.dialogs.account(t.dataset.source || '', t.dataset.mode || 'connect', t, ctx);
     else if (act === 'compose') D8.dialogs.compose({ mode: t.dataset.mode, service: t.dataset.service }, t, ctx);
