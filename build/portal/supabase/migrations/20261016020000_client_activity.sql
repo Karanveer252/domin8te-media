@@ -37,6 +37,8 @@ language plpgsql security definer set search_path = '' as $$
 declare t uuid := app.my_tenant(); who text := app.jwt_sub(); last timestamptz;
 begin
   if who is null or t is null or app.is_staff() then raise exception 'not-allowed' using errcode = '42501'; end if;
+  -- one at a time per person, so parallel calls cannot slip past the 30 minute check
+  perform pg_advisory_xact_lock(hashtext('touch_seen:' || who));
   select max(at) into last from public.client_activity where tenant_id = t and kind = 'seen' and actor = who and at > now() - interval '30 minutes';
   if last is not null then return last; end if;
   insert into public.client_activity (tenant_id, kind, actor) values (t, 'seen', who) returning at into last;

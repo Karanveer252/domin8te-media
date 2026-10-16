@@ -56,10 +56,14 @@ select pg_temp.v('W1 numbers: calls, directions, bookings in that order', 'calls
   (select string_agg(x ->> 'id', ',' order by o) from public.weekly_summaries w, jsonb_array_elements(w.numbers) with ordinality as a (x, o) where w.tenant_id = 'e3000000-0000-0000-0000-00000000000a'));
 select pg_temp.v('W1 calls 18 against 14', '18/14', (select (numbers -> 0 ->> 'now') || '/' || (numbers -> 0 ->> 'before') from public.weekly_summaries where tenant_id = 'e3000000-0000-0000-0000-00000000000a'));
 select pg_temp.v('W1 directions has no week before (null, not 0)', 'null', (select coalesce(numbers -> 1 ->> 'before', 'null') from public.weekly_summaries where tenant_id = 'e3000000-0000-0000-0000-00000000000a'));
-select pg_temp.v('W1 the sentence', 'Last week: 14 calls, 3 bookings. This week: 18 calls, 11 directions, 5 bookings. Specials posted: yes. Reviews answered: 4.',
+select pg_temp.v('W1 the sentence', 'Last week: 18 calls, 11 directions, 5 bookings. The week before: 14 calls, 3 bookings. Specials posted: yes. Reviews answered: 4.',
   (select sentence from public.weekly_summaries where tenant_id = 'e3000000-0000-0000-0000-00000000000a'));
 select pg_temp.v('W1 unverified, monthly and not-visible numbers never count', '0',
   (select count(*)::text from public.weekly_summaries w, jsonb_array_elements(w.numbers) x where w.tenant_id = 'e3000000-0000-0000-0000-00000000000a' and x ->> 'id' in ('visits', 'leads', 'orders')));
+-- A week whose numbers are no longer verified loses its old row (B had one; nothing is verified for B now).
+insert into public.weekly_summaries (tenant_id, week_start, week_end, sentence) select 'e3000000-0000-0000-0000-00000000000b', s, s + 6, 'Old' from wk;
+select pg_temp.v('W1 rebuilding a week with nothing verified returns nothing', 'null', (select (app.build_weekly_summary('e3000000-0000-0000-0000-00000000000b', (select s from wk))).id::text));
+select pg_temp.v('W1 ... and the stale row is gone', '0', (select count(*)::text from public.weekly_summaries where tenant_id = 'e3000000-0000-0000-0000-00000000000b'));
 select pg_temp.e('W1 a week that does not start on a Monday is refused', '22023', $q$select app.build_weekly_summary('e3000000-0000-0000-0000-00000000000a', (select s + 2 from wk))$q$);
 
 -- W2 the client reads its own row, cannot read B's, cannot write; marks it opened once -----------------------------------------

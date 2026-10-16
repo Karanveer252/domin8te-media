@@ -301,6 +301,7 @@
             { day: 'Fri 2 Oct', channels: 'Facebook and Instagram', image: 'Your photo: brunch table', text: 'Weekend brunch starts at 9. Shakshuka, pancakes and good coffee. See you Saturday.' }
           ]
         },
+        trackDone: true,
         approve: { label: 'Approve posts', done: "Approved. We'll schedule them for Mon, Wed and Fri." },
         change: { label: 'Request changes', done: "Thanks. We'll revise the posts and send them back to you." },
         effects: {
@@ -315,6 +316,7 @@
           type: 'hours',
           rows: [['Monday', 'Closed'], ['Tuesday', '12:00 to 21:30'], ['Wednesday', '12:00 to 21:30'], ['Thursday', '12:00 to 22:00'], ['Friday', '12:00 to 23:00'], ['Saturday', '10:00 to 23:00'], ['Sunday', '10:00 to 17:00']]
         },
+        trackDone: true,
         approve: { label: 'Confirm these hours', done: "Confirmed. We'll update Google, Apple Maps and your website on Thu 1 Oct." },
         change: { label: 'Something is wrong', done: "Thanks. We'll correct the hours and check them with you before Thu 1 Oct." },
         effects: {

@@ -1,4 +1,4 @@
-# Dashboard usage plan (2026-10-16) - APPROVED (defaults A-D); step 1 DONE local, next step 2
+# Dashboard usage plan (2026-10-16) - APPROVED (defaults A-D, auto-approve all steps); ALL 9 STEPS DONE local + TEST, critic fixed; waits on prod approval + "deploy"
 
 Goal: clients use the dashboard for every approval, update and request. Order: Home, weekly summary, usage tracking, then the rest.
 Rules carried: local only, TEST db only, nothing deploys without "deploy", demo stays view-only, add don't redesign, no U+2014, plain words.

@@ -66,8 +66,8 @@
     return `<section class="panel us-panel" id="us-panel" aria-labelledby="us-h" data-us-client="${esc(id)}">
       <div class="panel-head"><h2 id="us-h">Dashboard use</h2>${u && u.quiet ? '<span class="chip warn">Quiet on dashboard</span>' : ''}</div>
       <dl class="us-facts">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
-      <div class="us-block"><h3 class="panel-sub">This week on their Home</h3>${weekLine(u)}
-        <p><button class="btn btn-quiet btn-sm" type="button" data-us-build="${esc(id)}">Build this week's summary now</button></p></div>
+      <div class="us-block"><h3 class="panel-sub">Last week, on their Home</h3>${weekLine(u)}
+        <p><button class="btn btn-quiet btn-sm" type="button" data-us-build="${esc(id)}">Build last week's summary now</button></p></div>
       <details class="reveal us-block"${u && u.quiet ? ' open' : ''}><summary>They wrote by text, email or phone</summary>
         <p class="meta">Log it, answer it inside their dashboard, and send them this line so the next one comes there:</p>
         <p class="us-reply"><q>${esc(REPLY)}</q> <button class="linkish" type="button" data-us-copy>Copy the line</button></p>
@@ -82,9 +82,9 @@
   /** Needs you: clients who write from outside but are quiet on the dashboard. */
   function needsBlock() {
     if (!state.rows || state.missing) return '';
-    const quiet = [...state.rows.values()].filter((u) => u.quiet).map((u) => ({ u, t: C().tenant(u.tenant_id) })).filter((x) => x.t);
+    const quiet = [...state.rows.values()].filter((u) => u.quiet && hasLogin(u.tenant_id)).map((u) => ({ u, t: C().tenant(u.tenant_id) })).filter((x) => x.t);
     if (!quiet.length) return '';
-    return `<section class="q-group" aria-labelledby="q-quiet-h" data-qf="other"><h2 id="q-quiet-h">Quiet on the dashboard <span class="meta">${quiet.length}</span></h2>
+    return `<section class="q-group us-quiet" aria-labelledby="q-quiet-h" data-qf="other"><h2 id="q-quiet-h">Quiet on the dashboard <span class="meta">${quiet.length}</span></h2>
       <p class="lede">They wrote by text, email or phone in the last 14 days but have not opened their dashboard in 7. Put the next request inside it and send them: <q>${esc(REPLY)}</q> <button class="linkish" type="button" data-us-copy>Copy the line</button></p>
       <ul class="q">${quiet.map(({ u, t }) => `<li><a class="todo-row" href="#/client/${esc(t.id)}/overview"><span class="chip warn">Quiet</span><span class="text">${esc(t.name)}: ${C().plural(u.outside_14d, 'message')} from outside, dashboard ${esc(ago(u.last_seen_at, 'never opened'))}</span><span class="meta">${esc(ago(u.last_outside_at, ''))}</span></a></li>`).join('')}</ul></section>`;
   }

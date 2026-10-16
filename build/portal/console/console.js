@@ -592,9 +592,11 @@
       const a = doc.approvals[x.approval_id];
       if (a && x.decision === 'changes') needs.push({ kind: 'changes', label: 'Changes requested', text: `${a.title}${x.comment ? ': ' + x.comment : ''}`, at: x.at, href: go('talk'), rank: 1 });
       // They said yes in the last 30 days and nobody told them it is done yet (2026-10-16: close the loop on their Home).
-      if (a && x.decision === 'approved' && !(a.done && a.done.at) && Date.parse(x.at) > Date.now() - 30 * 86400000) {
+      if (a && a.trackDone && x.decision === 'approved' && !(a.done && a.done.at) && Date.parse(x.at) > Date.now() - 30 * 86400000) {
         // New hours and specials are the urgent ones: Google, Apple Maps and their website still show the old ones.
-        const urgent = a.kind === 'hours' || a.kind === 'special';
+        // Hours that start later are urgent only from two days before they start.
+        const startsLater = a.kind === 'hours' && a.from && Date.parse(a.from) > Date.now() + 2 * 86400000;
+        const urgent = (a.kind === 'hours' || a.kind === 'special') && !startsLater;
         needs.push({ kind: 'finish', label: urgent ? 'Confirmed, do now' : 'Approved', hint: a.kind === 'hours' ? 'Change Google, Apple Maps and their website, then mark it done' : urgent ? 'Post it, add it to Google and their website, then mark it done' : 'They said yes. Do it, then mark it done so their Home says so',
           text: a.kind === 'hours' ? `${a.title}: update Google, Apple Maps and the site, then mark it done` : urgent ? `${a.title}: post it and add it to Google and the site, then mark it done` : `${a.title}: do it, then mark it done`, at: x.at, href: go('talk', ['finish']), rank: urgent ? 0 : 2, late: urgent });
       }
@@ -3535,7 +3537,7 @@
     const sentBack = apvs.filter((x) => x.ans && x.ans.decision !== 'approved').sort((x, y) => String(y.ans.at).localeCompare(String(x.ans.at)));
     const approved = apvs.filter((x) => x.ans && x.ans.decision === 'approved').sort((x, y) => String(y.ans.at).localeCompare(String(x.ans.at)));
     // Approved in the last 30 days and not marked done: the team finishes it, then their Home says it is done.
-    const toFinish = approved.filter((x) => !(x.a.done && x.a.done.at) && Date.parse(x.ans.at) > Date.now() - 30 * 86400000);
+    const toFinish = approved.filter((x) => x.a.trackDone && !(x.a.done && x.a.done.at) && Date.parse(x.ans.at) > Date.now() - 30 * 86400000);
     const waiting = apvs.filter((x) => !x.ans).sort((x, y) => Number(!!(y.d && y.d.late)) - Number(!!(x.d && x.d.late)) || String(x.a.due || '9999').localeCompare(String(y.a.due || '9999')));
     const posts = (d.updates || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
     const removeBtn = (/** @type {string} */ attr, /** @type {string} */ id) => `<button class="linkish quiet-act" type="button" ${attr}="${esc(id)}">Remove</button>`;
@@ -3554,9 +3556,9 @@
     const DONE_LINES = ['Posted.', 'Scheduled. They go out on the planned days.', 'Hours updated on Google and the site.', 'Special is live on Google, Instagram and the site.', 'Menu updated on the site and Google.', 'Done.'];
     const finishCard = (/** @type {any} */ x) => `<li class="item-card"><div class="item-top"><span class="item-title">${esc(x.a.title)}</span><span class="r"><span class="chip good">Approved ${esc(ago(x.ans.at))}</span></span></div>
         <form class="finish-form" data-finish="${esc(x.a.id)}" novalidate><label class="sr-only" for="fd-${esc(x.a.id)}">What their Home says</label>
-          <input id="fd-${esc(x.a.id)}" name="line" type="text" maxlength="140" list="done-lines" value="${esc(x.a.kind === 'hours' || (x.a.preview && x.a.preview.type === 'hours') ? DONE_LINES[2] : x.a.kind === 'special' ? DONE_LINES[3] : x.a.service === 'social' ? DONE_LINES[1] : 'Done.')}" aria-describedby="fd-h-${esc(x.a.id)}">
+          <input id="fd-${esc(x.a.id)}" name="line" type="text" maxlength="140" list="done-lines" placeholder="${esc(x.a.kind === 'hours' ? DONE_LINES[2] : x.a.kind === 'special' ? DONE_LINES[3] : x.a.service === 'social' ? DONE_LINES[1] : 'Done.')}" aria-describedby="fd-h-${esc(x.a.id)}">
           <button class="btn btn-sm" type="submit">Mark done and tell them</button>
-          <p class="meta" id="fd-h-${esc(x.a.id)}">Their Home shows this line for a week. Only say what really happened.</p></form></li>`;
+          <p class="meta" id="fd-h-${esc(x.a.id)}">Pick or type what you did. Their Home shows this line for a week, so only say what really happened.</p></form></li>`;
     const msgLi = (/** @type {any} */ m) => `<li class="msg${m.from_staff ? ' team' : ''}"><p>${esc(m.body)}</p><p class="meta">${esc(m.by_name || (m.from_staff ? 'Domin8te' : 'Client'))}, ${esc(when(m.at))}</p></li>`;
     const needCount = (unanswered.length ? 1 : 0) + openReqs.length + sentBack.length;
     const opener = (/** @type {string} */ id, /** @type {string} */ label, /** @type {boolean} */ open, /** @type {boolean} */ main) => `<button class="btn btn-sm${main ? '' : ' btn-quiet'}" type="button" data-action="reveal" aria-expanded="${open}" aria-controls="${id}">${icon('plus')}${label}</button>`;
@@ -3645,6 +3647,7 @@
           await saveDoc((doc) => {
             const a = doc.approvals[apvId];
             if (!a) throw new Error('This approval is no longer there.');
+            if (a.done && a.done.at) throw new Error(`${a.done.by || 'Someone'} already marked this done.`);
             const at = new Date().toISOString();
             a.done = { text: line, at, by: me.name };
             doc.updates.push({ id: newId('upd'), date: today(), service: a.service || null, author: 'team', title: `${a.title}: done`, completed: line });
@@ -3726,8 +3729,8 @@
         if (empty >= 0) { fieldFail($(`#a-h${empty}`, box), `Fill in ${HOUR_DAYS[empty]} (or write Closed).`); return; }
         preview = { type: 'hours', rows };
         const from = val(af, 'hfrom');
-        detail = detail || `${hoursLine(rows)}${from ? ` From ${when(from)}.` : ''}`.slice(0, 200);
-        intro = intro || `Check each day. Once you confirm, we change Google, Apple Maps and your website${from ? `, from ${when(from)}` : ''}.`;
+        detail = detail || `${hoursLine(rows)}${from ? ` From ${when(from)}.` : ''}`;
+        intro = intro || `Check each day. Once you confirm, we update your hours everywhere we look after for you${from ? `, from ${when(from)}` : ''}, and tell you here when it is done.`;
       }
       if (kind === 'special') {
         const sname = val(af, 'sname');
@@ -3736,16 +3739,16 @@
         const items = [`${sname}${price ? `, ${/^[0-9]/.test(price) ? '$' + price : price}` : ''}`, val(af, 'sdates') ? `Runs ${val(af, 'sdates')}` : '', val(af, 'sdesc')].filter(Boolean);
         preview = { type: 'list', items };
         detail = detail || items.slice(0, 2).join('. ').slice(0, 200);
-        intro = intro || 'Check the name, price and days. Once you approve, we post it and add it to Google and your website.';
+        intro = intro || 'Check the name, price and days. Once you approve, we put it out and tell you here when it is live.';
       }
       const special = kind === 'hours' || kind === 'special' ? kind : null;
       const done = busy($('button[type=submit]', af), 'Sending');
       try {
         await saveDoc((doc) => {
           doc.approvals[apvId] = {
-            id: apvId, actionId: actId, service, title, due: dueOn || null, intro, preview, kind: special,
-            approve: special === 'hours' ? { label: 'Confirm these hours', done: "Confirmed. We're changing Google, Apple Maps and your website now." }
-              : special === 'special' ? { label: 'Approve the special', done: "Approved. We're posting it and adding it to Google and your website now." }
+            id: apvId, actionId: actId, service, title, due: dueOn || null, intro, preview, kind: special, trackDone: true, from: special === 'hours' ? val(af, 'hfrom') || null : null,
+            approve: special === 'hours' ? { label: 'Confirm these hours', done: "Confirmed. We're updating your hours and will tell you here when it's done." }
+              : special === 'special' ? { label: 'Approve the special', done: "Approved. We're putting it out and will tell you here when it's live." }
               : { label: 'Approve', done: "Approved. Thanks, we'll take it from here." },
             change: special === 'hours' ? { label: 'Something is wrong', done: "Thanks. We'll fix the hours and check them with you again." }
               : { label: 'Request changes', done: "Thanks. We'll make the changes and send it back to you." },

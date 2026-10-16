@@ -85,10 +85,15 @@ begin
     ex := ex || jsonb_build_array(jsonb_build_object('label', 'Reviews answered', 'value', trim_scale(v)::text));
     s_ex := s_ex || ('Reviews answered: ' || trim_scale(v)::text || '.');
   end if;
-  if jsonb_array_length(nums) = 0 and jsonb_array_length(ex) = 0 then return null; end if;
+  -- Nothing verified any more (a number was hidden or rejected): the old row goes, so Home never keeps a stale week.
+  if jsonb_array_length(nums) = 0 and jsonb_array_length(ex) = 0 then
+    delete from public.weekly_summaries where tenant_id = p_tenant and week_start = p_week_start;
+    return null;
+  end if;
+  -- The week is the last full one: "Last week" is it, "The week before" the one it is compared with.
   words := concat_ws(' ',
-    case when cardinality(s_before) > 0 then 'Last week: ' || array_to_string(s_before, ', ') || '.' end,
-    case when cardinality(s_now) > 0 then 'This week: ' || array_to_string(s_now, ', ') || '.' end,
+    case when cardinality(s_now) > 0 then 'Last week: ' || array_to_string(s_now, ', ') || '.' end,
+    case when cardinality(s_before) > 0 then 'The week before: ' || array_to_string(s_before, ', ') || '.' end,
     nullif(array_to_string(s_ex, ' '), ''));
   insert into public.weekly_summaries as w (tenant_id, week_start, week_end, numbers, extras, sentence, built_at)
   values (p_tenant, p_week_start, p_week_start + 6, nums, ex, words, now())
@@ -105,6 +110,10 @@ create or replace function public.build_weekly_summaries() returns integer
 language plpgsql security definer set search_path = '' as $$
 declare t record; n integer := 0;
 begin
+  -- Visits older than 180 days are not needed for "last visit" or the quiet flag.
+  if to_regclass('public.client_activity') is not null then
+    execute 'delete from public.client_activity where kind = ''seen'' and at < now() - interval ''180 days''';
+  end if;
   for t in select id from public.tenants where status <> 'archived' order by created_at, id loop
     begin
       -- (.id: a row value IS NOT NULL only when every field is set, and opened_at is usually null)

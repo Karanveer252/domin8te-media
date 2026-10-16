@@ -9,6 +9,7 @@
     const ids = t && t.doc && t.doc.approvals ? Object.keys(t.doc.approvals) : [];
     const id = ids.find((k) => !(db.decisions || []).some((/** @type {any} */ d) => d.approval_id === k));
     if (!id) return;
+    t.doc.approvals[id].trackDone = true;
     (db.decisions = db.decisions || []).push({ tenant_id: 'tnt_preview_bayleaf', approval_id: id, decision: 'approved', comment: '', by_name: 'Dani', at: new Date(Date.now() - 26 * 3600000).toISOString() });
   });
 })();

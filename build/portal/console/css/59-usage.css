@@ -15,3 +15,8 @@
   .us-facts { grid-template-columns: minmax(0, 1fr); }
   .us-log { grid-template-columns: minmax(0, 1fr); }
 }
+/* Needs you: each quiet client is a card, like the other rows there, so it reads on every background (Scenes too). */
+.us-quiet .todo-row { padding: 11px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.us-quiet .todo-row:hover { border-color: var(--line-2); box-shadow: var(--shadow); }
+/* The intro sits on the Scenes sky with the other Needs you headings: its Copy link turns light with it. */
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > .us-quiet > .lede .linkish { color: #FFFFFF; text-decoration-color: rgba(255, 255, 255, 0.7); }

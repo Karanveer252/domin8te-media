@@ -30,10 +30,15 @@
     { key: 'reviews_answered', label: 'Reviews answered', unit: 'reviews', service: 'local' },
     { key: 'specials_posted', label: 'Specials posted', unit: 'specials', service: 'social' }
   ];
-  /** Last week, Monday to Sunday, on this computer's clock: the period the client's weekly summary reads. */
-  function lastWeek() {
-    const d = new Date();
-    d.setHours(12, 0, 0, 0);
+  /**
+   * Last week, Monday to Sunday, on the restaurant's own clock (its record's timezone, else Winnipeg), the same week the
+   * server's weekly summary reads. @param {any} [t] the client
+   */
+  function lastWeek(t) {
+    const zone = (t && t.doc && typeof t.doc.timezone === 'string' && t.doc.timezone) || 'America/Winnipeg';
+    let today;
+    try { today = new Date().toLocaleDateString('en-CA', { timeZone: zone }); } catch (e) { today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Winnipeg' }); }
+    const d = new Date(today + 'T12:00:00');
     d.setDate(d.getDate() - ((d.getDay() + 6) % 7) - 7);
     const iso = (/** @type {Date} */ x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
     const end = new Date(d);
@@ -344,7 +349,7 @@
     box.addEventListener('click', async (e) => {
       const target = /** @type {HTMLElement} */ (e.target);
       if (target.closest('[data-rs-lastweek]')) {
-        const [a, b] = lastWeek();
+        const [a, b] = lastWeek(t);
         for (const [n, v] of [['start', a], ['end', b]]) {
           const inp = /** @type {HTMLInputElement} */ (f.elements.namedItem(n));
           inp.value = v;

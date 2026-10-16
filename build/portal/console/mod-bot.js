@@ -770,7 +770,7 @@
         location.hash = `#/messages/${r.tenant_id}`;
       } else if (what === 'to-approval' || what === 'to-update') {
         // Into the client's dashboard (2026-10-16): the Talk tab's own form, filled in, so the team checks it and sends it there.
-        talkHandoff = { tenantId: r.tenant_id, text: r.final_text || r.draft, kind: what === 'to-approval' ? 'approval' : 'update', label: String(r.kind || '') };
+        talkHandoff = { tenantId: r.tenant_id, text: r.final_text || r.draft, kind: what === 'to-approval' ? 'approval' : 'update', label: String(r.kind || ''), at: Date.now() };
         location.hash = `#/client/${r.tenant_id}/talk/${talkHandoff.kind}`;
       }
     };
@@ -1192,7 +1192,7 @@
   }
 
   /** Messages calls this once its reply box is drawn: fills the box with text handed over from an approved card (the person still sends it). @param {string} tenantId */
-  /** An approved draft on its way to the Talk tab's approval or update form. @type {{tenantId: string, text: string, kind: string, label: string}|null} */
+  /** An approved draft on its way to the Talk tab's approval or update form. @type {{tenantId: string, text: string, kind: string, label: string, at: number}|null} */
   let talkHandoff = null;
   /**
    * Fills the Talk tab's "Ask for an approval" or "Post an update" form with an approved draft: the first line is the
@@ -1201,12 +1201,14 @@
    */
   function fillTalk(tenantId, box) {
     const h = talkHandoff;
-    if (!h || h.tenantId !== tenantId) return;
     talkHandoff = null;
+    // only the hand-over made a moment ago: an old one never fills a later visit
+    if (!h || h.tenantId !== tenantId || Date.now() - h.at > 15000) return;
     const lines = String(h.text).split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
     // Several lines: the first is the title. One line: the draft's kind is the title and the line is the body.
     const one = lines.length < 2;
-    const head = one ? (h.label || (h.kind === 'approval' ? 'Please check this' : 'Update')) : (lines.shift() || '').replace(/[.:]+$/, '');
+    const named = h.label && !/^general$/i.test(h.label) ? h.label : '';
+    const head = one ? (named || (h.kind === 'approval' ? 'Please check this' : 'Update')) : (lines.shift() || '').replace(/[.:]+$/, '');
     /** @param {string} sel @param {string} v */
     const put = (sel, v) => {
       const el = /** @type {HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement|null} */ (box.querySelector(sel));

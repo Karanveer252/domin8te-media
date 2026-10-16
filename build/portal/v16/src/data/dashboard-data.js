@@ -732,6 +732,8 @@
         const dec = d[ap.id];
         if (!dec || dec.decision !== 'approved' || !inPackage(ap.service)) continue;
         const done = ap.done && ap.done.at && ap.done.text ? ap.done : null;
+        // approvals sent before close-the-loop (no trackDone) are never shown as "being done"
+        if (!done && !ap.trackDone) continue;
         const at = done ? done.at : dec.at;
         if (!at || today - T.dayNum(at) > 7 || T.dayNum(at) > today) continue;
         out.push({ id: ap.id, title: String(ap.title || ''), service: ap.service || null, stage: done ? 'done' : 'doing', at,

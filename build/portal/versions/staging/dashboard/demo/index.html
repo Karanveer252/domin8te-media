@@ -5080,6 +5080,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
             { day: 'Fri 2 Oct', channels: 'Facebook and Instagram', image: 'Your photo: brunch table', text: 'Weekend brunch starts at 9. Shakshuka, pancakes and good coffee. See you Saturday.' }
           ]
         },
+        trackDone: true,
         approve: { label: 'Approve posts', done: "Approved. We'll schedule them for Mon, Wed and Fri." },
         change: { label: 'Request changes', done: "Thanks. We'll revise the posts and send them back to you." },
         effects: {
@@ -5094,6 +5095,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           type: 'hours',
           rows: [['Monday', 'Closed'], ['Tuesday', '12:00 to 21:30'], ['Wednesday', '12:00 to 21:30'], ['Thursday', '12:00 to 22:00'], ['Friday', '12:00 to 23:00'], ['Saturday', '10:00 to 23:00'], ['Sunday', '10:00 to 17:00']]
         },
+        trackDone: true,
         approve: { label: 'Confirm these hours', done: "Confirmed. We'll update Google, Apple Maps and your website on Thu 1 Oct." },
         change: { label: 'Something is wrong', done: "Thanks. We'll correct the hours and check them with you before Thu 1 Oct." },
         effects: {
@@ -6179,6 +6181,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         const dec = d[ap.id];
         if (!dec || dec.decision !== 'approved' || !inPackage(ap.service)) continue;
         const done = ap.done && ap.done.at && ap.done.text ? ap.done : null;
+        // approvals sent before close-the-loop (no trackDone) are never shown as "being done"
+        if (!done && !ap.trackDone) continue;
         const at = done ? done.at : dec.at;
         if (!at || today - T.dayNum(at) > 7 || T.dayNum(at) > today) continue;
         out.push({ id: ap.id, title: String(ap.title || ''), service: ap.service || null, stage: done ? 'done' : 'doing', at,
@@ -9506,23 +9510,27 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   const weekWord = (n, v) => { const w = /** @type {any} */ (WEEK_WORD)[n.id]; return w ? F.plural(v, w[0], w[1]) : String(n.unit || ''); };
   const hasNum = (/** @type {any} */ v) => v !== null && v !== undefined;
 
-  /** "This week": one sentence, up to three numbers with last week's beside them, and what staff recorded. @param {any} wk */
+  /**
+   * "Last week" (the last full Monday to Sunday, or the last 7 days in the demo): one sentence, up to three numbers with
+   * the week before beside them, and what staff recorded. The lead moves only on a real change: the average change of the
+   * numbers that can be compared, 10 percent either way, so one call less never reads as a quiet week. @param {any} wk
+   */
   function weekBlock(wk) {
     if (!wk || !wk.numbers || !wk.numbers.length) {
-      return UI.EmptyState({ icon: 'results', title: 'Your first weekly summary comes on Monday.', text: 'It puts this week next to last week: calls, directions and bookings, in plain words.' });
+      return UI.EmptyState({ icon: 'results', title: 'No weekly numbers yet.', text: 'Calls, directions and bookings show here, next to the week before, once we have checked them.' });
     }
     const nums = wk.numbers;
     const compared = nums.filter((/** @type {any} */ n) => hasNum(n.before));
-    const ups = compared.filter((/** @type {any} */ n) => n.now > n.before).length;
-    const downs = compared.filter((/** @type {any} */ n) => n.now < n.before).length;
-    const lead = !compared.length ? 'Your first week of numbers.' : ups > downs ? 'Busier than last week.' : downs > ups ? 'Quieter than last week.' : 'About the same as last week.';
+    const moves = compared.filter((/** @type {any} */ n) => n.before > 0).map((/** @type {any} */ n) => (n.now - n.before) / n.before);
+    const avg = moves.length ? moves.reduce((/** @type {number} */ a, /** @type {number} */ b) => a + b, 0) / moves.length : 0;
+    const lead = !compared.length ? 'Your first week of checked numbers.' : avg >= 0.1 ? 'Busier than the week before.' : avg <= -0.1 ? 'Quieter than the week before.' : 'About the same as the week before.';
     const said = (/** @type {'now'|'before'} */ k) => nums.filter((/** @type {any} */ n) => hasNum(n[k])).map((/** @type {any} */ n) => `${F.num(n[k])} ${weekWord(n, n[k])}`).join(', ');
     const extras = (wk.extras || []).filter((/** @type {any} */ x) => x && x.label).map((/** @type {any} */ x) => `${x.label}: ${x.value}.`).join(' ');
-    const line = `${compared.length ? `Last week: ${said('before')}. ` : ''}This week: ${said('now')}.`;
+    const line = `Last week: ${said('now')}.${compared.length ? ` The week before: ${said('before')}.` : ''}`;
     const cells = nums.map((/** @type {any} */ n) => {
       const had = hasNum(n.before);
       const dir = !had ? '' : n.now > n.before ? 'up' : n.now < n.before ? 'down' : 'flat';
-      return `<li class="wn${dir ? ' is-' + dir : ''}"><span class="wn-val">${esc(F.num(n.now))}</span><span class="wn-word">${esc(weekWord(n, n.now))}</span>${had ? `<span class="wn-was">${esc(F.num(n.before))} last week</span>` : ''}</li>`;
+      return `<li class="wn${dir ? ' is-' + dir : ''}"><span class="wn-val">${esc(F.num(n.now))}</span><span class="wn-word">${esc(weekWord(n, n.now))}</span>${had ? `<span class="wn-was">${esc(F.num(n.before))} the week before</span>` : ''}</li>`;
     }).join('');
     return `<div class="card week-card" data-week="${esc(wk.id || '')}">
       <p class="week-lead">${esc(lead)}</p>
@@ -9536,7 +9544,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   /**
    * One next step, picked by a fixed order: answer what is waiting, read our reply, the meeting this week, otherwise
    * how to ask for something. Always one sentence and one button.
-   * A client who has never answered anything (first week) gets one real first job instead: the first card, or their hours.
+   * A client who has never answered anything gets their first real job instead, while one waits: the first card.
    * @param {number} waiting @param {number} unread @param {any} a the account @param {Date} now @param {boolean} [first]
    */
   function nextStep(waiting, unread, a, now, first) {
@@ -9547,7 +9555,6 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     /** @type {string[]} icon, words, button */
     let s;
     if (first && waiting > 0) s = ['check', 'Your first job here: the card at the top. One tap to approve, or tell us what to change. That is how all the work comes to you from now on.', '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Start with it</button>'];
-    else if (first) s = ['clock', 'Your first job: are your opening hours right? If anything is off, tell us here. We fix Google, Apple Maps and your website.', '<button class="btn btn-tint btn-sm" type="button" data-action="compose" data-mode="request" data-service="urgent">Check your hours</button>'];
     else if (waiting > 0) s = ['check', waiting === 1 ? 'Answer the one thing above and you are done for now.' : `Answer the ${waiting} things above. It takes about a minute.`, '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Start with the first</button>'];
     else if (unread > 0) s = ['message', unread === 1 ? 'We replied to your message.' : `We sent you ${unread} replies.`, `<a class="btn btn-tint btn-sm" href="#/messages">Read ${unread === 1 ? 'it' : 'them'}</a>`];
     else if (soon) s = ['calendar', `Our next meeting is ${day(m.at)}${timed ? ` at ${F.time(m.at)}` : ''}. Anything to add first?`, '<a class="btn btn-glass btn-sm" href="#/messages">Message us</a>'];
@@ -9556,7 +9563,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     return `<div class="card next-card"><span class="next-icon">${icon(s[0])}</span><p class="next-text">${esc(s[1])}</p>${s[2]}</div>`;
   }
 
-  /** "Just done": what they approved lately and where it stands, for a week. @param {any[]} list @param {Date} now */
+  /** "Approved lately": what they approved and where it stands, for a week. @param {any[]} list @param {Date} now */
   function doneBlock(list, now) {
     if (!list || !list.length) return '';
     return `<ul class="done-list">${list.map((/** @type {any} */ x) => `<li class="done-item is-${x.stage === 'done' ? 'done' : 'doing'}">
@@ -9566,7 +9573,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   }
 
   /** The Undo window after Approve on a card, before the answer is saved. */
-  const HOLD_MS = 5000;
+  const HOLD_MS = 8000;
 
   const home = {
     title: () => 'Home',
@@ -9577,16 +9584,17 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       return `<div class="page page-home is-narrow">
         ${UI.PageHeader({ cls: 'is-home', title: `${F.greeting(now)}, ${a.user.firstName}.`, intro: '<span id="home-summary">Checking your account.</span>', introHtml: true, sample: a.business.name })}
         ${UI.PageFresh({ updatedAt: a.updatedAt || D8.time.isoTime(now), source: 'Domin8te console', zone: a.zoneAbbr, status: a.problems && a.problems.length ? 'delayed' : 'ok', label: a.problems && a.problems.length ? `${a.problems.length} ${F.plural(a.problems.length, 'account needs', 'accounts need')} a look` : '' })}
+        <p class="sr-only" id="home-live" role="status" aria-live="polite"></p>
         <section class="sec sec-attention" aria-labelledby="h-attention">
           ${UI.SectionHead('h-attention', 'Waiting for you')}
           <div id="home-attention">${UI.Skeleton('row', 2)}</div>
         </section>
         <section class="sec sec-done" aria-labelledby="h-done" hidden>
-          ${UI.SectionHead('h-done', 'Just done')}
+          ${UI.SectionHead('h-done', 'Approved lately')}
           <div id="home-done"></div>
         </section>
         <section class="sec sec-week" aria-labelledby="h-week">
-          ${UI.SectionHead('h-week', 'This week')}
+          ${UI.SectionHead('h-week', 'Last week')}
           <div id="home-week">${UI.Skeleton('card', 1)}</div>
         </section>
         <section class="sec sec-next" aria-labelledby="h-next">
@@ -9614,11 +9622,15 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       const staffSection = (k) => (ctx.account.homeSections || []).find((/** @type {any} */ s) => s.section === k) || null;
       /** First week: the header says what this page is for, once, until their first answer. */
       let firstTime = false;
+      /** What still waits: an answer in its Undo window no longer counts. */
+      const waitingNow = () => Math.max((count || 0) - held.size, 0);
       const summary = () => {
         if (count === null) return;
-        const said = count < 0 ? 'We could not check what is waiting for you just now.' : count ? `${count} ${F.plural(count, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.';
-        setText(el, '#home-summary', firstTime && count >= 0 ? `Welcome to your dashboard. Approvals, updates and your numbers all come here. ${said}` : said);
+        const n = waitingNow();
+        const said = count < 0 ? 'We could not check what is waiting for you just now.' : n ? `${n} ${F.plural(n, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.';
+        setText(el, '#home-summary', firstTime && n > 0 ? `Welcome to your dashboard. Approvals, updates and your numbers all come here. ${said}` : said);
       };
+      const live = (/** @type {string} */ t) => setText(el, '#home-live', t);
       const setFirst = (/** @type {boolean} */ f) => { if (f !== firstTime) { firstTime = f; summary(); } };
       const more = /** @type {HTMLDetailsElement|null} */ (el.querySelector('#home-more'));
       const moreOpen = () => !!(more && more.open);
@@ -9644,7 +9656,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           return doneBlock(list, now());
         }, () => { const sec = /** @type {HTMLElement|null} */ (el.querySelector('.sec-done')); if (sec) sec.hidden = true; return { title: '', text: '' }; }),
         week: () => section(el, '#home-week', () => ctx.client.getWeekly(), (wk) => {
-          if (wk && wk.id && ctx.client.markWeeklySeen) setTimeout(() => { ctx.client.markWeeklySeen(wk.id).catch(() => {}); }, 0);
+          if (wk && wk.id) setTimeout(() => watchSeen(wk.id), 0);
           return weekBlock(wk);
         },
           () => ({ title: "We couldn't load this week's numbers.", text: 'The rest of this page works.', retry: 'week' })),
@@ -9655,7 +9667,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
             ([n, fw]) => {
               const first = !!(fw && fw.first);
               setFirst(first);
-              return nextStep(Math.max(count || 0, 0), Number(n) || 0, ctx.account, now(), first);
+              return nextStep(waitingNow(), Number(n) || 0, ctx.account, now(), first);
             },
             () => ({ title: "We couldn't work out your next step.", text: 'The rest of this page works.', retry: 'next' }));
         },
@@ -9675,6 +9687,25 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           return `<div class="home-cols">${D8.plan.runningNow(m, { summary: list, actions: acts, staff: staffSection('running_now') })}${changing ? D8.plan.whatChanges(m, staffSection('next_month')) : D8.plan.comingUp(m, staffSection('next_month'), ctx.account.user.email)}</div>${note && D8.plan.staffNote(note) ? `<section class="card home-note" aria-label="A note from Domin8te">${D8.plan.staffNote(note)}</section>` : ''}`;
         }, () => ({ title: "We couldn't load your plan.", text: 'The rest of this page works.', retry: 'plan' })) : Promise.resolve(null))
       };
+      /**
+       * Opened means read: the summary counts as opened once at least half of it has been on screen for a second
+       * (live only; the data layer never writes in the demo or view-as, and tells the server once).
+       * @param {string} id
+       */
+      let seenWatch = /** @type {IntersectionObserver|null} */ (null);
+      const watchSeen = (id) => {
+        const card = el.querySelector('#home-week .week-card');
+        if (!card || !ctx.client.markWeeklySeen) return;
+        if (seenWatch) seenWatch.disconnect();
+        if (typeof IntersectionObserver !== 'function') return;
+        /** @type {any} */ let t = null;
+        seenWatch = new IntersectionObserver((list) => {
+          const on = list.some((e) => e.isIntersecting && e.intersectionRatio >= 0.5);
+          clearTimeout(t);
+          if (on) t = setTimeout(() => { if (seenWatch) seenWatch.disconnect(); ctx.client.markWeeklySeen(id).catch(() => {}); }, 1000);
+        }, { threshold: [0, 0.5, 1] });
+        seenWatch.observe(card);
+      };
       // The folded part loads the first time it opens, and again on every refresh while it is open.
       let moreLoaded = moreOpen();
       if (moreLoaded) { loaders.plan(); loaders.strip(); }
@@ -9684,12 +9715,12 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       loaders.week();
 
       /* ---- approve on the card: Approve, a short Undo window, then saved ---------------------------------------- */
-      /** @type {Map<string, {timer: any, li: HTMLElement, html: string, title: string}>} */
+      /** @type {Map<string, {timer: any, li: HTMLElement, html: string, title: string, at: number}>} */
       const held = new Map();
       const cardFor = (/** @type {string} */ id) => /** @type {HTMLElement|null} */ ([...el.querySelectorAll('.act-card[data-approval]')].find((c) => c.getAttribute('data-approval') === id) || null);
       /** @param {HTMLElement} li @param {string} title @param {string} text @param {string} btn */
       const cardState = (li, title, text, btn) => {
-        li.innerHTML = `<span class="act-icon">${icon('check')}</span><div class="act-main"><h3 class="act-title">${esc(title)}</h3><p class="act-detail" role="status">${esc(text)}</p></div>${btn ? `<div class="act-do">${btn}</div>` : ''}`;
+        li.innerHTML = `<span class="act-icon">${icon('check')}</span><div class="act-main"><h3 class="act-title">${esc(title)}</h3><p class="act-detail">${esc(text)}</p></div>${btn ? `<div class="act-do">${btn}</div>` : ''}`;
       };
       /** @param {string} id */
       const restore = (id) => {
@@ -9701,10 +9732,12 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         h.li.innerHTML = h.html;
         return h;
       };
-      /** @param {string} id */
+      /** The card's heading takes focus after each change, so focus never falls back to the top of the page. @param {HTMLElement} li */
+      const focusCard = (li) => { const t = /** @type {HTMLElement|null} */ (li.querySelector('.act-title')); if (t && li.isConnected) { t.setAttribute('tabindex', '-1'); t.focus({ preventScroll: true }); } };
+      /** Saves one held answer. Resolves when it is saved or put back. @param {string} id @returns {Promise<void>} */
       const commit = (id) => {
         const h = held.get(id);
-        if (!h) return;
+        if (!h) return Promise.resolve();
         clearTimeout(h.timer);
         held.delete(id);
         cardState(h.li, `${h.title}: approved.`, 'Saving your answer.', '');
@@ -9712,32 +9745,42 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           h.li.classList.remove('is-held');
           h.li.classList.add('is-done');
           cardState(h.li, `${h.title}: approved.`, "Thanks. We'll take it from here.", '');
-          D8.dialogs.toast(`${h.title}: approved.`);
+          focusCard(h.li);
+          live(`${h.title}: approved and saved.`);
           if (count !== null && count > 0) { count -= 1; summary(); loaders.next(); }
           ctx.client.getAttention().then((/** @type {any[]} */ items) => ctx.setBadges(items)).catch(() => {});
-          // a moment later the card leaves Waiting for you and shows under Just done, with what happens next
-          setTimeout(() => { if (document.contains(h.li) && !held.size) { loaders.attention(); loaders.done(); } }, 2500);
+          // a moment later the card leaves Waiting for you and shows under Approved lately, with what happens next
+          setTimeout(() => { if (el.isConnected && !held.size) { loaders.attention(); loaders.done(); } }, 2500);
         };
-        D8.dialogs.slow(ctx.client.decide(id, 'approved', ''), 'Home').then(done).catch((/** @type {any} */ err) => {
+        return D8.dialogs.slow(ctx.client.decide(id, 'approved', ''), 'Home').then(done).catch((/** @type {any} */ err) => {
           if (err && err.code === 'already-decided') { done(); return; }
           h.li.classList.remove('is-held');
           h.li.innerHTML = h.html;
-          D8.dialogs.toast(err && err.code === 'slow' ? err.message : `We couldn't save your answer, so nothing changed. ${(err && err.message) || ''} Try again.`, { tone: 'error' });
+          focusCard(h.li);
+          const msg = err && err.code === 'slow' ? err.message : `We couldn't save your answer, so nothing changed. ${(err && err.message) || ''} Try again.`;
+          live(msg);
+          D8.dialogs.toast(msg, { tone: 'error' });
         });
       };
-      const flush = () => { [...held.keys()].forEach(commit); };
+      /** Saves every held answer now. @returns {Promise<any>} */
+      const flush = () => Promise.all([...held.keys()].map(commit));
+      // Leaving the tab or the app saves at once, while the page can still send (pagehide is often too late on phones).
+      const onHidden = () => { if (document.visibilityState === 'hidden') flush(); };
+      document.addEventListener('visibilitychange', onHidden);
       root.addEventListener('pagehide', flush);
 
       return {
         refresh() {
           const c = el.querySelector('#home-checked');
           if (c) c.innerHTML = checkedText(ctx.account, now());
-          // an answer still in its Undo window is saved first, so a refresh never drops it
-          flush();
-          loaders.attention();
-          loaders.done();
-          loaders.week();
-          if (moreLoaded) { loaders.plan(); loaders.strip(); }
+          // an answer still in its Undo window is saved first, and the page reads again only after it is saved
+          flush().then(() => {
+            if (!el.isConnected) return;
+            loaders.attention();
+            loaders.done();
+            loaders.week();
+            if (moreLoaded) { loaders.plan(); loaders.strip(); }
+          });
         },
         /** @param {string} which */
         retry(which) {
@@ -9757,11 +9800,15 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           }
           const id = t.dataset.id || '';
           if (act === 'undo-approve') {
+            const h0 = held.get(id);
+            // a quick second tap on the same spot is not an Undo
+            if (!h0 || Date.now() - h0.at < 600) return;
             const h = restore(id);
             if (!h) return;
-            const b = /** @type {HTMLElement|null} */ (h.li.querySelector('[data-action="quick-approve"]'));
-            if (b) b.focus();
-            D8.dialogs.toast(`${h.title}: not approved yet.`);
+            summary();
+            loaders.next();
+            focusCard(h.li);
+            live(`${h.title}: not approved yet.`);
             return;
           }
           if (act !== 'quick-approve' || held.has(id)) return;
@@ -9771,14 +9818,16 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           // "Approve next week's posts" reads as "Next week's posts: approved."
           const raw = String((li.querySelector('.act-title') || {}).textContent || '').replace(/^(approve|confirm|review)\s+/i, '').trim();
           const title = raw ? raw[0].toUpperCase() + raw.slice(1) : 'This';
-          held.set(id, { timer: setTimeout(() => commit(id), HOLD_MS), li, html: li.innerHTML, title });
+          held.set(id, { timer: setTimeout(() => commit(id), HOLD_MS), li, html: li.innerHTML, title, at: Date.now() });
           li.classList.add('is-held');
-          cardState(li, `${title}: approved.`, 'Saving in 5 seconds. Changed your mind? Press Undo.', `<button class="btn btn-glass" type="button" data-action="undo-approve" data-id="${esc(id)}">Undo<span class="sr-only">: ${esc(title)}</span></button>`);
-          const u = /** @type {HTMLElement|null} */ (li.querySelector('[data-action="undo-approve"]'));
-          if (u) u.focus();
+          cardState(li, `${title}: approved.`, `Saving in ${HOLD_MS / 1000} seconds. Changed your mind? Press Undo.`, `<button class="btn btn-glass" type="button" data-action="undo-approve" data-id="${esc(id)}">Undo<span class="sr-only">: ${esc(title)}</span></button>`);
+          focusCard(li);
+          live(`${title}: approved. Saving in ${HOLD_MS / 1000} seconds. The Undo button is on the card.`);
+          summary();
+          loaders.next();
         },
         /** Leaving Home saves any answer still in its Undo window. */
-        leave() { flush(); root.removeEventListener('pagehide', flush); }
+        leave() { flush(); root.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', onHidden); if (seenWatch) seenWatch.disconnect(); }
       };
     }
   };
