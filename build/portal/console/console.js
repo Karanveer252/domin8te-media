@@ -949,7 +949,7 @@
         { name: 'Clients', hint: 'Page', href: '#/clients', icon: 'users' },
         { name: 'All work (every client\'s team cards)', hint: 'Page', href: '#/board', icon: 'board' },
         { name: 'Billing', hint: 'Page', href: '#/billing', icon: 'card' },
-        ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }, { name: 'Revenue: Income', hint: 'Page', href: '#/revenue/income', icon: 'trend' }, { name: 'Revenue: Costs', hint: 'Page', href: '#/revenue/costs', icon: 'trend' }, { name: 'Revenue: Years', hint: 'Page', href: '#/revenue/years', icon: 'trend' }] : []),
+        ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }, { name: 'Revenue: Income', hint: 'Page', href: '#/revenue/income', icon: 'trend' }, { name: 'Revenue: Costs', hint: 'Page', href: '#/revenue/costs', icon: 'trend' }, { name: 'Revenue: Years', hint: 'Page', href: '#/revenue/years', icon: 'trend' }, { name: 'Revenue: Personal', hint: 'Page', href: '#/revenue/personal', icon: 'trend' }] : []),
         { name: 'Settings', hint: 'Page', href: '#/settings', icon: 'gear' },
         { name: 'Team', hint: 'Settings', href: '#/settings', icon: 'users' },
         { name: 'Reload everything', hint: 'Action', act: 'refresh', icon: 'refresh' },
@@ -1380,7 +1380,7 @@
     else if (parts[0] === 'billing') billingPage(parts[1] || '');   // #/billing/<client id> opens that client's plan drawer (2026-10-13)
     else if (parts[0] === 'settings') settingsPage('');
     else if (parts[0] === 'messages') messagesPage(parts[1] || '');
-    else if (parts[0] === 'revenue' && partOf('revenue')) partOf('revenue').page(parts[1] || '', parts[2] || '');   // Revenue, owners only (mod-revenue.js, 2026-10-14)
+    else if (parts[0] === 'revenue' && partOf('revenue')) partOf('revenue').page(parts[1] || '', parts[2] || '', parts[3] || '');   // Revenue, owners only (mod-revenue.js, 2026-10-14)
     else if (parts[0] === 'bot' && partOf('bot')) partOf('bot').page(parts[1] || '');   // Bot chat (mod-bot.js, 2026-10-14)
     else queuePage();
     if (parts[0] !== 'client') stopPulling();

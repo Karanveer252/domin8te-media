@@ -551,3 +551,16 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
 /* the hidden words inside a cell (.sr-only, positioned) stay inside the scrolling box, so they never widen the page */
 .rv-years .table-wrap, .rv-table .table-wrap { position: relative; }
 .rv-years .table-wrap:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Business and Personal (2026-10-16): the switch above the month, the kinds of personal cost in the charts, and the read-only
+   business line in the Personal editors. */
+.rv-books { margin: 0 0 14px; }
+.rv-books .seg { display: inline-flex; }
+.rv-kc-home { fill: var(--kc-software); background: var(--kc-software); }
+.rv-kc-food { fill: var(--kc-team); background: var(--kc-team); }
+.rv-kc-transport { fill: var(--kc-marketing); background: var(--kc-marketing); }
+.rv-kc-bills { fill: var(--kc-phone); background: var(--kc-phone); }
+.rv-kc-health { fill: var(--kc-fees); background: var(--kc-fees); }
+.rv-kc-fun { fill: var(--cc-pink, #D9468C); background: var(--cc-pink, #D9468C); }
+.rv-kc-business { fill: var(--kc-other); background: var(--kc-other); }
+.rv-biz-line { margin: 4px 0 14px; }
+.rv-biz-line a { margin-left: 4px; font-weight: 600; }

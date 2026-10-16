@@ -33,7 +33,7 @@ const T = 'tnt_preview_bayleaf';
 // Revenue (2026-10-14): this month on Karan's clock (Winnipeg) and the month before it, as the page works them out.
 const MONTH_NOW = (() => { const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Winnipeg', year: 'numeric', month: '2-digit' }).formatToParts(new Date()); return `${p.find((x) => x.type === 'year').value}-${p.find((x) => x.type === 'month').value}`; })();
 const MONTH_LAST = (() => { const [y, m] = MONTH_NOW.split('-').map(Number); const t = y * 12 + (m - 1) - 1; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}`; })();
-const ROUTES = ['queue', 'messages', 'clients', 'board', 'billing', `billing/${T}`, 'revenue', `revenue/${MONTH_LAST}`, `revenue/${MONTH_NOW}/income`, `revenue/${MONTH_NOW}/costs`, `revenue/${MONTH_NOW}/years`, 'new', 'settings',
+const ROUTES = ['queue', 'messages', 'clients', 'board', 'billing', `billing/${T}`, 'revenue', `revenue/${MONTH_LAST}`, `revenue/${MONTH_NOW}/income`, `revenue/${MONTH_NOW}/costs`, `revenue/${MONTH_NOW}/years`, 'revenue/personal', `revenue/personal/${MONTH_NOW}/income`, `revenue/personal/${MONTH_NOW}/costs`, `revenue/personal/${MONTH_NOW}/years`, 'new', 'settings',
   `client/${T}/overview`, `client/${T}/work`, `client/${T}/work/cards`, `client/${T}/results`, `client/${T}/talk`, `client/${T}/home`, `client/${T}/visible`, `client/${T}/view`, `client/${T}/setup`, `client/${T}/advanced`,
   'client/tnt_preview_marlow/overview', 'client/tnt_preview_corner/visible',
   // Bot chat (2026-10-15): the list, a card, a card with a saved edit, an approved card with its history, the numbers, and a client's Bot tab and card.

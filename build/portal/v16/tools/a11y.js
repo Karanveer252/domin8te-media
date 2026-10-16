@@ -109,7 +109,10 @@ if (/v18h/.test(BUILD)) {
   // The plan release's console pages (2026-10-13): a client's plan drawer, the tabs it added, the plan columns, the stepped Add client form.
   const B = 'tnt_preview_bayleaf';
   // Revenue, the business dashboard (2026-10-14): the overview with its charts at 1440, 500, dark and the scenes look, and both editors open.
-  CASES = CASES.concat([{ route: 'revenue', w: 1440 }, { route: 'revenue', w: 500 }, { route: 'revenue', w: 1440, query: 'theme=dark' }, { route: 'revenue', w: 1440, query: 'scene=scenes' }, { route: 'revenue', w: 1440, query: 'scene=scenes&theme=dark' },
+  CASES = CASES.concat([{ route: 'revenue', w: 1440 }, { route: 'revenue', w: 500 },
+    // Revenue > Personal (2026-10-16): the same page on the personal ledger, its editors, light, dark and a phone
+    { route: 'revenue/personal', w: 1440 }, { route: 'revenue/personal', w: 500 }, { route: 'revenue/personal', w: 1440, query: 'theme=dark' },
+    { route: 'revenue/personal/income', w: 1440 }, { route: 'revenue/personal/costs', w: 500 }, { route: 'revenue', w: 1440, query: 'theme=dark' }, { route: 'revenue', w: 1440, query: 'scene=scenes' }, { route: 'revenue', w: 1440, query: 'scene=scenes&theme=dark' },
     { route: `revenue/${MONTH_NOW}/costs`, w: 1440 }, { route: `revenue/${MONTH_NOW}/costs`, w: 500 }, { route: `revenue/${MONTH_NOW}/costs`, w: 1440, query: 'theme=dark' }, { route: `revenue/${MONTH_NOW}/income`, w: 1440 }, { route: `revenue/${MONTH_NOW}/income`, w: 500, query: 'theme=dark' },
     // Previous months at the bottom of the Overview, with two rows open and the older months loaded
     { route: 'revenue', w: 1440, query: 'a11yopen=2' }, { route: 'revenue', w: 500, query: 'a11yopen=2' }, { route: 'revenue', w: 1440, query: 'theme=dark&a11yopen=2' }, { route: 'revenue', w: 1440, query: 'scene=scenes&a11yopen=1' },

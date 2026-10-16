@@ -2489,6 +2489,237 @@
 })();
 </script>
 <script>
+/* stub/95b-personal.js */
+// LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). Stand-ins for Revenue > Personal (migration
+// 20261016040000_personal_ledger.sql): the same rules as the database, and each month's business profit (or loss) read from the
+// business stand-ins (95-revenue.js) as one read-only line. Sample: pay from a job every month, rent, food, transport, bills.
+(function () {
+  'use strict';
+  const S = /** @type {any} */ (window).D8STUB;
+  if (!S) return;
+  const MAX = 2147483647;
+  const CATS = ['home', 'food', 'transport', 'bills', 'health', 'fun', 'other'];
+  /** @param {string} code @param {string} message */
+  const fail = (code, message) => { throw { code, message }; };
+  const owner = () => { if (S.businessOwner === false) fail('42501', 'business-owner-only'); };
+  function thisMonth() {
+    const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Winnipeg', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
+    return `${(p.find((x) => x.type === 'year') || {}).value}-${(p.find((x) => x.type === 'month') || {}).value}-01`;
+  }
+  /** @param {string} first @param {number} n */
+  function shift(first, n) {
+    const [y, m] = first.split('-').map(Number);
+    const t = y * 12 + (m - 1) + n;
+    return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}-01`;
+  }
+  /** @param {any} d */
+  function monthOf(d) {
+    if (!d) fail('22023', 'bad-month');
+    const m = String(d).slice(0, 7) + '-01';
+    if (m > thisMonth()) fail('22023', 'future-month');
+    return m;
+  }
+  /** @param {any} el */
+  function amount(el) {
+    const a = el.amount_minor;
+    if (typeof a !== 'number' || !Number.isFinite(a)) fail('22023', 'bad-amount');
+    if (a < 0) fail('22023', 'negative-amount');
+    if (!Number.isInteger(a) || a > MAX) fail('22023', 'bad-amount');
+    return a;
+  }
+  /** @param {any} el */
+  function labelOf(el) { const l = String(el.label == null ? '' : el.label).trim(); if (l.length < 1 || l.length > 60) fail('22023', 'bad-label'); return l; }
+  /** @param {any} lines */
+  function listOf(lines) {
+    const a = lines === null || lines === undefined ? [] : lines;
+    if (!Array.isArray(a)) fail('22023', 'bad-lines');
+    if (a.length > 80) fail('22023', 'too-many-lines');
+    for (const el of a) if (!el || typeof el !== 'object' || Array.isArray(el)) fail('22023', 'bad-lines');
+    return a;
+  }
+  const months = () => (S.db.personal_months = S.db.personal_months || []);
+  const income = () => (S.db.personal_income = S.db.personal_income || []);
+  const costs = () => (S.db.personal_costs = S.db.personal_costs || []);
+  const notes = () => (S.db.personal_notes = S.db.personal_notes || []);
+  const settings = () => { const x = S.db.personal_settings; return { income_goal_minor: x ? x.income_goal_minor : null, profit_goal_minor: x ? x.profit_goal_minor : null, tax_pct: x ? x.tax_pct : null }; };
+  const noteOf = (/** @type {string} */ m) => { const n = notes().find((/** @type {any} */ x) => x.month === m); return n ? n.note : null; };
+  const sum = (/** @type {any[]} */ a) => a.reduce((s, x) => s + (Number(x.amount_minor) || 0), 0);
+  const bySort = (/** @type {any} */ x, /** @type {any} */ y) => x.sort - y.sort;
+  /** app.personal_biz: the business's profit for a month and whether it has any line. @param {string} m */
+  function biz(m) {
+    const inc = (S.db.business_income || []).filter((/** @type {any} */ x) => x.month === m);
+    const cos = (S.db.business_costs || []).filter((/** @type {any} */ x) => x.month === m);
+    return { p: sum(inc) - sum(cos), has: inc.length + cos.length > 0 };
+  }
+  /** The business line as an income line or a cost line, or none. @param {string} m */
+  const bizIncome = (m) => { const b = biz(m); return b.has && b.p > 0 ? [{ id: null, kind: 'business', tenant_id: null, label: 'Business profit', amount_minor: b.p, received: true, sort: 0 }] : []; };
+  const bizCost = (m) => { const b = biz(m); return b.has && b.p < 0 ? [{ id: null, category: 'business', label: 'Business loss', amount_minor: -b.p, repeats: false, sort: 0 }] : []; };
+  /** app.personal_json. @param {string} m */
+  function monthJson(m) {
+    const mark = months().find((/** @type {any} */ x) => x.month === m);
+    const series = [];
+    for (let k = 23; k >= 0; k -= 1) {
+      const g = shift(m, -k);
+      const b = biz(g);
+      const inc = income().filter((/** @type {any} */ x) => x.month === g);
+      const cos = costs().filter((/** @type {any} */ x) => x.month === g);
+      /** @type {Record<string, number>} */ const kinds = {};
+      for (const c of cos) kinds[c.category] = (kinds[c.category] || 0) + c.amount_minor;
+      if (b.has && b.p < 0) kinds.business = -b.p;
+      series.push({ month: g, business_minor: b.p, income_minor: sum(inc) + Math.max(b.p, 0), costs_minor: sum(cos) + Math.max(-b.p, 0),
+        income_n: inc.length + (b.has && b.p > 0 ? 1 : 0), costs_n: cos.length + (b.has && b.p < 0 ? 1 : 0), other_minor: sum(inc),
+        due_minor: sum(inc.filter((/** @type {any} */ x) => x.received === false)), repeat_minor: sum(cos.filter((/** @type {any} */ x) => x.repeats)), kinds, clients: [] });
+    }
+    return JSON.parse(JSON.stringify({
+      month: m, book: 'personal', opened: !!mark, carried_from: mark ? mark.carried_from : null, note: noteOf(m), settings: settings(), business_minor: biz(m).p,
+      income: bizIncome(m).concat(income().filter((/** @type {any} */ x) => x.month === m).sort(bySort).map((/** @type {any} */ x) => ({ id: x.id, kind: 'other', tenant_id: null, label: x.label, amount_minor: x.amount_minor, received: x.received !== false, sort: x.sort }))),
+      costs: bizCost(m).concat(costs().filter((/** @type {any} */ x) => x.month === m).sort(bySort).map((/** @type {any} */ x) => ({ id: x.id, category: x.category, label: x.label, amount_minor: x.amount_minor, repeats: x.repeats, sort: x.sort }))),
+      series
+    }));
+  }
+  /** @param {any} el */
+  function costLine(el) {
+    if (!el || typeof el !== 'object' || Array.isArray(el)) fail('22023', 'bad-lines');
+    amount(el);
+    if (!CATS.includes(el.category)) fail('22023', 'bad-category');
+    if ('repeats' in el && typeof el.repeats !== 'boolean') fail('22023', 'bad-repeats');
+    return labelOf(el);
+  }
+
+  S.rpcs.personal_open_month = (/** @type {any} */ a) => {
+    owner();
+    const m = monthOf(a.p_month);
+    if (!months().some((/** @type {any} */ x) => x.month === m)) {
+      const before = costs().filter((/** @type {any} */ x) => x.month < m).map((/** @type {any} */ x) => x.month).sort();
+      const prev = before.length ? before[before.length - 1] : null;
+      months().push({ month: m, carried_from: prev, opened_at: S.now() });
+      if (prev && !costs().some((/** @type {any} */ x) => x.month === m)) {
+        for (const c of costs().filter((/** @type {any} */ x) => x.month === prev && x.repeats).sort(bySort)) costs().push({ ...c, id: `pc_${S.id()}`, month: m, repeats: true });
+      }
+    }
+    return monthJson(m);
+  };
+  S.rpcs.personal_save_income = (/** @type {any} */ a) => {
+    owner();
+    const m = monthOf(a.p_month);
+    const lines = listOf(a.p_lines);
+    for (const el of lines) {
+      if (el.tenant_id || el.kind === 'business') fail('22023', 'bad-lines');
+      amount(el);
+      if ('received' in el && typeof el.received !== 'boolean') fail('22023', 'bad-received');
+      labelOf(el);
+    }
+    S.db.personal_income = income().filter((/** @type {any} */ x) => x.month !== m);
+    lines.forEach((/** @type {any} */ el, /** @type {number} */ i) => income().push({ id: `pi_${S.id()}`, month: m, label: labelOf(el), amount_minor: el.amount_minor, received: el.received !== false, sort: i + 1 }));
+    return monthJson(m);
+  };
+  S.rpcs.personal_save_costs = (/** @type {any} */ a) => {
+    owner();
+    const m = monthOf(a.p_month);
+    const lines = listOf(a.p_lines);
+    for (const el of lines) costLine(el);
+    if (!months().some((/** @type {any} */ x) => x.month === m)) months().push({ month: m, carried_from: null, opened_at: S.now() });
+    S.db.personal_costs = costs().filter((/** @type {any} */ x) => x.month !== m);
+    lines.forEach((/** @type {any} */ el, /** @type {number} */ i) => costs().push({ id: `pc_${S.id()}`, month: m, category: el.category, label: labelOf(el), amount_minor: el.amount_minor, repeats: el.repeats !== false, sort: i + 1 }));
+    return monthJson(m);
+  };
+  S.rpcs.personal_mark_received = (/** @type {any} */ a) => {
+    owner();
+    if (!a.p_id || typeof a.p_received !== 'boolean') fail('22023', 'bad-lines');
+    const x = income().find((/** @type {any} */ l) => l.id === a.p_id);
+    if (!x) fail('P0002', 'not-found');
+    x.received = a.p_received;
+    return monthJson(x.month);
+  };
+  S.rpcs.personal_save_settings = (/** @type {any} */ a) => {
+    owner();
+    const g = (/** @type {any} */ v) => (v === null || v === undefined ? null : v);
+    const ig = g(a.p_income_goal), pg = g(a.p_profit_goal), tx = g(a.p_tax_pct);
+    for (const v of [ig, pg]) if (v !== null && (!Number.isInteger(v) || v < 1 || v > MAX)) fail('22023', 'bad-goal');
+    if (tx !== null && (typeof tx !== 'number' || !(tx > 0) || tx > 60 || Math.abs(Math.round(tx * 10) - tx * 10) > 1e-9)) fail('22023', 'bad-tax');
+    S.db.personal_settings = { income_goal_minor: ig, profit_goal_minor: pg, tax_pct: tx };
+    return settings();
+  };
+  S.rpcs.personal_save_note = (/** @type {any} */ a) => {
+    owner();
+    const m = monthOf(a.p_month);
+    const t = String(a.p_note == null ? '' : a.p_note).trim();
+    if (t.length > 500) fail('22023', 'bad-note');
+    S.db.personal_notes = notes().filter((/** @type {any} */ x) => x.month !== m);
+    if (t) notes().push({ month: m, note: t });
+    return monthJson(m);
+  };
+  S.rpcs.personal_add_cost = (/** @type {any} */ a) => {
+    owner();
+    const m = monthOf(a.p_month);
+    const label = costLine(a.p_line);
+    S.rpcs.personal_open_month({ p_month: m });
+    const mine = costs().filter((/** @type {any} */ x) => x.month === m);
+    if (mine.length >= 80) fail('22023', 'too-many-lines');
+    costs().push({ id: `pc_${S.id()}`, month: m, category: a.p_line.category, label, amount_minor: a.p_line.amount_minor, repeats: a.p_line.repeats === true, sort: mine.reduce((/** @type {number} */ s, /** @type {any} */ x) => Math.max(s, x.sort), 0) + 1 });
+    return monthJson(m);
+  };
+  /** Months with personal or business lines. */
+  const allMonths = () => Array.from(new Set(income().concat(costs()).concat(S.db.business_income || []).concat(S.db.business_costs || []).map((/** @type {any} */ x) => x.month)));
+  S.rpcs.personal_lines = (/** @type {any} */ a) => {
+    owner();
+    const b = monthOf(a.p_to || thisMonth());
+    let f = monthOf(a.p_from || '2000-01-01');
+    if (f > b) fail('22023', 'bad-range');
+    if (f < shift(b, -239)) f = shift(b, -239);
+    const ms = allMonths().filter((m) => m >= f && m <= b).sort();
+    const inc = [], cos = [];
+    for (const m of ms) {
+      for (const x of bizIncome(m)) inc.push({ month: m, kind: x.kind, tenant_id: null, label: x.label, amount_minor: x.amount_minor, received: true });
+      for (const x of income().filter((/** @type {any} */ y) => y.month === m).sort(bySort)) inc.push({ month: m, kind: 'other', tenant_id: null, label: x.label, amount_minor: x.amount_minor, received: x.received !== false });
+      for (const x of bizCost(m)) cos.push({ month: m, category: x.category, label: x.label, amount_minor: x.amount_minor, repeats: false });
+      for (const x of costs().filter((/** @type {any} */ y) => y.month === m).sort(bySort)) cos.push({ month: m, category: x.category, label: x.label, amount_minor: x.amount_minor, repeats: x.repeats });
+    }
+    return JSON.parse(JSON.stringify({ from: f, to: b, settings: settings(), income: inc, costs: cos,
+      notes: notes().filter((/** @type {any} */ x) => x.month >= f && x.month <= b).sort((/** @type {any} */ x, /** @type {any} */ y) => (x.month < y.month ? -1 : 1)).map((/** @type {any} */ x) => ({ month: x.month, note: x.note })) }));
+  };
+  S.rpcs.personal_history = (/** @type {any} */ a) => {
+    owner();
+    const m = monthOf(a.p_before);
+    const lim = Math.min(24, Math.max(1, Number(a.p_limit) || 12));
+    const all = allMonths().filter((x) => x < m).sort().reverse();
+    return JSON.parse(JSON.stringify({
+      before: m, more: all.length > lim,
+      months: all.slice(0, lim).map((g) => {
+        const j = monthJson(g);
+        const p = j.series.find((/** @type {any} */ s) => s.month === shift(g, -1)) || { month: shift(g, -1), income_minor: 0, costs_minor: 0, income_n: 0, costs_n: 0 };
+        return { month: g, note: j.note, income: j.income, costs: j.costs, prev: { month: p.month, income_minor: p.income_minor, costs_minor: p.costs_minor, income_n: p.income_n, costs_n: p.costs_n } };
+      })
+    }));
+  };
+
+  // Sample: 14 months of pay from a job and personal costs; this month has pay but no costs yet (opening it copies the repeating ones).
+  S.seeds.push((/** @type {any} */ db) => {
+    db.personal_months = []; db.personal_income = []; db.personal_costs = []; db.personal_notes = [];
+    db.personal_settings = { income_goal_minor: 900000, profit_goal_minor: 300000, tax_pct: null };
+    const now = thisMonth();
+    let k = 0;
+    for (let back = 13; back >= 0; back -= 1) {
+      const m = shift(now, -back);
+      let s = 0;
+      db.personal_income.push({ id: `pi_seed_${++k}`, month: m, label: 'Pay from my job', amount_minor: 420000, received: true, sort: ++s });
+      if (back % 4 === 1) db.personal_income.push({ id: `pi_seed_${++k}`, month: m, label: 'Weekend gig', amount_minor: 30000, received: back !== 1, sort: ++s });
+      if (back === 0) continue;
+      db.personal_months.push({ month: m, carried_from: back === 13 ? null : shift(m, -1) });
+      let c = 0;
+      const cost = (/** @type {string} */ category, /** @type {string} */ label, /** @type {number} */ minor, /** @type {boolean} */ repeats) => db.personal_costs.push({ id: `pc_seed_${++k}`, month: m, category, label, amount_minor: minor, repeats, sort: ++c });
+      cost('home', 'Rent', 185000, true);
+      cost('bills', 'Phone and internet', 12000, true);
+      cost('food', 'Groceries', 52000 + (back % 3) * 4000, true);
+      cost('transport', 'Bus pass', 11500, true);
+      if (back % 2 === 0) cost('fun', 'Dinner out', 9000, false);
+      if (back === 6) cost('health', 'Dentist', 24000, false);
+    }
+    db.personal_notes = [{ month: shift(now, -6), note: 'Dentist this month.' }];
+  });
+})();
+</script>
+<script>
 /* stub/96-intake.js */
 // LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). Stand-in rows for onboarding_submissions
 // (migration 20261015030000): one new setup form from the "Jon" test client, so Needs you shows the block.
@@ -6330,6 +6561,19 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
 /* the hidden words inside a cell (.sr-only, positioned) stay inside the scrolling box, so they never widen the page */
 .rv-years .table-wrap, .rv-table .table-wrap { position: relative; }
 .rv-years .table-wrap:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Business and Personal (2026-10-16): the switch above the month, the kinds of personal cost in the charts, and the read-only
+   business line in the Personal editors. */
+.rv-books { margin: 0 0 14px; }
+.rv-books .seg { display: inline-flex; }
+.rv-kc-home { fill: var(--kc-software); background: var(--kc-software); }
+.rv-kc-food { fill: var(--kc-team); background: var(--kc-team); }
+.rv-kc-transport { fill: var(--kc-marketing); background: var(--kc-marketing); }
+.rv-kc-bills { fill: var(--kc-phone); background: var(--kc-phone); }
+.rv-kc-health { fill: var(--kc-fees); background: var(--kc-fees); }
+.rv-kc-fun { fill: var(--cc-pink, #D9468C); background: var(--cc-pink, #D9468C); }
+.rv-kc-business { fill: var(--kc-other); background: var(--kc-other); }
+.rv-biz-line { margin: 4px 0 14px; }
+.rv-biz-line a { margin-left: 4px; font-weight: 600; }
 
 /* css/63-spacing.css */
 /* Spacing sweep (2026-10-16, Karan: "do a full sweep and fix the spacing errors"): places where a card or block sat
@@ -15549,7 +15793,13 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
  * Add a cost, Find, Export and Goals and tax; each opens a dialog. New reads and writes: business_save_settings, business_save_note,
  * business_add_cost, business_mark_received and the read-only business_lines (export, years and Find).
  *
- * console.js calls window.D8C_EXT.revenue.page(month, view) from its router, sideItem() while it draws the sidebar and visible() for the
+ * Business and Personal (2026-10-16, Karan: "two tabs in revenue, one is business and one will be personal"): a switch at the top. Business
+ * is everything above, unchanged (#/revenue/...). Personal (#/revenue/personal/...) is the same page on its own private ledger (migration
+ * 20261016040000_personal_ledger.sql, functions personal_*): his other job's pay and any other income, his personal costs by kind (home,
+ * food, transport, bills, health, fun, other), and each month's business profit pulled in by the database as one read-only income line (a
+ * loss month: one read-only cost line), so every total, chart, goal and history already counts it. Client charts are left out there.
+ *
+ * console.js calls window.D8C_EXT.revenue.page(month, view, extra) from its router, sideItem() while it draws the sidebar and visible() for the
  * jump palette. Client badges come from mod-color.js when it is there.
  */
 (function () {
@@ -15561,12 +15811,28 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   const esc = (/** @type {any} */ s) => C().esc(s);
 
   /** The kinds of business cost, in the order the editor offers them. */
-  const CATS = /** @type {[string, string][]} */ ([['software', 'Software and tools'], ['team', 'Team and contractors'], ['marketing', 'Marketing for Domin8te'], ['phone', 'Phone and internet'], ['fees', 'Fees and taxes'], ['other', 'Other']]);
+  const BIZ_CATS = /** @type {[string, string][]} */ ([['software', 'Software and tools'], ['team', 'Team and contractors'], ['marketing', 'Marketing for Domin8te'], ['phone', 'Phone and internet'], ['fees', 'Fees and taxes'], ['other', 'Other']]);
+  /** Personal costs (2026-10-16); 'business' is the read-only business loss line the database adds, never offered in the editors. */
+  const PERSONAL_CATS = /** @type {[string, string][]} */ ([['home', 'Home and rent'], ['food', 'Food and groceries'], ['transport', 'Transport'], ['bills', 'Bills and phone'], ['health', 'Health'], ['fun', 'Fun and going out'], ['other', 'Other'], ['business', 'Business loss']]);
+  /** The kinds of cost of the book on screen, in the order the editor offers them. */
+  let CATS = BIZ_CATS;
+  /** The kinds a person can pick (the business loss line is read only). */
+  const PICK_CATS = () => CATS.filter((c) => c[0] !== 'business');
   const catName = (/** @type {string} */ k) => (CATS.find((c) => c[0] === k) || ['other', 'Other'])[1];
   const MAX_MINOR = 2147483647;
   const MAX_LINES = 80;
   const MONTHS_BACK = 59;
   const VIEWS = ['overview', 'income', 'costs', 'years'];
+  /** The charts about clients: Personal has no clients, so it leaves them out. */
+  const CLIENT_CHARTS = ['perclient', 'mix', 'clients'];
+  /** Personal (#/revenue/personal/...) or Business (#/revenue/...). */
+  const PERS = () => state.book === 'personal';
+  /** A database function of the book on screen: business_open_month or personal_open_month. @param {string} n */
+  const fn = (n) => `${PERS() ? 'personal' : 'business'}_${n}`;
+  /** The start of every Revenue address of the book on screen. */
+  const base = () => (PERS() ? '#/revenue/personal' : '#/revenue');
+  /** "Business costs" or "Personal costs". */
+  const COSTS = () => (PERS() ? 'Personal costs' : 'Business costs');
 
   /**
    * What the page remembers: the month and section on screen, the months already read (all of them are read again after a save, since the
@@ -15575,9 +15841,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
    * and which rows are open.
    * lines holds every line ever entered (business_lines, read when Years, Export or Find first needs it, dropped after any save); year is the
    * year the Years view compares; noteEdit is true while the month's note is being edited.
-   * @type {{ym: string, view: string, seq: number, at: number, error: string, cache: Record<string, any>, owner: {id: string, v: boolean|null, p: Promise<boolean|null>|null}, form: HTMLFormElement|null, ro: ResizeObserver|null, io: IntersectionObserver|null, prev: {ym: string, months: any[], more: boolean, busy: boolean, done: boolean, error: string, open: Set<string>}, lines: {data: any, p: Promise<any>|null}, year: string, noteEdit: boolean}}
+   * @type {{book: string, ym: string, view: string, seq: number, at: number, error: string, cache: Record<string, any>, owner: {id: string, v: boolean|null, p: Promise<boolean|null>|null}, form: HTMLFormElement|null, ro: ResizeObserver|null, io: IntersectionObserver|null, prev: {ym: string, months: any[], more: boolean, busy: boolean, done: boolean, error: string, open: Set<string>}, lines: {data: any, p: Promise<any>|null}, year: string, noteEdit: boolean}}
    */
-  const state = { ym: '', view: 'overview', seq: 0, at: 0, error: '', cache: {}, owner: { id: '', v: null, p: null }, form: null, ro: null, io: null, prev: { ym: '', months: [], more: false, busy: false, done: false, error: '', open: new Set() }, lines: { data: null, p: null }, year: '', noteEdit: false };
+  const state = { book: 'business', ym: '', view: 'overview', seq: 0, at: 0, error: '', cache: {}, owner: { id: '', v: null, p: null }, form: null, ro: null, io: null, prev: { ym: '', months: [], more: false, busy: false, done: false, error: '', open: new Set() }, lines: { data: null, p: null }, year: '', noteEdit: false };
   const noPrev = () => ({ ym: '', months: [], more: false, busy: false, done: false, error: '', open: /** @type {Set<string>} */ (new Set()) });
 
   /* ---- who may see it ------------------------------------------------------------------------------------ */
@@ -15733,7 +15999,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   /** The database's answer for a month, in the shapes the page draws from. @param {any} j @param {string} ym */
   function norm(j, ym) {
     const num = (/** @type {any} */ v) => Number(v) || 0;
-    const income = (j.income || []).map((/** @type {any} */ x) => ({ id: String(x.id || ''), kind: x.kind === 'client' && x.tenant_id ? 'client' : 'other', tenant_id: x.tenant_id || '', label: String(x.label || ''), amount: num(x.amount_minor), received: x.received !== false, sort: num(x.sort) })).sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort);
+    const income = (j.income || []).map((/** @type {any} */ x) => ({ id: String(x.id || ''), kind: x.kind === 'business' ? 'business' : x.kind === 'client' && x.tenant_id ? 'client' : 'other', tenant_id: x.tenant_id || '', label: String(x.label || ''), amount: num(x.amount_minor), received: x.received !== false, sort: num(x.sort) })).sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort);
     const costs = (j.costs || []).map((/** @type {any} */ x) => ({ category: CATS.some((c) => c[0] === x.category) ? x.category : 'other', label: String(x.label || ''), amount: num(x.amount_minor), repeats: x.repeats !== false, sort: num(x.sort) })).sort((/** @type {any} */ a, /** @type {any} */ b) => a.sort - b.sort);
     // each month of the series also carries its costs by kind, what each client paid, its other income and its repeating costs (for the charts)
     const series = (j.series || []).map((/** @type {any} */ s) => {
@@ -15754,7 +16020,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   async function readMonth(ym, again) {
     if (!again && state.cache[ym]) return state.cache[ym];
     const c = await C().db();
-    const r = await c.rpc('business_open_month', { p_month: `${ym}-01` });
+    const r = await c.rpc(fn('open_month'), { p_month: `${ym}-01` });
     if (r.error) throw r.error;
     const d = norm(r.data || {}, ym);
     state.cache[ym] = d;
@@ -15768,6 +16034,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   }
   /** The clients the income list shows: everyone not archived, and an archived client only when it has money in the month. @param {any} d */
   function clientsFor(d) {
+    if (PERS()) return [];   // Personal has no clients
     const tenants = (C().all && C().all.tenants) || [];
     const paid = new Set(d.income.filter((/** @type {any} */ x) => x.kind === 'client').map((/** @type {any} */ x) => x.tenant_id));
     return tenants.filter((/** @type {any} */ t) => t.status !== 'archived' || paid.has(t.id)).slice().sort((/** @type {any} */ a, /** @type {any} */ b) => String(a.name).localeCompare(String(b.name)));
@@ -15793,7 +16060,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const canPrev = monthIndex(ym) > monthIndex(now) - MONTHS_BACK;
     const canNext = monthIndex(ym) < monthIndex(now);
     const arrow = (/** @type {boolean} */ on, /** @type {string} */ to, /** @type {string} */ dir) => on
-      ? `<a class="btn btn-quiet rv-arrow" href="#/revenue/${to}${tail}" aria-label="${dir === 'back' ? 'Earlier' : 'Later'} month: ${esc(monthName(to))}">${c.icon(dir === 'back' ? 'back' : 'arrow')}</a>`
+      ? `<a class="btn btn-quiet rv-arrow" href="${base()}/${to}${tail}" aria-label="${dir === 'back' ? 'Earlier' : 'Later'} month: ${esc(monthName(to))}">${c.icon(dir === 'back' ? 'back' : 'arrow')}</a>`
       : `<span class="btn btn-quiet rv-arrow" aria-disabled="true" role="img" aria-label="${dir === 'back' ? 'No earlier months' : 'This is the latest month'}" style="opacity:.4;pointer-events:none">${c.icon(dir === 'back' ? 'back' : 'arrow')}</span>`;
     return `<div class="rv-month"><div class="rv-month-card">${arrow(canPrev, prev, 'back')}<h2 class="rv-month-h" id="rv-month-h" aria-live="polite">${esc(monthName(ym))}</h2>${arrow(canNext, next, 'next')}</div></div>`;
   }
@@ -15830,16 +16097,16 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const none = '<span class="rv-none">Not entered</span>';
     const inc = t.incN ? card('Income', esc(money(t.inc)), partial ? against(prevHas.inc, p.inc) : change(t.inc, { has: prevHas.inc, v: p.inc }, name) || 'What you made this month', '', '', incMore)
       : card('Income', none, `Nothing entered for ${monthName(ym, 'mon')} yet`, ' is-none', '');
-    const cost = t.costN ? card('Business costs', esc(money(t.cost)), partial ? against(prevHas.cost, p.cost) : change(t.cost, { has: prevHas.cost, v: p.cost }, name) || 'What you spent on the business', '', '')
-      : card('Business costs', none, `Nothing entered for ${monthName(ym, 'mon')} yet`, ' is-none', '');
+    const cost = t.costN ? card(COSTS(), esc(money(t.cost)), partial ? against(prevHas.cost, p.cost) : change(t.cost, { has: prevHas.cost, v: p.cost }, name) || (PERS() ? 'What you spent this month' : 'What you spent on the business'), '', '')
+      : card(COSTS(), none, `Nothing entered for ${monthName(ym, 'mon')} yet`, ' is-none', '');
     let prof;
-    if (!t.has) prof = card('Profit', none, 'Income minus business costs', ' is-none', '');
+    if (!t.has) prof = card(PERS() ? 'Left over' : 'Profit', none, PERS() ? 'Income minus costs' : 'Income minus business costs', ' is-none', '');
     else {
       const mg = margin(t.profit, t.inc);
       const mWords = mg === null ? 'No income this month' : `${mg}% margin`;
       const ch = partial ? (p.has ? `${soFar.toLowerCase()}. ${name} in full: ${signed(p.profit, true)}` : soFar.toLowerCase()) : change(t.profit, { has: p.has, v: p.profit }, name);
       const value = t.profit < 0 ? `${esc(signed(t.profit))}<span class="rv-card-unit"> loss</span>` : esc(money(t.profit));
-      prof = card('Profit', value, ch ? `${mWords}, ${ch}` : mWords, t.profit < 0 ? ' rv-neg' : '', t.profit < 0 ? ' <span class="chip bad plain">Loss</span>' : '', profMore);
+      prof = card(PERS() ? 'Left over' : 'Profit', value, ch ? `${mWords}, ${ch}` : mWords, t.profit < 0 ? ' rv-neg' : '', t.profit < 0 ? ' <span class="chip bad plain">Loss</span>' : '', profMore);
     }
     return `<div class="rv-cards${anim() ? ' rv-anim' : ''}" role="group" aria-label="${esc(monthName(ym))} totals">${inc}${cost}${prof}</div>`;
   }
@@ -15869,7 +16136,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   /** The four sections, as the console's segmented pills. @param {string} ym */
   function views(ym) {
     const items = [['overview', 'Overview', ''], ['income', 'Income', '/income'], ['costs', 'Costs', '/costs'], ['years', 'Years', '/years']];
-    return `<nav class="rv-views" aria-label="Revenue sections"><div class="seg" role="group">${items.map(([k, label, tail]) => `<a href="#/revenue/${ym}${tail}"${state.view === k ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div></nav>`;
+    return `<nav class="rv-views" aria-label="Revenue sections"><div class="seg" role="group">${items.map(([k, label, tail]) => `<a href="${base()}/${ym}${tail}"${state.view === k ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div></nav>`;
   }
 
   /* ---- the dashboard: which charts there are, and what Karan chose to show ------------------------------------------- */
@@ -15913,7 +16180,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     });
     return { hidden: keep(p && p.hidden), order };
   }
-  const shown = () => choice.order.filter((id) => !choice.hidden.includes(id));
+  const shown = () => choice.order.filter((id) => !choice.hidden.includes(id) && !(PERS() && CLIENT_CHARTS.includes(id)));
   function readLocalChoice() { try { const s = localStorage.getItem(CHOICE_KEY); if (s) choice = cleanChoice(JSON.parse(s)); } catch (e) { /* the default order */ } }
   /** The choice saved to the account (user_prefs.appearance.revenue.charts, so it follows Karan across devices), read once per signed-in person; the copy on this computer until then. */
   function readChoice() {
@@ -16027,9 +16294,10 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   const NONE = '<span class="none">Not entered</span>';
   const DASH = '<span class="none">-</span>';
   /** A month in the table's first column, as a link to it when the page can open it. @param {string} ym */
-  const monthCell = (ym) => (monthIndex(ym) >= monthIndex(currentMonth()) - MONTHS_BACK ? `<a href="#/revenue/${ym}">${esc(monthName(ym))}</a>` : esc(monthName(ym)));
+  const monthCell = (ym) => (monthIndex(ym) >= monthIndex(currentMonth()) - MONTHS_BACK ? `<a href="${base()}/${ym}">${esc(monthName(ym))}</a>` : esc(monthName(ym)));
   /** The six kinds of cost, each with its own colour in the stacked chart and its legend. */
-  const KIND_CLS = /** @type {Record<string, string>} */ ({ software: 'rv-kc-software', team: 'rv-kc-team', marketing: 'rv-kc-marketing', phone: 'rv-kc-phone', fees: 'rv-kc-fees', other: 'rv-kc-other' });
+  const KIND_CLS = /** @type {Record<string, string>} */ ({ software: 'rv-kc-software', team: 'rv-kc-team', marketing: 'rv-kc-marketing', phone: 'rv-kc-phone', fees: 'rv-kc-fees', other: 'rv-kc-other',
+    home: 'rv-kc-home', food: 'rv-kc-food', transport: 'rv-kc-transport', bills: 'rv-kc-bills', health: 'rv-kc-health', fun: 'rv-kc-fun', business: 'rv-kc-business' });
   /** The colour a client's slice takes: the client's own card colour, or one from a short list when it has none. @param {string} id @param {number} i */
   function sliceColor(id, i) {
     const k = EXT.color && typeof EXT.color.of === 'function' ? EXT.color.of(id) : '';
@@ -16420,7 +16688,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     mix(d) {
       const slices = mixSlices(d);
       const total = sumOf(slices, 'minor');
-      if (!slices.length) return { sub: `${esc(monthName(d.ym))}`, body: `<p class="rv-chart-empty">No income entered for ${esc(monthName(d.ym))}. <a href="#/revenue/${d.ym}/income">Enter income</a></p>` };
+      if (!slices.length) return { sub: `${esc(monthName(d.ym))}`, body: `<p class="rv-chart-empty">No income entered for ${esc(monthName(d.ym))}. <a href="${base()}/${d.ym}/income">Enter income</a></p>` };
       const legend = `<ul class="rv-mix-legend" aria-label="Share of income">${slices.map((s) => `<li><i class="rv-key" style="background:${s.color}" aria-hidden="true"></i><span class="rv-mix-name">${s.other ? '' : badge(s.id)}<span>${esc(s.name)}</span></span><span class="rv-mix-v">${pctOf(s.minor, total)}%<span class="rv-bar-pct"> ${esc(dollars(s.minor))}</span></span></li>`).join('')}</ul>`;
       const table = tableOf(`Share of income, ${monthName(d.ym)}`, ['Who', 'Amount', 'Share'], slices.map((s) => [esc(s.name), esc(money(s.minor)), `${pctOf(s.minor, total)}%`]));
       return { sub: `${esc(monthName(d.ym))}, share of income`, body: `<div class="rv-mix"><div class="rv-plot is-fixed" data-plot="mix">${mixSvg(d)}<div class="rv-tip" role="presentation" hidden></div></div>${legend}</div>${table}` };
@@ -16435,12 +16703,12 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         byClient.set(key, was);
       }
       const items = Array.from(byClient.values());
-      return { sub: `${esc(mon)}, largest first`, body: items.some((x) => x.minor > 0) ? barList(items, 'rv-f-inc', `Income by client, ${mon}`) : `<p class="rv-chart-empty">No income entered for ${esc(mon)}. <a href="#/revenue/${d.ym}/income">Enter income</a></p>` };
+      return { sub: `${esc(mon)}, largest first`, body: items.some((x) => x.minor > 0) ? barList(items, 'rv-f-inc', `Income by client, ${mon}`) : `<p class="rv-chart-empty">No income entered for ${esc(mon)}. <a href="${base()}/${d.ym}/income">Enter income</a></p>` };
     },
     cats(d) {
       const mon = monthName(d.ym);
       const byCat = CATS.map(([k, label]) => ({ name: label, minor: sumOf(d.costs.filter((/** @type {any} */ x) => x.category === k), 'amount') }));
-      return { sub: `${esc(mon)}, largest first`, body: byCat.some((x) => x.minor > 0) ? barList(byCat, 'rv-f-cost', `Costs by kind, ${mon}`) : `<p class="rv-chart-empty">No costs entered for ${esc(mon)}. <a href="#/revenue/${d.ym}/costs">Enter costs</a></p>` };
+      return { sub: `${esc(mon)}, largest first`, body: byCat.some((x) => x.minor > 0) ? barList(byCat, 'rv-f-cost', `Costs by kind, ${mon}`) : `<p class="rv-chart-empty">No costs entered for ${esc(mon)}. <a href="${base()}/${d.ym}/costs">Enter costs</a></p>` };
     },
     split(d) {
       const mon = monthName(d.ym);
@@ -16691,7 +16959,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   /** The next page of earlier months, before `before`. @param {string} before */
   async function readPrev(before) {
     const c = await C().db();
-    const r = await c.rpc('business_history', { p_before: `${before}-01`, p_limit: PREV_PAGE });
+    const r = await c.rpc(fn('history'), { p_before: `${before}-01`, p_limit: PREV_PAGE });
     if (r.error) throw r.error;
     const j = r.data || {};
     return { months: (j.months || []).map(normPrev), more: j.more === true };
@@ -16712,7 +16980,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       <h4 class="rv-pm-h"><button class="rv-pm-btn" type="button" id="rv-pm-b-${k}" data-rv-pm="${k}" aria-expanded="${open}" aria-controls="rv-pm-p-${k}">
         <span class="rv-pm-m">${esc(monthName(m.ym))}</span>
         ${cell('rv-pm-inc', 'Income', m.incN ? esc(money(m.inc)) : none)}
-        ${cell('rv-pm-cost', 'Business costs', m.costN ? esc(money(m.cost)) : none)}
+        ${cell('rv-pm-cost', COSTS(), m.costN ? esc(money(m.cost)) : none)}
         ${cell('rv-pm-prof', 'Profit', has ? (profit < 0 ? `<span class="rv-neg">${esc(signed(profit, true))}</span>` : esc(money(profit))) : none)}
         ${cell('rv-pm-mg', 'Margin', mg === null ? '<span class="rv-none">-</span>' : `${mg}%`)}
         ${cell('rv-pm-ch', `Profit against ${esc(prevName)}`, moveHtml(move(profit, ph)))}
@@ -16757,19 +17025,19 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const kinds = CATS.map(([k, label]) => { const lines = m.costs.filter((/** @type {any} */ x) => x.category === k); return { k, label, lines, minor: lines.reduce((/** @type {number} */ s, /** @type {any} */ x) => s + x.amount, 0) }; })
       .filter((g) => g.lines.length).sort((a, b) => b.minor - a.minor);
     const topK = kinds.length ? kinds[0].minor : 0;
-    const costList = !m.costN ? `<p class="rv-chart-empty">No business costs entered for ${esc(mon)}.</p>`
-      : `<ul class="rv-pm-kinds" aria-label="Business costs by kind, ${esc(mon)}">${kinds.map((g) => `<li class="rv-pm-kind">
+    const costList = !m.costN ? `<p class="rv-chart-empty">No ${esc(COSTS().toLowerCase())} entered for ${esc(mon)}.</p>`
+      : `<ul class="rv-pm-kinds" aria-label="${esc(COSTS())} by kind, ${esc(mon)}">${kinds.map((g) => `<li class="rv-pm-kind">
           <div class="rv-bar-row"><span class="rv-bar-name"><span>${esc(g.label)}</span></span>${share(g.minor, topK, 'rv-f-cost')}<span class="rv-bar-v">${esc(money(g.minor))}<span class="rv-bar-pct"> ${pct(g.minor, m.cost)}%</span></span></div>
           <ul class="rv-pm-lines">${g.lines.slice().sort((/** @type {any} */ a, /** @type {any} */ b) => b.amount - a.amount).map((/** @type {any} */ x) => `<li><span class="rv-pm-ll">${esc(x.label)}${x.repeats ? ' <span class="rv-pm-rep">Repeats monthly</span>' : ''}</span><span class="rv-pm-la">${esc(money(x.amount))}</span></li>`).join('')}</ul></li>`).join('')}</ul>`;
 
     const openLink = monthIndex(m.ym) >= monthIndex(currentMonth()) - MONTHS_BACK
-      ? `<a class="btn btn-quiet btn-sm" href="#/revenue/${esc(m.ym)}" aria-label="Open ${esc(mon)}">Open this month${c.icon('arrow')}</a>` : '';
+      ? `<a class="btn btn-quiet btn-sm" href="${base()}/${esc(m.ym)}" aria-label="Open ${esc(mon)}">Open this month${c.icon('arrow')}</a>` : '';
     return `<div class="rv-pm-in">
       ${m.note ? `<p class="rv-pm-note"><span class="rv-pm-note-k">Note</span><span class="rv-note-t">${esc(m.note)}</span></p>` : ''}
       <div class="rv-pm-glance">${t1}${t2}${t3}</div>
       <div class="rv-pm-two">
         <div class="rv-pm-part"><h5>Income by client</h5>${incHtml}</div>
-        <div class="rv-pm-part"><h5>Business costs by kind</h5>${costList}</div>
+        <div class="rv-pm-part"><h5>${esc(COSTS())} by kind</h5>${costList}</div>
       </div>
       ${openLink ? `<div class="rv-pm-foot">${openLink}</div>` : ''}
     </div>`;
@@ -16783,7 +17051,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       if (P.error) return `<div class="rv-chart-empty"><p>Earlier months did not load. ${esc(P.error)}</p><button class="btn btn-quiet btn-sm" type="button" data-rv-more>Try again</button></div>`;
       return '<p class="rv-chart-empty">No earlier months with entries yet.</p>';
     }
-    return `<div class="rv-pm-cols" aria-hidden="true"><span>Month</span><span>Income</span><span>Business costs</span><span>Profit</span><span>Margin</span><span>Change in profit</span><span></span></div>
+    return `<div class="rv-pm-cols" aria-hidden="true"><span>Month</span><span>Income</span><span>${esc(COSTS())}</span><span>${PERS() ? 'Left over' : 'Profit'}</span><span>Margin</span><span>Change in profit</span><span></span></div>
       <ul class="rv-pm-list" aria-label="Previous months">${P.months.map(prevRow).join('')}</ul>
       ${P.error ? `<p class="field-error">More months did not load. ${esc(P.error)}</p>` : ''}
       ${P.more || P.busy ? `<div class="rv-pm-more"><button class="btn btn-quiet btn-sm" type="button" data-rv-more${P.busy ? ' disabled' : ''}>${P.busy ? 'Loading' : 'Show older months'}</button></div>` : ''}`;
@@ -16849,7 +17117,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   function otherHtml(lines) {
     const c = C();
     return lines.map((l, i) => `<li class="rv-line rv-other" data-line="${i}">
-        <input type="text" name="label" value="${esc(l.label)}" maxlength="60" placeholder="Where it came from" aria-label="Other income ${i + 1}: where it came from" autocomplete="off">
+        <input type="text" name="label" value="${esc(l.label)}" maxlength="60" placeholder="${PERS() && i === 0 ? 'Pay from my job' : 'Where it came from'}" aria-label="${PERS() ? 'Income' : 'Other income'} ${i + 1}: where it came from" autocomplete="off">
         <span class="rv-money"><span class="rv-cur" aria-hidden="true">$</span><input type="text" name="amount" value="${esc(l.amount)}" inputmode="decimal" placeholder="0" aria-label="Other income ${i + 1}: amount in dollars" autocomplete="off"></span>
         ${recvSwitch(`Other income ${i + 1}`, l.received !== false)}
         <button class="icon-btn rv-del" type="button" data-rv-del="${i}" aria-label="Remove ${esc(l.label || 'other income ' + (i + 1))}">${c.icon('trash')}</button>
@@ -16864,7 +17132,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const list = clientsFor(d);
     const known = new Set(list.map((/** @type {any} */ t) => t.id));
     // money from a client that is gone (or not in the list) stays as an other-income line with the name it was saved under
-    const other = d.income.filter((/** @type {any} */ x) => x.kind === 'other' || !known.has(x.tenant_id)).map((/** @type {any} */ x) => ({ label: x.kind === 'client' ? clientName(x.tenant_id, x.label) : x.label, amount: field(x.amount), received: x.received }));
+    const other = d.income.filter((/** @type {any} */ x) => x.kind !== 'business' && (x.kind === 'other' || !known.has(x.tenant_id))).map((/** @type {any} */ x) => ({ label: x.kind === 'client' ? clientName(x.tenant_id, x.label) : x.label, amount: field(x.amount), received: x.received }));
     const rows = list.map((/** @type {any} */ t) => {
       const k = esc(t.id);
       const h = planHint(t);
@@ -16876,14 +17144,19 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           ${h ? `<button class="btn btn-quiet btn-sm rv-use" type="button" data-rv-use="${k}" data-minor="${h.minor}" aria-label="Use ${esc(money(h.minor))} for ${esc(t.name)}">Use ${esc(money(h.minor))}</button>` : '<span class="rv-use-gap" aria-hidden="true"></span>'}</div>
       </li>`;
     }).join('');
-    return `<form class="rv-form" id="rv-form" data-kind="income" novalidate aria-labelledby="rv-f-h">
-      <div class="panel-head"><div><h2 id="rv-f-h">Income, ${esc(monthName(ym))}</h2><p>What each client paid you this month. Leave a client empty until you know. Turn Received off for money you expect but do not have yet.</p></div></div>
-      ${list.length ? `<ul class="rv-inc-list" aria-label="Clients">${rows}</ul>` : '<p class="meta">No clients yet.</p>'}
+    // Personal: the business profit comes in by itself (read only), and the lines start with the job's pay
+    const bizLine = d.income.find((/** @type {any} */ x) => x.kind === 'business');
+    const bizMinor = bizLine ? bizLine.amount : 0;
+    if (PERS() && !other.length) other.push({ label: '', amount: '', received: true });
+    const bizNote = PERS() ? `<p class="notice rv-biz-line">${bizLine ? `Business profit for ${esc(monthName(ym, 'mon'))}: <strong>${esc(money(bizMinor))}</strong>. It comes from the Business tab by itself and is counted in your income.` : `No business profit for ${esc(monthName(ym, 'mon'))} yet. When the Business tab shows a profit, it is added here by itself.`} <a href="#/revenue/${esc(ym)}/income">Open Business</a></p>` : '';
+    return `<form class="rv-form" id="rv-form" data-kind="income" data-base="${bizMinor}" novalidate aria-labelledby="rv-f-h">
+      <div class="panel-head"><div><h2 id="rv-f-h">Income, ${esc(monthName(ym))}</h2><p>${PERS() ? 'What you earned this month besides the business: your job\'s pay and anything else. Turn Received off for money you expect but do not have yet.' : 'What each client paid you this month. Leave a client empty until you know. Turn Received off for money you expect but do not have yet.'}</p></div></div>
+      ${PERS() ? bizNote : list.length ? `<ul class="rv-inc-list" aria-label="Clients">${rows}</ul>` : '<p class="meta">No clients yet.</p>'}
       <p class="field-error" id="rv-inc-e" role="alert" hidden></p>
-      <div class="rv-sub"><h3 id="rv-other-h">Other income</h3><p class="meta">Money not from a client, like a one-off job.</p></div>
+      <div class="rv-sub"><h3 id="rv-other-h">${PERS() ? 'Your income' : 'Other income'}</h3><p class="meta">${PERS() ? 'Like: Pay from my job, a weekend gig, a tax refund.' : 'Money not from a client, like a one-off job.'}</p></div>
       <ul class="rv-lines" id="rv-lines" aria-labelledby="rv-other-h">${otherHtml(other)}</ul>
       <p class="field-error" id="rv-lines-e" role="alert" hidden></p>
-      <div class="rv-add"><button class="btn btn-quiet btn-sm" type="button" data-rv-add>${c.icon('plus')}Add other income</button></div>
+      <div class="rv-add"><button class="btn btn-quiet btn-sm" type="button" data-rv-add>${c.icon('plus')}${PERS() ? 'Add income' : 'Add other income'}</button></div>
       <dl class="rv-sums"><div><dt>Still to come</dt><dd data-rv-due>$0</dd></div><div class="rv-profit"><dt>Total income</dt><dd data-rv-total>$0</dd></div></dl>
       <div class="actions"><button class="btn" type="submit">${c.icon('check')}Save income</button><button class="btn btn-quiet" type="button" data-rv-undo>Undo changes</button></div>
     </form>`;
@@ -16895,7 +17168,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   function costHtml(lines) {
     const c = C();
     return lines.map((l, i) => `<li class="rv-line rv-cost" data-line="${i}">
-        <select name="category" aria-label="Cost ${i + 1}: kind">${CATS.map(([k, label]) => `<option value="${k}"${l.category === k ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select>
+        <select name="category" aria-label="Cost ${i + 1}: kind">${PICK_CATS().map(([k, label]) => `<option value="${k}"${l.category === k ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select>
         <input type="text" name="label" value="${esc(l.label)}" maxlength="60" placeholder="What it was for" aria-label="Cost ${i + 1}: what it was for" autocomplete="off">
         <span class="rv-money"><span class="rv-cur" aria-hidden="true">$</span><input type="text" name="amount" value="${esc(l.amount)}" inputmode="decimal" placeholder="0" aria-label="Cost ${i + 1}: amount in dollars" autocomplete="off"></span>
         <label class="switch-row rv-rep"><input type="checkbox" role="switch" name="repeats"${l.repeats ? ' checked' : ''} aria-label="Cost ${i + 1}: repeats monthly"><span aria-hidden="true">Repeats monthly</span></label>
@@ -16906,12 +17179,15 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   function costsForm(d) {
     const c = C();
     const ym = d.ym;
-    const lines = d.costs.map((/** @type {any} */ x) => ({ category: x.category, label: x.label, amount: field(x.amount), repeats: x.repeats }));
-    if (!lines.length) lines.push({ category: 'software', label: '', amount: '', repeats: true });
+    const lines = d.costs.filter((/** @type {any} */ x) => x.category !== 'business').map((/** @type {any} */ x) => ({ category: x.category, label: x.label, amount: field(x.amount), repeats: x.repeats }));
+    if (!lines.length) lines.push({ category: PICK_CATS()[0][0], label: '', amount: '', repeats: true });
+    const loss = d.costs.find((/** @type {any} */ x) => x.category === 'business');
+    const lossMinor = loss ? loss.amount : 0;
+    const lossNote = loss ? `<p class="notice rv-biz-line">The business lost <strong>${esc(money(lossMinor))}</strong> in ${esc(monthName(ym, 'mon'))}. It comes from the Business tab by itself and is counted in your costs. <a href="#/revenue/${esc(ym)}/costs">Open Business</a></p>` : '';
     const carried = d.carriedFrom && d.costs.length ? `<p class="notice rv-carry">Repeating costs were copied from ${esc(monthName(d.carriedFrom))} when you first opened this month. Change or remove any that did not happen.</p>` : '';
-    return `<form class="rv-form" id="rv-form" data-kind="costs" novalidate aria-labelledby="rv-f-h">
-      <div class="panel-head"><div><h2 id="rv-f-h">Business costs, ${esc(monthName(ym))}</h2><p>What you spent on Domin8te itself. Not client costs or client ad spend.</p></div></div>
-      ${carried}
+    return `<form class="rv-form" id="rv-form" data-kind="costs" data-base="${lossMinor}" novalidate aria-labelledby="rv-f-h">
+      <div class="panel-head"><div><h2 id="rv-f-h">${esc(COSTS())}, ${esc(monthName(ym))}</h2><p>${PERS() ? 'What you spent on yourself and your home this month. Business costs stay on the Business tab.' : 'What you spent on Domin8te itself. Not client costs or client ad spend.'}</p></div></div>
+      ${lossNote}${carried}
       <ul class="rv-lines rv-cost-lines" id="rv-lines" aria-label="Costs">${costHtml(lines)}</ul>
       <p class="field-error" id="rv-lines-e" role="alert" hidden></p>
       <div class="rv-add"><button class="btn btn-quiet btn-sm" type="button" data-rv-add>${c.icon('plus')}Add a cost</button></div>
@@ -16933,7 +17209,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   }
   /** Totals again, as soon as a number changes. @param {HTMLFormElement} f */
   function recalc(f) {
-    let total = 0, rep = 0, due = 0;
+    let total = Number(f.dataset.base) || 0, rep = 0, due = 0;   // Personal: the business profit (or loss) the database adds
     if (f.dataset.kind === 'income') {
       for (const el of f.querySelectorAll('input[name=client]')) {
         const inp = /** @type {HTMLInputElement} */ (el);
@@ -16967,7 +17243,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (lines.length >= MAX_LINES) { C().toast(`That is as many lines as one month holds (${MAX_LINES}).`, true); return; }
     const ul = f.querySelector('#rv-lines');
     if (!ul) return;
-    lines.push(f.dataset.kind === 'costs' ? { category: 'software', label: '', amount: '', repeats: true } : { label: '', amount: '' });
+    lines.push(f.dataset.kind === 'costs' ? { category: PICK_CATS()[0][0], label: '', amount: '', repeats: true } : { label: '', amount: '' });
     ul.innerHTML = f.dataset.kind === 'costs' ? costHtml(/** @type {any} */ (lines)) : otherHtml(lines);
     f.dispatchEvent(new Event('input', { bubbles: true }));
     const last = /** @type {HTMLElement|null} */ (f.querySelector('#rv-lines > .rv-line:last-child [name=label]'));
@@ -17035,7 +17311,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const done = btn ? c.busy(btn, 'Saving') : () => {};
     try {
       const cl = await c.db();
-      const res = await cl.rpc(kind === 'costs' ? 'business_save_costs' : 'business_save_income', { p_month: `${ym}-01`, p_lines: out });
+      const res = await cl.rpc(fn(kind === 'costs' ? 'save_costs' : 'save_income'), { p_month: `${ym}-01`, p_lines: out });
       if (res.error) throw res.error;
       dropAll();   // every month's charts reach back over this one, and so do Previous months, Years, Export and Find
       const d = norm(res.data || {}, ym);
@@ -17151,7 +17427,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const done = c.busy(btn, 'Saving');
     try {
       const cl = await c.db();
-      const r = await cl.rpc('business_save_note', { p_month: `${ym}-01`, p_note: text });
+      const r = await cl.rpc(fn('save_note'), { p_month: `${ym}-01`, p_note: text });
       if (r.error) throw r.error;
       c.clean(f);
       dropAll();
@@ -17177,7 +17453,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const done = btn ? c.busy(btn, 'Saving') : () => {};
     try {
       const cl = await c.db();
-      const r = await cl.rpc('business_mark_received', { p_id: id, p_received: yes });
+      const r = await cl.rpc(fn('mark_received'), { p_id: id, p_received: yes });
       if (r.error) throw r.error;
       dropAll();
       const d = norm(r.data || {}, String((r.data && r.data.month) || `${ym}-01`).slice(0, 7));
@@ -17275,7 +17551,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   }
   RENDER.insights = (d) => {
     const items = insights(d);
-    const body = items.length ? `<ul class="rv-ins">${items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : `<p class="rv-chart-empty">Nothing entered for ${esc(monthName(d.ym))} yet. <a href="#/revenue/${d.ym}/income">Enter income</a></p>`;
+    const body = items.length ? `<ul class="rv-ins">${items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : `<p class="rv-chart-empty">Nothing entered for ${esc(monthName(d.ym))} yet. <a href="${base()}/${d.ym}/income">Enter income</a></p>`;
     return { sub: `${esc(monthName(d.ym))}${d.ym === currentMonth() ? ', so far' : ''}, in plain words`, body };
   };
 
@@ -17296,7 +17572,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     return { inc, rep, from: recent.map((/** @type {any} */ r) => r.ym), costFrom: withCost ? withCost.ym : '', tax, months };
   }
   RENDER.forecast = (d) => {
-    if (d.ym !== currentMonth()) return { sub: 'An estimate for the months ahead', body: `<p class="rv-chart-empty">The estimate looks ahead from this month. <a href="#/revenue/${currentMonth()}">Open ${esc(monthName(currentMonth()))}</a></p>` };
+    if (d.ym !== currentMonth()) return { sub: 'An estimate for the months ahead', body: `<p class="rv-chart-empty">The estimate looks ahead from this month. <a href="${base()}/${currentMonth()}">Open ${esc(monthName(currentMonth()))}</a></p>` };
     const F = forecast(d);
     if (F.inc === null) return { sub: 'An estimate', body: '<p class="rv-chart-empty">Not enough entered yet. The estimate needs at least one full month with income.</p>' };
     const names = F.from.map((/** @type {string} */ m) => monthName(m, 'mon'));
@@ -17317,7 +17593,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const num = (/** @type {any} */ v) => Number(v) || 0;
     const ymOf = (/** @type {any} */ m) => String(m || '').slice(0, 7);
     return {
-      income: (j.income || []).map((/** @type {any} */ x) => ({ ym: ymOf(x.month), kind: x.kind === 'client' && x.tenant_id ? 'client' : 'other', tenant_id: x.tenant_id || '', label: String(x.label || ''), amount: num(x.amount_minor), received: x.received !== false })),
+      income: (j.income || []).map((/** @type {any} */ x) => ({ ym: ymOf(x.month), kind: x.kind === 'business' ? 'business' : x.kind === 'client' && x.tenant_id ? 'client' : 'other', tenant_id: x.tenant_id || '', label: String(x.label || ''), amount: num(x.amount_minor), received: x.received !== false })),
       costs: (j.costs || []).map((/** @type {any} */ x) => ({ ym: ymOf(x.month), category: CATS.some((c) => c[0] === x.category) ? x.category : 'other', label: String(x.label || ''), amount: num(x.amount_minor), repeats: x.repeats !== false })),
       notes: (j.notes || []).map((/** @type {any} */ x) => ({ ym: ymOf(x.month), note: String(x.note || '') })),
       settings: normSettings(j.settings)
@@ -17330,7 +17606,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const box = state.lines;
     const p = (async () => {
       const c = await C().db();
-      const r = await c.rpc('business_lines', { p_from: null, p_to: null });
+      const r = await c.rpc(fn('lines'), { p_from: null, p_to: null });
       if (r.error) throw r.error;
       const data = normLines(r.data || {});
       if (state.lines === box) { box.data = data; box.p = null; }
@@ -17367,7 +17643,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const cy = now.slice(0, 4);
     const nowM = Number(now.slice(5, 7));
     const years = Array.from(new Set(Array.from(map.entries()).filter(([, x]) => x.incN || x.costN).map(([k]) => k.slice(0, 4)))).sort().reverse();
-    if (!years.length) return `<section class="rv-panel"><div class="rv-chart-head"><div><h3>Years</h3><p>Each year against the one before</p></div></div><p class="rv-chart-empty">Nothing entered yet. <a href="#/revenue/${now}/income">Enter income</a></p></section>`;
+    if (!years.length) return `<section class="rv-panel"><div class="rv-chart-head"><div><h3>Years</h3><p>Each year against the one before</p></div></div><p class="rv-chart-empty">Nothing entered yet. <a href="${base()}/${now}/income">Enter income</a></p></section>`;
     const cell = (/** @type {number} */ v, /** @type {boolean} */ has, /** @type {boolean} */ sign) => (!has ? NONE : sign && v < 0 ? `<span class="rv-neg">${esc(signed(v, true))}</span>` : esc(money(v)));
     // 1. year by year
     const rows = years.map((y) => {
@@ -17476,9 +17752,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const c = C();
     const now = currentMonth();
     const y = /^\d{4}$/.test(year) ? year : state.ym.slice(0, 4);
-    const r = kind === 'month' ? { from: state.ym, to: state.ym, name: `domin8te-revenue-${state.ym}.csv`, what: monthName(state.ym) }
-      : kind === 'year' ? { from: `${y}-01`, to: `${y}-12` < now ? `${y}-12` : now, name: `domin8te-revenue-${y}.csv`, what: y }
-      : { from: '0000-00', to: now, name: 'domin8te-revenue-all.csv', what: 'everything' };
+    const r = kind === 'month' ? { from: state.ym, to: state.ym, name: `domin8te-${PERS() ? 'personal' : 'revenue'}-${state.ym}.csv`, what: monthName(state.ym) }
+      : kind === 'year' ? { from: `${y}-01`, to: `${y}-12` < now ? `${y}-12` : now, name: `domin8te-${PERS() ? 'personal' : 'revenue'}-${y}.csv`, what: y }
+      : { from: '0000-00', to: now, name: `domin8te-${PERS() ? 'personal' : 'revenue'}-all.csv`, what: 'everything' };
     const done = c.busy(btn, 'Preparing');
     try {
       const L = await loadLines();
@@ -17500,7 +17776,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   const dlgHead = (id, title, sub) => `<div class="rv-cust-head"><div><h2 id="${id}-h">${title}</h2>${sub ? `<p id="${id}-p">${sub}</p>` : ''}</div><button class="icon-btn rv-cust-x" type="button" data-rv-dlg-close aria-label="Close">${C().icon('x')}</button></div>`;
   function dialogs() {
     const c = C();
-    return `<dialog class="rv-cust rv-dlg" id="rv-qa" aria-labelledby="rv-qa-h"><form class="rv-cust-in" id="rv-qa-f" novalidate>${dlgHead('rv-qa', 'Add a cost', 'One cost for the business, saved straight away. Not client costs or client ad spend.')}
+    return `<dialog class="rv-cust rv-dlg" id="rv-qa" aria-labelledby="rv-qa-h"><form class="rv-cust-in" id="rv-qa-f" novalidate>${dlgHead('rv-qa', 'Add a cost', PERS() ? 'One personal cost, saved straight away. Business costs go on the Business tab.' : 'One cost for the business, saved straight away. Not client costs or client ad spend.')}
         <div class="rv-dlg-body" id="rv-qa-body"></div>
         <div class="rv-cust-foot"><button class="btn btn-quiet btn-sm" type="button" data-rv-dlg-close>Cancel</button><button class="btn btn-sm rv-cust-done" type="submit">${c.icon('check')}Add cost</button></div></form></dialog>
       <dialog class="rv-cust rv-dlg" id="rv-find" aria-labelledby="rv-find-h"><div class="rv-cust-in">${dlgHead('rv-find', 'Find', 'Every cost and income line you have entered, in every month.')}
@@ -17612,7 +17888,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const span = (/** @type {any[]} */ a) => { const ms = a.map((x) => x.ym).sort(); return ms.length ? (ms[0] === ms[ms.length - 1] ? monthName(ms[0], 'short') : `${monthName(ms[0], 'short')} to ${monthName(ms[ms.length - 1], 'short')}`) : ''; };
     const words = (/** @type {any[]} */ a, /** @type {string} */ what) => `${a.length} ${what} ${a.length === 1 ? 'line' : 'lines'}, ${money(sumOf(a, 'amount'))} in all, ${span(a)}`;
     const MAX = 40;
-    const link = (/** @type {string} */ ym, /** @type {string} */ tail) => (monthIndex(ym) >= monthIndex(currentMonth()) - MONTHS_BACK ? `<a href="#/revenue/${ym}/${tail}">${esc(monthName(ym, 'short'))}</a>` : esc(monthName(ym, 'short')));
+    const link = (/** @type {string} */ ym, /** @type {string} */ tail) => (monthIndex(ym) >= monthIndex(currentMonth()) - MONTHS_BACK ? `<a href="${base()}/${ym}/${tail}">${esc(monthName(ym, 'short'))}</a>` : esc(monthName(ym, 'short')));
     const group = (/** @type {string} */ title, /** @type {any[]} */ a, /** @type {(x: any) => string} */ li) => (a.length ? `<section class="rv-find-g" aria-label="${esc(title)}"><h3 class="rv-find-h">${esc(title)}</h3><ul class="rv-find-list">${a.slice(0, MAX).map(li).join('')}</ul>${a.length > MAX ? `<p class="meta">And ${a.length - MAX} older. Export has every line.</p>` : ''}</section>` : '');
     const cHtml = group('Costs', costs, (x) => `<li><span class="rv-find-m">${link(x.ym, 'costs')}</span><span class="rv-find-n"><span>${marked(x.label, q)}</span><span class="rv-find-k">${esc(catName(x.category))}${x.repeats ? ', repeats monthly' : ''}</span></span><span class="rv-find-a">${esc(money(x.amount))}</span></li>`);
     const iHtml = group('Income', inc, (x) => `<li><span class="rv-find-m">${link(x.ym, 'income')}</span><span class="rv-find-n"><span>${marked(nameOf(x), q)}</span><span class="rv-find-k">${x.kind === 'client' ? 'Client' : 'Other income'}${x.received ? '' : ', still to come'}</span></span><span class="rv-find-a">${esc(money(x.amount))}</span></li>`);
@@ -17632,7 +17908,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const inForm = state.view === 'costs' && !!state.form;
     body.innerHTML = `<div class="rv-qa-grid">
         <div class="field"><label for="rv-qa-m">Month</label><select id="rv-qa-m" name="month">${months.map((m) => `<option value="${m}"${m === state.ym ? ' selected' : ''}>${esc(monthName(m))}</option>`).join('')}</select></div>
-        <div class="field"><label for="rv-qa-k">Kind</label><select id="rv-qa-k" name="category">${CATS.map(([k, label]) => `<option value="${k}">${esc(label)}</option>`).join('')}</select></div>
+        <div class="field"><label for="rv-qa-k">Kind</label><select id="rv-qa-k" name="category">${PICK_CATS().map(([k, label]) => `<option value="${k}">${esc(label)}</option>`).join('')}</select></div>
         <div class="field rv-qa-wide"><label for="rv-qa-l">What it was for</label><input id="rv-qa-l" name="label" type="text" maxlength="60" autocomplete="off" placeholder="For example: Canva"></div>
         <div class="field"><label for="rv-qa-a">Amount</label><span class="rv-money"><span class="rv-cur" aria-hidden="true">$</span><input id="rv-qa-a" name="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0"></span></div>
         <label class="switch-row rv-rep rv-qa-rep"><input type="checkbox" role="switch" name="repeats"><span>Repeats monthly</span></label>
@@ -17675,7 +17951,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const done = c.busy(btn, 'Adding');
     try {
       const cl = await c.db();
-      const r = await cl.rpc('business_add_cost', { p_month: `${ym}-01`, p_line: { category, label, amount_minor: a.minor, repeats } });
+      const r = await cl.rpc(fn('add_cost'), { p_month: `${ym}-01`, p_line: { category, label, amount_minor: a.minor, repeats } });
       if (r.error) throw r.error;
       dropAll();
       state.cache[ym] = norm(r.data || {}, ym);
@@ -17742,7 +18018,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const done = c.busy(btn, 'Saving');
     try {
       const cl = await c.db();
-      const r = await cl.rpc('business_save_settings', { p_income_goal: goals[0], p_profit_goal: goals[1], p_tax_pct: tax });
+      const r = await cl.rpc(fn('save_settings'), { p_income_goal: goals[0], p_profit_goal: goals[1], p_tax_pct: tax });
       if (r.error) throw r.error;
       dropAll();
       done();
@@ -17776,7 +18052,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   }
   function paintFresh() {
     const box = C().$('#rv-fresh');
-    if (box) box.innerHTML = C().pageFresh({ updatedAt: state.at || (C().all && C().all.at), source: 'Your private business ledger', status: state.error ? 'delayed' : 'ok', label: state.error ? 'Some data did not load' : undefined });
+    if (box) box.innerHTML = C().pageFresh({ updatedAt: state.at || (C().all && C().all.at), source: PERS() ? 'Your private personal ledger and the business profit' : 'Your private business ledger', status: state.error ? 'delayed' : 'ok', label: state.error ? 'Some data did not load' : undefined });
   }
   /** The page anyone but the business owner gets: no figures. @param {boolean} [failed] the owner check did not come back */
   function privatePage(failed) {
@@ -17786,11 +18062,30 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       <div class="empty"><p><strong>${failed ? 'This page did not load.' : 'This page is private.'}</strong></p><p>${failed ? 'Check your connection and try again.' : 'Only the business owner can see it.'}</p>${failed ? '<a class="btn btn-quiet" href="#/revenue" data-rv-retry>Try again</a>' : '<a class="btn btn-quiet" href="#/queue">Back to Needs you</a>'}</div>`;
   }
 
-  /** @param {string} month an address part, '' for this month @param {string} [view] income, costs, or the overview */
-  async function page(month, view) {
+  /** The Business / Personal switch at the top of every Revenue page. */
+  function books() {
+    const tail = state.view === 'overview' ? '' : `/${state.view}`;
+    const at = (/** @type {string} */ b) => (state.book === b ? ' aria-current="page"' : '');
+    return `<nav class="rv-books" aria-label="Which money"><div class="seg" role="group"><a href="#/revenue/${esc(state.ym)}${tail}"${at('business')}>Business</a><a href="#/revenue/personal/${esc(state.ym)}${tail}"${at('personal')}>Personal</a></div></nav>`;
+  }
+
+  /**
+   * @param {string} month an address part, '' for this month, or 'personal' for the Personal book
+   * @param {string} [view] income, costs, or the overview (the month, for Personal) @param {string} [extra] the view, for Personal
+   */
+  async function page(month, view, extra) {
+    // #/revenue/personal/<month>/<view> is the Personal book; anything else is Business (2026-10-16)
+    const book = month === 'personal' ? 'personal' : 'business';
+    if (book === 'personal') { month = view || ''; view = extra || ''; }
+    if (book !== state.book) {
+      dropAll();
+      state.book = book;
+      state.ym = '';
+      CATS = book === 'personal' ? PERSONAL_CATS : BIZ_CATS;
+    }
     const c = C();
     const main = c.main;
-    document.title = 'Revenue · Domin8te console';
+    document.title = `${book === 'personal' ? 'Personal' : 'Revenue'} · Domin8te console`;
     const seq = ++state.seq;
     if (state.ro) { state.ro.disconnect(); state.ro = null; }
     if (state.io) { state.io.disconnect(); state.io = null; }
@@ -17805,14 +18100,14 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (ok !== true) { privatePage(ok === null); return; }
     const ym = pickMonth(month);
     const v = VIEWS.includes(view || '') ? String(view) : 'overview';
-    const want = `#/revenue/${ym}${v === 'overview' ? '' : '/' + v}`;
+    const want = `${base()}/${ym}${v === 'overview' ? '' : '/' + v}`;
     if ((month || view) && location.hash !== want) history.replaceState(null, '', want);
     if (ym !== state.ym) { state.noteEdit = false; state.year = ''; }
     state.ym = ym;
     state.view = v;
     state.error = '';
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Revenue</h1><p>Your business only: what you made, what you spent, what you kept. Only you can see this page.</p></div></div>
-      <div id="rv-fresh"></div><div id="rv-body" aria-live="off"><div id="rv-wait">${c.skeleton(3)}</div></div><div id="rv-dlgs">${dialogs()}</div>`;
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Revenue</h1><p>${PERS() ? 'Your own money: your job\'s pay, your personal costs and what the business made you. Only you can see this page.' : 'Your business only: what you made, what you spent, what you kept. Only you can see this page.'}</p></div></div>
+      ${books()}<div id="rv-fresh"></div><div id="rv-body" aria-live="off"><div id="rv-wait">${c.skeleton(3)}</div></div><div id="rv-dlgs">${dialogs()}</div>`;
     paintFresh();
     wireDialogs();
     main.onclick = onClick;
@@ -17831,7 +18126,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       if (seq !== state.seq) return;
       state.error = say(x);
       const box = c.$('#rv-body');
-      if (box) box.innerHTML = `${selector(ym)}<div class="empty"><p><strong>This month did not load.</strong></p><p>${esc(state.error)}</p><a class="btn btn-quiet" href="#/revenue/${ym}" data-rv-retry>Try again</a></div>`;
+      if (box) box.innerHTML = `${selector(ym)}<div class="empty"><p><strong>This month did not load.</strong></p><p>${esc(state.error)}</p><a class="btn btn-quiet" href="${base()}/${ym}" data-rv-retry>Try again</a></div>`;
       paintFresh();
     }
   }
@@ -17876,7 +18171,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (hit) {
       const plot = hit.closest('.rv-plot');
       if (!plot || /** @type {HTMLElement} */ (plot).dataset.plot !== 'months') return;   // only the 12-month chart opens a month
-      const d = state.cache[state.ym]; const r = d && d.series.slice(-12)[Number(hit.getAttribute('data-rv-tip'))]; if (r && r.ym !== state.ym) location.hash = `#/revenue/${r.ym}`; return;
+      const d = state.cache[state.ym]; const r = d && d.series.slice(-12)[Number(hit.getAttribute('data-rv-tip'))]; if (r && r.ym !== state.ym) location.hash = `${base()}/${r.ym}`; return;
     }
     const pm = t.closest('[data-rv-pm]');
     if (pm) { togglePrev(String(pm.getAttribute('data-rv-pm'))); return; }
@@ -21721,7 +22016,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         { name: 'Clients', hint: 'Page', href: '#/clients', icon: 'users' },
         { name: 'All work (every client\'s team cards)', hint: 'Page', href: '#/board', icon: 'board' },
         { name: 'Billing', hint: 'Page', href: '#/billing', icon: 'card' },
-        ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }, { name: 'Revenue: Income', hint: 'Page', href: '#/revenue/income', icon: 'trend' }, { name: 'Revenue: Costs', hint: 'Page', href: '#/revenue/costs', icon: 'trend' }, { name: 'Revenue: Years', hint: 'Page', href: '#/revenue/years', icon: 'trend' }] : []),
+        ...(partOf('revenue') && partOf('revenue').visible() ? [{ name: 'Revenue', hint: 'Page', href: '#/revenue', icon: 'trend' }, { name: 'Revenue: Income', hint: 'Page', href: '#/revenue/income', icon: 'trend' }, { name: 'Revenue: Costs', hint: 'Page', href: '#/revenue/costs', icon: 'trend' }, { name: 'Revenue: Years', hint: 'Page', href: '#/revenue/years', icon: 'trend' }, { name: 'Revenue: Personal', hint: 'Page', href: '#/revenue/personal', icon: 'trend' }] : []),
         { name: 'Settings', hint: 'Page', href: '#/settings', icon: 'gear' },
         { name: 'Team', hint: 'Settings', href: '#/settings', icon: 'users' },
         { name: 'Reload everything', hint: 'Action', act: 'refresh', icon: 'refresh' },
@@ -22152,7 +22447,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     else if (parts[0] === 'billing') billingPage(parts[1] || '');   // #/billing/<client id> opens that client's plan drawer (2026-10-13)
     else if (parts[0] === 'settings') settingsPage('');
     else if (parts[0] === 'messages') messagesPage(parts[1] || '');
-    else if (parts[0] === 'revenue' && partOf('revenue')) partOf('revenue').page(parts[1] || '', parts[2] || '');   // Revenue, owners only (mod-revenue.js, 2026-10-14)
+    else if (parts[0] === 'revenue' && partOf('revenue')) partOf('revenue').page(parts[1] || '', parts[2] || '', parts[3] || '');   // Revenue, owners only (mod-revenue.js, 2026-10-14)
     else if (parts[0] === 'bot' && partOf('bot')) partOf('bot').page(parts[1] || '');   // Bot chat (mod-bot.js, 2026-10-14)
     else queuePage();
     if (parts[0] !== 'client') stopPulling();
