@@ -3603,6 +3603,8 @@
     if (part === 'reply') $('#reply', box).focus();
     if (part === 'approval') $('#a-title', box).focus();
     if (part === 'update') $('#u-title', box).focus();
+    // An approved Bot chat draft on its way into their dashboard fills the form it was sent to (mod-bot.js, 2026-10-16).
+    { const B = partOf('bot'); if (B && B.fillTalk && (part === 'approval' || part === 'update')) B.fillTalk(current.id, box); }
     const forId = current.id;
     /** After a send. Another form here with unsaved edits keeps them (the sent one is emptied, the page is not drawn again);
      *  if the person went to another page meanwhile, they stay there. @param {HTMLFormElement} form @param {() => void} done */

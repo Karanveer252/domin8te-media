@@ -534,8 +534,9 @@
           <button class="btn btn-sm" type="submit">Move to this client</button></form></details>` : ''}
         <button class="btn btn-quiet btn-sm" type="button" data-bot="copy">Copy text</button>
       </div>` : '';
-    const decided = st === 'approved' ? `<div class="bot-after"><p class="meta">Approved${r.decided_by_name ? ` by ${esc(r.decided_by_name)}` : ''}, ${esc(C0.when(r.decided_at))}${r.final_text && r.final_text !== r.draft ? '. Edited before approval.' : '.'} Nothing has been sent; send it yourself.</p>
-          <div class="actions"><button class="btn" type="button" data-bot="to-messages"${t ? '' : ' disabled'}>${icon('chat')}Put in reply to ${esc(t ? t.name : 'the client')}</button><button class="btn btn-quiet" type="button" data-bot="copy">Copy text</button></div></div>`
+    const decided = st === 'approved' ? `<div class="bot-after"><p class="meta">Approved${r.decided_by_name ? ` by ${esc(r.decided_by_name)}` : ''}, ${esc(C0.when(r.decided_at))}${r.final_text && r.final_text !== r.draft ? '. Edited before approval.' : '.'} Nothing has been sent; send it yourself, inside their dashboard.</p>
+          <div class="actions"><button class="btn" type="button" data-bot="to-approval"${t ? '' : ' disabled'}>${icon('plus')}Ask ${esc(t ? t.name : 'the client')} to approve it</button><button class="btn btn-quiet" type="button" data-bot="to-update"${t ? '' : ' disabled'}>Post it as an update</button><button class="btn btn-quiet" type="button" data-bot="to-messages"${t ? '' : ' disabled'}>${icon('chat')}Put in a reply</button><button class="btn btn-quiet" type="button" data-bot="copy">Copy text</button></div>
+          <p class="meta">Each one opens the form on their Talk tab with the text filled in. Check it there, then send: it lands on their dashboard Home or Updates.</p></div>`
       : st === 'rejected' ? `<div class="bot-after"><p class="meta">Rejected${r.decided_by_name ? ` by ${esc(r.decided_by_name)}` : ''}, ${esc(C0.when(r.decided_at))}.</p>${r.reject_note ? `<blockquote>${esc(r.reject_note)}</blockquote>` : ''}</div>`
       : st === 'expired' ? `<div class="bot-after"><p class="meta">Nobody decided this before ${esc(C0.when(r.expires_at))}, so it expired. Ask the bot for a fresh draft if it is still needed.</p></div>` : '';
     return `<div class="bot-card-top"><a class="crumb" href="${esc(back)}">${icon('back')}${inTab ? 'All of their bot outputs' : 'All bot chat'}</a>${pager}</div>
@@ -767,6 +768,10 @@
       } else if (what === 'to-messages') {
         handoff = { tenantId: r.tenant_id, text: r.final_text || r.draft };
         location.hash = `#/messages/${r.tenant_id}`;
+      } else if (what === 'to-approval' || what === 'to-update') {
+        // Into the client's dashboard (2026-10-16): the Talk tab's own form, filled in, so the team checks it and sends it there.
+        talkHandoff = { tenantId: r.tenant_id, text: r.final_text || r.draft, kind: what === 'to-approval' ? 'approval' : 'update', label: String(r.kind || '') };
+        location.hash = `#/client/${r.tenant_id}/talk/${talkHandoff.kind}`;
       }
     };
     wireForms(box, again, inTab);
@@ -1187,6 +1192,47 @@
   }
 
   /** Messages calls this once its reply box is drawn: fills the box with text handed over from an approved card (the person still sends it). @param {string} tenantId */
+  /** An approved draft on its way to the Talk tab's approval or update form. @type {{tenantId: string, text: string, kind: string, label: string}|null} */
+  let talkHandoff = null;
+  /**
+   * Fills the Talk tab's "Ask for an approval" or "Post an update" form with an approved draft: the first line is the
+   * title, the rest the points to check (approval) or what we completed (update). Nothing is sent until the team presses
+   * the form's own button. @param {string} tenantId @param {HTMLElement} box
+   */
+  function fillTalk(tenantId, box) {
+    const h = talkHandoff;
+    if (!h || h.tenantId !== tenantId) return;
+    talkHandoff = null;
+    const lines = String(h.text).split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+    // Several lines: the first is the title. One line: the draft's kind is the title and the line is the body.
+    const one = lines.length < 2;
+    const head = one ? (h.label || (h.kind === 'approval' ? 'Please check this' : 'Update')) : (lines.shift() || '').replace(/[.:]+$/, '');
+    /** @param {string} sel @param {string} v */
+    const put = (sel, v) => {
+      const el = /** @type {HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement|null} */ (box.querySelector(sel));
+      if (!el) return false;
+      const max = 'maxLength' in el && Number(el.maxLength) > 0 ? Number(el.maxLength) : 0;
+      el.value = max ? v.slice(0, max) : v;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      return !!max && v.length > max;
+    };
+    let cut = false;
+    if (h.kind === 'approval') {
+      cut = put('#a-title', head) || cut;
+      if (one) cut = put('#a-intro', lines[0] || '') || cut;
+      else { cut = put('#a-intro', 'Please check this before it goes out.') || cut; put('#a-kind', 'list'); cut = put('#a-items', lines.join('\n')) || cut; }
+      const t = /** @type {HTMLElement|null} */ (box.querySelector('#a-title'));
+      if (t) t.focus();
+    } else {
+      cut = put('#u-title', head) || cut;
+      if (lines.length) cut = put('#u-completed', lines.join(' ')) || cut;
+      const t = /** @type {HTMLElement|null} */ (box.querySelector('#u-title'));
+      if (t) t.focus();
+    }
+    C().toast(cut ? 'The draft is in the form, but some of it did not fit. Read it and trim before you send.' : `The approved draft is in the form. Check it, then press ${h.kind === 'approval' ? 'Send for approval' : 'Post the update'}.`, cut);
+  }
+
   function fillReply(tenantId) {
     if (!handoff || handoff.tenantId !== tenantId) return;
     const ta = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('convo-body'));
@@ -1200,7 +1246,7 @@
     C().toast(cut ? `Only the first ${max} characters fit in a reply. Read it and trim before you press Send.` : 'The approved text is in the reply box. Read it, then press Send.', cut);
   }
 
-  EXT.bot = { load, page, needsBlock, sideBadge, fillReply, pendingCount: () => pending().length, waitingFor, diff, get loaded() { return loaded; } };
+  EXT.bot = { load, page, needsBlock, sideBadge, fillReply, fillTalk, pendingCount: () => pending().length, waitingFor, diff, get loaded() { return loaded; } };
   // first: true puts it straight after Talk, ahead of the other tabs that also follow Talk.
   EXT.tabs.bot = { label: 'Bot', after: 'talk', first: true, render };
 })();
