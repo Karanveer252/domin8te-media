@@ -45,3 +45,6 @@ verify_jwt = false
 
 [functions.dashboard-recovery]
 verify_jwt = false
+
+[functions.onboarding-intake]
+verify_jwt = false

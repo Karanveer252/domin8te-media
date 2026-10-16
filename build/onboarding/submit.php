@@ -5,12 +5,17 @@ declare(strict_types=1);
    Domin8te Media onboarding handler
    Mails a new client's setup answers, plus their menu file if they
    attached one, to the business mailbox on the same Hostinger server.
-   Same approach as /send.php: PHP mail(), no stored credentials.
-   Only ever sends to MAIL_TO; replying to the email replies to the client.
+   Same approach as /send.php: the signed mailbox (smtp.hostinger.com, login file above
+   public_html) when it exists, else PHP mail(). Replying to the email replies to the client.
+   2026-10-15: after the studio's copy is sent, the client gets a short confirmation from
+   Karan, and the answers are handed to the console (onboarding-intake function) so the
+   client can be added with one click. Both extras are best effort: a failure is logged,
+   never shown to the client, and never loses the studio's copy.
    ============================================================ */
 
 const MAIL_TO   = 'karanhelps@domin8temedia.com';
 const MAIL_FROM = 'website@domin8temedia.com';
+const SITE_DOMAIN = 'domin8temedia.com';
 const MAX_FILES = 3;
 const MAX_TOTAL = 6291456; // 6 MB of files in total: base64 makes that about 8.4 MB in the mail, under the usual 10 MB limit
 const RATE_SECS = 30;      // one send per person (IP and email) per this many seconds
@@ -97,6 +102,48 @@ function nameSafe(string $v, int $max = 100): string {
     return trim(preg_replace('/\s+/u', ' ', $v) ?? '');
 }
 
+/* SMTP through the signed mailbox: the same function as /send.php (each file ships on its own). */
+function smtpSend(array $cfg, string $to, string $subject, string $body, array $extraHeaders, string $fromName = 'Domin8te Website'): bool {
+    $user = (string)($cfg['user'] ?? ''); $pass = (string)($cfg['pass'] ?? '');
+    if ($user === '' || $pass === '') return false;
+    $fp = @stream_socket_client('ssl://' . ($cfg['host'] ?? 'smtp.hostinger.com') . ':' . (int)($cfg['port'] ?? 465), $errno, $errstr, 15);
+    if (!$fp) { error_log(date('c') . ' d8-onboarding smtp connect failed: ' . $errno); return false; }
+    stream_set_timeout($fp, 15);
+    $read = function () use ($fp): string {                 // one reply, all its lines ("250-..." continues, "250 ..." ends)
+        $all = '';
+        while (($line = fgets($fp, 1024)) !== false) { $all .= $line; if (strlen($line) < 4 || $line[3] !== '-') break; }
+        return $all;
+    };
+    $cmd = function (string $c, string $want) use ($fp, $read): bool {
+        if ($c !== '') fwrite($fp, $c . "\r\n");
+        $r = $read();
+        if (strncmp($r, $want, strlen($want)) !== 0) {
+            /* log the server's code only, never what was sent (it holds the login) */
+            error_log(date('c') . ' d8-onboarding smtp step failed, expected ' . $want . ', got ' . substr($r, 0, 3));
+            return false;
+        }
+        return true;
+    };
+    $domain = substr(strrchr($user, '@') ?: '@' . SITE_DOMAIN, 1);
+    $ok = $cmd('', '220') && $cmd('EHLO ' . $domain, '250') && $cmd('AUTH LOGIN', '334')
+       && $cmd(base64_encode($user), '334') && $cmd(base64_encode($pass), '235')
+       && $cmd('MAIL FROM:<' . $user . '>', '250') && $cmd('RCPT TO:<' . $to . '>', '250') && $cmd('DATA', '354');
+    if ($ok) {
+        $head = array_merge([
+            'Date: ' . date('r'),
+            'From: ' . $fromName . ' <' . $user . '>',
+            'To: <' . $to . '>',
+            'Subject: =?UTF-8?B?' . base64_encode($subject) . '?=',
+            'Message-ID: <' . bin2hex(random_bytes(12)) . '@' . $domain . '>',
+        ], $extraHeaders);
+        $text = str_replace("\n", "\r\n", str_replace(["\r\n", "\r"], "\n", $body));
+        $text = preg_replace('/^\./m', '..', $text);          // a line starting with "." must not end the message
+        $ok = $cmd(implode("\r\n", $head) . "\r\n\r\n" . $text . "\r\n.", '250');
+    }
+    fwrite($fp, "QUIT\r\n"); fclose($fp);
+    return $ok;
+}
+
 /* Body text keeps its line breaks but loses control characters. */
 function bodySafe(string $v, int $max = 20000): string {
     $v = str_replace(["\r\n", "\r"], "\n", $v);
@@ -111,6 +158,7 @@ $mobile  = headerSafe((string)($_POST['mobile'] ?? ''), 60);
 $place   = headerSafe((string)($_POST['place'] ?? ''), 160);
 $summary = bodySafe((string)($_POST['summary'] ?? ''));
 $answers = bodySafe((string)($_POST['answers'] ?? ''), 20000);
+$slot    = headerSafe((string)($_POST['slot'] ?? ''), 160);
 
 if ($first === '' || $place === '' || $summary === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)
     || preg_match('/[<>",;\\\\\\s]/', $email)) { // no quoted or odd addresses in a header
@@ -236,13 +284,27 @@ if (!$attach) {
 }
 
 @touch($rateFile);
-$sent = @mail(
-    MAIL_TO,
-    '=?UTF-8?B?' . base64_encode($subject) . '?=',
-    $body,
-    implode("\r\n", $headers),
-    '-f' . MAIL_FROM
-);
+/* The private settings file (the same one /send.php reads): ['user' => mailbox, 'pass' => ..., and optionally
+   'intake_url' and 'intake_secret' for the console hand-off]. It sits above public_html, so no deploy or backup has it. */
+$cfg = null;
+$cfgFile = dirname(__DIR__, 2) . '/d8-mail.php';
+if (is_file($cfgFile)) { $c = include $cfgFile; if (is_array($c)) $cfg = $c; }
+
+$sent = false;
+if ($cfg) {
+    $smtpHeaders = array_values(array_filter($headers, function ($h) { return stripos($h, 'From:') !== 0; }));
+    $sent = smtpSend($cfg, MAIL_TO, $subject, $body, $smtpHeaders, 'Domin8te Onboarding');
+    if (!$sent) error_log('d8-onboarding smtp not used or failed, falling back to mail()');
+}
+if (!$sent) {
+    $sent = @mail(
+        MAIL_TO,
+        '=?UTF-8?B?' . base64_encode($subject) . '?=',
+        $body,
+        implode("\r\n", $headers),
+        '-f' . MAIL_FROM
+    );
+}
 
 /* Trace: no personal data, just enough to match a complaint to a line (email hash, size). */
 error_log('d8-onboarding ' . date('c') . ' mail=' . ($sent ? 'ok' : 'FAIL') . ' email_sha1=' . sha1(strtolower($email)) . ' bytes=' . strlen($body));
@@ -261,4 +323,50 @@ if (!$sent) {
 }
 
 if ($sidFile !== '') @touch($sidFile);
+
+/* 1. The client's confirmation, so they know it arrived and what happens next. Signed mailbox only (mail() would land
+   in spam), never for a post tagged as suspicious. */
+if ($cfg && !$trap && !$fast) {
+    $conf = ['Hi ' . $first . ',', '', 'Thanks, your setup answers for ' . $place . ' reached me.'];
+    if ($slot !== '') array_push($conf, '', 'You picked a kickoff call for ' . $slot . '. I will confirm the time by email within one working day.');
+    array_push($conf,
+        '',
+        'What happens next:',
+        '1. I accept the access invites you sent (Google listing, Facebook and Instagram). If one did not go through, we sort it on the call.',
+        '2. You get an email with your Domin8te dashboard. You sign in with this email address and a 6-digit code. No password.',
+        '3. On the kickoff call we go through your first month together.',
+        '',
+        'Anything to add or change? Just reply to this email.',
+        '',
+        'Karan',
+        'Domin8te Media',
+        'domin8temedia.com'
+    );
+    $confHeaders = [
+        'Reply-To: ' . (string)($cfg['user'] ?? MAIL_TO),
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset=UTF-8',
+        'Content-Transfer-Encoding: 8bit',
+        'Auto-Submitted: auto-replied',
+    ];
+    if (!smtpSend($cfg, $email, 'Got your setup answers for ' . $place, implode("\n", $conf), $confHeaders, 'Karan at Domin8te Media')) {
+        error_log('d8-onboarding client confirmation failed');
+    }
+}
+
+/* 2. The console hand-off: the answers become a "New setup form" on Needs you. Server to server, 6 s at most.
+   Only a Supabase onboarding-intake address is accepted, so the settings file cannot point the answers anywhere else. */
+$iu = $cfg ? (string)($cfg['intake_url'] ?? '') : '';
+$is = $cfg ? (string)($cfg['intake_secret'] ?? '') : '';
+if ($iu !== '' && $is !== '' && !$trap && preg_match('#^https://[a-z0-9]+\.supabase\.co/functions/v1/onboarding-intake$#', $iu)) {
+    $payload = json_encode(['sid' => $sid, 'first' => $first, 'last' => $last, 'email' => $email, 'mobile' => $mobile,
+        'place' => $place, 'summary' => $summary, 'answers' => $answers], JSON_UNESCAPED_UNICODE);
+    $ctx = stream_context_create(['http' => ['method' => 'POST', 'timeout' => 6, 'ignore_errors' => true,
+        'header' => "Content-Type: application/json\r\nx-onboarding-secret: " . $is . "\r\n", 'content' => (string)$payload]]);
+    @file_get_contents($iu, false, $ctx);
+    $code = (isset($http_response_header[0]) && preg_match('/\s(\d{3})(\s|$)/', $http_response_header[0], $mm)) ? $mm[1] : '---';
+    error_log('d8-onboarding intake ' . ($code === '200' ? 'ok' : 'FAILED ' . $code) . ' email_sha1=' . sha1(strtolower($email)));
+}
+
 respond(true);
+

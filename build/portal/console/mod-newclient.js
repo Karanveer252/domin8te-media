@@ -57,7 +57,7 @@
     const draft = readDraft();
     /** What the form holds, other than the plan and its picks (those live in the widget). */
     const S = {
-      name: '', first: '', email: '', kind: '', approval: '', date: today, stripe: true,
+      name: '', first: '', email: '', kind: '', approval: '', date: today, stripe: true, intakeId: '', sendLogin: false,
       pages: Object.fromEntries(PAGES.map((p) => [p[0], p[2]])),
       ...(draft && draft.s ? draft.s : {})
     };
@@ -87,6 +87,9 @@
             <div class="field"><label for="n-first">Contact's first name</label><input id="n-first" name="first" type="text" maxlength="100" autocomplete="off" value="${esc(S.first)}"></div>
             <div class="field"><label for="n-email">Contact's email</label><input id="n-email" name="email" type="email" maxlength="200" autocomplete="off" value="${esc(S.email)}" aria-describedby="n-email-h"><p class="hint" id="n-email-h">You can give them a login later. Bill reminders go to this address.</p></div>
           </div>
+          ${S.intakeId ? '<p class="notice nc-intake">From their setup form. The full answers are on Needs you and in your inbox.</p>' : ''}
+          <label class="nc-check"><input type="checkbox" name="sendLogin" id="n-login"${S.sendLogin ? ' checked' : ''}><span>Email them their dashboard login when I add the client</span></label>
+          <p class="hint">They get a welcome email with the link. They sign in with this email and a 6-digit code. No password.</p>
           <p class="field-error" id="n-email-err" role="alert" hidden>That email does not look right. Fix it or leave it empty.</p>
           ${colorPicker}
           ${logoBlock}
@@ -136,7 +139,7 @@
           <button class="btn btn-quiet" type="button" data-nc="draft">Save as draft</button>
           <span class="meta nc-status" id="nc-status" aria-live="polite"></span>
         </div>
-        <p class="meta nc-foot">They see nothing until you give them a login. A draft stays on this computer only.</p>
+        <p class="meta nc-foot">They see nothing until they have a login. A draft stays on this computer only.</p>
       </form>`;
 
     const form = /** @type {HTMLFormElement} */ (c.$('#nc-form'));
@@ -154,7 +157,7 @@
 
     /** Reads the fields into S. */
     function gather() {
-      S.name = $('#n-name').value; S.first = $('#n-first').value; S.email = $('#n-email').value.trim(); S.kind = $('#n-kind').value;
+      S.name = $('#n-name').value; S.first = $('#n-first').value; S.email = $('#n-email').value.trim(); S.kind = $('#n-kind').value; S.sendLogin = !!$('#n-login').checked;
       const ap = /** @type {HTMLInputElement|null} */ (form.querySelector('input[name="approval"]:checked'));
       S.approval = ap ? ap.value : '';
       const cc = /** @type {HTMLInputElement|null} */ (form.querySelector('input[name="cardColor"]:checked'));
@@ -291,6 +294,7 @@
       const name = S.name.trim();
       if (!name) { fail('Give the restaurant a name.', $('#n-name')); return; }
       if (S.email && !EMAIL.test(S.email)) { fail('That email does not look right. Fix it or leave it empty.', $('#n-email')); return; }
+      if (S.sendLogin && !S.email) { fail('Add their email to send the login, or untick "Email them their dashboard login".', $('#n-email')); return; }
       const chk = pp.check();
       if (!chk.ok) { fail(chk.error, null); return; }
       if (!dateOk(S.date)) { fail('Choose a first billing date from the last month to the next two months.', $('#n-date')); return; }
@@ -358,15 +362,25 @@
         }
         // 5. The client's own board in Multica, made now so it is ready for the team.
         if (typeof c.multicaStatus === 'function') c.multicaStatus().then((/** @type {any} */ st) => { if (st.configured) c.multica({ action: 'project', tenantId: row.id }).catch((/** @type {any} */ x) => c.toast(`The Multica board for ${name} could not be made yet: ${c.message(x)}`, true)); });
+        // 6. Their login and welcome email, when ticked (client-login). If it fails, the client is still added: the toast says so.
+        let loginNote = '';
+        if (S.sendLogin && EMAIL.test(S.email)) {
+          try {
+            const r = await c.callFn('client-login', { tenantId: row.id, email: S.email, firstName: S.first.trim() });
+            loginNote = r && r.welcomed ? ` Login made and welcome email sent to ${S.email}.` : ` Login made for ${S.email}. No welcome email went out (email sending is not set up yet), so tell them to sign in at domin8temedia.com/dashboard.`;
+          } catch (x) { loginNote = ` The login was not made: ${c.message(x)} Give it from the client's Setup tab.`; notes.push(''); }
+        }
+        // 7. The setup form it came from leaves Needs you.
+        if (S.intakeId && EXT.intake) await EXT.intake.markAdded(S.intakeId, row.id);
         clearDraft();
         // Added is added: a failed reload must not put the form back in reach of a second, duplicate insert.
         try { await c.loadAll(); } catch (x) { c.toast(`${name} was added, but the client list could not reload: ${c.message(x)}`, true); }
         if (planErr) {
-          c.toast(`${name} was added, but the plan was not saved: ${planErr} Set it from Billing.${stripeNote}`, true);
+          c.toast(`${name} was added, but the plan was not saved: ${planErr} Set it from Billing.${stripeNote}${loginNote}`, true);
           location.hash = `#/billing/${row.id}`;
           return;
         }
-        c.toast(`${name} added.${stripeNote}${notes.join('')}`, notes.length > 0);
+        c.toast(`${name} added.${stripeNote}${loginNote}${notes.join('')}`, notes.length > 0);
         location.hash = `#/client/${row.id}/overview`;
       } catch (x) {
         done();

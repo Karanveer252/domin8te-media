@@ -448,6 +448,7 @@
     const d = S.d, fd = new FormData();
     [['first', d.first], ['last', d.last], ['email', d.email], ['mobile', d.mobile], ['place', d.rname]].forEach(([k, v]) => fd.append(k, v || ''));
     fd.append('summary', answersText());
+    fd.append('slot', slotText()); // the kickoff call in words, for the client's confirmation email
     const raw = Object.assign({}, d); delete raw._from;
     fd.append('answers', JSON.stringify(raw));
     fd.append('d8x', ($('#d8x') || {}).value || ''); // honeypot (a name autofill has no meaning for)

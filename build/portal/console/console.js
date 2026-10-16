@@ -1345,6 +1345,7 @@
       <div class="btns updated"><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span><button class="icon-btn icon-btn-sm" type="button" data-action="refresh" aria-label="Reload" title="Reload">${icon('refresh')}</button></div></div>
       ${N ? N.top(view) : ''}
       ${soon.length ? `<details class="soon-strip" data-qf="other"><summary>${icon('clock')}<span><b>Coming up this week: ${soon.length}.</b> Next: ${esc(next.client)}, ${esc(next.label)}${nd ? `, ${esc(nd.days === 0 ? 'today' : nd.text)}` : ''}</span></summary><ul class="q">${soon.map((x) => qRow(x, x.client)).join('')}</ul></details>` : ''}
+      ${partOf('intake') ? partOf('intake').block() : ''}
       ${all.tenants.length ? '' : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p><a class="btn" href="#/new">Add a client</a></div>`}
       <section class="q-group" id="q-needs"><h2>Do now <span class="meta">${doNow}</span></h2>
         ${N ? N.cards(typed) : ''}
@@ -1355,6 +1356,7 @@
       ${waiting.length ? `<details class="q-group q-fold" id="q-waiting" data-qf="other"><summary><h2>Waiting on clients <span class="meta">${waiting.length}</span></h2></summary>
         <p class="lede">Approvals they have not answered, and next steps that are theirs. Late ones first.</p>${grouped(waiting)}</details>` : ''}`;
     if (N) N.wire(main, view);
+    if (partOf('intake')) partOf('intake').wire(main);
   }
 
   /* ---- Messages: every client's conversation in one place ------------------------------------------------ */
@@ -1975,11 +1977,11 @@
       // The client this login is for, read now: another one may be open when the answer comes back.
       const tid = current.id;
       try {
-        await callFn('client-login', { tenantId: tid, email, firstName: val(lf, 'first') });
+        const lr = await callFn('client-login', { tenantId: tid, email, firstName: val(lf, 'first') });
         done();
         followFor = tid;
         await loadAll();
-        toast(`${email} can now sign in to the portal.`);
+        toast(lr && lr.welcomed ? `${email} can now sign in. We emailed them the link and how to sign in.` : `${email} can now sign in to the portal. No welcome email went out, so send them domin8temedia.com/dashboard yourself.`);
         redraw();
       } catch (x) {
         done();

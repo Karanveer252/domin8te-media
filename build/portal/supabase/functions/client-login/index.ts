@@ -13,11 +13,16 @@
 //      in with a 6-digit code Clerk emails them. Domin8te never creates or sends passwords.
 //   4. The person is made a member of the organisation.
 //
+//   6. (2026-10-15) A NEW member gets a welcome email with the dashboard link and how to sign in (welcome.ts), through
+//      Resend with the message emails' settings RESEND_API_KEY and NOTIFY_FROM. Not set: no email, and the answer says
+//      welcomed: false so the console can tell staff. Someone who was already a member gets none.
+//
 // Needs the secret CLERK_SECRET_KEY (Supabase: Edge Functions > Secrets). It never leaves the server.
 // verify_jwt is off because the token is Clerk's, not Supabase's; step 1 is the check.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { allowedOrigins } from "../_shared/origins.ts";
+import { sendWelcome } from "./welcome.ts";
 
 const CLERK = "https://api.clerk.com/v1";
 // The live site; the local preview ports only with ALLOW_LOCAL_ORIGINS=1 (TEST and local, never prod).
@@ -169,5 +174,13 @@ Deno.serve(async (req) => {
   await db.from("login_requests").update({ status: "granted", decided_at: new Date().toISOString() })
     .eq("tenant_id", tenantId).eq("status", "pending").eq("email", email);
 
-  return reply(origin, 200, { ok: true, orgId, userId, created, email });
+  // 6. The welcome email, only for someone who just became a member.
+  let welcomed = false;
+  if (!already) {
+    const w = await sendWelcome((k) => Deno.env.get(k), (u, i) => fetch(u, i), { restaurant: t.data.name, firstName, email, key: `${orgId}:${userId}` });
+    welcomed = w.sent;
+    if (!w.sent) console.log(`client-login: no welcome email (${w.reason})`);
+  }
+
+  return reply(origin, 200, { ok: true, orgId, userId, created, email, welcomed });
 });

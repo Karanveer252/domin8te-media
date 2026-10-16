@@ -326,7 +326,7 @@
       for (const a of db.login_requests || []) if (a.tenant_id === body.tenantId && a.status === 'pending' && a.email === body.email) a.status = 'granted';
       if (t && !t.clerk_org_id) t.clerk_org_id = 'org_preview_' + t.id;
       await new Promise((r) => setTimeout(r, 400));
-      return new Response(JSON.stringify({ ok: true, email: body.email, created: true }), { status: 200 });
+      return new Response(JSON.stringify({ ok: true, email: body.email, created: true, welcomed: true }), { status: 200 });
     }
     if (String(url).includes('/functions/v1/team')) {
       const body = JSON.parse(String((init && init.body) || '{}'));
