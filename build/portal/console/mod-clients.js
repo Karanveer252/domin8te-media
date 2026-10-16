@@ -286,7 +286,7 @@
       const stamp = c.plans.at || c.all.at;
       const check = !pl.now ? '<span class="chip plain">No plan</span>' : r.unverified ? '<span class="chip warn">Unverified</span>' : '<span class="chip good">Verified</span>';
       return `<tr data-href="#/client/${esc(t.id)}/overview"${t.status !== 'active' ? ' class="paused"' : ''}>
-        <td data-label="Client"><a class="row-link" href="#/client/${esc(t.id)}/overview">${colorDot(t.id)}${esc(t.name)}</a>${notes.map((x) => `<span class="sub">${esc(x)}</span>`).join('')}${t.clerk_org_id ? '' : '<span class="row-chips"><span class="chip warn">No login yet</span></span>'}</td>
+        <td data-label="Client"><a class="row-link" href="#/client/${esc(t.id)}/overview">${colorDot(t.id)}${esc(t.name)}</a>${notes.map((x) => `<span class="sub">${esc(x)}</span>`).join('')}${t.clerk_org_id ? (EXT.usage ? EXT.usage.clientLine(t.id) : '') : '<span class="row-chips"><span class="chip warn">No login yet</span></span>'}</td>
         <td data-label="Plan"><div class="cl-v">${pl.nowPlan ? `<strong class="cl-plan-name">${esc(pl.nowPlan.name)}</strong>` : `<a class="chip warn chip-link" href="#/billing/${esc(t.id)}" title="Set their plan and picks in Billing">No plan set</a>`}</div></td>
         <td data-label="Picks this cycle"><div class="cl-v">${pl.now ? esc(picksLine(pl.now)) : '<span class="none">Not set</span>'}</div></td>
         <td data-label="Usage this month" class="cl-usage-cell"><div class="cl-v">${bars ? `<div class="cl-usage">${bars}</div>${more > 0 ? `<span class="cl-sub">and ${c.plural(more, 'more limit')} on their page</span>` : ''}` : '<span class="none">No limits yet</span>'}${period ? `<span class="cl-month">${esc(period)}</span>` : ''}</div></td>

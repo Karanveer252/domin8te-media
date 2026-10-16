@@ -3122,6 +3122,25 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] .bot-showing
   .bot-bulk-btns .btn { flex: 1 1 auto; }
 }
 
+/* css/59-usage.css */
+/* Dashboard use (mod-usage.js, 2026-10-16): the Overview panel, the Clients table line and the Needs you block. */
+.us-panel { margin-top: var(--gap, 16px); }
+.us-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 20px; margin: 0; }
+.us-facts > div { min-width: 0; }
+.us-facts dt { font-size: 13px; color: var(--ink-3); }
+.us-facts dd { margin: 2px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.us-block { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.us-block > p { margin: 6px 0 0; }
+.us-week { font-size: 15px; line-height: 1.5; }
+.us-reply q { font-style: italic; }
+.us-log { display: grid; grid-template-columns: minmax(150px, 200px) minmax(0, 1fr); gap: 10px 14px; align-items: end; margin-top: 12px; }
+.us-log .actions { grid-column: 1 / -1; margin-top: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.us-line { display: block; }
+@media (max-width: 700px) {
+  .us-facts { grid-template-columns: minmax(0, 1fr); }
+  .us-log { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* css/62-revenue.css */
 /*
  * Revenue (2026-10-14, rewritten the same day), Karan's private business dashboard (mod-revenue.js). The console's tokens, its glass cards,
@@ -5834,6 +5853,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     // characters as wall-clock time, so a server timestamp is moved to the restaurant's zone before it is used, and
     // "now" is the restaurant's wall clock too. Zone: tenant doc.timezone, else Winnipeg (both clients are there).
     let zone = 'America/Winnipeg';
+    let seenSent = false;
     const wallMs = (/** @type {number} */ ms) => {
       /** @type {any} */ const p = {};
       for (const x of new Intl.DateTimeFormat('en-GB', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(ms))) p[x.type] = x.value;
@@ -5951,6 +5971,9 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       const merged = mergeProjections(normalize({ ...(row.doc || {}), plan: planRec, timezone: zone, homeSections: sections, verifiedResults: verified, weekly }, now), itemRows, invRows);
       if (verified) { merged.metrics = {}; merged.strip = []; merged.pending = []; merged.insightMetric = ''; }
       tenant = { ...merged, tenantId: row.id, name: row.name };
+      // The client opened their dashboard (2026-10-16): once per page load, quietly; the console's "Last visit" reads it.
+      // Never while staff view as the client or in a preview. The server keeps one row per person per 30 minutes.
+      if (!VIEW && !PREVIEW && !seenSent && typeof sb.rpc === 'function') { seenSent = true; Promise.resolve(sb.rpc('touch_seen')).catch(() => {}); }
       // A function that is not there yet (before its migration) leaves the cards out and the record as it is.
       if (!cards.error && Array.isArray(cards.data)) tenant.cards = cards.data.map((/** @type {any} */ c) => ({ id: c.id, service: c.service, title: c.title, status: c.status, due: c.due, updatedAt: toWall(c.updated_at), createdAt: toWall(c.created_at) }));
     }
@@ -9019,7 +9042,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       const stamp = c.plans.at || c.all.at;
       const check = !pl.now ? '<span class="chip plain">No plan</span>' : r.unverified ? '<span class="chip warn">Unverified</span>' : '<span class="chip good">Verified</span>';
       return `<tr data-href="#/client/${esc(t.id)}/overview"${t.status !== 'active' ? ' class="paused"' : ''}>
-        <td data-label="Client"><a class="row-link" href="#/client/${esc(t.id)}/overview">${colorDot(t.id)}${esc(t.name)}</a>${notes.map((x) => `<span class="sub">${esc(x)}</span>`).join('')}${t.clerk_org_id ? '' : '<span class="row-chips"><span class="chip warn">No login yet</span></span>'}</td>
+        <td data-label="Client"><a class="row-link" href="#/client/${esc(t.id)}/overview">${colorDot(t.id)}${esc(t.name)}</a>${notes.map((x) => `<span class="sub">${esc(x)}</span>`).join('')}${t.clerk_org_id ? (EXT.usage ? EXT.usage.clientLine(t.id) : '') : '<span class="row-chips"><span class="chip warn">No login yet</span></span>'}</td>
         <td data-label="Plan"><div class="cl-v">${pl.nowPlan ? `<strong class="cl-plan-name">${esc(pl.nowPlan.name)}</strong>` : `<a class="chip warn chip-link" href="#/billing/${esc(t.id)}" title="Set their plan and picks in Billing">No plan set</a>`}</div></td>
         <td data-label="Picks this cycle"><div class="cl-v">${pl.now ? esc(picksLine(pl.now)) : '<span class="none">Not set</span>'}</div></td>
         <td data-label="Usage this month" class="cl-usage-cell"><div class="cl-v">${bars ? `<div class="cl-usage">${bars}</div>${more > 0 ? `<span class="cl-sub">and ${c.plural(more, 'more limit')} on their page</span>` : ''}` : '<span class="none">No limits yet</span>'}${period ? `<span class="cl-month">${esc(period)}</span>` : ''}</div></td>
@@ -16226,6 +16249,156 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
 })();
 </script>
 <script>
+/* mod-usage.js */
+// @ts-check
+/*
+ * Dashboard use (2026-10-16, dashboard usage plan step 3, Karan: the dashboard is the main USP, so the team must see who
+ * uses it and move the next request inside it).
+ *
+ * Reads client_usage() (migration 20261016020000): per client the last dashboard visit, the last approval, whether this
+ * week's summary was opened, and how many messages came in outside the dashboard (staff log them here). A client who
+ * writes from outside but has not opened the dashboard in 7 days is "Quiet on the dashboard".
+ *
+ * console.js calls window.D8C_EXT.usage.load() in loadAll, .panel(id) on a client's Overview, .needsBlock() on Needs you;
+ * mod-clients.js calls .clientLine(id) in the Clients table. Writes: log_outside_message, remove_outside_message,
+ * rebuild_weekly_summary (staff RPCs). Nothing here reaches the client.
+ */
+(function () {
+  'use strict';
+  /** @type {any} */ const W = window;
+  const EXT = (W.D8C_EXT = W.D8C_EXT || {});
+  const C = () => W.D8C;
+  const esc = (/** @type {any} */ s) => C().esc(s);
+  /** The line the team sends when a request arrives outside the dashboard (Karan's words). */
+  const REPLY = 'Sent that into your dashboard so it stays with the rest of the work.';
+  const CHANNELS = [['text', 'Text'], ['email', 'Email'], ['call', 'Phone call'], ['in_person', 'In person'], ['social', 'Social media DM'], ['other', 'Other']];
+  const chName = (/** @type {string} */ k) => (CHANNELS.find((c) => c[0] === k) || [k, k])[1];
+  /** rows by client id; null until loaded. A database without the function (before its migration) reads as none. */
+  const state = { /** @type {Map<string, any>|null} */ rows: null, missing: false, /** @type {Record<string, string>} */ lastLogged: {} };
+
+  async function load() {
+    try {
+      const db = await C().db();
+      const r = await db.rpc('client_usage');
+      if (r.error) { state.missing = true; state.rows = state.rows || new Map(); return; }
+      state.missing = false;
+      state.rows = new Map((r.data || []).map((/** @type {any} */ x) => [x.tenant_id, x]));
+    } catch (e) { state.rows = state.rows || new Map(); }
+  }
+  const of = (/** @type {string} */ id) => (state.rows && state.rows.get(id)) || null;
+  const hasLogin = (/** @type {string} */ id) => { const t = C().tenant(id); return !!(t && t.clerk_org_id); };
+  /** "3 days ago", or the words for never. @param {string|null} at @param {string} never */
+  const ago = (at, never) => (at ? C().ago(at) : never);
+
+  /** One quiet line under the client's name in the Clients table. @param {string} id */
+  function clientLine(id) {
+    const u = of(id);
+    if (!u || !hasLogin(id)) return '';
+    const seen = u.last_seen_at ? `Opened dashboard ${C().ago(u.last_seen_at)}` : 'Has not opened the dashboard';
+    return `<span class="sub us-line">${esc(seen)}</span>${u.quiet ? '<span class="row-chips"><span class="chip warn" title="They wrote from outside the dashboard and have not opened it in 7 days">Quiet on dashboard</span></span>' : ''}`;
+  }
+
+  /** The week line: what the client's Home says this week, and whether they opened it. @param {any} u */
+  function weekLine(u) {
+    if (!u || !u.week_id) return '<p class="meta">No weekly summary yet. Enter last week\'s numbers on Results (use "Last week, Monday to Sunday"), then build it.</p>';
+    return `<p class="us-week">${esc(u.week_sentence || 'A summary with no numbers yet.')}</p>
+      <p class="meta">Week of ${esc(C().when(u.week_start))}. ${u.week_opened_at ? `Opened ${esc(C().ago(u.week_opened_at))}.` : '<span class="chip plain">Not opened yet</span>'}</p>`;
+  }
+
+  /** The Dashboard use panel on a client's Overview. @param {string} id */
+  function panel(id) {
+    if (state.missing) return '';
+    const u = of(id);
+    const login = hasLogin(id);
+    const rows = [
+      ['Last visit', login ? ago(u && u.last_seen_at, 'Never') + (u && u.visits_7d ? ` (${C().plural(u.visits_7d, 'visit')} this week)` : '') : 'No login yet'],
+      ['Last approval', ago(u && u.last_approval_at, 'None yet')],
+      ['Messages from outside', u && u.outside_30d ? `${u.outside_30d} in 30 days, last by ${chName(u.last_outside_channel || 'other').toLowerCase()} ${C().ago(u.last_outside_at)}` : 'None in 30 days']
+    ];
+    return `<section class="panel us-panel" id="us-panel" aria-labelledby="us-h" data-us-client="${esc(id)}">
+      <div class="panel-head"><h2 id="us-h">Dashboard use</h2>${u && u.quiet ? '<span class="chip warn">Quiet on dashboard</span>' : ''}</div>
+      <dl class="us-facts">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+      <div class="us-block"><h3 class="panel-sub">This week on their Home</h3>${weekLine(u)}
+        <p><button class="btn btn-quiet btn-sm" type="button" data-us-build="${esc(id)}">Build this week's summary now</button></p></div>
+      <details class="reveal us-block"${u && u.quiet ? ' open' : ''}><summary>They wrote by text, email or phone</summary>
+        <p class="meta">Log it, answer it inside their dashboard, and send them this line so the next one comes there:</p>
+        <p class="us-reply"><q>${esc(REPLY)}</q> <button class="linkish" type="button" data-us-copy>Copy the line</button></p>
+        <form class="us-log" data-us-log="${esc(id)}" novalidate>
+          <div class="field"><label for="us-ch">How it came</label><select id="us-ch" name="channel">${CHANNELS.map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join('')}</select></div>
+          <div class="field us-note"><label for="us-note">What they asked <span class="meta">(optional, for the team)</span></label><input id="us-note" name="note" type="text" maxlength="500" autocomplete="off"></div>
+          <div class="actions"><button class="btn btn-sm" type="submit">Log it</button><a class="btn btn-quiet btn-sm" href="#/client/${esc(id)}/talk">Answer in their dashboard</a></div>
+        </form></details>
+    </section>`;
+  }
+
+  /** Needs you: clients who write from outside but are quiet on the dashboard. */
+  function needsBlock() {
+    if (!state.rows || state.missing) return '';
+    const quiet = [...state.rows.values()].filter((u) => u.quiet).map((u) => ({ u, t: C().tenant(u.tenant_id) })).filter((x) => x.t);
+    if (!quiet.length) return '';
+    return `<section class="q-group" aria-labelledby="q-quiet-h" data-qf="other"><h2 id="q-quiet-h">Quiet on the dashboard <span class="meta">${quiet.length}</span></h2>
+      <p class="lede">They wrote by text, email or phone in the last 14 days but have not opened their dashboard in 7. Put the next request inside it and send them: <q>${esc(REPLY)}</q> <button class="linkish" type="button" data-us-copy>Copy the line</button></p>
+      <ul class="q">${quiet.map(({ u, t }) => `<li><a class="todo-row" href="#/client/${esc(t.id)}/overview"><span class="chip warn">Quiet</span><span class="text">${esc(t.name)}: ${C().plural(u.outside_14d, 'message')} from outside, dashboard ${esc(ago(u.last_seen_at, 'never opened'))}</span><span class="meta">${esc(ago(u.last_outside_at, ''))}</span></a></li>`).join('')}</ul></section>`;
+  }
+
+  /** Redraws the panel in place after a write, if it is on screen. @param {string} id */
+  function repaint(id) {
+    const el = document.getElementById('us-panel');
+    if (el && el.getAttribute('data-us-client') === id) el.outerHTML = panel(id);
+  }
+
+  async function copyLine() {
+    try { await navigator.clipboard.writeText(REPLY); C().toast('Copied. Paste it into your reply.'); }
+    catch (e) { C().toast(`Copy it from here: ${REPLY}`); }
+  }
+
+  // One set of listeners for every place these parts are drawn.
+  document.addEventListener('click', async (e) => {
+    const t = /** @type {HTMLElement} */ (e.target);
+    if (t.closest('[data-us-copy]')) { copyLine(); return; }
+    const b = /** @type {HTMLButtonElement|null} */ (t.closest('[data-us-build]'));
+    if (b && !b.disabled) {
+      const id = b.getAttribute('data-us-build') || '';
+      b.disabled = true;
+      try {
+        const db = await C().db();
+        const r = await db.rpc('rebuild_weekly_summary', { p_tenant: id });
+        if (r.error) throw r.error;
+        await load();
+        repaint(id);
+        C().toast(r.data && r.data.id ? 'Built. Their Home shows it now.' : 'Nothing to build: no checked numbers for last week yet. Add them on Results first.');
+      } catch (x) { b.disabled = false; C().toast(C().failMessage(x, 'Not built'), true); }
+    }
+  });
+  document.addEventListener('submit', async (e) => {
+    const f = /** @type {HTMLFormElement} */ (e.target);
+    if (!f.matches || !f.matches('[data-us-log]')) return;
+    e.preventDefault();
+    const id = f.getAttribute('data-us-log') || '';
+    const btn = /** @type {HTMLButtonElement|null} */ (f.querySelector('button[type=submit]'));
+    if (btn) btn.disabled = true;
+    const channel = /** @type {HTMLSelectElement} */ (f.elements.namedItem('channel')).value;
+    const note = /** @type {HTMLInputElement} */ (f.elements.namedItem('note')).value;
+    try {
+      const db = await C().db();
+      const r = await db.rpc('log_outside_message', { p_tenant: id, p_channel: channel, p_note: note || null });
+      if (r.error) throw r.error;
+      const row = r.data || {};
+      await load();
+      repaint(id);
+      C().undoToast(`Logged a ${chName(channel).toLowerCase()} message.`, async () => {
+        const u = await (await C().db()).rpc('remove_outside_message', { p_id: row.id });
+        if (u.error) throw u.error;
+        await load();
+        repaint(id);
+      });
+    } catch (x) { if (btn) btn.disabled = false; C().toast(C().failMessage(x, 'Not logged'), true); }
+  });
+
+  EXT.usage = { load, panel, clientLine, needsBlock, REPLY };
+})();
+</script>
+<script>
 /* mod-visible.js */
 /*
  * The Visible tab (#/client/<id>/visible), 2026-10-13: everything this client can see, or could see once someone decides, in one
@@ -18405,6 +18578,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     try { await loadPlans(); } catch (e) { all.plans = all.plans || emptyPlans(); }
     // Bot chat's drafts (mod-bot.js, 2026-10-14); a database without the table carries on with none.
     { const B = partOf('bot'); if (B) await B.load(); }
+    // Dashboard use per client (mod-usage.js, 2026-10-16); a database without client_usage() carries on with none.
+    { const U = partOf('usage'); if (U) await U.load(); }
     if (current) {
       // Everything comes from the fresh rows (the cards too: leaving them out made the next "Add the card" fail with
       // "Cannot read properties of undefined (reading 'push')" after the card was already saved, 2026-10-08), so the
@@ -19219,6 +19394,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       ${N ? N.top(view) : ''}
       ${soon.length ? `<details class="soon-strip" data-qf="other"><summary>${icon('clock')}<span><b>Coming up this week: ${soon.length}.</b> Next: ${esc(next.client)}, ${esc(next.label)}${nd ? `, ${esc(nd.days === 0 ? 'today' : nd.text)}` : ''}</span></summary><ul class="q">${soon.map((x) => qRow(x, x.client)).join('')}</ul></details>` : ''}
       ${partOf('intake') ? partOf('intake').block() : ''}
+      ${partOf('usage') ? partOf('usage').needsBlock() : ''}
       ${all.tenants.length ? '' : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p><a class="btn" href="#/new">Add a client</a></div>`}
       <section class="q-group" id="q-needs"><h2>Do now <span class="meta">${doNow}</span></h2>
         ${N ? N.cards(typed) : ''}
@@ -19675,6 +19851,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         ${todo.length ? `<ul class="todo">${todo.slice(0, 5).map(row).join('')}</ul>${todo.length > 5 ? `<details class="reveal q-more"><summary>Show ${todo.length - 5} more</summary><ul class="todo">${todo.slice(5).map(row).join('')}</ul></details>` : ''}` : '<p class="meta">Nothing to do for them right now.</p>'}
         ${next ? `<p class="next-line">${icon('clock')}<span><b>Next:</b> <a href="${esc(next.href)}">${esc(next.label)}: ${esc(next.text)}</a>, ${esc(nd ? (nd.days === 0 ? 'today' : nd.text) : '')}${got.soon.length > 1 ? ` <span class="meta" title="${esc(got.soon.slice(1).map((x) => `${x.label}: ${x.text}`).join('; '))}">and ${got.soon.length - 1} more this week</span>` : ''}</span></p>` : ''}
       </section>
+      ${partOf('usage') ? partOf('usage').panel(current.id) : ''}
       ${servicesPanel(d, services)}`;
   }
 

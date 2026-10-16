@@ -743,3 +743,13 @@ test('This week: no summary yet (or the table not there yet) is an empty week, n
   const cb = b.D8.data.connect(await b.D8.auth.getSession());
   assert.equal(await cb.getWeekly(), null);
 });
+
+test('a visit (2026-10-16): the dashboard tells the server once per page load that the client opened it, and a failure is quiet', async () => {
+  const tables = withPlan();
+  const { D8 } = live({ tables, errors: { 'rpc:touch_seen': { code: '42501', message: 'not-allowed' } }, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  await c.getAccount();
+  await c.refresh();
+  assert.equal((tables.__rpcCalls || []).filter((x) => x[0] === 'touch_seen').length, 1, 'once, even after a refresh');
+  assert.ok(plain(await c.getAccount()).business, 'a refused visit mark changes nothing for the client');
+});

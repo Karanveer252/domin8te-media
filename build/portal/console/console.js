@@ -532,6 +532,8 @@
     try { await loadPlans(); } catch (e) { all.plans = all.plans || emptyPlans(); }
     // Bot chat's drafts (mod-bot.js, 2026-10-14); a database without the table carries on with none.
     { const B = partOf('bot'); if (B) await B.load(); }
+    // Dashboard use per client (mod-usage.js, 2026-10-16); a database without client_usage() carries on with none.
+    { const U = partOf('usage'); if (U) await U.load(); }
     if (current) {
       // Everything comes from the fresh rows (the cards too: leaving them out made the next "Add the card" fail with
       // "Cannot read properties of undefined (reading 'push')" after the card was already saved, 2026-10-08), so the
@@ -1346,6 +1348,7 @@
       ${N ? N.top(view) : ''}
       ${soon.length ? `<details class="soon-strip" data-qf="other"><summary>${icon('clock')}<span><b>Coming up this week: ${soon.length}.</b> Next: ${esc(next.client)}, ${esc(next.label)}${nd ? `, ${esc(nd.days === 0 ? 'today' : nd.text)}` : ''}</span></summary><ul class="q">${soon.map((x) => qRow(x, x.client)).join('')}</ul></details>` : ''}
       ${partOf('intake') ? partOf('intake').block() : ''}
+      ${partOf('usage') ? partOf('usage').needsBlock() : ''}
       ${all.tenants.length ? '' : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p><a class="btn" href="#/new">Add a client</a></div>`}
       <section class="q-group" id="q-needs"><h2>Do now <span class="meta">${doNow}</span></h2>
         ${N ? N.cards(typed) : ''}
@@ -1802,6 +1805,7 @@
         ${todo.length ? `<ul class="todo">${todo.slice(0, 5).map(row).join('')}</ul>${todo.length > 5 ? `<details class="reveal q-more"><summary>Show ${todo.length - 5} more</summary><ul class="todo">${todo.slice(5).map(row).join('')}</ul></details>` : ''}` : '<p class="meta">Nothing to do for them right now.</p>'}
         ${next ? `<p class="next-line">${icon('clock')}<span><b>Next:</b> <a href="${esc(next.href)}">${esc(next.label)}: ${esc(next.text)}</a>, ${esc(nd ? (nd.days === 0 ? 'today' : nd.text) : '')}${got.soon.length > 1 ? ` <span class="meta" title="${esc(got.soon.slice(1).map((x) => `${x.label}: ${x.text}`).join('; '))}">and ${got.soon.length - 1} more this week</span>` : ''}</span></p>` : ''}
       </section>
+      ${partOf('usage') ? partOf('usage').panel(current.id) : ''}
       ${servicesPanel(d, services)}`;
   }
 

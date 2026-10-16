@@ -6963,6 +6963,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     // characters as wall-clock time, so a server timestamp is moved to the restaurant's zone before it is used, and
     // "now" is the restaurant's wall clock too. Zone: tenant doc.timezone, else Winnipeg (both clients are there).
     let zone = 'America/Winnipeg';
+    let seenSent = false;
     const wallMs = (/** @type {number} */ ms) => {
       /** @type {any} */ const p = {};
       for (const x of new Intl.DateTimeFormat('en-GB', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(ms))) p[x.type] = x.value;
@@ -7080,6 +7081,9 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       const merged = mergeProjections(normalize({ ...(row.doc || {}), plan: planRec, timezone: zone, homeSections: sections, verifiedResults: verified, weekly }, now), itemRows, invRows);
       if (verified) { merged.metrics = {}; merged.strip = []; merged.pending = []; merged.insightMetric = ''; }
       tenant = { ...merged, tenantId: row.id, name: row.name };
+      // The client opened their dashboard (2026-10-16): once per page load, quietly; the console's "Last visit" reads it.
+      // Never while staff view as the client or in a preview. The server keeps one row per person per 30 minutes.
+      if (!VIEW && !PREVIEW && !seenSent && typeof sb.rpc === 'function') { seenSent = true; Promise.resolve(sb.rpc('touch_seen')).catch(() => {}); }
       // A function that is not there yet (before its migration) leaves the cards out and the record as it is.
       if (!cards.error && Array.isArray(cards.data)) tenant.cards = cards.data.map((/** @type {any} */ c) => ({ id: c.id, service: c.service, title: c.title, status: c.status, due: c.due, updatedAt: toWall(c.updated_at), createdAt: toWall(c.created_at) }));
     }
