@@ -5715,6 +5715,9 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > .us
   .apv-hours-grid { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .apv-hours-grid input { margin-bottom: 8px; }
 }
+/* Talk tab: an open form (Reply, Ask for an approval, Post an update) sits in .talk-forms, so the console's
+   ".panel + .panel" gap never reached the card after it. Same 16px gap as every other card on the page. */
+.talk-forms:has(> .panel:not([hidden])) + .panel { margin-top: 16px; }
 
 /* css/61-jump.css */
 /*
