@@ -2266,6 +2266,23 @@
   S.rpcs.rebuild_weekly_summary = (/** @type {any} */ a) => weeks[a.p_tenant] ? { ...weeks[a.p_tenant], tenant_id: a.p_tenant } : { id: null };
 })();
 </script>
+<script>
+/* stub/98-done.js */
+// LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). Close the loop (2026-10-16): Bayleaf approved
+// its first unanswered item yesterday and nobody marked it done yet, so the Talk tab shows "Approved: finish it and tell them".
+(function () {
+  'use strict';
+  const S = /** @type {any} */ (window).D8STUB;
+  if (!S) return;
+  S.seeds.push((/** @type {any} */ db) => {
+    const t = (db.tenants || []).find((/** @type {any} */ x) => x.id === 'tnt_preview_bayleaf');
+    const ids = t && t.doc && t.doc.approvals ? Object.keys(t.doc.approvals) : [];
+    const id = ids.find((k) => !(db.decisions || []).some((/** @type {any} */ d) => d.approval_id === k));
+    if (!id) return;
+    (db.decisions = db.decisions || []).push({ tenant_id: 'tnt_preview_bayleaf', approval_id: id, decision: 'approved', comment: '', by_name: 'Dani', at: new Date(Date.now() - 26 * 3600000).toISOString() });
+  });
+})();
+</script>
 <style>body::after{content:"Demo console: sample clients, nothing is saved or sent";position:fixed;left:0;right:0;bottom:0;z-index:99;padding:6px;background:#FF5B1F;color:#1D1A16;font:600 13px/1.4 system-ui;text-align:center}
 /* The footer is 30px tall: the sidebar and the toasts stop above it, so nothing is clipped in the preview (R2-5, R2-17, 15 Oct). */
 @media (min-width:901px){body .side{bottom:46px}}@media (max-width:900px){body .side{padding-bottom:30px}}body .toasts{bottom:50px}</style>
@@ -7281,6 +7298,29 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
     }
 
     /**
+     * Home's "Just done" (2026-10-16, close the loop): what the client approved lately and where it stands. Until the team
+     * marks it done it says the approval's own "done" line ("Approved. We'll schedule them..."); once marked, the team's
+     * line ("Hours updated on Google and the site."). Each shows for 7 days, newest first, three at most. Only approvals
+     * the client said yes to; nothing is claimed that the team did not mark.
+     */
+    function recentDone() {
+      const d = decisions();
+      const today = T.dayNum(now());
+      /** @type {any[]} */ const out = [];
+      for (const a of Object.values(tenant.approvals || {})) {
+        const ap = /** @type {any} */ (a);
+        const dec = d[ap.id];
+        if (!dec || dec.decision !== 'approved' || !inPackage(ap.service)) continue;
+        const done = ap.done && ap.done.at && ap.done.text ? ap.done : null;
+        const at = done ? done.at : dec.at;
+        if (!at || today - T.dayNum(at) > 7 || T.dayNum(at) > today) continue;
+        out.push({ id: ap.id, title: String(ap.title || ''), service: ap.service || null, stage: done ? 'done' : 'doing', at,
+          text: done ? String(done.text) : String((ap.approve && ap.approve.done) || "Approved. We're doing it now.") });
+      }
+      return out.sort((x, y) => String(y.at).localeCompare(String(x.at))).slice(0, 3);
+    }
+
+    /**
      * For the all-caught-up state: the next planned milestone and the latest completed work,
      * both read from the services, so the state never shows anything that is not on record.
      */
@@ -7727,6 +7767,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       getPlan: () => call(plan, 0),
       savePicks,
       getHighlights: () => call(highlights),
+      getRecentDone: () => call(recentDone),
       getUpcoming: () => call(upcoming),
       getWorkSummary: () => call(() => Object.values(services())),
       getWork: () => call(work),
@@ -20933,6 +20974,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       answered.add(x.approval_id);
       const a = doc.approvals[x.approval_id];
       if (a && x.decision === 'changes') needs.push({ kind: 'changes', label: 'Changes requested', text: `${a.title}${x.comment ? ': ' + x.comment : ''}`, at: x.at, href: go('talk'), rank: 1 });
+      // They said yes in the last 30 days and nobody told them it is done yet (2026-10-16: close the loop on their Home).
+      if (a && x.decision === 'approved' && !(a.done && a.done.at) && Date.parse(x.at) > Date.now() - 30 * 86400000) needs.push({ kind: 'finish', label: 'Approved', hint: 'They said yes. Do it, then mark it done so their Home says so', text: `${a.title}: do it, then mark it done`, at: x.at, href: go('talk', ['finish']), rank: 2 });
     }
     for (const a of Object.values(doc.approvals || {})) {
       const ap = /** @type {any} */ (a);
@@ -23859,6 +23902,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const apvs = Object.values(d.approvals || {}).map((/** @type {any} */ a) => ({ a, ans: answered[a.id], d: a.due ? due(a.due) : null }));
     const sentBack = apvs.filter((x) => x.ans && x.ans.decision !== 'approved').sort((x, y) => String(y.ans.at).localeCompare(String(x.ans.at)));
     const approved = apvs.filter((x) => x.ans && x.ans.decision === 'approved').sort((x, y) => String(y.ans.at).localeCompare(String(x.ans.at)));
+    // Approved in the last 30 days and not marked done: the team finishes it, then their Home says it is done.
+    const toFinish = approved.filter((x) => !(x.a.done && x.a.done.at) && Date.parse(x.ans.at) > Date.now() - 30 * 86400000);
     const waiting = apvs.filter((x) => !x.ans).sort((x, y) => Number(!!(y.d && y.d.late)) - Number(!!(x.d && x.d.late)) || String(x.a.due || '9999').localeCompare(String(y.a.due || '9999')));
     const posts = (d.updates || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
     const removeBtn = (/** @type {string} */ attr, /** @type {string} */ id) => `<button class="linkish quiet-act" type="button" ${attr}="${esc(id)}">Remove</button>`;
@@ -23873,6 +23918,13 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const postCard = (/** @type {any} */ u) => `<li class="item-card"><div class="item-top"><span class="item-title">${esc(u.title)}</span>
         <span class="r"><span class="meta">${esc(when(u.date))} · ${esc(svcLabel(u.service))}${u.author === 'automatic' ? ' · posted by the system' : ''}</span>${removeBtn('data-remove-upd', u.id)}</span></div>
         ${u.completed ? `<p>${esc(u.completed)}</p>` : u.changed ? `<p>${esc(u.changed)}</p>` : ''}${u.next ? `<p class="meta">Next: ${esc(u.next)}</p>` : ''}</li>`;
+    /** The done lines the team picks from (Karan's examples), plain words the owner reads on Home. */
+    const DONE_LINES = ['Posted.', 'Scheduled. They go out on the planned days.', 'Hours updated on Google and the site.', 'Special is live on Google, Instagram and the site.', 'Menu updated on the site and Google.', 'Done.'];
+    const finishCard = (/** @type {any} */ x) => `<li class="item-card"><div class="item-top"><span class="item-title">${esc(x.a.title)}</span><span class="r"><span class="chip good">Approved ${esc(ago(x.ans.at))}</span></span></div>
+        <form class="finish-form" data-finish="${esc(x.a.id)}" novalidate><label class="sr-only" for="fd-${esc(x.a.id)}">What their Home says</label>
+          <input id="fd-${esc(x.a.id)}" name="line" type="text" maxlength="140" list="done-lines" value="${esc(x.a.preview && x.a.preview.type === 'hours' ? DONE_LINES[2] : x.a.service === 'social' ? DONE_LINES[1] : 'Done.')}" aria-describedby="fd-h-${esc(x.a.id)}">
+          <button class="btn btn-sm" type="submit">Mark done and tell them</button>
+          <p class="meta" id="fd-h-${esc(x.a.id)}">Their Home shows this line for a week. Only say what really happened.</p></form></li>`;
     const msgLi = (/** @type {any} */ m) => `<li class="msg${m.from_staff ? ' team' : ''}"><p>${esc(m.body)}</p><p class="meta">${esc(m.by_name || (m.from_staff ? 'Domin8te' : 'Client'))}, ${esc(when(m.at))}</p></li>`;
     const needCount = (unanswered.length ? 1 : 0) + openReqs.length + sentBack.length;
     const opener = (/** @type {string} */ id, /** @type {string} */ label, /** @type {boolean} */ open, /** @type {boolean} */ main) => `<button class="btn btn-sm${main ? '' : ' btn-quiet'}" type="button" data-action="reveal" aria-expanded="${open}" aria-controls="${id}">${icon('plus')}${label}</button>`;
@@ -23916,6 +23968,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         <div class="actions"><button class="btn" type="submit">Post the update</button><button class="btn btn-quiet" type="button" data-action="reveal-close">Cancel</button></div>
       </form>
       </div>
+      ${toFinish.length ? `<section class="panel" id="t-finish" aria-labelledby="t-finish-h" tabindex="-1"><div class="panel-head"><h2 id="t-finish-h">Approved: finish it and tell them <span class="meta">${toFinish.length}</span></h2><p>Until you mark it done, their Home says you are on it. Then it shows your line for a week, and an update is posted.</p></div>
+        <ul class="items">${toFinish.map(finishCard).join('')}</ul></section>` : ''}
       <section class="panel" aria-labelledby="t-need"><div class="panel-head"><h2 id="t-need">Needs a reply <span class="meta">${needCount}</span></h2></div>
         ${needCount ? `<ul class="items">
           ${unanswered.length ? `<li class="item-card"><div class="item-top"><span class="item-title"><span class="chip you">${unanswered.length > 1 ? `${unanswered.length} messages` : 'Message'}</span></span><span class="r"><button class="btn btn-sm" type="button" data-open-reply>Reply</button></span></div>
@@ -23934,8 +23988,35 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         ${current.messages.length ? `<ul class="thread">${current.messages.map(msgLi).join('')}</ul>` : '<p class="meta">No messages yet.</p>'}
         ${closedReqs.length ? `<h3 class="panel-sub">Finished or declined requests</h3><ul class="items">${closedReqs.map(reqCard).join('')}</ul>` : ''}
         ${approved.length ? `<h3 class="panel-sub">Approved</h3><ul class="items">${approved.map(apvCard).join('')}</ul>` : ''}
-      </details>`;
+      </details>
+      <datalist id="done-lines">${DONE_LINES.map((x) => `<option value="${esc(x)}"></option>`).join('')}</datalist>`;
     for (const b of $$('[data-svc-change]', box)) b.addEventListener('click', () => changeServices());
+    if (part === 'finish') { const fs = $('#t-finish', box); if (fs) { fs.scrollIntoView({ block: 'start' }); fs.focus({ preventScroll: true }); } }
+    // Mark done: the line their Home shows for a week, and an update on their Updates page (2026-10-16).
+    for (const ff of $$('form[data-finish]', box)) {
+      const f = /** @type {HTMLFormElement} */ (ff);
+      f.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const apvId = f.getAttribute('data-finish') || '';
+        const line = val(f, 'line');
+        if (!line) { fieldFail(/** @type {HTMLElement} */ ($('input', f)), 'Say what was done, in a few words.'); return; }
+        const done = busy($('button[type=submit]', f), 'Saving');
+        try {
+          await saveDoc((doc) => {
+            const a = doc.approvals[apvId];
+            if (!a) throw new Error('This approval is no longer there.');
+            const at = new Date().toISOString();
+            a.done = { text: line, at, by: me.name };
+            doc.updates.push({ id: newId('upd'), date: today(), service: a.service || null, author: 'team', title: `${a.title}: done`, completed: line });
+          });
+          toast('Done. Their Home says so now.');
+          route();
+        } catch (x) {
+          done();
+          toast(failMessage(x, 'Not saved'), true);
+        }
+      });
+    }
     const rf = /** @type {HTMLFormElement} */ ($('#reply-form', box));
     const af = /** @type {HTMLFormElement} */ ($('#apv-form', box));
     const uf = /** @type {HTMLFormElement} */ ($('#upd-form', box));

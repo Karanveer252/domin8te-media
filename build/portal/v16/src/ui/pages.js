@@ -202,6 +202,15 @@
     return `<div class="card next-card"><span class="next-icon">${icon(s[0])}</span><p class="next-text">${esc(s[1])}</p>${s[2]}</div>`;
   }
 
+  /** "Just done": what they approved lately and where it stands, for a week. @param {any[]} list @param {Date} now */
+  function doneBlock(list, now) {
+    if (!list || !list.length) return '';
+    return `<ul class="done-list">${list.map((/** @type {any} */ x) => `<li class="done-item is-${x.stage === 'done' ? 'done' : 'doing'}">
+      <span class="done-icon">${icon(x.stage === 'done' ? 'check' : 'progress')}</span>
+      <div class="done-main"><p class="done-title">${esc(x.title.replace(/^(approve|confirm|review)\s*:?\s+/i, ''))}</p><p class="done-text">${esc(x.text)}</p></div>
+      <span class="meta done-when">${esc(F.when(x.at, now))}</span></li>`).join('')}</ul>`;
+  }
+
   /** The Undo window after Approve on a card, before the answer is saved. */
   const HOLD_MS = 5000;
 
@@ -217,6 +226,10 @@
         <section class="sec sec-attention" aria-labelledby="h-attention">
           ${UI.SectionHead('h-attention', 'Waiting for you')}
           <div id="home-attention">${UI.Skeleton('row', 2)}</div>
+        </section>
+        <section class="sec sec-done" aria-labelledby="h-done" hidden>
+          ${UI.SectionHead('h-done', 'Just done')}
+          <div id="home-done"></div>
         </section>
         <section class="sec sec-week" aria-labelledby="h-week">
           ${UI.SectionHead('h-week', 'This week')}
@@ -266,6 +279,12 @@
           return ok ? D8.plan.banner(d.plan, { staff: staffSection('nothing_to_do'), facts: calmFacts(d.highlights) }) : UI.CaughtUp(d.highlights);
         }, () => { count = -1; summary(); loaders.next(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
         // Shown is seen: the first time a summary is drawn, the server learns the client opened it (live only).
+        // Shown only when something was approved or finished this week; otherwise the section stays hidden.
+        done: () => section(el, '#home-done', () => ctx.client.getRecentDone(), (list) => {
+          const sec = /** @type {HTMLElement|null} */ (el.querySelector('.sec-done'));
+          if (sec) sec.hidden = !list || !list.length;
+          return doneBlock(list, now());
+        }, () => { const sec = /** @type {HTMLElement|null} */ (el.querySelector('.sec-done')); if (sec) sec.hidden = true; return { title: '', text: '' }; }),
         week: () => section(el, '#home-week', () => ctx.client.getWeekly(), (wk) => {
           if (wk && wk.id && ctx.client.markWeeklySeen) setTimeout(() => { ctx.client.markWeeklySeen(wk.id).catch(() => {}); }, 0);
           return weekBlock(wk);
@@ -299,6 +318,7 @@
       if (moreLoaded) { loaders.plan(); loaders.strip(); }
       if (more) more.addEventListener('toggle', () => { if (more.open && !moreLoaded) { moreLoaded = true; loaders.plan(); loaders.strip(); } });
       loaders.attention();
+      loaders.done();
       loaders.week();
 
       /* ---- approve on the card: Approve, a short Undo window, then saved ---------------------------------------- */
@@ -333,6 +353,8 @@
           D8.dialogs.toast(`${h.title}: approved.`);
           if (count !== null && count > 0) { count -= 1; summary(); loaders.next(); }
           ctx.client.getAttention().then((/** @type {any[]} */ items) => ctx.setBadges(items)).catch(() => {});
+          // a moment later the card leaves Waiting for you and shows under Just done, with what happens next
+          setTimeout(() => { if (document.contains(h.li) && !held.size) { loaders.attention(); loaders.done(); } }, 2500);
         };
         D8.dialogs.slow(ctx.client.decide(id, 'approved', ''), 'Home').then(done).catch((/** @type {any} */ err) => {
           if (err && err.code === 'already-decided') { done(); return; }
@@ -351,6 +373,7 @@
           // an answer still in its Undo window is saved first, so a refresh never drops it
           flush();
           loaders.attention();
+          loaders.done();
           loaders.week();
           if (moreLoaded) { loaders.plan(); loaders.strip(); }
         },

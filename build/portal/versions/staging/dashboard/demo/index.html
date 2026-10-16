@@ -1869,6 +1869,27 @@ html[data-theme="dark"] .svc-ico.is-email { color: #F2C46B; }
   .next-icon { border: 1px solid CanvasText; }
 }
 
+/* ------------------------------------------------------------------ Just done (step 5, 2026-10-16) */
+
+/* What they approved this week and where it stands: one quiet row each, a green tick once the team marked it done. */
+.page-home .sec-done { margin-top: 32px; }
+.page-home .sec-done > .sec-head { margin-bottom: 12px; }
+.done-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.done-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 14px; padding: 12px 16px; border: 1px solid var(--p-line); border-radius: var(--p-r-lg); background: var(--p-glass-soft); }
+.done-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: var(--p-surface); box-shadow: inset 0 0 0 1px var(--p-line); color: var(--p-ink-2); }
+.done-item.is-done .done-icon { background: linear-gradient(var(--p-success-bg), var(--p-success-bg)), var(--p-surface); color: var(--p-success); }
+.done-icon .i { width: 18px; height: 18px; }
+.done-title { font-weight: 650; line-height: 1.35; }
+.done-text { font-size: 15px; line-height: 1.45; color: var(--p-ink-2); }
+.done-when { white-space: nowrap; }
+@container page (max-width: 560px) {
+  .done-item { grid-template-columns: auto minmax(0, 1fr); }
+  .done-when { grid-column: 2; }
+}
+@media (forced-colors: active) {
+  .done-item { border-color: CanvasText; }
+}
+
 /* ================================================================ css/20-billing.css */
 /*
  * Billing (2026-10-13): the plan with what each service allows, the "You're all set" confirmation, the card and the bills
@@ -6144,6 +6165,29 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     }
 
     /**
+     * Home's "Just done" (2026-10-16, close the loop): what the client approved lately and where it stands. Until the team
+     * marks it done it says the approval's own "done" line ("Approved. We'll schedule them..."); once marked, the team's
+     * line ("Hours updated on Google and the site."). Each shows for 7 days, newest first, three at most. Only approvals
+     * the client said yes to; nothing is claimed that the team did not mark.
+     */
+    function recentDone() {
+      const d = decisions();
+      const today = T.dayNum(now());
+      /** @type {any[]} */ const out = [];
+      for (const a of Object.values(tenant.approvals || {})) {
+        const ap = /** @type {any} */ (a);
+        const dec = d[ap.id];
+        if (!dec || dec.decision !== 'approved' || !inPackage(ap.service)) continue;
+        const done = ap.done && ap.done.at && ap.done.text ? ap.done : null;
+        const at = done ? done.at : dec.at;
+        if (!at || today - T.dayNum(at) > 7 || T.dayNum(at) > today) continue;
+        out.push({ id: ap.id, title: String(ap.title || ''), service: ap.service || null, stage: done ? 'done' : 'doing', at,
+          text: done ? String(done.text) : String((ap.approve && ap.approve.done) || "Approved. We're doing it now.") });
+      }
+      return out.sort((x, y) => String(y.at).localeCompare(String(x.at))).slice(0, 3);
+    }
+
+    /**
      * For the all-caught-up state: the next planned milestone and the latest completed work,
      * both read from the services, so the state never shows anything that is not on record.
      */
@@ -6590,6 +6634,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       getPlan: () => call(plan, 0),
       savePicks,
       getHighlights: () => call(highlights),
+      getRecentDone: () => call(recentDone),
       getUpcoming: () => call(upcoming),
       getWorkSummary: () => call(() => Object.values(services())),
       getWork: () => call(work),
@@ -9503,6 +9548,15 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     return `<div class="card next-card"><span class="next-icon">${icon(s[0])}</span><p class="next-text">${esc(s[1])}</p>${s[2]}</div>`;
   }
 
+  /** "Just done": what they approved lately and where it stands, for a week. @param {any[]} list @param {Date} now */
+  function doneBlock(list, now) {
+    if (!list || !list.length) return '';
+    return `<ul class="done-list">${list.map((/** @type {any} */ x) => `<li class="done-item is-${x.stage === 'done' ? 'done' : 'doing'}">
+      <span class="done-icon">${icon(x.stage === 'done' ? 'check' : 'progress')}</span>
+      <div class="done-main"><p class="done-title">${esc(x.title.replace(/^(approve|confirm|review)\s*:?\s+/i, ''))}</p><p class="done-text">${esc(x.text)}</p></div>
+      <span class="meta done-when">${esc(F.when(x.at, now))}</span></li>`).join('')}</ul>`;
+  }
+
   /** The Undo window after Approve on a card, before the answer is saved. */
   const HOLD_MS = 5000;
 
@@ -9518,6 +9572,10 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         <section class="sec sec-attention" aria-labelledby="h-attention">
           ${UI.SectionHead('h-attention', 'Waiting for you')}
           <div id="home-attention">${UI.Skeleton('row', 2)}</div>
+        </section>
+        <section class="sec sec-done" aria-labelledby="h-done" hidden>
+          ${UI.SectionHead('h-done', 'Just done')}
+          <div id="home-done"></div>
         </section>
         <section class="sec sec-week" aria-labelledby="h-week">
           ${UI.SectionHead('h-week', 'This week')}
@@ -9567,6 +9625,12 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           return ok ? D8.plan.banner(d.plan, { staff: staffSection('nothing_to_do'), facts: calmFacts(d.highlights) }) : UI.CaughtUp(d.highlights);
         }, () => { count = -1; summary(); loaders.next(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
         // Shown is seen: the first time a summary is drawn, the server learns the client opened it (live only).
+        // Shown only when something was approved or finished this week; otherwise the section stays hidden.
+        done: () => section(el, '#home-done', () => ctx.client.getRecentDone(), (list) => {
+          const sec = /** @type {HTMLElement|null} */ (el.querySelector('.sec-done'));
+          if (sec) sec.hidden = !list || !list.length;
+          return doneBlock(list, now());
+        }, () => { const sec = /** @type {HTMLElement|null} */ (el.querySelector('.sec-done')); if (sec) sec.hidden = true; return { title: '', text: '' }; }),
         week: () => section(el, '#home-week', () => ctx.client.getWeekly(), (wk) => {
           if (wk && wk.id && ctx.client.markWeeklySeen) setTimeout(() => { ctx.client.markWeeklySeen(wk.id).catch(() => {}); }, 0);
           return weekBlock(wk);
@@ -9600,6 +9664,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       if (moreLoaded) { loaders.plan(); loaders.strip(); }
       if (more) more.addEventListener('toggle', () => { if (more.open && !moreLoaded) { moreLoaded = true; loaders.plan(); loaders.strip(); } });
       loaders.attention();
+      loaders.done();
       loaders.week();
 
       /* ---- approve on the card: Approve, a short Undo window, then saved ---------------------------------------- */
@@ -9634,6 +9699,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           D8.dialogs.toast(`${h.title}: approved.`);
           if (count !== null && count > 0) { count -= 1; summary(); loaders.next(); }
           ctx.client.getAttention().then((/** @type {any[]} */ items) => ctx.setBadges(items)).catch(() => {});
+          // a moment later the card leaves Waiting for you and shows under Just done, with what happens next
+          setTimeout(() => { if (document.contains(h.li) && !held.size) { loaders.attention(); loaders.done(); } }, 2500);
         };
         D8.dialogs.slow(ctx.client.decide(id, 'approved', ''), 'Home').then(done).catch((/** @type {any} */ err) => {
           if (err && err.code === 'already-decided') { done(); return; }
@@ -9652,6 +9719,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           // an answer still in its Undo window is saved first, so a refresh never drops it
           flush();
           loaders.attention();
+          loaders.done();
           loaders.week();
           if (moreLoaded) { loaders.plan(); loaders.strip(); }
         },

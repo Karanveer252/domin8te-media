@@ -47,3 +47,24 @@ test('an approval on Home answers on the card: Approve, Ask for changes with the
   const pay = ui.ActionNeededItem({ id: 'a3', kind: 'billing', severity: 'critical', title: 'Payment', detail: 'x', primary: { label: 'Update payment method', does: 'billing-portal' } }, new Date('2026-09-24T10:00'));
   assert.doesNotMatch(pay, /quick-approve|See it first/, 'anything else keeps its one button');
 });
+
+test('Just done: an approval the client said yes to shows what happens next, then the done line from the team; never before a yes', async () => {
+  const { D8, client: c } = await client('bayleaf');
+  assert.deepEqual(plain(await c.getRecentDone()), [], 'nothing approved yet');
+  await c.decide('apv_hours', 'changes', 'Sunday is wrong');
+  assert.deepEqual(plain(await c.getRecentDone()), [], 'asking for changes is not done');
+  await c.decide('apv_posts', 'approved', '');
+  const doing = plain(await c.getRecentDone());
+  assert.equal(doing.length, 1);
+  assert.equal(doing[0].stage, 'doing');
+  assert.match(doing[0].text, /^Approved\./, "the approval's own next step until the team marks it done");
+  // the team marks it done (the console writes approvals[id].done into the record)
+  const t = D8.demoFixtures.tenants.tnt_demo_bayleaf;
+  t.approvals.apv_posts.done = { text: 'Scheduled. They go out on the planned days.', at: '2026-09-24T09:00', by: 'Karan' };
+  const c2 = D8.data.connect(await D8.auth.getSession());
+  await c2.decide('apv_posts', 'approved', '').catch(() => {});
+  const done = plain(await c2.getRecentDone());
+  assert.equal(done[0].stage, 'done');
+  assert.equal(done[0].text, 'Scheduled. They go out on the planned days.');
+});
+

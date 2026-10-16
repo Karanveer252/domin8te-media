@@ -718,6 +718,29 @@
     }
 
     /**
+     * Home's "Just done" (2026-10-16, close the loop): what the client approved lately and where it stands. Until the team
+     * marks it done it says the approval's own "done" line ("Approved. We'll schedule them..."); once marked, the team's
+     * line ("Hours updated on Google and the site."). Each shows for 7 days, newest first, three at most. Only approvals
+     * the client said yes to; nothing is claimed that the team did not mark.
+     */
+    function recentDone() {
+      const d = decisions();
+      const today = T.dayNum(now());
+      /** @type {any[]} */ const out = [];
+      for (const a of Object.values(tenant.approvals || {})) {
+        const ap = /** @type {any} */ (a);
+        const dec = d[ap.id];
+        if (!dec || dec.decision !== 'approved' || !inPackage(ap.service)) continue;
+        const done = ap.done && ap.done.at && ap.done.text ? ap.done : null;
+        const at = done ? done.at : dec.at;
+        if (!at || today - T.dayNum(at) > 7 || T.dayNum(at) > today) continue;
+        out.push({ id: ap.id, title: String(ap.title || ''), service: ap.service || null, stage: done ? 'done' : 'doing', at,
+          text: done ? String(done.text) : String((ap.approve && ap.approve.done) || "Approved. We're doing it now.") });
+      }
+      return out.sort((x, y) => String(y.at).localeCompare(String(x.at))).slice(0, 3);
+    }
+
+    /**
      * For the all-caught-up state: the next planned milestone and the latest completed work,
      * both read from the services, so the state never shows anything that is not on record.
      */
@@ -1164,6 +1187,7 @@
       getPlan: () => call(plan, 0),
       savePicks,
       getHighlights: () => call(highlights),
+      getRecentDone: () => call(recentDone),
       getUpcoming: () => call(upcoming),
       getWorkSummary: () => call(() => Object.values(services())),
       getWork: () => call(work),
