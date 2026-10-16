@@ -1,11 +1,55 @@
-/* Jump and show (2026-10-16): the thing a link landed on gets a ring and a warm tint that hold, then fade. Tokens only. */
-@keyframes p-jump-ring {
-  0% { box-shadow: 0 0 0 0 transparent; }
-  8% { box-shadow: 0 0 0 3px var(--p-accent), 0 0 0 9px var(--p-accent-bg, rgba(255, 91, 31, 0.2)); }
-  75% { box-shadow: 0 0 0 3px var(--p-accent), 0 0 0 9px var(--p-accent-bg, rgba(255, 91, 31, 0.14)); }
-  100% { box-shadow: 0 0 0 0 transparent; }
+/*
+ * Jump and show, the client dashboard copy of console/css/61-jump.css (2026-10-16): the place a link landed on gets a "you are here" mark.
+ * A crisp accent outline settles in from a little further out, a soft glow breathes once, and a small "Here" tag sits on
+ * its top edge; everything fades after about three seconds. Outline, not border, so nothing on the page moves.
+ */
+.jump-hit {
+  position: relative;
+  border-radius: 14px;
+  outline: 2px solid var(--p-accent);
+  outline-offset: 5px;
+  scroll-margin: 110px;
+  animation: p-jump-settle 3.4s cubic-bezier(.2, .7, .2, 1) both;
 }
-.jump-hit { animation: p-jump-ring 3.2s ease-out both; }
-.jump-hit:focus { outline: none; }
-@media (prefers-reduced-motion: reduce) { .jump-hit { animation: none; box-shadow: 0 0 0 3px var(--p-accent); } }
-@media (forced-colors: active) { .jump-hit { animation: none; outline: 3px solid Highlight; outline-offset: 3px; } }
+.jump-hit:focus, .jump-hit:focus-visible { outline: 2px solid var(--p-accent); }
+/* The "Here" tag: a small pill on the top edge, in the brand orange with white text. */
+.jump-hit::after {
+  content: 'Here';
+  position: absolute;
+  top: -15px;
+  left: 14px;
+  z-index: 3;
+  padding: 3px 10px 3px 22px;
+  border-radius: 999px;
+  background: var(--p-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2v9M4 7l4 4 4-4'/%3E%3C/svg%3E") 8px 50% / 10px 10px no-repeat;
+  color: #FFFFFF;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(174, 58, 11, 0.28);
+  pointer-events: none;
+  animation: p-jump-tag 3.4s cubic-bezier(.2, .7, .2, 1) both;
+}
+@keyframes p-jump-settle {
+  0% { outline-color: transparent; outline-offset: 16px; box-shadow: 0 0 0 0 rgba(255, 91, 31, 0); }
+  14% { outline-color: var(--p-accent); outline-offset: 5px; box-shadow: 0 0 0 10px rgba(255, 91, 31, 0.16), 0 10px 30px rgba(255, 91, 31, 0.18); }
+  45% { box-shadow: 0 0 0 4px rgba(255, 91, 31, 0.10), 0 8px 24px rgba(255, 91, 31, 0.12); }
+  80% { outline-color: var(--p-accent); outline-offset: 5px; }
+  100% { outline-color: transparent; outline-offset: 5px; box-shadow: 0 0 0 0 rgba(255, 91, 31, 0); }
+}
+@keyframes p-jump-tag {
+  0% { opacity: 0; transform: translateY(6px) scale(.9); }
+  12% { opacity: 1; transform: translateY(0) scale(1); }
+  80% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-2px) scale(.96); }
+}
+/* A tag that would sit on a heading row's text stays clear of the panel's own top padding. */
+details.jump-hit::after, section.jump-hit::after, form.jump-hit::after { top: -13px; }
+@media (prefers-reduced-motion: reduce) {
+  .jump-hit, .jump-hit::after { animation: none; }
+}
+@media (forced-colors: active) {
+  .jump-hit { animation: none; outline: 3px solid Highlight; outline-offset: 4px; box-shadow: none; }
+  .jump-hit::after { animation: none; background: Highlight; color: HighlightText; forced-color-adjust: none; }
+}

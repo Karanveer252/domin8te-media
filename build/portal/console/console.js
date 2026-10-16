@@ -1255,8 +1255,10 @@
   /** A client tab's part, and the place it shows when no ?at= is given. */
   const JUMP_PARTS = /** @type {Record<string, string>} */ ({ login: '#sec-login', plan: '#sec-plan', details: '#sec-details', finish: '#t-finish',
     reply: '#reply-form', approval: '#apv-form', update: '#upd-form', new: '#card-form', raw: '#raw-box', billing: '#billing', more: '#sec-more' });
-  /** The last address that jumped, so a redraw of the same page does not jump again. */
-  let lastJump = '';
+  /** The address drawn last: a link that changes the address jumps; a redraw of the same address (after a save) does not. */
+  let lastRouted = '';
+  /** The mark's fade-out, per element, so a second jump restarts it instead of being cut short by the first. */
+  const jumpTimers = new WeakMap();
   let jumpRun = 0;
   /** @param {string} key @param {string} part @returns {HTMLElement|null} */
   function jumpFind(key, part) {
@@ -1266,30 +1268,75 @@
     return byAt(key) || byAt(part) || (part && JUMP_PARTS[part] ? q(`main ${JUMP_PARTS[part]}`) : null)
       || (part ? q(`main [data-svc="${CSS.escape(part)}"]`) || q(`main #sec-${CSS.escape(part)}`) : null);
   }
-  /** Shows one element: opens its folds, scrolls it to the middle, focuses it and rings it. @param {HTMLElement} el */
-  function jumpTo(el) {
+  /**
+   * Glides the page so `el` sits in view: eased in and out, about half a second to a second by distance (2026-10-16, Karan: "scroll
+   * smooth rather than snapping"). Short targets end up in the middle, tall ones near the top. Scrolling by hand stops it.
+   * A page that gets no animation frames (a tab in the background) still lands, a moment later. Calls done() on arrival.
+   * @param {HTMLElement} el @param {() => void} done
+   */
+  function glideTo(el, done) {
+    const se = document.scrollingElement || document.documentElement;
+    const r = el.getBoundingClientRect();
+    const gap = r.height < innerHeight * 0.7 ? (innerHeight - r.height) / 2 : 140;
+    const max = Math.max(0, se.scrollHeight - innerHeight);
+    const to = Math.round(Math.min(max, Math.max(0, window.scrollY + r.top - gap)));
+    const from = window.scrollY;
+    const dist = to - from;
+    const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (still || Math.abs(dist) < 4) { window.scrollTo(0, to); done(); return; }
+    const dur = Math.min(1100, Math.max(520, Math.abs(dist) * 0.5));
+    // ease in and out: a soft start and a soft stop, so the eye can follow where it is going
+    const ease = (/** @type {number} */ t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const t0 = performance.now();
+    let over = false;
+    const stop = () => { over = true; off(); };
+    const finish = (/** @type {boolean} */ land) => { if (over) return; over = true; off(); if (land) window.scrollTo(0, to); done(); };
+    const byHand = () => { if (!over) { stop(); done(); } };
+    const off = () => { window.removeEventListener('wheel', byHand); window.removeEventListener('touchstart', byHand); window.removeEventListener('keydown', byHand); };
+    window.addEventListener('wheel', byHand, { passive: true });
+    window.addEventListener('touchstart', byHand, { passive: true });
+    window.addEventListener('keydown', byHand);
+    // ~60 steps a second on a timer, not animation frames: a frame-starved page (a background pane) still glides
+    const step = () => {
+      if (over) return;
+      const t = Math.min(1, (performance.now() - t0) / dur);
+      window.scrollTo(0, from + dist * ease(t));
+      if (t < 1) setTimeout(step, 16); else finish(true);
+    };
+    step();
+    setTimeout(() => finish(true), dur + 600);
+  }
+  /**
+   * Shows one element: opens its folds, glides to it, then focuses it and marks it. A page that was just opened starts the
+   * glide from its top (drawing it can move the scroll on its own; that jump would look like a snap).
+   * @param {HTMLElement} el @param {boolean} [fromTop]
+   */
+  function jumpTo(el, fromTop) {
     for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) if (p.tagName === 'DETAILS' && !(/** @type {HTMLDetailsElement} */ (p).open)) /** @type {HTMLDetailsElement} */ (p).open = true;
     if (el.tagName === 'DETAILS') /** @type {HTMLDetailsElement} */ (el).open = true;
     if (el.hidden) el.hidden = false;
-    // straight there (a smooth scroll lagged a second or more on a busy page); the ring is what guides the eye
-    el.scrollIntoView({ block: 'center', behavior: 'auto' });
-    el.classList.remove('jump-hit');
-    void el.offsetWidth; // restart the ring when the same place is shown twice
-    el.classList.add('jump-hit');
-    setTimeout(() => el.classList.remove('jump-hit'), 3400);
-    const field = el.matches('input, select, textarea') ? el
-      : /** @type {HTMLElement|null} */ (el.querySelector('select:not([disabled]), input:not([type=hidden]):not([disabled]), textarea:not([disabled])'));
-    if (field) field.focus({ preventScroll: true });
-    else { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1'); el.focus({ preventScroll: true }); }
+    if (fromTop) window.scrollTo(0, 0);
+    glideTo(el, () => {
+      // the mark comes on when the page arrives, so the eye lands on it as it appears
+      clearTimeout(jumpTimers.get(el));
+      el.classList.remove('jump-hit');
+      void el.offsetWidth; // restart the mark when the same place is shown twice
+      el.classList.add('jump-hit');
+      jumpTimers.set(el, setTimeout(() => el.classList.remove('jump-hit'), 3600));
+      const field = el.matches('input, select, textarea') ? el
+        : /** @type {HTMLElement|null} */ (el.querySelector('select:not([disabled]), input:not([type=hidden]):not([disabled]), textarea:not([disabled])'));
+      if (field) field.focus({ preventScroll: true });
+      else { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1'); el.focus({ preventScroll: true }); }
+    });
   }
-  /** Pages draw after their data loads: look for the target for up to 4 seconds, then show it. @param {string} key @param {string} part */
-  function jumpWhenReady(key, part) {
+  /** Pages draw after their data loads: look for the target for up to 4 seconds, then show it. @param {string} key @param {string} part @param {boolean} [fromTop] */
+  function jumpWhenReady(key, part, fromTop) {
     const my = ++jumpRun;
     const t0 = Date.now();
     const tick = () => {
       if (my !== jumpRun) return;
       const el = jumpFind(key, part);
-      if (el && el.getClientRects().length) { jumpTo(el); return; }
+      if (el && el.getClientRects().length) { jumpTo(el, fromTop); return; }
       if (Date.now() - t0 < 4000) setTimeout(tick, 80);
       else window.scrollTo(0, 0);
     };
@@ -1341,7 +1388,9 @@
     // A link that names a place (a tab part or ?at=) lands on it and shows it, once per new address; a redraw after a save
     // goes back to the top as before.
     const place = at || (parts[0] === 'client' ? parts[3] || '' : '');
-    if (place && location.hash !== lastJump) { lastJump = location.hash; jumpWhenReady(at, parts[0] === 'client' ? parts[3] || '' : ''); }
+    const moved = location.hash !== lastRouted;
+    lastRouted = location.hash;
+    if (place && moved) jumpWhenReady(at, parts[0] === 'client' ? parts[3] || '' : '', true);
     else window.scrollTo(0, 0);
     if (parts[0] === 'messages') toBottom();
   }

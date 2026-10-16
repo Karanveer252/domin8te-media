@@ -106,11 +106,55 @@
    * A link that lands on one thing (a service on Work, the connected accounts in Settings) rings it for a moment, so the
    * eye finds it (2026-10-16, the same as the console). @param {HTMLElement} t
    */
+  /**
+   * Glides the page so `el` sits in view: eased in and out, about half a second to a second by distance (2026-10-16, Karan: "scroll
+   * smooth rather than snapping"). Short targets end up in the middle, tall ones near the top. Scrolling by hand stops it.
+   * A page that gets no animation frames (a tab in the background) still lands, a moment later. Calls done() on arrival.
+   * @param {HTMLElement} el @param {() => void} done
+   */
+  function glideTo(el, done) {
+    const se = document.scrollingElement || document.documentElement;
+    const r = el.getBoundingClientRect();
+    const gap = r.height < innerHeight * 0.7 ? (innerHeight - r.height) / 2 : 140;
+    const max = Math.max(0, se.scrollHeight - innerHeight);
+    const to = Math.round(Math.min(max, Math.max(0, window.scrollY + r.top - gap)));
+    const from = window.scrollY;
+    const dist = to - from;
+    const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (still || Math.abs(dist) < 4) { window.scrollTo(0, to); done(); return; }
+    const dur = Math.min(1100, Math.max(520, Math.abs(dist) * 0.5));
+    // ease in and out: a soft start and a soft stop, so the eye can follow where it is going
+    const ease = (/** @type {number} */ t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const t0 = performance.now();
+    let over = false;
+    const stop = () => { over = true; off(); };
+    const finish = (/** @type {boolean} */ land) => { if (over) return; over = true; off(); if (land) window.scrollTo(0, to); done(); };
+    const byHand = () => { if (!over) { stop(); done(); } };
+    const off = () => { window.removeEventListener('wheel', byHand); window.removeEventListener('touchstart', byHand); window.removeEventListener('keydown', byHand); };
+    window.addEventListener('wheel', byHand, { passive: true });
+    window.addEventListener('touchstart', byHand, { passive: true });
+    window.addEventListener('keydown', byHand);
+    // ~60 steps a second on a timer, not animation frames: a frame-starved page (a background pane) still glides
+    const step = () => {
+      if (over) return;
+      const t = Math.min(1, (performance.now() - t0) / dur);
+      window.scrollTo(0, from + dist * ease(t));
+      if (t < 1) setTimeout(step, 16); else finish(true);
+    };
+    step();
+    setTimeout(() => finish(true), dur + 600);
+  }
+  const ringTimers = new WeakMap();
+  /** Glides to the thing a link landed on, focuses it and marks it once it is in view. @param {HTMLElement} t */
   function ring(t) {
-    t.classList.remove('jump-hit');
-    void t.offsetWidth;
-    t.classList.add('jump-hit');
-    setTimeout(() => t.classList.remove('jump-hit'), 3400);
+    glideTo(t, () => {
+      t.focus({ preventScroll: true });
+      clearTimeout(ringTimers.get(t));
+      t.classList.remove('jump-hit');
+      void t.offsetWidth;
+      t.classList.add('jump-hit');
+      ringTimers.set(t, setTimeout(() => t.classList.remove('jump-hit'), 3600));
+    });
   }
 
   /* ================================================================ HOME */
@@ -600,7 +644,7 @@
           if (!r.sub || jumped) return;
           jumped = true;
           const t = /** @type {HTMLElement|null} */ (document.getElementById('svc-' + r.sub));
-          if (t && el.contains(t)) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); ring(t); }
+          if (t && el.contains(t)) ring(t);
         });
       load();
       return { retry: load, refresh: load };
@@ -1159,7 +1203,7 @@
           if (s) { wireSettings(el, s, ctx); wireLoginAsk(el, ctx); }
           if (r.sub === 'sources') {
             const t = /** @type {HTMLElement|null} */ (el.querySelector('#sources'));
-            if (t) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); ring(t); }
+            if (t) ring(t);
           }
         });
       load();

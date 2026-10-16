@@ -14,8 +14,8 @@
   ];
   const seen = /** @type {Record<string, string|null>} */ ({ tnt_preview_bayleaf: ago(3), tnt_preview_marlow: ago(24 * 12), tnt_preview_corner: null, tnt_preview_osteria: null });
   /** @type {Record<string, any>} */ const weeks = {
-    tnt_preview_bayleaf: { id: 'wk_bay', week_start: monday(), sentence: 'Last week: 41 bookings. This week: 52 bookings, 797 website visits. Specials posted: yes.', opened_at: ago(2) },
-    tnt_preview_marlow: { id: 'wk_mar', week_start: monday(), sentence: 'Last week: 14 calls, 9 directions. This week: 18 calls, 11 directions. Reviews answered: 4.', opened_at: null }
+    tnt_preview_bayleaf: { id: 'wk_bay', week_start: monday(), sentence: 'Last week: 52 bookings, 797 website visits. The week before: 41 bookings. Specials posted: yes.', opened_at: ago(2) },
+    tnt_preview_marlow: { id: 'wk_mar', week_start: monday(), sentence: 'Last week: 18 calls, 11 directions. The week before: 14 calls, 9 directions. Reviews answered: 4.', opened_at: null }
   };
   const row = (/** @type {string} */ id) => {
     const out = outside.filter((x) => x.tenant_id === id).sort((a, b) => b.at.localeCompare(a.at));
