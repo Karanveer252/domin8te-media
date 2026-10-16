@@ -449,7 +449,7 @@
     // A request says which service it is for: this month's picks, or an urgent fix (hours, a closure, a phone number, a
     // sold-out item), which never counts toward the plan (2026-10-13). Once the plan has loaded it also asks how many, and
     // shows how that fits this month's limit before anything is sent.
-    const pick = `<div class="field"><label for="msg-service">Which service?</label><select id="msg-service" name="service">${pkg.map((s) => `<option value="${esc(s)}"${s === o.service ? ' selected' : ''}>${esc(D8.data.SERVICES[s].label)}</option>`).join('')}<option value="urgent">Urgent fix (hours, closure, phone, sold out)</option></select></div>
+    const pick = `<div class="field"><label for="msg-service">Which service?</label><select id="msg-service" name="service">${pkg.map((s) => `<option value="${esc(s)}"${s === o.service ? ' selected' : ''}>${esc(D8.data.SERVICES[s].label)}</option>`).join('')}<option value="urgent"${o.service === 'urgent' ? ' selected' : ''}>Urgent fix (hours, closure, phone, sold out)</option></select></div>
         <div class="ask-qty" id="ask-qty" hidden></div>`;
     const about = isRequest ? pick : `<div class="field"><label for="msg-about">What is it about?</label><select id="msg-about" name="about"><option value="general">Something else</option>${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>`;
     let sent = false;

@@ -1,0 +1,11 @@
+/* Ask for an approval: the New opening hours preset (console.js talk(), 2026-10-16). Seven rows, day then hours. */
+.apv-hours fieldset { margin: 0; padding: 0; border: 0; }
+.apv-hours legend { margin-bottom: 8px; font-size: 13.5px; color: var(--ink-3); }
+.apv-hours-grid { display: grid; grid-template-columns: max-content minmax(0, 260px); align-items: center; gap: 6px 14px; }
+.apv-hours-grid label { font-weight: 600; }
+.apv-hours > .field { max-width: 220px; margin-top: 12px; }
+.apv-hours > .meta { margin-top: 8px; }
+@media (max-width: 600px) {
+  .apv-hours-grid { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .apv-hours-grid input { margin-bottom: 8px; }
+}

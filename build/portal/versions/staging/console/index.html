@@ -5408,6 +5408,19 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] .bot-showing
   .us-log { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* css/60-apv-presets.css */
+/* Ask for an approval: the New opening hours preset (console.js talk(), 2026-10-16). Seven rows, day then hours. */
+.apv-hours fieldset { margin: 0; padding: 0; border: 0; }
+.apv-hours legend { margin-bottom: 8px; font-size: 13.5px; color: var(--ink-3); }
+.apv-hours-grid { display: grid; grid-template-columns: max-content minmax(0, 260px); align-items: center; gap: 6px 14px; }
+.apv-hours-grid label { font-weight: 600; }
+.apv-hours > .field { max-width: 220px; margin-top: 12px; }
+.apv-hours > .meta { margin-top: 8px; }
+@media (max-width: 600px) {
+  .apv-hours-grid { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .apv-hours-grid input { margin-bottom: 8px; }
+}
+
 /* css/62-revenue.css */
 /*
  * Revenue (2026-10-14, rewritten the same day), Karan's private business dashboard (mod-revenue.js). The console's tokens, its glass cards,
@@ -20975,7 +20988,12 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const a = doc.approvals[x.approval_id];
       if (a && x.decision === 'changes') needs.push({ kind: 'changes', label: 'Changes requested', text: `${a.title}${x.comment ? ': ' + x.comment : ''}`, at: x.at, href: go('talk'), rank: 1 });
       // They said yes in the last 30 days and nobody told them it is done yet (2026-10-16: close the loop on their Home).
-      if (a && x.decision === 'approved' && !(a.done && a.done.at) && Date.parse(x.at) > Date.now() - 30 * 86400000) needs.push({ kind: 'finish', label: 'Approved', hint: 'They said yes. Do it, then mark it done so their Home says so', text: `${a.title}: do it, then mark it done`, at: x.at, href: go('talk', ['finish']), rank: 2 });
+      if (a && x.decision === 'approved' && !(a.done && a.done.at) && Date.parse(x.at) > Date.now() - 30 * 86400000) {
+        // New hours and specials are the urgent ones: Google, Apple Maps and their website still show the old ones.
+        const urgent = a.kind === 'hours' || a.kind === 'special';
+        needs.push({ kind: 'finish', label: urgent ? 'Confirmed, do now' : 'Approved', hint: a.kind === 'hours' ? 'Change Google, Apple Maps and their website, then mark it done' : urgent ? 'Post it, add it to Google and their website, then mark it done' : 'They said yes. Do it, then mark it done so their Home says so',
+          text: a.kind === 'hours' ? `${a.title}: update Google, Apple Maps and the site, then mark it done` : urgent ? `${a.title}: post it and add it to Google and the site, then mark it done` : `${a.title}: do it, then mark it done`, at: x.at, href: go('talk', ['finish']), rank: urgent ? 0 : 2, late: urgent });
+      }
     }
     for (const a of Object.values(doc.approvals || {})) {
       const ap = /** @type {any} */ (a);
@@ -23887,6 +23905,16 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
    * /updates/new, /inbox/reply) open the matching form.
    * @param {HTMLElement} box @param {string} part
    */
+  /** The week for an hours approval, Monday first, the way an owner says it. */
+  const HOUR_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  /** "Mon to Thu: 11:00 to 22:00. Fri and Sat: 11:00 to 23:00. Sun: Closed." from seven day rows. @param {string[][]} rows */
+  function hoursLine(rows) {
+    /** @type {{from: number, to: number, text: string}[]} */ const runs = [];
+    rows.forEach((r, i) => { const last = runs[runs.length - 1]; if (last && last.text.toLowerCase() === r[1].toLowerCase() && last.to === i - 1) last.to = i; else runs.push({ from: i, to: i, text: r[1] }); });
+    const short = (/** @type {number} */ i) => HOUR_DAYS[i].slice(0, 3);
+    return runs.map((x) => `${x.from === x.to ? short(x.from) : x.to === x.from + 1 ? `${short(x.from)} and ${short(x.to)}` : `${short(x.from)} to ${short(x.to)}`}: ${x.text}.`).join(' ');
+  }
+
   function talk(box, part) {
     const d = current.doc;
     const services = (d.package.services || []).filter((/** @type {string} */ s) => SERVICES[s]);
@@ -23922,7 +23950,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const DONE_LINES = ['Posted.', 'Scheduled. They go out on the planned days.', 'Hours updated on Google and the site.', 'Special is live on Google, Instagram and the site.', 'Menu updated on the site and Google.', 'Done.'];
     const finishCard = (/** @type {any} */ x) => `<li class="item-card"><div class="item-top"><span class="item-title">${esc(x.a.title)}</span><span class="r"><span class="chip good">Approved ${esc(ago(x.ans.at))}</span></span></div>
         <form class="finish-form" data-finish="${esc(x.a.id)}" novalidate><label class="sr-only" for="fd-${esc(x.a.id)}">What their Home says</label>
-          <input id="fd-${esc(x.a.id)}" name="line" type="text" maxlength="140" list="done-lines" value="${esc(x.a.preview && x.a.preview.type === 'hours' ? DONE_LINES[2] : x.a.service === 'social' ? DONE_LINES[1] : 'Done.')}" aria-describedby="fd-h-${esc(x.a.id)}">
+          <input id="fd-${esc(x.a.id)}" name="line" type="text" maxlength="140" list="done-lines" value="${esc(x.a.kind === 'hours' || (x.a.preview && x.a.preview.type === 'hours') ? DONE_LINES[2] : x.a.kind === 'special' ? DONE_LINES[3] : x.a.service === 'social' ? DONE_LINES[1] : 'Done.')}" aria-describedby="fd-h-${esc(x.a.id)}">
           <button class="btn btn-sm" type="submit">Mark done and tell them</button>
           <p class="meta" id="fd-h-${esc(x.a.id)}">Their Home shows this line for a week. Only say what really happened.</p></form></li>`;
     const msgLi = (/** @type {any} */ m) => `<li class="msg${m.from_staff ? ' team' : ''}"><p>${esc(m.body)}</p><p class="meta">${esc(m.by_name || (m.from_staff ? 'Domin8te' : 'Client'))}, ${esc(when(m.at))}</p></li>`;
@@ -23943,7 +23971,15 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           <div class="field span-2"><label for="a-detail">One line on their Home page</label><input id="a-detail" type="text" name="detail" placeholder="3 posts for Mon, Wed and Fri. Nothing is scheduled until you approve them." maxlength="200"></div>
           <div class="field"><label for="a-due">Answer needed by</label><input id="a-due" type="date" name="due"></div>
           <div class="field span-all"><label for="a-intro">What to check (shown above the buttons)</label><textarea id="a-intro" name="intro" maxlength="600" placeholder="Please check the prices and the dates."></textarea></div>
-          <div class="field"><label for="a-kind">Show them</label><select id="a-kind" name="kind"><option value="none">Nothing more</option><option value="list">A list of points</option><option value="link">A link to the draft</option></select></div>
+          <div class="field"><label for="a-kind">Show them</label><select id="a-kind" name="kind"><option value="none">Nothing more</option><option value="list">A list of points</option><option value="link">A link to the draft</option><option value="hours">New opening hours</option><option value="special">A special</option></select></div>
+          <div class="field span-all apv-hours" data-kind="hours" hidden><fieldset><legend>Opening hours, one box a day (for example 11:00 to 22:00, or Closed)</legend>
+            <div class="apv-hours-grid">${HOUR_DAYS.map((dn, i) => `<label for="a-h${i}">${dn}</label><input id="a-h${i}" type="text" name="h${i}" maxlength="40" autocomplete="off" placeholder="11:00 to 22:00">`).join('')}</div></fieldset>
+            <div class="field"><label for="a-hfrom">From</label><input id="a-hfrom" type="date" name="hfrom"></div>
+            <p class="meta">When they confirm, it becomes an urgent job here: change Google, Apple Maps and their website, then mark it done.</p></div>
+          <div class="field span-2" data-kind="special" hidden><label for="a-sname">The special</label><input id="a-sname" type="text" name="sname" maxlength="80" placeholder="Pumpkin ravioli"></div>
+          <div class="field" data-kind="special" hidden><label for="a-sprice">Price (optional)</label><input id="a-sprice" type="text" name="sprice" maxlength="20" placeholder="18"></div>
+          <div class="field" data-kind="special" hidden><label for="a-sdates">When it runs</label><input id="a-sdates" type="text" name="sdates" maxlength="60" placeholder="Fri to Sun this week"></div>
+          <div class="field span-2" data-kind="special" hidden><label for="a-sdesc">What to say about it</label><input id="a-sdesc" type="text" name="sdesc" maxlength="200" placeholder="Brown butter, sage and parmesan."></div>
           <div class="field span-2" data-kind="list" hidden><label for="a-items">Points, one per line</label><textarea id="a-items" name="items" maxlength="2000"></textarea></div>
           <div class="field" data-kind="link" hidden><label for="a-url">Link to the draft (https)</label><input id="a-url" type="url" name="url" placeholder="https://" maxlength="500"></div>
           <div class="field" data-kind="link" hidden><label for="a-urllabel">Button text</label><input id="a-urllabel" type="text" name="urlLabel" value="Open the draft" maxlength="60"></div>
@@ -24054,6 +24090,14 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     });
     $('[name="kind"]', af).addEventListener('change', (/** @type {any} */ e) => {
       for (const el of $$('[data-kind]', af)) el.hidden = el.getAttribute('data-kind') !== e.target.value;
+      // Hours and specials (2026-10-16): a ready title and service, so the fastest path is a few boxes and Send.
+      const title = /** @type {HTMLInputElement} */ ($('#a-title', box));
+      const named = /** @type {any} */ ({ hours: 'New opening hours', special: "This week's special" })[e.target.value];
+      if (named && !title.value.trim()) { title.value = named; title.dispatchEvent(new Event('input', { bubbles: true })); }
+      const svc = /** @type {HTMLSelectElement} */ ($('#a-service', box));
+      const has = (/** @type {string} */ k) => [...svc.options].some((o) => o.value === k);
+      if (e.target.value === 'hours') { const k = ['local', 'website'].find(has); if (k) svc.value = k; }
+      if (e.target.value === 'special' && has('social')) svc.value = 'social';
     });
     af.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -24070,20 +24114,44 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       let preview = null;
       if (kind === 'list') preview = { type: 'list', items: val(af, 'items').split('\n').map((x) => x.trim()).filter(Boolean) };
       if (kind === 'link') preview = { type: 'link', url, label: val(af, 'urlLabel') || 'Open the draft' };
+      let detail = val(af, 'detail');
+      let intro = val(af, 'intro');
+      if (kind === 'hours') {
+        const rows = HOUR_DAYS.map((dn, i) => [dn, val(af, `h${i}`)]);
+        const empty = rows.findIndex((r) => !r[1]);
+        if (empty >= 0) { fieldFail($(`#a-h${empty}`, box), `Fill in ${HOUR_DAYS[empty]} (or write Closed).`); return; }
+        preview = { type: 'hours', rows };
+        const from = val(af, 'hfrom');
+        detail = detail || `${hoursLine(rows)}${from ? ` From ${when(from)}.` : ''}`.slice(0, 200);
+        intro = intro || `Check each day. Once you confirm, we change Google, Apple Maps and your website${from ? `, from ${when(from)}` : ''}.`;
+      }
+      if (kind === 'special') {
+        const sname = val(af, 'sname');
+        if (!sname) { fieldFail($('#a-sname', box), 'Name the special.'); return; }
+        const price = val(af, 'sprice');
+        const items = [`${sname}${price ? `, ${/^[0-9]/.test(price) ? '$' + price : price}` : ''}`, val(af, 'sdates') ? `Runs ${val(af, 'sdates')}` : '', val(af, 'sdesc')].filter(Boolean);
+        preview = { type: 'list', items };
+        detail = detail || items.slice(0, 2).join('. ').slice(0, 200);
+        intro = intro || 'Check the name, price and days. Once you approve, we post it and add it to Google and your website.';
+      }
+      const special = kind === 'hours' || kind === 'special' ? kind : null;
       const done = busy($('button[type=submit]', af), 'Sending');
       try {
         await saveDoc((doc) => {
           doc.approvals[apvId] = {
-            id: apvId, actionId: actId, service, title, due: dueOn || null, intro: val(af, 'intro'), preview,
-            approve: { label: 'Approve', done: "Approved. Thanks, we'll take it from here." },
-            change: { label: 'Request changes', done: "Thanks. We'll make the changes and send it back to you." },
+            id: apvId, actionId: actId, service, title, due: dueOn || null, intro, preview, kind: special,
+            approve: special === 'hours' ? { label: 'Confirm these hours', done: "Confirmed. We're changing Google, Apple Maps and your website now." }
+              : special === 'special' ? { label: 'Approve the special', done: "Approved. We're posting it and adding it to Google and your website now." }
+              : { label: 'Approve', done: "Approved. Thanks, we'll take it from here." },
+            change: special === 'hours' ? { label: 'Something is wrong', done: "Thanks. We'll fix the hours and check them with you again." }
+              : { label: 'Request changes', done: "Thanks. We'll make the changes and send it back to you." },
             effects: {}
           };
           doc.actions.push({
-            id: actId, kind: 'approval', approvalId: apvId, severity: 'approval', service, icon: 'check',
-            title: `Approve: ${title}`, detail: val(af, 'detail') || val(af, 'intro').slice(0, 160),
+            id: actId, kind: 'approval', approvalId: apvId, severity: special === 'hours' ? 'scheduled' : 'approval', service, icon: special === 'hours' ? 'clock' : 'check',
+            title: special === 'hours' ? title : `Approve: ${title}`, detail: detail || intro.slice(0, 160),
             deadline: dueOn ? { date: dueOn, kind: 'due' } : null,
-            primary: { label: 'Review and approve', does: 'approval' },
+            primary: { label: special === 'hours' ? 'Confirm hours' : 'Review and approve', does: 'approval' },
             more: [], link: { href: `#/work/${service}`, label: `See the ${SERVICES[service].label.toLowerCase()} work` }
           });
         });

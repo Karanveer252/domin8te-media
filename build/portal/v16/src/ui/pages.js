@@ -198,7 +198,8 @@
     if (waiting > 0) s = ['check', waiting === 1 ? 'Answer the one thing above and you are done for now.' : `Answer the ${waiting} things above. It takes about a minute.`, '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Start with the first</button>'];
     else if (unread > 0) s = ['message', unread === 1 ? 'We replied to your message.' : `We sent you ${unread} replies.`, `<a class="btn btn-tint btn-sm" href="#/messages">Read ${unread === 1 ? 'it' : 'them'}</a>`];
     else if (soon) s = ['calendar', `Our next meeting is ${day(m.at)}${timed ? ` at ${F.time(m.at)}` : ''}. Anything to add first?`, '<a class="btn btn-glass btn-sm" href="#/messages">Message us</a>'];
-    else s = ['message', 'Nothing needed from you. New hours, a special or a change? Tell us here and we do it.', '<a class="btn btn-glass btn-sm" href="#/messages">Ask for something</a>'];
+    // the request form itself (new hours go in as an urgent fix that never counts toward the plan)
+    else s = ['message', 'Nothing needed from you. New hours, a special or a change? Tell us here and we do it.', '<button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="request">Ask for something</button>'];
     return `<div class="card next-card"><span class="next-icon">${icon(s[0])}</span><p class="next-text">${esc(s[1])}</p>${s[2]}</div>`;
   }
 
