@@ -35,6 +35,9 @@ async def run():
             for y in range(0, H, 500):                                                       # entrances, header, sticky bar
                 await pg.evaluate(f'window.scrollTo(0,{y})'); await pg.wait_for_timeout(120); await collect(pg)
             await pg.evaluate("document.querySelectorAll('details').forEach(d=>d.open=true)"); await collect(pg)
+            # the slow-site link (marketing.js adds it after 6 s without the site): exercise its rules
+            await pg.evaluate("document.querySelector('.live__screen').insertAdjacentHTML('beforeend','<a class=\"live__slow\" href=\"#\">x</a>')"); await collect(pg)
+            await pg.evaluate("document.querySelectorAll('.live__slow').forEach(e=>e.remove())")
             for sel in ['.live .live__go', '#lecookieLive .live__go']:
                 try: await pg.click(sel, timeout=4000)
                 except Exception: pass

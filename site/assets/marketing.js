@@ -272,3 +272,30 @@ figs.forEach(function (fig) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', jump); else jump();
   window.addEventListener('load', jump);
 })();
+
+/* a live site that is slow to arrive (a weak phone signal): after 6 seconds without it, offer to open it in a new
+   tab instead of leaving an empty window. Gone as soon as the site loads or the window is closed. */
+(function () {
+  [].forEach.call(document.querySelectorAll('.live[data-src]'), function (live) {
+    var screen = live.querySelector('.live__screen'), timer = 0, note = null, watched = null;
+    if (!screen) return;
+    function clear() { clearTimeout(timer); timer = 0; if (note) { note.remove(); note = null } }
+    function check() {
+      if (!live.classList.contains('is-on')) { clear(); watched = null; return }
+      var frame = live.querySelector('.live__view iframe');
+      if (!frame || frame === watched) return;
+      watched = frame; clear();
+      frame.addEventListener('load', clear);
+      timer = setTimeout(function () {
+        if (!live.classList.contains('is-on') || note) return;
+        note = document.createElement('a');
+        note.className = 'live__slow';
+        note.href = live.getAttribute('data-src');
+        note.target = '_blank'; note.rel = 'noopener';
+        note.textContent = 'Slow? Open it in a new tab';
+        screen.appendChild(note);
+      }, 6000);
+    }
+    new MutationObserver(check).observe(live, { attributes: true, attributeFilter: ['class'] });
+  });
+})();

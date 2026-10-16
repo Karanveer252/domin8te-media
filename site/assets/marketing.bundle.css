@@ -4713,3 +4713,11 @@ html.mkt #vsl .vid__play{background:none;place-content:end;justify-items:end;pad
 .vsl-case .live__cta{margin:16px 0 0}
 .vsl-live .vsl-case #lecookie-film{margin:0 0 24px}
 @media (max-width:760px){.vsl-case{padding:10px 10px 14px;border-radius:24px}.vsl-case + .vsl-case{margin-top:20px}.vsl-live .vsl-case #lecookie-film{margin:0 0 16px}}
+
+/* the footer carries the logo too */
+.mkt .foot__mark{width:34px;height:auto;display:block}
+/* a slow live site: the way out, over the window */
+.mkt .live__slow{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:16px;z-index:6;display:inline-flex;align-items:center;
+  min-height:44px;padding:0 18px;border-radius:999px;background:#fff;color:#1F2128;font:600 15px/1.2 "Be Vietnam Pro",system-ui,sans-serif;
+  box-shadow:0 10px 30px -12px rgba(31,33,40,.45);text-decoration:underline;text-underline-offset:3px;white-space:nowrap;max-width:calc(100% - 24px)}
+@media (max-width:760px){.mkt .live__slow{white-space:normal;text-align:center;font-size:14px;padding:6px 16px}}
