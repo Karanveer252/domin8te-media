@@ -1890,6 +1890,19 @@ html[data-theme="dark"] .svc-ico.is-email { color: #F2C46B; }
   .done-item { border-color: CanvasText; }
 }
 
+/* ================================================================ css/18-jump.css */
+/* Jump and show (2026-10-16): the thing a link landed on gets a ring and a warm tint that hold, then fade. Tokens only. */
+@keyframes p-jump-ring {
+  0% { box-shadow: 0 0 0 0 transparent; }
+  8% { box-shadow: 0 0 0 3px var(--p-accent), 0 0 0 9px var(--p-accent-bg, rgba(255, 91, 31, 0.2)); }
+  75% { box-shadow: 0 0 0 3px var(--p-accent), 0 0 0 9px var(--p-accent-bg, rgba(255, 91, 31, 0.14)); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.jump-hit { animation: p-jump-ring 3.2s ease-out both; }
+.jump-hit:focus { outline: none; }
+@media (prefers-reduced-motion: reduce) { .jump-hit { animation: none; box-shadow: 0 0 0 3px var(--p-accent); } }
+@media (forced-colors: active) { .jump-hit { animation: none; outline: 3px solid Highlight; outline-offset: 3px; } }
+
 /* ================================================================ css/20-billing.css */
 /*
  * Billing (2026-10-13): the plan with what each service allows, the "You're all set" confirmation, the card and the bills
@@ -9456,6 +9469,17 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   const replyLine = UI.replyLine;
   const setText = (scope, sel, text) => { const el = scope.querySelector(sel); if (el) el.textContent = text; };
 
+  /**
+   * A link that lands on one thing (a service on Work, the connected accounts in Settings) rings it for a moment, so the
+   * eye finds it (2026-10-16, the same as the console). @param {HTMLElement} t
+   */
+  function ring(t) {
+    t.classList.remove('jump-hit');
+    void t.offsetWidth;
+    t.classList.add('jump-hit');
+    setTimeout(() => t.classList.remove('jump-hit'), 3400);
+  }
+
   /* ================================================================ HOME */
 
   /* Home, as simple as it can be (2026-10-09 complexity review): the greeting and one sentence, what is
@@ -9943,7 +9967,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           if (!r.sub || jumped) return;
           jumped = true;
           const t = /** @type {HTMLElement|null} */ (document.getElementById('svc-' + r.sub));
-          if (t && el.contains(t)) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); }
+          if (t && el.contains(t)) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); ring(t); }
         });
       load();
       return { retry: load, refresh: load };
@@ -10502,7 +10526,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           if (s) { wireSettings(el, s, ctx); wireLoginAsk(el, ctx); }
           if (r.sub === 'sources') {
             const t = /** @type {HTMLElement|null} */ (el.querySelector('#sources'));
-            if (t) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); }
+            if (t) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); ring(t); }
           }
         });
       load();

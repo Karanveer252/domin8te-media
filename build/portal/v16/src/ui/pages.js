@@ -102,6 +102,17 @@
   const replyLine = UI.replyLine;
   const setText = (scope, sel, text) => { const el = scope.querySelector(sel); if (el) el.textContent = text; };
 
+  /**
+   * A link that lands on one thing (a service on Work, the connected accounts in Settings) rings it for a moment, so the
+   * eye finds it (2026-10-16, the same as the console). @param {HTMLElement} t
+   */
+  function ring(t) {
+    t.classList.remove('jump-hit');
+    void t.offsetWidth;
+    t.classList.add('jump-hit');
+    setTimeout(() => t.classList.remove('jump-hit'), 3400);
+  }
+
   /* ================================================================ HOME */
 
   /* Home, as simple as it can be (2026-10-09 complexity review): the greeting and one sentence, what is
@@ -589,7 +600,7 @@
           if (!r.sub || jumped) return;
           jumped = true;
           const t = /** @type {HTMLElement|null} */ (document.getElementById('svc-' + r.sub));
-          if (t && el.contains(t)) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); }
+          if (t && el.contains(t)) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); ring(t); }
         });
       load();
       return { retry: load, refresh: load };
@@ -1148,7 +1159,7 @@
           if (s) { wireSettings(el, s, ctx); wireLoginAsk(el, ctx); }
           if (r.sub === 'sources') {
             const t = /** @type {HTMLElement|null} */ (el.querySelector('#sources'));
-            if (t) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); }
+            if (t) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); ring(t); }
           }
         });
       load();

@@ -590,7 +590,7 @@
       if (x.tenant_id !== id) continue;
       answered.add(x.approval_id);
       const a = doc.approvals[x.approval_id];
-      if (a && x.decision === 'changes') needs.push({ kind: 'changes', label: 'Changes requested', text: `${a.title}${x.comment ? ': ' + x.comment : ''}`, at: x.at, href: go('talk'), rank: 1 });
+      if (a && x.decision === 'changes') needs.push({ kind: 'changes', label: 'Changes requested', text: `${a.title}${x.comment ? ': ' + x.comment : ''}`, at: x.at, href: `${go('talk')}?at=apv-${encodeURIComponent(a.id)}`, rank: 1 });
       // They said yes in the last 30 days and nobody told them it is done yet (2026-10-16: close the loop on their Home).
       if (a && a.trackDone && x.decision === 'approved' && !(a.done && a.done.at) && Date.parse(x.at) > Date.now() - 30 * 86400000) {
         // New hours and specials are the urgent ones: Google, Apple Maps and their website still show the old ones.
@@ -598,14 +598,14 @@
         const startsLater = a.kind === 'hours' && a.from && Date.parse(a.from) > Date.now() + 2 * 86400000;
         const urgent = (a.kind === 'hours' || a.kind === 'special') && !startsLater;
         needs.push({ kind: 'finish', label: urgent ? 'Confirmed, do now' : 'Approved', hint: a.kind === 'hours' ? 'Change Google, Apple Maps and their website, then mark it done' : urgent ? 'Post it, add it to Google and their website, then mark it done' : 'They said yes. Do it, then mark it done so their Home says so',
-          text: a.kind === 'hours' ? `${a.title}: update Google, Apple Maps and the site, then mark it done` : urgent ? `${a.title}: post it and add it to Google and the site, then mark it done` : `${a.title}: do it, then mark it done`, at: x.at, href: go('talk', ['finish']), rank: urgent ? 0 : 2, late: urgent });
+          text: a.kind === 'hours' ? `${a.title}: update Google, Apple Maps and the site, then mark it done` : urgent ? `${a.title}: post it and add it to Google and the site, then mark it done` : `${a.title}: do it, then mark it done`, at: x.at, href: `${go('talk', ['finish'])}?at=fin-${encodeURIComponent(a.id)}`, rank: urgent ? 0 : 2, late: urgent });
       }
     }
     for (const a of Object.values(doc.approvals || {})) {
       const ap = /** @type {any} */ (a);
       if (answered.has(ap.id)) continue;
       const d = ap.due ? due(ap.due) : null;
-      waiting.push({ kind: 'approval', label: 'Approval', text: ap.title, dueDate: ap.due, late: !!(d && d.late), href: go('talk') });
+      waiting.push({ kind: 'approval', label: 'Approval', text: ap.title, dueDate: ap.due, late: !!(d && d.late), href: `${go('talk')}?at=apv-${encodeURIComponent(ap.id)}` });
     }
     for (const s of doc.package.services || []) {
       const w = doc.services[s];
@@ -1247,6 +1247,69 @@
     return Object.prototype.hasOwnProperty.call(LEGACY_TABS, t) ? LEGACY_TABS[t]('').split('/')[0] : t;
   }
 
+  /* ---- jump to the thing a link points at, and show it (2026-10-16, Karan: "every time I click something it takes me
+     to that particular thing and highlights it") -------------------------------------------------------------------------------
+     A link names its target with ?at=<key> (an element marked data-at="<key>"), or with the client tab's part
+     (#/client/<id>/setup/plan opens and shows "Plan and sign-off"). The page scrolls it to the middle, opens any folded
+     section around it, puts the cursor in its first field (or on it) and rings it for a moment. */
+  /** A client tab's part, and the place it shows when no ?at= is given. */
+  const JUMP_PARTS = /** @type {Record<string, string>} */ ({ login: '#sec-login', plan: '#sec-plan', details: '#sec-details', finish: '#t-finish',
+    reply: '#reply-form', approval: '#apv-form', update: '#upd-form', new: '#card-form', raw: '#raw-box', billing: '#billing', more: '#sec-more' });
+  /** The last address that jumped, so a redraw of the same page does not jump again. */
+  let lastJump = '';
+  let jumpRun = 0;
+  /** @param {string} key @param {string} part @returns {HTMLElement|null} */
+  function jumpFind(key, part) {
+    const byAt = (/** @type {string} */ k) => /** @type {HTMLElement|null} */ (k ? document.querySelector(`main [data-at="${CSS.escape(k)}"]`) : null);
+    const q = (/** @type {string} */ sel) => /** @type {HTMLElement|null} */ (document.querySelector(sel));
+    // then the part's own place: a known one, a service's form on the Work tab, or the Setup fold of that name
+    return byAt(key) || byAt(part) || (part && JUMP_PARTS[part] ? q(`main ${JUMP_PARTS[part]}`) : null)
+      || (part ? q(`main [data-svc="${CSS.escape(part)}"]`) || q(`main #sec-${CSS.escape(part)}`) : null);
+  }
+  /** Shows one element: opens its folds, scrolls it to the middle, focuses it and rings it. @param {HTMLElement} el */
+  function jumpTo(el) {
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) if (p.tagName === 'DETAILS' && !(/** @type {HTMLDetailsElement} */ (p).open)) /** @type {HTMLDetailsElement} */ (p).open = true;
+    if (el.tagName === 'DETAILS') /** @type {HTMLDetailsElement} */ (el).open = true;
+    if (el.hidden) el.hidden = false;
+    // straight there (a smooth scroll lagged a second or more on a busy page); the ring is what guides the eye
+    el.scrollIntoView({ block: 'center', behavior: 'auto' });
+    el.classList.remove('jump-hit');
+    void el.offsetWidth; // restart the ring when the same place is shown twice
+    el.classList.add('jump-hit');
+    setTimeout(() => el.classList.remove('jump-hit'), 3400);
+    const field = el.matches('input, select, textarea') ? el
+      : /** @type {HTMLElement|null} */ (el.querySelector('select:not([disabled]), input:not([type=hidden]):not([disabled]), textarea:not([disabled])'));
+    if (field) field.focus({ preventScroll: true });
+    else { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1'); el.focus({ preventScroll: true }); }
+  }
+  /** Pages draw after their data loads: look for the target for up to 4 seconds, then show it. @param {string} key @param {string} part */
+  function jumpWhenReady(key, part) {
+    const my = ++jumpRun;
+    const t0 = Date.now();
+    const tick = () => {
+      if (my !== jumpRun) return;
+      const el = jumpFind(key, part);
+      if (el && el.getClientRects().length) { jumpTo(el); return; }
+      if (Date.now() - t0 < 4000) setTimeout(tick, 80);
+      else window.scrollTo(0, 0);
+    };
+    setTimeout(tick, 0);
+  }
+  // A link to the address already open does not change the hash: show its place again instead of doing nothing.
+  document.addEventListener('click', (e) => {
+    const a = /** @type {HTMLAnchorElement|null} */ (/** @type {HTMLElement} */ (e.target).closest('a[href^="#/"]'));
+    if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || a.target) return;
+    const href = a.getAttribute('href') || '';
+    if (href !== location.hash) return;
+    const [hp, hq] = href.split('?');
+    const ps = hp.replace(/^#\//, '').split('/');
+    const k = new URLSearchParams(hq || '').get('at') || '';
+    const pt = ps[0] === 'client' ? ps[3] || '' : '';
+    if (!k && !pt) return;
+    e.preventDefault();
+    jumpWhenReady(k, pt);
+  });
+
   function route() {
     if (!me) return;
     drawn = location.hash || '#/queue';
@@ -1254,7 +1317,10 @@
     dirty.clear();
     saveBar();
     // Needs you is always the first page (the old Opening page setting, prefs.start, is no longer read).
-    const parts = (location.hash || '#/queue').replace(/^#\//, '').split('/');
+    // #/client/<id>/setup/plan?at=signoff: the part after ? names the exact thing to show (jumpTo, 2026-10-16)
+    const [hashPath, hashQuery] = (location.hash || '#/queue').split('?');
+    const parts = hashPath.replace(/^#\//, '').split('/');
+    const at = new URLSearchParams(hashQuery || '').get('at') || '';
     document.documentElement.dataset.page = parts[0] === 'client' ? 'client' : ['clients', 'new', 'board', 'billing', 'revenue', 'settings', 'messages', 'bot'].includes(parts[0]) ? parts[0] : 'queue';
     stopInbox();
     main.onclick = null;
@@ -1272,7 +1338,11 @@
     else queuePage();
     if (parts[0] !== 'client') stopPulling();
     renderSide();
-    window.scrollTo(0, 0);
+    // A link that names a place (a tab part or ?at=) lands on it and shows it, once per new address; a redraw after a save
+    // goes back to the top as before.
+    const place = at || (parts[0] === 'client' ? parts[3] || '' : '');
+    if (place && location.hash !== lastJump) { lastJump = location.hash; jumpWhenReady(at, parts[0] === 'client' ? parts[3] || '' : ''); }
+    else window.scrollTo(0, 0);
     if (parts[0] === 'messages') toBottom();
   }
   /** Redraws after a change made by code, not by the person: route() would throw away unsaved edits, so those are kept. */
@@ -1720,7 +1790,7 @@
     // Warnings only when something is missing; everything else about them folds into About.
     const warns = [
       current.clerk_org_id ? '' : `<a class="chip warn chip-link" href="#/client/${esc(id)}/setup/login">No login yet</a>`,
-      pf.approval_level ? '' : `<a class="chip warn chip-link" href="#/client/${esc(id)}/setup/plan" title="How often we ask them before work goes out">No sign-off level</a>`
+      pf.approval_level ? '' : `<a class="chip warn chip-link" href="#/client/${esc(id)}/setup/plan?at=signoff" title="How often we ask them before work goes out">No sign-off level</a>`
     ].join('');
     const about = [
       d.business.kind ? esc(d.business.kind) : '',
@@ -1850,7 +1920,7 @@
       ${fold('sec-plan', 'plan-h', 'Plan and sign-off', `${esc(partOf('clients').planNameOf(current.id) || 'No plan set')}, ${pf.approval_level && APPROVAL_LEVELS[pf.approval_level] ? `${APPROVAL_LEVELS[pf.approval_level][0]} sign-off` : 'no sign-off level'}. The plan comes from Billing. The sign-off level is for the team only.`, part === 'plan', `
         ${partOf('clients').planPanel(current.id)}
         ${CC() ? CC().setupBlock(current.id) : ''}
-        <form id="profile-form" class="cl-signoff" novalidate>
+        <form id="profile-form" class="cl-signoff" data-at="signoff" novalidate>
         ${profilePickers(pf)}
         <div class="actions"><button class="btn" type="submit">Save sign-off level</button></div>
         </form>`)}
@@ -3545,7 +3615,7 @@
     const reqCard = (/** @type {any} */ r) => `<li class="item-card"><div class="item-top"><span class="item-title"><span class="chip you">Change request</span> ${esc(svcLabel(r.service))}</span>
         <span class="r"><label class="sr-only" for="rq-${esc(r.id)}">Status</label><select class="req-select" id="rq-${esc(r.id)}" data-req="${esc(r.id)}">${REQ_STATUS.map(([v, l]) => `<option value="${v}"${r.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select></span></div>
         <p>${esc(r.body)}</p><p class="meta">${esc(r.by_name || 'Client')}, ${esc(when(r.at))}</p></li>`;
-    const apvCard = (/** @type {any} */ x) => `<li class="item-card${!x.ans && x.d && x.d.late ? ' late' : ''}"><div class="item-top"><span class="item-title">${esc(x.a.title)}</span>
+    const apvCard = (/** @type {any} */ x) => `<li class="item-card${!x.ans && x.d && x.d.late ? ' late' : ''}" data-at="apv-${esc(x.a.id)}"><div class="item-top"><span class="item-title">${esc(x.a.title)}</span>
         <span class="r">${x.ans ? `<span class="chip ${x.ans.decision === 'approved' ? 'good' : 'you'}">${x.ans.decision === 'approved' ? 'Approved' : 'Changes requested'}</span>` : `<span class="chip ${x.d && x.d.late ? 'bad' : 'them'}">Waiting on client${x.d ? `, ${esc(x.d.text)}` : ''}</span>`}${removeBtn('data-remove-apv', x.a.id)}</span></div>
         <p class="meta">${apvMeta(x.a)}</p>
         ${x.ans ? `${x.ans.comment ? `<blockquote>${esc(x.ans.comment)}</blockquote>` : ''}<p class="meta">${esc(x.ans.by_name || 'They')} answered ${esc(when(x.ans.at))}</p>` : ''}</li>`;
@@ -3554,7 +3624,7 @@
         ${u.completed ? `<p>${esc(u.completed)}</p>` : u.changed ? `<p>${esc(u.changed)}</p>` : ''}${u.next ? `<p class="meta">Next: ${esc(u.next)}</p>` : ''}</li>`;
     /** The done lines the team picks from (Karan's examples), plain words the owner reads on Home. */
     const DONE_LINES = ['Posted.', 'Scheduled. They go out on the planned days.', 'Hours updated on Google and the site.', 'Special is live on Google, Instagram and the site.', 'Menu updated on the site and Google.', 'Done.'];
-    const finishCard = (/** @type {any} */ x) => `<li class="item-card"><div class="item-top"><span class="item-title">${esc(x.a.title)}</span><span class="r"><span class="chip good">Approved ${esc(ago(x.ans.at))}</span></span></div>
+    const finishCard = (/** @type {any} */ x) => `<li class="item-card" data-at="fin-${esc(x.a.id)}"><div class="item-top"><span class="item-title">${esc(x.a.title)}</span><span class="r"><span class="chip good">Approved ${esc(ago(x.ans.at))}</span></span></div>
         <form class="finish-form" data-finish="${esc(x.a.id)}" novalidate><label class="sr-only" for="fd-${esc(x.a.id)}">What their Home says</label>
           <input id="fd-${esc(x.a.id)}" name="line" type="text" maxlength="140" list="done-lines" placeholder="${esc(x.a.kind === 'hours' ? DONE_LINES[2] : x.a.kind === 'special' ? DONE_LINES[3] : x.a.service === 'social' ? DONE_LINES[1] : 'Done.')}" aria-describedby="fd-h-${esc(x.a.id)}">
           <button class="btn btn-sm" type="submit">Mark done and tell them</button>
@@ -3633,7 +3703,6 @@
       </details>
       <datalist id="done-lines">${DONE_LINES.map((x) => `<option value="${esc(x)}"></option>`).join('')}</datalist>`;
     for (const b of $$('[data-svc-change]', box)) b.addEventListener('click', () => changeServices());
-    if (part === 'finish') { const fs = $('#t-finish', box); if (fs) { fs.scrollIntoView({ block: 'start' }); fs.focus({ preventScroll: true }); } }
     // Mark done: the line their Home shows for a week, and an update on their Updates page (2026-10-16).
     for (const ff of $$('form[data-finish]', box)) {
       const f = /** @type {HTMLFormElement} */ (ff);

@@ -63,7 +63,7 @@
       ['Last approval', ago(u && u.last_approval_at, 'None yet')],
       ['Messages from outside', u && u.outside_30d ? `${u.outside_30d} in 30 days, last by ${chName(u.last_outside_channel || 'other').toLowerCase()} ${C().ago(u.last_outside_at)}` : 'None in 30 days']
     ];
-    return `<section class="panel us-panel" id="us-panel" aria-labelledby="us-h" data-us-client="${esc(id)}">
+    return `<section class="panel us-panel" id="us-panel" aria-labelledby="us-h" data-us-client="${esc(id)}" data-at="usage">
       <div class="panel-head"><h2 id="us-h">Dashboard use</h2>${u && u.quiet ? '<span class="chip warn">Quiet on dashboard</span>' : ''}</div>
       <dl class="us-facts">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
       <div class="us-block"><h3 class="panel-sub">Last week, on their Home</h3>${weekLine(u)}
@@ -74,7 +74,7 @@
         <form class="us-log" data-us-log="${esc(id)}" novalidate>
           <div class="field"><label for="us-ch">How it came</label><select id="us-ch" name="channel">${CHANNELS.map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join('')}</select></div>
           <div class="field us-note"><label for="us-note">What they asked <span class="meta">(optional, for the team)</span></label><input id="us-note" name="note" type="text" maxlength="500" autocomplete="off"></div>
-          <div class="actions"><button class="btn btn-sm" type="submit">Log it</button><a class="btn btn-quiet btn-sm" href="#/client/${esc(id)}/talk">Answer in their dashboard</a></div>
+          <div class="actions"><button class="btn btn-sm" type="submit">Log it</button><a class="btn btn-quiet btn-sm" href="#/client/${esc(id)}/talk/reply">Answer in their dashboard</a></div>
         </form></details>
     </section>`;
   }
@@ -86,7 +86,7 @@
     if (!quiet.length) return '';
     return `<section class="q-group us-quiet" aria-labelledby="q-quiet-h" data-qf="other"><h2 id="q-quiet-h">Quiet on the dashboard <span class="meta">${quiet.length}</span></h2>
       <p class="lede">They wrote by text, email or phone in the last 14 days but have not opened their dashboard in 7. Put the next request inside it and send them: <q>${esc(REPLY)}</q> <button class="linkish" type="button" data-us-copy>Copy the line</button></p>
-      <ul class="q">${quiet.map(({ u, t }) => `<li><a class="todo-row" href="#/client/${esc(t.id)}/overview"><span class="chip warn">Quiet</span><span class="text">${esc(t.name)}: ${C().plural(u.outside_14d, 'message')} from outside, dashboard ${esc(ago(u.last_seen_at, 'never opened'))}</span><span class="meta">${esc(ago(u.last_outside_at, ''))}</span></a></li>`).join('')}</ul></section>`;
+      <ul class="q">${quiet.map(({ u, t }) => `<li><a class="todo-row" href="#/client/${esc(t.id)}/overview?at=usage"><span class="chip warn">Quiet</span><span class="text">${esc(t.name)}: ${C().plural(u.outside_14d, 'message')} from outside, dashboard ${esc(ago(u.last_seen_at, 'never opened'))}</span><span class="meta">${esc(ago(u.last_outside_at, ''))}</span></a></li>`).join('')}</ul></section>`;
   }
 
   /** Redraws the panel in place after a write, if it is on screen. @param {string} id */

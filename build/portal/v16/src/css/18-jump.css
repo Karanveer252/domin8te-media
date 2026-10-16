@@ -1,0 +1,11 @@
+/* Jump and show (2026-10-16): the thing a link landed on gets a ring and a warm tint that hold, then fade. Tokens only. */
+@keyframes p-jump-ring {
+  0% { box-shadow: 0 0 0 0 transparent; }
+  8% { box-shadow: 0 0 0 3px var(--p-accent), 0 0 0 9px var(--p-accent-bg, rgba(255, 91, 31, 0.2)); }
+  75% { box-shadow: 0 0 0 3px var(--p-accent), 0 0 0 9px var(--p-accent-bg, rgba(255, 91, 31, 0.14)); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.jump-hit { animation: p-jump-ring 3.2s ease-out both; }
+.jump-hit:focus { outline: none; }
+@media (prefers-reduced-motion: reduce) { .jump-hit { animation: none; box-shadow: 0 0 0 3px var(--p-accent); } }
+@media (forced-colors: active) { .jump-hit { animation: none; outline: 3px solid Highlight; outline-offset: 3px; } }

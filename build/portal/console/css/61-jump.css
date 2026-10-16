@@ -1,0 +1,16 @@
+/* Jump and show (2026-10-16): the place a link pointed at gets a bright ring and a warm tint that hold, then fade, so the
+   eye finds it at once. */
+@keyframes jump-ring {
+  0% { box-shadow: 0 0 0 0 rgba(255, 91, 31, 0); background-color: rgba(255, 91, 31, 0); }
+  8% { box-shadow: 0 0 0 3px var(--accent), 0 0 0 9px rgba(255, 91, 31, 0.25); background-color: rgba(255, 91, 31, 0.10); }
+  75% { box-shadow: 0 0 0 3px var(--accent), 0 0 0 9px rgba(255, 91, 31, 0.18); background-color: rgba(255, 91, 31, 0.08); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 91, 31, 0); background-color: rgba(255, 91, 31, 0); }
+}
+.jump-hit { border-radius: 14px; animation: jump-ring 3.2s ease-out both; scroll-margin: 96px; }
+.jump-hit:focus { outline: none; }
+@media (prefers-reduced-motion: reduce) {
+  .jump-hit { animation: none; box-shadow: 0 0 0 3px var(--accent); }
+}
+@media (forced-colors: active) {
+  .jump-hit { animation: none; outline: 3px solid Highlight; outline-offset: 3px; }
+}
