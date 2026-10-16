@@ -59,6 +59,9 @@
   /** Storage names: each design variant keeps its own, so nothing leaks between them. */
   const NS = (root.D8VARIANT && root.D8VARIANT.storage) || 'd8.v16';
 
+  /** The three numbers a restaurant owner asks about first, in this order, for Home's "This week". */
+  const WEEK_KEYS = ['calls', 'directions', 'bookings', 'orders'];
+
   const SERVICES = {
     website: { label: 'Website', icon: 'globe' },
     social: { label: 'Social media', icon: 'share' },
@@ -939,6 +942,25 @@
         .map((m) => (m.chart && m.state !== 'error' && m.value !== null ? { ...m, spark: points(m.id, days).map((p) => p.v) } : m));
       return { mode: 'series', window: w, metrics, items: metrics.map((m) => tileOf(m, w)) };
     }
+    /**
+     * Home's "This week": the last 7 complete days against the 7 before, as up to three numbers (calls, directions and
+     * bookings first, then Home's usual figures) and the extras staff record (specials posted, reviews answered).
+     * Live: the Monday summary built on the server (tenant.weekly), or null until the first one exists. Never guessed.
+     */
+    function weekly() {
+      if (tenant.verifiedResults) return tenant.weekly ? clone(tenant.weekly) : null;
+      const ids = [...WEEK_KEYS, ...tenant.strip].filter((id, i, a) => a.indexOf(id) === i);
+      /** @type {any[]} */ const numbers = [];
+      for (const id of ids) {
+        if (numbers.length >= 3) break;
+        const m = metric(id, 7);
+        if (!m || m.state !== 'ok' || m.value === null) continue;
+        numbers.push({ id, label: m.label, unit: m.unit, now: m.value, before: m.previous });
+      }
+      if (!numbers.length) return null;
+      const w = windowInfo(7);
+      return { from: w.from, to: w.to, numbers, extras: clone(tenant.weeklyExtras || []), id: `wk_${w.to}` };
+    }
     /** Live results: only what staff verified, each with its own period, its source and its status. */
     function verifiedResults() {
       const items = verifiedTiles();
@@ -1125,6 +1147,7 @@
       getAttention: () => call(attention),
       // Charted metrics carry their daily figures for a small sparkline; the rest do not.
       getStrip: (days = 30) => call(() => strip(days)),
+      getWeekly: () => call(weekly),
       getPlan: () => call(plan, 0),
       savePicks,
       getHighlights: () => call(highlights),

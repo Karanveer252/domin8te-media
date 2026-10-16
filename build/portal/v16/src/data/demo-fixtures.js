@@ -237,6 +237,8 @@
     },
     pending: [],
     strip: ['bookings', 'visits', 'facebookViews', 'instagramViews'],
+    // Home's "This week" line: what staff recorded for the week, said plainly (sample data in the demo).
+    weeklyExtras: [{ label: 'Specials posted', value: 'yes' }, { label: 'Posts this week', value: '3' }],
     insightMetric: 'bookings',
     // Written by the Domin8te assistant from the figures above, then checked against them
     // (tests/data.test.js fails if a number here stops matching the series). It shows only once a person has checked it.
@@ -522,6 +524,7 @@
       { metric: 'orders', group: 'leads', label: 'Orders from your website', text: "Online ordering isn't connected yet. Once it is, orders from your website show here." }
     ],
     strip: ['calls', 'directions', 'adClicks', 'orders'],
+    weeklyExtras: [{ label: 'Reviews answered', value: '4' }],
     insightMetric: 'calls',
     summaries: [{
       days: 30, writtenAt: '2026-09-24T07:55', reviewedBy: 'Karan', reviewedAt: '2026-09-24T08:30', facts: { calls: 41, extraCalls: 4, directionsBefore: 49, directions: 58 },
