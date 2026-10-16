@@ -1188,6 +1188,8 @@
       savePicks,
       getHighlights: () => call(highlights),
       getRecentDone: () => call(recentDone),
+      // First week (2026-10-16): a client who has never answered anything gets one real first job on Home.
+      getFirstWeek: () => call(() => ({ first: Object.keys(decisions()).length === 0 })),
       getUpcoming: () => call(upcoming),
       getWorkSummary: () => call(() => Object.values(services())),
       getWork: () => call(work),

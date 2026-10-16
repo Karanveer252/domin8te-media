@@ -35,10 +35,12 @@
     email: 'Email campaigns and automatic emails, with a welcome email'
   };
   /** What comes with each plan besides its services: change it here. No calls or video walkthroughs on any plan (Karan, 14 Oct 2026). */
+  // The dashboard line (2026-10-16, dashboard usage plan step 8): said once, here, never on Home; no price is named.
+  const DASHBOARD_LINE = 'Your dashboard is included: approvals, updates and your numbers in one place';
   const INCLUDED = {
-    starter: ['A monthly summary in your dashboard'],
-    growth: ['A monthly summary in your dashboard'],
-    domin8te: ['A monthly summary in your dashboard']
+    starter: [DASHBOARD_LINE, 'A monthly summary in your dashboard'],
+    growth: [DASHBOARD_LINE, 'A monthly summary in your dashboard'],
+    domin8te: [DASHBOARD_LINE, 'A monthly summary in your dashboard']
   };
   /** Ad spend is separate from the plan fee (release default 18): change the sentence here. */
   const AD_SPEND = 'Ad spend is paid to Meta and Google directly and is not part of your plan.';

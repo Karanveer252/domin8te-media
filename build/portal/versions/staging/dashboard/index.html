@@ -6636,6 +6636,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       savePicks,
       getHighlights: () => call(highlights),
       getRecentDone: () => call(recentDone),
+      // First week (2026-10-16): a client who has never answered anything gets one real first job on Home.
+      getFirstWeek: () => call(() => ({ first: Object.keys(decisions()).length === 0 })),
       getUpcoming: () => call(upcoming),
       getWorkSummary: () => call(() => Object.values(services())),
       getWork: () => call(work),
@@ -7981,10 +7983,12 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     email: 'Email campaigns and automatic emails, with a welcome email'
   };
   /** What comes with each plan besides its services: change it here. No calls or video walkthroughs on any plan (Karan, 14 Oct 2026). */
+  // The dashboard line (2026-10-16, dashboard usage plan step 8): said once, here, never on Home; no price is named.
+  const DASHBOARD_LINE = 'Your dashboard is included: approvals, updates and your numbers in one place';
   const INCLUDED = {
-    starter: ['A monthly summary in your dashboard'],
-    growth: ['A monthly summary in your dashboard'],
-    domin8te: ['A monthly summary in your dashboard']
+    starter: [DASHBOARD_LINE, 'A monthly summary in your dashboard'],
+    growth: [DASHBOARD_LINE, 'A monthly summary in your dashboard'],
+    domin8te: [DASHBOARD_LINE, 'A monthly summary in your dashboard']
   };
   /** Ad spend is separate from the plan fee (release default 18): change the sentence here. */
   const AD_SPEND = 'Ad spend is paid to Meta and Google directly and is not part of your plan.';
@@ -9533,16 +9537,19 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   /**
    * One next step, picked by a fixed order: answer what is waiting, read our reply, the meeting this week, otherwise
    * how to ask for something. Always one sentence and one button.
-   * @param {number} waiting @param {number} unread @param {any} a the account @param {Date} now
+   * A client who has never answered anything (first week) gets one real first job instead: the first card, or their hours.
+   * @param {number} waiting @param {number} unread @param {any} a the account @param {Date} now @param {boolean} [first]
    */
-  function nextStep(waiting, unread, a, now) {
+  function nextStep(waiting, unread, a, now, first) {
     const m = a.meeting;
     const gap = m && m.at ? D8.time.dayNum(m.at) - D8.time.dayNum(now) : -1;
     const soon = m && m.at && (!m.status || m.status === 'confirmed') && gap >= 0 && gap <= 7;
     const timed = soon && /[T ]\d\d:\d\d/.test(String(m.at));
     /** @type {string[]} icon, words, button */
     let s;
-    if (waiting > 0) s = ['check', waiting === 1 ? 'Answer the one thing above and you are done for now.' : `Answer the ${waiting} things above. It takes about a minute.`, '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Start with the first</button>'];
+    if (first && waiting > 0) s = ['check', 'Your first job here: the card at the top. One tap to approve, or tell us what to change. That is how all the work comes to you from now on.', '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Start with it</button>'];
+    else if (first) s = ['clock', 'Your first job: are your opening hours right? If anything is off, tell us here. We fix Google, Apple Maps and your website.', '<button class="btn btn-tint btn-sm" type="button" data-action="compose" data-mode="request" data-service="urgent">Check your hours</button>'];
+    else if (waiting > 0) s = ['check', waiting === 1 ? 'Answer the one thing above and you are done for now.' : `Answer the ${waiting} things above. It takes about a minute.`, '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Start with the first</button>'];
     else if (unread > 0) s = ['message', unread === 1 ? 'We replied to your message.' : `We sent you ${unread} replies.`, `<a class="btn btn-tint btn-sm" href="#/messages">Read ${unread === 1 ? 'it' : 'them'}</a>`];
     else if (soon) s = ['calendar', `Our next meeting is ${day(m.at)}${timed ? ` at ${F.time(m.at)}` : ''}. Anything to add first?`, '<a class="btn btn-glass btn-sm" href="#/messages">Message us</a>'];
     // the request form itself (new hours go in as an urgent fix that never counts toward the plan)
@@ -9606,10 +9613,14 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       /** @type {number|null} */ let count = null;
       /** What staff wrote for one part of Home, when they made it visible. @param {string} k */
       const staffSection = (k) => (ctx.account.homeSections || []).find((/** @type {any} */ s) => s.section === k) || null;
+      /** First week: the header says what this page is for, once, until their first answer. */
+      let firstTime = false;
       const summary = () => {
         if (count === null) return;
-        setText(el, '#home-summary', count < 0 ? 'We could not check what is waiting for you just now.' : count ? `${count} ${F.plural(count, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.');
+        const said = count < 0 ? 'We could not check what is waiting for you just now.' : count ? `${count} ${F.plural(count, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.';
+        setText(el, '#home-summary', firstTime && count >= 0 ? `Welcome to your dashboard. Approvals, updates and your numbers all come here. ${said}` : said);
       };
+      const setFirst = (/** @type {boolean} */ f) => { if (f !== firstTime) { firstTime = f; summary(); } };
       const more = /** @type {HTMLDetailsElement|null} */ (el.querySelector('#home-more'));
       const moreOpen = () => !!(more && more.open);
       /** @type {Record<string, () => any>} */
@@ -9641,8 +9652,12 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         // Waits for the attention count; the unread replies are a best effort (no reply count is not an error).
         next: () => {
           if (count === null) return Promise.resolve(null);
-          return section(el, '#home-next', () => ctx.client.getUnreadReplies().catch(() => 0),
-            (n) => nextStep(Math.max(count || 0, 0), Number(n) || 0, ctx.account, now()),
+          return section(el, '#home-next', () => Promise.all([ctx.client.getUnreadReplies().catch(() => 0), ctx.client.getFirstWeek().catch(() => ({ first: false }))]),
+            ([n, fw]) => {
+              const first = !!(fw && fw.first);
+              setFirst(first);
+              return nextStep(Math.max(count || 0, 0), Number(n) || 0, ctx.account, now(), first);
+            },
             () => ({ title: "We couldn't work out your next step.", text: 'The rest of this page works.', retry: 'next' }));
         },
         strip: () => (moreOpen() ? section(el, '#home-strip', () => ctx.client.getStrip(30), (d) => {

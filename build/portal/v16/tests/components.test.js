@@ -225,6 +225,7 @@ test('Billing: what comes with each plan, and ad spend is said to be separate fr
   for (const id of ['starter', 'growth', 'domin8te']) {
     assert.ok(INCLUDED[id].some((x) => /monthly summary/.test(x)), `${id}: a monthly summary`);
     assert.ok(!INCLUDED[id].some((x) => /call|video|walkthrough/i.test(x)), `${id}: no call or video is promised`);
+    assert.ok(INCLUDED[id].some((x) => /dashboard is included/.test(x)) && !INCLUDED[id].some((x) => /\$|\d+ ?\/ ?month/i.test(x)), `${id}: the dashboard is included, with no price named`);
   }
   assert.equal(AD_SPEND, 'Ad spend is paid to Meta and Google directly and is not part of your plan.');
   // Growth in the demo is Ads, Social and Website: the card says what is included, and the ad spend line sits under Ads once.

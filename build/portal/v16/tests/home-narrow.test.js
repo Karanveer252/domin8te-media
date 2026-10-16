@@ -68,3 +68,10 @@ test('Just done: an approval the client said yes to shows what happens next, the
   assert.equal(done[0].text, 'Scheduled. They go out on the planned days.');
 });
 
+
+test('First week: a client who never answered anything is new; the first answer ends it', async () => {
+  const { client: c } = await client('bayleaf');
+  assert.equal(plain(await c.getFirstWeek()).first, true);
+  await c.decide('apv_posts', 'approved', '');
+  assert.equal(plain(await c.getFirstWeek()).first, false);
+});
