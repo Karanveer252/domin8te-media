@@ -715,3 +715,31 @@ test('a new client whose first bill date is ahead: the confirmed first month com
   await c.refresh();
   assert.equal(plain(await c.getPlan()).state, 'none');
 });
+
+test('This week (2026-10-16): the newest weekly summary the server built reaches Home; opening it is told once, and only when not opened yet', async () => {
+  const tables = withPlan({ weekly_summaries: [
+    { tenant_id: 'tnt_row_1', id: 'wk1', week_start: '2026-10-05', week_end: '2026-10-11', sentence: 'Last week: 14 calls. This week: 18 calls.', opened_at: null,
+      numbers: [{ id: 'calls', metric: 'google_calls', now: 18, before: 14 }, { id: 'directions', now: 11, before: null }, { id: 'bad', now: 'x' }],
+      extras: [{ label: 'Reviews answered', value: '4' }] }
+  ] });
+  const { D8 } = live({ tables, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const c = D8.data.connect(await D8.auth.getSession());
+  const wk = plain(await c.getWeekly());
+  assert.deepEqual([wk.id, wk.from, wk.to], ['wk1', '2026-10-05', '2026-10-11']);
+  assert.deepEqual(wk.numbers, [{ id: 'calls', now: 18, before: 14 }, { id: 'directions', now: 11, before: null }], 'a number that is not a number is dropped, a missing week before stays null');
+  assert.deepEqual(wk.extras, [{ label: 'Reviews answered', value: '4' }]);
+  tables['rpc:mark_weekly_opened'] = '2026-10-16T12:00:00+00:00';
+  assert.equal(await c.markWeeklySeen('wk1'), true);
+  assert.equal(await c.markWeeklySeen('wk1'), false, 'told once');
+  assert.equal(await c.markWeeklySeen('other'), false, 'only the summary on screen');
+  assert.deepEqual(plain((tables.__rpcCalls || []).filter((x) => x[0] === 'mark_weekly_opened')), [['mark_weekly_opened', { p_id: 'wk1' }]]);
+});
+
+test('This week: no summary yet (or the table not there yet) is an empty week, never the record\'s own figures', async () => {
+  const a = live({ tables: withPlan(), clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const ca = a.D8.data.connect(await a.D8.auth.getSession());
+  assert.equal(await ca.getWeekly(), null);
+  const b = live({ tables: withPlan(), errors: { 'select:weekly_summaries': { code: '42P01', message: 'relation does not exist' } }, clerk: { signedIn: true, orgs: ['org_bayleaf'] } });
+  const cb = b.D8.data.connect(await b.D8.auth.getSession());
+  assert.equal(await cb.getWeekly(), null);
+});

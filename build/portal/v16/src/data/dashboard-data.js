@@ -435,6 +435,8 @@
       st.appearance = rec.look;
     } else if (kind === 'picks') {
       st.planNext = rec.next;
+    } else if (kind === 'weekly-opened') {
+      (st.weeklyOpened = st.weeklyOpened || {})[rec.id] = rec.at;
     }
     return st;
   }
@@ -948,7 +950,7 @@
      * Live: the Monday summary built on the server (tenant.weekly), or null until the first one exists. Never guessed.
      */
     function weekly() {
-      if (tenant.verifiedResults) return tenant.weekly ? clone(tenant.weekly) : null;
+      if (tenant.verifiedResults || tenant.weekly) return tenant.weekly ? clone(tenant.weekly) : null;
       const ids = [...WEEK_KEYS, ...tenant.strip].filter((id, i, a) => a.indexOf(id) === i);
       /** @type {any[]} */ const numbers = [];
       for (const id of ids) {
@@ -960,6 +962,16 @@
       if (!numbers.length) return null;
       const w = windowInfo(7);
       return { from: w.from, to: w.to, numbers, extras: clone(tenant.weeklyExtras || []), id: `wk_${w.to}` };
+    }
+    /**
+     * Home showed this week's summary: tell the server once (the console's usage view reads it). Live only; the demo and
+     * viewing as the client never write. Errors stay quiet: a missed mark must never trouble the client.
+     * @param {string} id
+     */
+    function markWeeklySeen(id) {
+      const w = tenant.weekly;
+      if (!id || !w || w.id !== id || w.openedAt || (state().weeklyOpened || {})[id] || READ_ONLY || VIEW_AS) return Promise.resolve(false);
+      return src.put('weekly-opened', { id }).then(() => true, () => false);
     }
     /** Live results: only what staff verified, each with its own period, its source and its status. */
     function verifiedResults() {
@@ -1148,6 +1160,7 @@
       // Charted metrics carry their daily figures for a small sparkline; the rest do not.
       getStrip: (days = 30) => call(() => strip(days)),
       getWeekly: () => call(weekly),
+      markWeeklySeen,
       getPlan: () => call(plan, 0),
       savePicks,
       getHighlights: () => call(highlights),

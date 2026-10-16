@@ -4729,6 +4729,8 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       st.appearance = rec.look;
     } else if (kind === 'picks') {
       st.planNext = rec.next;
+    } else if (kind === 'weekly-opened') {
+      (st.weeklyOpened = st.weeklyOpened || {})[rec.id] = rec.at;
     }
     return st;
   }
@@ -5242,7 +5244,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
      * Live: the Monday summary built on the server (tenant.weekly), or null until the first one exists. Never guessed.
      */
     function weekly() {
-      if (tenant.verifiedResults) return tenant.weekly ? clone(tenant.weekly) : null;
+      if (tenant.verifiedResults || tenant.weekly) return tenant.weekly ? clone(tenant.weekly) : null;
       const ids = [...WEEK_KEYS, ...tenant.strip].filter((id, i, a) => a.indexOf(id) === i);
       /** @type {any[]} */ const numbers = [];
       for (const id of ids) {
@@ -5254,6 +5256,16 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       if (!numbers.length) return null;
       const w = windowInfo(7);
       return { from: w.from, to: w.to, numbers, extras: clone(tenant.weeklyExtras || []), id: `wk_${w.to}` };
+    }
+    /**
+     * Home showed this week's summary: tell the server once (the console's usage view reads it). Live only; the demo and
+     * viewing as the client never write. Errors stay quiet: a missed mark must never trouble the client.
+     * @param {string} id
+     */
+    function markWeeklySeen(id) {
+      const w = tenant.weekly;
+      if (!id || !w || w.id !== id || w.openedAt || (state().weeklyOpened || {})[id] || READ_ONLY || VIEW_AS) return Promise.resolve(false);
+      return src.put('weekly-opened', { id }).then(() => true, () => false);
     }
     /** Live results: only what staff verified, each with its own period, its source and its status. */
     function verifiedResults() {
@@ -5442,6 +5454,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       // Charted metrics carry their daily figures for a small sparkline; the rest do not.
       getStrip: (days = 30) => call(() => strip(days)),
       getWeekly: () => call(weekly),
+      markWeeklySeen,
       getPlan: () => call(plan, 0),
       savePicks,
       getHighlights: () => call(highlights),
@@ -5856,7 +5869,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       zone = 'America/Winnipeg';
       if (row.doc && typeof row.doc.timezone === 'string') { try { new Intl.DateTimeFormat('en-GB', { timeZone: row.doc.timezone }); zone = row.doc.timezone; } catch (e) { /* unknown zone: keep Winnipeg */ } }
       const none = { data: null, error: { code: 'PGRST202', message: 'no rpc' } };
-      const [d, m, r, p, items, inv, cards, cyc, menu, usage, res, home] = await Promise.all([
+      const [d, m, r, p, items, inv, cards, cyc, menu, usage, res, home, wk] = await Promise.all([
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
         sb.from('requests').select('id, service, body, status, by_name, at, over_cap, urgent_fix').eq('tenant_id', row.id).order('at'),
@@ -5873,7 +5886,9 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
         typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('plan_menu', { p_tenant: row.id }) : sb.rpc('plan_menu')) : Promise.resolve(none),
         sb.from('tenant_usage_current').select('service, metric, used').eq('tenant_id', row.id),
         typeof sb.rpc === 'function' ? (VIEW ? sb.rpc('client_results_current', { p_tenant: row.id }) : sb.rpc('client_results_current')) : Promise.resolve(none),
-        sb.from('client_home_sections').select('section, content, source, published_at, updated_at').eq('tenant_id', row.id).eq('client_visible', true)
+        sb.from('client_home_sections').select('section, content, source, published_at, updated_at').eq('tenant_id', row.id).eq('client_visible', true),
+        // Home's "This week" (2026-10-16): the newest weekly summary the server built from verified weekly results
+        sb.from('weekly_summaries').select('id, week_start, week_end, numbers, extras, sentence, opened_at').eq('tenant_id', row.id).order('week_start', { ascending: false }).limit(1)
       ]);
       for (const x of [d, m, r, p]) if (x.error) throw dbFail(x.error);
       // The three projections may be missing before their migration (table or function not there yet): that is fine.
@@ -5881,7 +5896,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       // record already on screen stays as it was.
       const MISSING = ['42P01', 'PGRST205', 'PGRST202', '42883'];
       const missing = (/** @type {any} */ e) => MISSING.includes(e.code) || /does not exist|schema cache|no rpc/i.test(String(e.message || ''));
-      for (const x of [items, inv, cards, cyc, menu, usage, res, home]) if (x.error && !missing(x.error)) throw dbFail(x.error);
+      for (const x of [items, inv, cards, cyc, menu, usage, res, home, wk]) if (x.error && !missing(x.error)) throw dbFail(x.error);
       if (mine !== loads && tenant) return; // a newer load started (after a 30 s give-up): it has the say
       /** @type {any} */ const next = {};
       for (const x of d.data || []) apply(next, 'decision', { approvalId: x.approval_id, decision: x.decision, comment: x.comment, at: toWall(x.at), by: x.by_name });
@@ -5925,7 +5940,15 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
         };
       });
       const sections = home.error ? [] : (home.data || []).map((/** @type {any} */ x) => ({ section: x.section, content: x.content || {}, source: x.source || 'Domin8te console', publishedAt: toWall(x.published_at) || null, updatedAt: toWall(x.updated_at) || null }));
-      const merged = mergeProjections(normalize({ ...(row.doc || {}), plan: planRec, timezone: zone, homeSections: sections, verifiedResults: verified }, now), itemRows, invRows);
+      // Only the numbers the server checked; a row it could not read is "no summary yet", never made up here.
+      const w0 = wk.error ? null : (wk.data || [])[0] || null;
+      const weekly = w0 ? {
+        id: w0.id, from: String(w0.week_start).slice(0, 10), to: String(w0.week_end).slice(0, 10), sentence: String(w0.sentence || ''), openedAt: toWall(w0.opened_at) || null,
+        numbers: (Array.isArray(w0.numbers) ? w0.numbers : []).filter((/** @type {any} */ n) => n && n.id && Number.isFinite(Number(n.now)))
+          .map((/** @type {any} */ n) => ({ id: String(n.id), now: Number(n.now), before: n.before === null || n.before === undefined || !Number.isFinite(Number(n.before)) ? null : Number(n.before) })),
+        extras: (Array.isArray(w0.extras) ? w0.extras : []).filter((/** @type {any} */ x) => x && x.label).map((/** @type {any} */ x) => ({ label: String(x.label), value: String(x.value) }))
+      } : null;
+      const merged = mergeProjections(normalize({ ...(row.doc || {}), plan: planRec, timezone: zone, homeSections: sections, verifiedResults: verified, weekly }, now), itemRows, invRows);
       if (verified) { merged.metrics = {}; merged.strip = []; merged.pending = []; merged.insightMetric = ''; }
       tenant = { ...merged, tenantId: row.id, name: row.name };
       // A function that is not there yet (before its migration) leaves the cards out and the record as it is.
@@ -5967,6 +5990,10 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
           res = await sb.from('user_prefs').upsert({ clerk_user_id: session.userId, notifications: rec.prefs, notifications_saved_at: new Date().toISOString() }).select('notifications_saved_at').single();
         } else if (kind === 'appearance') {
           res = await sb.from('user_prefs').upsert({ clerk_user_id: session.userId, appearance: rec.look }).select('updated_at').single();
+        } else if (kind === 'weekly-opened') {
+          // the client saw this week's summary on Home (the console's usage view reads it); first time only
+          res = await sb.rpc('mark_weekly_opened', { p_id: rec.id });
+          if (!res.error) res = { data: { at: res.data }, error: null };
         } else {
           throw fail('bad-kind', 'Unknown action.');
         }
@@ -12323,8 +12350,22 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     { key: 'instagram_views', label: 'Post views on Instagram', unit: 'views', service: 'social' },
     { key: 'facebook_views', label: 'Post views on Facebook', unit: 'views', service: 'social' },
     { key: 'ad_clicks', label: 'Clicks from ads to your booking page', unit: 'clicks', service: 'advertising' },
-    { key: 'ads_leads', label: 'Leads from ads', unit: 'leads', service: 'advertising' }
+    { key: 'ads_leads', label: 'Leads from ads', unit: 'leads', service: 'advertising' },
+    // For the client's weekly summary (2026-10-16): enter these for a Monday to Sunday week
+    { key: 'online_orders', label: 'Orders from your website', unit: 'orders', service: 'website' },
+    { key: 'reviews_answered', label: 'Reviews answered', unit: 'reviews', service: 'local' },
+    { key: 'specials_posted', label: 'Specials posted', unit: 'specials', service: 'social' }
   ];
+  /** Last week, Monday to Sunday, on this computer's clock: the period the client's weekly summary reads. */
+  function lastWeek() {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7) - 7);
+    const iso = (/** @type {Date} */ x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+    const end = new Date(d);
+    end.setDate(d.getDate() + 6);
+    return [iso(d), iso(end)];
+  }
   const MAX_PROOF_BYTES = 10 * 1024 * 1024;
   const PROOF_TYPES = /^(image\/(png|jpe?g|webp)|application\/pdf|text\/csv)$/i;
 
@@ -12498,7 +12539,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
             <div class="field" data-rs-other hidden><label for="rs-unit">Unit (optional)</label><input id="rs-unit" name="unit" type="text" maxlength="30" placeholder="bookings"></div>
             <div class="field" data-rs-other hidden><label for="rs-service">Service</label><select id="rs-service" name="service"><option value="">None</option>${C.SERVICE_ORDER.map((/** @type {string} */ s) => `<option value="${E(s)}">${E(C.svcLabel(s))}</option>`).join('')}</select></div>
             <div class="field"><label for="rs-start">Period start</label><input id="rs-start" name="start" type="date" value="${E(opened ? String(opened.reporting_period_start).slice(0, 10) : '')}"${frozen ? ' disabled' : ''}><p class="hint date-say" data-say="start" aria-hidden="true"></p></div>
-            <div class="field"><label for="rs-end">Period end</label><input id="rs-end" name="end" type="date" value="${E(opened ? String(opened.reporting_period_end).slice(0, 10) : '')}"${frozen ? ' disabled' : ''}><p class="hint date-say" data-say="end" aria-hidden="true"></p></div>
+            <div class="field"><label for="rs-end">Period end</label><input id="rs-end" name="end" type="date" value="${E(opened ? String(opened.reporting_period_end).slice(0, 10) : '')}"${frozen ? ' disabled' : ''}><p class="hint date-say" data-say="end" aria-hidden="true"></p>${frozen ? '' : '<p class="hint"><button class="linkish" type="button" data-rs-lastweek>Last week, Monday to Sunday</button>. The weekly summary on the client Home uses these weeks.</p>'}</div>
             <div class="field"><label for="rs-source">Named source</label><input id="rs-source" name="source" type="text" maxlength="120" autocomplete="off" placeholder="Google Analytics 4, property ${E(t.name)}" value="${E(opened ? c0.source || '' : '')}"${frozen ? ' disabled' : ''}></div>
             <div class="field"><label for="rs-read">Read from source at</label><input id="rs-read" name="readAt" type="datetime-local" value="${E(opened && opened.source_observed_at ? localInput(new Date(opened.source_observed_at)) : '')}"${frozen ? ' disabled' : ''}>
               <p class="hint" data-rs-read>${frozen ? '' : '<button class="linkish" type="button" data-rs-now>Use the time now</button>'}</p></div>
@@ -12628,6 +12669,15 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     }, on);
     box.addEventListener('click', async (e) => {
       const target = /** @type {HTMLElement} */ (e.target);
+      if (target.closest('[data-rs-lastweek]')) {
+        const [a, b] = lastWeek();
+        for (const [n, v] of [['start', a], ['end', b]]) {
+          const inp = /** @type {HTMLInputElement} */ (f.elements.namedItem(n));
+          inp.value = v;
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        return;
+      }
       if (target.closest('[data-rs-now]')) {
         const inp = /** @type {HTMLInputElement} */ (f.elements.namedItem('readAt'));
         inp.value = localInput(new Date());

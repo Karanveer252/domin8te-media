@@ -32,6 +32,7 @@ function fakeStaffClient(tables) {
         select() { return chain; },
         eq(k, v) { q.filters.push([k, v]); return chain; },
         order() { return chain; },
+        limit() { return chain; },
         maybeSingle() { q.one = true; return chain; },
         insert(p) { calls.writes.push(['insert', name, p]); return chain; },
         upsert(p) { calls.writes.push(['upsert', name, p]); return chain; },
@@ -161,7 +162,7 @@ test('it reads with the console\'s client: the tenant by id, the staff functions
   assert.ok(calls.queries.some(([n, fl]) => n === 'tenants' && fl.some(([k, v]) => k === 'id' && v === ID)), 'tenant read by id');
   assert.ok(!calls.queries.some(([n, fl]) => n === 'tenants' && fl.some(([k]) => k === 'clerk_org_id')), 'not by the Clerk organisation');
   assert.ok(!calls.from.includes('user_prefs'), 'staff have no preferences for this client: user_prefs is skipped');
-  for (const t of ['decisions', 'messages', 'requests', 'client_dashboard_items', 'client_billing_invoices', 'tenant_plan_cycles', 'tenant_usage_current', 'client_home_sections']) {
+  for (const t of ['decisions', 'messages', 'requests', 'client_dashboard_items', 'client_billing_invoices', 'tenant_plan_cycles', 'tenant_usage_current', 'client_home_sections', 'weekly_summaries']) {
     assert.ok(calls.queries.some(([n, fl]) => n === t && fl.some(([k, v]) => k === 'tenant_id' && v === ID)), `${t} filtered by this client`);
   }
   assert.deepEqual(plain(calls.rpc.map((r) => r[0]).sort()), ['client_results_current', 'client_work_cards', 'plan_menu']);

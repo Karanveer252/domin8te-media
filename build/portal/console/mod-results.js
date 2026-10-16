@@ -24,8 +24,22 @@
     { key: 'instagram_views', label: 'Post views on Instagram', unit: 'views', service: 'social' },
     { key: 'facebook_views', label: 'Post views on Facebook', unit: 'views', service: 'social' },
     { key: 'ad_clicks', label: 'Clicks from ads to your booking page', unit: 'clicks', service: 'advertising' },
-    { key: 'ads_leads', label: 'Leads from ads', unit: 'leads', service: 'advertising' }
+    { key: 'ads_leads', label: 'Leads from ads', unit: 'leads', service: 'advertising' },
+    // For the client's weekly summary (2026-10-16): enter these for a Monday to Sunday week
+    { key: 'online_orders', label: 'Orders from your website', unit: 'orders', service: 'website' },
+    { key: 'reviews_answered', label: 'Reviews answered', unit: 'reviews', service: 'local' },
+    { key: 'specials_posted', label: 'Specials posted', unit: 'specials', service: 'social' }
   ];
+  /** Last week, Monday to Sunday, on this computer's clock: the period the client's weekly summary reads. */
+  function lastWeek() {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7) - 7);
+    const iso = (/** @type {Date} */ x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+    const end = new Date(d);
+    end.setDate(d.getDate() + 6);
+    return [iso(d), iso(end)];
+  }
   const MAX_PROOF_BYTES = 10 * 1024 * 1024;
   const PROOF_TYPES = /^(image\/(png|jpe?g|webp)|application\/pdf|text\/csv)$/i;
 
@@ -199,7 +213,7 @@
             <div class="field" data-rs-other hidden><label for="rs-unit">Unit (optional)</label><input id="rs-unit" name="unit" type="text" maxlength="30" placeholder="bookings"></div>
             <div class="field" data-rs-other hidden><label for="rs-service">Service</label><select id="rs-service" name="service"><option value="">None</option>${C.SERVICE_ORDER.map((/** @type {string} */ s) => `<option value="${E(s)}">${E(C.svcLabel(s))}</option>`).join('')}</select></div>
             <div class="field"><label for="rs-start">Period start</label><input id="rs-start" name="start" type="date" value="${E(opened ? String(opened.reporting_period_start).slice(0, 10) : '')}"${frozen ? ' disabled' : ''}><p class="hint date-say" data-say="start" aria-hidden="true"></p></div>
-            <div class="field"><label for="rs-end">Period end</label><input id="rs-end" name="end" type="date" value="${E(opened ? String(opened.reporting_period_end).slice(0, 10) : '')}"${frozen ? ' disabled' : ''}><p class="hint date-say" data-say="end" aria-hidden="true"></p></div>
+            <div class="field"><label for="rs-end">Period end</label><input id="rs-end" name="end" type="date" value="${E(opened ? String(opened.reporting_period_end).slice(0, 10) : '')}"${frozen ? ' disabled' : ''}><p class="hint date-say" data-say="end" aria-hidden="true"></p>${frozen ? '' : '<p class="hint"><button class="linkish" type="button" data-rs-lastweek>Last week, Monday to Sunday</button>. The weekly summary on the client Home uses these weeks.</p>'}</div>
             <div class="field"><label for="rs-source">Named source</label><input id="rs-source" name="source" type="text" maxlength="120" autocomplete="off" placeholder="Google Analytics 4, property ${E(t.name)}" value="${E(opened ? c0.source || '' : '')}"${frozen ? ' disabled' : ''}></div>
             <div class="field"><label for="rs-read">Read from source at</label><input id="rs-read" name="readAt" type="datetime-local" value="${E(opened && opened.source_observed_at ? localInput(new Date(opened.source_observed_at)) : '')}"${frozen ? ' disabled' : ''}>
               <p class="hint" data-rs-read>${frozen ? '' : '<button class="linkish" type="button" data-rs-now>Use the time now</button>'}</p></div>
@@ -329,6 +343,15 @@
     }, on);
     box.addEventListener('click', async (e) => {
       const target = /** @type {HTMLElement} */ (e.target);
+      if (target.closest('[data-rs-lastweek]')) {
+        const [a, b] = lastWeek();
+        for (const [n, v] of [['start', a], ['end', b]]) {
+          const inp = /** @type {HTMLInputElement} */ (f.elements.namedItem(n));
+          inp.value = v;
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        return;
+      }
       if (target.closest('[data-rs-now]')) {
         const inp = /** @type {HTMLInputElement} */ (f.elements.namedItem('readAt'));
         inp.value = localInput(new Date());

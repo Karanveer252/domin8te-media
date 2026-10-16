@@ -150,7 +150,7 @@
   const WEEK_WORD = {
     calls: ['call', 'calls'], directions: ['direction request', 'directions'], bookings: ['booking', 'bookings'], orders: ['order', 'orders'],
     visits: ['website visit', 'website visits'], facebookViews: ['Facebook view', 'Facebook views'], instagramViews: ['Instagram view', 'Instagram views'],
-    adClicks: ['ad click', 'ad clicks'], profileViews: ['Google profile view', 'Google profile views']
+    adClicks: ['ad click', 'ad clicks'], profileViews: ['Google profile view', 'Google profile views'], leads: ['lead from ads', 'leads from ads']
   };
   /** @param {any} n one weekly number @param {number} v */
   const weekWord = (n, v) => { const w = /** @type {any} */ (WEEK_WORD)[n.id]; return w ? F.plural(v, w[0], w[1]) : String(n.unit || ''); };
@@ -265,7 +265,11 @@
           if (count) return UI.ActionNeededList(d.items, now());
           return ok ? D8.plan.banner(d.plan, { staff: staffSection('nothing_to_do'), facts: calmFacts(d.highlights) }) : UI.CaughtUp(d.highlights);
         }, () => { count = -1; summary(); loaders.next(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
-        week: () => section(el, '#home-week', () => ctx.client.getWeekly(), (wk) => weekBlock(wk),
+        // Shown is seen: the first time a summary is drawn, the server learns the client opened it (live only).
+        week: () => section(el, '#home-week', () => ctx.client.getWeekly(), (wk) => {
+          if (wk && wk.id && ctx.client.markWeeklySeen) setTimeout(() => { ctx.client.markWeeklySeen(wk.id).catch(() => {}); }, 0);
+          return weekBlock(wk);
+        },
           () => ({ title: "We couldn't load this week's numbers.", text: 'The rest of this page works.', retry: 'week' })),
         // Waits for the attention count; the unread replies are a best effort (no reply count is not an error).
         next: () => {
