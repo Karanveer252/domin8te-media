@@ -4353,6 +4353,9 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   /** Storage names: each design variant keeps its own, so nothing leaks between them. */
   const NS = (root.D8VARIANT && root.D8VARIANT.storage) || 'd8.v16';
 
+  /** The three numbers a restaurant owner asks about first, in this order, for Home's "This week". */
+  const WEEK_KEYS = ['calls', 'directions', 'bookings', 'orders'];
+
   const SERVICES = {
     website: { label: 'Website', icon: 'globe' },
     social: { label: 'Social media', icon: 'share' },
@@ -5233,6 +5236,25 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
         .map((m) => (m.chart && m.state !== 'error' && m.value !== null ? { ...m, spark: points(m.id, days).map((p) => p.v) } : m));
       return { mode: 'series', window: w, metrics, items: metrics.map((m) => tileOf(m, w)) };
     }
+    /**
+     * Home's "This week": the last 7 complete days against the 7 before, as up to three numbers (calls, directions and
+     * bookings first, then Home's usual figures) and the extras staff record (specials posted, reviews answered).
+     * Live: the Monday summary built on the server (tenant.weekly), or null until the first one exists. Never guessed.
+     */
+    function weekly() {
+      if (tenant.verifiedResults) return tenant.weekly ? clone(tenant.weekly) : null;
+      const ids = [...WEEK_KEYS, ...tenant.strip].filter((id, i, a) => a.indexOf(id) === i);
+      /** @type {any[]} */ const numbers = [];
+      for (const id of ids) {
+        if (numbers.length >= 3) break;
+        const m = metric(id, 7);
+        if (!m || m.state !== 'ok' || m.value === null) continue;
+        numbers.push({ id, label: m.label, unit: m.unit, now: m.value, before: m.previous });
+      }
+      if (!numbers.length) return null;
+      const w = windowInfo(7);
+      return { from: w.from, to: w.to, numbers, extras: clone(tenant.weeklyExtras || []), id: `wk_${w.to}` };
+    }
     /** Live results: only what staff verified, each with its own period, its source and its status. */
     function verifiedResults() {
       const items = verifiedTiles();
@@ -5419,6 +5441,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       getAttention: () => call(attention),
       // Charted metrics carry their daily figures for a small sparkline; the rest do not.
       getStrip: (days = 30) => call(() => strip(days)),
+      getWeekly: () => call(weekly),
       getPlan: () => call(plan, 0),
       savePicks,
       getHighlights: () => call(highlights),
@@ -6367,11 +6390,21 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   /** The primary button's weight follows the severity: solid orange only for the urgent one. */
   const PRIMARY_STYLE = { critical: 'btn btn-primary', approval: 'btn btn-tint', connection: 'btn btn-glass', scheduled: 'btn btn-glass' };
 
+  /**
+   * An approval answers on the card itself (2026-10-16, Karan: one tap to approve, one to ask for changes): Approve
+   * saves after a short Undo window, Ask for changes opens the item with the note box ready. Anything else keeps its
+   * one button.
+   */
   function actionPrimary(a, cls) {
-    return a.primary.does === 'approval'
-      ? `<button class="${cls}" type="button" data-action="approve" data-id="${esc(a.approvalId)}" title="Opens it so you can look, then say yes or ask for changes.">${esc(a.primary.label)}</button>`
-      : `<button class="${cls}" type="button" data-action="external" data-kind="${esc(a.primary.does)}">${esc(a.primary.label)}</button>`;
+    if (a.primary.does !== 'approval') return `<button class="${cls}" type="button" data-action="external" data-kind="${esc(a.primary.does)}">${esc(a.primary.label)}</button>`;
+    const yes = /^confirm/i.test(a.primary.label) ? a.primary.label : 'Approve';
+    return `<button class="${cls}" type="button" data-action="quick-approve" data-id="${esc(a.approvalId)}">${icon('check')}${esc(yes)}<span class="sr-only">: ${esc(a.title)}</span></button>
+      <button class="btn btn-glass" type="button" data-action="approve" data-note="1" data-id="${esc(a.approvalId)}">Ask for changes<span class="sr-only">: ${esc(a.title)}</span></button>`;
   }
+  /** "See it first": the full item (the posts, the hours) in the review window. */
+  const seeFirst = (a) => (a.primary.does === 'approval'
+    ? `<button class="link-btn act-see" type="button" data-action="approve" data-id="${esc(a.approvalId)}">See it first<span class="sr-only">: ${esc(a.title)}</span></button>`
+    : '');
 
   /**
    * One thing the client needs to do: what, why it matters, the deadline or consequence, one
@@ -6395,12 +6428,12 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       : '';
     const toggle = more ? `<button class="link-btn act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span></button>` : '';
     // No severity chip (2026-10-09): the order (red first), the red tint and the icon carry it.
-    return `<li class="act-card sev-${esc(a.severity)}" data-row="${esc(a.id)}">
+    return `<li class="act-card sev-${esc(a.severity)}" data-row="${esc(a.id)}"${a.approvalId ? ` data-approval="${esc(a.approvalId)}"` : ''}>
       <span class="act-icon">${icon(kindIcon)}</span>
       <div class="act-main">
         <h3 class="act-title">${esc(a.title)}</h3>
         <p class="act-detail">${esc(a.detail)}</p>
-        ${when || toggle ? `<p class="act-when">${when}${toggle}</p>` : ''}
+        ${when || toggle || seeFirst(a) ? `<p class="act-when">${when}${seeFirst(a)}${toggle}</p>` : ''}
         ${more}
       </div>
       <div class="act-do">${actionPrimary(a, PRIMARY_STYLE[a.severity] || 'btn btn-glass')}</div>

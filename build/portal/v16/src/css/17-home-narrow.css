@@ -25,9 +25,9 @@
 .week-nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 22px; margin: 16px 0 0; padding: 0; list-style: none; }
 .wn { display: grid; gap: 2px; align-content: start; min-width: 0; padding-left: 14px; border-left: 2px solid var(--p-line); }
 .wn.is-up { border-left-color: var(--p-success); }
-.wn-val { font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.wn-val { font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
 .wn-word { font-size: 15px; font-weight: 600; color: var(--p-ink); }
-.wn-was { font-size: 14px; color: var(--p-ink-3); font-variant-numeric: tabular-nums; }
+.wn-was { font-size: 14px; color: var(--p-ink-3); }
 .week-extras { margin-top: 16px; font-size: 15px; line-height: 1.5; color: var(--p-ink-2); }
 .week-meta { margin-top: 12px; }
 .week-meta .link { font-size: 14px; }

@@ -348,7 +348,7 @@
       for (const a of db.login_requests || []) if (a.tenant_id === body.tenantId && a.status === 'pending' && a.email === body.email) a.status = 'granted';
       if (t && !t.clerk_org_id) t.clerk_org_id = 'org_preview_' + t.id;
       await new Promise((r) => setTimeout(r, 400));
-      return new Response(JSON.stringify({ ok: true, email: body.email, created: true }), { status: 200 });
+      return new Response(JSON.stringify({ ok: true, email: body.email, created: true, welcomed: true }), { status: 200 });
     }
     if (String(url).includes('/functions/v1/team')) {
       const body = JSON.parse(String((init && init.body) || '{}'));
@@ -2201,6 +2201,24 @@
     const had = rows.find((/** @type {any} */ r) => r.clerk_user_id === 'user_preview_karan');
     if (had) had.appearance = { ...(had.appearance || {}), sidebar: { pinned } };
     else rows.push({ clerk_user_id: 'user_preview_karan', appearance: { sidebar: { pinned } } });
+  });
+})();
+</script>
+<script>
+/* stub/96-intake.js */
+// LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). Stand-in rows for onboarding_submissions
+// (migration 20261015030000): one new setup form from the "Jon" test client, so Needs you shows the block.
+(function () {
+  'use strict';
+  const S = /** @type {any} */ (window).D8STUB;
+  if (!S) return;
+  S.seeds.push((/** @type {any} */ db) => {
+    db.onboarding_submissions = [{
+      id: 'obs_preview_jon', sid: 'preview-jon-0001', at: new Date(Date.now() - 6 * 60000).toISOString(),
+      first_name: 'Jon', last_name: 'Test', email: 'karanveersingh2425@gmail.com', mobile: null, restaurant: 'TEST Jon’s Kitchen',
+      summary: 'Fix first: Google listing, Instagram\nPosts sound: Warm and simple\nWebsite now: None yet\nGoogle Business Profile: Done, I sent the invite\nFacebook and Instagram: Do it on the call\nKickoff call: Monday 19 October at 10:00 a.m., video call',
+      answers: null, status: 'new', tenant_id: null, decided_at: null, decided_by: null
+    }];
   });
 })();
 </script>
@@ -5104,6 +5122,13 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
   .cv-device-frame, .cv-screen { transition: none; }
 }
 
+/* css/57-intake.css */
+/* New setup forms on Needs you (mod-intake.js). */
+.intake-row { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.intake-main { min-width: 0; flex: 1 1 320px; }
+.intake-main p { margin: 0 0 4px; }
+.intake-sum { margin: 8px 0 0; padding: 12px 14px; border-radius: 12px; background: rgba(0, 0, 0, .04); font: inherit; font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; }
+
 /* css/58-bot.css */
 /*
  * Bot chat (2026-10-14): the list reuses the queue's rows (.q-row), the filter the console's glass pills (.seg), the card the
@@ -6534,6 +6559,9 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   /** Storage names: each design variant keeps its own, so nothing leaks between them. */
   const NS = (root.D8VARIANT && root.D8VARIANT.storage) || 'd8.v16';
 
+  /** The three numbers a restaurant owner asks about first, in this order, for Home's "This week". */
+  const WEEK_KEYS = ['calls', 'directions', 'bookings', 'orders'];
+
   const SERVICES = {
     website: { label: 'Website', icon: 'globe' },
     social: { label: 'Social media', icon: 'share' },
@@ -7414,6 +7442,25 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
         .map((m) => (m.chart && m.state !== 'error' && m.value !== null ? { ...m, spark: points(m.id, days).map((p) => p.v) } : m));
       return { mode: 'series', window: w, metrics, items: metrics.map((m) => tileOf(m, w)) };
     }
+    /**
+     * Home's "This week": the last 7 complete days against the 7 before, as up to three numbers (calls, directions and
+     * bookings first, then Home's usual figures) and the extras staff record (specials posted, reviews answered).
+     * Live: the Monday summary built on the server (tenant.weekly), or null until the first one exists. Never guessed.
+     */
+    function weekly() {
+      if (tenant.verifiedResults) return tenant.weekly ? clone(tenant.weekly) : null;
+      const ids = [...WEEK_KEYS, ...tenant.strip].filter((id, i, a) => a.indexOf(id) === i);
+      /** @type {any[]} */ const numbers = [];
+      for (const id of ids) {
+        if (numbers.length >= 3) break;
+        const m = metric(id, 7);
+        if (!m || m.state !== 'ok' || m.value === null) continue;
+        numbers.push({ id, label: m.label, unit: m.unit, now: m.value, before: m.previous });
+      }
+      if (!numbers.length) return null;
+      const w = windowInfo(7);
+      return { from: w.from, to: w.to, numbers, extras: clone(tenant.weeklyExtras || []), id: `wk_${w.to}` };
+    }
     /** Live results: only what staff verified, each with its own period, its source and its status. */
     function verifiedResults() {
       const items = verifiedTiles();
@@ -7600,6 +7647,7 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       getAttention: () => call(attention),
       // Charted metrics carry their daily figures for a small sparkline; the rest do not.
       getStrip: (days = 30) => call(() => strip(days)),
+      getWeekly: () => call(weekly),
       getPlan: () => call(plan, 0),
       savePicks,
       getHighlights: () => call(highlights),
@@ -8548,11 +8596,21 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   /** The primary button's weight follows the severity: solid orange only for the urgent one. */
   const PRIMARY_STYLE = { critical: 'btn btn-primary', approval: 'btn btn-tint', connection: 'btn btn-glass', scheduled: 'btn btn-glass' };
 
+  /**
+   * An approval answers on the card itself (2026-10-16, Karan: one tap to approve, one to ask for changes): Approve
+   * saves after a short Undo window, Ask for changes opens the item with the note box ready. Anything else keeps its
+   * one button.
+   */
   function actionPrimary(a, cls) {
-    return a.primary.does === 'approval'
-      ? `<button class="${cls}" type="button" data-action="approve" data-id="${esc(a.approvalId)}" title="Opens it so you can look, then say yes or ask for changes.">${esc(a.primary.label)}</button>`
-      : `<button class="${cls}" type="button" data-action="external" data-kind="${esc(a.primary.does)}">${esc(a.primary.label)}</button>`;
+    if (a.primary.does !== 'approval') return `<button class="${cls}" type="button" data-action="external" data-kind="${esc(a.primary.does)}">${esc(a.primary.label)}</button>`;
+    const yes = /^confirm/i.test(a.primary.label) ? a.primary.label : 'Approve';
+    return `<button class="${cls}" type="button" data-action="quick-approve" data-id="${esc(a.approvalId)}">${icon('check')}${esc(yes)}<span class="sr-only">: ${esc(a.title)}</span></button>
+      <button class="btn btn-glass" type="button" data-action="approve" data-note="1" data-id="${esc(a.approvalId)}">Ask for changes<span class="sr-only">: ${esc(a.title)}</span></button>`;
   }
+  /** "See it first": the full item (the posts, the hours) in the review window. */
+  const seeFirst = (a) => (a.primary.does === 'approval'
+    ? `<button class="link-btn act-see" type="button" data-action="approve" data-id="${esc(a.approvalId)}">See it first<span class="sr-only">: ${esc(a.title)}</span></button>`
+    : '');
 
   /**
    * One thing the client needs to do: what, why it matters, the deadline or consequence, one
@@ -8576,12 +8634,12 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
       : '';
     const toggle = more ? `<button class="link-btn act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span></button>` : '';
     // No severity chip (2026-10-09): the order (red first), the red tint and the icon carry it.
-    return `<li class="act-card sev-${esc(a.severity)}" data-row="${esc(a.id)}">
+    return `<li class="act-card sev-${esc(a.severity)}" data-row="${esc(a.id)}"${a.approvalId ? ` data-approval="${esc(a.approvalId)}"` : ''}>
       <span class="act-icon">${icon(kindIcon)}</span>
       <div class="act-main">
         <h3 class="act-title">${esc(a.title)}</h3>
         <p class="act-detail">${esc(a.detail)}</p>
-        ${when || toggle ? `<p class="act-when">${when}${toggle}</p>` : ''}
+        ${when || toggle || seeFirst(a) ? `<p class="act-when">${when}${seeFirst(a)}${toggle}</p>` : ''}
         ${more}
       </div>
       <div class="act-do">${actionPrimary(a, PRIMARY_STYLE[a.severity] || 'btn btn-glass')}</div>
@@ -12574,6 +12632,124 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
 })();
 </script>
 <script>
+/* mod-intake.js */
+// @ts-check
+/*
+ * New setup forms on Needs you (2026-10-15, Karan: "automate this workflow ... so the client does not need to wait and I
+ * don't need to do everything by hand").
+ *
+ * A finished /onboarding/ form is mailed to the studio and saved in onboarding_submissions by the onboarding-intake
+ * function (migration 20261015030000). This part lists the new ones at the top of Needs you. "Add as client" opens Add a
+ * client with the restaurant, first name and email filled in and "Email them their dashboard login" ticked, so adding the
+ * client also creates the login and sends the welcome email (client-login). "Not a client" closes the form without adding.
+ *
+ * console.js calls window.D8C_EXT.intake.block() inside queuePage and .wire(main) after drawing it. mod-newclient.js calls
+ * .markAdded(id, tenantId) after the client is added. Reads and writes onboarding_submissions only (staff RLS and column grants).
+ */
+(function () {
+  'use strict';
+  /** @type {any} */ const W = window;
+  const EXT = (W.D8C_EXT = W.D8C_EXT || {});
+  const C = () => W.D8C;
+  const esc = (/** @type {any} */ s) => C().esc(s);
+  const DRAFT_KEY = 'd8c.newclient.draft';
+  /** rows: null until the first load. A missing table (migration not applied yet) reads as no rows, so the block stays away. */
+  const state = { /** @type {any[]|null} */ rows: null, at: 0, loading: false };
+
+  async function load() {
+    if (state.loading) return;
+    state.loading = true;
+    try {
+      const db = await C().db();
+      const r = await db.from('onboarding_submissions')
+        .select('id, at, first_name, last_name, email, mobile, restaurant, summary, status')
+        .eq('status', 'new').order('at', { ascending: false }).limit(25);
+      state.rows = r.error ? [] : (r.data || [])
+        .filter((/** @type {any} */ x) => x.status === 'new')
+        .sort((/** @type {any} */ a, /** @type {any} */ b) => String(b.at).localeCompare(String(a.at)));
+      state.at = Date.now();
+    } catch (e) { state.rows = state.rows || []; }
+    finally { state.loading = false; }
+    paint();
+  }
+
+  /** @param {any} x */
+  function row(x) {
+    const who = [x.first_name, x.last_name].filter(Boolean).join(' ');
+    const owner = C().me && C().me.role === 'super_admin';
+    return `<li class="intake-row" data-intake-row="${esc(x.id)}"><div class="intake-main">
+        <p><strong>${esc(x.restaurant)}</strong> <span class="meta">${esc(who)} · ${esc(x.email)}${x.mobile ? ` · ${esc(x.mobile)}` : ''} · sent ${esc(C().ago(x.at))}</span></p>
+        <details class="reveal"><summary>Their answers</summary><pre class="intake-sum">${esc(x.summary)}</pre></details></div>
+      <div class="btns">${owner ? `<button class="btn btn-sm" type="button" data-intake-add="${esc(x.id)}">Add as client</button>` : ''}
+        <button class="btn btn-quiet btn-sm" type="button" data-intake-dismiss="${esc(x.id)}">Not a client</button></div></li>`;
+  }
+
+  function inner() {
+    const rows = state.rows || [];
+    if (!rows.length) return '';
+    return `<section class="q-group" aria-labelledby="q-intake-h"><h2 id="q-intake-h">New setup forms <span class="meta">${rows.length}</span></h2>
+      <p class="lede">Filled in at domin8temedia.com/onboarding. They already got a confirmation email. Add them and their dashboard login goes out with it.</p>
+      <ul class="q intake-list">${rows.map(row).join('')}</ul></section>`;
+  }
+  /** What queuePage puts on the page: a holder that fills itself once the rows are in. */
+  const block = () => `<div id="q-intake">${inner()}</div>`;
+  function paint() { const el = document.getElementById('q-intake'); if (el) el.innerHTML = inner(); }
+
+  /** @param {any} x */
+  async function addAsClient(x) {
+    const c = C();
+    /** @type {any} */ let old = null;
+    try { old = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (e) { /* none */ }
+    if (old && old.s && old.s.name && old.s.intakeId !== x.id &&
+      !await c.ask('Replace your Add client draft?', `You have a draft for ${old.s.name} on this computer. Starting ${x.restaurant} replaces it.`, 'Replace it')) return;
+    const s = { name: x.restaurant, first: x.first_name || '', email: x.email || '', intakeId: x.id, sendLogin: true };
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ s, plan: null, at: new Date().toISOString() })); }
+    catch (e) { c.toast('This browser would not keep the details. Type them into Add a client.', true); }
+    location.hash = '#/new';
+  }
+
+  /** @param {string} id @param {string} status @param {string|null} tenantId */
+  async function decide(id, status, tenantId) {
+    const c = C();
+    const db = await c.db();
+    const r = await db.from('onboarding_submissions')
+      .update({ status, tenant_id: tenantId, decided_at: new Date().toISOString(), decided_by: (c.me && c.me.userId) || null })
+      .eq('id', id).eq('status', 'new');
+    if (r.error) throw r.error;
+    if (state.rows) state.rows = state.rows.filter((x) => x.id !== id);
+    paint();
+  }
+
+  /** Called by Add a client once the client exists. Best effort: the client is added either way. @param {string} id @param {string} tenantId */
+  async function markAdded(id, tenantId) {
+    try { await decide(id, 'added', tenantId); return true; } catch (e) { return false; }
+  }
+
+  /** @param {HTMLElement} main */
+  function wire(main) {
+    if (!state.rows || Date.now() - state.at > 30000) load(); else paint();
+    if (main.dataset.intakeWired) return;
+    main.dataset.intakeWired = '1';
+    main.addEventListener('click', async (e) => {
+      const t = /** @type {HTMLElement} */ (e.target);
+      const add = t.closest && t.closest('[data-intake-add]');
+      const dis = t.closest && t.closest('[data-intake-dismiss]');
+      if (!add && !dis) return;
+      const id = /** @type {HTMLElement} */ (add || dis).getAttribute(add ? 'data-intake-add' : 'data-intake-dismiss');
+      const x = (state.rows || []).find((r) => r.id === id);
+      if (!x) return;
+      if (add) { addAsClient(x); return; }
+      const c = C();
+      if (!await c.ask(`${x.restaurant} is not a client?`, 'The form leaves Needs you. Their answers stay in your inbox.', 'Not a client')) return;
+      try { await decide(x.id, 'dismissed', null); c.toast(`${x.restaurant} removed from setup forms.`); }
+      catch (err) { c.toast(c.failMessage ? c.failMessage(err) : c.message(err), true); }
+    });
+  }
+
+  EXT.intake = { block, wire, load, markAdded, get count() { return (state.rows || []).length; } };
+})();
+</script>
+<script>
 /* mod-needs.js */
 // @ts-check
 /*
@@ -13588,7 +13764,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const draft = readDraft();
     /** What the form holds, other than the plan and its picks (those live in the widget). */
     const S = {
-      name: '', first: '', email: '', kind: '', approval: '', date: today, stripe: true,
+      name: '', first: '', email: '', kind: '', approval: '', date: today, stripe: true, intakeId: '', sendLogin: false,
       pages: Object.fromEntries(PAGES.map((p) => [p[0], p[2]])),
       ...(draft && draft.s ? draft.s : {})
     };
@@ -13618,6 +13794,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
             <div class="field"><label for="n-first">Contact's first name</label><input id="n-first" name="first" type="text" maxlength="100" autocomplete="off" value="${esc(S.first)}"></div>
             <div class="field"><label for="n-email">Contact's email</label><input id="n-email" name="email" type="email" maxlength="200" autocomplete="off" value="${esc(S.email)}" aria-describedby="n-email-h"><p class="hint" id="n-email-h">You can give them a login later. Bill reminders go to this address.</p></div>
           </div>
+          ${S.intakeId ? '<p class="notice nc-intake">From their setup form. The full answers are on Needs you and in your inbox.</p>' : ''}
+          <label class="nc-check"><input type="checkbox" name="sendLogin" id="n-login"${S.sendLogin ? ' checked' : ''}><span>Email them their dashboard login when I add the client</span></label>
+          <p class="hint">They get a welcome email with the link. They sign in with this email and a 6-digit code. No password.</p>
           <p class="field-error" id="n-email-err" role="alert" hidden>That email does not look right. Fix it or leave it empty.</p>
           ${colorPicker}
           ${logoBlock}
@@ -13667,7 +13846,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
           <button class="btn btn-quiet" type="button" data-nc="draft">Save as draft</button>
           <span class="meta nc-status" id="nc-status" aria-live="polite"></span>
         </div>
-        <p class="meta nc-foot">They see nothing until you give them a login. A draft stays on this computer only.</p>
+        <p class="meta nc-foot">They see nothing until they have a login. A draft stays on this computer only.</p>
       </form>`;
 
     const form = /** @type {HTMLFormElement} */ (c.$('#nc-form'));
@@ -13685,7 +13864,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
 
     /** Reads the fields into S. */
     function gather() {
-      S.name = $('#n-name').value; S.first = $('#n-first').value; S.email = $('#n-email').value.trim(); S.kind = $('#n-kind').value;
+      S.name = $('#n-name').value; S.first = $('#n-first').value; S.email = $('#n-email').value.trim(); S.kind = $('#n-kind').value; S.sendLogin = !!$('#n-login').checked;
       const ap = /** @type {HTMLInputElement|null} */ (form.querySelector('input[name="approval"]:checked'));
       S.approval = ap ? ap.value : '';
       const cc = /** @type {HTMLInputElement|null} */ (form.querySelector('input[name="cardColor"]:checked'));
@@ -13822,6 +14001,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const name = S.name.trim();
       if (!name) { fail('Give the restaurant a name.', $('#n-name')); return; }
       if (S.email && !EMAIL.test(S.email)) { fail('That email does not look right. Fix it or leave it empty.', $('#n-email')); return; }
+      if (S.sendLogin && !S.email) { fail('Add their email to send the login, or untick "Email them their dashboard login".', $('#n-email')); return; }
       const chk = pp.check();
       if (!chk.ok) { fail(chk.error, null); return; }
       if (!dateOk(S.date)) { fail('Choose a first billing date from the last month to the next two months.', $('#n-date')); return; }
@@ -13889,15 +14069,25 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         }
         // 5. The client's own board in Multica, made now so it is ready for the team.
         if (typeof c.multicaStatus === 'function') c.multicaStatus().then((/** @type {any} */ st) => { if (st.configured) c.multica({ action: 'project', tenantId: row.id }).catch((/** @type {any} */ x) => c.toast(`The Multica board for ${name} could not be made yet: ${c.message(x)}`, true)); });
+        // 6. Their login and welcome email, when ticked (client-login). If it fails, the client is still added: the toast says so.
+        let loginNote = '';
+        if (S.sendLogin && EMAIL.test(S.email)) {
+          try {
+            const r = await c.callFn('client-login', { tenantId: row.id, email: S.email, firstName: S.first.trim() });
+            loginNote = r && r.welcomed ? ` Login made and welcome email sent to ${S.email}.` : ` Login made for ${S.email}. No welcome email went out (email sending is not set up yet), so tell them to sign in at domin8temedia.com/dashboard.`;
+          } catch (x) { loginNote = ` The login was not made: ${c.message(x)} Give it from the client's Setup tab.`; notes.push(''); }
+        }
+        // 7. The setup form it came from leaves Needs you.
+        if (S.intakeId && EXT.intake) await EXT.intake.markAdded(S.intakeId, row.id);
         clearDraft();
         // Added is added: a failed reload must not put the form back in reach of a second, duplicate insert.
         try { await c.loadAll(); } catch (x) { c.toast(`${name} was added, but the client list could not reload: ${c.message(x)}`, true); }
         if (planErr) {
-          c.toast(`${name} was added, but the plan was not saved: ${planErr} Set it from Billing.${stripeNote}`, true);
+          c.toast(`${name} was added, but the plan was not saved: ${planErr} Set it from Billing.${stripeNote}${loginNote}`, true);
           location.hash = `#/billing/${row.id}`;
           return;
         }
-        c.toast(`${name} added.${stripeNote}${notes.join('')}`, notes.length > 0);
+        c.toast(`${name} added.${stripeNote}${loginNote}${notes.join('')}`, notes.length > 0);
         location.hash = `#/client/${row.id}/overview`;
       } catch (x) {
         done();
@@ -21184,6 +21374,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       <div class="btns updated"><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span><button class="icon-btn icon-btn-sm" type="button" data-action="refresh" aria-label="Reload" title="Reload">${icon('refresh')}</button></div></div>
       ${N ? N.top(view) : ''}
       ${soon.length ? `<details class="soon-strip" data-qf="other"><summary>${icon('clock')}<span><b>Coming up this week: ${soon.length}.</b> Next: ${esc(next.client)}, ${esc(next.label)}${nd ? `, ${esc(nd.days === 0 ? 'today' : nd.text)}` : ''}</span></summary><ul class="q">${soon.map((x) => qRow(x, x.client)).join('')}</ul></details>` : ''}
+      ${partOf('intake') ? partOf('intake').block() : ''}
       ${all.tenants.length ? '' : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p><a class="btn" href="#/new">Add a client</a></div>`}
       <section class="q-group" id="q-needs"><h2>Do now <span class="meta">${doNow}</span></h2>
         ${N ? N.cards(typed) : ''}
@@ -21194,6 +21385,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       ${waiting.length ? `<details class="q-group q-fold" id="q-waiting" data-qf="other"><summary><h2>Waiting on clients <span class="meta">${waiting.length}</span></h2></summary>
         <p class="lede">Approvals they have not answered, and next steps that are theirs. Late ones first.</p>${grouped(waiting)}</details>` : ''}`;
     if (N) N.wire(main, view);
+    if (partOf('intake')) partOf('intake').wire(main);
   }
 
   /* ---- Messages: every client's conversation in one place ------------------------------------------------ */
@@ -21814,11 +22006,11 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       // The client this login is for, read now: another one may be open when the answer comes back.
       const tid = current.id;
       try {
-        await callFn('client-login', { tenantId: tid, email, firstName: val(lf, 'first') });
+        const lr = await callFn('client-login', { tenantId: tid, email, firstName: val(lf, 'first') });
         done();
         followFor = tid;
         await loadAll();
-        toast(`${email} can now sign in to the portal.`);
+        toast(lr && lr.welcomed ? `${email} can now sign in. We emailed them the link and how to sign in.` : `${email} can now sign in to the portal. No welcome email went out, so send them domin8temedia.com/dashboard yourself.`);
         redraw();
       } catch (x) {
         done();

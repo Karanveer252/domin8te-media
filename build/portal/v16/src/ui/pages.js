@@ -207,7 +207,8 @@
 
   const home = {
     title: () => 'Home',
-    render(ctx) {
+    /** #/home?more=open opens "More about your plan" (a link from an email or another page can land there). */
+    render(ctx, r) {
       const now = ctx.client.now();
       const a = ctx.account;
       return `<div class="page page-home is-narrow">
@@ -225,7 +226,7 @@
           ${UI.SectionHead('h-next', 'Your next step')}
           <div id="home-next">${UI.Skeleton('row', 1)}</div>
         </section>
-        <details class="home-more" id="home-more">
+        <details class="home-more" id="home-more"${r && r.params && r.params.more === 'open' ? ' open' : ''}>
           <summary class="home-more-sum"><span class="hm-title">More about your plan</span><span class="hm-sub">This month, the last 30 days and your next meeting</span>${icon('chevron-down', 'hm-chev')}</summary>
           <div class="home-more-body">
             <div class="sec home-plan" id="home-plan">${UI.Skeleton('card', 2)}</div>
@@ -290,7 +291,8 @@
         }, () => ({ title: "We couldn't load your plan.", text: 'The rest of this page works.', retry: 'plan' })) : Promise.resolve(null))
       };
       // The folded part loads the first time it opens, and again on every refresh while it is open.
-      let moreLoaded = false;
+      let moreLoaded = moreOpen();
+      if (moreLoaded) { loaders.plan(); loaders.strip(); }
       if (more) more.addEventListener('toggle', () => { if (more.open && !moreLoaded) { moreLoaded = true; loaders.plan(); loaders.strip(); } });
       loaders.attention();
       loaders.week();
@@ -377,7 +379,9 @@
           if (D8.data.READ_ONLY || D8.data.viewAs) { D8.dialogs.toast(D8.data.DEMO_NOTE, { tone: 'error' }); return; }
           const li = cardFor(id);
           if (!li) return;
-          const title = (li.querySelector('.act-title') || {}).textContent || 'This';
+          // "Approve next week's posts" reads as "Next week's posts: approved."
+          const raw = String((li.querySelector('.act-title') || {}).textContent || '').replace(/^(approve|confirm|review)\s+/i, '').trim();
+          const title = raw ? raw[0].toUpperCase() + raw.slice(1) : 'This';
           held.set(id, { timer: setTimeout(() => commit(id), HOLD_MS), li, html: li.innerHTML, title });
           li.classList.add('is-held');
           cardState(li, `${title}: approved.`, 'Saving in 5 seconds. Changed your mind? Press Undo.', `<button class="btn btn-glass" type="button" data-action="undo-approve" data-id="${esc(id)}">Undo<span class="sr-only">: ${esc(title)}</span></button>`);

@@ -21,7 +21,9 @@ const FILE = path.join(__dirname, '..', '..', 'versions', BUILD + '.html').split
 
 const FULL = [
   // Home (2026-10-13): greeting and one sentence, Waiting for you, the plan this month and what comes next, three checked numbers, contact.
-  { route: 'home', title: 'Home', has: ['id="h-attention">Waiting for you', 'things need you.', 'Sample data', 'class="page-fresh', 'Running now', 'Coming up', 'class="usage is-', 'sample limit', 'Last 30 days', 'Verified', 'Checked today at', 'See all results', 'Next meeting:', 'Message us', 'Review and approve', 'See details', 'class="strip is-3"', 'Preview mode'],
+  // Home, narrowed (2026-10-16): three parts by default, the rest folded and not loaded until opened
+  { route: 'home', title: 'Home', has: ['id="h-attention">Waiting for you', 'things need you.', 'Sample data', 'class="page-fresh', 'id="h-week">This week', 'class="card week-card', 'last week</span>', 'id="h-next">Your next step', 'Start with the first', 'More about your plan', 'data-action="quick-approve"', 'Ask for changes', 'See it first', 'See details', 'Preview mode'], not: ['Running now', 'class="strip is-3"'] },
+  { route: 'home?more=open', title: 'Home', has: ['id="h-attention">Waiting for you', 'Running now', 'Coming up', 'class="usage is-', 'sample limit', 'Last 30 days', 'Verified', 'Checked today at', 'See all results', 'Next meeting:', 'Message us', 'class="strip is-3"'],
     not: ['Biggest change this month', 'Latest update', 'More about your account', 'Check for new numbers', 'sev-chip', 'Do these', 'id="attention-count"', 'This is in Waiting for you', 'status-chip', 'metric-src', 'compared with the 30 days before', '% more bookings'] },
   { route: 'work', title: 'Work', has: ['Right now:', 'Steps', 'Waiting for you', 'Ask for a change', 'class="work-tab" href="#/updates"', 'things waiting for you', 'done steps', 'Used this month', 'Resets Thu 22 Oct', "Not in this month's plan", 'class="page-fresh', 'Plan: Growth'], not: ['Jump to:', 'ms-progress', 'steps-key', 'data-tone=', 'class="say"', 'class="blocker"'] },
   { route: 'work/social', title: 'Work', has: ['Instagram posts are paused', '2 things waiting for you'], not: ['Reconnect Instagram'] },
@@ -45,7 +47,7 @@ const FULL = [
   { route: 'billing/change', title: 'Change your plan', has: ['Back to billing', 'Make changes by', 'days left', 'Step 1. Choose a plan', 'Step 2. Choose 2 services', '2 of 2 picked', 'Ads, plus one service you choose', 'Ads, plus two services you choose', 'Ads, plus three services you choose', 'Check your changes', 'Confirm: keep Growth', 'Locks your services for', 'Nothing today', 'class="picker"', 'Sample data'], not: ['Taken right now', 'Locked right now', 'Ask Karan', 'set up with Karan'] },
   { query: 'demo=cornerbean', route: 'billing/change', title: 'Change your plan', has: ['Step 2. Choose 1 service', 'Included', 'Starter', 'Confirm: keep Starter'] },
   { query: 'demo=change', route: 'billing', title: 'Billing', has: ["You're all set", 'Growth services start Thu 22 Oct', 'Message Karan', 'See past bills', 'What happens next', 'Your services from Thu 22 Oct'], not: ['Do nothing and your plan stays the same'] },
-  { query: 'demo=change', route: 'home', title: 'Home', has: ['Your services change on Thu 22 Oct', 'What changes on Thu 22 Oct', 'Keeps', 'Adds', 'Stops', 'Message Karan'] },
+  { query: 'demo=change', route: 'home?more=open', title: 'Home', has: ['Your services change on Thu 22 Oct', 'What changes on Thu 22 Oct', 'Keeps', 'Adds', 'Stops', 'Message Karan'] },
   { route: 'settings', title: 'Settings', has: ['Connected accounts', '4 of 5 working', 'See all connections', 'Who can sign in', 'Add someone', 'Emails', 'Always sent', 'Reminder 7 days before your bill', 'Reminder 3 days before your bill', 'Confirmation when you change your picks', 'Choose which other emails you get', 'How it looks', 'class="page-fresh'], not: ['Sign-in and security', 'People who can sign in'] },
   { route: 'settings/sources', title: 'Settings', has: ['Needs reconnecting', 'Connected'] },
   // Help (2026-10-13): the questions are about plans, picks and limits; "Still stuck?" leads to Messages.
@@ -59,9 +61,9 @@ const FULL = [
   { query: 'demo=cornerbean', route: 'home', title: 'Home', has: ['All running as normal', 'Next planned', 'Latest win', 'See billing', 'Good morning, Priya', "You're on Starter"], not: ['Social media', 'Bayleaf'] },
   { query: 'demo=cornerbean', route: 'results', title: 'Results', has: ['Numbers start on', 'id="h-g-advertising"', 'SEO and Google Maps', 'Not connected yet'], not: ['id="h-g-social"'] },
   { query: 'demo=cornerbean', route: 'updates', title: 'Work', has: ['Domin8te team'], not: ['Social media'] },
-  { query: 'demo=google-down', route: 'home', title: 'Home', has: ["Couldn't load just now", 'Review and approve'] },
+  { query: 'demo=google-down', route: 'home?more=open', title: 'Home', has: ["Couldn't load just now", 'Ask for changes'] },
   { query: 'demo=google-down', route: 'results', title: 'Results', has: ["We couldn't load your SEO and Google Maps numbers."] },
-  { query: 'demo=slow', route: 'home', title: 'Home', has: ['id="h-attention">Waiting for you', 'Review and approve'], budget: 15000 },
+  { query: 'demo=slow', route: 'home', title: 'Home', has: ['id="h-attention">Waiting for you', 'Ask for changes', 'class="card week-card'], budget: 15000 },
   { query: 'theme=dark', route: 'home', title: 'Home', has: ['data-theme="dark"'] }
 ];
 // Every page in every demo situation: each must draw its title, finish loading and log no errors.
@@ -75,7 +77,7 @@ const VARIANT = [
   ...Object.entries(PAGES).map(([route, title]) => FULL.find((c) => c.route === route && !c.query)),
   FULL.find((c) => c.route === 'no-such-page'),
   FULL.find((c) => c.query === 'demo=cornerbean' && c.route === 'home'),
-  FULL.find((c) => c.query === 'demo=google-down' && c.route === 'home'),
+  FULL.find((c) => c.query === 'demo=google-down' && c.route === 'home?more=open'),
   FULL.find((c) => c.query === 'theme=dark'),
   { query: 'demo=slow', route: 'work', title: 'Work', budget: 15000, has: ['id="page-title"'] },
   // The "Liquid glass" slider: present, labelled, and set from the address for one visit.
