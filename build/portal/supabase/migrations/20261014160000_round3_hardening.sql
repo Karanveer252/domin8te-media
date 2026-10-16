@@ -56,7 +56,12 @@ end $$;
 alter table app.settings enable row level security;
 
 -- 4. Supabase's event-trigger helper is nobody's to call.
-revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+-- (only projects created with Supabase's "automatic RLS" setting have it: TEST does, prod does not, 16 Oct 2026)
+do $$ begin
+  if to_regprocedure('public.rls_auto_enable()') is not null then
+    execute 'revoke execute on function public.rls_auto_enable() from public, anon, authenticated';
+  end if;
+end $$;
 
 -- 5. No TRIGGER or REFERENCES rights for the API roles on any table.
 do $$

@@ -1,0 +1,6 @@
+/* Spacing sweep (2026-10-16, Karan: "do a full sweep and fix the spacing errors"): places where a card or block sat
+   right on the next one because the shared gap rule could not reach it. */
+/* Setup > Plan and sign-off: the "Change plan and picks in Billing" line and the card colour block. */
+.cl-plan-link ~ .cc-block { margin-top: 22px; }
+/* Advanced: the Raw record card is drawn into its own holder after History, so ".panel + .panel" never applied. */
+#raw-box:not(:empty) { margin-top: 16px; }

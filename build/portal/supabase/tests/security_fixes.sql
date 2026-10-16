@@ -417,8 +417,10 @@ select pg_temp.v('R3.3 a new sequence is not granted to anon or authenticated', 
 select pg_temp.v('R3.3 app.settings has RLS on', 'true', (select relrowsecurity::text from pg_class where oid = 'app.settings'::regclass));
 
 -- 4, 5, 6
+-- (only projects with Supabase's automatic RLS setting have this helper: TEST does, prod does not)
 select pg_temp.v('R3.4 nobody but the owner can run rls_auto_enable', 'false/false',
-  has_function_privilege('anon', 'public.rls_auto_enable()', 'execute')::text || '/' || has_function_privilege('authenticated', 'public.rls_auto_enable()', 'execute')::text);
+  case when to_regprocedure('public.rls_auto_enable()') is null then 'false/false'
+       else has_function_privilege('anon', 'public.rls_auto_enable()', 'execute')::text || '/' || has_function_privilege('authenticated', 'public.rls_auto_enable()', 'execute')::text end);
 select pg_temp.v('R3.5 no TRIGGER or REFERENCES right for anon or authenticated', '0',
   (select count(*)::text from information_schema.table_privileges where grantee in ('anon', 'authenticated')
     and privilege_type in ('TRIGGER', 'REFERENCES') and table_schema in ('public', 'app')));
