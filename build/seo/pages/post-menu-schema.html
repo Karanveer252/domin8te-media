@@ -1,0 +1,81 @@
+---
+path: /blog/restaurant-menu-structured-data/
+kind: post
+date: 2026-10-16
+title: Restaurant Menu Structured Data, Explained for Owners | Domin8te
+description: Menu structured data is a small labelled note in your website's code that tells Google you are a restaurant, where you are, your hours and where your menu is.
+eyebrow: Notes · Websites
+h1: Menu structured data, | explained for owners
+lede: Structured data sounds like a job for a developer. The idea behind it is simple enough to explain at the table: a short, labelled note that tells search engines exactly who you are and what you serve.
+crumb: Restaurant menu structured data
+card: What restaurant structured data is, what it can label, what it will not do, and how to keep it true.
+image: /assets/mock-soc-mussels.webp
+alt: A bowl of mussels and a glass of cider on a white table in a bright dining room
+related: /services/website/, /blog/why-pdf-menus-hurt-restaurant-seo/
+---
+<section id="what-it-is" data-label="What it is">
+  <h2>What is restaurant <em>structured data?</em></h2>
+  <p>Restaurant structured data is a small block of labelled information in your website's code that tells search engines plainly that this is a restaurant, where it is, when it is open, what cuisine it serves, its price range and where the menu lives. It helps search engines and answer apps read your details correctly. It does not guarantee a special result or a higher position in Google.</p>
+  <p>Think of it like a good waiter handing a new guest a card with the essentials. Your restaurant website already says all of this in words and pictures, for people. Structured data says the same things again in a tidy, labelled form, for machines, so nothing is left to guesswork.</p>
+  <p>The labels come from a shared vocabulary called schema.org, which Google and the other search sites all understand. The block itself usually sits out of sight in the page code, in a format called JSON-LD. Guests never see it. Search engines read it every time they visit the page.</p>
+</section>
+
+<section id="labels" data-label="What can be labelled">
+  <h2>The labels a restaurant <em>can use.</em></h2>
+  <p>A restaurant or café can label its type of business, its name, address, phone number, opening hours, cuisine, price range, whether it takes reservations and where its menu is. A menu can also be labelled dish by dish, with sections, prices and dietary notes.</p>
+  <p>Here is what the labels would say for Bistro Fennel, a made-up café we use as an example, written out in plain English rather than code:</p>
+  <ul class="touches">
+    <li><b>Type: CafeOrCoffeeShop</b><span>"This is a café." A full restaurant would use the Restaurant type instead.</span></li>
+    <li><b>name, address, telephone</b><span>"We are Bistro Fennel, this is our street address, and this is the number that rings at the counter."</span></li>
+    <li><b>openingHours</b><span>"We open for breakfast on weekdays, later on Sundays, and we are closed on Mondays."</span></li>
+    <li><b>servesCuisine</b><span>"We serve brunch, coffee and French bistro plates."</span></li>
+    <li><b>priceRange</b><span>"We are a casual, everyday spot, not a special occasion splurge."</span></li>
+    <li><b>acceptsReservations</b><span>"Yes, you can book a table."</span></li>
+    <li><b>hasMenu</b><span>"Our menu is at this page on our website."</span></li>
+    <li><b>Menu, MenuSection, MenuItem</b><span>"The menu has a brunch section, and in it there is a mushroom tartine." Each dish can carry an offer with its price, and a suitableForDiet note such as vegetarian or gluten free.</span></li>
+  </ul>
+  <p>Most of this is the same information a guest looks for first. That is the point: the labels are a second copy of the basics, written so a search engine cannot misread them.</p>
+</section>
+
+<section id="honest" data-label="What it will not do">
+  <h2>Will structured data show my menu <em>in Google?</em></h2>
+  <p>Not on its own. As far as we can say in general terms, Google does not currently show a special menu result just because a restaurant website has menu markup. Treat structured data as a way to make your details unambiguous, not as a switch that changes how you appear.</p>
+  <p>What Google shows for restaurant menus mostly comes from two places: your Google Business Profile and your actual menu page. The menu link, hours, photos and category on your listing do much of the work, and our <a href="/blog/restaurant-google-business-profile-checklist/">Google Business Profile checklist</a> walks through each one. Structured data sits underneath both, quietly confirming that your site and your listing describe the same place.</p>
+  <p>That still matters. Search engines and the apps that answer questions about where to eat are trying to work out facts: is this café open on Sunday, does it serve gluten free brunch, can I book. Clear labels make those facts easier to get right.</p>
+</section>
+
+<section id="real-page" data-label="Menu page first">
+  <h2>The menu has to be <em>a real page first.</em></h2>
+  <p>Structured data describes a menu that already exists as text on your website. If your menu is a PDF or a photo, there is nothing proper to point the hasMenu label at, and the dishes are hard for search engines to read anyway.</p>
+  <p>So the order matters. First, put the menu on your restaurant website as an ordinary page, with the dish names, short descriptions and prices written out. Then label it. Our note on <a href="/blog/why-pdf-menus-hurt-restaurant-seo/">why PDF menus hurt restaurant SEO</a> explains the first step in more detail. Labels on top of a PDF menu are a little like a lovely sign over a locked door.</p>
+</section>
+
+<section id="keep-true" data-label="Keeping it true">
+  <h2>How do I keep structured data <em>accurate?</em></h2>
+  <p>Restaurant structured data must say exactly what your menu page and your Google Business Profile say, especially your opening hours. If the labels and the page disagree, search engines may trust neither, and a guest may turn up to a locked door.</p>
+  <p>Hours are where it usually slips. You start closing early on Sundays for the winter, someone updates the sign on the door and the Google listing, and the hidden labels on the website still say the old time. The same goes for a dish that comes off the menu or a price that moves. Nobody sees the labels, so nobody notices they are wrong.</p>
+  <p>The fix is a habit: whenever hours, dishes or prices change, change the page, the listing and the labels together. When we look after a site, a change to the menu or hours goes to the site and the Google listing at the same time, so the three never drift apart.</p>
+</section>
+
+<section id="check" data-label="Checking it">
+  <h2>How can I check <em>my restaurant's markup?</em></h2>
+  <p>You can check structured data with two free tools: Google's Rich Results Test and the Schema Markup Validator. Paste in the address of your menu page or homepage and each tool reads the labels it finds.</p>
+  <p>The Schema Markup Validator shows everything that is labelled and flags anything written wrongly. Google's Rich Results Test focuses on the parts Google can use for its own special results, so it may show less, and that is normal. In both, the thing to look for is simple: are your name, address, phone, hours and menu link all there, and do they match what is on the page today?</p>
+</section>
+
+<section id="who" data-label="Who adds it">
+  <h2>Who adds it, <em>and when.</em></h2>
+  <p>Structured data is added by whoever builds or looks after your website: your web person, your website platform's settings, or us. It is best added while the menu page is being built, so the labels and the page start out matching.</p>
+  <p>On every <a href="/services/website/">restaurant website</a> we build, the menu is a real page, the hours and booking sit up top, and the labels underneath say the same thing as the page and the Google listing. If you are not sure what your site has today, send us a note and <a href="/#try">get your plan</a>: a plain English list of what needs fixing first, and why, back within one business day.</p>
+</section>
+
+<dl class="faq">
+  <dt>Do I need structured data if I already have a Google Business Profile?</dt>
+  <dd><p>Your Google Business Profile does most of the work for how a restaurant appears in Google. Structured data on your website backs it up by stating the same name, address, hours and menu link in a labelled form. It is worth having, as long as it matches the listing exactly.</p></dd>
+  <dt>Will menu structured data move my restaurant higher in Google?</dt>
+  <dd><p>No one can promise that. Restaurant structured data helps search engines read your details correctly, but it does not guarantee a higher position or a special menu result. A fast, clear menu page and a complete Google Business Profile matter more.</p></dd>
+  <dt>Can structured data point to a PDF menu?</dt>
+  <dd><p>It can point to any address, but a PDF menu is a weak thing to point to. The dishes inside a PDF are hard for guests to read on a phone and hard for search engines to read at all. Build the menu as a real page on your restaurant website first, then label that page.</p></dd>
+  <dt>What happens if my structured data says the wrong hours?</dt>
+  <dd><p>Search engines may show the wrong hours or stop trusting your details, and a guest may arrive to find you closed. Whenever your hours change, update your website, your Google Business Profile and the structured data at the same time so all three agree.</p></dd>
+</dl>

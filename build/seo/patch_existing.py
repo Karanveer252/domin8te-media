@@ -81,9 +81,9 @@ def crumbs(trail):
 
 # ---------------------------------------------------------------- homepage
 s = rd('index.html')
-s = head(s, 'Restaurant Marketing Agency | Websites, Ads, Social & SEO | Domin8te',
-         'Domin8te Media helps independent restaurants and cafés get found and fill tables: websites, Google, '
-         'ads and social, run for you. A plain English plan in one business day.', BASE + '/')
+s = head(s, 'Restaurant Marketing: Websites, Google, Social & Ads | Domin8te',
+         'Websites, Google listings, social posts and ads for independent restaurants and cafés, run for you. '
+         'A plain English plan in one business day.', BASE + '/')
 s = css_link(s, '')
 s = footer(s, None)
 # the keyword line carries the h1; the slogan keeps its look as a paragraph
@@ -116,30 +116,34 @@ org['logo'] = {'@type': 'ImageObject', 'url': BASE + '/assets/mark-720.webp', 'w
 org['image'] = BASE + '/assets/og.jpg'
 org['areaServed'] = [{'@type': 'Country', 'name': 'Canada'}, {'@type': 'Country', 'name': 'United States'}]
 org['sameAs'] = org.get('sameAs', [])
+org['contactPoint'] = {'@type': 'ContactPoint', 'contactType': 'sales', 'email': 'karanhelps@domin8temedia.com',
+                       'areaServed': ['CA', 'US'], 'availableLanguage': 'English'}
 for item, path in zip(org['hasOfferCatalog']['itemListElement'],
                       ['/services/website/', '/services/ads/', '/services/social/', '/services/seo/']):
     item['itemOffered']['url'] = BASE + path
 site['inLanguage'] = 'en-CA'
 ld['@graph'].append({'@type': 'WebPage', '@id': BASE + '/#webpage', 'url': BASE + '/',
-                     'name': 'Restaurant Marketing Agency | Websites, Ads, Social & SEO | Domin8te',
+                     'name': 'Restaurant Marketing: Websites, Google, Social & Ads | Domin8te',
                      'isPartOf': {'@id': BASE + '/#website'}, 'about': {'@id': BASE + '/#organization'},
                      'inLanguage': 'en-CA'}) if not any(g.get('@type') == 'WebPage' for g in ld['@graph']) else None
+for g in ld['@graph']:
+    if g.get('@type') == 'WebPage': g['name'] = 'Restaurant Marketing: Websites, Google, Social & Ads | Domin8te'
 s = s[:ld_m.start(1)] + json.dumps(ld, ensure_ascii=False, indent=2) + s[ld_m.end(1):]
 wr('index.html', s)
 
 # ---------------------------------------------------------------- the work pages
 WORK = [
     ('work/index.html', 'Restaurant Marketing Work & Case Studies | Domin8te Media',
-     'See how we build websites, community and social for real kitchens, including Freddy’s Fanpage and Le cookie.',
+     'See how we build websites, community and social for real kitchens, including Freddy’s Fanpage and Le Cookie.',
      '/work/', [('Home', '/'), ('Work', '/work/')]),
     ('work/freddys/index.html', 'Freddy’s Fanpage Case Study | Restaurant Community Site | Domin8te',
      'An independent fan community for Canada’s first Freddy’s in Winnipeg: photo moderation, a weekly free meal '
      'challenge and menu votes, built for store staff.',
      '/work/freddys/', [('Home', '/'), ('Work', '/work/'), ('Freddy’s Fanpage', '/work/freddys/')]),
-    ('work/lecookie/index.html', 'Le cookie Website Case Study | Custom Cookie Studio | Domin8te',
+    ('work/lecookie/index.html', 'Le Cookie Website Case Study | Custom Cookie Studio | Domin8te',
      'A one-page cookie studio site: design a cookie in three taps, watch it bake as you scroll, then send an inquiry. '
      'Built for phone visitors from Instagram.',
-     '/work/lecookie/', [('Home', '/'), ('Work', '/work/'), ('Le cookie', '/work/lecookie/')]),
+     '/work/lecookie/', [('Home', '/'), ('Work', '/work/'), ('Le Cookie', '/work/lecookie/')]),
 ]
 FACT_LINKS = {
     'work/freddys/index.html': ('<dd>Website, community, social</dd>',
@@ -162,6 +166,7 @@ for path, title, desc, url, trail in WORK:
                       'image': re.search(r'<meta property="og:image" content="([^"]*)">', s).group(1),
                       'inLanguage': 'en-CA'})
     s = add_ld(s, {'@context': 'https://schema.org', '@graph': graph})
+    s = s.replace('Le cookie', 'Le Cookie')
     if path in FACT_LINKS:
         s = sub1(s, *FACT_LINKS[path], label='facts ' + path)
     # the results slot: left for real numbers only, never filled with made-up ones

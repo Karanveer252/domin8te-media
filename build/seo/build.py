@@ -280,9 +280,16 @@ def main_html(p, pages):
     back = {'service': ('/services/', 'All services'), 'post': ('/blog/', 'All notes')}.get(kind, ('/', 'Back to the homepage'))
     meta_line = ''
     if kind == 'post':
-        d = date.fromisoformat(p['date'])
-        meta_line = ('\n      <p class="seo-date rv"><time datetime="%s">%s</time> \u00b7 %s min read</p>'
-                     % (p['date'], d.strftime('%B %-d, %Y') if os.name != 'nt' else d.strftime('%B %#d, %Y'), p['minutes']))
+        def day(iso):
+            d = date.fromisoformat(iso)
+            return d.strftime('%B %-d, %Y') if os.name != 'nt' else d.strftime('%B %#d, %Y')
+        # who wrote it and when it was last checked: the studio's name, the dates Google and readers both see
+        upd = p.get('updated')
+        when = '<time datetime="%s">%s</time>' % (p['date'], day(p['date']))
+        if upd and upd != p['date']:
+            when = 'Updated <time datetime="%s">%s</time>' % (upd, day(upd))
+        meta_line = ('\n      <p class="seo-date rv">By <a href="/about/" rel="author">Domin8te Media</a> \u00b7 %s \u00b7 %s min read</p>'
+                     % (when, p['minutes']))
     head = ('<section class="wk-head" aria-labelledby="pg-h">\n  <div class="wrap">\n'
             '    <a class="wk-back rv" href="%s">%s%s</a>\n'
             '    <p class="wk-eyebrow rv" style="margin-top:clamp(28px,5vh,56px)">%s</p>\n'

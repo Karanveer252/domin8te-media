@@ -73,6 +73,17 @@ Write for an owner first and Google second: the keywords (restaurant website des
 SEO, Google Business Profile, restaurant social media, restaurant ads, café) belong in the h1, the
 first paragraph, one or two h2s and the FAQ, where they read naturally. Never stuff them.
 
+## Answer first (for Google snippets and AI answers)
+
+- **The first `<p>` of every section is the answer**: one to three plain sentences that would make
+  sense quoted on their own, with no "this", "it" or "as above" pointing back. Then the detail.
+- **About half the `<h2>`s are the question an owner would type**, e.g. `<h2>How often should I
+  update my <em>Google Business Profile?</em></h2>`. The others can stay short statements.
+- Name things the same way every time: "Domin8te Media", "Google Business Profile" (not GMB),
+  "restaurant website", "Le Cookie" (capital C), "Freddy's Fanpage".
+- Use concrete restaurant examples (the soup coming back for winter, Tuesday mussel night, brunch
+  near me) instead of abstractions.
+
 ## Hard rules (the build lint checks the first two)
 
 1. **No em dashes or en dashes** anywhere. Use a full stop, a comma or a colon.
@@ -117,7 +128,7 @@ first paragraph, one or two h2s and the FAQ, where they read naturally. Never st
 - **Work:** Freddy's Fanpage (`/work/freddys/`), an independent community site for the regulars at
   Canada's first Freddy's: food photos, menu votes, a weekly free meal challenge, every photo
   approved by a person at the store; a live prototype on sample data, with the store for sign-off.
-  Le cookie (`/work/lecookie/`), a custom cookie studio whose whole site is one page: design a
+  Le Cookie (`/work/lecookie/`), a custom cookie studio whose whole site is one page: design a
   cookie in a few taps, watch it bake as you scroll, then send an inquiry; built for phone
   visitors arriving from Instagram; in final build.
 - General, well-known practice is fine to explain (why a PDF menu is hard to read on a phone and
