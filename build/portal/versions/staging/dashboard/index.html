@@ -1948,6 +1948,228 @@ details.jump-hit::after, section.jump-hit::after, form.jump-hit::after { top: -1
   .jump-hit::after { animation: none; background: Highlight; color: HighlightText; forced-color-adjust: none; }
 }
 
+/* ================================================================ css/19-loader.css */
+/*
+ * The loader (2026-10-17, Karan's pick of five): the Domin8te mark lights up along its own figure-eight. The mark sits
+ * soft and warm; two copies of it show only inside a spotlight (and two softer tails behind it) that rides the ribbon's
+ * measured centre line, one steady speed, one loop every 3 seconds. The spotlight's centre comes from CSS variables that
+ * the keyframes move (@property makes them animate); without @property support the still mark shows, which is fine.
+ * Only the first open uses it (app.js, while the account loads); nothing else in the app does.
+ */
+@property --d8x { syntax: '<percentage>'; inherits: false; initial-value: 50%; }
+@property --d8y { syntax: '<percentage>'; inherits: false; initial-value: 49.4%; }
+.page-booting { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; min-height: 60vh; color: var(--p-ink-3); }
+.page-booting .d8-load { position: relative; width: 150px; height: 83px; }
+.page-booting .d8-load img { position: absolute; inset: 0; width: 150px; height: 83px; }
+.page-booting .d8-load .is-dim { opacity: .5; filter: saturate(.5) brightness(1.05); }
+.page-booting .d8-load .is-lit { -webkit-mask: radial-gradient(circle 22px at var(--d8x) var(--d8y), #000 0 30%, rgba(0,0,0,.55) 60%, transparent 100%); mask: radial-gradient(circle 22px at var(--d8x) var(--d8y), #000 0 30%, rgba(0,0,0,.55) 60%, transparent 100%); filter: saturate(1.2) brightness(1.06) drop-shadow(0 0 6px rgba(255,255,255,.45)); animation: d8-trace 3s linear infinite; }
+.page-booting .d8-load .is-tail { -webkit-mask: radial-gradient(circle 34px at var(--d8x) var(--d8y), rgba(0,0,0,.7) 0 15%, transparent 100%); mask: radial-gradient(circle 34px at var(--d8x) var(--d8y), rgba(0,0,0,.7) 0 15%, transparent 100%); animation: d8-trace 3s linear infinite; animation-delay: -.22s; }
+.page-booting .d8-load .is-tail2 { -webkit-mask: radial-gradient(circle 40px at var(--d8x) var(--d8y), rgba(0,0,0,.35) 0 10%, transparent 100%); mask: radial-gradient(circle 40px at var(--d8x) var(--d8y), rgba(0,0,0,.35) 0 10%, transparent 100%); animation: d8-trace 3s linear infinite; animation-delay: -.44s; }
+.page-booting .d8-load-word { font-size: 15px; }
+@keyframes d8-trace {
+  0.00%{--d8x:50.00%;--d8y:49.40%}
+  0.43%{--d8x:50.00%;--d8y:47.34%}
+  0.82%{--d8x:50.00%;--d8y:45.43%}
+  1.25%{--d8x:50.00%;--d8y:43.37%}
+  1.76%{--d8x:49.88%;--d8y:40.92%}
+  2.30%{--d8x:49.75%;--d8y:38.33%}
+  2.76%{--d8x:50.00%;--d8y:36.14%}
+  3.21%{--d8x:50.86%;--d8y:34.63%}
+  3.73%{--d8x:52.10%;--d8y:33.51%}
+  4.23%{--d8x:53.33%;--d8y:32.53%}
+  4.69%{--d8x:54.44%;--d8y:31.64%}
+  5.14%{--d8x:55.56%;--d8y:30.88%}
+  5.58%{--d8x:56.67%;--d8y:30.12%}
+  6.02%{--d8x:57.78%;--d8y:29.41%}
+  6.46%{--d8x:58.89%;--d8y:28.69%}
+  6.93%{--d8x:60.00%;--d8y:27.71%}
+  7.44%{--d8x:61.11%;--d8y:26.28%}
+  7.98%{--d8x:62.22%;--d8y:24.59%}
+  8.53%{--d8x:63.33%;--d8y:22.89%}
+  9.07%{--d8x:64.44%;--d8y:21.20%}
+  9.62%{--d8x:65.56%;--d8y:19.50%}
+  10.13%{--d8x:66.67%;--d8y:18.07%}
+  10.60%{--d8x:67.78%;--d8y:17.00%}
+  11.05%{--d8x:68.89%;--d8y:16.20%}
+  11.48%{--d8x:70.00%;--d8y:15.66%}
+  11.90%{--d8x:71.11%;--d8y:15.44%}
+  12.31%{--d8x:72.22%;--d8y:15.48%}
+  12.73%{--d8x:73.33%;--d8y:15.66%}
+  13.15%{--d8x:74.44%;--d8y:15.89%}
+  13.57%{--d8x:75.56%;--d8y:16.24%}
+  14.01%{--d8x:76.67%;--d8y:16.87%}
+  14.47%{--d8x:77.78%;--d8y:17.80%}
+  14.95%{--d8x:78.89%;--d8y:19.01%}
+  15.47%{--d8x:80.00%;--d8y:20.48%}
+  16.05%{--d8x:81.11%;--d8y:22.45%}
+  16.68%{--d8x:82.22%;--d8y:24.68%}
+  17.24%{--d8x:83.33%;--d8y:26.51%}
+  17.71%{--d8x:84.44%;--d8y:27.62%}
+  18.16%{--d8x:85.56%;--d8y:28.34%}
+  18.59%{--d8x:86.67%;--d8y:28.92%}
+  19.01%{--d8x:87.78%;--d8y:29.32%}
+  19.43%{--d8x:88.89%;--d8y:29.59%}
+  19.86%{--d8x:90.00%;--d8y:30.12%}
+  20.32%{--d8x:91.11%;--d8y:31.01%}
+  20.80%{--d8x:92.22%;--d8y:32.17%}
+  21.33%{--d8x:93.33%;--d8y:33.73%}
+  21.92%{--d8x:94.57%;--d8y:35.52%}
+  22.57%{--d8x:95.80%;--d8y:37.71%}
+  23.32%{--d8x:96.67%;--d8y:40.96%}
+  24.42%{--d8x:97.04%;--d8y:46.23%}
+  25.73%{--d8x:97.04%;--d8y:52.57%}
+  26.83%{--d8x:96.67%;--d8y:57.83%}
+  27.58%{--d8x:95.80%;--d8y:61.09%}
+  28.23%{--d8x:94.57%;--d8y:63.28%}
+  28.82%{--d8x:93.33%;--d8y:65.06%}
+  29.35%{--d8x:92.22%;--d8y:66.62%}
+  29.83%{--d8x:91.11%;--d8y:67.78%}
+  30.28%{--d8x:90.00%;--d8y:68.67%}
+  30.72%{--d8x:88.89%;--d8y:69.21%}
+  31.13%{--d8x:87.78%;--d8y:69.48%}
+  31.56%{--d8x:86.67%;--d8y:69.88%}
+  31.99%{--d8x:85.56%;--d8y:70.46%}
+  32.43%{--d8x:84.44%;--d8y:71.17%}
+  32.91%{--d8x:83.33%;--d8y:72.29%}
+  33.47%{--d8x:82.22%;--d8y:74.12%}
+  34.10%{--d8x:81.11%;--d8y:76.35%}
+  34.68%{--d8x:80.00%;--d8y:78.31%}
+  35.19%{--d8x:78.89%;--d8y:79.79%}
+  35.68%{--d8x:77.78%;--d8y:80.99%}
+  36.14%{--d8x:76.67%;--d8y:81.93%}
+  36.58%{--d8x:75.56%;--d8y:82.55%}
+  37.00%{--d8x:74.44%;--d8y:82.91%}
+  37.42%{--d8x:73.33%;--d8y:83.13%}
+  37.83%{--d8x:72.22%;--d8y:83.31%}
+  38.25%{--d8x:71.11%;--d8y:83.36%}
+  38.67%{--d8x:70.00%;--d8y:83.13%}
+  39.10%{--d8x:68.89%;--d8y:82.55%}
+  39.56%{--d8x:67.78%;--d8y:81.70%}
+  40.02%{--d8x:66.67%;--d8y:80.72%}
+  40.49%{--d8x:65.56%;--d8y:79.70%}
+  40.97%{--d8x:64.44%;--d8y:78.54%}
+  41.48%{--d8x:63.33%;--d8y:77.11%}
+  42.06%{--d8x:62.22%;--d8y:75.15%}
+  42.68%{--d8x:61.11%;--d8y:72.91%}
+  43.25%{--d8x:60.00%;--d8y:71.08%}
+  43.72%{--d8x:58.89%;--d8y:70.01%}
+  44.16%{--d8x:57.78%;--d8y:69.34%}
+  44.59%{--d8x:56.67%;--d8y:68.67%}
+  45.04%{--d8x:55.56%;--d8y:67.92%}
+  45.48%{--d8x:54.44%;--d8y:67.16%}
+  45.94%{--d8x:53.33%;--d8y:66.27%}
+  46.45%{--d8x:52.10%;--d8y:65.24%}
+  46.97%{--d8x:50.86%;--d8y:64.08%}
+  47.41%{--d8x:50.00%;--d8y:62.65%}
+  47.79%{--d8x:49.75%;--d8y:60.87%}
+  48.22%{--d8x:49.88%;--d8y:58.81%}
+  48.67%{--d8x:50.00%;--d8y:56.63%}
+  49.16%{--d8x:50.00%;--d8y:54.26%}
+  49.68%{--d8x:50.00%;--d8y:51.76%}
+  50.17%{--d8x:50.00%;--d8y:49.40%}
+  50.57%{--d8x:50.12%;--d8y:47.48%}
+  50.95%{--d8x:50.25%;--d8y:45.69%}
+  51.44%{--d8x:50.00%;--d8y:43.37%}
+  52.24%{--d8x:49.14%;--d8y:39.80%}
+  53.21%{--d8x:47.90%;--d8y:35.70%}
+  54.02%{--d8x:46.67%;--d8y:32.53%}
+  54.53%{--d8x:45.56%;--d8y:31.10%}
+  54.96%{--d8x:44.44%;--d8y:30.61%}
+  55.38%{--d8x:43.33%;--d8y:30.12%}
+  55.83%{--d8x:42.22%;--d8y:29.41%}
+  56.27%{--d8x:41.11%;--d8y:28.69%}
+  56.73%{--d8x:40.00%;--d8y:27.71%}
+  57.25%{--d8x:38.89%;--d8y:26.24%}
+  57.80%{--d8x:37.78%;--d8y:24.50%}
+  58.33%{--d8x:36.67%;--d8y:22.89%}
+  58.83%{--d8x:35.56%;--d8y:21.55%}
+  59.32%{--d8x:34.44%;--d8y:20.35%}
+  59.79%{--d8x:33.33%;--d8y:19.28%}
+  60.25%{--d8x:32.22%;--d8y:18.34%}
+  60.70%{--d8x:31.11%;--d8y:17.54%}
+  61.13%{--d8x:30.00%;--d8y:16.87%}
+  61.57%{--d8x:28.89%;--d8y:16.29%}
+  61.99%{--d8x:27.78%;--d8y:15.84%}
+  62.41%{--d8x:26.67%;--d8y:15.66%}
+  62.83%{--d8x:25.56%;--d8y:15.80%}
+  63.25%{--d8x:24.44%;--d8y:16.20%}
+  63.69%{--d8x:23.33%;--d8y:16.87%}
+  64.15%{--d8x:22.22%;--d8y:17.80%}
+  64.64%{--d8x:21.11%;--d8y:19.01%}
+  65.15%{--d8x:20.00%;--d8y:20.48%}
+  65.74%{--d8x:18.89%;--d8y:22.49%}
+  66.37%{--d8x:17.78%;--d8y:24.77%}
+  66.92%{--d8x:16.67%;--d8y:26.51%}
+  67.36%{--d8x:15.56%;--d8y:27.22%}
+  67.78%{--d8x:14.44%;--d8y:27.40%}
+  68.20%{--d8x:13.33%;--d8y:27.71%}
+  68.64%{--d8x:12.22%;--d8y:28.38%}
+  69.09%{--d8x:11.11%;--d8y:29.18%}
+  69.55%{--d8x:10.00%;--d8y:30.12%}
+  70.01%{--d8x:8.89%;--d8y:31.10%}
+  70.49%{--d8x:7.78%;--d8y:32.22%}
+  71.01%{--d8x:6.67%;--d8y:33.73%}
+  71.60%{--d8x:5.43%;--d8y:35.52%}
+  72.25%{--d8x:4.20%;--d8y:37.71%}
+  73.00%{--d8x:3.33%;--d8y:40.96%}
+  74.09%{--d8x:2.96%;--d8y:46.18%}
+  75.40%{--d8x:2.96%;--d8y:52.48%}
+  76.51%{--d8x:3.33%;--d8y:57.83%}
+  77.34%{--d8x:4.20%;--d8y:61.49%}
+  78.07%{--d8x:5.43%;--d8y:64.21%}
+  78.70%{--d8x:6.67%;--d8y:66.27%}
+  79.19%{--d8x:7.78%;--d8y:67.51%}
+  79.62%{--d8x:8.89%;--d8y:68.09%}
+  80.05%{--d8x:10.00%;--d8y:68.67%}
+  80.51%{--d8x:11.11%;--d8y:69.52%}
+  80.96%{--d8x:12.22%;--d8y:70.37%}
+  81.40%{--d8x:13.33%;--d8y:71.08%}
+  81.82%{--d8x:14.44%;--d8y:71.35%}
+  82.24%{--d8x:15.56%;--d8y:71.49%}
+  82.69%{--d8x:16.67%;--d8y:72.29%}
+  83.29%{--d8x:17.78%;--d8y:74.43%}
+  84.01%{--d8x:18.89%;--d8y:77.24%}
+  84.64%{--d8x:20.00%;--d8y:79.52%}
+  85.12%{--d8x:21.11%;--d8y:80.72%}
+  85.56%{--d8x:22.22%;--d8y:81.39%}
+  85.99%{--d8x:23.33%;--d8y:81.93%}
+  86.43%{--d8x:24.44%;--d8y:82.46%}
+  86.85%{--d8x:25.56%;--d8y:82.86%}
+  87.27%{--d8x:26.67%;--d8y:83.13%}
+  87.69%{--d8x:27.78%;--d8y:83.31%}
+  88.10%{--d8x:28.89%;--d8y:83.36%}
+  88.52%{--d8x:30.00%;--d8y:83.13%}
+  88.95%{--d8x:31.11%;--d8y:82.60%}
+  89.40%{--d8x:32.22%;--d8y:81.79%}
+  89.87%{--d8x:33.33%;--d8y:80.72%}
+  90.38%{--d8x:34.44%;--d8y:79.29%}
+  90.93%{--d8x:35.56%;--d8y:77.60%}
+  91.47%{--d8x:36.67%;--d8y:75.90%}
+  92.02%{--d8x:37.78%;--d8y:74.21%}
+  92.56%{--d8x:38.89%;--d8y:72.51%}
+  93.07%{--d8x:40.00%;--d8y:71.08%}
+  93.54%{--d8x:41.11%;--d8y:70.10%}
+  93.98%{--d8x:42.22%;--d8y:69.39%}
+  94.42%{--d8x:43.33%;--d8y:68.67%}
+  94.87%{--d8x:44.44%;--d8y:67.92%}
+  95.31%{--d8x:45.56%;--d8y:67.16%}
+  95.77%{--d8x:46.67%;--d8y:66.27%}
+  96.28%{--d8x:47.90%;--d8y:65.24%}
+  96.80%{--d8x:49.14%;--d8y:64.08%}
+  97.24%{--d8x:50.00%;--d8y:62.65%}
+  97.62%{--d8x:50.25%;--d8y:60.87%}
+  98.05%{--d8x:50.12%;--d8y:58.81%}
+  98.50%{--d8x:50.00%;--d8y:56.63%}
+  98.99%{--d8x:50.00%;--d8y:54.26%}
+  99.51%{--d8x:50.00%;--d8y:51.76%}
+  100.00%{--d8x:50.00%;--d8y:49.40%}
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-booting .d8-load .is-lit, .page-booting .d8-load .is-tail, .page-booting .d8-load .is-tail2 { animation: none; display: none; }
+  .page-booting .d8-load .is-dim { opacity: 1; filter: none; }
+}
+html[data-theme="dark"] .page-booting .d8-load .is-dim { opacity: .4; }
+
 /* ================================================================ css/20-billing.css */
 /*
  * Billing (2026-10-13): the plan with what each service allows, the "You're all set" confirmation, the card and the bills
@@ -11575,7 +11797,14 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       app.client = D8.data.connect(s);
       // The final direction (D8VARIANT.home) shows the page's shape while the account loads,
       // instead of an empty column.
-      if (V.home && !$('#main').children.length) $('#main').innerHTML = `<div class="page page-booting">${UI.Skeleton('strip', 4)}${UI.Skeleton('row', 3)}</div>`;
+      // The loader (2026-10-17): the mark lights up along its own figure-eight while the account loads (css/19-loader.css).
+      if (!$('#main').children.length) {
+        // the mark as the page already carries it (the build inlines it on the brand image)
+        const brand = /** @type {HTMLImageElement|null} */ (document.getElementById('brand-mark'));
+        const mark = brand && brand.getAttribute('src') ? brand.getAttribute('src') : 'assets/mark.webp';
+        const img = (/** @type {string} */ cls) => `<img class="${cls}" src="${mark}" alt="">`;
+        $('#main').innerHTML = `<div class="page page-booting" aria-busy="true"><div class="d8-load" aria-hidden="true">${img('is-dim')}${img('is-tail2')}${img('is-tail')}${img('is-lit')}</div><span class="d8-load-word">Opening your dashboard</span></div>`;
+      }
       return app.client.getAccount().then((a) => {
         app.account = a;
         D8.account = a;

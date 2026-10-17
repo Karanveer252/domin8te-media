@@ -577,7 +577,14 @@
       app.client = D8.data.connect(s);
       // The final direction (D8VARIANT.home) shows the page's shape while the account loads,
       // instead of an empty column.
-      if (V.home && !$('#main').children.length) $('#main').innerHTML = `<div class="page page-booting">${UI.Skeleton('strip', 4)}${UI.Skeleton('row', 3)}</div>`;
+      // The loader (2026-10-17): the mark lights up along its own figure-eight while the account loads (css/19-loader.css).
+      if (!$('#main').children.length) {
+        // the mark as the page already carries it (the build inlines it on the brand image)
+        const brand = /** @type {HTMLImageElement|null} */ (document.getElementById('brand-mark'));
+        const mark = brand && brand.getAttribute('src') ? brand.getAttribute('src') : 'assets/mark.webp';
+        const img = (/** @type {string} */ cls) => `<img class="${cls}" src="${mark}" alt="">`;
+        $('#main').innerHTML = `<div class="page page-booting" aria-busy="true"><div class="d8-load" aria-hidden="true">${img('is-dim')}${img('is-tail2')}${img('is-tail')}${img('is-lit')}</div><span class="d8-load-word">Opening your dashboard</span></div>`;
+      }
       return app.client.getAccount().then((a) => {
         app.account = a;
         D8.account = a;
