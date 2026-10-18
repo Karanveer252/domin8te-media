@@ -196,18 +196,109 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] .bot-showing
   .bot-bulk-btns .btn { flex: 1 1 auto; }
 }
 
-/* Ask bots (2026-10-17, Karan; rev 3): Karan's thread with the router, shown in place of the list when the "Ask bots" status pill
- * (first in .bot-status, the same pill as Waiting) is pressed. It is the Messages page's thread and reply box (.convo-log, .msg,
- * .convo-reply, .log-card) inside a .panel, with the Messages log height. The search and dropdown row is for drafts, so it
- * steps aside while the chat shows. Only placement, the chip in a meta line and the thread line are new here; every colour,
- * radius and font is the console's own. */
+/* Ask bots (2026-10-17, Karan; rev 3; v2 2026-10-18 "like a Claude-style sidebar"): Karan's projects and threads with the router,
+ * shown in place of the list when the "Ask bots" status pill (first in .bot-status, the same pill as Waiting) is pressed. Left: one
+ * project per client with its threads (the console's own side-nav look: a quiet row, the open one lifted onto the surface). Right:
+ * the open thread, the Messages page's log and reply box (.convo-log, .msg, .convo-reply, .log-card). The search and dropdown row is
+ * for drafts, so it steps aside while the chat shows. New here: the two-pane placement, the thread rows and the small status word on
+ * Karan's own message (.bo-state: a dot and a word, quieter than a chip). Every colour, radius and font is the console's own token. */
 #bot-results > .bot-owner { order: 4; }
 #bot-box:has(> #bot-results > .bot-owner) > .bot-toolbar { display: none; }
-.bot-owner .panel-head { margin-bottom: 4px; }
-.bot-owner .convo-log .meta .chip { margin-left: 4px; vertical-align: 1px; }
-.bot-owner .log-card .bot-text { margin: 10px 0 8px; }
-/* A status chip inside Karan's own (ink) bubble sits on the bubble's light text colour, so its tint stays readable */
-.bot-owner .msg.team .chip { background: #F4F1EC; }
-html[data-theme="dark"] .bot-owner .msg.team .chip { background: var(--surface); }
-/* Which thread the next message goes to: a quiet line above the box, with its switch */
-.bot-owner .bot-owner-to { margin-bottom: 8px; }
+.bot-owner.bo2 { display: grid; grid-template-columns: minmax(220px, 268px) minmax(0, 1fr); padding: 0; overflow: hidden; }
+.bo-side { display: flex; flex-direction: column; gap: 6px; min-width: 0; max-height: max(460px, calc(100dvh - 250px)); padding: 18px 12px 14px; overflow-y: auto; overscroll-behavior: contain; border-right: 1px solid var(--line); background: var(--surface-2); }
+.bo-side-head { padding: 0 8px 8px; }
+.bo-side-head h2 { margin: 0; font-size: 17px; }
+.bo-side-head .meta { margin-top: 2px; }
+.bo-projs { display: grid; gap: 2px; }
+.bo-proj-h { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 34px; padding: 5px 8px; border: 0; border-radius: var(--r); background: none; color: var(--ink); font: 650 14px/1.3 var(--font); text-align: left; cursor: pointer; transition: background 160ms var(--ease); }
+.bo-proj-h:hover { background: var(--hover); }
+.bo-proj-h .ic { width: 13px; height: 13px; flex: none; color: var(--ink-3); transition: transform 160ms var(--ease); }
+.bo-proj-h[aria-expanded="true"] .ic { transform: rotate(90deg); }
+.bo-proj-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-proj-h .count { padding: 0 6px; border-radius: 999px; background: var(--you-bg); color: var(--you); font-size: 11.5px; line-height: 1.6; }
+.bo-threads { display: grid; gap: 1px; margin: 0 0 6px; padding: 0 0 0 19px; list-style: none; }
+.bo-threads[hidden] { display: none; }
+.bo-thread { display: grid; gap: 0; width: 100%; padding: 6px 10px; border: 0; border-radius: var(--r); background: none; color: var(--ink-2); font: 550 14px/1.3 var(--font); text-align: left; cursor: pointer; transition: background 160ms var(--ease), color 160ms var(--ease); }
+.bo-thread:hover { background: var(--hover); color: var(--ink); }
+.bo-thread[aria-current="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(40, 30, 20, 0.08); }
+.bo-thread-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-thread-m { color: var(--ink-3); font-size: 12.5px; font-weight: 500; }
+.bo-thread.is-busy .bo-thread-m { color: var(--you); }
+.bo-new { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 0; border-radius: var(--r); background: none; color: var(--ink-3); font: 550 13.5px/1.3 var(--font); cursor: pointer; }
+.bo-new:hover { background: var(--hover); color: var(--ink); }
+.bo-new .ic { width: 14px; height: 14px; }
+.bo-new-form { display: grid; gap: 6px; padding: 4px 4px 6px 6px; }
+.bo-new-form input, .bo-rename input { width: 100%; min-height: 34px; padding: 5px 10px; border: 1px solid var(--line-2); border-radius: var(--r); background: var(--surface); color: var(--ink); font: 15px var(--font); }
+.bo-new-actions { display: flex; align-items: center; gap: 10px; }
+.bo-earlier { margin-top: 6px; padding: 8px 0 0; border-top: 1px solid var(--line); }
+.bo-side-foot { margin-top: auto; padding: 10px 8px 0; font-size: 13.5px; }
+.bo-main { display: flex; flex-direction: column; min-width: 0; padding: 18px 22px 20px; }
+.bo-head { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.bo-head-t { flex: 1 1 auto; min-width: 0; }
+.bo-head-t .meta { margin: 0; }
+.bo-head h3 { margin: 0; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-head h3:focus { outline: none; }
+.bo-tools { display: flex; gap: 6px; flex: none; }
+.bo-back { display: none; flex: none; }
+.bo-rename { display: flex; align-items: center; gap: 8px; max-width: 460px; }
+.bo-main .convo-log { min-height: 280px; max-height: max(320px, calc(100dvh - 470px)); }
+.bo-main .convo-empty { display: grid; place-items: center; text-align: center; }
+.bo-main > .empty { margin: auto 0; }
+.bo-ro { margin-top: 10px; }
+.bot-owner .log-card .bot-text { margin: 0 0 8px; }
+.bot-owner .log-card { justify-self: start; max-width: min(88%, 640px); }
+/* The router's words for a pause or a hand-over to Grok: one quiet line under Karan's message, not a bubble */
+.bo-note { justify-self: end; max-width: min(76%, 560px); margin-top: -4px; text-align: right; }
+/* The status word on Karan's own message: a dot and the word, in the meta line's colour */
+.bo-state { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.bo-state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: 0.6; }
+.msg.team .bo-state.good::before { background: #6FD6A0; opacity: 1; }
+.msg.team .bo-state.warn::before { background: #F2B751; opacity: 1; }
+.msg.team .bo-state.bad::before { background: #FF8B7E; opacity: 1; }
+.msg.team .bo-state.info::before { background: #9CC2F5; opacity: 1; }
+.msg.team .bo-state.you::before { background: #FF8A4C; opacity: 1; animation: bo-pulse 1.6s var(--ease) infinite; }
+@keyframes bo-pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .msg.team .bo-state.you::before { animation: none; } }
+html[data-theme="dark"] .bo-side { background: rgba(255, 255, 255, 0.03); }
+html[data-theme="dark"] .bo-thread[aria-current="true"] { background: rgba(255, 255, 255, 0.08); box-shadow: none; }
+/* In dark mode Karan's bubble is light, so the dots take the light theme's deeper colours */
+html[data-theme="dark"] .msg.team .bo-state.good::before { background: #1F7A4C; }
+html[data-theme="dark"] .msg.team .bo-state.warn::before { background: #B57200; }
+html[data-theme="dark"] .msg.team .bo-state.bad::before { background: #B3261E; }
+html[data-theme="dark"] .msg.team .bo-state.info::before { background: #3C78D2; }
+html[data-theme="dark"] .msg.team .bo-state.you::before { background: #FF5B1F; }
+@media (max-width: 900px) {
+  .bot-owner.bo2 { grid-template-columns: minmax(200px, 230px) minmax(0, 1fr); }
+  .bo-main { padding: 16px 16px 18px; }
+}
+/* Phones: the list and the open thread are two views of the panel; the back button returns to the threads */
+@media (max-width: 760px) {
+  .bot-owner.bo2 { grid-template-columns: minmax(0, 1fr); }
+  .bot-owner.bo2[data-view="list"] .bo-main, .bot-owner.bo2[data-view="thread"] .bo-side { display: none; }
+  .bo-side { max-height: none; border-right: 0; background: none; padding: 16px 10px 14px; }
+  html[data-theme="dark"] .bo-side { background: none; }
+  .bo-back { display: inline-flex; }
+  .bo-main { padding: 12px 12px 14px; }
+  .bo-head { flex-wrap: wrap; row-gap: 8px; }
+  .bo-head-t { flex-basis: calc(100% - 64px); }
+  .bo-tools { margin-left: auto; }
+  .bo-tools .btn-sm { padding-inline: 9px; }
+  .bo-main .convo-log { min-height: 0; max-height: max(300px, calc(100dvh - 330px)); }
+  .bo-thread { padding: 9px 10px; }
+  .bo-proj-h { min-height: 40px; }
+}
+/* "+ New chat" under the heading, and the client picker on a chat with no client yet */
+.bo-newchat { margin-top: 10px; gap: 6px; }
+.bo-newchat .ic { width: 14px; height: 14px; }
+.bo-pick { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.bo-pick select { width: auto; max-width: 260px; min-height: 28px; padding: 2px 28px 2px 8px; font-size: 13.5px; }
+/* Live progress under Karan's message while the router works: a quiet line, a pulsing accent dot and the time so far. It updates
+ * in place and goes when the final reply comes in; the dot holds still for reduced motion. */
+.bo-live { justify-self: end; max-width: min(76%, 560px); margin-top: -4px; }
+.bo-live .meta { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
+.bo-live-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+.bo-live-time { flex: none; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.bo-live-dot { position: relative; width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--accent); }
+.bo-live-dot::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; background: var(--accent); opacity: 0; animation: bo-ping 1.4s var(--ease) infinite; }
+@keyframes bo-ping { 0% { transform: scale(0.4); opacity: 0.45; } 100% { transform: scale(1.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .bo-live-dot::after { animation: none; } }

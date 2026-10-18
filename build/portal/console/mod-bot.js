@@ -1149,68 +1149,97 @@
       <button class="icon-btn icon-btn-sm" type="button" data-action="refresh" aria-label="Reload" title="Reload">${C0.icon('refresh')}</button></div>`;
   }
 
-  /* ---- Karan's thread with the router (2026-10-17, Karan: "an owner-only composer in Bot chat; the router's progress and the
-   * draft show in the same thread") ---------------------------------------------------------------------------------------------
+  /* ---- Ask bots: Karan's projects and threads with the router (2026-10-17 rev 3; v2 2026-10-18) ------------------------------------
    * Rev 3 (2026-10-17, Karan: "an 'Ask bots' toggle as the first tab in the status row"): an "Ask bots" pill first in the status
    * pills on #/bot (the same .seg.bot-status button, data-bot-status="ask", aria-pressed, the same click and focus handling and
-   * the same state.view.status the other pills use; Waiting stays the default). Picking it shows this chat in place of the list.
+   * the same state.view.status the other pills use; Waiting stays the default). Picking it shows this panel in place of the list.
    * Only the owner gets the pill: me.role === 'super_admin' AND the server says yes (the probe call to bot_owner_list works);
-   * everyone else sees the original row, unchanged. The server is the real gate (20261017194500_bot_chat_owner_messages.sql): for
-   * anyone else both functions answer exactly like a function that does not exist, so this panel is never drawn for them.
-   * Messages go in with bot_owner_send; the Domin8te router (bridge.py) polls the table over HTTPS with the service role, moves the
-   * message's own status along (the chip on Karan's bubble) and writes what it has to say as 'router' rows (parent_id = the
-   * message; the draft is the body of the draft_ready row). Threads (rev 2): a message with no parent starts one; the composer
-   * replies to the newest thread by default (p_parent_id = its first message), "Start a new thread" sends one without a parent,
-   * and "Reply in this thread" on a router card picks that thread. Read with bot_owner_list every 3 seconds while the page is
-   * open and visible. Markup and behaviour are the Messages page's
-   * (convoThread: ol.convo-log > li.msg[.team], form.convo-reply, Ctrl+Enter, Sending, toast). The form is NOT a .bot-form, so the
-   * card keys and the Cancel handler leave it alone. Sends nothing to a client. */
+   * everyone else sees the original row, unchanged. The server is the real gate: for anyone else every bot_owner_* function answers
+   * exactly like a function that does not exist, so this panel is never drawn for them.
+   * V2 (2026-10-18, Karan: "like a Claude-style sidebar, one project per client ... threads General, Photos & social, Website
+   * changes, plus + New thread ... a message sent in a thread automatically carries that client and thread, so I never type
+   * @Client"; migration 20261018070000_bot_owner_threads.sql):
+   *   - left: the projects (one per live client, Domin8te Media first) and their threads (bot_owner_threads_list, which seeds the
+   *     three default threads per client on the server); "+ New thread" (bot_owner_thread_create); Rename and Archive on the open
+   *     thread (bot_owner_thread_update); "Show archived" lists archived threads (read only until restored).
+   *   - right: the open thread, the Messages page's log and reply box (ol.convo-log > li.msg[.team], form.convo-reply, Ctrl+Enter,
+   *     Sending, toast). A message goes with p_thread_id = the open thread, and p_parent_id = the thread's first message, so the
+   *     router keeps one conversation (and one client) per thread. The client and thread ride on the row; Karan never types @Client.
+   *   - cleaner: the router's queued / working / retrying rows are not drawn; their state is a small word on Karan's own message
+   *     ("Working on it", "Draft ready"). Only what the router has to say (the draft, a question, a failure, a pause note) is drawn.
+   *     No internal ids (boc_..., job ids) anywhere: router_job_id is never shown and ids are scrubbed out of router text.
+   *   - "+ New chat": a thread with no client yet (bot_owner_thread_create() with no client), listed first under "New chats";
+   *     its head has a client picker that sets the client later (bot_owner_thread_update p_client). Until then the router gets
+   *     no client and asks which one, as it does today.
+   *   - live progress: while the router works on a message, one quiet line under it shows what it is doing now (progress_text,
+   *     which the bridge updates at most every ~2 s) with a small pulsing dot and the time so far; it updates in place and goes
+   *     away when the final reply comes in. The dot holds still under prefers-reduced-motion. Polls every 1.5 s while anything in
+   *     the open thread is in progress, every 3 s otherwise. bot_owner_list(since) returns rows CHANGED after since (updated_at),
+   *     so progress and status moves come in on the next poll. No realtime: the console does not use Supabase realtime anywhere.
+   *   - archived threads are read only: no reply box (the server refuses too: thread-archived).
+   *   - phone (<= 760px): the list and the open thread are two views of the same panel, with a back button to the threads.
+   *   - messages from before projects (no thread) show under "Earlier messages", read only.
+   * Polls bot_owner_list(since) every 3 seconds while #/bot is open on Ask bots and the tab is visible, and refreshes the thread
+   * list when anything changed. The forms are NOT .bot-form, so the card keys and the Cancel handler leave them alone. The console
+   * sends nothing to a client; the router only drafts. */
 
   const OWNER_POLL_MS = 3000;
-  const OWNER_STATUS = /** @type {Record<string, {label: string, tone: string}>} */ ({
-    queued: { label: 'Queued', tone: 'info' },
-    queued_for_grok: { label: 'Queued for Grok', tone: 'info' },
-    working: { label: 'Working', tone: 'you' },
-    retrying: { label: 'Retrying', tone: 'warn' },
+  const OWNER_POLL_LIVE_MS = 1500;
+  /** Karan's message is being worked on right now: the live line shows. */
+  const OWNER_ACTIVE = ['queued', 'working', 'retrying'];
+  /** Karan's message, as the router moves it along: a small word on his own bubble, never a row of its own. */
+  const OWNER_STATE = /** @type {Record<string, {label: string, tone: string}>} */ ({
+    queued: { label: 'Sent', tone: 'info' },
+    queued_for_grok: { label: 'With Grok', tone: 'info' },
+    working: { label: 'Working on it', tone: 'you' },
+    retrying: { label: 'Trying again', tone: 'warn' },
     paused: { label: 'Paused', tone: 'warn' },
     draft_ready: { label: 'Draft ready', tone: 'good' },
-    needs_client: { label: 'Needs the client', tone: 'warn' },
-    failed: { label: 'Failed', tone: 'bad' }
+    needs_client: { label: 'Needs an answer', tone: 'warn' },
+    failed: { label: 'Did not work', tone: 'bad' }
   });
-  /** Steps that end a request: drawn as a card with the text, not a bubble. */
+  /** Steps that end a request. */
   const OWNER_FINAL = ['draft_ready', 'needs_client', 'failed'];
-  /** ok: null = not asked yet, true = the server said yes, false = not for this person (asked once a visit). */
-  /** to: where the next message goes: '' = the newest thread, 'new' = a new thread, or the id of a thread's first message. */
-  const owner = { ok: /** @type {boolean|null} */ (null), asking: /** @type {Promise<void>|null} */ (null), msgs: /** @type {any[]} */ ([]), timer: 0, busy: false, draft: '', to: '', form: /** @type {HTMLFormElement|null} */ (null) };
+  /** Router steps whose words are worth showing (as a quiet note under Karan's message) though the work is not finished. */
+  const OWNER_NOTE = ['queued_for_grok', 'paused'];
+  const EARLIER = 'earlier';
+  const PLACEHOLDER = /** @type {Record<string, string>} */ ({
+    general: 'Ask for anything for this client',
+    photos_social: 'Ask for a post, a caption or photo ideas',
+    website: 'Describe the change you want on the website',
+    custom: 'Write to the router'
+  });
+  const owner = {
+    ok: /** @type {boolean|null} */ (null), asking: /** @type {Promise<void>|null} */ (null),
+    msgs: /** @type {any[]} */ ([]), threads: /** @type {any[]} */ ([]), threadsOk: true,
+    cur: '', view: 'thread', showArchived: false, creating: '', renaming: false,
+    open: /** @type {Set<string>} */ (new Set()), loaded: /** @type {Set<string>} */ (new Set()),
+    drafts: /** @type {Map<string, string>} */ (new Map()),
+    timer: 0, clock: 0, busy: false, ticks: 0, form: /** @type {HTMLFormElement|null} */ (null)
+  };
 
+  /** No internal ids in anything Karan reads (router job and thread ids, task ids). @param {any} s */
+  const scrubIds = (s) => String(s || '').replace(/\b(?:boc|bt)_[0-9a-fA-F]{8,}\b|\bt_\d{14}_[0-9a-f]{6}\b/gi, '').replace(/\(\s*\)/g, '').replace(/[ \t]{2,}/g, ' ').trim();
   /** @param {string} s */
-  const ownerChip = (s) => { const x = OWNER_STATUS[s]; return x ? `<span class="chip ${x.tone}">${x.label}</span>` : ''; };
+  const ownerState = (s) => { const x = OWNER_STATE[s]; return x ? `<span class="bo-state ${x.tone}">${x.label}</span>` : ''; };
   /** The message's own status (the router moves it along); before the router has touched it, its newest router step. @param {any} m */
-  const ownerStatusOf = (m) => { if (m.status) return m.status; let s = ''; for (const x of owner.msgs) if (x.parent_id === m.id && x.status) s = x.status; return s; };
+  // A finished router reply wins over a message still marked active (the router's two writes can land a poll apart), so no stale live line.
+  const ownerStatusOf = (m) => {
+    let s = '';
+    for (const x of owner.msgs) if (x.parent_id === m.id && x.status) s = x.status;
+    if (!m.status) return s;
+    return OWNER_ACTIVE.includes(m.status) && s && !OWNER_ACTIVE.includes(s) ? s : m.status;
+  };
   /** A row by id. @param {string} id */
   const ownerRow = (id) => owner.msgs.find((x) => x.id === id) || null;
-  /** The first message of the thread a row belongs to (follows parent_id up; stops at a row it doesn't have). @param {any} m */
-  function ownerRoot(m) {
-    let cur = m;
-    for (let i = 0; i < 50 && cur && cur.parent_id; i++) { const up = ownerRow(cur.parent_id); if (!up) break; cur = up; }
-    return cur;
-  }
-  /** The thread the next message goes to: the first message's id, or null for a new thread. */
-  function ownerTarget() {
-    if (owner.to === 'new') return null;
-    if (owner.to && ownerRow(owner.to)) return owner.to;
-    for (let i = owner.msgs.length - 1; i >= 0; i--) if (owner.msgs[i].author === 'owner') { const r = ownerRoot(owner.msgs[i]); return r ? r.id : null; }
-    return null;
-  }
-  /** The line above the box: which thread the message goes to, and the switch. */
-  function ownerToLine() {
-    const C0 = C();
-    const id = ownerTarget();
-    const r = id ? ownerRow(id) : null;
-    const hasThreads = owner.msgs.some((x) => x.author === 'owner');
-    if (r) return `<p class="meta bot-owner-to" id="bot-owner-to">Replying in the thread “${C0.esc(short(r.body, 70))}” · <button class="linkish" type="button" data-oc-new>Start a new thread</button></p>`;
-    return `<p class="meta bot-owner-to" id="bot-owner-to">${hasThreads ? `New thread · <button class="linkish" type="button" data-oc-latest>Reply in the newest thread instead</button>` : 'Your first message starts a thread.'}</p>`;
-  }
+  /** A thread by id. @param {string} id */
+  const ownerThread = (id) => owner.threads.find((t) => t.id === id) || null;
+  /** The thread a row belongs to (its own, else its parent's); '' = before projects. @param {any} m */
+  const ownerTid = (m) => m.thread_id || ((m.parent_id && ownerRow(m.parent_id)) || {}).thread_id || '';
+  /** The rows of a thread, oldest first. @param {string} tid */
+  const ownerRowsOf = (tid) => owner.msgs.filter((m) => (tid === EARLIER ? !ownerTid(m) : ownerTid(m) === tid));
+  /** The first of Karan's messages in a thread: follow-ups point at it, so the router keeps one conversation. @param {string} tid */
+  const ownerRootOf = (tid) => { const r = owner.msgs.find((m) => m.author === 'owner' && ownerTid(m) === tid && !m.parent_id); return r ? r.id : null; };
   const onOwnerPlace = () => /^#\/bot\/?$/.test(location.hash);
   /** Only the owner, and never on the demo console. */
   const ownerMaybe = () => { const me = C().me; return !DEMO && !!me && me.role === 'super_admin'; };
@@ -1218,70 +1247,242 @@
   const ownerOn = () => owner.ok === true && ownerMaybe();
   /** The Ask bots count: Karan's requests the router has not finished. */
   const ownerOpen = () => owner.msgs.filter((m) => m.author === 'owner' && !OWNER_FINAL.includes(ownerStatusOf(m))).length;
+  const phone = () => window.matchMedia('(max-width: 760px)').matches;
+  /** The projects, in the server's order: [{slug, name, threads}]. */
+  function ownerProjects() {
+    /** @type {{slug: string, name: string, threads: any[]}[]} */
+    const out = [];
+    for (const t of owner.threads) {
+      if (t.archived && !owner.showArchived) continue;
+      const slug = t.client_slug || '';
+      let p = out.find((x) => x.slug === slug);
+      if (!p) { p = { slug, name: slug ? t.client_name : 'New chats', threads: [] }; out.push(p); }
+      p.threads.push(t);
+    }
+    return out;
+  }
+  /** Every client with a project (for the New chat client picker), in the list's order. */
+  function ownerClients() {
+    /** @type {{slug: string, name: string}[]} */
+    const out = [];
+    for (const t of owner.threads) if (t.client_slug && !out.some((c) => c.slug === t.client_slug)) out.push({ slug: t.client_slug, name: t.client_name });
+    return out;
+  }
+  /** Where to start: the thread with the newest message, else Domin8te Media's General. */
+  function ownerDefault() {
+    const live = owner.threads.filter((t) => !t.archived);
+    const busy = live.filter((t) => t.last_message_at).sort((a, b) => String(b.last_message_at).localeCompare(String(a.last_message_at)));
+    return (busy[0] || live[0] || { id: owner.msgs.some((m) => !ownerTid(m)) ? EARLIER : '' }).id;
+  }
 
-  /** Asks the server once: the thread if this is the owner, the unknown-function answer otherwise. */
+  /** Asks the server once: the messages if this is the owner, the unknown-function answer otherwise; then the threads. */
   function probeOwner() {
     if (owner.ok !== null || !ownerMaybe()) return Promise.resolve();
     if (owner.asking) return owner.asking;
     owner.asking = (async () => {
       try {
-        owner.msgs = (await call('bot_owner_list', { since: null })) || [];
+        owner.msgs = ((await call('bot_owner_list', { since: null })) || []).map((/** @type {any} */ m) => m);
         owner.ok = true;
       } catch (x) {
         // Not the owner (or an old database): stay hidden for this visit. A lost connection leaves it to the next visit.
         const code = String((x && /** @type {any} */ (x).code) || '');
         if (/PGRST202|42883|42501|PGRST301/.test(code) || /could not find the function|permission denied/i.test(String(x && /** @type {any} */ (x).message))) owner.ok = false;
       } finally { owner.asking = null; }
+      if (owner.ok) await loadThreads();
     })();
     return owner.asking;
   }
+  /** The thread list (the server seeds the default threads). An old database without threads leaves "Earlier messages" only. */
+  async function loadThreads() {
+    try {
+      owner.threads = (await call('bot_owner_threads_list', owner.showArchived ? { p_include_archived: true } : {})) || [];
+      owner.threadsOk = true;
+    } catch (x) { owner.threadsOk = false; }
+    if (!owner.cur || (owner.cur !== EARLIER && !ownerThread(owner.cur))) owner.cur = ownerDefault();
+    const t = ownerThread(owner.cur);
+    if (t) owner.open.add(t.client_slug || '');
+    owner.open.add('');   // New chats stay open
+  }
+  /** A thread's own history (the first load gets only the newest 200 across all threads). @param {string} tid */
+  async function loadThread(tid) {
+    if (!tid || tid === EARLIER || owner.loaded.has(tid)) return false;
+    owner.loaded.add(tid);
+    try { return ownerTake(await call('bot_owner_list', { since: null, p_thread_id: tid })); } catch (x) { owner.loaded.delete(tid); return false; }
+  }
 
-  /** One line of the thread. @param {any} m */
+  /** One thread in the list. @param {any} t */
+  function ownerThreadItem(t) {
+    const C0 = C();
+    const on = t.id === owner.cur;
+    const sub = t.archived ? 'Archived' : t.open_count ? `${t.open_count} in progress` : t.last_message_at ? C0.ago(t.last_message_at) : 'No messages yet';
+    return `<li><button type="button" class="bo-thread${t.open_count ? ' is-busy' : ''}" data-oc-thread="${C0.esc(t.id)}"${on ? ' aria-current="true"' : ''}><span class="bo-thread-t">${C0.esc(t.title)}</span><span class="bo-thread-m">${C0.esc(sub)}</span></button></li>`;
+  }
+  /** One project: its name (opens and closes it), its threads, "+ New thread". @param {{slug: string, name: string, threads: any[]}} p */
+  function ownerProject(p) {
+    const C0 = C();
+    const open = owner.open.has(p.slug);
+    const busy = p.threads.reduce((n, t) => n + (t.open_count || 0), 0);
+    const id = `bo-p-${p.slug || 'new-chats'}`;
+    const form = owner.creating === p.slug
+      ? `<li><form class="bo-new-form" data-oc-create="${C0.esc(p.slug)}" novalidate><label class="sr-only" for="bo-new-${C0.esc(p.slug)}">New thread name for ${C0.esc(p.name)}</label><input id="bo-new-${C0.esc(p.slug)}" name="title" maxlength="80" placeholder="Thread name" autocomplete="off"><div class="bo-new-actions"><button class="btn btn-sm" type="submit">Add</button><button class="linkish" type="button" data-oc-create-cancel>Cancel</button></div></form></li>`
+      : `<li><button type="button" class="bo-new" data-oc-new-thread="${C0.esc(p.slug)}">${C0.icon('plus')}New thread</button></li>`;
+    return `<section class="bo-proj${open ? ' is-open' : ''}">
+      <button type="button" class="bo-proj-h" data-oc-proj="${C0.esc(p.slug)}" aria-expanded="${open}" aria-controls="${C0.esc(id)}">${C0.icon('arrow')}<span class="bo-proj-name">${C0.esc(p.name)}</span>${busy ? `<span class="count" title="${C0.esc(C0.plural(busy, 'request'))} in progress">${busy}</span>` : ''}</button>
+      <ul class="bo-threads" id="${C0.esc(id)}"${open ? '' : ' hidden'}>${p.threads.map(ownerThreadItem).join('')}${!p.slug || (owner.showArchived && p.threads.every((t) => t.archived)) ? '' : form}</ul>
+    </section>`;
+  }
+  function ownerSide() {
+    const C0 = C();
+    const earlier = owner.msgs.some((m) => !ownerTid(m));
+    const archivedN = owner.threads.filter((t) => t.archived).length;
+    return `<div class="bo-side-head"><h2 id="bot-owner-h">Ask bots</h2><p class="meta">Pick a client and a thread. The router drafts; nothing goes to a client. Only you see this.</p>${owner.threadsOk ? `<button type="button" class="btn-quiet btn-sm bo-newchat" data-oc-new-chat>${C0.icon('plus')}New chat</button>` : ''}</div>
+      ${owner.threadsOk ? '' : '<p class="notice">Projects are not set up on the server yet. Earlier messages are below.</p>'}
+      <div class="bo-projs">${ownerProjects().map(ownerProject).join('')}</div>
+      ${earlier ? `<ul class="bo-threads bo-earlier"><li><button type="button" class="bo-thread" data-oc-thread="${EARLIER}"${owner.cur === EARLIER ? ' aria-current="true"' : ''}><span class="bo-thread-t">Earlier messages</span><span class="bo-thread-m">From before projects</span></button></li></ul>` : ''}
+      ${owner.threadsOk ? `<p class="bo-side-foot"><button type="button" class="linkish" data-oc-archived aria-pressed="${owner.showArchived}">${owner.showArchived ? 'Hide archived threads' : 'Show archived threads'}${!owner.showArchived && archivedN ? ` (${archivedN})` : ''}</button></p>` : ''}`;
+  }
+
+  /** One line of the open thread. Router steps that only say "queued" or "working" are not drawn. @param {any} m */
   function ownerItem(m) {
     const C0 = C();
     const at = C0.esc(C0.when(m.created_at));
     if (m.author === 'owner') {
-      return `<li class="msg team" data-oc-id="${C0.esc(m.id)}"><p>${C0.esc(m.body)}</p><p class="meta">${C0.esc((C0.me && C0.me.name) || 'You')}${m.parent_id ? ' · follow-up' : ''} · ${at} ${ownerChip(ownerStatusOf(m))}</p></li>`;
+      const st = ownerStatusOf(m);
+      // the router's words for a pause or a hand-over to Grok: one quiet line under Karan's message
+      let note = '';
+      for (const x of owner.msgs) if (x.author === 'router' && x.parent_id === m.id && OWNER_NOTE.includes(x.status) && x.body) note = x.body;
+      const noteOn = note && OWNER_NOTE.includes(st);
+      const live = OWNER_ACTIVE.includes(st) || (!st && !m.status);
+      return `<li class="msg team" data-k="${C0.esc(m.id)}"><p>${C0.esc(m.body)}</p><p class="meta">${C0.esc((C0.me && C0.me.name) || 'You')} · ${at}${st && !live ? ` · ${ownerState(st)}` : ''}</p></li>${live ? ownerLive(m, st) : ''}${noteOn ? `<li class="bo-note" data-k="note-${C0.esc(m.id)}"><p class="meta">${C0.esc(scrubIds(note))}</p></li>` : ''}`;
     }
-    if (OWNER_FINAL.includes(m.status)) {
-      const title = m.status === 'draft_ready' ? 'Draft from the router' : m.status === 'needs_client' ? 'The router needs something from the client' : 'The router could not finish';
-      return `<li class="item-card log-card bot-owner-final" data-oc-id="${C0.esc(m.id)}"><div class="item-top"><span class="item-title">${title}</span><span class="r">${ownerChip(m.status)}</span></div>
-        ${m.status === 'draft_ready' ? `<div class="bot-text">${C0.esc(m.body)}</div>` : `<p>${C0.esc(m.body)}</p>`}
-        <p class="meta">Router${m.router_job_id ? ` · ${C0.esc(m.router_job_id)}` : ''} · ${at}${m.status === 'draft_ready' ? ` · <button class="linkish" type="button" data-oc-copy="${C0.esc(m.id)}">Copy text</button>` : ''}${ownerRoot(m) && ownerRoot(m).author === 'owner' ? ` · <button class="linkish" type="button" data-oc-reply="${C0.esc(ownerRoot(m).id)}">Reply in this thread</button>` : ''}</p></li>`;
+    if (!OWNER_FINAL.includes(m.status)) return '';
+    const text = scrubIds(m.body);
+    if (m.status === 'draft_ready') {
+      return `<li class="item-card log-card bo-draft" data-k="${C0.esc(m.id)}"><div class="bot-text">${C0.esc(text)}</div>
+        <p class="meta">Router · ${at} · <button class="linkish" type="button" data-oc-copy="${C0.esc(m.id)}">Copy text</button></p></li>`;
     }
-    return `<li class="msg" data-oc-id="${C0.esc(m.id)}"><p>${C0.esc(m.body)}</p><p class="meta">Router · ${at} ${ownerChip(m.status)}</p></li>`;
+    return `<li class="msg" data-k="${C0.esc(m.id)}"><p>${C0.esc(text)}</p><p class="meta">Router · ${at}</p></li>`;
   }
+  /** What the router is doing now: its newest progress line (on the message, else on its newest router row). @param {any} m */
+  function ownerProgress(m) {
+    let text = m.progress_text || '', at = m.progress_at || '';
+    for (const x of owner.msgs) if (x.parent_id === m.id && x.progress_text && String(x.progress_at || '') > String(at)) { text = x.progress_text; at = x.progress_at; }
+    return scrubIds(text);
+  }
+  /** "0:42", "12:05", "1:02:10" since the message went in. @param {string} from */
+  const ownerElapsed = (from) => { const t = Math.max(0, Math.floor((Date.now() - new Date(from).getTime()) / 1000)); const h = Math.floor(t / 3600), mm = Math.floor((t % 3600) / 60), ss = String(t % 60).padStart(2, '0'); return h ? `${h}:${String(mm).padStart(2, '0')}:${ss}` : `${mm}:${ss}`; };
+  /** The live line under a message the router is working on. @param {any} m @param {string} st */
+  function ownerLive(m, st) {
+    const C0 = C();
+    const text = ownerProgress(m) || (st === 'retrying' ? 'Trying again' : st === 'working' ? 'Working on it' : 'Waiting for the router');
+    const long = Date.now() - new Date(m.created_at).getTime() < 6 * 3600000;   // no clock on something stuck for hours
+    return `<li class="bo-live" data-k="live-${C0.esc(m.id)}" data-live><p class="meta" role="status"><span class="bo-live-dot" aria-hidden="true"></span><span class="bo-live-t">${C0.esc(text)}</span>${long ? `<span class="bo-live-time" data-from="${C0.esc(m.created_at)}" aria-hidden="true">${ownerElapsed(m.created_at)}</span>` : ''}</p></li>`;
+  }
+  /** Anything in the open thread the router is working on right now. */
+  const ownerLiveNow = () => ownerRowsOf(owner.cur).some((m) => m.author === 'owner' && (OWNER_ACTIVE.includes(ownerStatusOf(m)) || !ownerStatusOf(m)));
   function ownerLog() {
-    return owner.msgs.length
-      ? `<ol class="convo-log" id="bot-owner-log" tabindex="0" aria-labelledby="bot-owner-h" aria-live="polite">${owner.msgs.map(ownerItem).join('')}</ol>`
-      : `<div class="convo-log convo-empty" id="bot-owner-log"><p class="meta">Nothing here yet. Ask the router for a draft below.</p></div>`;
+    const items = ownerRowsOf(owner.cur).map(ownerItem).join('');
+    const t = ownerThread(owner.cur);
+    return items
+      ? `<ol class="convo-log" id="bot-owner-log" tabindex="0" aria-labelledby="bo-thread-h" aria-live="polite">${items}</ol>`
+      : `<div class="convo-log convo-empty" id="bot-owner-log"><p class="meta">${t ? `Nothing in ${C().esc(t.title)} yet. Write below; the router answers here.` : 'Nothing here yet.'}</p></div>`;
+  }
+  /** The open thread: its head (back on phones, Rename, Archive), the log and the reply box. */
+  function ownerMain() {
+    const C0 = C();
+    const back = `<button type="button" class="icon-btn icon-btn-sm bo-back" data-oc-back aria-label="All threads">${C0.icon('back')}</button>`;
+    if (owner.cur === EARLIER) {
+      return `<div class="bo-head">${back}<div class="bo-head-t"><p class="meta">Before projects</p><h3 id="bo-thread-h">Earlier messages</h3></div></div>
+        ${ownerLog()}<p class="meta bo-ro">These came in before projects. New messages go in a client's thread.</p>`;
+    }
+    const t = ownerThread(owner.cur);
+    if (!t) return `<div class="empty"><p><strong>Pick a thread.</strong></p><p>Choose a client and a thread on the left, or start a new thread.</p></div>`;
+    const title = owner.renaming
+      ? `<form class="bo-rename" data-oc-rename-form novalidate><label class="sr-only" for="bo-rename-in">Thread name</label><input id="bo-rename-in" name="title" maxlength="80" value="${C0.esc(t.title)}" autocomplete="off"><button class="btn btn-sm" type="submit">Save</button><button class="linkish" type="button" data-oc-rename-cancel>Cancel</button></form>`
+      : `<h3 id="bo-thread-h">${C0.esc(t.title)}</h3>`;
+    const tools = t.archived
+      ? `<button type="button" class="btn-quiet btn-sm" data-oc-restore>Restore</button>`
+      : owner.renaming ? '' : `<button type="button" class="btn-quiet btn-sm" data-oc-rename>Rename</button><button type="button" class="btn-quiet btn-sm" data-oc-archive>Archive</button>`;
+    const reply = t.archived
+      ? `<p class="meta bo-ro">This thread is archived. Restore it to write here.</p>`
+      : `<form class="convo-reply" id="bot-owner-reply" novalidate>
+          <div class="field"><label for="bot-owner-body">Message the router</label><textarea id="bot-owner-body" name="body" maxlength="4000" rows="3" placeholder="${C0.esc(t.client_slug ? PLACEHOLDER[t.kind] || PLACEHOLDER.custom : 'Ask the router anything')}" aria-describedby="bot-owner-to"></textarea></div>
+          <div class="actions"><button class="btn" type="submit">Send</button><span class="meta" id="bot-owner-to">${t.client_slug ? `Goes to ${C0.esc(t.client_name)} · ${C0.esc(t.title)}.` : 'No client yet: pick one above, or the router will ask.'} Drafts only. <kbd>Ctrl</kbd> <kbd>Enter</kbd> sends.</span></div>
+        </form>`;
+    const crumb = t.client_slug ? `<p class="meta">${C0.esc(t.client_name)}</p>`
+      : `<p class="meta bo-pick">No client yet · <label class="sr-only" for="bo-client">Client for this chat</label><select id="bo-client" data-oc-client${t.archived ? ' disabled' : ''}><option value="">Choose a client</option>${ownerClients().map((c) => `<option value="${C0.esc(c.slug)}">${C0.esc(c.name)}</option>`).join('')}</select></p>`;
+    return `<div class="bo-head">${back}<div class="bo-head-t">${crumb}${title}</div><div class="bo-tools">${tools}</div></div>
+      ${ownerLog()}${reply}`;
   }
   /** The panel, or nothing for anyone but the owner. */
   function ownerPanel() {
     if (owner.ok !== true || !ownerMaybe()) return '';
-    const C0 = C();
-    return `<section class="panel bot-owner" aria-labelledby="bot-owner-h" data-bot-owner>
-      <div class="panel-head"><div><h2 id="bot-owner-h">Ask bots</h2><p>Goes to the Domin8te router. Its progress and the finished draft show up here. Only you see this.</p></div></div>
-      ${ownerLog()}
-      <form class="convo-reply" id="bot-owner-reply" novalidate>
-        ${ownerToLine()}
-        <div class="field"><label for="bot-owner-body">Message the router as ${C0.esc((C0.me && C0.me.name) || 'you')}</label><textarea id="bot-owner-body" name="body" maxlength="4000" rows="3" placeholder="Ask for a draft, for example a weekend post for a client"></textarea></div>
-        <div class="actions"><button class="btn" type="submit">Send</button><span class="meta">The router drafts; nothing goes to a client until you send it yourself. <kbd>Ctrl</kbd> <kbd>Enter</kbd> sends.</span></div>
-      </form></section>`;
+    return `<section class="panel bot-owner bo2" aria-labelledby="bot-owner-h" data-bot-owner data-view="${owner.view}">
+      <nav class="bo-side" aria-label="Clients and threads">${ownerSide()}</nav>
+      <div class="bo-main" aria-live="off">${ownerMain()}</div>
+    </section>`;
   }
 
-  /** Draws the thread again in place: the form and what is typed stay; the scroll follows only when it was at the end. */
+  /** Remembers what is typed in the open thread. */
+  function ownerKeepDraft() {
+    const ta = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('bot-owner-body'));
+    if (ta && owner.cur) { if (ta.value.trim()) owner.drafts.set(owner.cur, ta.value); else owner.drafts.delete(owner.cur); }
+  }
+  /** Redraws the whole panel (after Karan picks or changes something): the typed text of each thread is kept. @param {string=} focus */
+  function ownerRedraw(focus) {
+    const sec = /** @type {HTMLElement|null} */ (document.querySelector('[data-bot-owner]'));
+    if (!sec) return;
+    ownerKeepDraft();
+    if (owner.form) { C().clean(owner.form); owner.form = null; }
+    sec.dataset.view = owner.view;
+    /** @type {HTMLElement} */ (sec.querySelector('.bo-side')).innerHTML = ownerSide();
+    /** @type {HTMLElement} */ (sec.querySelector('.bo-main')).innerHTML = ownerMain();
+    ownerAfterPanel(sec);
+    ownerPill();
+    if (focus) { const el = /** @type {HTMLElement|null} */ (sec.querySelector(focus)); if (el) el.focus({ preventScroll: !phone() }); }
+  }
+  /** After the panel is drawn: the reply box's text and unsaved-changes tracking, the log at its end. @param {HTMLElement} sec */
+  function ownerAfterPanel(sec) {
+    const f = /** @type {HTMLFormElement|null} */ (sec.querySelector('#bot-owner-reply'));
+    const ta = /** @type {HTMLTextAreaElement|null} */ (sec.querySelector('#bot-owner-body'));
+    if (f && ta) {
+      ta.value = owner.drafts.get(owner.cur) || '';
+      C().track(f, 'Message to the router');
+      owner.form = f;
+      if (!ta.value) C().clean(f);
+    }
+    const log = /** @type {HTMLElement|null} */ (sec.querySelector('#bot-owner-log'));
+    if (log) log.scrollTop = log.scrollHeight;
+  }
+  function ownerPill() {
+    const pill = document.querySelector('.bot-status [data-bot-status="ask"]');
+    if (pill) { const n = ownerOpen(); pill.innerHTML = `Ask bots${n ? `<span class="count">${n}</span>` : ''}`; }
+  }
+  /** After a poll: the log in place (the reply box and what is typed stay; the scroll follows only when it was at the end), and the
+   * list unless Karan is typing in it. */
   function redrawOwnerLog() {
     const old = document.getElementById('bot-owner-log');
+    const side = /** @type {HTMLElement|null} */ (document.querySelector('[data-bot-owner] .bo-side'));
+    if (side && !side.contains(document.activeElement)) side.innerHTML = ownerSide();
+    ownerPill();
     if (!old) return;
     const atEnd = old.scrollHeight - old.scrollTop - old.clientHeight < 40;
     const keep = old.scrollTop;
     const hadFocus = document.activeElement === old;
-    old.outerHTML = ownerLog();
-    const to = document.getElementById('bot-owner-to');
-    if (to) to.outerHTML = ownerToLine();
-    const pill = document.querySelector('.bot-status [data-bot-status="ask"]');
-    if (pill) { const n = ownerOpen(); pill.innerHTML = `Ask bots${n ? `<span class="count">${n}</span>` : ''}`; }
+    const tpl = document.createElement('template');
+    tpl.innerHTML = ownerLog();
+    const next = /** @type {HTMLElement} */ (tpl.content.firstElementChild);
+    const keys = (/** @type {Element} */ el) => Array.from(el.children).map((x) => x.getAttribute('data-k') || '').join('|');
+    if (old.tagName === next.tagName && keys(old) === keys(next)) {
+      // same lines: change only the ones that changed; a live line keeps its element (the dot's animation does not restart)
+      Array.from(next.children).forEach((n, i) => {
+        const o = /** @type {HTMLElement} */ (old.children[i]);
+        if (n.hasAttribute('data-live')) {
+          const ot = o.querySelector('.bo-live-t'), nt = n.querySelector('.bo-live-t');
+          if (ot && nt && ot.textContent !== nt.textContent) ot.textContent = nt.textContent;
+        } else if (o.outerHTML !== n.outerHTML) o.replaceWith(n.cloneNode(true));
+      });
+    } else old.replaceWith(next);
     const log = /** @type {HTMLElement} */ (document.getElementById('bot-owner-log'));
     log.scrollTop = atEnd ? log.scrollHeight : keep;
     if (hadFocus) log.focus({ preventScroll: true });
@@ -1298,100 +1499,219 @@
     return fresh;
   }
 
-  /** Every 3 seconds while #/bot is open and visible: rows since the newest one (a minute's overlap for late commits). */
+  /** Every 3 seconds while #/bot is open on Ask bots and visible: rows since the newest one (a minute's overlap for late commits). */
   async function ownerTick() {
-    if (!onOwnerPlace() || !document.getElementById('bot-owner-log')) { stopOwnerPoll(); return; }
+    if (!onOwnerPlace() || !document.querySelector('[data-bot-owner]')) { stopOwnerPoll(); return; }
     if (document.visibilityState !== 'visible' || owner.busy) return;
     owner.busy = true;
     try {
-      // From the newest row (a minute's overlap for late commits), or from the oldest message of the last day the router is
-      // still working on, so a status the router moved on that message comes in too.
-      const last = owner.msgs.length ? new Date(owner.msgs[owner.msgs.length - 1].created_at).getTime() - 60000 : 0;
-      const dayAgo = Date.now() - DAY;
-      let from = last;
-      for (const m of owner.msgs) {
-        const t = new Date(m.created_at).getTime();
-        if (m.author === 'owner' && !OWNER_FINAL.includes(m.status) && t > dayAgo && t - 1000 < from) from = t - 1000;
+      // Rows changed since the newest change seen (updated_at moves with every status or progress write), with 5 s of overlap for
+      // late commits. A database without updated_at (before this migration) gets the v96 cursor: the newest row, or the oldest
+      // message of the last day the router is still working on.
+      let from = 0;
+      if (owner.msgs.length && owner.msgs.every((m) => m.updated_at)) {
+        for (const m of owner.msgs) from = Math.max(from, new Date(m.updated_at).getTime());
+        from -= 5000;
+      } else if (owner.msgs.length) {
+        from = new Date(owner.msgs[owner.msgs.length - 1].created_at).getTime() - 60000;
+        const dayAgo = Date.now() - DAY;
+        for (const m of owner.msgs) {
+          const t = new Date(m.created_at).getTime();
+          if (m.author === 'owner' && !OWNER_FINAL.includes(m.status) && t > dayAgo && t - 1000 < from) from = t - 1000;
+        }
       }
       const since = from ? new Date(from).toISOString() : null;
-      const got = await call('bot_owner_list', { since });
-      if (ownerTake(got) && onOwnerPlace()) redrawOwnerLog();
+      const sig = () => owner.msgs.map((m) => m.id + ':' + (m.status || '')).join(',');
+      const was = sig();
+      const fresh = ownerTake(await call('bot_owner_list', { since }));
+      // the thread list (its counts) when a row came in or a status moved (not for progress lines alone), and about once a
+      // minute anyway (a thread made in another tab)
+      if ((fresh && sig() !== was) || ++owner.ticks % 30 === 0) await loadThreads();
+      if (fresh && onOwnerPlace()) redrawOwnerLog();
     } catch (e) { /* the next tick tries again */ } finally { owner.busy = false; }
   }
+  /** The next poll: 1.5 s while anything in the open thread is in progress, 3 s otherwise; the clock on live lines every second. */
   function startOwnerPoll() {
     if (owner.timer || owner.ok !== true) return;
-    owner.timer = window.setInterval(ownerTick, OWNER_POLL_MS);
+    const next = () => { owner.timer = window.setTimeout(async () => { await ownerTick(); if (owner.timer) next(); }, ownerLiveNow() ? OWNER_POLL_LIVE_MS : OWNER_POLL_MS); };
+    next();
+    if (!owner.clock) owner.clock = window.setInterval(() => { for (const el of document.querySelectorAll('[data-bot-owner] .bo-live-time')) el.textContent = ownerElapsed(el.getAttribute('data-from') || ''); }, 1000);
   }
-  function stopOwnerPoll() { if (owner.timer) { clearInterval(owner.timer); owner.timer = 0; } }
+  function stopOwnerPoll() {
+    if (owner.timer) { clearTimeout(owner.timer); owner.timer = 0; }
+    if (owner.clock) { clearInterval(owner.clock); owner.clock = 0; }
+  }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') { stopOwnerPoll(); return; }
-    if (onOwnerPlace() && document.getElementById('bot-owner-log')) { ownerTick(); startOwnerPoll(); }
+    if (onOwnerPlace() && document.querySelector('[data-bot-owner]')) { ownerTick(); startOwnerPoll(); }
   });
   window.addEventListener('hashchange', () => { if (!onOwnerPlace()) stopOwnerPoll(); });
 
-  /** The composer: the Messages page's wiring (track, Ctrl+Enter, fieldFail, busy 'Sending', clean, toast, refocus). @param {HTMLElement} box */
+  /** Opens a thread. @param {string} tid */
+  async function ownerOpenThread(tid) {
+    ownerKeepDraft();
+    owner.cur = tid;
+    owner.renaming = false;
+    owner.view = 'thread';
+    const t = ownerThread(tid);
+    if (t) owner.open.add(t.client_slug || '');
+    ownerRedraw(phone() ? '#bo-thread-h' : '#bot-owner-body');
+    if (phone()) { const sec = document.querySelector('[data-bot-owner]'); if (sec) sec.scrollIntoView({ block: 'start' }); }
+    if (await loadThread(tid) && owner.cur === tid) redrawOwnerLog();
+  }
+  /** @param {string} id @param {{title?: string, archived?: boolean, p_client?: string}} change */
+  async function ownerUpdate(id, change) {
+    const C0 = C();
+    const t = await call('bot_owner_thread_update', { id, ...change });
+    const i = owner.threads.findIndex((x) => x.id === id);
+    if (i >= 0) owner.threads[i] = t; else owner.threads.push(t);
+    return t;
+  }
+
+  /** The panel's controls, wired once per panel (delegated, so redraws inside it need nothing). @param {HTMLElement} box */
   function wireOwner(box) {
     const C0 = C();
     const sec = /** @type {HTMLElement|null} */ (box.querySelector('[data-bot-owner]'));
     if (!sec || sec.dataset.wired) return;
     sec.dataset.wired = '1';
-    const f = /** @type {HTMLFormElement} */ (sec.querySelector('#bot-owner-reply'));
-    const ta = /** @type {HTMLTextAreaElement} */ (sec.querySelector('#bot-owner-body'));
-    C0.track(f, 'Message to the router');
-    owner.form = f;
-    if (owner.draft && !ta.value) ta.value = owner.draft;
-    ta.addEventListener('input', () => { owner.draft = ta.value.trim() ? ta.value : ''; });
-    ta.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); const sub = /** @type {HTMLButtonElement|null} */ (f.querySelector('button[type=submit]')); if (sub && sub.disabled) return; f.requestSubmit(); } });
-    f.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const body = C0.val(f, 'body');
-      if (!body) { C0.fieldFail(ta, 'Write the message first.'); return; }
-      const done = C0.busy(/** @type {HTMLButtonElement} */ (f.querySelector('button[type=submit]')), 'Sending');
+    if (phone() && !sec.dataset.seen) { owner.view = 'list'; sec.dataset.view = 'list'; }
+    sec.dataset.seen = '1';
+    ownerAfterPanel(sec);
+    sec.addEventListener('input', (e) => { if (/** @type {HTMLElement} */ (e.target).id === 'bot-owner-body') ownerKeepDraft(); });
+    sec.addEventListener('keydown', (e) => {
+      const el = /** @type {HTMLElement} */ (e.target);
+      if (el.id === 'bot-owner-body' && (e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        const f = /** @type {HTMLFormElement} */ (el.closest('form'));
+        const sub = /** @type {HTMLButtonElement|null} */ (f.querySelector('button[type=submit]'));
+        if (sub && sub.disabled) return;
+        f.requestSubmit();
+      } else if (e.key === 'Escape' && el.closest('.bo-new-form')) { owner.creating = ''; ownerRedraw('.bo-proj.is-open .bo-new'); }
+      else if (e.key === 'Escape' && el.closest('.bo-rename')) { owner.renaming = false; ownerRedraw('[data-oc-rename]'); }
+    });
+    sec.addEventListener('change', async (e) => {
+      const sel = /** @type {HTMLSelectElement} */ (e.target);
+      if (!sel.matches || !sel.matches('[data-oc-client]') || !sel.value) return;
+      sel.disabled = true;
       try {
-        const parent = ownerTarget();
-        const row = await call('bot_owner_send', parent ? { body, p_parent_id: parent } : { body });
-        ownerTake([row]);
-        owner.draft = '';
-        owner.to = '';   // the next one follows this thread
-        ta.value = '';
-        C0.clean(f);
-        done();
-        C0.toast('Sent to the router.\nIts progress and the draft show up in this thread.');
-        redrawOwnerLog();
-        const log = document.getElementById('bot-owner-log');
-        if (log) log.scrollTop = log.scrollHeight;
-        ta.focus({ preventScroll: true });
-      } catch (x) {
-        done();
-        C0.toast(say(x), true);
+        const t = await ownerUpdate(owner.cur, { p_client: sel.value });
+        owner.open.add(t.client_slug || '');
+        C0.toast(`This chat is now for ${t.client_name}.`);
+        ownerRedraw('#bot-owner-body');
+      } catch (x) { sel.disabled = false; sel.value = ''; C0.toast(/title-taken/.test(String(x && /** @type {any} */ (x).message)) ? `${sel.selectedOptions[0] ? sel.selectedOptions[0].text : 'That client'} already has a thread with this name. Rename this chat first.` : say(x), true); }
+    });
+    sec.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = /** @type {HTMLFormElement} */ (e.target);
+      const sub = /** @type {HTMLButtonElement} */ (f.querySelector('button[type=submit]'));
+      if (f.id === 'bot-owner-reply') {
+        const ta = /** @type {HTMLTextAreaElement} */ (f.querySelector('#bot-owner-body'));
+        const body = C0.val(f, 'body');
+        if (!body) { C0.fieldFail(ta, 'Write the message first.'); return; }
+        const tid = owner.cur;
+        const done = C0.busy(sub, 'Sending');
+        try {
+          const root = ownerRootOf(tid);
+          const row = await call('bot_owner_send', root ? { body, p_parent_id: root, p_thread_id: tid } : { body, p_thread_id: tid });
+          ownerTake([row]);
+          owner.drafts.delete(tid);
+          ta.value = '';
+          C0.clean(f);
+          done();
+          C0.toast('Sent to the router.\nIts answer shows up in this thread.');
+          await loadThreads();
+          redrawOwnerLog();
+          const log = document.getElementById('bot-owner-log');
+          if (log) log.scrollTop = log.scrollHeight;
+          ta.focus({ preventScroll: true });
+        } catch (x) { done(); C0.toast(say(x), true); }
+        return;
+      }
+      if (f.matches('[data-oc-create]')) {
+        const slug = f.getAttribute('data-oc-create') || '';
+        const input = /** @type {HTMLInputElement} */ (f.querySelector('input'));
+        const title = C0.val(f, 'title');
+        if (!title) { C0.fieldFail(input, 'Name the thread first.'); return; }
+        const done = C0.busy(sub, 'Adding');
+        try {
+          const t = await call('bot_owner_thread_create', { client: slug, title });
+          owner.threads.push(t);
+          owner.creating = '';
+          done();
+          C0.toast(`Thread “${t.title}” added.`);
+          await ownerOpenThread(t.id);
+        } catch (x) { done(); C0.toast(/title-taken/.test(String(x && /** @type {any} */ (x).message)) ? 'That client already has a thread with that name.' : say(x), true); }
+        return;
+      }
+      if (f.matches('[data-oc-rename-form]')) {
+        const input = /** @type {HTMLInputElement} */ (f.querySelector('input'));
+        const title = C0.val(f, 'title');
+        if (!title) { C0.fieldFail(input, 'Name the thread first.'); return; }
+        const done = C0.busy(sub, 'Saving');
+        try {
+          await ownerUpdate(owner.cur, { title });
+          owner.renaming = false;
+          done();
+          C0.toast('Renamed.');
+          ownerRedraw('[data-oc-rename]');
+        } catch (x) { done(); C0.toast(/title-taken/.test(String(x && /** @type {any} */ (x).message)) ? 'That client already has a thread with that name.' : say(x), true); }
       }
     });
     sec.addEventListener('click', async (e) => {
       const el = /** @type {HTMLElement} */ (e.target);
       if (!el.closest) return;
-      const sw = /** @type {HTMLElement|null} */ (el.closest('[data-oc-new],[data-oc-latest],[data-oc-reply]'));
-      if (sw) {
-        owner.to = sw.hasAttribute('data-oc-new') ? 'new' : sw.getAttribute('data-oc-reply') || '';
-        const to = document.getElementById('bot-owner-to');
-        if (to) to.outerHTML = ownerToLine();
-        ta.focus();
+      const go = /** @type {HTMLElement|null} */ (el.closest('[data-oc-thread]'));
+      if (go) { await ownerOpenThread(go.getAttribute('data-oc-thread') || ''); return; }
+      const proj = /** @type {HTMLElement|null} */ (el.closest('[data-oc-proj]'));
+      if (proj) {
+        const slug = proj.getAttribute('data-oc-proj') || '';
+        if (owner.open.has(slug)) owner.open.delete(slug); else owner.open.add(slug);
+        ownerRedraw(`[data-oc-proj="${slug}"]`);
+        return;
+      }
+      const nc = /** @type {HTMLButtonElement|null} */ (el.closest('[data-oc-new-chat]'));
+      if (nc) {
+        const done = C0.busy(nc, 'Starting');
+        try { const t = await call('bot_owner_thread_create', {}); owner.threads.unshift(t); done(); await ownerOpenThread(t.id); }
+        catch (x) { done(); C0.toast(say(x), true); }
+        return;
+      }
+      const nt = /** @type {HTMLElement|null} */ (el.closest('[data-oc-new-thread]'));
+      if (nt) { owner.creating = nt.getAttribute('data-oc-new-thread') || ''; owner.open.add(owner.creating); ownerRedraw('.bo-new-form input'); return; }
+      if (el.closest('[data-oc-create-cancel]')) { const s = owner.creating; owner.creating = ''; ownerRedraw(`[data-oc-new-thread="${s}"]`); return; }
+      if (el.closest('[data-oc-back]')) { ownerKeepDraft(); owner.view = 'list'; ownerRedraw('[aria-current="true"]'); return; }
+      if (el.closest('[data-oc-archived]')) { owner.showArchived = !owner.showArchived; await loadThreads(); ownerRedraw('[data-oc-archived]'); return; }
+      if (el.closest('[data-oc-rename]')) { owner.renaming = true; ownerRedraw('#bo-rename-in'); return; }
+      if (el.closest('[data-oc-rename-cancel]')) { owner.renaming = false; ownerRedraw('[data-oc-rename]'); return; }
+      if (el.closest('[data-oc-archive]')) {
+        const t = ownerThread(owner.cur);
+        if (!t) return;
+        try {
+          await ownerUpdate(t.id, { archived: true });
+          if (!owner.showArchived) { owner.cur = ownerDefault(); owner.view = phone() ? 'list' : 'thread'; }
+          ownerRedraw(phone() ? '[data-oc-archived]' : '#bo-thread-h');
+          C0.undoToast(`Archived “${t.title}”.`, async () => { await ownerUpdate(t.id, { archived: false }); owner.cur = t.id; owner.view = 'thread'; ownerRedraw('#bo-thread-h'); });
+        } catch (x) { C0.toast(say(x), true); }
+        return;
+      }
+      if (el.closest('[data-oc-restore]')) {
+        try { await ownerUpdate(owner.cur, { archived: false }); C0.toast('Restored.'); ownerRedraw('#bot-owner-body'); } catch (x) { C0.toast(say(x), true); }
         return;
       }
       const b = /** @type {HTMLElement|null} */ (el.closest('[data-oc-copy]'));
       if (!b) return;
       const m = owner.msgs.find((x) => x.id === b.getAttribute('data-oc-copy'));
       if (!m) return;
-      try { await navigator.clipboard.writeText(m.body); C0.toast('Copied.'); }
+      try { await navigator.clipboard.writeText(scrubIds(m.body)); C0.toast('Copied.'); }
       catch (x) { C0.toast('Could not copy here. Select the text and copy it.', true); }
     });
-    const log = document.getElementById('bot-owner-log');
-    if (log) log.scrollTop = log.scrollHeight;
+    loadThread(owner.cur).then((fresh) => { if (fresh) redrawOwnerLog(); });
     startOwnerPoll();
   }
-  /** After the list (or the results) is drawn: forget a composer that is gone, wire the chat if Ask bots is open, and the first
+  /** After the list (or the results) is drawn: forget a reply box that is gone, wire the panel if Ask bots is open, and the first
    * time ask the server; on a yes the Ask bots pill goes in first in the status row (Waiting stays pressed). @param {HTMLElement} box */
   function ownerAfterDraw(box) {
-    if (owner.form && !owner.form.isConnected) { C().clean(owner.form); owner.form = null; }   // its text is kept in owner.draft
+    if (owner.form && !owner.form.isConnected) { C().clean(owner.form); owner.form = null; }   // its text is kept in owner.drafts
     if (!ownerMaybe()) return;
     if (owner.ok === true) { wireOwner(box); return; }
     if (owner.ok === false) return;
@@ -1403,7 +1723,6 @@
       seg.insertAdjacentHTML('afterbegin', `<button type="button" data-bot-status="ask" aria-pressed="false">Ask bots${n ? `<span class="count">${n}</span>` : ''}</button>`);
     });
   }
-
 
   /** #/bot, #/bot/stats and #/bot/<item id>. @param {string} openId */
   function page(openId) {
