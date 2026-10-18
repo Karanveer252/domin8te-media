@@ -5910,6 +5910,22 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] .bot-showing
   .bot-bulk-btns .btn { flex: 1 1 auto; }
 }
 
+/* Ask bots (2026-10-17, Karan; rev 3): Karan's thread with the router, shown in place of the list when the "Ask bots" status pill
+ * (first in .bot-status, the same pill as Waiting) is pressed. It is the Messages page's thread and reply box (.convo-log, .msg,
+ * .convo-reply, .log-card) inside a .panel, with the Messages log height. The search and dropdown row is for drafts, so it
+ * steps aside while the chat shows. Only placement, the chip in a meta line and the thread line are new here; every colour,
+ * radius and font is the console's own. */
+#bot-results > .bot-owner { order: 4; }
+#bot-box:has(> #bot-results > .bot-owner) > .bot-toolbar { display: none; }
+.bot-owner .panel-head { margin-bottom: 4px; }
+.bot-owner .convo-log .meta .chip { margin-left: 4px; vertical-align: 1px; }
+.bot-owner .log-card .bot-text { margin: 10px 0 8px; }
+/* A status chip inside Karan's own (ink) bubble sits on the bubble's light text colour, so its tint stays readable */
+.bot-owner .msg.team .chip { background: #F4F1EC; }
+html[data-theme="dark"] .bot-owner .msg.team .chip { background: var(--surface); }
+/* Which thread the next message goes to: a quiet line above the box, with its switch */
+.bot-owner .bot-owner-to { margin-bottom: 8px; }
+
 /* css/59-usage.css */
 /* Dashboard use (mod-usage.js, 2026-10-16): the Overview panel, the Clients table line and the Needs you block. */
 .us-panel { margin-top: var(--gap, 16px); }
@@ -11043,7 +11059,12 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     const v = viewFor(inTab);
     const mine = placeRows(inTab);
     const chip = (/** @type {string} */ attr, /** @type {string} */ key, /** @type {string} */ text, /** @type {number} */ n, /** @type {boolean} */ on) => `<button type="button" ${attr}="${esc(key)}" aria-pressed="${on}">${esc(text)}${n ? `<span class="count">${n}</span>` : ''}</button>`;
-    const statusSeg = `<div class="seg bot-status" role="group" aria-label="Status">${STATUSES.map(([k, t]) => chip('data-bot-status', k, t, mine.filter((r) => matches(r, { ...v, status: k })).length, v.status === k)).join('')}</div>`;
+    // Ask bots (owner only, never inside a client's tab): first in the row; its count is the requests the router is still on.
+    const ask = !inTab && ownerOn();
+    if (!ask && state.view.status === 'ask') state.view.status = VIEW_DEFAULT.status;
+    const askChip = ask ? chip('data-bot-status', 'ask', 'Ask bots', ownerOpen(), v.status === 'ask') : '';
+    const statusSeg = `<div class="seg bot-status" role="group" aria-label="Status">${askChip}${STATUSES.map(([k, t]) => chip('data-bot-status', k, t, mine.filter((r) => matches(r, { ...v, status: k })).length, v.status === k)).join('')}</div>`;
+    if (ask && v.status === 'ask') return `${statusSeg}${ownerPanel()}`;
     let clientSeg = '';
     if (!inTab) {
       const ids = Array.from(new Set(mine.map((r) => r.tenant_id)));
@@ -11349,7 +11370,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     drawnSig = sig();
     const redrawResults = () => {
       const res = document.getElementById('bot-results');
-      if (res) { res.innerHTML = results(inTab); wireForms(box, again, inTab); mixed(); } else again();
+      if (res) { res.innerHTML = results(inTab); wireForms(box, again, inTab); mixed(); if (!inTab) ownerAfterDraw(box); } else again();
     };
     mixed();
     let typing = 0;
@@ -11606,7 +11627,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     const res = document.getElementById('bot-results');
     if (what === 'clear') {
       state.picked.clear(); state.bulk = '';
-      if (res) { res.innerHTML = results(inTab); wireForms(box, again, inTab); mixed(); } else again();
+      if (res) { res.innerHTML = results(inTab); wireForms(box, again, inTab); mixed(); if (!inTab) ownerAfterDraw(box); } else again();
       const f = /** @type {HTMLElement|null} */ (document.querySelector('[data-bot-pickall]'));
       if (f) f.focus();
       return;
@@ -11614,7 +11635,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     if (!ids.length) return;
     if (what === 'reject') {
       state.bulk = 'reject';
-      if (res) { res.innerHTML = results(inTab); wireForms(box, again, inTab); mixed(); } else again();
+      if (res) { res.innerHTML = results(inTab); wireForms(box, again, inTab); mixed(); if (!inTab) ownerAfterDraw(box); } else again();
       const ta = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('bot-bulk-reject-note'));
       if (ta) ta.focus();
       return;
@@ -11832,6 +11853,262 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       <button class="icon-btn icon-btn-sm" type="button" data-action="refresh" aria-label="Reload" title="Reload">${C0.icon('refresh')}</button></div>`;
   }
 
+  /* ---- Karan's thread with the router (2026-10-17, Karan: "an owner-only composer in Bot chat; the router's progress and the
+   * draft show in the same thread") ---------------------------------------------------------------------------------------------
+   * Rev 3 (2026-10-17, Karan: "an 'Ask bots' toggle as the first tab in the status row"): an "Ask bots" pill first in the status
+   * pills on #/bot (the same .seg.bot-status button, data-bot-status="ask", aria-pressed, the same click and focus handling and
+   * the same state.view.status the other pills use; Waiting stays the default). Picking it shows this chat in place of the list.
+   * Only the owner gets the pill: me.role === 'super_admin' AND the server says yes (the probe call to bot_owner_list works);
+   * everyone else sees the original row, unchanged. The server is the real gate (20261017194500_bot_chat_owner_messages.sql): for
+   * anyone else both functions answer exactly like a function that does not exist, so this panel is never drawn for them.
+   * Messages go in with bot_owner_send; the Domin8te router (bridge.py) polls the table over HTTPS with the service role, moves the
+   * message's own status along (the chip on Karan's bubble) and writes what it has to say as 'router' rows (parent_id = the
+   * message; the draft is the body of the draft_ready row). Threads (rev 2): a message with no parent starts one; the composer
+   * replies to the newest thread by default (p_parent_id = its first message), "Start a new thread" sends one without a parent,
+   * and "Reply in this thread" on a router card picks that thread. Read with bot_owner_list every 3 seconds while the page is
+   * open and visible. Markup and behaviour are the Messages page's
+   * (convoThread: ol.convo-log > li.msg[.team], form.convo-reply, Ctrl+Enter, Sending, toast). The form is NOT a .bot-form, so the
+   * card keys and the Cancel handler leave it alone. Sends nothing to a client. */
+
+  const OWNER_POLL_MS = 3000;
+  const OWNER_STATUS = /** @type {Record<string, {label: string, tone: string}>} */ ({
+    queued: { label: 'Queued', tone: 'info' },
+    queued_for_grok: { label: 'Queued for Grok', tone: 'info' },
+    working: { label: 'Working', tone: 'you' },
+    retrying: { label: 'Retrying', tone: 'warn' },
+    paused: { label: 'Paused', tone: 'warn' },
+    draft_ready: { label: 'Draft ready', tone: 'good' },
+    needs_client: { label: 'Needs the client', tone: 'warn' },
+    failed: { label: 'Failed', tone: 'bad' }
+  });
+  /** Steps that end a request: drawn as a card with the text, not a bubble. */
+  const OWNER_FINAL = ['draft_ready', 'needs_client', 'failed'];
+  /** ok: null = not asked yet, true = the server said yes, false = not for this person (asked once a visit). */
+  /** to: where the next message goes: '' = the newest thread, 'new' = a new thread, or the id of a thread's first message. */
+  const owner = { ok: /** @type {boolean|null} */ (null), asking: /** @type {Promise<void>|null} */ (null), msgs: /** @type {any[]} */ ([]), timer: 0, busy: false, draft: '', to: '', form: /** @type {HTMLFormElement|null} */ (null) };
+
+  /** @param {string} s */
+  const ownerChip = (s) => { const x = OWNER_STATUS[s]; return x ? `<span class="chip ${x.tone}">${x.label}</span>` : ''; };
+  /** The message's own status (the router moves it along); before the router has touched it, its newest router step. @param {any} m */
+  const ownerStatusOf = (m) => { if (m.status) return m.status; let s = ''; for (const x of owner.msgs) if (x.parent_id === m.id && x.status) s = x.status; return s; };
+  /** A row by id. @param {string} id */
+  const ownerRow = (id) => owner.msgs.find((x) => x.id === id) || null;
+  /** The first message of the thread a row belongs to (follows parent_id up; stops at a row it doesn't have). @param {any} m */
+  function ownerRoot(m) {
+    let cur = m;
+    for (let i = 0; i < 50 && cur && cur.parent_id; i++) { const up = ownerRow(cur.parent_id); if (!up) break; cur = up; }
+    return cur;
+  }
+  /** The thread the next message goes to: the first message's id, or null for a new thread. */
+  function ownerTarget() {
+    if (owner.to === 'new') return null;
+    if (owner.to && ownerRow(owner.to)) return owner.to;
+    for (let i = owner.msgs.length - 1; i >= 0; i--) if (owner.msgs[i].author === 'owner') { const r = ownerRoot(owner.msgs[i]); return r ? r.id : null; }
+    return null;
+  }
+  /** The line above the box: which thread the message goes to, and the switch. */
+  function ownerToLine() {
+    const C0 = C();
+    const id = ownerTarget();
+    const r = id ? ownerRow(id) : null;
+    const hasThreads = owner.msgs.some((x) => x.author === 'owner');
+    if (r) return `<p class="meta bot-owner-to" id="bot-owner-to">Replying in the thread “${C0.esc(short(r.body, 70))}” · <button class="linkish" type="button" data-oc-new>Start a new thread</button></p>`;
+    return `<p class="meta bot-owner-to" id="bot-owner-to">${hasThreads ? `New thread · <button class="linkish" type="button" data-oc-latest>Reply in the newest thread instead</button>` : 'Your first message starts a thread.'}</p>`;
+  }
+  const onOwnerPlace = () => /^#\/bot\/?$/.test(location.hash);
+  /** Only the owner, and never on the demo console. */
+  const ownerMaybe = () => { const me = C().me; return !DEMO && !!me && me.role === 'super_admin'; };
+  /** The server said yes: the Ask bots pill shows. */
+  const ownerOn = () => owner.ok === true && ownerMaybe();
+  /** The Ask bots count: Karan's requests the router has not finished. */
+  const ownerOpen = () => owner.msgs.filter((m) => m.author === 'owner' && !OWNER_FINAL.includes(ownerStatusOf(m))).length;
+
+  /** Asks the server once: the thread if this is the owner, the unknown-function answer otherwise. */
+  function probeOwner() {
+    if (owner.ok !== null || !ownerMaybe()) return Promise.resolve();
+    if (owner.asking) return owner.asking;
+    owner.asking = (async () => {
+      try {
+        owner.msgs = (await call('bot_owner_list', { since: null })) || [];
+        owner.ok = true;
+      } catch (x) {
+        // Not the owner (or an old database): stay hidden for this visit. A lost connection leaves it to the next visit.
+        const code = String((x && /** @type {any} */ (x).code) || '');
+        if (/PGRST202|42883|42501|PGRST301/.test(code) || /could not find the function|permission denied/i.test(String(x && /** @type {any} */ (x).message))) owner.ok = false;
+      } finally { owner.asking = null; }
+    })();
+    return owner.asking;
+  }
+
+  /** One line of the thread. @param {any} m */
+  function ownerItem(m) {
+    const C0 = C();
+    const at = C0.esc(C0.when(m.created_at));
+    if (m.author === 'owner') {
+      return `<li class="msg team" data-oc-id="${C0.esc(m.id)}"><p>${C0.esc(m.body)}</p><p class="meta">${C0.esc((C0.me && C0.me.name) || 'You')}${m.parent_id ? ' · follow-up' : ''} · ${at} ${ownerChip(ownerStatusOf(m))}</p></li>`;
+    }
+    if (OWNER_FINAL.includes(m.status)) {
+      const title = m.status === 'draft_ready' ? 'Draft from the router' : m.status === 'needs_client' ? 'The router needs something from the client' : 'The router could not finish';
+      return `<li class="item-card log-card bot-owner-final" data-oc-id="${C0.esc(m.id)}"><div class="item-top"><span class="item-title">${title}</span><span class="r">${ownerChip(m.status)}</span></div>
+        ${m.status === 'draft_ready' ? `<div class="bot-text">${C0.esc(m.body)}</div>` : `<p>${C0.esc(m.body)}</p>`}
+        <p class="meta">Router${m.router_job_id ? ` · ${C0.esc(m.router_job_id)}` : ''} · ${at}${m.status === 'draft_ready' ? ` · <button class="linkish" type="button" data-oc-copy="${C0.esc(m.id)}">Copy text</button>` : ''}${ownerRoot(m) && ownerRoot(m).author === 'owner' ? ` · <button class="linkish" type="button" data-oc-reply="${C0.esc(ownerRoot(m).id)}">Reply in this thread</button>` : ''}</p></li>`;
+    }
+    return `<li class="msg" data-oc-id="${C0.esc(m.id)}"><p>${C0.esc(m.body)}</p><p class="meta">Router · ${at} ${ownerChip(m.status)}</p></li>`;
+  }
+  function ownerLog() {
+    return owner.msgs.length
+      ? `<ol class="convo-log" id="bot-owner-log" tabindex="0" aria-labelledby="bot-owner-h" aria-live="polite">${owner.msgs.map(ownerItem).join('')}</ol>`
+      : `<div class="convo-log convo-empty" id="bot-owner-log"><p class="meta">Nothing here yet. Ask the router for a draft below.</p></div>`;
+  }
+  /** The panel, or nothing for anyone but the owner. */
+  function ownerPanel() {
+    if (owner.ok !== true || !ownerMaybe()) return '';
+    const C0 = C();
+    return `<section class="panel bot-owner" aria-labelledby="bot-owner-h" data-bot-owner>
+      <div class="panel-head"><div><h2 id="bot-owner-h">Ask bots</h2><p>Goes to the Domin8te router. Its progress and the finished draft show up here. Only you see this.</p></div></div>
+      ${ownerLog()}
+      <form class="convo-reply" id="bot-owner-reply" novalidate>
+        ${ownerToLine()}
+        <div class="field"><label for="bot-owner-body">Message the router as ${C0.esc((C0.me && C0.me.name) || 'you')}</label><textarea id="bot-owner-body" name="body" maxlength="4000" rows="3" placeholder="Ask for a draft, for example a weekend post for a client"></textarea></div>
+        <div class="actions"><button class="btn" type="submit">Send</button><span class="meta">The router drafts; nothing goes to a client until you send it yourself. <kbd>Ctrl</kbd> <kbd>Enter</kbd> sends.</span></div>
+      </form></section>`;
+  }
+
+  /** Draws the thread again in place: the form and what is typed stay; the scroll follows only when it was at the end. */
+  function redrawOwnerLog() {
+    const old = document.getElementById('bot-owner-log');
+    if (!old) return;
+    const atEnd = old.scrollHeight - old.scrollTop - old.clientHeight < 40;
+    const keep = old.scrollTop;
+    const hadFocus = document.activeElement === old;
+    old.outerHTML = ownerLog();
+    const to = document.getElementById('bot-owner-to');
+    if (to) to.outerHTML = ownerToLine();
+    const pill = document.querySelector('.bot-status [data-bot-status="ask"]');
+    if (pill) { const n = ownerOpen(); pill.innerHTML = `Ask bots${n ? `<span class="count">${n}</span>` : ''}`; }
+    const log = /** @type {HTMLElement} */ (document.getElementById('bot-owner-log'));
+    log.scrollTop = atEnd ? log.scrollHeight : keep;
+    if (hadFocus) log.focus({ preventScroll: true });
+  }
+  /** New rows in, by id (a row the router changed replaces the old copy). @param {any[]} list @returns {boolean} anything new */
+  function ownerTake(list) {
+    let fresh = false;
+    for (const m of list || []) {
+      const i = owner.msgs.findIndex((x) => x.id === m.id);
+      if (i < 0) { owner.msgs.push(m); fresh = true; }
+      else if (JSON.stringify(owner.msgs[i]) !== JSON.stringify(m)) { owner.msgs[i] = m; fresh = true; }
+    }
+    if (fresh) owner.msgs.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)) || String(a.id).localeCompare(String(b.id)));
+    return fresh;
+  }
+
+  /** Every 3 seconds while #/bot is open and visible: rows since the newest one (a minute's overlap for late commits). */
+  async function ownerTick() {
+    if (!onOwnerPlace() || !document.getElementById('bot-owner-log')) { stopOwnerPoll(); return; }
+    if (document.visibilityState !== 'visible' || owner.busy) return;
+    owner.busy = true;
+    try {
+      // From the newest row (a minute's overlap for late commits), or from the oldest message of the last day the router is
+      // still working on, so a status the router moved on that message comes in too.
+      const last = owner.msgs.length ? new Date(owner.msgs[owner.msgs.length - 1].created_at).getTime() - 60000 : 0;
+      const dayAgo = Date.now() - DAY;
+      let from = last;
+      for (const m of owner.msgs) {
+        const t = new Date(m.created_at).getTime();
+        if (m.author === 'owner' && !OWNER_FINAL.includes(m.status) && t > dayAgo && t - 1000 < from) from = t - 1000;
+      }
+      const since = from ? new Date(from).toISOString() : null;
+      const got = await call('bot_owner_list', { since });
+      if (ownerTake(got) && onOwnerPlace()) redrawOwnerLog();
+    } catch (e) { /* the next tick tries again */ } finally { owner.busy = false; }
+  }
+  function startOwnerPoll() {
+    if (owner.timer || owner.ok !== true) return;
+    owner.timer = window.setInterval(ownerTick, OWNER_POLL_MS);
+  }
+  function stopOwnerPoll() { if (owner.timer) { clearInterval(owner.timer); owner.timer = 0; } }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') { stopOwnerPoll(); return; }
+    if (onOwnerPlace() && document.getElementById('bot-owner-log')) { ownerTick(); startOwnerPoll(); }
+  });
+  window.addEventListener('hashchange', () => { if (!onOwnerPlace()) stopOwnerPoll(); });
+
+  /** The composer: the Messages page's wiring (track, Ctrl+Enter, fieldFail, busy 'Sending', clean, toast, refocus). @param {HTMLElement} box */
+  function wireOwner(box) {
+    const C0 = C();
+    const sec = /** @type {HTMLElement|null} */ (box.querySelector('[data-bot-owner]'));
+    if (!sec || sec.dataset.wired) return;
+    sec.dataset.wired = '1';
+    const f = /** @type {HTMLFormElement} */ (sec.querySelector('#bot-owner-reply'));
+    const ta = /** @type {HTMLTextAreaElement} */ (sec.querySelector('#bot-owner-body'));
+    C0.track(f, 'Message to the router');
+    owner.form = f;
+    if (owner.draft && !ta.value) ta.value = owner.draft;
+    ta.addEventListener('input', () => { owner.draft = ta.value.trim() ? ta.value : ''; });
+    ta.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); const sub = /** @type {HTMLButtonElement|null} */ (f.querySelector('button[type=submit]')); if (sub && sub.disabled) return; f.requestSubmit(); } });
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = C0.val(f, 'body');
+      if (!body) { C0.fieldFail(ta, 'Write the message first.'); return; }
+      const done = C0.busy(/** @type {HTMLButtonElement} */ (f.querySelector('button[type=submit]')), 'Sending');
+      try {
+        const parent = ownerTarget();
+        const row = await call('bot_owner_send', parent ? { body, p_parent_id: parent } : { body });
+        ownerTake([row]);
+        owner.draft = '';
+        owner.to = '';   // the next one follows this thread
+        ta.value = '';
+        C0.clean(f);
+        done();
+        C0.toast('Sent to the router.\nIts progress and the draft show up in this thread.');
+        redrawOwnerLog();
+        const log = document.getElementById('bot-owner-log');
+        if (log) log.scrollTop = log.scrollHeight;
+        ta.focus({ preventScroll: true });
+      } catch (x) {
+        done();
+        C0.toast(say(x), true);
+      }
+    });
+    sec.addEventListener('click', async (e) => {
+      const el = /** @type {HTMLElement} */ (e.target);
+      if (!el.closest) return;
+      const sw = /** @type {HTMLElement|null} */ (el.closest('[data-oc-new],[data-oc-latest],[data-oc-reply]'));
+      if (sw) {
+        owner.to = sw.hasAttribute('data-oc-new') ? 'new' : sw.getAttribute('data-oc-reply') || '';
+        const to = document.getElementById('bot-owner-to');
+        if (to) to.outerHTML = ownerToLine();
+        ta.focus();
+        return;
+      }
+      const b = /** @type {HTMLElement|null} */ (el.closest('[data-oc-copy]'));
+      if (!b) return;
+      const m = owner.msgs.find((x) => x.id === b.getAttribute('data-oc-copy'));
+      if (!m) return;
+      try { await navigator.clipboard.writeText(m.body); C0.toast('Copied.'); }
+      catch (x) { C0.toast('Could not copy here. Select the text and copy it.', true); }
+    });
+    const log = document.getElementById('bot-owner-log');
+    if (log) log.scrollTop = log.scrollHeight;
+    startOwnerPoll();
+  }
+  /** After the list (or the results) is drawn: forget a composer that is gone, wire the chat if Ask bots is open, and the first
+   * time ask the server; on a yes the Ask bots pill goes in first in the status row (Waiting stays pressed). @param {HTMLElement} box */
+  function ownerAfterDraw(box) {
+    if (owner.form && !owner.form.isConnected) { C().clean(owner.form); owner.form = null; }   // its text is kept in owner.draft
+    if (!ownerMaybe()) return;
+    if (owner.ok === true) { wireOwner(box); return; }
+    if (owner.ok === false) return;
+    probeOwner().then(() => {
+      if (owner.ok !== true || !onOwnerPlace() || !box.isConnected) return;
+      const seg = box.querySelector('.bot-status');
+      if (!seg || seg.querySelector('[data-bot-status="ask"]')) return;
+      const n = ownerOpen();
+      seg.insertAdjacentHTML('afterbegin', `<button type="button" data-bot-status="ask" aria-pressed="false">Ask bots${n ? `<span class="count">${n}</span>` : ''}</button>`);
+    });
+  }
+
+
   /** #/bot, #/bot/stats and #/bot/<item id>. @param {string} openId */
   function page(openId) {
     const C0 = C();
@@ -11851,6 +12128,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     if (keysBtn) keysBtn.addEventListener('click', openKeys);
     const box = /** @type {HTMLElement} */ (document.getElementById('bot-box'));
     wire(box, () => page(openId));
+    if (!openId) ownerAfterDraw(box);   // the Ask bots pill and chat (owner only)
   }
 
   /** The client's Bot tab: their queue, or one of their cards (#/client/<id>/bot/<item id>). @param {any} C0 @param {HTMLElement} box @param {string} part */

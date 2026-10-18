@@ -195,3 +195,19 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] .bot-showing
   .bot-bulk-btns { width: 100%; }
   .bot-bulk-btns .btn { flex: 1 1 auto; }
 }
+
+/* Ask bots (2026-10-17, Karan; rev 3): Karan's thread with the router, shown in place of the list when the "Ask bots" status pill
+ * (first in .bot-status, the same pill as Waiting) is pressed. It is the Messages page's thread and reply box (.convo-log, .msg,
+ * .convo-reply, .log-card) inside a .panel, with the Messages log height. The search and dropdown row is for drafts, so it
+ * steps aside while the chat shows. Only placement, the chip in a meta line and the thread line are new here; every colour,
+ * radius and font is the console's own. */
+#bot-results > .bot-owner { order: 4; }
+#bot-box:has(> #bot-results > .bot-owner) > .bot-toolbar { display: none; }
+.bot-owner .panel-head { margin-bottom: 4px; }
+.bot-owner .convo-log .meta .chip { margin-left: 4px; vertical-align: 1px; }
+.bot-owner .log-card .bot-text { margin: 10px 0 8px; }
+/* A status chip inside Karan's own (ink) bubble sits on the bubble's light text colour, so its tint stays readable */
+.bot-owner .msg.team .chip { background: #F4F1EC; }
+html[data-theme="dark"] .bot-owner .msg.team .chip { background: var(--surface); }
+/* Which thread the next message goes to: a quiet line above the box, with its switch */
+.bot-owner .bot-owner-to { margin-bottom: 8px; }
