@@ -349,8 +349,8 @@
       const err = u.error || '';
       const histN = histOf(k).length;
       const stateText = stateLine(k);
-      const publishWord = live ? 'Publish changes' : 'Publish to client';
       const publishOff = live && !dirty;
+      const publishWord = publishOff ? 'Nothing to publish yet' : 'Publish to client';
       const canReset = k === 'next_month' && sugg && !sameWork(w, toWork(sugg.content, w.source));
       return `<section class="panel hp-card is-${live ? 'live' : row && row.hidden_at ? 'hidden' : 'draft'}" data-section="${k}" aria-labelledby="hp-${k}-h">
         <header class="hp-card-head">
@@ -439,7 +439,7 @@
       slot.innerHTML = cardHtml(k);
       slot.querySelectorAll('textarea').forEach((t) => grow(/** @type {HTMLTextAreaElement} */ (t)));
       const form = /** @type {HTMLFormElement|null} */ (slot.querySelector('.hp-form'));
-      if (form) C.track(form, `${/** @type {any} */ (SECS.find((x) => x.key === k)).name} (Home tab)`);
+      if (form) C.track(form, `${/** @type {any} */ (SECS.find((x) => x.key === k)).name} (Edit their Home)`);
       const pf = slot.querySelector('.vz-pform');
       if (pf && pf.querySelector('input[name="reason"]')) C.track(/** @type {HTMLFormElement} */ (pf), 'Reason to hide');
       const f = focus ? /** @type {HTMLElement|null} */ (slot.querySelector(focus)) : ui(k).prompt ? /** @type {HTMLElement|null} */ (slot.querySelector('input[name="reason"]')) : null;
@@ -451,8 +451,8 @@
       const latest = Object.values(st.rows).map((/** @type {any} */ r) => r.updated_at).sort().pop();
       const fresh = C.pageFresh({ updatedAt: latest || st.at, source: 'Console (Home sections) and the plan', status: st.errors.length ? 'delayed' : 'ok', label: st.errors.length ? 'Some data did not load' : undefined });
       box.innerHTML = `<section class="hp" aria-labelledby="hp-h">
-        <header class="hp-head"><h2 id="hp-h">Home tab</h2>
-          <p>What ${esc(first)} sees first when they sign in. Nothing here shows to them until its switch is on. Hidden sections leave their Home but stay in the history. <a href="#/client/${esc(id)}/visible">See everything they see</a></p></header>
+        <header class="hp-head"><h2 id="hp-h">Edit their Home</h2>
+          <p>What ${esc(first)} sees first when they sign in. Nothing here shows to them until its switch is on. Hidden sections leave their Home but stay in the history. To show or hide whole pages, use Show or hide. To see it as they do, use Preview as client. <a href="#/client/${esc(id)}/visible">See everything they see</a></p></header>
         ${fresh}
         ${st.errors.length ? `<p class="notice bad" role="alert">These did not load: ${esc(st.errors.join(', '))}. Do not save over a section until it loads. <button class="linkish" type="button" data-hp="reload">Try again</button></p>` : ''}
         <div class="hp-cols">
@@ -470,7 +470,7 @@
       drawPreview();
     }
 
-    box.innerHTML = `<section class="hp" aria-labelledby="hp-h"><header class="hp-head"><h2 id="hp-h">Home tab</h2><p>What ${esc(first)} sees first when they sign in.</p></header>${C.skeleton(3)}</section>`;
+    box.innerHTML = `<section class="hp" aria-labelledby="hp-h"><header class="hp-head"><h2 id="hp-h">Edit their Home</h2><p>What ${esc(first)} sees first when they sign in. To show or hide whole pages, use Show or hide. To see it as they do, use Preview as client.</p></header>${C.skeleton(3)}</section>`;
 
     /* -- writing -- */
     /** Saves one section: its text and source, and whether it is shown. publish: true makes it visible. @param {string} k @param {boolean} publish */
@@ -601,7 +601,7 @@
       const dirty = dirtyOf(k);
       const row = st.rows[k];
       const pub = /** @type {HTMLButtonElement|null} */ (form.querySelector('[data-hp="publish"]'));
-      if (pub) pub.disabled = !!(row && row.client_visible) && !dirty;
+      if (pub) { pub.disabled = !!(row && row.client_visible) && !dirty; pub.textContent = pub.disabled ? 'Nothing to publish yet' : 'Publish to client'; }
       const state = form.querySelector('.hp-state');
       if (state) state.textContent = stateLine(k);
       soon();
@@ -644,5 +644,5 @@
     });
   }
 
-  EXT.tabs.home = { label: 'Home tab', after: 'talk', render };
+  EXT.tabs.home = { label: 'Edit their Home', after: 'talk', render };
 })();

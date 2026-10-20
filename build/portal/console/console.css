@@ -564,6 +564,8 @@ select { background-color: rgba(255, 255, 255, 0.78); }
 @media (max-width: 760px) {
   .tabs { margin-right: -16px; padding-right: 64px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 84px), transparent calc(100% - 6px)); mask-image: linear-gradient(to right, #000 calc(100% - 84px), transparent calc(100% - 6px)); }
 }
+/* The "1 of 10 tabs, swipe for more" line under the tabs is hidden above 760px (audit C1.3). */
+@media (min-width: 761px) { .tabs-where { display: none; } }
 .req-status { border: 0; background: rgba(94, 72, 50, 0.08); border-radius: 999px; padding: 3px; }
 .req-status button { border-radius: 999px; min-height: 30px; padding: 0 12px; font-size: 13px; }
 .req-status button[aria-pressed="true"] { background: var(--glass-strong); box-shadow: var(--pill-on); }
@@ -985,11 +987,13 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-
 .soon-strip .q { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .q-fold > summary { cursor: pointer; list-style: none; }
 .q-fold > summary::-webkit-details-marker { display: none; }
-.q-fold > summary h2::after { content: "+"; color: var(--ink-3); font-weight: 500; }
-.q-fold[open] > summary h2::after { content: "\2212"; }
+.q-fold > summary h2::after { content: "+"; content: "+" / ""; color: var(--ink-3); font-weight: 500; }
+.q-fold[open] > summary h2::after { content: "\2212"; content: "\2212" / ""; }
 .q-fold[open] > summary { margin-bottom: 8px; }
 .q-dm { margin-bottom: 14px; }
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] :is(main > .q-fold > summary h2, main > .q-fold > .lede, main > .q-fold .q-client-h, main > .q-fold > .q-client > .q-more > summary) { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > .q-fold > summary h2 .meta { color: #F6F3EE; background-color: rgba(10, 12, 30, 0.32); border-radius: 999px; padding: 3px 7px; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > .q-fold > summary h2::after, html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > #q-intake > .q-fold > summary h2::after { color: rgba(246, 243, 238, 0.86); }
 /* Check before it goes live: one line and two buttons; the rest under Details. */
 .dm-card { gap: 6px; }
 .dm-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; }

@@ -54,6 +54,18 @@
       ],
       "port": 8100,
       "autoPort": true
+    },
+    {
+      "name": "askbots-mock",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8731",
+        "--directory",
+        "C:/Users/kvsd1/AppData/Local/Temp/claude/C--Work-domin8te-media/df485d76-965a-4c19-935d-dc59a389b2eb/scratchpad/askbots"
+      ],
+      "port": 8731
     }
   ]
 }

@@ -1,7 +1,7 @@
 /*
  * Billing (#/billing, #/billing/<client id>), 2026-10-13: every client's plan, what they have this cycle (with its limits and
  * what is used), what changes next cycle, whether the picks are locked, whether the 7 and 3 day reminders went out, the latest
- * invoice and the Stripe link. Staff change a plan or its picks in the override drawer; the drawer saves through the database
+ * invoice and the Stripe link. Staff change a plan or its picks in the plan drawer; the drawer saves through the database
  * function override_plan_cycle, which always asks for a reason. An invoice and its payment link are approved here through
  * review_billing_invoice_v2.
  *
@@ -21,7 +21,9 @@
   const esc = (/** @type {any} */ s) => C().esc(s);
 
   /** What this page remembers between draws: the filter, the invoices read last, and where the page was scrolled. */
-  const state = { filter: 'all', /** @type {any[]|null} */ invoices: null, invoicesAt: 0, invoicesError: '', seq: 0, /** @type {number|null} */ keepScroll: null };
+  const state = { filter: 'all', /** @type {any[]|null} */ invoices: null, invoicesAt: 0, invoicesError: '', seq: 0, /** @type {number|null} */ keepScroll: null,
+    /** @type {string|null} */ returnTo: null, /** @type {HTMLElement|null} */ returnEl: null,
+    /** @type {string|null} */ openLimits: null, /** @type {'limits'|'plan'} */ returnKind: 'plan' };
 
   /* ---- days and words ------------------------------------------------------------------------------------ */
 
@@ -139,15 +141,6 @@
     const caps = PP().capsNow();
     return PM().ordered(cycle.picks || []).map((/** @type {string} */ s) => `<span class="bchip">${esc(PP().chipText(cycle.plan_id, s, cycle.website_option, caps))}</span>`).join('');
   }
-  /** The usage lines worth a bar in the table: each pick's busiest limit, at most three, in the catalog's order. @param {any} r */
-  function usageShown(r) {
-    const lines = r.P.lines || [];
-    /** @type {Map<string, any>} */ const best = new Map();
-    for (const l of lines) { const cur = best.get(l.service); if (!cur || l.pct > cur.pct) best.set(l.service, l); }
-    const picked = Array.from(best.values()).sort((a, b) => b.pct - a.pct || ORDER.indexOf(a.service) - ORDER.indexOf(b.service)).slice(0, 3);
-    picked.sort((a, b) => ORDER.indexOf(a.service) - ORDER.indexOf(b.service));
-    return { shown: picked, more: Math.max(0, lines.length - picked.length) };
-  }
   /** What each limit is called on a usage bar: short, and clear on its own. */
   const BAR = /** @type {Record<string, string>} */ (PM().LABEL); // the one shared map (plan-model.js)
   /** One usage line as the console's bar. @param {any} l */
@@ -157,9 +150,8 @@
   /** @param {any} r */
   function nowCell(r) {
     if (!r.now) return '<span class="none">Nothing running</span>';
-    const u = usageShown(r);
     return `<div class="bl-chips">${chipsOf(r.now, r.P.nowPlan)}</div>
-      ${u.shown.length ? `<div class="bl-usage">${u.shown.map(barOf).join('')}</div>${u.more ? `<a class="bl-more" href="#/billing/${esc(r.t.id)}" aria-label="${u.more} more ${u.more === 1 ? 'limit' : 'limits'} for ${esc(r.t.name)}">${u.more} more ${u.more === 1 ? 'limit' : 'limits'}</a>` : ''}` : '<span class="sub">No usage yet</span>'}`;
+      ${(r.P.lines || []).length ? `<a class="bl-more" href="#/billing/${esc(r.t.id)}" aria-label="See limits for ${esc(r.t.name)}">See limits</a>` : '<span class="sub">No usage yet</span>'}`;
   }
   /** @param {any} r */
   function nextCell(r) {
@@ -187,11 +179,11 @@
     if (!r.now && !r.next) return '<span class="none">Not set</span>';
     if (!r.now) return `<span class="chip them">Starts ${esc(dayShort(r.next.period_start))}</span><span class="sub">Picks can change until it starts</span>`;
     if (r.notStarted) return `<span class="chip them">Starts ${esc(dayShort(r.now.period_start))}</span><span class="sub">Picks can change until it starts</span>`;
-    if (!r.next) return `<span class="chip them">Locked</span><span class="sub">Next cycle's picks can change until ${esc(dayLong(r.lastDay))}</span>`;
+    if (!r.next) return `<span class="chip them">Locked (can't change)</span><span class="sub">Next cycle's picks can change until ${esc(dayLong(r.lastDay))}</span>`;
     if (r.next.source === 'auto_carry') {
       const left = daysBetween(r.today, r.lastDay);
       const text = left > 1 ? `${left} days left, until ${dayLong(r.lastDay)}` : left === 1 ? `1 day left, until ${dayLong(r.lastDay)}` : left === 0 ? `Last day is today, ${dayLong(r.lastDay)}` : `Closed on ${dayLong(r.lastDay)}`;
-      return `<span class="chip warn">Not confirmed</span><span class="sub">${esc(text)}</span>`;
+      return `<span class="chip warn">Not confirmed yet</span><span class="sub">${esc(text)}</span>`;
     }
     return `<span class="chip good">Confirmed</span><span class="sub">Can change until ${esc(dayLong(r.lastDay))}</span>`;
   }
@@ -201,19 +193,22 @@
     const row = r.rem.find((/** @type {any} */ x) => x.kind === kind);
     if (!row && r.t.status !== 'active') return `<span class="chip plain" title="Bill reminders are skipped while a client is ${esc(r.t.status)}">${n}d skipped</span>`;
     if (!row) return r.bill ? `<span class="chip plain" title="Planned once next cycle's picks exist">${n}d due ${esc(dayShort(addDays(r.bill, -n)))}</span>` : '<span class="none">None</span>';
-    if (row.status === 'sent') return `<span class="chip good" title="${esc(`Sent to ${row.to_email}`)}">${n}d sent ${esc(dayShort(dayOfStamp(row.sent_at || row.send_at)))}</span>`;
-    if (row.status === 'failed') return `<span class="chip bad" title="${esc(row.error || 'It did not go out.')}">${n}d failed ${esc(dayShort(dayOfStamp(row.updated_at || row.send_at)))}</span>`;
+    if (row.status === 'sent') return `<span class="chip good" title="${esc(`Sent to ${row.to_email}`)}">${n}-day sent ${esc(dayShort(dayOfStamp(row.sent_at || row.send_at)))}</span>`;
+    if (row.status === 'failed') return `<span class="chip bad" title="${esc(row.error || 'It did not go out.')}">${n}-day failed ${esc(dayShort(dayOfStamp(row.updated_at || row.send_at)))}</span>`;
     if (row.status === 'skipped') return `<span class="chip plain" title="${esc(row.error || 'Skipped')}">${n}d skipped</span>`;
     return `<span class="chip plain">${n}d due ${esc(dayShort(dayOfStamp(row.send_at)))}</span>`;
+  }
+  /** The open Needs you item for one of this row's failed reminders, or null; the fix link shows only when it exists (critic R11-3). @param {any} r */
+  function needOf(r) {
+    if (!r.now && !r.next) return null;
+    const failedIds = new Set(r.rem.filter((/** @type {any} */ x) => x.status === 'failed').map((/** @type {any} */ x) => String(x.id)));
+    const all = C().all;
+    return failedIds.size ? ((all && all.reviews && all.reviews.exceptions) || []).find((/** @type {any} */ x) => x.reason_code === 'reminder_failed' && x.tenant_id === r.t.id && failedIds.has(String(x.entity_id))) || null : null;
   }
   /** @param {any} r */
   function remCell(r) {
     if (!r.now && !r.next) return '<span class="none">None</span>';
-    // The link goes to the open Needs you item for one of these failed reminders, and shows only when that item exists (critic R11-3).
-    const failedIds = new Set(r.rem.filter((/** @type {any} */ x) => x.status === 'failed').map((/** @type {any} */ x) => String(x.id)));
-    const all = C().all;
-    const need = failedIds.size ? ((all && all.reviews && all.reviews.exceptions) || []).find((/** @type {any} */ x) => x.reason_code === 'reminder_failed' && x.tenant_id === r.t.id && failedIds.has(String(x.entity_id))) : null;
-    return `<div class="bl-rems">${remChip(r, 'd7')}${remChip(r, 'd3')}</div>${need ? `<a class="bl-more" href="#/queue/${esc(need.id)}" aria-label="Fix it in Needs you: ${esc(r.t.name)}'s failed reminder">Fix it in Needs you</a>` : ''}`;
+    return `<div class="bl-rems">${remChip(r, 'd7')}${remChip(r, 'd3')}</div>`;
   }
   /** @param {any} r */
   function invoiceCell(r) {
@@ -224,15 +219,42 @@
     const url = linkOf(i);
     const ok = linkApproved(i);
     const head = `<span class="bl-inv-n">${esc(i.invoice_number)}</span>`;
-    const link = ok ? '<span class="bl-link is-ok">Stripe link (approved)</span>' : url ? '<span class="bl-link is-wait">Stripe link (not approved)</span>' : '';
-    const approve = reviewable(i)
-      ? `<button class="btn btn-quiet btn-sm bl-approve" type="button" data-bl-approve="${esc(i.id)}" title="${url ? 'Approve the invoice and its Stripe link' : 'Approve the invoice'}" aria-label="Approve invoice ${esc(i.invoice_number)}${url ? ' and its Stripe link' : ''} for ${esc(r.t.name)}">Approve</button>` : '';
-    return `${head}<span class="bl-inv-s">${amount ? `<span class="bl-inv-amt">${esc(amount)}</span>` : ''}<span class="chip ${st[1]}">${esc(st[0])}</span></span>${i.due_at ? `<span class="sub">due ${esc(dayShort(i.due_at))}</span>` : ''}${link}${reviewable(i) ? '<span class="sub">Waiting for your approval</span>' : ''}${approve}`;
+    const link = ok ? '<span class="bl-link is-ok">Payment link approved</span>' : url ? '<span class="bl-link is-wait">Payment link waiting for your approval</span>' : '';
+    return `${head}<span class="bl-inv-s">${amount ? `<span class="bl-inv-amt">${esc(amount)}</span>` : ''}<span class="chip ${st[1]}">${esc(st[0])}</span></span>${i.due_at ? `<span class="sub">due ${esc(dayShort(i.due_at))}</span>` : ''}${link}${reviewable(i) ? '<span class="sub">Waiting for your approval</span>' : ''}`;
   }
   /** @param {any} r */
   function stripeCell(r) {
     const id = stripeIdOf(r.t);
-    return `${id ? `<span class="chip good" title="${esc(id)}">Linked</span>` : '<span class="chip off">Not linked</span>'}<a class="bl-more" href="#/client/${esc(r.t.id)}/setup/billing" aria-label="${id ? 'Manage Stripe' : 'Link in Setup'}: ${esc(r.t.name)}">${id ? 'Manage' : 'Link in Setup'}</a>`;
+    return id ? `<span class="chip good" title="${esc(id)}">Linked</span>` : '<span class="chip off">Not linked</span>';
+  }
+  /* At most one primary (orange) action per row; the first match wins:
+   *   1 "Approve invoice"  when r.inv && reviewable(r.inv)
+   *   2 "Fix reminder"     when needOf(r), an open Needs you item for a failed reminder
+   *   3 "Set plan"         when !r.now && !r.next
+   *   otherwise none.
+   * Quiet (no primary): Stripe not linked, past due, picks not confirmed, a failed reminder with no open Needs you item,
+   * invoices still loading. Paused clients can still get 1-3. */
+  /** @param {any} r */
+  function actsCell(r) {
+    const i = r.inv;
+    const need = needOf(r);
+    const canApprove = !!i && reviewable(i);
+    const noPlan = !r.now && !r.next;
+    const primary = canApprove ? 'approve' : need ? 'fix' : noPlan ? 'plan' : '';
+    const name = esc(r.t.name);
+    const word = noPlan ? 'Set plan' : 'Change plan';
+    const plan = `<a class="btn${primary === 'plan' ? '' : ' btn-quiet'} btn-sm bl-open bl-open-m" href="#/billing/${esc(r.t.id)}" data-bl-open="${esc(r.t.id)}" aria-label="${word} for ${name}">${word}</a>`;
+    const url = i ? linkOf(i) : '';
+    const approve = canApprove
+      ? `<button class="btn${primary === 'approve' ? '' : ' btn-quiet'} btn-sm bl-approve" type="button" data-bl-approve="${esc(i.id)}" title="${url ? 'Approve the invoice and its Stripe link' : 'Approve the invoice'}" aria-label="Approve invoice ${esc(i.invoice_number)}${url ? ' and its Stripe link' : ''} for ${name}">${url ? 'Approve and send link' : 'Approve invoice'}</button>` : '';
+    const fix = !need ? '' : primary === 'fix'
+      ? `<a class="btn btn-sm" href="#/queue/${esc(need.id)}" aria-label="Fix reminder in Needs you: ${name}'s failed reminder">Fix reminder</a>`
+      : `<a class="bl-more" href="#/queue/${esc(need.id)}" aria-label="Fix it in Needs you: ${name}'s failed reminder">Fix it in Needs you</a>`;
+    const sid = stripeIdOf(r.t);
+    const stripe = `<a class="bl-more" href="#/client/${esc(r.t.id)}/setup/billing" aria-label="${sid ? 'Stripe settings' : 'Connect Stripe'}: ${name}">${sid ? 'Stripe settings' : 'Connect Stripe…'}</a>`;
+    // the primary first, then the quiet rest: plan link, Approve invoice, Fix it in Needs you, Manage / Link in Setup
+    const first = primary === 'approve' ? approve : primary === 'fix' ? fix : primary === 'plan' ? plan : '';
+    return `<div class="bl-acts">${first}${[plan, approve, fix, stripe].filter((x) => x && x !== first).join('')}</div>`;
   }
 
   /* ---- the page ------------------------------------------------------------------------------------------ */
@@ -319,18 +341,42 @@
       return;
     }
     box.innerHTML = `<div class="table-wrap bl-wrap"><table class="grid bl-grid"><caption class="sr-only">Every client's plan, picks, reminders and latest invoice</caption><thead><tr>
-      <th scope="col">Client</th><th scope="col">Plan</th><th scope="col">This cycle</th><th scope="col">Next cycle</th><th scope="col">Lock</th><th scope="col">Reminders 7d/3d</th><th scope="col">Latest invoice</th><th scope="col">Stripe</th></tr></thead><tbody>
+      <th scope="col">Client</th><th scope="col">Plan</th><th scope="col">This cycle</th><th scope="col">Next cycle</th><th scope="col">Next month's services</th><th scope="col">Bill reminders (7 and 3 days before)</th><th scope="col">Latest invoice</th><th scope="col">Stripe</th><th scope="col" class="bl-c-act">Actions</th></tr></thead><tbody>
       ${shown.map((r) => `<tr data-id="${esc(r.t.id)}"${r.t.status !== 'active' ? ' class="paused"' : ''}>
         <th scope="row" class="bl-c-client" data-label="Client">${clientCell(r)}</th>
         <td class="bl-c-plan" data-label="Plan">${planCell(r)}</td>
         <td class="bl-c-now" data-label="This cycle">${nowCell(r)}</td>
         <td class="bl-c-next" data-label="Next cycle">${nextCell(r)}</td>
-        <td class="bl-c-lock" data-label="Lock">${lockCell(r)}</td>
-        <td class="bl-c-rem" data-label="Reminders 7d/3d">${remCell(r)}</td>
+        <td class="bl-c-lock" data-label="Next month's services">${lockCell(r)}</td>
+        <td class="bl-c-rem" data-label="Bill reminders (7 and 3 days before)">${remCell(r)}</td>
         <td class="bl-c-inv" data-label="Latest invoice">${invoiceCell(r)}</td>
-        <td class="bl-c-stripe" data-label="Stripe">${stripeCell(r)}<a class="btn btn-quiet btn-sm bl-open" href="#/billing/${esc(r.t.id)}" data-bl-open="${esc(r.t.id)}" aria-label="${r.now || r.next ? 'Override' : 'Set plan'} for ${esc(r.t.name)}">${r.now || r.next ? 'Override' : 'Set plan'}</a></td>
-        <td class="bl-c-act"><a class="btn btn-quiet bl-open-m" href="#/billing/${esc(r.t.id)}" data-bl-open="${esc(r.t.id)}" aria-label="${r.now || r.next ? 'Override plan or picks' : 'Set the plan'} for ${esc(r.t.name)}">${r.now || r.next ? 'Override plan or picks' : 'Set the plan'}</a></td></tr>`).join('')}
+        <td class="bl-c-stripe" data-label="Stripe">${stripeCell(r)}</td>
+        <td class="bl-c-act">${actsCell(r)}</td></tr>`).join('')}
       </tbody></table></div>${state.invoicesError ? `<p class="meta bl-foot">${esc(state.invoicesError)} The rest of the page is up to date.</p>` : ''}`;
+    returnFocus();
+  }
+  /** After the plan drawer closes, put focus back on the visible row control that opened it (See limits or the plan link), once. */
+  function returnFocus() {
+    const box = C().$('#bl-list');
+    const active = document.activeElement;
+    let id = state.returnTo;
+    if (!id && state.returnEl) {
+      // a later repaint replaced the row we focused: follow it only if focus fell to the body with it
+      if (!state.returnEl.isConnected && (!active || active === document.body)) {
+        const tr = state.returnEl.closest('tr[data-id]');
+        id = state.returnEl.getAttribute('data-bl-open') || (tr && tr.getAttribute('data-id'));
+      } else if (active !== state.returnEl) state.returnEl = null;
+    }
+    if (!id || !box) return;
+    const visible = (/** @type {string} */ sel) => {
+      const all = /** @type {HTMLElement[]} */ (Array.from(box.querySelectorAll(sel)));
+      return all.find((b) => b.offsetParent !== null || b.getClientRects().length > 0) || all[0] || null;
+    };
+    // See limits if that opened the drawer and the row still has it, else the plan link
+    const el = (state.returnKind === 'limits' ? visible(`tr[data-id="${CSS.escape(id)}"] .bl-c-now a.bl-more`) : null) || visible(`[data-bl-open="${CSS.escape(id)}"]`);
+    state.returnTo = null;
+    state.returnEl = el;
+    if (el) el.focus();
   }
   function paintFresh() {
     const c = C();
@@ -344,8 +390,9 @@
     });
   }
 
-  /** @param {string} clientId a client to open the override drawer for, or '' */
+  /** @param {string} clientId a client to open the plan drawer for, or '' */
   function page(clientId) {
+    if (!state.returnTo) state.returnEl = null;
     const c = C();
     const main = c.main;
     document.title = 'Billing · Domin8te console';
@@ -356,14 +403,17 @@
     paintTop();
     paintList();
     const alive = () => seq === state.seq && /^#\/billing/.test(location.hash || '');
-    loadInvoices().then(() => { if (alive()) { paintList(); paintTop(); } });
+    loadInvoices().then(() => { if (alive()) { paintList(); paintTop(); } state.returnEl = null; });
     if (typeof c.stripeStatus === 'function') c.stripeStatus().then(() => { if (alive()) paintFresh(); });
     main.onclick = (e) => {
+      state.returnEl = null;
       const target = /** @type {HTMLElement} */ (e.target);
       const f = target.closest('[data-bl-filter]');
       if (f) { state.filter = f.getAttribute('data-bl-filter') || 'all'; paintTop(); paintList(); return; }
       const open = target.closest('[data-bl-open]');
-      if (open) { state.keepScroll = window.scrollY; return; }
+      if (open) { state.keepScroll = window.scrollY; state.openLimits = null; state.returnKind = 'plan'; return; }
+      const lim = target.closest('.bl-c-now a.bl-more');
+      if (lim) { const tr = lim.closest('tr[data-id]'); state.keepScroll = window.scrollY; state.openLimits = tr && tr.getAttribute('data-id'); state.returnKind = 'limits'; return; }
       const ap = target.closest('[data-bl-approve]');
       if (ap) approve(/** @type {HTMLButtonElement} */ (ap));
     };
@@ -404,7 +454,7 @@
     }
   }
 
-  /* ---- the override drawer ------------------------------------------------------------------------------- */
+  /* ---- the plan drawer --------------------------------------------------------------------------------- */
 
   /** Words for a line of the history. @param {any} r @param {Record<string, string>} staff */
   function historyLine(r, staff) {
@@ -462,6 +512,10 @@
   function openDrawer(id, seq) {
     const c = C();
     const t = c.tenant(id);
+    // opened from the row's See limits: the limits start open and take the first focus; any other way in opens them collapsed
+    const fromLimits = state.openLimits === id;
+    state.openLimits = null;
+    const kind = fromLimits ? 'limits' : 'plan';
     if (!t) { c.toast('That client was not found.', true); location.hash = '#/billing'; return; }
     const r = rowOf(t);
     const mode = r.now ? 'running' : r.next ? 'future' : 'none';
@@ -485,11 +539,11 @@
     const usage = r.P.lines || [];
     const confirmedNote = r.next && r.next.source === 'client_picker' ? `The client already confirmed these picks on ${esc(dayShort(dayOfStamp(r.next.confirmed_at)))}. Saving replaces them.` : '';
     dlg.innerHTML = `<form class="bd-form" id="bd-form" novalidate>
-      <header class="bd-head"><div><p class="bd-eyebrow">Override · ${esc(t.name)}</p><h2 id="bd-h">${mode === 'none' ? 'Set the plan' : 'Change plan or picks'}</h2></div><button class="icon-btn" type="button" data-bd="close" aria-label="Close">${c.icon('x')}</button></header>
+      <header class="bd-head"><div><p class="bd-eyebrow">${esc(t.name)}</p><h2 id="bd-h">${mode === 'none' ? 'Set the plan' : 'Change plan or picks'}</h2></div><button class="icon-btn" type="button" data-bd="close" aria-label="Close">${c.icon('x')}</button></header>
       <div class="bd-body">
         <p class="bd-lede">The console is the source of truth. The client's dashboard updates after you save, and the client is emailed only if you tick it.</p>
         ${r.now ? `<section class="bd-now" aria-label="Right now"><p class="bd-now-h"><strong>Right now</strong> <span>${nowBits}</span></p><p class="meta">${r.notStarted ? 'The first bill' : 'The next bill'} is ${esc(dayLong(r.bill))}${r.billIn !== null ? `, in ${r.billIn} ${r.billIn === 1 ? 'day' : 'days'}` : ''}.</p>
-          ${usage.length ? `<details class="reveal bd-limits"><summary>This month's limits and use (${usage.length})</summary><div class="bd-usage">${usage.map((/** @type {any} */ l) => drawerBar(t.id, l)).join('')}</div></details>` : ''}</section>` : ''}
+          ${usage.length ? `<details class="reveal bd-limits"${fromLimits ? ' open' : ''}><summary>This month's limits and use (${usage.length})</summary><div class="bd-usage">${usage.map((/** @type {any} */ l) => drawerBar(t.id, l)).join('')}</div></details>` : ''}</section>` : ''}
         <fieldset class="bd-sec"><legend>Plan</legend><div id="bd-plans"></div></fieldset>
         <fieldset class="bd-sec"><legend>Picks for the cycle starting <span id="bd-start">${esc(dayLong(target.start))}</span></legend><div id="bd-picks"></div><p class="bd-change" id="bd-change" aria-live="polite"></p></fieldset>
         ${mode === 'running' ? `<fieldset class="bd-sec bd-applies"><legend>Applies</legend>
@@ -503,7 +557,7 @@
         <p class="field-error" id="bd-err" role="alert" hidden></p>
         <section class="bd-sec bd-hist" aria-labelledby="bd-hist-h"><h3 id="bd-hist-h">History</h3><div id="bd-hist" aria-busy="true"><p class="meta">Reading the history.</p></div></section>
       </div>
-      <footer class="bd-foot"><button class="btn" type="submit" id="bd-save" disabled>Save override</button><button class="btn btn-quiet" type="button" data-bd="close">Cancel</button><span class="bd-foot-note" id="bd-note" aria-live="polite"></span></footer>
+      <footer class="bd-foot"><button class="btn" type="submit" id="bd-save" disabled>Save plan change</button><button class="btn btn-quiet" type="button" data-bd="close">Cancel</button><span class="bd-foot-note" id="bd-note" aria-live="polite"></span></footer>
     </form>`;
     c.main.appendChild(dlg);
 
@@ -564,7 +618,10 @@
       c.clean(form);
       if (dlg.open) dlg.close();
       dlg.remove();
-      if (/^#\/billing\/./.test(location.hash || '')) location.hash = '#/billing';
+      state.returnTo = t.id;
+      state.returnKind = kind;
+      state.returnEl = null;
+      if (/^#\/billing\/./.test(location.hash || '')) location.hash = '#/billing'; else returnFocus();
     };
     dlg.addEventListener('cancel', (e) => { e.preventDefault(); close(false); });
     dlg.addEventListener('click', (e) => { const x = /** @type {HTMLElement} */ (e.target); if (x === dlg || x.closest('[data-bd="close"]')) close(false); });
@@ -602,18 +659,21 @@
         try { await c.loadAll(); } catch (x) { c.toast(`Saved, but the page could not reload: ${c.message(x)}`, true); }
         if (dlg.open) dlg.close();
         dlg.remove();
+        state.returnTo = t.id;
+        state.returnKind = kind;
+        state.returnEl = null;
         c.toast(`Saved for ${t.name}. ${appliesNow ? 'It changed this cycle.' : `It applies from ${dayShort(target.start)}.`}${mailNote}`, !!mailNote && /not queued/.test(mailNote));
         if (/^#\/billing\/./.test(location.hash || '')) location.hash = '#/billing'; else c.route();
       } catch (x) {
         if (btn.isConnected) done();
-        const m = PP().say(x, 'Not saved');
+        const m = PP().say(x, 'Not saved').replace(/\b(public\.)?override_plan_cycle\b/g, 'the plan save');
         fail(/nothing was changed/i.test(m) ? m : `${m} Nothing was changed.`, null);
       }
     });
 
     if (seq === state.seq) {
       dlg.showModal();
-      const firstFocus = dlg.querySelector('.pp-plan input:checked') || dlg.querySelector('.pp-plan input:not(:disabled)') || reason;
+      const firstFocus = (fromLimits && dlg.querySelector('.bd-limits > summary')) || dlg.querySelector('.pp-plan input:checked') || dlg.querySelector('.pp-plan input:not(:disabled)') || reason;
       if (firstFocus) /** @type {HTMLElement} */ (firstFocus).focus();
     }
     loadHistory(t, $('#bd-hist'));

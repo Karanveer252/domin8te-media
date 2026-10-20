@@ -6,5 +6,5 @@
 /* Each form is a card, like the other Needs you rows, and the heading and lede read on the Scenes sky (they sit one level
    deeper than the queue's other groups, so the console's main > .q-group rule does not reach them). */
 .intake-row { padding: 13px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
-html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] :is(main > #q-intake > .q-group > h2, main > #q-intake > .q-group > .lede) { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
-html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > #q-intake > .q-group > h2 .meta { color: rgba(246, 243, 238, 0.86); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] :is(main > #q-intake > .q-group > summary > h2, main > #q-intake > .q-group > .lede) { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > #q-intake > .q-group > summary > h2 .meta { color: #F6F3EE; background-color: rgba(10, 12, 30, 0.32); border-radius: 999px; padding: 3px 7px; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }

@@ -4,10 +4,11 @@
 // build-console.js: the cursor picture on every element with a mouse, and the click
 // (the growth pulse) from the site's own /assets/v3-cursor.js, with the styles it needs (the copy's box, picture and sparkles; the script hides the real cursor itself, with an inline style, and has no speed panel any more). The file
 // versions (?v=) are read from the homepage, so the three pages always ask for the same files.
+// D8_SITE_SRC=<folder> reads index.html and assets/v3.css from <folder> instead of C:/Work/domin8te-media (read only).
 'use strict';
 const fs = require('fs');
-const SITE = 'C:/Work/domin8te-media';
 module.exports = function growthCursor() {
+  const SITE = process.env.D8_SITE_SRC || 'C:/Work/domin8te-media';
   const page = fs.readFileSync(SITE + '/index.html', 'utf8');
   const css = fs.readFileSync(SITE + '/assets/v3.css', 'utf8');
   const v = (re, from, what) => { const m = from.match(re); if (!m) throw new Error('growth cursor: no version for ' + what); return m[1]; };

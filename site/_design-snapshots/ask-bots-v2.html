@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask bots v2 mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F4F1EC; --side: #EBE6DE; --surface: #FFFFFF; --surface-2: #F1EDE7; --surface-3: #E6E0D7;
+  --ink: #1D1A16; --ink-2: #4A443D; --ink-3: #6B645B;
+  --line: rgba(94,72,50,.14); --line-2: rgba(94,72,50,.26); --hover: rgba(94,72,50,.06);
+  --accent: #FF5B1F; --accent-ink: #AE3A0B; --you: #9A3108; --you-bg: rgba(255,91,31,.13);
+  --them: #3D329C; --them-bg: rgba(99,88,230,.12); --good: #176240; --good-bg: rgba(31,122,76,.11);
+  --warn: #7E4B00; --warn-bg: rgba(200,140,30,.16);
+  --r: 8px; --r-lg: 14px;
+  --shadow: 0 1px 2px rgba(40,30,20,.05), 0 8px 24px -14px rgba(40,30,20,.25);
+  --font: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font); }
+body { padding: 28px 36px 40px; background-image: radial-gradient(rgba(94,72,50,.10) 1px, transparent 1px); background-size: 26px 26px; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+kbd { font: 600 11px/1 var(--font); background: var(--surface); border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 5px; padding: 3px 5px; color: var(--ink-2); }
+.meta { color: var(--ink-3); font-size: 13px; }
+
+/* page head */
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin: 0 0 18px; }
+.page-head h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -.01em; line-height: 1.15; }
+.page-head .sub { margin: 4px 0 0; color: var(--ink-3); font-size: 14px; }
+.page-head .sub b { color: var(--ink-2); font-weight: 600; }
+.sync { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink-3); }
+.sync .dot { width: 8px; height: 8px; border-radius: 50%; background: #259A5C; box-shadow: 0 0 0 3px var(--good-bg); }
+
+/* two-mode switch */
+.modes { display: flex; align-items: center; gap: 14px; margin: 0 0 16px; }
+.seg { display: inline-flex; background: var(--surface-3); border-radius: 999px; padding: 3px; }
+.seg button { padding: 8px 16px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--ink-2); display: inline-flex; gap: 8px; align-items: center; }
+.seg button[aria-current] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(40,30,20,.12); }
+.seg .n { font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--you-bg); color: var(--you); }
+.seg .n.quiet { background: var(--hover); color: var(--ink-3); }
+.filters { display: inline-flex; gap: 2px; align-items: center; margin-left: 2px; }
+.filters .lbl { font-size: 13px; color: var(--ink-3); margin-right: 6px; }
+.filters button { padding: 6px 10px; border-radius: 999px; font-size: 13px; color: var(--ink-2); }
+.filters button:hover { background: var(--hover); }
+.filters button.on { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink); font-weight: 600; }
+
+/* panel */
+.panel { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow); border: 1px solid var(--line); display: grid; grid-template-columns: 300px 1fr; height: calc(100vh - 150px); min-height: 760px; overflow: hidden; }
+.side { background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+.side-head { padding: 18px 18px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.side-head h2 { margin: 0; font-size: 15px; font-weight: 700; }
+.side-head .meta { margin: 2px 0 0; font-size: 12.5px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 600; font-size: 14px; box-shadow: 0 1px 2px rgba(174,58,11,.25), inset 0 -1px 0 rgba(0,0,0,.08); }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn-quiet { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-2); }
+.btn-quiet:hover { background: var(--surface-2); }
+.search { margin: 0 14px 10px; display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.6); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; color: var(--ink-3); font-size: 13.5px; }
+.search svg { width: 15px; height: 15px; }
+.projs { padding: 0 10px 10px; overflow: auto; flex: 1; }
+.proj { margin: 2px 0 6px; }
+.proj-h { width: 100%; display: flex; align-items: center; gap: 9px; padding: 8px 8px; border-radius: 9px; text-align: left; }
+.proj-h:hover { background: var(--hover); }
+.av { width: 26px; height: 26px; border-radius: 8px; display: inline-grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; flex: none; letter-spacing: .02em; }
+.av.d8 { background: linear-gradient(135deg, #FF5B1F, #F3CB3C); }
+.av.fr { background: #2790D4; }
+.av.sb { background: #7C4DE8; }
+.proj-name { font-weight: 600; font-size: 14px; flex: 1; }
+.proj-h .chev { width: 14px; height: 14px; color: var(--ink-3); transition: transform .2s; }
+.proj.open .chev { transform: rotate(90deg); }
+.proj-h .count { font-size: 11.5px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--you-bg); color: var(--you); }
+.proj-h .count.wait { background: var(--them-bg); color: var(--them); }
+.threads { list-style: none; margin: 2px 0 0; padding: 0 0 0 10px; display: none; }
+.proj.open .threads { display: block; }
+.thread { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 9px 10px 9px 24px; border-radius: 9px; text-align: left; position: relative; }
+.thread:hover { background: var(--hover); }
+.thread[aria-current] { background: var(--surface); box-shadow: 0 1px 2px rgba(40,30,20,.08), inset 0 0 0 1px var(--line); }
+.thread::before { content: ""; position: absolute; left: 10px; top: 15px; width: 7px; height: 7px; border-radius: 50%; background: var(--line-2); }
+.thread.busy::before { background: var(--accent); box-shadow: 0 0 0 3px var(--you-bg); animation: pulse 1.6s infinite; }
+.thread.done::before { background: #259A5C; }
+.thread.empty::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--line-2); }
+.thread .t { font-weight: 600; font-size: 14px; }
+.thread .when { font-size: 12px; color: var(--ink-3); }
+.thread .m { grid-column: 1 / -1; font-size: 12.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thread.busy .m { color: var(--accent-ink); font-weight: 500; }
+.new-thread { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px 7px 24px; color: var(--ink-3); font-size: 13px; border-radius: 9px; }
+.new-thread:hover { background: var(--hover); color: var(--ink); }
+.side-foot { padding: 12px 18px 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--ink-3); }
+.side-foot a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px var(--you-bg); } 50% { box-shadow: 0 0 0 6px rgba(255,91,31,.06); } }
+
+/* main */
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.head { display: flex; align-items: center; gap: 14px; padding: 16px 22px; border-bottom: 1px solid var(--line); }
+.head .av { width: 36px; height: 36px; border-radius: 11px; font-size: 13px; }
+.head .ttl { flex: 1; min-width: 0; }
+.head .ttl h3 { margin: 0; font-size: 18px; font-weight: 700; line-height: 1.2; display: flex; align-items: center; gap: 10px; }
+.head .ttl .meta { margin: 2px 0 0; }
+.tag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--hover); color: var(--ink-2); }
+.tag svg { width: 12px; height: 12px; }
+.head .tools { display: flex; align-items: center; gap: 8px; }
+.pill-link { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px; background: var(--you-bg); color: var(--you); font-size: 13px; font-weight: 600; }
+.pill-link .n { background: var(--you); color: #fff; font-size: 11px; padding: 0 6px; border-radius: 999px; line-height: 17px; }
+.icon-btn { width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; color: var(--ink-2); }
+.icon-btn:hover { background: var(--hover); }
+.icon-btn svg { width: 18px; height: 18px; }
+
+.log { flex: 1; min-height: 0; overflow: auto; padding: 22px 22px 24px; display: flex; flex-direction: column; gap: 14px; }
+.day { align-self: center; font-size: 12px; color: var(--ink-3); background: var(--surface-2); padding: 3px 10px; border-radius: 999px; margin: 4px 0; }
+.row { display: flex; gap: 12px; max-width: 760px; }
+.row.you { align-self: flex-end; flex-direction: row-reverse; max-width: 560px; }
+.row .av { width: 30px; height: 30px; border-radius: 9px; font-size: 11px; margin-top: 2px; }
+.row .av.rt { background: var(--surface-3); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-2); }
+.bub { background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; min-width: 0; }
+.row.you .bub { background: var(--you-bg); border-color: rgba(255,91,31,.22); color: var(--ink); }
+.bub p { margin: 0; }
+.bub .meta { margin-top: 6px; font-size: 12px; }
+.row.you .bub .meta { color: var(--you); text-align: right; }
+
+/* draft card */
+.draft { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); min-width: 0; }
+.draft .dh { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.draft .dh .k { font-size: 12.5px; font-weight: 700; color: var(--ink-2); display: inline-flex; gap: 6px; align-items: center; }
+.draft .dh .k svg { width: 14px; height: 14px; }
+.draft .dh .meta { margin-left: auto; font-size: 12px; }
+.draft .body { padding: 12px 16px 8px; position: relative; max-height: 230px; overflow: hidden; }
+.draft .body::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 70px; background: linear-gradient(rgba(255,255,255,0), #fff); }
+.draft .body p { margin: 0 0 8px; }
+.draft .body ol { margin: 0; padding-left: 20px; }
+.draft .body li { margin: 0 0 5px; }
+.draft .df { display: flex; align-items: center; gap: 8px; padding: 8px 12px 12px; }
+.draft .df .more { color: var(--ink-2); font-size: 13px; padding: 6px 10px; border-radius: 999px; }
+.draft .df .more:hover { background: var(--hover); }
+.draft .df .sp { flex: 1; }
+.btn-ghost { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-2); }
+.btn-ghost:hover { background: var(--surface-2); }
+.btn-ghost svg { width: 14px; height: 14px; }
+
+/* system line + live */
+.sys { align-self: stretch; display: flex; align-items: center; gap: 10px; color: var(--ink-3); font-size: 13px; margin: 2px 0 2px 42px; }
+.sys .chip { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--them-bg); color: var(--them); }
+.live { margin-left: 42px; display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px dashed var(--line-2); border-radius: 12px; padding: 10px 14px; max-width: 560px; }
+.live .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); animation: pulse 1.6s infinite; flex: none; }
+.live .t { font-weight: 600; font-size: 14px; }
+.live .meta { margin-left: auto; font-variant-numeric: tabular-nums; }
+.live .bar { height: 4px; border-radius: 4px; background: var(--surface-3); overflow: hidden; width: 90px; }
+.live .bar i { display: block; height: 100%; width: 45%; background: var(--accent); border-radius: 4px; }
+
+/* composer */
+.compose { padding: 12px 22px 18px; border-top: 1px solid var(--line); background: var(--surface); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+.chips button { font-size: 13px; padding: 6px 12px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+.chips button:hover { border-color: var(--line-2); color: var(--ink); }
+.chips .lbl { font-size: 12.5px; color: var(--ink-3); align-self: center; margin-right: 2px; }
+.box { border: 1px solid var(--line-2); border-radius: 14px; background: var(--surface); box-shadow: 0 1px 2px rgba(40,30,20,.04); }
+.box:focus-within { border-color: var(--accent-ink); box-shadow: 0 0 0 3px var(--you-bg); }
+.box textarea { width: 100%; border: 0; background: transparent; resize: none; padding: 14px 16px 6px; font: inherit; color: var(--ink); min-height: 68px; outline: 0; }
+.box textarea::placeholder { color: var(--ink-3); }
+.box .bar2 { display: flex; align-items: center; gap: 12px; padding: 6px 10px 10px 16px; }
+.box .to { font-size: 13px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; }
+.box .to b { color: var(--ink-2); font-weight: 600; }
+.box .to .lock { width: 13px; height: 13px; }
+.box .sp { flex: 1; }
+.box .hint { font-size: 12.5px; color: var(--ink-3); display: inline-flex; gap: 4px; align-items: center; }
+.box .send { padding: 9px 18px; }
+</style>
+</head>
+<body>
+
+<header class="page-head">
+  <div>
+    <h1>Bot chat</h1>
+    <p class="sub">Ask the router for anything a client needs. It drafts, you decide. <b>Nothing reaches a client until you approve it.</b></p>
+  </div>
+  <span class="sync"><span class="dot"></span>Up to date · 19 Oct, 12:00 AM</span>
+</header>
+
+<div class="modes">
+  <div class="seg" role="tablist">
+    <button aria-current="true">Ask bots <span class="n">1 working</span></button>
+    <button>Drafts <span class="n quiet">2 waiting</span></button>
+  </div>
+  <div class="filters" aria-label="Draft filters (apply to Drafts)">
+    <span class="lbl">Drafts:</span>
+    <button class="on">Waiting 2</button><button>Snoozed</button><button>Approved</button><button>Rejected</button><button>Expired</button><button>All</button>
+  </div>
+</div>
+
+<section class="panel">
+  <aside class="side">
+    <div class="side-head">
+      <div><h2>Chats</h2><p class="meta">One per client, by topic</p></div>
+      <button class="btn btn-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New chat
+      </button>
+    </div>
+    <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Find a chat</div>
+
+    <div class="projs">
+      <section class="proj open">
+        <button class="proj-h"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg><span class="av d8">D8</span><span class="proj-name">Domin8te Media</span><span class="count">1 working</span></button>
+        <ul class="threads">
+          <li><button class="thread busy" aria-current="true"><span class="t">General</span><span class="when">23:16</span><span class="m">Grok is drafting your test…</span></button></li>
+          <li><button class="thread empty"><span class="t">Photos &amp; social</span><span class="when"></span><span class="m">Nothing yet</span></button></li>
+          <li><button class="thread empty"><span class="t">Website changes</span><span class="when"></span><span class="m">Nothing yet</span></button></li>
+          <li><button class="new-thread"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New topic</button></li>
+        </ul>
+      </section>
+      <section class="proj">
+        <button class="proj-h"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg><span class="av fr">FR</span><span class="proj-name">Freddy's</span><span class="count wait">2 waiting</span></button>
+      </section>
+      <section class="proj">
+        <button class="proj-h"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg><span class="av sb">SB</span><span class="proj-name">Steakburger Winnipeg</span></button>
+      </section>
+    </div>
+
+    <div class="side-foot"><a href="#">Earlier messages</a><a href="#">Archived (3)</a></div>
+  </aside>
+
+  <div class="main">
+    <div class="head">
+      <span class="av d8">D8</span>
+      <div class="ttl">
+        <h3>General <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Only you see this</span></h3>
+        <p class="meta">Domin8te Media · 4 messages</p>
+      </div>
+      <div class="tools">
+        <a class="pill-link" href="#">Drafts for this client <span class="n">1</span></a>
+        <button class="icon-btn" aria-label="Rename or archive"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+      </div>
+    </div>
+
+    <div class="log">
+      <span class="day">18 Oct</span>
+
+      <div class="row you">
+        <span class="av d8">K</span>
+        <div class="bub"><p>Give me ten ideas for features that would make approving drafts faster.</p><p class="meta">You · 01:50</p></div>
+      </div>
+
+      <div class="row">
+        <span class="av rt">R</span>
+        <div class="draft">
+          <div class="dh"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20h16M6 16l10-10 2 2L8 18l-3 1z"/></svg>Draft answer</span><span class="meta">Router · 01:52</span></div>
+          <div class="body">
+            <p><strong>Ten ways to make approving drafts faster</strong></p>
+            <ol>
+              <li><strong>Approve all.</strong> One button for every small draft that is waiting.</li>
+              <li><strong>Batch approval.</strong> Tick several drafts, approve in one click.</li>
+              <li><strong>Lock after approval.</strong> Approved items go read-only until un-approved.</li>
+              <li><strong>Pending reminders.</strong> A nudge for time-sensitive drafts.</li>
+              <li><strong>Seasonal job proposer.</strong> Suggests jobs 3 weeks ahead from holidays and events.</li>
+              <li><strong>Inline text suggestions</strong> with one-click accept.</li>
+              <li><strong>Voice-note requests</strong> with read-back.</li>
+              <li><strong>Phone photo-drop link</strong> per client with auto-enhancement.</li>
+            </ol>
+          </div>
+          <div class="df">
+            <button class="more">Show the rest (10 items)</button>
+            <span class="sp"></span>
+            <button class="btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>Copy</button>
+            <button class="btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 12a8 8 0 0 1 14-5l2 2M20 4v5h-5"/></svg>Ask again</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row you">
+        <span class="av d8">K</span>
+        <div class="bub"><p>test</p><p class="meta">You · 23:16</p></div>
+      </div>
+
+      <div class="sys"><span class="chip">With Grok</span>Not a coding job, so the router passed it to Grok to draft for Domin8te Media.</div>
+
+      <div class="live">
+        <span class="dot"></span>
+        <span class="t">Grok is drafting</span>
+        <span class="bar"><i></i></span>
+        <span class="meta">0:42 · lands in <a href="#" style="color:var(--accent-ink);font-weight:600">Drafts</a></span>
+      </div>
+    </div>
+
+    <div class="compose">
+      <div class="chips">
+        <span class="lbl">Try:</span>
+        <button>3 Instagram captions for this week</button>
+        <button>Reply to a Google review</button>
+        <button>Plan next month's posts</button>
+        <button>Rewrite the homepage hero</button>
+      </div>
+      <div class="box">
+        <textarea placeholder="Ask for anything for Domin8te Media…"></textarea>
+        <div class="bar2">
+          <span class="to"><svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>To <b>Domin8te Media · General</b> · drafts only</span>
+          <span class="sp"></span>
+          <span class="hint"><kbd>Ctrl</kbd><kbd>Enter</kbd></span>
+          <button class="btn send">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<script>document.querySelector(".log").scrollTop=1e6;</script></body>
+</html>

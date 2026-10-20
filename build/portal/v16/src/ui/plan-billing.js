@@ -45,14 +45,19 @@
 
   /**
    * The plan card on Billing. With nothing chosen for next month it shows the services and the way to change them;
-   * with a change confirmed it shrinks to this month and the confirmation takes over (confirmed()).
-   * @param {any} m the plan model @param {{compact?: boolean}} [o]
+   * with a change confirmed it shrinks to this month and the confirmation takes over (confirmed()). Given the billing
+   * record, a payment that did not go through turns the badge into "Active until" the paid-through day, never a green one.
+   * @param {any} m the plan model @param {{compact?: boolean, billing?: any}} [o]
    */
   function overview(m, o = {}) {
     const c = m.now;
     const changing = m.confirmed && m.changes.differs;
     const eyebrow = changing || o.compact ? 'Your plan this month' : 'Your plan';
-    const status = m.confirmed && m.changes.differs ? '' : `<span class="badge tone-success">${icon('check')}Active · no changes coming</span>`;
+    const sub = o.billing && o.billing.subscription;
+    const pastDue = !!sub && sub.status === 'past_due';
+    const status = changing ? ''
+      : pastDue ? (sub.graceUntil ? `<span class="badge tone-warning">${icon('clock')}Active until ${esc(day(sub.graceUntil))}</span>` : '')
+        : `<span class="badge tone-success">${icon('check')}No plan changes coming</span>`;
     const head = `<header class="po-head"><div><p class="eyebrow">${eyebrow}</p><h2 class="po-name" id="h-plan">${esc(c.name)}${perMonth(c) ? `<span class="po-price"> · ${esc(perMonth(c))}</span>` : ''}</h2>${chips(c.picks)}</div>${o.compact ? '' : status}</header>`;
     if (o.compact || changing) {
       return `<section class="card plan-overview is-compact" aria-labelledby="h-plan">${head}<div class="po-facts">${facts(m)}</div></section>`;
@@ -65,7 +70,7 @@
       <div class="po-grid">
         <div><h3 class="po-h">Your services each month</h3>${serviceList(c)}${included(c)}</div>
         <div class="po-side"><h3 class="po-h">Billing</h3>${facts(m)}<div class="po-when">${daysLeft(m)}${note}</div>
-          <div class="po-actions">${m.open ? `<a class="btn btn-solid btn-block" href="#/billing/change">Change my services${icon('arrow-right')}</a>` : ''}<a class="btn btn-glass btn-block" href="#bills">See past bills</a></div>
+          <div class="po-actions">${m.open ? `<a class="btn btn-solid btn-block" href="#/billing/change">Change my services${icon('arrow-right')}</a>` : ''}<a class="link" href="#bills">Past bills ↓</a></div>
         </div>
       </div>
     </section>`;
@@ -106,7 +111,7 @@
         <div><h3 class="po-h">What happens next</h3>${timeline(items)}</div>
       </div>
       ${m.open ? `<p class="pcf-warn">${icon('info')}<span><strong>Picked the wrong thing?</strong> Change it any time until ${esc(day(m.lastDay))}, or <a class="link" href="#/messages">message Karan</a>. No charge for changing your mind.</span></p>` : ''}
-      <div class="pcf-actions">${m.open ? `<a class="btn btn-solid" href="#/billing/change">Change my picks</a>` : ''}<a class="btn btn-glass" href="#/messages">${icon('message')}Message Karan</a><a class="btn btn-glass" href="#bills">See past bills</a></div>
+      <div class="pcf-actions">${m.open ? `<a class="btn btn-solid" href="#/billing/change">Change my picks</a>` : ''}<a class="btn btn-glass" href="#/messages">${icon('message')}Message Karan</a><a class="link" href="#bills">Past bills ↓</a></div>
     </section>`;
   }
 

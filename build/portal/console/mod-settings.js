@@ -893,7 +893,7 @@
   }
   /** The freshness line and a row of links to the parts of this long page. */
   function top() {
-    const links = [['sec-plans', 'Plans and limits'], ['sec-reminders', 'Reminder emails'], ['sec-notify', 'Message emails'], ['team-box', 'Team'], ['sec-access', 'Access details'], ['sec-stripe', 'Stripe'], ['sec-multica', 'Multica'], ['sec-look', 'Preferences']];
+    const links = [['sec-plans', 'Plans and limits'], ['sec-reminders', 'Reminder emails'], ['sec-notify', 'Message emails'], ['team-box', 'Team'], ['sec-access', 'Client access details'], ['sec-stripe', 'Stripe (payments)'], ['sec-multica', 'Multica (work board sync)'], ['sec-look', 'Preferences']];
     return `${freshHtml()}
       <nav class="set-index" aria-label="On this page">${links.map(([id, t]) => `<button type="button" data-action="jump" data-to="${id}">${esc(t)}</button>`).join('')}</nav>`;
   }
@@ -967,7 +967,7 @@
       <textarea class="code" name="doc" spellcheck="false" aria-label="Client record as JSON" aria-describedby="rec-block rec-err">${esc(JSON.stringify(cur.doc, null, 2))}</textarea>
       <p class="field-error" id="rec-err" hidden></p>
       <div class="raw-block" id="rec-block" role="status" hidden></div>
-      <div class="actions"><button class="btn" type="submit">Save raw data</button><button class="btn btn-quiet" type="button" data-action="copy-record">Copy</button><span class="meta">Numbers must be real. Never type a number that did not come from a source. The package, the plan, metrics and updates are read-only here.</span></div>
+      <div class="actions"><button class="btn btn-quiet" type="submit">Save raw data</button><button class="btn btn-quiet" type="button" data-action="copy-record">Copy</button><span class="meta">Numbers must be real. Never type a number that did not come from a source. The package, the plan, metrics and updates are read-only here.</span></div>
       </form></details>`;
     const f = /** @type {HTMLFormElement} */ ($('#rec-form', box));
     const ta = /** @type {HTMLTextAreaElement} */ (f.elements.namedItem('doc'));
@@ -1036,7 +1036,7 @@
       const changes = diff(cur.doc, doc, '');
       if (!changes.length) { D().toast('Nothing has changed.'); D().clean(f); return; }
       const names = changes.map((c) => c.path);
-      if (!await D().ask('Save these changes to the raw data?', `${plural(changes.length, 'value')} ${changes.length === 1 ? 'changes' : 'change'}: ${names.slice(0, 4).join(', ')}${names.length > 4 ? ` and ${names.length - 4} more` : ''}. ${cur.name}'s portal reads this record, so what you save is what they see. The change is written to their history.`, 'Save raw data')) return;
+      if (!await D().ask('Overwrite this client\'s raw data?', `${plural(changes.length, 'value')} ${changes.length === 1 ? 'changes' : 'change'}: ${names.slice(0, 4).join(', ')}${names.length > 4 ? ` and ${names.length - 4} more` : ''}. ${cur.name}'s portal reads this record, so what you save is what they see. The change is written to their history.`, 'Save raw data')) return;
       const done = D().busy(save, 'Saving');
       try {
         await D().save({ doc });

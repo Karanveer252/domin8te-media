@@ -128,7 +128,7 @@
       </header>
       ${staffNote(o.staff)}
       <ul class="run-list">${rows}</ul>
-      ${o.staff ? '' : '<p class="pc-source">Source: Domin8te console</p>'}
+      ${o.staff ? '' : '<p class="pc-source">Source: Domin8te team</p>'}
     </section>`;
   }
 

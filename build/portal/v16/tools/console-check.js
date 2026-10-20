@@ -133,7 +133,7 @@ async function demoProbe() {
   for (const [name, fn, payload] of fns) {
     try { await C.callFn(fn, payload); out.guard.push(`${name}: NOT refused`); } catch (e) { out.guard.push(`${name}: ${/** @type {any} */ (e).code === 'demo-readonly' ? 'refused' : 'other error ' + /** @type {any} */ (e).message}`); }
   }
-  const words = /^(Save|Approve|Decline|Reject|Send|Respond|Remove|Hide|Show again|Show it|Show to client|Mark|Publish|Lock|Unlock|Confirm|Add|Give|Create|Link|Count|Void|Post|Record|Fix|Use|Edit, then|With my edits|Ask for an OK|Keep)/;
+  const words = /^(Save|Approve|Decline|Reject|Send|Respond|Remove|Hide|Show again|Show it|Show to client|Mark|Publish|Lock|Unlock|Confirm|Add|Give|Create|Link|Count|Void|Post|Record|Fix|Use|Edit, then|With my edits|Ask for an OK|Ask client to approve|Keep)/;
   const bot = (S.db.bot_outputs || []).find((/** @type {any} */ x) => x.status === 'pending');
   const places = [`messages/${T}`, `client/${T}/talk`, 'settings', 'queue', `client/${T}/work/cards`, `client/${T}/setup`, 'billing', `billing/${T}`, bot ? `bot/${bot.id}` : 'bot', 'bot'];
   for (const place of places) {

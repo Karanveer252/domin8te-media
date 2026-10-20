@@ -12,6 +12,7 @@
 //                                   writes the PREVIEW (sample clients, stand-ins, the orange notice)
 //                                   to C:/Work/domin8te-media/console/index.html: what goes live at
 //                                   /console until Clerk is set up and the real console replaces it
+//   D8_SITE_SRC=<folder>            reads the homepage (icons, cursor) from <folder>, not C:/Work/domin8te-media; never written
 'use strict';
 const fs = require('fs');
 const path = require('path');

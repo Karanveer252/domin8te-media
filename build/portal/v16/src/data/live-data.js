@@ -308,7 +308,7 @@
     confirmedAt: c.confirmed_at || null, confirmedBy: ''   // who confirmed is staff-only (20261014110000): never read
   });
   /** Where a figure came from, in words, when the person who entered it named no source. @param {string} ref */
-  const sourceName = (ref) => ({ console: 'Domin8te console', stripe: 'Stripe', multica: 'Multica', zernio: 'Zernio' }[String(ref || '').split(':')[0]] || 'Domin8te');
+  const sourceName = (ref) => ({ console: 'Domin8te team', stripe: 'Stripe', multica: 'Multica', zernio: 'Zernio' }[String(ref || '').split(':')[0]] || 'Domin8te');
 
   /**
    * The live source for one signed-in person: their restaurant's record and their own rows, read
@@ -429,7 +429,7 @@
           newer: !!x.has_newer_unverified, verifiedAt: toWall(x.verified_at) || null
         };
       });
-      const sections = home.error ? [] : (home.data || []).map((/** @type {any} */ x) => ({ section: x.section, content: x.content || {}, source: x.source || 'Domin8te console', publishedAt: toWall(x.published_at) || null, updatedAt: toWall(x.updated_at) || null }));
+      const sections = home.error ? [] : (home.data || []).map((/** @type {any} */ x) => ({ section: x.section, content: x.content || {}, source: x.source || 'Domin8te team', publishedAt: toWall(x.published_at) || null, updatedAt: toWall(x.updated_at) || null }));
       // Only the numbers the server checked; a row it could not read is "no summary yet", never made up here.
       const w0 = wk.error ? null : (wk.data || [])[0] || null;
       const weekly = w0 ? {

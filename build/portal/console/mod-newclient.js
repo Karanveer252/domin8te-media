@@ -79,7 +79,7 @@
       ${c.pageFresh({ updatedAt: c.all && c.all.at, source: 'Console and the database', status: c.plans.ok ? 'ok' : 'delayed', label: c.plans.ok ? undefined : 'Plans did not load' })}
       ${draft && draft.s ? `<p class="notice nc-draft" id="nc-draft-note">Your draft from ${esc(c.ago(draft.at))} is back, kept on this computer only. <button class="linkish" type="button" data-nc="start-over">Start over</button></p>` : ''}
       <form id="nc-form" class="nc" novalidate>
-        <nav class="nc-rail" aria-label="Steps"><ol>${['Restaurant', 'Plan', 'Picks', 'Billing', 'Dashboard', 'Stripe'].map((l, i) => `<li><button class="nc-pill" type="button" data-nc-go="nc-s${i + 1}" id="nc-pill-${i + 1}"><span class="nc-pill-n" aria-hidden="true">${i + 1}</span><span>${l}</span></button></li>`).join('')}</ol></nav>
+        <nav class="nc-rail" aria-label="Steps"><ol>${['Restaurant', 'Plan', 'Starting services', 'Billing', 'What they see', 'Stripe'].map((l, i) => `<li><button class="nc-pill" type="button" data-nc-go="nc-s${i + 1}" id="nc-pill-${i + 1}"><span class="nc-pill-n" aria-hidden="true">${i + 1}</span><span>${l}</span></button></li>`).join('')}</ol></nav>
 
         <section class="panel nc-step" id="nc-s1" aria-labelledby="nc-h1"><h2 id="nc-h1"><span class="nc-num" aria-hidden="true">1</span>Restaurant</h2>
           <div class="nc-fields">
@@ -106,7 +106,7 @@
         </section>
 
         <div class="nc-two">
-          <section class="panel nc-step" id="nc-s3" aria-labelledby="nc-h3"><h2 id="nc-h3"><span class="nc-num" aria-hidden="true">3</span>Starting picks</h2>
+          <section class="panel nc-step" id="nc-s3" aria-labelledby="nc-h3"><h2 id="nc-h3"><span class="nc-num" aria-hidden="true">3</span>Starting services</h2>
             <p class="nc-sub">Same rules as Billing: picks lock for the billing month, and changes apply from the next bill.</p>
             <div id="nc-picks"></div>
           </section>
@@ -117,7 +117,7 @@
           </section>
         </div>
 
-        <section class="panel nc-step" id="nc-s5" aria-labelledby="nc-h5"><h2 id="nc-h5"><span class="nc-num" aria-hidden="true">5</span>What the client can see from day one</h2>
+        <section class="panel nc-step" id="nc-s5" aria-labelledby="nc-h5"><h2 id="nc-h5"><span class="nc-num" aria-hidden="true">5</span>What they see</h2>
           <p class="nc-sub">Every page needs a decision. A hidden page is not shown to the client. You can change this later and it is logged.</p>
           <div class="nc-vis-wrap" role="table" aria-label="Dashboard pages">
             <div class="nc-vis nc-vis-head" role="row"><span role="columnheader">Dashboard page</span><span role="columnheader">Client sees it</span><span role="columnheader">Why</span></div>

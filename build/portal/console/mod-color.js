@@ -264,7 +264,7 @@
         el.classList.toggle('has-logo', !!logoOf(id));
         el.innerHTML = badgeInner(id, el.hasAttribute('data-cc-alone'));
       }
-      if (el.hasAttribute('data-wk-spot')) el.setAttribute('aria-label', `${tagOf(id)}, ${nameOf(id)}. Spotlight this client`);
+      if (el.hasAttribute('data-wk-spot')) el.setAttribute('aria-label', `${tagOf(id)}, ${nameOf(id)}. Show only this client`);
     }
     for (const row of document.querySelectorAll('[data-cc-logo-row]')) {
       const has = !!logoOf(row.getAttribute('data-cc-logo-row') || '');

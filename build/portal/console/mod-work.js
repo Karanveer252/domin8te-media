@@ -218,7 +218,7 @@
     if (over && i) {
       const plan = i.kind === 'notplan';
       flag = `<p class="wk-flag" role="note"><span><strong>${plan ? 'Not in this month’s plan.' : 'Over limit.'}</strong> ${i.ex ? 'Waiting for a decision in Needs you.' : plan ? 'Needs your OK or a plan change before work starts.' : 'Needs your OK or an upgrade before work starts.'}</span>
-        ${i.ex ? '<a class="wk-flag-a" href="#/queue">Open in Needs you</a>' : `<button class="wk-flag-a linkish" type="button" data-wk-ask="${E(t.id)}">Ask for an OK</button>`}</p>`;
+        ${i.ex ? '<a class="wk-flag-a" href="#/queue">Open in Needs you</a>' : `<button class="wk-flag-a linkish" type="button" data-wk-ask="${E(t.id)}">Ask client to approve</button>`}</p>`;
     }
     const v = visState(t);
     const vis = t.service && t.status !== 'cancelled'
@@ -240,7 +240,7 @@
     if (!t || ['todo', 'blocked', 'cancelled'].includes(status) || !OPEN.includes(t.status)) return '';
     const i = infoFor(t);
     if (!(i && i.over)) return '';
-    return i.ex ? `“${t.title}” is waiting in Needs you. It can start once that is decided.` : `“${t.title}” is over its limit. Press Ask for an OK on the card, and it can start once that is decided.`;
+    return i.ex ? `“${t.title}” is waiting in Needs you. It can start once that is decided.` : `“${t.title}” is over its limit. Press Ask client to approve on the card, and it can start once that is decided.`;
   }
 
   /* ---- errors in plain words --------------------------------------------------------------------------------------------- */
@@ -467,7 +467,7 @@
     const c = C();
     const to = at || line.used + qty;
     return {
-      message: `Over cap: ${c.svcLabel(t.service)} ${line.label} ${to} of ${line.cap} (${plan.nowPlan ? plan.nowPlan.name : 'plan'}).`,
+      message: `Over limit: ${c.svcLabel(t.service)} ${line.label} ${to} of ${line.cap} (${plan.nowPlan ? plan.nowPlan.name : 'plan'}).`,
       last: { task: t.id, title: t.title, service: t.service, metric: line.metric, qty, used: to - qty, cap: line.cap, plan: plan.now.plan_id, cycle: plan.now.id, request: t.request_id || null }
     };
   }
@@ -791,7 +791,7 @@
       if (err && err.code === 'demo-readonly') { /* the demo console: its note was said, and nothing changed */ }
       else if (err && err.code === '23514' && /^over_cap/.test(said)) {
         const opened = await reportException({ tenant_id: tid, id: metric }, 'over_cap',
-          `Over cap: ${c.svcLabel(line.service)} ${line.label} ${n} of ${line.cap} (${plan.nowPlan ? plan.nowPlan.name : 'plan'}).`,
+          `Over limit: ${c.svcLabel(line.service)} ${line.label} ${n} of ${line.cap} (${plan.nowPlan ? plan.nowPlan.name : 'plan'}).`,
           { metric, service: line.service, qty: Math.max(1, n - line.used), used: line.used, cap: line.cap, plan: plan.now ? plan.now.plan_id : null, cycle: plan.now ? plan.now.id : null, live: true }, 'live_count');
         wroteIt = true;
         c.toast(`${n} is over the limit of ${line.cap}, so nothing changed. ${opened ? 'It is in Needs you now' : 'It is already in Needs you'}, where a one-off can be approved.`, true);
@@ -887,7 +887,7 @@
     const withCards = tenants.filter((/** @type {any} */ t) => everyCard.some((/** @type {any} */ k) => k.tenant_id === t.id));
     if (st.spot && !withCards.some((/** @type {any} */ t) => t.id === st.spot)) st.spot = '';
     const byClient = withCards.length > 1
-      ? `<div class="wk-by" role="group" aria-label="By client: spotlight one client"><span class="wk-by-l" aria-hidden="true">By client</span><div class="wk-by-pills">${withCards.map((/** @type {any} */ t) => `<button class="wk-chip wk-pill" type="button" data-wk-spot="${E(t.id)}" data-wk-pill aria-pressed="${st.spot === t.id ? 'true' : 'false'}">${K ? K.badge(t.id) : ''}${E(t.name)}</button>`).join('')}</div></div>`
+      ? `<div class="wk-by" role="group" aria-label="Show only one client"><span class="wk-by-l" aria-hidden="true">Show only:</span><div class="wk-by-pills">${withCards.map((/** @type {any} */ t) => `<button class="wk-chip wk-pill" type="button" data-wk-spot="${E(t.id)}" data-wk-pill aria-pressed="${st.spot === t.id ? 'true' : 'false'}">${K ? K.badge(t.id) : ''}${E(t.name)}</button>`).join('')}</div></div>`
       : '';
     const spotChip = st.spot ? `<p class="wk-spotchip" role="status"><span>Showing <strong>${E(names[st.spot] || '')}</strong></span><span aria-hidden="true">·</span><button class="linkish" type="button" data-wk-spot-clear>Clear</button></p>` : '';
     // "Group by client" (remembered in this browser): one lane for each client with cards, the usual columns inside each

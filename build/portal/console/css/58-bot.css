@@ -201,7 +201,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] .bot-showing
  * project per client with its threads (the console's own side-nav look: a quiet row, the open one lifted onto the surface). Right:
  * the open thread, the Messages page's log and reply box (.convo-log, .msg, .convo-reply, .log-card). The search and dropdown row is
  * for drafts, so it steps aside while the chat shows. New here: the two-pane placement, the thread rows and the small status word on
- * Karan's own message (.bo-state: a dot and a word, quieter than a chip). Every colour, radius and font is the console's own token. */
+ * Karan's own message (.bo-state: a dot and a word, quieter than a chip). Every colour, radius and font is the console's own token.
+ * v98 (2026-10-19): one-column at 900px, a Reload in the thread head, router notes and instant replies drawn as messages. */
 #bot-results > .bot-owner { order: 4; }
 #bot-box:has(> #bot-results > .bot-owner) > .bot-toolbar { display: none; }
 .bot-owner.bo2 { display: grid; grid-template-columns: minmax(220px, 268px) minmax(0, 1fr); padding: 0; overflow: hidden; }
@@ -239,6 +240,10 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] .bot-showing
 .bo-head h3 { margin: 0; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bo-head h3:focus { outline: none; }
 .bo-tools { display: flex; gap: 6px; flex: none; }
+/* v98 Reload: the v97 head-button look (as Rename / Archive), its icon sized like New chat's, dimmed while it runs */
+.bo-reload { display: inline-flex; align-items: center; gap: 6px; }
+.bo-reload .ic { width: 14px; height: 14px; flex: none; }
+.bo-reload[disabled] { opacity: 0.5; cursor: default; }
 .bo-back { display: none; flex: none; }
 .bo-rename { display: flex; align-items: center; gap: 8px; max-width: 460px; }
 .bo-main .convo-log { min-height: 280px; max-height: max(320px, calc(100dvh - 470px)); }
@@ -267,12 +272,9 @@ html[data-theme="dark"] .msg.team .bo-state.warn::before { background: #B57200; 
 html[data-theme="dark"] .msg.team .bo-state.bad::before { background: #B3261E; }
 html[data-theme="dark"] .msg.team .bo-state.info::before { background: #3C78D2; }
 html[data-theme="dark"] .msg.team .bo-state.you::before { background: #FF5B1F; }
+/* Phones and narrow windows (v98: 900px, where the Messages page also goes to one column; was 760px): the list and the open thread
+ * are two views of the panel; the back button returns to the threads */
 @media (max-width: 900px) {
-  .bot-owner.bo2 { grid-template-columns: minmax(200px, 230px) minmax(0, 1fr); }
-  .bo-main { padding: 16px 16px 18px; }
-}
-/* Phones: the list and the open thread are two views of the panel; the back button returns to the threads */
-@media (max-width: 760px) {
   .bot-owner.bo2 { grid-template-columns: minmax(0, 1fr); }
   .bot-owner.bo2[data-view="list"] .bo-main, .bot-owner.bo2[data-view="thread"] .bo-side { display: none; }
   .bo-side { max-height: none; border-right: 0; background: none; padding: 16px 10px 14px; }

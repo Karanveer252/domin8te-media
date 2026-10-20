@@ -122,7 +122,7 @@
     throw Object.assign(new Error(DEMO_NOTE), { code: 'demo-readonly' });
   }
   /** The buttons that would change something, by their words (the demo switches them off). */
-  const DEMO_WRITE_WORDS = /^(Save|Approve|Decline|Reject|Send|Respond|Remove|Hide|Show again|Show it and approve|Show to client|Mark|Publish|Unlink|Link|Lock|Unlock|Give them a login|Add this login|Add the|Add to|Create in Stripe|Count it|Void|Move to Done|Post the update|Record the check|Put (it|them) back|Use this text|Use the time now|Edit, then approve|With my edits|Ask for an|Upload logo|Replace logo|Keep the card|Keep it|Keep hidden|Keep client value|Use console value|Confirm|Count as|Fix email|Move to|Verify and publish|Suggest|Use the automatic tag|Start fresh|Decide|Set address|Undo$)|\((ours|Multica's)\)$/;
+  const DEMO_WRITE_WORDS = /^(Save|Approve|Decline|Reject|Send|Respond|Remove|Hide|Show again|Show it and approve|Show to client|Mark|Publish|Unlink|Link|Lock|Unlock|Give them a login|Add this login|Add the|Add to|Create in Stripe|Count it|Void|Move to Done|Post the update|Record the check|Put (it|them) back|Use this text|Use the time now|Edit, then approve|With my edits|Ask for an|Ask client to approve|Upload logo|Replace logo|Keep the card|Keep it|Keep hidden|Keep client value|Use console value|Confirm|Count as|Fix email|Move to|Verify and publish|Suggest|Use the automatic tag|Start fresh|Decide|Set address|Undo$)|\((ours|Multica's)\)$/;
   /**
    * The demo console shows its write controls switched off (2026-10-14): the reply boxes and every button that would save, send or
    * approve, each with the demo note as its tooltip. The refusal in watchWrites stays the real guard; this is so nobody is invited to try.
@@ -613,12 +613,12 @@
       const label = SERVICES[s].label;
       if (w.expected && w.expected.date && w.status !== 'complete' && w.status !== 'paused') {
         const d = due(w.expected.date);
-        if (d.late) needs.push({ kind: 'late', label: 'Promised date passed', hint: 'An Expected date we gave them has passed', text: `${label}: ${w.expected.text || 'expected date'}`, dueDate: w.expected.date, late: true, href: go('work', [s]), rank: 0 });
+        if (d.late) needs.push({ kind: 'late', label: 'Missed promised date', hint: 'An Expected date we gave them has passed', text: `${label}: ${w.expected.text || 'expected date'}`, dueDate: w.expected.date, late: true, href: go('work', [s]), rank: 0 });
         else if (d.days <= 7) soon.push({ kind: 'expected', label, text: w.expected.text || 'Expected', dueDate: w.expected.date, href: go('work', [s]) });
       }
       if (w.next && w.next.who === 'client' && w.next.text) theirs.push({ kind: 'next', label: 'Their next step', text: `${label}: ${w.next.text}`, href: go('work', [s]) });
       for (const m of w.milestones || []) {
-        if (m.state === 'current' && m.date && m.date < now) needs.push({ kind: 'late', label: 'Step late', hint: 'A step on their Work page is past its date', text: `${label}: ${m.title}`, dueDate: m.date, late: true, href: go('work', [s]), rank: 0 });
+        if (m.state === 'current' && m.date && m.date < now) needs.push({ kind: 'late', label: 'Step overdue', hint: 'A step on their Work page is past its date', text: `${label}: ${m.title}`, dueDate: m.date, late: true, href: go('work', [s]), rank: 0 });
       }
     }
     for (const k of all.tasks || []) {
@@ -763,6 +763,7 @@
   function renderSide() {
     if (!all || !me) return;
     const list = /** @type {HTMLElement} */ ($('#side-list'));
+    // Badge == the Do now total on Needs you (reviewCount(null) + every need); keep the two formulas the same.
     let needsTotal = reviewCount(null); // the same total the Needs you page shows as "Do now": client approvals plus every need
     for (const t of all.tenants) if (t.status !== 'archived') needsTotal += derive(t).needs.length;
     const openId = current && document.documentElement.dataset.page === 'client' ? current.id : ''; // only while a client's own page is open
@@ -897,7 +898,7 @@
   }
 
   // The keys are the routes (#/client/<id>/<key>[/<part>]). Older links still work: LEGACY_TABS maps them.
-  const TABS = [['overview', 'Overview'], ['work', 'Work'], ['talk', 'Talk'], ['setup', 'Setup'], ['advanced', 'Advanced']];
+  const TABS = [['overview', 'Overview'], ['work', 'Work'], ['talk', 'Talk'], ['setup', 'Setup'], ['advanced', 'History and raw data']];
   /** The tabs a client has: the five above, and the ones the console's parts register (2026-10-13), each placed after the tab it names. @returns {string[][]} */
   function allTabs() {
     const ext = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.tabs ? /** @type {any} */ (window).D8C_EXT.tabs : {};
@@ -918,6 +919,8 @@
     }
     return out;
   }
+  /** The tabs Alt 1 to 9 and Alt 0 open: the first ten of the tab bar, in its order (the shortcuts dialog lists the same). @returns {string[][]} */
+  const keyTabs = () => allTabs().slice(0, 10);
   /** A tab a part of the console registered, or null. @param {string} key */
   const extTab = (key) => { const t = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.tabs; return t && Object.prototype.hasOwnProperty.call(t, key) ? t[key] : null; };
   /** Old tab keys (before 2026-10-09), each to its new tab and the part that opens the same place. @type {Record<string, (part: string) => string>} */
@@ -1027,8 +1030,11 @@
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); palette.open(); }
     else if (e.key === '/' && !typing && !palette.dlg.open) { e.preventDefault(); palette.open(); }
     // (not while a dialog is open: changing page under a question would ask another one on top of it)
-    else if (e.altKey && !typing && !$('dialog[open]') && /^[1-5]$/.test(e.key) && current && /^#\/client\//.test(location.hash)) {
-      const tab = TABS[Number(e.key) - 1];
+    // Alt 1 to 9, then 0, are the client tabs in the order the tab bar shows them (audit C1.2). Not with Ctrl or Meta (AltGr is Ctrl+Alt
+    // on Windows); e.code is the fallback where Alt changes the character (Option 1 is ¡ on a Mac).
+    else if (e.altKey && !e.ctrlKey && !e.metaKey && !typing && !$('dialog[open]') && current && /^#\/client\//.test(location.hash)) {
+      const digit = /^[0-9]$/.test(e.key) ? e.key : /^Digit[0-9]$/.test(e.code) ? e.code.slice(5) : '';
+      const tab = digit ? keyTabs()[digit === '0' ? 9 : Number(digit) - 1] : null;
       if (tab) { e.preventDefault(); location.hash = `#/client/${current.id}/${tab[0]}`; }
     }
   });
@@ -1457,7 +1463,7 @@
     const grouped = (items, /** @type {string} */ qf) => {
       /** @type {Map<string, any[]>} */ const by = new Map();
       for (const x of items) { if (!by.has(x.client)) by.set(x.client, []); /** @type {any[]} */ (by.get(x.client)).push(x); }
-      return Array.from(by.entries()).map(([name, list]) => `<div class="q-client"${qf ? ` data-qf="${qf}"` : ''}><h3 class="q-client-h">${CC() && list[0].tid ? CC().badge(list[0].tid) : ''}${esc(name)} · ${list.length}</h3>
+      return Array.from(by.entries()).map(([name, list]) => `<div class="q-client"${qf ? ` data-qf="${qf}"` : ''}${qf === 'other' ? ' data-qplain' : ''}><h3 class="q-client-h">${CC() && list[0].tid ? CC().badge(list[0].tid) : ''}${esc(name)} · ${list.length}</h3>
         <ul class="q">${list.slice(0, 3).map((x) => qRow(x)).join('')}</ul>
         ${list.length > 3 ? `<details class="reveal q-more"><summary>Show ${list.length - 3} more</summary><ul class="q">${list.slice(3).map((x) => qRow(x)).join('')}</ul></details>` : ''}</div>`).join('');
     };
@@ -1470,20 +1476,37 @@
     const N = partOf('needs');
     const typed = N ? needs.filter((x) => x.kind === 'exception') : [];
     const plain = N ? needs.filter((x) => x.kind !== 'exception') : needs;
-    const view = { typed, dmCount: reviewCount(null), otherCount: plain.length };
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Needs you</h1><p>Everything waiting on the team, most urgent first. Plan and limit items say what is wrong, what the client sees right now and the fastest way to fix it.</p></div>
+    // Plain rows behind "Show N more" in the client groups (3 open per client): counted in Do now but not visible.
+    /** @type {Map<string, number>} */ const perClient = new Map();
+    for (const x of plain) perClient.set(x.client, (perClient.get(x.client) || 0) + 1);
+    let folded = 0;
+    let folds = 0;
+    for (const k of perClient.values()) if (k > 3) { folded += k - 3; folds++; }
+    const view = { typed, dmCount: reviewCount(null), otherCount: plain.length, total: typed.length + reviewCount(null) + plain.length, folded };
+    const botWaiting = partOf('bot') && partOf('bot').pendingCount ? partOf('bot').pendingCount() : 0;
+    const start = 'Start at the top. Each card says what to press.';
+    const lead = !all.tenants.length ? start : view.total ? `${start} ${plural(view.total, 'thing')} for the team.`
+      : botWaiting ? `Nothing else for the team. ${botWaiting === 1 ? '1 bot draft waits' : `${botWaiting} bot drafts wait`} in Bot chat.` : `${start} Nothing for the team right now.`;
+    // The breakdown under Do now, only when there is more than one kind (applyFilter hides it under a chip).
+    const parts = [view.dmCount ? (view.dmCount === 1 ? '1 to check before it goes live' : `${view.dmCount} to check before they go live`) : '', typed.length ? plural(typed.length, 'plan and billing card') : '', plain.length ? plural(plain.length, 'other to-do') : ''].filter(Boolean);
+    // The fold line, first drawn from the per-client counts; mod-needs.js foldLine recounts it from the closed folds.
+    const foldText = folds === 1 ? `${doNow - folded} shown, ${folded} more in client groups. Open "Show ${folded} more" to see them.` : `${doNow - folded} shown, ${folded} more in client groups. Open "Show more" in each group to see them.`;
+    const trulyEmpty = !needs.length && !reviewCount(null) && !botWaiting;
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Needs you</h1><p>${esc(lead)}</p></div>
       <div class="btns updated"><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span><button class="icon-btn icon-btn-sm" type="button" data-action="refresh" aria-label="Reload" title="Reload">${icon('refresh')}</button></div></div>
       ${N ? N.top(view) : ''}
-      ${soon.length ? `<details class="soon-strip" data-qf="other"><summary>${icon('clock')}<span><b>Coming up this week: ${soon.length}.</b> Next: ${esc(next.client)}, ${esc(next.label)}${nd ? `, ${esc(nd.days === 0 ? 'today' : nd.text)}` : ''}</span></summary><ul class="q">${soon.map((x) => qRow(x, x.client)).join('')}</ul></details>` : ''}
-      ${partOf('intake') ? partOf('intake').block() : ''}
-      ${partOf('usage') ? partOf('usage').needsBlock() : ''}
       ${all.tenants.length ? '' : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p><a class="btn" href="#/new">Add a client</a></div>`}
-      <section class="q-group" id="q-needs"><h2>Do now <span class="meta">${doNow}</span></h2>
+      <section class="q-group" id="q-needs"><h2>Do now <span class="meta" data-qtotal>${doNow}</span></h2>
+        ${parts.length > 1 ? `<p class="meta" data-qparts>${esc(parts.map((x) => x.replace(/ /g, ' ')).join(' · '))}</p>` : ''}
+        <p class="lede" data-qcount${folds ? '' : ' hidden'}>${folds ? esc(foldText) : ''}</p>
         ${N ? N.cards(typed) : ''}
         ${dm}
         ${partOf('bot') ? partOf('bot').needsBlock() : ''}
-        ${needs.length ? (plain.length ? grouped(plain, 'other') : '') : `<div class="empty"><p><strong>Nothing needs you right now.</strong></p><p>New requests, messages, change requests and late dates show up here.</p></div>`}
+        ${!trulyEmpty ? (plain.length ? grouped(plain, 'other') : '') : `<div class="empty"><p><strong>Nothing needs you right now.</strong></p><p>New requests, messages, change requests and late dates show up here.</p></div>`}
       </section>
+      ${soon.length ? `<details class="soon-strip" data-qf="other"><summary>${icon('clock')}<span><b>Coming up this week: ${soon.length}.</b> Next: ${esc(next.client)}, ${esc(next.label)}${nd ? `, ${esc(nd.days === 0 ? 'today' : nd.text)}` : ''}</span></summary><ul class="q">${soon.map((x) => qRow(x, x.client)).join('')}</ul></details>` : ''}
+      ${partOf('intake') ? partOf('intake').block() : ''}
+      ${partOf('usage') ? partOf('usage').needsBlock() : ''}
       ${waiting.length ? `<details class="q-group q-fold" id="q-waiting" data-qf="other"><summary><h2>Waiting on clients <span class="meta">${waiting.length}</span></h2></summary>
         <p class="lede">Approvals they have not answered, and next steps that are theirs. Late ones first.</p>${grouped(waiting)}</details>` : ''}`;
     if (N) N.wire(main, view);
@@ -1564,7 +1587,7 @@
       ${log.length ? `<ol class="convo-log" id="convo-log" tabindex="0" aria-labelledby="convo-h">${log.map((x) => x.html).join('')}</ol>`
         : `<div class="convo-log convo-empty" id="convo-log"><p class="meta">No messages yet. Write the first one below.</p></div>`}
       <form class="convo-reply" id="convo-reply" novalidate>
-        <div class="field"><label for="convo-body">Reply as ${esc(me.name)}</label><textarea id="convo-body" name="body" maxlength="2000" rows="3" placeholder="Write your reply${first ? ` to ${esc(first)}` : ''} here"></textarea></div>
+        <div class="field"><label for="convo-body">Reply as ${esc(me.name)}</label><textarea id="convo-body" name="body" maxlength="2000" rows="3" placeholder="Write your reply${first ? ` to ${esc(first)}` : ''} here (Ctrl+Enter to send)"></textarea></div>
         <div class="actions"><button class="btn" type="submit">Send</button><span class="meta">They see it next time they open their portal. We don't email them. <kbd>Ctrl</kbd> <kbd>Enter</kbd> sends.</span></div>
       </form>`;
   }
@@ -1582,7 +1605,7 @@
     const shown = openId ? tenant(openId) : wide ? (keep ? keep.t : list[0] ? list[0].t : null) : null;
     inboxState.open = shown ? shown.id : '';
     const waitingN = list.filter((/** @type {any} */ x) => x.c.waiting).length;
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Messages</h1><p>Every client's conversation in one place. ${waitingN ? `${plural(waitingN, 'client')} waiting for your reply.` : 'Nobody is waiting for a reply.'}</p></div>
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Messages</h1><p>Every client's conversation in one place: the same messages as each client's Talk tab. ${waitingN ? `${plural(waitingN, 'client')} waiting for your reply.` : 'Nobody is waiting for a reply.'}</p></div>
       <div class="btns updated"><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span><button class="icon-btn icon-btn-sm" type="button" data-action="refresh" aria-label="Reload conversation" title="Reload conversation. The page also checks by itself every 10 seconds.">${icon('refresh')}</button></div></div>
       <div class="inbox${openId ? ' has-open' : ''}">
         <section class="panel inbox-list" aria-label="Conversations">
@@ -1838,8 +1861,8 @@
     const statusChip = current.status === 'active' ? '<span class="chip good">Active</span>' : current.status === 'paused' ? `<span class="chip warn" title="${PAUSED_HINT}">Paused</span>` : '<span class="chip">Archived</span>';
     // Warnings only when something is missing; everything else about them folds into About.
     const warns = [
-      current.clerk_org_id ? '' : `<a class="chip warn chip-link" href="#/client/${esc(id)}/setup/login">No login yet</a>`,
-      pf.approval_level ? '' : `<a class="chip warn chip-link" href="#/client/${esc(id)}/setup/plan?at=signoff" title="How often we ask them before work goes out">No sign-off level</a>`
+      current.clerk_org_id ? '' : `<a class="chip warn chip-link" href="#/client/${esc(id)}/setup/login">Give them a login →</a>`,
+      pf.approval_level ? '' : `<a class="chip warn chip-link" href="#/client/${esc(id)}/setup/plan?at=signoff" title="How often we ask them before work goes out">Set sign-off level →</a>`
     ].join('');
     const about = [
       d.business.kind ? esc(d.business.kind) : '',
@@ -1848,16 +1871,35 @@
       pf.approval_level ? approvalChip(pf.approval_level, true) : '',
       `Changed <time datetime="${esc(current.updated_at)}" title="${esc(when(current.updated_at))}">${esc(ago(current.updated_at))}</time>`
     ].filter(Boolean);
+    // On a phone only the first few tabs show, so one line under the bar says where you are and what is off the edge (audit C1.3).
+    // It is built from the same list as the bar; on the last tab it points back the other way.
+    const tabsWhere = (() => {
+      const all = allTabs(), at = all.findIndex((x) => x[0] === t), last = at === all.length - 1;
+      const rest = (last ? all.slice(0, at).reverse() : all.slice(at + 1)).map((x) => x[1]);
+      const names = rest.length > 2 ? `${rest[0]}, ${rest[1]} and more` : rest.join(' and ');
+      // The last two words are held together so a narrow phone never leaves one word alone on the second line.
+      return `${all[at][1]} · ${at + 1} of ${all.length} tabs.${rest.length ? ` Swipe ${last ? 'back ' : ''}for ${names}.` : ''}`.replace(/ (\S+)$/, ' $1');
+    })();
     main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a>
       <div class="client-head"><div><h1 id="page-title" tabindex="-1">${esc(current.name)}</h1>
-        <div class="who">${statusChip}${CC() ? CC().headerControl(current.id) : ''}${pinHead(current.id)}${warns}<details class="about"><summary>About</summary><p class="about-line">${about.map((x) => `<span class="t">${x}</span>`).join('')}</p></details></div></div></div>
+        <div class="who">${statusChip}${CC() ? CC().headerControl(current.id) : ''}${pinHead(current.id)}${warns}<details class="about"><summary>Contact and details</summary><p class="about-line">${about.map((x) => `<span class="t">${x}</span>`).join('')}</p></details></div></div></div>
       <nav class="tabs" aria-label="Client sections">${allTabs().map(([k, label]) => {
         // The Bot tab counts the drafts waiting for this client, the same ones the sidebar's Bot chat count adds up (critic R11-6).
         const botN = k === 'bot' && partOf('bot') && partOf('bot').waitingFor ? partOf('bot').waitingFor(id) : 0;
         const count = k === 'talk' && talkCount ? `<span class="count" title="Needs a reply">${talkCount}</span>` : k === 'work' && openCards ? `<span class="count quiet" title="Open cards">${openCards}</span>` : k === 'bot' ? `<span class="count" title="Drafts waiting" data-bot-tab-count${botN ? '' : ' hidden'}>${botN}</span>` : '';
         return `<a href="#/client/${esc(id)}/${k}"${k === t ? ' aria-current="page"' : ''}>${label}${count}</a>`;
       }).join('')}</nav>
+      <p class="meta tabs-where" aria-hidden="true">${esc(tabsWhere)}</p>
       <div id="tab"></div>`;
+    // The head is drawn afresh on every tab change, so a phone's sideways tab row starts at its left end again; slide the row
+    // (never the page) until the current tab sits fully in view, clear of the faded right edge (audit C1.3).
+    const row = /** @type {HTMLElement | null} */ ($('.tabs', main)), on = row && /** @type {HTMLElement | null} */ ($('[aria-current="page"]', row));
+    if (row && on && row.scrollWidth > row.clientWidth) {
+      const r = row.getBoundingClientRect(), a = on.getBoundingClientRect(), max = row.scrollWidth - row.clientWidth;
+      const right = Math.max(r.left, r.right - 84);
+      const by = a.left < r.left ? a.left - r.left : a.right > right ? Math.min(a.right - right, a.left - r.left) : 0;
+      if (by) row.scrollLeft = Math.max(0, Math.min(max, row.scrollLeft + by));
+    }
     const box = /** @type {HTMLElement} */ ($('#tab'));
     try { localStorage.setItem('d8c.tab.' + id, t); } catch (e) { /* remembering the tab is a nicety */ }
     stopPulling();
@@ -1991,7 +2033,7 @@
         </div>
         <div class="actions"><button class="btn" type="submit">Save details</button></div>
         </form>`)}
-      ${fold('sec-more', 'more-h', 'More', 'Billing dates, account team and meeting, connected accounts', moreParts.includes(part), `
+      ${fold('sec-more', 'more-h', 'Billing dates, team and connected accounts', 'Billing dates, account team and meeting, connected accounts', moreParts.includes(part), `
         <form id="more-form" novalidate>
         <h3 class="panel-sub" id="billing">Billing <span class="meta" id="billing-sub">${billingSubText(current)}</span></h3>
         <div class="stripe-row" id="stripe-row">${stripeRow(current)}</div>
@@ -3004,12 +3046,12 @@
     const look = (/** @type {string} */ key, /** @type {string} */ label, /** @type {string[][]} */ opts) => `<div class="field"><label for="pref-${key}">${label}</label><select id="pref-${key}" data-pref-select="${key}">${opts.map(([v, l]) => `<option value="${v}"${String(prefs[key]) === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
     // The plan release's parts of this page (plans and limits, reminder emails, the Hermes row) are drawn by console/mod-settings.js.
     const X = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.settings;
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Settings</h1><p>Plans and limits, bill reminders, the team and the services the console connects to. Your own preferences save to your account and follow you to any computer.</p></div></div>
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Settings</h1><p>Shared settings for the whole team. Your own Preferences are at the bottom.</p></div></div>
       ${X ? X.top() : ''}
       <p class="meta set-note" id="set-note" role="status">${note ? esc(note) : ''}</p>
       ${X ? X.sections() : ''}
       <section class="panel" aria-labelledby="s-team" id="team-box"></section>
-      <section class="panel" aria-labelledby="s-access" id="sec-access"><div class="panel-head"><h2 id="s-access">Access details for clients</h2><p>Clients see these in their steps when they connect Instagram, Facebook, Meta ads or Google. Saving copies them to every client, and new clients get them too.</p></div>
+      <section class="panel" aria-labelledby="s-access" id="sec-access"><div class="panel-head"><h2 id="s-access">Client access details</h2><p>Clients see these in their steps when they connect Instagram, Facebook, Meta ads or Google. Saving copies them to every client, and new clients get them too.</p></div>
         ${me.role === 'super_admin' ? `<form id="access-form" novalidate><div class="grid-3">
           <div class="field"><label for="s-metaid">Our Meta business ID</label><input id="s-metaid" name="metaid" type="text" value="${esc(agencyAccess().metaBusinessId || '')}" maxlength="40" inputmode="numeric" autocomplete="off"><p class="hint">In Meta Business settings, under Business info. Used for Instagram, Facebook and Meta ads.</p></div>
           <div class="field span-2"><label for="s-accessemail">Our email for Google access</label><input id="s-accessemail" name="accessemail" type="email" value="${esc(agencyAccess().accessEmail || '')}" maxlength="120" autocomplete="off"><p class="hint">The Google account clients add as a manager. Used for Google Business Profile and Google Analytics.</p></div>
@@ -3030,7 +3072,7 @@
     teamPanel(/** @type {HTMLElement} */ ($('#team-box')));
     const af =/** @type {HTMLFormElement|null} */ ($('#access-form'));
     if (af) {
-      track(af, 'Access details');
+      track(af, 'Client access details');
       af.addEventListener('submit', async (e) => {
         e.preventDefault();
         const metaId = val(af, 'metaid').replace(/\s+/g, ''), mail = val(af, 'accessemail').toLowerCase();
@@ -3659,7 +3701,7 @@
     const toFinish = approved.filter((x) => x.a.trackDone && !(x.a.done && x.a.done.at) && Date.parse(x.ans.at) > Date.now() - 30 * 86400000);
     const waiting = apvs.filter((x) => !x.ans).sort((x, y) => Number(!!(y.d && y.d.late)) - Number(!!(x.d && x.d.late)) || String(x.a.due || '9999').localeCompare(String(y.a.due || '9999')));
     const posts = (d.updates || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
-    const removeBtn = (/** @type {string} */ attr, /** @type {string} */ id) => `<button class="linkish quiet-act" type="button" ${attr}="${esc(id)}">Remove</button>`;
+    const removeBtn = (/** @type {string} */ attr, /** @type {string} */ id) => `<button class="btn btn-quiet btn-sm quiet-act" type="button" ${attr}="${esc(id)}">Remove from their Home</button>`;
     const apvMeta = (/** @type {any} */ a) => `${esc(svcLabel(a.service))}${a.due ? ` · answer needed by ${esc(when(a.due))}` : ''}${a.preview ? ` · ${a.preview.type === 'list' ? 'includes a list to check' : a.preview.type === 'link' ? 'includes a link to the draft' : 'includes a draft to look at'}` : ''}`;
     const reqCard = (/** @type {any} */ r) => `<li class="item-card"><div class="item-top"><span class="item-title"><span class="chip you">Change request</span> ${esc(svcLabel(r.service))}</span>
         <span class="r"><label class="sr-only" for="rq-${esc(r.id)}">Status</label><select class="req-select" id="rq-${esc(r.id)}" data-req="${esc(r.id)}">${REQ_STATUS.map(([v, l]) => `<option value="${v}"${r.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select></span></div>
@@ -3682,14 +3724,14 @@
     const needCount = (unanswered.length ? 1 : 0) + openReqs.length + sentBack.length;
     const opener = (/** @type {string} */ id, /** @type {string} */ label, /** @type {boolean} */ open, /** @type {boolean} */ main) => `<button class="btn btn-sm${main ? '' : ' btn-quiet'}" type="button" data-action="reveal" aria-expanded="${open}" aria-controls="${id}">${icon('plus')}${label}</button>`;
     box.innerHTML = `
-      <div class="toolbar talk-bar">${opener('reply-form', 'Reply', part === 'reply', true)}${opener('apv-form', 'Ask for an approval', part === 'approval', false)}${opener('upd-form', 'Post an update', part === 'update', false)}<a class="btn btn-sm btn-quiet talk-inbox" href="#/messages/${esc(current.id)}">${icon('chat')}Open in Messages</a></div>
+      <div class="toolbar talk-bar">${opener('reply-form', 'New message', part === 'reply', true)}${opener('apv-form', 'Ask client to approve', part === 'approval', false)}${opener('upd-form', 'Post an update', part === 'update', false)}<a class="btn btn-sm btn-quiet talk-inbox" href="#/messages/${esc(current.id)}">${icon('chat')}Open full conversation</a></div>
       <div class="talk-forms">
       <form class="panel" id="reply-form" novalidate${part === 'reply' ? '' : ' hidden'}>
         <div class="field"><label for="reply">Reply as ${esc(me.name)}</label><textarea id="reply" name="body" maxlength="2000" placeholder="Write your reply${first ? ` to ${esc(first)}` : ''} here"></textarea></div>
         <div class="actions"><button class="btn" type="submit">Send reply</button><button class="btn btn-quiet" type="button" data-action="reveal-close">Cancel</button><span class="meta">They read it on their Help page next time they open their portal. We don't email them.</span></div>
       </form>
       <form class="panel" id="apv-form" novalidate${part === 'approval' ? '' : ' hidden'}>
-        <div class="panel-head"><h2>Ask for an approval</h2><p>It sits at the top of their Home page until they answer.${level ? ` Their sign-off level: ${esc(APPROVAL_LEVELS[level][0])}, ${esc(APPROVAL_LEVELS[level][1].toLowerCase())}.` : ''}</p></div>
+        <div class="panel-head"><h2>Ask client to approve</h2><p>It sits at the top of their Home page until they answer.${level ? ` Their sign-off level: ${esc(APPROVAL_LEVELS[level][0])}, ${esc(APPROVAL_LEVELS[level][1].toLowerCase())}.` : ''}</p></div>
         <div class="grid-3">
           <div class="field span-2"><label for="a-title">What they're approving</label><input id="a-title" type="text" name="title" placeholder="Next week's social posts" maxlength="120" required></div>
           <div class="field"><label for="a-service">Service</label><select id="a-service" name="service">${services.map((/** @type {string} */ s) => `<option value="${s}">${esc(SERVICES[s].label)}</option>`).join('')}</select></div>
@@ -4387,6 +4429,12 @@
   /** The keyboard shortcuts, from the "?" in the sidebar. */
   function openKeys() {
     const dlg = /** @type {HTMLDialogElement} */ ($('#keys'));
+    // The Alt keys, from the same list as the keys themselves, so the dialog says what they do.
+    const tabs = keyTabs(), dt = $('dt[data-keys-tabs]', dlg), dd = $('dd[data-keys-tabs]', dlg);
+    if (dt && dd && tabs.length) {
+      dt.innerHTML = tabs.length === 1 ? '<kbd>Alt</kbd> <kbd>1</kbd>' : `<kbd>Alt</kbd> <kbd>1</kbd> to <kbd>${Math.min(tabs.length, 9)}</kbd>${tabs.length === 10 ? ', then <kbd>0</kbd>' : ''}`;
+      dd.textContent = `Client tabs, in order: ${tabs.map((x) => x[1]).join(', ')}`;
+    }
     if (!dlg.open) dlg.showModal();
     const b = $('[value="close"]', dlg);
     if (b) b.focus();

@@ -255,7 +255,7 @@
       const bits = live ? [`Published ${dayText(s.published_at)} by ${who(s.published_by)}`, c.title ? clip(c.title, 60) : '']
         : hidden ? [`Hidden ${dayText(s.hidden_at)} by ${who(s.hidden_by)}: “${clip(s.hidden_reason, 120)}”`]
           : [`Saved ${dayText(s.updated_at)} by ${who(s.updated_by)}`, 'Not shown to the client yet'];
-      const sub = `${dot(bits)} <span class="vz-dot" aria-hidden="true">·</span> <a href="#/client/${esc(s.tenant_id)}/home">Edit in Home tab</a>`;
+      const sub = `${dot(bits)} <span class="vz-dot" aria-hidden="true">·</span> <a href="#/client/${esc(s.tenant_id)}/home">Edit their Home</a>`;
       rows.push({ key: 'home:' + s.id, type: 'home', id: s.id, title: SECTIONS[s.section] || s.section, sub, group: live ? 'live' : 'off', chip, ctl: { kind: 'switch', on: live }, src: s, when: s.updated_at || '' });
       void draft;
     }
@@ -397,7 +397,7 @@
     const cleanForms = () => { for (const f of Array.from(C.dirty.keys())) if (box.contains(/** @type {any} */ (f))) C.clean(f); };
 
     box.innerHTML = `<section class="vz" aria-labelledby="vz-h">
-      <header class="vz-head"><h2 id="vz-h">What they see</h2><p>Every item on ${esc(client)}'s dashboard, who decided it, and the history of every change. New items start hidden until you decide.</p></header>
+      <header class="vz-head"><h2 id="vz-h">Show or hide</h2><p>Every item on ${esc(client)}'s dashboard, who decided it, and the history of every change. New items start hidden until you decide. To change the words on their Home, use Edit their Home. To see it as they do, use Preview as client.</p></header>
       ${C.skeleton(3)}</section>`;
 
     function counts() {
@@ -438,7 +438,7 @@
       const summary = [`${n.live} shown`, `${n.off} hidden`, n.decide ? `${n.decide} waiting for a decision` : 'nothing waiting for a decision'].join(' · ');
       const lockedNote = st.rows.some((r) => r.ctl.kind === 'again') ? '<p class="meta vz-foot">Hidden results, updates and invoices stay hidden: the database has no step that brings one back. Cards and Home sections can be shown again.</p>' : '';
       box.innerHTML = `<section class="vz" aria-labelledby="vz-h">
-        <header class="vz-head"><h2 id="vz-h">What they see</h2><p>Every item on ${esc(client)}'s dashboard, who decided it, and the history of every change. New items start hidden until you decide.</p></header>
+        <header class="vz-head"><h2 id="vz-h">Show or hide</h2><p>Every item on ${esc(client)}'s dashboard, who decided it, and the history of every change. New items start hidden until you decide. To change the words on their Home, use Edit their Home. To see it as they do, use Preview as client.</p></header>
         ${fresh}
         ${D.errors.length ? `<p class="notice bad" role="alert">These did not load: ${esc(D.errors.join(', '))}. What you see below is correct but not complete. <button class="linkish" type="button" data-vz="reload">Try again</button></p>` : ''}
         <div class="vz-cols">
@@ -519,10 +519,10 @@
         };
         if (mode === 'show') {
           ok(await client2.rpc('review_dashboard_item', { p_item_id: src.id, p_decision: 'approve', p_note: null, p_expected: src.updated_at || null }));
-          said = `Shown. It is on ${WHERE[/** @type {'result'} */ (row.type)]} now.${await closeHeld('Checked and published from the Visible tab.')}`;
+          said = `Shown. It is on ${WHERE[/** @type {'result'} */ (row.type)]} now.${await closeHeld('Checked and published from Show or hide.')}`;
         } else if (mode === 'keep') {
           ok(await client2.rpc('review_dashboard_item', { p_item_id: src.id, p_decision: 'reject', p_note: reason, p_expected: src.updated_at || null }));
-          said = `Kept hidden. Nothing changed on their dashboard.${await closeHeld(`Kept hidden from the Visible tab: ${clip(reason, 200)}`)}`;
+          said = `Kept hidden. Nothing changed on their dashboard.${await closeHeld(`Kept hidden from Show or hide: ${clip(reason, 200)}`)}`;
         } else {
           await C.callFn('dashboard-recovery', { action: 'hide', targetType: 'dashboard-item', itemId: src.id, reason });
           said = `Hidden. It leaves ${WHERE[/** @type {'result'} */ (row.type)]} on their next load. The history keeps it.`;
@@ -601,7 +601,7 @@
     reload();
   }
 
-  EXT.tabs.visible = { label: 'Visible', after: 'talk', render };
+  EXT.tabs.visible = { label: 'Show or hide', after: 'talk', render };
 
   /** What the Home tab shares: the words, the refusals as sentences, the history as sentences and the prompt. */
   EXT.visible = { explain, ok, wasStale, failText, load, sentence, historyHtml, reasonForm, stamp, dayText, timeText, periodText, clip, whoIs, SECTIONS };

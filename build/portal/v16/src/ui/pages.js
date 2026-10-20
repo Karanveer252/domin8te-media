@@ -95,7 +95,7 @@
     box.insertAdjacentHTML('afterbegin', `<p class="stale-note" role="status">${icon('clock')}<span>${esc(text)}</span>${retry ? `<button class="btn-text" type="button" data-action="retry" data-section="${esc(retry)}">${icon('refresh')}Try again</button>` : ''}</p>`);
   }
   const markSrc = () => { const m = document.getElementById('brand-mark'); return m ? m.getAttribute('src') || '' : ''; };
-  const refreshButton = () => `<button class="btn btn-glass btn-sm" type="button" data-action="refresh" title="Asks your connected apps for their newest numbers.">${icon('refresh')}Check for new numbers</button>`;
+  const refreshButton = () => `<button class="btn btn-glass btn-sm" type="button" data-action="refresh" title="Usually updates on its own every few hours.">${icon('refresh')}Refresh numbers</button>`;
   const day = UI.day;
   const span = UI.span;
   const label = UI.metricLabel;
@@ -255,8 +255,8 @@
     const timed = soon && /[T ]\d\d:\d\d/.test(String(m.at));
     /** @type {string[]} icon, words, button */
     let s;
-    if (first && waiting > 0) s = ['check', 'Your first job here: the card at the top. One tap to approve, or tell us what to change. That is how all the work comes to you from now on.', '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Start with it</button>'];
-    else if (waiting > 0) s = ['check', waiting === 1 ? 'Answer the one thing above and you are done for now.' : `Answer the ${waiting} things above. It takes about a minute.`, '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Start with the first</button>'];
+    if (first && waiting > 0) s = ['check', 'Your first job here: the card at the top. One tap to approve, or tell us what to change. That is how all the work comes to you from now on.', '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Go to the first card</button>'];
+    else if (waiting > 0) s = ['check', waiting === 1 ? 'Answer the one thing above and you are done for now.' : `Answer the ${waiting} things above. It takes about a minute.`, '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Go to the first card</button>'];
     else if (unread > 0) s = ['message', unread === 1 ? 'We replied to your message.' : `We sent you ${unread} replies.`, `<a class="btn btn-tint btn-sm" href="#/messages">Read ${unread === 1 ? 'it' : 'them'}</a>`];
     else if (soon) s = ['calendar', `Our next meeting is ${day(m.at)}${timed ? ` at ${F.time(m.at)}` : ''}. Anything to add first?`, '<a class="btn btn-glass btn-sm" href="#/messages">Message us</a>'];
     // the request form itself (new hours go in as an urgent fix that never counts toward the plan)
@@ -284,7 +284,7 @@
       const a = ctx.account;
       return `<div class="page page-home is-narrow">
         ${UI.PageHeader({ cls: 'is-home', title: `${F.greeting(now)}, ${a.user.firstName}.`, intro: '<span id="home-summary">Checking your account.</span>', introHtml: true, sample: a.business.name })}
-        ${UI.PageFresh({ updatedAt: a.updatedAt || D8.time.isoTime(now), source: 'Domin8te console', zone: a.zoneAbbr, status: a.problems && a.problems.length ? 'delayed' : 'ok', label: a.problems && a.problems.length ? `${a.problems.length} ${F.plural(a.problems.length, 'account needs', 'accounts need')} a look` : '' })}
+        ${UI.PageFresh({ updatedAt: a.updatedAt || D8.time.isoTime(now), source: 'Domin8te team', zone: a.zoneAbbr, status: 'ok' })}
         <p class="sr-only" id="home-live" role="status" aria-live="polite"></p>
         <section class="sec sec-attention" aria-labelledby="h-attention">
           ${UI.SectionHead('h-attention', 'Waiting for you')}
@@ -303,7 +303,7 @@
           <div id="home-next">${UI.Skeleton('row', 1)}</div>
         </section>
         <details class="home-more" id="home-more"${r && r.params && r.params.more === 'open' ? ' open' : ''}>
-          <summary class="home-more-sum"><span class="hm-title">More about your plan</span><span class="hm-sub">This month, the last 30 days and your next meeting</span>${icon('chevron-down', 'hm-chev')}</summary>
+          <summary class="home-more-sum"><span class="hm-title">Your plan, last 30 days and next meeting</span><span class="hm-sub">This month, the last 30 days and your next meeting</span>${icon('chevron-down', 'hm-chev')}</summary>
           <div class="home-more-body">
             <div class="sec home-plan" id="home-plan">${UI.Skeleton('card', 2)}</div>
             <section class="sec sec-strip" aria-labelledby="h-strip">
@@ -611,9 +611,9 @@
 
   /** The top of Work, on both tabs: the title, one Ask for a change (it asks which service), and Now / Done. @param {'now'|'done'} cur */
   function workHead(cur) {
-    const ask = `<button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="request" title="Tell us anything you want different. We usually reply within one working day.">${icon('edit')}Ask for a change</button>`;
+    const ask = `<button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="request" title="Opens a message to us. Tell us anything you want different. We usually reply within one working day.">${icon('edit')}Ask for a change</button>`;
     const tab = (/** @type {string} */ id, /** @type {string} */ href, /** @type {string} */ text) => `<a class="work-tab" href="${href}"${cur === id ? ' aria-current="page"' : ''}>${text}</a>`;
-    return `${UI.PageHeader({ title: 'Work', intro: cur === 'done' ? 'Everything we finished for you, newest first.' : "What we are doing for you now, and how much of this month's plan is used.", aside: ask })}
+    return `${UI.PageHeader({ title: cur === 'done' ? 'Finished work' : 'Work', intro: cur === 'done' ? 'Everything we finished for you, newest first.' : "What we are doing for you now, and how much of this month's plan is used.", aside: ask })}
       <nav class="work-tabs" aria-label="Work">${tab('now', '#/work', 'Now')}${tab('done', '#/updates', 'Done')}</nav>`;
   }
 
@@ -630,8 +630,8 @@
       const load = () => section(el, '#work-body', () => ctx.client.getWork(), (w) => {
         const m = w.plan;
         const fresh = UI.PageFresh({
-          updatedAt: w.updatedAt || D8.time.isoTime(ctx.client.now()), source: 'Domin8te console', zone: ctx.account.zoneAbbr,
-          status: m.mismatch ? 'kept' : 'ok', extra: m.state === 'ok' ? `Plan: ${m.now.name} · picks locked until ${F.date(m.lastDay)}` : m.state === 'upcoming' ? `Plan: ${m.upcoming.name} · starts ${F.date(m.starts)}` : '',
+          updatedAt: w.updatedAt || D8.time.isoTime(ctx.client.now()), source: 'Domin8te team', zone: ctx.account.zoneAbbr,
+          status: m.mismatch ? 'kept' : 'ok', extra: m.state === 'ok' ? `${m.now.name} plan · Your services for this month are set. You can change next month's until ${F.date(m.lastDay)}.` : m.state === 'upcoming' ? `Plan: ${m.upcoming.name} · starts ${F.date(m.starts)}` : '',
           note: m.mismatch ? 'Showing the last checked update. We could not confirm a newer change from our task tool. Karan has been told and nothing is lost.' : ''
         });
         const body = w.services.length
@@ -741,7 +741,7 @@
     if (!s && !big) return '';
     return `<section class="card ai-summary" aria-labelledby="h-summary">
         <div class="sec-head"><h2 id="h-summary">Summary</h2>${s ? `<span class="checked-chip">${icon('check')}Checked by ${esc(s.reviewedBy)}, ${esc(day(s.reviewedAt))}</span>` : ''}</div>
-        ${s ? `<p class="ai-text">${esc(s.text)}</p><p class="ai-label">${icon('spark')}Written by our AI assistant, then checked by ${esc(s.reviewedBy)} against the numbers below.</p>` : ''}
+        ${s ? `<p class="ai-text">${esc(s.text)}</p><p class="ai-label">${icon('spark')}Checked by ${esc(s.reviewedBy)}.</p>` : ''}
         ${big ? `<p class="ai-big"><strong>Biggest change this month:</strong> ${esc(big.headline)} ${esc(big.detail || '')}</p>` : ''}
       </section>`;
   }
@@ -908,7 +908,7 @@
   function billFresh(b, ctx) {
     const problem = !!b.subscription && b.subscription.status === 'past_due';
     return UI.PageFresh({
-      updatedAt: b.checkedAt || null, zone: ctx.account.zoneAbbr, source: b.invoices.length ? 'Stripe, checked by Karan' : 'Stripe',
+      updatedAt: b.checkedAt || null, zone: ctx.account.zoneAbbr, source: 'Stripe, our payment service',
       status: problem ? 'delayed' : 'ok', label: 'Payment needs a look'
     });
   }
@@ -924,7 +924,7 @@
     return `${fresh}
       ${b.subscription && b.subscription.status === 'past_due' ? payBanner(b) : ''}
       ${changing ? D8.plan.confirmed(m, ctx.account.user.email) : ''}
-      ${D8.plan.overview(m)}
+      ${D8.plan.overview(m, { billing: b })}
       <div class="bill-cols">${D8.plan.payment(b)}${D8.plan.bills(b.invoices, m)}</div>
       ${help}`;
   }
@@ -940,7 +940,7 @@
 
   /** @param {any} m the plan model @param {any} ctx */
   function changeBody(m, ctx) {
-    const fresh = UI.PageFresh({ updatedAt: D8.time.isoTime(ctx.client.now()), zone: ctx.account.zoneAbbr, source: 'Domin8te console', status: 'ok' });
+    const fresh = UI.PageFresh({ updatedAt: D8.time.isoTime(ctx.client.now()), zone: ctx.account.zoneAbbr, source: 'Domin8te team', status: 'ok' });
     if (m.state !== 'ok') return fresh + D8.plan.notSetUp(m);
     if (!m.open) {
       return `${fresh}<section class="card plan-locked" aria-labelledby="h-locked">
@@ -993,7 +993,7 @@
     // One button per account (2026-10-09): Connect when it is missing, Reconnect when it broke, Disconnect when it works.
     // While the team is checking a change the client told us about, the row says so instead.
     const mode = src.state === 'missing' ? 'connect' : src.state === 'disconnected' || src.state === 'error' ? 'reconnect' : 'disconnect';
-    const text = { connect: 'Connect', reconnect: 'Reconnect', disconnect: 'Disconnect' }[mode];
+    const text = { connect: 'Connect', reconnect: 'Reconnect', disconnect: 'How to disconnect' }[mode];
     const tip = mode === 'disconnect' ? `Shows how to remove our access to ${src.name}` : `Shows how to let us into ${src.name}. We never see your password.`;
     // "Not answering right now" is on our side: no button sends the client through the steps for nothing.
     const act = src.pending || src.state === 'error' ? '' : `<button class="btn ${mode === 'disconnect' ? 'btn-text src-off' : 'btn-glass'} btn-sm" type="button" data-action="account" data-source="${esc(src.id)}" data-mode="${mode}" title="${esc(tip)}">${text}<span class="sr-only"> ${esc(src.name)}</span></button>`;
@@ -1026,10 +1026,10 @@
       </section>
       <section class="card set-card" aria-labelledby="h-people">
         <h2 id="h-people">Who can sign in</h2>
-        <p>You sign in as ${esc(s.email)} with ${isLive() ? 'a 6-digit code' : 'a sign-in link'} we email you. No password to remember.</p>
+        <p>You sign in as ${esc(s.email)} with a 6-digit code we email you. No password to remember.</p>
         <div class="set-actions">
           <button class="btn btn-glass btn-sm" type="button" data-action="external" data-kind="clerk-account">Manage your sign-in${icon('external')}</button>
-          <button class="btn btn-glass btn-sm" type="button" data-action="add-login" aria-expanded="false" aria-controls="login-ask">${icon('message')}Add someone</button>
+          <button class="btn btn-glass btn-sm" type="button" data-action="add-login" aria-expanded="false" aria-controls="login-ask">${icon('message')}Ask us to add someone</button>
         </div>
         <form id="login-ask" class="ask-form" novalidate hidden>
           <p>Ask for a login for your manager or someone else at the restaurant. They sign in with their own email. Nobody shares a password.</p>
@@ -1476,7 +1476,7 @@
   // Live, Clerk emails a 6-digit code (no return page to handle, and it works when the email is
   // opened on another device). The demo keeps its sign-in link wording and demo account.
   const isLive = () => !!(D8.auth && D8.auth.live);
-  const sendLabel = () => (isLive() ? 'Email me a code' : 'Email me a sign-in link');
+  const sendLabel = () => 'Email me a code';
   /** Where the demo lives, when the live portal has one to point prospects to. */
   const demoUrl = () => String((/** @type {any} */ (window).D8CONFIG || {}).demoUrl || '');
   const signIn = {
@@ -1486,7 +1486,7 @@
       return `<div class="signin"><div class="signin-card">
         <p class="signin-brand"><img src="${esc(markSrc())}" alt="" width="44" height="25"><span>Domin8te</span></p>
         <h1 id="page-title" tabindex="-1">Sign in to your portal</h1>
-        <p class="lede">${isLive() ? "We'll email you a 6-digit code." : "We'll email you a sign-in link."} No password needed.</p>
+        <p class="lede">We'll email you a 6-digit code. No password needed.</p>
         <form id="signin-form" novalidate>
           <div class="field"><label for="signin-email">Email address</label><input id="signin-email" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false" aria-describedby="err-email" value="${esc(/** @type {any} */ (window).__d8LastEmail || '')}"><p class="field-error" id="err-email" hidden></p></div>
           <button class="btn btn-solid btn-block" type="submit">${sendLabel()}</button>
@@ -1521,7 +1521,7 @@
             mountCode(/** @type {HTMLFormElement} */ (sent.querySelector('#code-form')));
             return;
           }
-          sent.innerHTML = `<div class="notice">${icon('mail')}<p><strong>This is a demo.</strong> In your real portal, the sign-in link goes to ${esc(res.to)}. Here, no email is sent.</p></div>
+          sent.innerHTML = `<div class="notice">${icon('mail')}<p><strong>This is a demo.</strong> In your real portal, the 6-digit code goes to ${esc(res.to)}. Here, no email is sent.</p></div>
             <button class="btn btn-solid btn-block" type="button" data-action="demo-sign-in">Open the demo account</button>
             <button class="btn btn-glass btn-block" type="button" data-action="signin-again">Use a different email</button>`;
           const next = /** @type {HTMLElement} */ (sent.querySelector('button'));

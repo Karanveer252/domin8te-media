@@ -115,8 +115,8 @@
 
     box.innerHTML = `<section class="cv" aria-labelledby="cv-h">
       ${C.pageFresh({ updatedAt: st.at, source: 'x', status: 'checking' })}
-      <div class="cv-head"><div><h2 id="cv-h">Client view</h2>
-        <p>${demo ? 'A sample dashboard, the way a restaurant sees theirs. It is a look only: it does not change with this console.' : `${esc(name)}'s dashboard, exactly as they see it. You can look and move around, but nothing here can be approved, sent or changed.`}</p></div>
+      <div class="cv-head"><div><h2 id="cv-h">Preview as client</h2>
+        <p>${demo ? 'A sample dashboard, the way a restaurant sees theirs. It is a look only: it does not change with this console.' : `${esc(name)}'s dashboard, exactly as they see it. You can look and move around, but nothing here can be approved, sent or changed.`} To change the words on their Home, use Edit their Home. To show or hide pages, use Show or hide.</p></div>
         <span class="cv-live${demo ? ' is-sample' : ''}"><span class="cv-dot" aria-hidden="true"></span><span>${demo ? 'Sample: this does not change with the console' : 'Live: changes here show at once'}</span></span>
       </div>
       <div class="cv-bar">
@@ -166,7 +166,7 @@
     }
     function drawCover() {
       const msg = {
-        blocked: ['This page needs the console\'s web address', 'Client view cannot open when the console is opened as a file on this computer. Open the console from its normal link and this page will show the dashboard.'],
+        blocked: ['This page needs the console\'s web address', 'Preview as client cannot open when the console is opened as a file on this computer. Open the console from its normal link and this page will show the dashboard.'],
         failed: ['The dashboard did not open here', demo ? 'The sample dashboard did not load. Check your connection and try Reload.' : 'The dashboard may not have its client view yet, or it did not load in time. Try Reload. Nothing was changed.'],
         connecting: ['Opening ' + (demo ? 'the sample dashboard' : name + '\'s dashboard') + '...', '']
       }[/** @type {'blocked'|'failed'|'connecting'} */ (st.state === 'ready' ? 'connecting' : st.state)];
@@ -250,5 +250,5 @@
   }
 
   EXT.clientview = { changed, pageOf, dashUrl };
-  EXT.tabs.view = { label: 'Client view', after: 'home', render };
+  EXT.tabs.view = { label: 'Preview as client', after: 'home', render };
 })();

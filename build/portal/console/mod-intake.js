@@ -52,12 +52,12 @@
   function inner() {
     const rows = state.rows || [];
     if (!rows.length) return '';
-    return `<section class="q-group" aria-labelledby="q-intake-h"><h2 id="q-intake-h">New setup forms <span class="meta">${rows.length}</span></h2>
+    return `<details class="q-group q-fold" aria-labelledby="q-intake-h"><summary><h2 id="q-intake-h">New setup forms <span class="meta">${rows.length}</span></h2></summary>
       <p class="lede">Filled in at domin8temedia.com/onboarding. They already got a confirmation email. Add them and their dashboard login goes out with it.</p>
-      <ul class="q intake-list">${rows.map(row).join('')}</ul></section>`;
+      <ul class="q intake-list">${rows.map(row).join('')}</ul></details>`;
   }
   /** What queuePage puts on the page: a holder that fills itself once the rows are in. */
-  const block = () => `<div id="q-intake">${inner()}</div>`;
+  const block = () => `<div id="q-intake" data-qf="other">${inner()}</div>`;
   function paint() { const el = document.getElementById('q-intake'); if (el) el.innerHTML = inner(); }
 
   /** @param {any} x */
@@ -105,7 +105,7 @@
       if (!x) return;
       if (add) { addAsClient(x); return; }
       const c = C();
-      if (!await c.ask(`${x.restaurant} is not a client?`, 'The form leaves Needs you. Their answers stay in your inbox.', 'Not a client')) return;
+      if (!await c.ask(`${x.restaurant} is not a client?`, 'The form leaves Needs you. Their answers stay in your inbox.', 'Not a client', { cancel: 'Keep in Needs you' })) return;
       try { await decide(x.id, 'dismissed', null); c.toast(`${x.restaurant} removed from setup forms.`); }
       catch (err) { c.toast(c.failMessage ? c.failMessage(err) : c.message(err), true); }
     });

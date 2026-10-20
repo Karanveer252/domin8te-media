@@ -586,6 +586,8 @@ select { background-color: rgba(255, 255, 255, 0.78); }
 @media (max-width: 760px) {
   .tabs { margin-right: -16px; padding-right: 64px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 84px), transparent calc(100% - 6px)); mask-image: linear-gradient(to right, #000 calc(100% - 84px), transparent calc(100% - 6px)); }
 }
+/* The "1 of 10 tabs, swipe for more" line under the tabs is hidden above 760px (audit C1.3). */
+@media (min-width: 761px) { .tabs-where { display: none; } }
 .req-status { border: 0; background: rgba(94, 72, 50, 0.08); border-radius: 999px; padding: 3px; }
 .req-status button { border-radius: 999px; min-height: 30px; padding: 0 12px; font-size: 13px; }
 .req-status button[aria-pressed="true"] { background: var(--glass-strong); box-shadow: var(--pill-on); }
@@ -1007,11 +1009,13 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-
 .soon-strip .q { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .q-fold > summary { cursor: pointer; list-style: none; }
 .q-fold > summary::-webkit-details-marker { display: none; }
-.q-fold > summary h2::after { content: "+"; color: var(--ink-3); font-weight: 500; }
-.q-fold[open] > summary h2::after { content: "\2212"; }
+.q-fold > summary h2::after { content: "+"; content: "+" / ""; color: var(--ink-3); font-weight: 500; }
+.q-fold[open] > summary h2::after { content: "\2212"; content: "\2212" / ""; }
 .q-fold[open] > summary { margin-bottom: 8px; }
 .q-dm { margin-bottom: 14px; }
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] :is(main > .q-fold > summary h2, main > .q-fold > .lede, main > .q-fold .q-client-h, main > .q-fold > .q-client > .q-more > summary) { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > .q-fold > summary h2 .meta { color: #F6F3EE; background-color: rgba(10, 12, 30, 0.32); border-radius: 999px; padding: 3px 7px; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > .q-fold > summary h2::after, html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > #q-intake > .q-fold > summary h2::after { color: rgba(246, 243, 238, 0.86); }
 /* Check before it goes live: one line and two buttons; the rest under Details. */
 .dm-card { gap: 6px; }
 .dm-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; }
@@ -2157,7 +2161,13 @@ table.bl-grid td .sub, table.bl-grid th .sub { display: block; margin-top: 3px; 
 table.bl-grid a.row-link { color: var(--ink); font-size: 15px; font-weight: 700; letter-spacing: -0.1px; text-decoration: none; }
 table.bl-grid a.row-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .bl-open { margin-top: 10px; }
-table.bl-grid td.bl-c-act { display: none; }
+.bl-c-act{width:10%;min-width:132px}
+.bl-acts{display:grid;gap:8px}
+.bl-acts>*{margin:0}
+@media (min-width: 1301px) {
+  /* Actions stay in view while the table scrolls sideways: the table's own opaque surface (.table-wrap's var(--surface)) and cell-border token (var(--line)) */
+  table.bl-grid th.bl-c-act, table.bl-grid td.bl-c-act { position: sticky; right: 0; z-index: 1; background: var(--surface); box-shadow: inset 1px 0 0 var(--line); }
+}
 .bl-plan { display: block; font-size: 15px; font-weight: 700; letter-spacing: -0.15px; }
 .bl-mini { margin-top: 6px; padding: 2px 10px 2px 8px; font-size: 12.5px; }
 .bl-chips { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -2925,8 +2935,8 @@ html[data-theme="dark"] .cv-stage[data-device="phone"] .cv-device-frame { backgr
 /* Each form is a card, like the other Needs you rows, and the heading and lede read on the Scenes sky (they sit one level
    deeper than the queue's other groups, so the console's main > .q-group rule does not reach them). */
 .intake-row { padding: 13px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
-html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] :is(main > #q-intake > .q-group > h2, main > #q-intake > .q-group > .lede) { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
-html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > #q-intake > .q-group > h2 .meta { color: rgba(246, 243, 238, 0.86); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] :is(main > #q-intake > .q-group > summary > h2, main > #q-intake > .q-group > .lede) { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > #q-intake > .q-group > summary > h2 .meta { color: #F6F3EE; background-color: rgba(10, 12, 30, 0.32); border-radius: 999px; padding: 3px 7px; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
 
 /* css/58-bot.css */
 /*
@@ -3132,7 +3142,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] .bot-showing
  * project per client with its threads (the console's own side-nav look: a quiet row, the open one lifted onto the surface). Right:
  * the open thread, the Messages page's log and reply box (.convo-log, .msg, .convo-reply, .log-card). The search and dropdown row is
  * for drafts, so it steps aside while the chat shows. New here: the two-pane placement, the thread rows and the small status word on
- * Karan's own message (.bo-state: a dot and a word, quieter than a chip). Every colour, radius and font is the console's own token. */
+ * Karan's own message (.bo-state: a dot and a word, quieter than a chip). Every colour, radius and font is the console's own token.
+ * v98 (2026-10-19): one-column at 900px, a Reload in the thread head, router notes and instant replies drawn as messages. */
 #bot-results > .bot-owner { order: 4; }
 #bot-box:has(> #bot-results > .bot-owner) > .bot-toolbar { display: none; }
 .bot-owner.bo2 { display: grid; grid-template-columns: minmax(220px, 268px) minmax(0, 1fr); padding: 0; overflow: hidden; }
@@ -3170,6 +3181,10 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] .bot-showing
 .bo-head h3 { margin: 0; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bo-head h3:focus { outline: none; }
 .bo-tools { display: flex; gap: 6px; flex: none; }
+/* v98 Reload: the v97 head-button look (as Rename / Archive), its icon sized like New chat's, dimmed while it runs */
+.bo-reload { display: inline-flex; align-items: center; gap: 6px; }
+.bo-reload .ic { width: 14px; height: 14px; flex: none; }
+.bo-reload[disabled] { opacity: 0.5; cursor: default; }
 .bo-back { display: none; flex: none; }
 .bo-rename { display: flex; align-items: center; gap: 8px; max-width: 460px; }
 .bo-main .convo-log { min-height: 280px; max-height: max(320px, calc(100dvh - 470px)); }
@@ -3198,12 +3213,9 @@ html[data-theme="dark"] .msg.team .bo-state.warn::before { background: #B57200; 
 html[data-theme="dark"] .msg.team .bo-state.bad::before { background: #B3261E; }
 html[data-theme="dark"] .msg.team .bo-state.info::before { background: #3C78D2; }
 html[data-theme="dark"] .msg.team .bo-state.you::before { background: #FF5B1F; }
+/* Phones and narrow windows (v98: 900px, where the Messages page also goes to one column; was 760px): the list and the open thread
+ * are two views of the panel; the back button returns to the threads */
 @media (max-width: 900px) {
-  .bot-owner.bo2 { grid-template-columns: minmax(200px, 230px) minmax(0, 1fr); }
-  .bo-main { padding: 16px 16px 18px; }
-}
-/* Phones: the list and the open thread are two views of the panel; the back button returns to the threads */
-@media (max-width: 760px) {
   .bot-owner.bo2 { grid-template-columns: minmax(0, 1fr); }
   .bot-owner.bo2[data-view="list"] .bo-main, .bot-owner.bo2[data-view="thread"] .bo-side { display: none; }
   .bo-side { max-height: none; border-right: 0; background: none; padding: 16px 10px 14px; }
@@ -4279,7 +4291,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
 </dialog>
 <dialog class="keys-dlg" id="keys" aria-labelledby="keys-h">
   <h2 id="keys-h">Keyboard shortcuts</h2>
-  <dl class="facts keys"><dt><kbd>Ctrl</kbd> <kbd>K</kbd> or <kbd>/</kbd></dt><dd>Search any client, page or tab, and jump there</dd><dt><kbd>Alt</kbd> <kbd>1</kbd> to <kbd>5</kbd></dt><dd>Client tabs: Overview, Work, Talk, Setup, Advanced</dd><dt><kbd>Ctrl</kbd> <kbd>Enter</kbd></dt><dd>Send a reply in Messages</dd><dt><kbd>Enter</kbd> on a card</dt><dd>Edit the card, and move it</dd><dt><kbd>Esc</kbd></dt><dd>Close the search or a dialog</dd></dl>
+  <dl class="facts keys"><dt><kbd>Ctrl</kbd> <kbd>K</kbd> or <kbd>/</kbd></dt><dd>Search any client, page or tab, and jump there</dd><dt data-keys-tabs><kbd>Alt</kbd> <kbd>1</kbd> to <kbd>9</kbd>, then <kbd>0</kbd></dt><dd data-keys-tabs>Client tabs, in order: Overview, Work, Results, Talk, Bot, Show or hide, Edit their Home, Preview as client, Setup, Advanced</dd><dt><kbd>Ctrl</kbd> <kbd>Enter</kbd></dt><dd>Send a reply in Messages</dd><dt><kbd>Enter</kbd> on a card</dt><dd>Edit the card, and move it</dd><dt><kbd>Esc</kbd></dt><dd>Close the search or a dialog</dd></dl>
   <div class="actions"><button class="btn btn-quiet" type="button" value="close">Close</button></div>
 </dialog>
 <dialog class="confirm" id="confirm" aria-labelledby="confirm-h">
@@ -7387,7 +7399,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
 /*
  * Billing (#/billing, #/billing/<client id>), 2026-10-13: every client's plan, what they have this cycle (with its limits and
  * what is used), what changes next cycle, whether the picks are locked, whether the 7 and 3 day reminders went out, the latest
- * invoice and the Stripe link. Staff change a plan or its picks in the override drawer; the drawer saves through the database
+ * invoice and the Stripe link. Staff change a plan or its picks in the plan drawer; the drawer saves through the database
  * function override_plan_cycle, which always asks for a reason. An invoice and its payment link are approved here through
  * review_billing_invoice_v2.
  *
@@ -7407,7 +7419,9 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   const esc = (/** @type {any} */ s) => C().esc(s);
 
   /** What this page remembers between draws: the filter, the invoices read last, and where the page was scrolled. */
-  const state = { filter: 'all', /** @type {any[]|null} */ invoices: null, invoicesAt: 0, invoicesError: '', seq: 0, /** @type {number|null} */ keepScroll: null };
+  const state = { filter: 'all', /** @type {any[]|null} */ invoices: null, invoicesAt: 0, invoicesError: '', seq: 0, /** @type {number|null} */ keepScroll: null,
+    /** @type {string|null} */ returnTo: null, /** @type {HTMLElement|null} */ returnEl: null,
+    /** @type {string|null} */ openLimits: null, /** @type {'limits'|'plan'} */ returnKind: 'plan' };
 
   /* ---- days and words ------------------------------------------------------------------------------------ */
 
@@ -7525,15 +7539,6 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     const caps = PP().capsNow();
     return PM().ordered(cycle.picks || []).map((/** @type {string} */ s) => `<span class="bchip">${esc(PP().chipText(cycle.plan_id, s, cycle.website_option, caps))}</span>`).join('');
   }
-  /** The usage lines worth a bar in the table: each pick's busiest limit, at most three, in the catalog's order. @param {any} r */
-  function usageShown(r) {
-    const lines = r.P.lines || [];
-    /** @type {Map<string, any>} */ const best = new Map();
-    for (const l of lines) { const cur = best.get(l.service); if (!cur || l.pct > cur.pct) best.set(l.service, l); }
-    const picked = Array.from(best.values()).sort((a, b) => b.pct - a.pct || ORDER.indexOf(a.service) - ORDER.indexOf(b.service)).slice(0, 3);
-    picked.sort((a, b) => ORDER.indexOf(a.service) - ORDER.indexOf(b.service));
-    return { shown: picked, more: Math.max(0, lines.length - picked.length) };
-  }
   /** What each limit is called on a usage bar: short, and clear on its own. */
   const BAR = /** @type {Record<string, string>} */ (PM().LABEL); // the one shared map (plan-model.js)
   /** One usage line as the console's bar. @param {any} l */
@@ -7543,9 +7548,8 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   /** @param {any} r */
   function nowCell(r) {
     if (!r.now) return '<span class="none">Nothing running</span>';
-    const u = usageShown(r);
     return `<div class="bl-chips">${chipsOf(r.now, r.P.nowPlan)}</div>
-      ${u.shown.length ? `<div class="bl-usage">${u.shown.map(barOf).join('')}</div>${u.more ? `<a class="bl-more" href="#/billing/${esc(r.t.id)}" aria-label="${u.more} more ${u.more === 1 ? 'limit' : 'limits'} for ${esc(r.t.name)}">${u.more} more ${u.more === 1 ? 'limit' : 'limits'}</a>` : ''}` : '<span class="sub">No usage yet</span>'}`;
+      ${(r.P.lines || []).length ? `<a class="bl-more" href="#/billing/${esc(r.t.id)}" aria-label="See limits for ${esc(r.t.name)}">See limits</a>` : '<span class="sub">No usage yet</span>'}`;
   }
   /** @param {any} r */
   function nextCell(r) {
@@ -7592,14 +7596,17 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     if (row.status === 'skipped') return `<span class="chip plain" title="${esc(row.error || 'Skipped')}">${n}d skipped</span>`;
     return `<span class="chip plain">${n}d due ${esc(dayShort(dayOfStamp(row.send_at)))}</span>`;
   }
+  /** The open Needs you item for one of this row's failed reminders, or null; the fix link shows only when it exists (critic R11-3). @param {any} r */
+  function needOf(r) {
+    if (!r.now && !r.next) return null;
+    const failedIds = new Set(r.rem.filter((/** @type {any} */ x) => x.status === 'failed').map((/** @type {any} */ x) => String(x.id)));
+    const all = C().all;
+    return failedIds.size ? ((all && all.reviews && all.reviews.exceptions) || []).find((/** @type {any} */ x) => x.reason_code === 'reminder_failed' && x.tenant_id === r.t.id && failedIds.has(String(x.entity_id))) || null : null;
+  }
   /** @param {any} r */
   function remCell(r) {
     if (!r.now && !r.next) return '<span class="none">None</span>';
-    // The link goes to the open Needs you item for one of these failed reminders, and shows only when that item exists (critic R11-3).
-    const failedIds = new Set(r.rem.filter((/** @type {any} */ x) => x.status === 'failed').map((/** @type {any} */ x) => String(x.id)));
-    const all = C().all;
-    const need = failedIds.size ? ((all && all.reviews && all.reviews.exceptions) || []).find((/** @type {any} */ x) => x.reason_code === 'reminder_failed' && x.tenant_id === r.t.id && failedIds.has(String(x.entity_id))) : null;
-    return `<div class="bl-rems">${remChip(r, 'd7')}${remChip(r, 'd3')}</div>${need ? `<a class="bl-more" href="#/queue/${esc(need.id)}" aria-label="Fix it in Needs you: ${esc(r.t.name)}'s failed reminder">Fix it in Needs you</a>` : ''}`;
+    return `<div class="bl-rems">${remChip(r, 'd7')}${remChip(r, 'd3')}</div>`;
   }
   /** @param {any} r */
   function invoiceCell(r) {
@@ -7611,14 +7618,41 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     const ok = linkApproved(i);
     const head = `<span class="bl-inv-n">${esc(i.invoice_number)}</span>`;
     const link = ok ? '<span class="bl-link is-ok">Stripe link (approved)</span>' : url ? '<span class="bl-link is-wait">Stripe link (not approved)</span>' : '';
-    const approve = reviewable(i)
-      ? `<button class="btn btn-quiet btn-sm bl-approve" type="button" data-bl-approve="${esc(i.id)}" title="${url ? 'Approve the invoice and its Stripe link' : 'Approve the invoice'}" aria-label="Approve invoice ${esc(i.invoice_number)}${url ? ' and its Stripe link' : ''} for ${esc(r.t.name)}">Approve</button>` : '';
-    return `${head}<span class="bl-inv-s">${amount ? `<span class="bl-inv-amt">${esc(amount)}</span>` : ''}<span class="chip ${st[1]}">${esc(st[0])}</span></span>${i.due_at ? `<span class="sub">due ${esc(dayShort(i.due_at))}</span>` : ''}${link}${reviewable(i) ? '<span class="sub">Waiting for your approval</span>' : ''}${approve}`;
+    return `${head}<span class="bl-inv-s">${amount ? `<span class="bl-inv-amt">${esc(amount)}</span>` : ''}<span class="chip ${st[1]}">${esc(st[0])}</span></span>${i.due_at ? `<span class="sub">due ${esc(dayShort(i.due_at))}</span>` : ''}${link}${reviewable(i) ? '<span class="sub">Waiting for your approval</span>' : ''}`;
   }
   /** @param {any} r */
   function stripeCell(r) {
     const id = stripeIdOf(r.t);
-    return `${id ? `<span class="chip good" title="${esc(id)}">Linked</span>` : '<span class="chip off">Not linked</span>'}<a class="bl-more" href="#/client/${esc(r.t.id)}/setup/billing" aria-label="${id ? 'Manage Stripe' : 'Link in Setup'}: ${esc(r.t.name)}">${id ? 'Manage' : 'Link in Setup'}</a>`;
+    return id ? `<span class="chip good" title="${esc(id)}">Linked</span>` : '<span class="chip off">Not linked</span>';
+  }
+  /* At most one primary (orange) action per row; the first match wins:
+   *   1 "Approve invoice"  when r.inv && reviewable(r.inv)
+   *   2 "Fix reminder"     when needOf(r), an open Needs you item for a failed reminder
+   *   3 "Set plan"         when !r.now && !r.next
+   *   otherwise none.
+   * Quiet (no primary): Stripe not linked, past due, picks not confirmed, a failed reminder with no open Needs you item,
+   * invoices still loading. Paused clients can still get 1-3. */
+  /** @param {any} r */
+  function actsCell(r) {
+    const i = r.inv;
+    const need = needOf(r);
+    const canApprove = !!i && reviewable(i);
+    const noPlan = !r.now && !r.next;
+    const primary = canApprove ? 'approve' : need ? 'fix' : noPlan ? 'plan' : '';
+    const name = esc(r.t.name);
+    const word = noPlan ? 'Set plan' : 'Change plan';
+    const plan = `<a class="btn${primary === 'plan' ? '' : ' btn-quiet'} btn-sm bl-open bl-open-m" href="#/billing/${esc(r.t.id)}" data-bl-open="${esc(r.t.id)}" aria-label="${word} for ${name}">${word}</a>`;
+    const url = i ? linkOf(i) : '';
+    const approve = canApprove
+      ? `<button class="btn${primary === 'approve' ? '' : ' btn-quiet'} btn-sm bl-approve" type="button" data-bl-approve="${esc(i.id)}" title="${url ? 'Approve the invoice and its Stripe link' : 'Approve the invoice'}" aria-label="Approve invoice ${esc(i.invoice_number)}${url ? ' and its Stripe link' : ''} for ${name}">Approve invoice</button>` : '';
+    const fix = !need ? '' : primary === 'fix'
+      ? `<a class="btn btn-sm" href="#/queue/${esc(need.id)}" aria-label="Fix reminder in Needs you: ${name}'s failed reminder">Fix reminder</a>`
+      : `<a class="bl-more" href="#/queue/${esc(need.id)}" aria-label="Fix it in Needs you: ${name}'s failed reminder">Fix it in Needs you</a>`;
+    const sid = stripeIdOf(r.t);
+    const stripe = `<a class="bl-more" href="#/client/${esc(r.t.id)}/setup/billing" aria-label="${sid ? 'Manage Stripe' : 'Link in Setup'}: ${name}">${sid ? 'Manage' : 'Link in Setup'}</a>`;
+    // the primary first, then the quiet rest: plan link, Approve invoice, Fix it in Needs you, Manage / Link in Setup
+    const first = primary === 'approve' ? approve : primary === 'fix' ? fix : primary === 'plan' ? plan : '';
+    return `<div class="bl-acts">${first}${[plan, approve, fix, stripe].filter((x) => x && x !== first).join('')}</div>`;
   }
 
   /* ---- the page ------------------------------------------------------------------------------------------ */
@@ -7705,7 +7739,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       return;
     }
     box.innerHTML = `<div class="table-wrap bl-wrap"><table class="grid bl-grid"><caption class="sr-only">Every client's plan, picks, reminders and latest invoice</caption><thead><tr>
-      <th scope="col">Client</th><th scope="col">Plan</th><th scope="col">This cycle</th><th scope="col">Next cycle</th><th scope="col">Lock</th><th scope="col">Reminders 7d/3d</th><th scope="col">Latest invoice</th><th scope="col">Stripe</th></tr></thead><tbody>
+      <th scope="col">Client</th><th scope="col">Plan</th><th scope="col">This cycle</th><th scope="col">Next cycle</th><th scope="col">Lock</th><th scope="col">Reminders 7d/3d</th><th scope="col">Latest invoice</th><th scope="col">Stripe</th><th scope="col" class="bl-c-act">Actions</th></tr></thead><tbody>
       ${shown.map((r) => `<tr data-id="${esc(r.t.id)}"${r.t.status !== 'active' ? ' class="paused"' : ''}>
         <th scope="row" class="bl-c-client" data-label="Client">${clientCell(r)}</th>
         <td class="bl-c-plan" data-label="Plan">${planCell(r)}</td>
@@ -7714,9 +7748,33 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
         <td class="bl-c-lock" data-label="Lock">${lockCell(r)}</td>
         <td class="bl-c-rem" data-label="Reminders 7d/3d">${remCell(r)}</td>
         <td class="bl-c-inv" data-label="Latest invoice">${invoiceCell(r)}</td>
-        <td class="bl-c-stripe" data-label="Stripe">${stripeCell(r)}<a class="btn btn-quiet btn-sm bl-open" href="#/billing/${esc(r.t.id)}" data-bl-open="${esc(r.t.id)}" aria-label="${r.now || r.next ? 'Override' : 'Set plan'} for ${esc(r.t.name)}">${r.now || r.next ? 'Override' : 'Set plan'}</a></td>
-        <td class="bl-c-act"><a class="btn btn-quiet bl-open-m" href="#/billing/${esc(r.t.id)}" data-bl-open="${esc(r.t.id)}" aria-label="${r.now || r.next ? 'Override plan or picks' : 'Set the plan'} for ${esc(r.t.name)}">${r.now || r.next ? 'Override plan or picks' : 'Set the plan'}</a></td></tr>`).join('')}
+        <td class="bl-c-stripe" data-label="Stripe">${stripeCell(r)}</td>
+        <td class="bl-c-act">${actsCell(r)}</td></tr>`).join('')}
       </tbody></table></div>${state.invoicesError ? `<p class="meta bl-foot">${esc(state.invoicesError)} The rest of the page is up to date.</p>` : ''}`;
+    returnFocus();
+  }
+  /** After the plan drawer closes, put focus back on the visible row control that opened it (See limits or the plan link), once. */
+  function returnFocus() {
+    const box = C().$('#bl-list');
+    const active = document.activeElement;
+    let id = state.returnTo;
+    if (!id && state.returnEl) {
+      // a later repaint replaced the row we focused: follow it only if focus fell to the body with it
+      if (!state.returnEl.isConnected && (!active || active === document.body)) {
+        const tr = state.returnEl.closest('tr[data-id]');
+        id = state.returnEl.getAttribute('data-bl-open') || (tr && tr.getAttribute('data-id'));
+      } else if (active !== state.returnEl) state.returnEl = null;
+    }
+    if (!id || !box) return;
+    const visible = (/** @type {string} */ sel) => {
+      const all = /** @type {HTMLElement[]} */ (Array.from(box.querySelectorAll(sel)));
+      return all.find((b) => b.offsetParent !== null || b.getClientRects().length > 0) || all[0] || null;
+    };
+    // See limits if that opened the drawer and the row still has it, else the plan link
+    const el = (state.returnKind === 'limits' ? visible(`tr[data-id="${CSS.escape(id)}"] .bl-c-now a.bl-more`) : null) || visible(`[data-bl-open="${CSS.escape(id)}"]`);
+    state.returnTo = null;
+    state.returnEl = el;
+    if (el) el.focus();
   }
   function paintFresh() {
     const c = C();
@@ -7730,8 +7788,9 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     });
   }
 
-  /** @param {string} clientId a client to open the override drawer for, or '' */
+  /** @param {string} clientId a client to open the plan drawer for, or '' */
   function page(clientId) {
+    if (!state.returnTo) state.returnEl = null;
     const c = C();
     const main = c.main;
     document.title = 'Billing · Domin8te console';
@@ -7742,14 +7801,17 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     paintTop();
     paintList();
     const alive = () => seq === state.seq && /^#\/billing/.test(location.hash || '');
-    loadInvoices().then(() => { if (alive()) { paintList(); paintTop(); } });
+    loadInvoices().then(() => { if (alive()) { paintList(); paintTop(); } state.returnEl = null; });
     if (typeof c.stripeStatus === 'function') c.stripeStatus().then(() => { if (alive()) paintFresh(); });
     main.onclick = (e) => {
+      state.returnEl = null;
       const target = /** @type {HTMLElement} */ (e.target);
       const f = target.closest('[data-bl-filter]');
       if (f) { state.filter = f.getAttribute('data-bl-filter') || 'all'; paintTop(); paintList(); return; }
       const open = target.closest('[data-bl-open]');
-      if (open) { state.keepScroll = window.scrollY; return; }
+      if (open) { state.keepScroll = window.scrollY; state.openLimits = null; state.returnKind = 'plan'; return; }
+      const lim = target.closest('.bl-c-now a.bl-more');
+      if (lim) { const tr = lim.closest('tr[data-id]'); state.keepScroll = window.scrollY; state.openLimits = tr && tr.getAttribute('data-id'); state.returnKind = 'limits'; return; }
       const ap = target.closest('[data-bl-approve]');
       if (ap) approve(/** @type {HTMLButtonElement} */ (ap));
     };
@@ -7790,7 +7852,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     }
   }
 
-  /* ---- the override drawer ------------------------------------------------------------------------------- */
+  /* ---- the plan drawer --------------------------------------------------------------------------------- */
 
   /** Words for a line of the history. @param {any} r @param {Record<string, string>} staff */
   function historyLine(r, staff) {
@@ -7848,6 +7910,10 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   function openDrawer(id, seq) {
     const c = C();
     const t = c.tenant(id);
+    // opened from the row's See limits: the limits start open and take the first focus; any other way in opens them collapsed
+    const fromLimits = state.openLimits === id;
+    state.openLimits = null;
+    const kind = fromLimits ? 'limits' : 'plan';
     if (!t) { c.toast('That client was not found.', true); location.hash = '#/billing'; return; }
     const r = rowOf(t);
     const mode = r.now ? 'running' : r.next ? 'future' : 'none';
@@ -7871,11 +7937,11 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     const usage = r.P.lines || [];
     const confirmedNote = r.next && r.next.source === 'client_picker' ? `The client already confirmed these picks on ${esc(dayShort(dayOfStamp(r.next.confirmed_at)))}. Saving replaces them.` : '';
     dlg.innerHTML = `<form class="bd-form" id="bd-form" novalidate>
-      <header class="bd-head"><div><p class="bd-eyebrow">Override · ${esc(t.name)}</p><h2 id="bd-h">${mode === 'none' ? 'Set the plan' : 'Change plan or picks'}</h2></div><button class="icon-btn" type="button" data-bd="close" aria-label="Close">${c.icon('x')}</button></header>
+      <header class="bd-head"><div><p class="bd-eyebrow">${esc(t.name)}</p><h2 id="bd-h">${mode === 'none' ? 'Set the plan' : 'Change plan or picks'}</h2></div><button class="icon-btn" type="button" data-bd="close" aria-label="Close">${c.icon('x')}</button></header>
       <div class="bd-body">
         <p class="bd-lede">The console is the source of truth. The client's dashboard updates after you save, and the client is emailed only if you tick it.</p>
         ${r.now ? `<section class="bd-now" aria-label="Right now"><p class="bd-now-h"><strong>Right now</strong> <span>${nowBits}</span></p><p class="meta">${r.notStarted ? 'The first bill' : 'The next bill'} is ${esc(dayLong(r.bill))}${r.billIn !== null ? `, in ${r.billIn} ${r.billIn === 1 ? 'day' : 'days'}` : ''}.</p>
-          ${usage.length ? `<details class="reveal bd-limits"><summary>This month's limits and use (${usage.length})</summary><div class="bd-usage">${usage.map((/** @type {any} */ l) => drawerBar(t.id, l)).join('')}</div></details>` : ''}</section>` : ''}
+          ${usage.length ? `<details class="reveal bd-limits"${fromLimits ? ' open' : ''}><summary>This month's limits and use (${usage.length})</summary><div class="bd-usage">${usage.map((/** @type {any} */ l) => drawerBar(t.id, l)).join('')}</div></details>` : ''}</section>` : ''}
         <fieldset class="bd-sec"><legend>Plan</legend><div id="bd-plans"></div></fieldset>
         <fieldset class="bd-sec"><legend>Picks for the cycle starting <span id="bd-start">${esc(dayLong(target.start))}</span></legend><div id="bd-picks"></div><p class="bd-change" id="bd-change" aria-live="polite"></p></fieldset>
         ${mode === 'running' ? `<fieldset class="bd-sec bd-applies"><legend>Applies</legend>
@@ -7889,7 +7955,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
         <p class="field-error" id="bd-err" role="alert" hidden></p>
         <section class="bd-sec bd-hist" aria-labelledby="bd-hist-h"><h3 id="bd-hist-h">History</h3><div id="bd-hist" aria-busy="true"><p class="meta">Reading the history.</p></div></section>
       </div>
-      <footer class="bd-foot"><button class="btn" type="submit" id="bd-save" disabled>Save override</button><button class="btn btn-quiet" type="button" data-bd="close">Cancel</button><span class="bd-foot-note" id="bd-note" aria-live="polite"></span></footer>
+      <footer class="bd-foot"><button class="btn" type="submit" id="bd-save" disabled>Save plan change</button><button class="btn btn-quiet" type="button" data-bd="close">Cancel</button><span class="bd-foot-note" id="bd-note" aria-live="polite"></span></footer>
     </form>`;
     c.main.appendChild(dlg);
 
@@ -7950,7 +8016,10 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       c.clean(form);
       if (dlg.open) dlg.close();
       dlg.remove();
-      if (/^#\/billing\/./.test(location.hash || '')) location.hash = '#/billing';
+      state.returnTo = t.id;
+      state.returnKind = kind;
+      state.returnEl = null;
+      if (/^#\/billing\/./.test(location.hash || '')) location.hash = '#/billing'; else returnFocus();
     };
     dlg.addEventListener('cancel', (e) => { e.preventDefault(); close(false); });
     dlg.addEventListener('click', (e) => { const x = /** @type {HTMLElement} */ (e.target); if (x === dlg || x.closest('[data-bd="close"]')) close(false); });
@@ -7988,18 +8057,21 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
         try { await c.loadAll(); } catch (x) { c.toast(`Saved, but the page could not reload: ${c.message(x)}`, true); }
         if (dlg.open) dlg.close();
         dlg.remove();
+        state.returnTo = t.id;
+        state.returnKind = kind;
+        state.returnEl = null;
         c.toast(`Saved for ${t.name}. ${appliesNow ? 'It changed this cycle.' : `It applies from ${dayShort(target.start)}.`}${mailNote}`, !!mailNote && /not queued/.test(mailNote));
         if (/^#\/billing\/./.test(location.hash || '')) location.hash = '#/billing'; else c.route();
       } catch (x) {
         if (btn.isConnected) done();
-        const m = PP().say(x, 'Not saved');
+        const m = PP().say(x, 'Not saved').replace(/\b(public\.)?override_plan_cycle\b/g, 'the plan save');
         fail(/nothing was changed/i.test(m) ? m : `${m} Nothing was changed.`, null);
       }
     });
 
     if (seq === state.seq) {
       dlg.showModal();
-      const firstFocus = dlg.querySelector('.pp-plan input:checked') || dlg.querySelector('.pp-plan input:not(:disabled)') || reason;
+      const firstFocus = (fromLimits && dlg.querySelector('.bd-limits > summary')) || dlg.querySelector('.pp-plan input:checked') || dlg.querySelector('.pp-plan input:not(:disabled)') || reason;
       if (firstFocus) /** @type {HTMLElement} */ (firstFocus).focus();
     }
     loadHistory(t, $('#bd-hist'));
@@ -9189,7 +9261,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
    *     the open thread is in progress, every 3 s otherwise. bot_owner_list(since) returns rows CHANGED after since (updated_at),
    *     so progress and status moves come in on the next poll. No realtime: the console does not use Supabase realtime anywhere.
    *   - archived threads are read only: no reply box (the server refuses too: thread-archived).
-   *   - phone (<= 760px): the list and the open thread are two views of the same panel, with a back button to the threads.
+   *   - phone (<= 900px since v98, as on Messages): the list and the open thread are two views of the same panel, with a back button to the threads.
    *   - messages from before projects (no thread) show under "Earlier messages", read only.
    * Polls bot_owner_list(since) every 3 seconds while #/bot is open on Ask bots and the tab is visible, and refreshes the thread
    * list when anything changed. The forms are NOT .bot-form, so the card keys and the Cancel handler leave them alone. The console
@@ -9214,6 +9286,9 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   const OWNER_FINAL = ['draft_ready', 'needs_client', 'failed'];
   /** Router steps whose words are worth showing (as a quiet note under Karan's message) though the work is not finished. */
   const OWNER_NOTE = ['queued_for_grok', 'paused'];
+  /** v98: the router's instant "got it" reply to each of Karan's messages (router_job_id ends ":ack"). It is shown as a plain reply
+   *  and never counts as the request's status: the work it acknowledges keeps its own status, live line and result. @param {any} m */
+  const ownerIsAck = (m) => !!m && m.author === 'router' && /:ack$/.test(String(m.router_job_id || ''));
   const EARLIER = 'earlier';
   const PLACEHOLDER = /** @type {Record<string, string>} */ ({
     general: 'Ask for anything for this client',
@@ -9227,18 +9302,21 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     cur: '', view: 'thread', showArchived: false, creating: '', renaming: false,
     open: /** @type {Set<string>} */ (new Set()), loaded: /** @type {Set<string>} */ (new Set()),
     drafts: /** @type {Map<string, string>} */ (new Map()),
-    timer: 0, clock: 0, busy: false, ticks: 0, form: /** @type {HTMLFormElement|null} */ (null)
+    timer: 0, clock: 0, busy: false, refreshing: false, ticks: 0, form: /** @type {HTMLFormElement|null} */ (null)
   };
 
   /** No internal ids in anything Karan reads (router job and thread ids, task ids). @param {any} s */
-  const scrubIds = (s) => String(s || '').replace(/\b(?:boc|bt)_[0-9a-fA-F]{8,}\b|\bt_\d{14}_[0-9a-f]{6}\b/gi, '').replace(/\(\s*\)/g, '').replace(/[ \t]{2,}/g, ' ').trim();
+  // v98: also drops what an id leaves behind ("(job )", "job ." and the space before the stop)
+  const scrubIds = (s) => String(s || '').replace(/\b(?:boc|bt)_[0-9a-fA-F]{8,}\b|\bt_\d{14}_[0-9a-f]{6}\b/gi, '').replace(/\(\s*(?:(?:job|task|thread|id)\s*)?\)/gi, '').replace(/\b(?:job|task)\s+(?=[.,;:!?)]|$)/gim, '').replace(/[ \t]{2,}/g, ' ').replace(/[ \t]+([.,;:!?])/g, '$1').trim();
   /** @param {string} s */
   const ownerState = (s) => { const x = OWNER_STATE[s]; return x ? `<span class="bo-state ${x.tone}">${x.label}</span>` : ''; };
   /** The message's own status (the router moves it along); before the router has touched it, its newest router step. @param {any} m */
   // A finished router reply wins over a message still marked active (the router's two writes can land a poll apart), so no stale live line.
+  // v98: acks are skipped; a message the router never took on (archived thread) takes its "needs you" ack's status, so it ends.
   const ownerStatusOf = (m) => {
-    let s = '';
-    for (const x of owner.msgs) if (x.parent_id === m.id && x.status) s = x.status;
+    let s = '', ack = '';
+    for (const x of owner.msgs) if (x.parent_id === m.id && x.status) { if (ownerIsAck(x)) ack = x.status; else s = x.status; }
+    if (!m.status && !s && ack && ack !== 'draft_ready') return ack;
     if (!m.status) return s;
     return OWNER_ACTIVE.includes(m.status) && s && !OWNER_ACTIVE.includes(s) ? s : m.status;
   };
@@ -9259,7 +9337,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   const ownerOn = () => owner.ok === true && ownerMaybe();
   /** The Ask bots count: Karan's requests the router has not finished. */
   const ownerOpen = () => owner.msgs.filter((m) => m.author === 'owner' && !OWNER_FINAL.includes(ownerStatusOf(m))).length;
-  const phone = () => window.matchMedia('(max-width: 760px)').matches;
+  const phone = () => window.matchMedia('(max-width: 900px)').matches;   // v98: the one-column layout starts at 900px, as on Messages
   /** The projects, in the server's order: [{slug, name, threads}]. */
   function ownerProjects() {
     /** @type {{slug: string, name: string, threads: any[]}[]} */
@@ -9354,7 +9432,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       ${owner.threadsOk ? `<p class="bo-side-foot"><button type="button" class="linkish" data-oc-archived aria-pressed="${owner.showArchived}">${owner.showArchived ? 'Hide archived threads' : 'Show archived threads'}${!owner.showArchived && archivedN ? ` (${archivedN})` : ''}</button></p>` : ''}`;
   }
 
-  /** One line of the open thread. Router steps that only say "queued" or "working" are not drawn. @param {any} m */
+  /** One line of the open thread. Router steps that only say "queued" or "working" are not drawn; a standalone router note and an ack are. @param {any} m */
   function ownerItem(m) {
     const C0 = C();
     const at = C0.esc(C0.when(m.created_at));
@@ -9365,8 +9443,18 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       for (const x of owner.msgs) if (x.author === 'router' && x.parent_id === m.id && OWNER_NOTE.includes(x.status) && x.body) note = x.body;
       const noteOn = note && OWNER_NOTE.includes(st);
       const live = OWNER_ACTIVE.includes(st) || (!st && !m.status);
-      return `<li class="msg team" data-k="${C0.esc(m.id)}"><p>${C0.esc(m.body)}</p><p class="meta">${C0.esc((C0.me && C0.me.name) || 'You')} · ${at}${st && !live ? ` · ${ownerState(st)}` : ''}</p></li>${live ? ownerLive(m, st) : ''}${noteOn ? `<li class="bo-note" data-k="note-${C0.esc(m.id)}"><p class="meta">${C0.esc(scrubIds(note))}</p></li>` : ''}`;
+      // v98: the router's instant reply sits right under the message (before the live line and any note), when it is in this thread
+      const acks = owner.msgs.filter((x) => ownerIsAck(x) && x.parent_id === m.id && ownerTid(x) === ownerTid(m)).map(ownerReply).join('');
+      return `<li class="msg team" data-k="${C0.esc(m.id)}"><p>${C0.esc(m.body)}</p><p class="meta">${C0.esc((C0.me && C0.me.name) || 'You')} · ${at}${st && !live ? ` · ${ownerState(st)}` : ''}</p></li>${acks}${live ? ownerLive(m, st) : ''}${noteOn ? `<li class="bo-note" data-k="note-${C0.esc(m.id)}"><p class="meta">${C0.esc(scrubIds(note))}</p></li>` : ''}`;
     }
+    // v98: an ack is drawn under its message when that message is in the same thread, on its own otherwise (archived-thread
+    // fallback); a router row with no parent is a note from the router. Both are a plain message, ids scrubbed, whatever their
+    // status. Router steps that belong to a message (queued, working, ...) still only show as the status word on Karan's message.
+    if (ownerIsAck(m)) {
+      const p = m.parent_id ? ownerRow(m.parent_id) : null;
+      return p && p.author === 'owner' && ownerTid(p) === ownerTid(m) ? '' : ownerReply(m);
+    }
+    if (m.author === 'router' && !m.parent_id) return ownerReply(m);
     if (!OWNER_FINAL.includes(m.status)) return '';
     const text = scrubIds(m.body);
     if (m.status === 'draft_ready') {
@@ -9374,6 +9462,12 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
         <p class="meta">Router · ${at} · <button class="linkish" type="button" data-oc-copy="${C0.esc(m.id)}">Copy text</button></p></li>`;
     }
     return `<li class="msg" data-k="${C0.esc(m.id)}"><p>${C0.esc(text)}</p><p class="meta">Router · ${at}</p></li>`;
+  }
+  /** A router row drawn as a plain reply (a standalone note or an ack): ids scrubbed, "Router · time". @param {any} m */
+  function ownerReply(m) {
+    const C0 = C();
+    const note = scrubIds(m.body);
+    return note ? `<li class="msg" data-k="${C0.esc(m.id)}"><p>${C0.esc(note)}</p><p class="meta">Router · ${C0.esc(C0.when(m.created_at))}</p></li>` : '';
   }
   /** What the router is doing now: its newest progress line (on the message, else on its newest router row). @param {any} m */
   function ownerProgress(m) {
@@ -9403,8 +9497,10 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   function ownerMain() {
     const C0 = C();
     const back = `<button type="button" class="icon-btn icon-btn-sm bo-back" data-oc-back aria-label="All threads">${C0.icon('back')}</button>`;
+    // v98: Reload, first in the head's tools, in the same look as the v97 Rename / Archive buttons
+    const reload = `<button type="button" class="btn-quiet btn-sm bo-reload" data-oc-refresh${owner.refreshing ? ' disabled aria-busy="true"' : ''}>${C0.icon('refresh')}Reload</button>`;
     if (owner.cur === EARLIER) {
-      return `<div class="bo-head">${back}<div class="bo-head-t"><p class="meta">Before projects</p><h3 id="bo-thread-h">Earlier messages</h3></div></div>
+      return `<div class="bo-head">${back}<div class="bo-head-t"><p class="meta">Before projects</p><h3 id="bo-thread-h">Earlier messages</h3></div><div class="bo-tools">${reload}</div></div>
         ${ownerLog()}<p class="meta bo-ro">These came in before projects. New messages go in a client's thread.</p>`;
     }
     const t = ownerThread(owner.cur);
@@ -9412,9 +9508,9 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     const title = owner.renaming
       ? `<form class="bo-rename" data-oc-rename-form novalidate><label class="sr-only" for="bo-rename-in">Thread name</label><input id="bo-rename-in" name="title" maxlength="80" value="${C0.esc(t.title)}" autocomplete="off"><button class="btn btn-sm" type="submit">Save</button><button class="linkish" type="button" data-oc-rename-cancel>Cancel</button></form>`
       : `<h3 id="bo-thread-h">${C0.esc(t.title)}</h3>`;
-    const tools = t.archived
+    const tools = reload + (t.archived
       ? `<button type="button" class="btn-quiet btn-sm" data-oc-restore>Restore</button>`
-      : owner.renaming ? '' : `<button type="button" class="btn-quiet btn-sm" data-oc-rename>Rename</button><button type="button" class="btn-quiet btn-sm" data-oc-archive>Archive</button>`;
+      : owner.renaming ? '' : `<button type="button" class="btn-quiet btn-sm" data-oc-rename>Rename</button><button type="button" class="btn-quiet btn-sm" data-oc-archive>Archive</button>`);
     const reply = t.archived
       ? `<p class="meta bo-ro">This thread is archived. Restore it to write here.</p>`
       : `<form class="convo-reply" id="bot-owner-reply" novalidate>
@@ -9571,6 +9667,34 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     if (phone()) { const sec = document.querySelector('[data-bot-owner]'); if (sec) sec.scrollIntoView({ block: 'start' }); }
     if (await loadThread(tid) && owner.cur === tid) redrawOwnerLog();
   }
+  /** Reload (the button in the thread head): the open thread's messages again from the server (bot_owner_list with p_thread_id; the
+   * newest across threads for Earlier messages) and the thread list. Rows merge by id, so nothing doubles. The button is disabled
+   * while it runs (at least 400 ms, so the press is seen), and it waits for a poll in flight instead of racing it. */
+  async function ownerRefresh() {
+    if (owner.refreshing) return;
+    const C0 = C();
+    owner.refreshing = true;
+    const btn = /** @type {HTMLButtonElement|null} */ (document.querySelector('[data-bot-owner] [data-oc-refresh]'));
+    if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
+    const t0 = Date.now();
+    let ok = true;
+    for (let i = 0; owner.busy && i < 100; i++) await new Promise((r) => setTimeout(r, 100));
+    owner.busy = true;
+    try {
+      const tid = owner.cur;
+      const one = tid && tid !== EARLIER;
+      const rows = await call('bot_owner_list', one ? { since: null, p_thread_id: tid } : { since: null });
+      if (one) owner.loaded.add(tid);
+      ownerTake(rows);
+      await loadThreads();
+    } catch (x) { ok = false; } finally { owner.busy = false; }
+    const wait = 400 - (Date.now() - t0);
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    owner.refreshing = false;
+    if (!document.querySelector('[data-bot-owner]')) return;
+    ownerRedraw('[data-oc-refresh]');
+    if (!ok) C0.toast('Could not reload just now. Try again in a moment.', true);
+  }
   /** @param {string} id @param {{title?: string, archived?: boolean, p_client?: string}} change */
   async function ownerUpdate(id, change) {
     const C0 = C();
@@ -9691,6 +9815,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       const nt = /** @type {HTMLElement|null} */ (el.closest('[data-oc-new-thread]'));
       if (nt) { owner.creating = nt.getAttribute('data-oc-new-thread') || ''; owner.open.add(owner.creating); ownerRedraw('.bo-new-form input'); return; }
       if (el.closest('[data-oc-create-cancel]')) { const s = owner.creating; owner.creating = ''; ownerRedraw(`[data-oc-new-thread="${s}"]`); return; }
+      if (el.closest('[data-oc-refresh]')) { await ownerRefresh(); return; }
       if (el.closest('[data-oc-back]')) { ownerKeepDraft(); owner.view = 'list'; ownerRedraw('[aria-current="true"]'); return; }
       if (el.closest('[data-oc-archived]')) { owner.showArchived = !owner.showArchived; await loadThreads(); ownerRedraw('[data-oc-archived]'); return; }
       if (el.closest('[data-oc-rename]')) { owner.renaming = true; ownerRedraw('#bo-rename-in'); return; }
@@ -10295,8 +10420,8 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
 
     box.innerHTML = `<section class="cv" aria-labelledby="cv-h">
       ${C.pageFresh({ updatedAt: st.at, source: 'x', status: 'checking' })}
-      <div class="cv-head"><div><h2 id="cv-h">Client view</h2>
-        <p>${demo ? 'A sample dashboard, the way a restaurant sees theirs. It is a look only: it does not change with this console.' : `${esc(name)}'s dashboard, exactly as they see it. You can look and move around, but nothing here can be approved, sent or changed.`}</p></div>
+      <div class="cv-head"><div><h2 id="cv-h">Preview as client</h2>
+        <p>${demo ? 'A sample dashboard, the way a restaurant sees theirs. It is a look only: it does not change with this console.' : `${esc(name)}'s dashboard, exactly as they see it. You can look and move around, but nothing here can be approved, sent or changed.`} To change the words on their Home, use Edit their Home. To show or hide pages, use Show or hide.</p></div>
         <span class="cv-live${demo ? ' is-sample' : ''}"><span class="cv-dot" aria-hidden="true"></span><span>${demo ? 'Sample: this does not change with the console' : 'Live: changes here show at once'}</span></span>
       </div>
       <div class="cv-bar">
@@ -10346,7 +10471,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     }
     function drawCover() {
       const msg = {
-        blocked: ['This page needs the console\'s web address', 'Client view cannot open when the console is opened as a file on this computer. Open the console from its normal link and this page will show the dashboard.'],
+        blocked: ['This page needs the console\'s web address', 'Preview as client cannot open when the console is opened as a file on this computer. Open the console from its normal link and this page will show the dashboard.'],
         failed: ['The dashboard did not open here', demo ? 'The sample dashboard did not load. Check your connection and try Reload.' : 'The dashboard may not have its client view yet, or it did not load in time. Try Reload. Nothing was changed.'],
         connecting: ['Opening ' + (demo ? 'the sample dashboard' : name + '\'s dashboard') + '...', '']
       }[/** @type {'blocked'|'failed'|'connecting'} */ (st.state === 'ready' ? 'connecting' : st.state)];
@@ -10430,7 +10555,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   }
 
   EXT.clientview = { changed, pageOf, dashUrl };
-  EXT.tabs.view = { label: 'Client view', after: 'home', render };
+  EXT.tabs.view = { label: 'Preview as client', after: 'home', render };
 })();
 </script>
 <script>
@@ -11361,7 +11486,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       slot.innerHTML = cardHtml(k);
       slot.querySelectorAll('textarea').forEach((t) => grow(/** @type {HTMLTextAreaElement} */ (t)));
       const form = /** @type {HTMLFormElement|null} */ (slot.querySelector('.hp-form'));
-      if (form) C.track(form, `${/** @type {any} */ (SECS.find((x) => x.key === k)).name} (Home tab)`);
+      if (form) C.track(form, `${/** @type {any} */ (SECS.find((x) => x.key === k)).name} (Edit their Home)`);
       const pf = slot.querySelector('.vz-pform');
       if (pf && pf.querySelector('input[name="reason"]')) C.track(/** @type {HTMLFormElement} */ (pf), 'Reason to hide');
       const f = focus ? /** @type {HTMLElement|null} */ (slot.querySelector(focus)) : ui(k).prompt ? /** @type {HTMLElement|null} */ (slot.querySelector('input[name="reason"]')) : null;
@@ -11373,8 +11498,8 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       const latest = Object.values(st.rows).map((/** @type {any} */ r) => r.updated_at).sort().pop();
       const fresh = C.pageFresh({ updatedAt: latest || st.at, source: 'Console (Home sections) and the plan', status: st.errors.length ? 'delayed' : 'ok', label: st.errors.length ? 'Some data did not load' : undefined });
       box.innerHTML = `<section class="hp" aria-labelledby="hp-h">
-        <header class="hp-head"><h2 id="hp-h">Home tab</h2>
-          <p>What ${esc(first)} sees first when they sign in. Nothing here shows to them until its switch is on. Hidden sections leave their Home but stay in the history. <a href="#/client/${esc(id)}/visible">See everything they see</a></p></header>
+        <header class="hp-head"><h2 id="hp-h">Edit their Home</h2>
+          <p>What ${esc(first)} sees first when they sign in. Nothing here shows to them until its switch is on. Hidden sections leave their Home but stay in the history. To show or hide whole pages, use Show or hide. To see it as they do, use Preview as client. <a href="#/client/${esc(id)}/visible">See everything they see</a></p></header>
         ${fresh}
         ${st.errors.length ? `<p class="notice bad" role="alert">These did not load: ${esc(st.errors.join(', '))}. Do not save over a section until it loads. <button class="linkish" type="button" data-hp="reload">Try again</button></p>` : ''}
         <div class="hp-cols">
@@ -11392,7 +11517,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       drawPreview();
     }
 
-    box.innerHTML = `<section class="hp" aria-labelledby="hp-h"><header class="hp-head"><h2 id="hp-h">Home tab</h2><p>What ${esc(first)} sees first when they sign in.</p></header>${C.skeleton(3)}</section>`;
+    box.innerHTML = `<section class="hp" aria-labelledby="hp-h"><header class="hp-head"><h2 id="hp-h">Edit their Home</h2><p>What ${esc(first)} sees first when they sign in. To show or hide whole pages, use Show or hide. To see it as they do, use Preview as client.</p></header>${C.skeleton(3)}</section>`;
 
     /* -- writing -- */
     /** Saves one section: its text and source, and whether it is shown. publish: true makes it visible. @param {string} k @param {boolean} publish */
@@ -11566,7 +11691,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     });
   }
 
-  EXT.tabs.home = { label: 'Home tab', after: 'talk', render };
+  EXT.tabs.home = { label: 'Edit their Home', after: 'talk', render };
 })();
 </script>
 <script>
@@ -11625,12 +11750,12 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   function inner() {
     const rows = state.rows || [];
     if (!rows.length) return '';
-    return `<section class="q-group" aria-labelledby="q-intake-h"><h2 id="q-intake-h">New setup forms <span class="meta">${rows.length}</span></h2>
+    return `<details class="q-group q-fold" aria-labelledby="q-intake-h"><summary><h2 id="q-intake-h">New setup forms <span class="meta">${rows.length}</span></h2></summary>
       <p class="lede">Filled in at domin8temedia.com/onboarding. They already got a confirmation email. Add them and their dashboard login goes out with it.</p>
-      <ul class="q intake-list">${rows.map(row).join('')}</ul></section>`;
+      <ul class="q intake-list">${rows.map(row).join('')}</ul></details>`;
   }
   /** What queuePage puts on the page: a holder that fills itself once the rows are in. */
-  const block = () => `<div id="q-intake">${inner()}</div>`;
+  const block = () => `<div id="q-intake" data-qf="other">${inner()}</div>`;
   function paint() { const el = document.getElementById('q-intake'); if (el) el.innerHTML = inner(); }
 
   /** @param {any} x */
@@ -11730,9 +11855,9 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     reminder_failed: { f: 'email', label: 'Reminder failed', tone: 'bad', icon: 'mail', rank: 1 },
     notification_failed: { f: 'email', label: 'Message email failed', tone: 'bad', icon: 'mail', rank: 1 }
   };
-  const FILTERS = [['all', 'All'], ['mismatch', 'Mismatches'], ['limit', 'Limit decisions'], ['deadline', 'Pick deadlines'], ['email', 'Failed emails'], ['approval', 'Client approvals']];
+  const FILTERS = [['all', 'All'], ['mismatch', 'Mismatches'], ['limit', 'Limit decisions'], ['deadline', 'Pick deadlines'], ['email', 'Failed emails'], ['approval', 'Check before live']];
   /** The chip in use stays when the page is drawn again after an action. */
-  const state = { filter: 'all' };
+  const state = { filter: 'all', /** @type {any} */ view: null };
 
   const ICONS = {
     alert: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.6v5.2M12 16.3h.01"/>',
@@ -12495,12 +12620,13 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     return `<section class="panel nx-panel" aria-label="Plans, limits and bill emails"><ul class="nx-list">${list.map((x) => card(x.ex)).join('')}</ul></section>`;
   }
 
-  /** The line under the title and the filter chips. @param {{typed: any[], dmCount: number, otherCount: number}} view */
+  /** The line under the title and the filter chips. @param {{typed: any[], dmCount: number, otherCount: number, total?: number, folded?: number, n?: Record<string, number>}} view */
   function top(view) {
     const c = C();
     const typed = view.typed || [];
     /** @type {Record<string, number>} */ const n = { all: typed.length + view.dmCount + view.otherCount, approval: view.dmCount, mismatch: 0, limit: 0, deadline: 0, email: 0 };
     for (const x of typed) n[KINDS[x.ex.reason_code].f]++;
+    view.n = n; // applyFilter puts the chip's number in the Do now heading
     const failed = !!(c.all.reviews && c.all.reviews.error);
     const held = typed.filter((x) => x.ex.reason_code === 'plan_mismatch' || x.ex.reason_code === 'result_outlier').length;
     const fresh = c.pageFresh({
@@ -12511,7 +12637,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       note: failed ? 'The queue could not be fully loaded, so do not assume nothing is waiting. Reload to try again.' : held ? 'For every unverified item the client keeps seeing the last verified value until you resolve it.' : ''
     });
     const chips = `<div class="nx-chips"><div class="seg" id="nx-filter" role="group" aria-label="Show">${FILTERS.map(([key, label]) => `<button type="button" data-nx-filter="${key}" aria-pressed="${state.filter === key}">${esc(label)}<span class="count quiet">${n[key]}</span></button>`).join('')}</div></div>`;
-    return `${fresh}${chips}`;
+    // Under a chip: what shows and a way back to All (applyFilter fills the text).
+    const status = `<p class="meta" data-nx-status hidden><span data-nx-status-text></span> <button class="linkish" type="button" data-nx-clear>Clear filter</button></p>`;
+    return `${fresh}${chips}${status}`;
   }
 
   /** Shows what the chip in use asks for and hides the rest. @param {HTMLElement} main */
@@ -12536,6 +12664,79 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       empty.innerHTML = `<p><strong>Nothing under ${esc(label)}.</strong></p><p>Choose All to see everything that is waiting.</p>`;
       empty.hidden = false;
     } else if (empty) empty.hidden = true;
+    statusLine(main);
+    // "Do now T" under All, "Do now N of T" under a chip (N is the chip's number); the fold line counts only the client
+    // groups' "Show N more" rows, which show under All only.
+    const view = state.view;
+    if (!view) return;
+    const total = view.total || 0;
+    const head = /** @type {HTMLElement|null} */ (main.querySelector('[data-qtotal]'));
+    if (head) head.textContent = f === 'all' ? String(total) : `${(view.n && view.n[f]) || 0} of ${total}`;
+    const parts = /** @type {HTMLElement|null} */ (main.querySelector('[data-qparts]'));
+    if (parts) parts.hidden = f !== 'all';
+    foldLine(main);
+  }
+
+  /**
+   * The line under the chips while one is on: "Showing X only." plus any section outside the chip that still shows (read
+   * from the page, so a block without data-qf is named rather than silently left in). Hidden under All. @param {HTMLElement} main
+   */
+  function statusLine(main) {
+    const line = /** @type {HTMLElement|null} */ (main.querySelector('[data-nx-status]'));
+    if (!line) return;
+    const f = state.filter;
+    line.hidden = f === 'all';
+    if (f === 'all') return;
+    const label = (FILTERS.find((x) => x[0] === f) || ['', ''])[1];
+    const row = main.querySelector('.nx-chips');
+    const fold = main.querySelector('#q-needs');
+    /** @type {Element[]} */ const blocks = [];
+    let after = !row;
+    for (const el of Array.from(main.children)) {
+      if (el === row) { after = true; continue; }
+      if (after && el !== fold) blocks.push(el);
+    }
+    if (fold) blocks.push(...Array.from(fold.children));
+    /** @type {string[]} */ const extra = [];
+    for (const el of blocks) {
+      const h = /** @type {HTMLElement} */ (el);
+      if (h === line || h.hidden || h.closest('[hidden]') || h.getAttribute('data-qf') === f) continue;
+      if (h.matches('h2, h3, [data-qparts], [data-qcount], [data-nx-empty]')) continue;
+      if (h.classList.contains('nx-panel') && h.querySelector(`[data-qf="${f}"]:not([hidden])`)) continue;
+      const head = h.querySelector('h2, h3');
+      if (!head) continue;
+      const copy = /** @type {HTMLElement} */ (head.cloneNode(true));
+      for (const m of Array.from(copy.querySelectorAll('.meta'))) m.remove();
+      const name = (copy.textContent || '').replace(/[\s·]+$/, '').trim();
+      if (name && !extra.includes(name)) extra.push(name);
+    }
+    const plus = extra.length ? `, plus ${extra.length === 1 ? extra[0] : `${extra.slice(0, -1).join(', ')} and ${extra[extra.length - 1]}`}` : '';
+    const text = /** @type {HTMLElement} */ (line.querySelector('[data-nx-status-text]'));
+    text.textContent = `Showing ${label} only${plus}. Other sections are hidden.`;
+  }
+
+  /**
+   * The fold line under Do now: counts the closed "Show N more" folds in the client groups that show, so it follows the
+   * chips and every fold opened or closed. Hidden under a chip and when nothing is folded away. @param {HTMLElement} main
+   */
+  function foldLine(main) {
+    const line = /** @type {HTMLElement|null} */ (main.querySelector('[data-qcount]'));
+    const view = state.view;
+    if (!line || !view) return;
+    const total = view.total || 0;
+    let fd = 0;
+    let g = 0;
+    let one = 0;
+    if (state.filter === 'all') {
+      for (const d of /** @type {HTMLDetailsElement[]} */ (Array.from(main.querySelectorAll('#q-needs [data-qplain] > details.q-more')))) {
+        if (d.open || d.closest('[hidden]')) continue;
+        one = d.querySelectorAll('ul.q > li').length;
+        fd += one;
+        g++;
+      }
+    }
+    line.hidden = !g;
+    if (g) line.textContent = g === 1 ? `${total - fd} shown, ${fd} more in client groups. Open "Show ${one} more" to see them.` : `${total - fd} shown, ${fd} more in client groups. Open "Show more" in each group to see them.`;
   }
 
   /** @param {HTMLElement} slot */
@@ -12617,14 +12818,22 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
 
   /** The page's clicks: the chips and the action buttons. @param {HTMLElement} main @param {any} view */
   function wire(main, view) {
-    void view;
+    state.view = view;
     main.onclick = (e) => {
       const t = /** @type {HTMLElement} */ (e.target);
       const chip = t.closest('[data-nx-filter]');
       if (chip) { state.filter = chip.getAttribute('data-nx-filter') || 'all'; applyFilter(main); return; }
+      if (t.closest('[data-nx-clear]')) {
+        state.filter = 'all';
+        applyFilter(main);
+        /** @type {HTMLElement|null} */ (main.querySelector('[data-nx-filter="all"]'))?.focus();
+        return;
+      }
       const b = /** @type {HTMLButtonElement|null} */ (t.closest('[data-nx-act]'));
       if (b && !b.disabled) openSheet(b);
     };
+    // "toggle" does not bubble: each fold of this drawing gets one listener (a new drawing makes new folds, so none stack).
+    for (const d of Array.from(main.querySelectorAll('#q-needs [data-qplain] > details.q-more'))) d.addEventListener('toggle', () => foldLine(main));
     applyFilter(main);
     // #/queue/<item id> (the link a client's Overview gives) scrolls to the card and marks it.
     const m = /^#\/queue\/(.+)$/.exec(location.hash || '');
@@ -12638,7 +12847,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     }
   }
 
-  EXT.needs = { CODES, KINDS, FILTERS, handles, toNeed, claimedItems, top, cards, wire, applyFilter, state, modelOf, metricName };
+  EXT.needs = { CODES, KINDS, FILTERS, handles, toNeed, claimedItems, top, cards, wire, applyFilter, foldLine, state, modelOf, metricName };
 })();
 </script>
 <script>
@@ -17486,9 +17695,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if (!state.rows || state.missing) return '';
     const quiet = [...state.rows.values()].filter((u) => u.quiet && hasLogin(u.tenant_id)).map((u) => ({ u, t: C().tenant(u.tenant_id) })).filter((x) => x.t);
     if (!quiet.length) return '';
-    return `<section class="q-group us-quiet" aria-labelledby="q-quiet-h" data-qf="other"><h2 id="q-quiet-h">Quiet on the dashboard <span class="meta">${quiet.length}</span></h2>
+    return `<details class="q-group q-fold us-quiet" aria-labelledby="q-quiet-h" data-qf="other"><summary><h2 id="q-quiet-h">Quiet on the dashboard <span class="meta">${quiet.length}</span></h2></summary>
       <p class="lede">They wrote by text, email or phone in the last 14 days but have not opened their dashboard in 7. Put the next request inside it and send them: <q>${esc(REPLY)}</q> <button class="linkish" type="button" data-us-copy>Copy the line</button></p>
-      <ul class="q">${quiet.map(({ u, t }) => `<li><a class="todo-row" href="#/client/${esc(t.id)}/overview?at=usage"><span class="chip warn">Quiet</span><span class="text">${esc(t.name)}: ${C().plural(u.outside_14d, 'message')} from outside, dashboard ${esc(ago(u.last_seen_at, 'never opened'))}</span><span class="meta">${esc(ago(u.last_outside_at, ''))}</span></a></li>`).join('')}</ul></section>`;
+      <ul class="q">${quiet.map(({ u, t }) => `<li><a class="todo-row" href="#/client/${esc(t.id)}/overview?at=usage"><span class="chip warn">Quiet</span><span class="text">${esc(t.name)}: ${C().plural(u.outside_14d, 'message')} from outside, dashboard ${esc(ago(u.last_seen_at, 'never opened'))}</span><span class="meta">${esc(ago(u.last_outside_at, ''))}</span></a></li>`).join('')}</ul></details>`;
   }
 
   /** Redraws the panel in place after a write, if it is on screen. @param {string} id */
@@ -17807,7 +18016,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const bits = live ? [`Published ${dayText(s.published_at)} by ${who(s.published_by)}`, c.title ? clip(c.title, 60) : '']
         : hidden ? [`Hidden ${dayText(s.hidden_at)} by ${who(s.hidden_by)}: “${clip(s.hidden_reason, 120)}”`]
           : [`Saved ${dayText(s.updated_at)} by ${who(s.updated_by)}`, 'Not shown to the client yet'];
-      const sub = `${dot(bits)} <span class="vz-dot" aria-hidden="true">·</span> <a href="#/client/${esc(s.tenant_id)}/home">Edit in Home tab</a>`;
+      const sub = `${dot(bits)} <span class="vz-dot" aria-hidden="true">·</span> <a href="#/client/${esc(s.tenant_id)}/home">Edit their Home</a>`;
       rows.push({ key: 'home:' + s.id, type: 'home', id: s.id, title: SECTIONS[s.section] || s.section, sub, group: live ? 'live' : 'off', chip, ctl: { kind: 'switch', on: live }, src: s, when: s.updated_at || '' });
       void draft;
     }
@@ -17949,7 +18158,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const cleanForms = () => { for (const f of Array.from(C.dirty.keys())) if (box.contains(/** @type {any} */ (f))) C.clean(f); };
 
     box.innerHTML = `<section class="vz" aria-labelledby="vz-h">
-      <header class="vz-head"><h2 id="vz-h">What they see</h2><p>Every item on ${esc(client)}'s dashboard, who decided it, and the history of every change. New items start hidden until you decide.</p></header>
+      <header class="vz-head"><h2 id="vz-h">Show or hide</h2><p>Every item on ${esc(client)}'s dashboard, who decided it, and the history of every change. New items start hidden until you decide. To change the words on their Home, use Edit their Home. To see it as they do, use Preview as client.</p></header>
       ${C.skeleton(3)}</section>`;
 
     function counts() {
@@ -17990,7 +18199,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       const summary = [`${n.live} shown`, `${n.off} hidden`, n.decide ? `${n.decide} waiting for a decision` : 'nothing waiting for a decision'].join(' · ');
       const lockedNote = st.rows.some((r) => r.ctl.kind === 'again') ? '<p class="meta vz-foot">Hidden results, updates and invoices stay hidden: the database has no step that brings one back. Cards and Home sections can be shown again.</p>' : '';
       box.innerHTML = `<section class="vz" aria-labelledby="vz-h">
-        <header class="vz-head"><h2 id="vz-h">What they see</h2><p>Every item on ${esc(client)}'s dashboard, who decided it, and the history of every change. New items start hidden until you decide.</p></header>
+        <header class="vz-head"><h2 id="vz-h">Show or hide</h2><p>Every item on ${esc(client)}'s dashboard, who decided it, and the history of every change. New items start hidden until you decide. To change the words on their Home, use Edit their Home. To see it as they do, use Preview as client.</p></header>
         ${fresh}
         ${D.errors.length ? `<p class="notice bad" role="alert">These did not load: ${esc(D.errors.join(', '))}. What you see below is correct but not complete. <button class="linkish" type="button" data-vz="reload">Try again</button></p>` : ''}
         <div class="vz-cols">
@@ -18071,10 +18280,10 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         };
         if (mode === 'show') {
           ok(await client2.rpc('review_dashboard_item', { p_item_id: src.id, p_decision: 'approve', p_note: null, p_expected: src.updated_at || null }));
-          said = `Shown. It is on ${WHERE[/** @type {'result'} */ (row.type)]} now.${await closeHeld('Checked and published from the Visible tab.')}`;
+          said = `Shown. It is on ${WHERE[/** @type {'result'} */ (row.type)]} now.${await closeHeld('Checked and published from Show or hide.')}`;
         } else if (mode === 'keep') {
           ok(await client2.rpc('review_dashboard_item', { p_item_id: src.id, p_decision: 'reject', p_note: reason, p_expected: src.updated_at || null }));
-          said = `Kept hidden. Nothing changed on their dashboard.${await closeHeld(`Kept hidden from the Visible tab: ${clip(reason, 200)}`)}`;
+          said = `Kept hidden. Nothing changed on their dashboard.${await closeHeld(`Kept hidden from Show or hide: ${clip(reason, 200)}`)}`;
         } else {
           await C.callFn('dashboard-recovery', { action: 'hide', targetType: 'dashboard-item', itemId: src.id, reason });
           said = `Hidden. It leaves ${WHERE[/** @type {'result'} */ (row.type)]} on their next load. The history keeps it.`;
@@ -18153,7 +18362,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     reload();
   }
 
-  EXT.tabs.visible = { label: 'Visible', after: 'talk', render };
+  EXT.tabs.visible = { label: 'Show or hide', after: 'talk', render };
 
   /** What the Home tab shares: the words, the refusals as sentences, the history as sentences and the prompt. */
   EXT.visible = { explain, ok, wasStale, failText, load, sentence, historyHtml, reasonForm, stamp, dayText, timeText, periodText, clip, whoIs, SECTIONS };
@@ -19959,6 +20168,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   function renderSide() {
     if (!all || !me) return;
     const list = /** @type {HTMLElement} */ ($('#side-list'));
+    // Badge == the Do now total on Needs you (reviewCount(null) + every need); keep the two formulas the same.
     let needsTotal = reviewCount(null); // the same total the Needs you page shows as "Do now": client approvals plus every need
     for (const t of all.tenants) if (t.status !== 'archived') needsTotal += derive(t).needs.length;
     const openId = current && document.documentElement.dataset.page === 'client' ? current.id : ''; // only while a client's own page is open
@@ -20114,6 +20324,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     }
     return out;
   }
+  /** The tabs Alt 1 to 9 and Alt 0 open: the first ten of the tab bar, in its order (the shortcuts dialog lists the same). @returns {string[][]} */
+  const keyTabs = () => allTabs().slice(0, 10);
   /** A tab a part of the console registered, or null. @param {string} key */
   const extTab = (key) => { const t = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.tabs; return t && Object.prototype.hasOwnProperty.call(t, key) ? t[key] : null; };
   /** Old tab keys (before 2026-10-09), each to its new tab and the part that opens the same place. @type {Record<string, (part: string) => string>} */
@@ -20223,8 +20435,11 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); palette.open(); }
     else if (e.key === '/' && !typing && !palette.dlg.open) { e.preventDefault(); palette.open(); }
     // (not while a dialog is open: changing page under a question would ask another one on top of it)
-    else if (e.altKey && !typing && !$('dialog[open]') && /^[1-5]$/.test(e.key) && current && /^#\/client\//.test(location.hash)) {
-      const tab = TABS[Number(e.key) - 1];
+    // Alt 1 to 9, then 0, are the client tabs in the order the tab bar shows them (audit C1.2). Not with Ctrl or Meta (AltGr is Ctrl+Alt
+    // on Windows); e.code is the fallback where Alt changes the character (Option 1 is ¡ on a Mac).
+    else if (e.altKey && !e.ctrlKey && !e.metaKey && !typing && !$('dialog[open]') && current && /^#\/client\//.test(location.hash)) {
+      const digit = /^[0-9]$/.test(e.key) ? e.key : /^Digit[0-9]$/.test(e.code) ? e.code.slice(5) : '';
+      const tab = digit ? keyTabs()[digit === '0' ? 9 : Number(digit) - 1] : null;
       if (tab) { e.preventDefault(); location.hash = `#/client/${current.id}/${tab[0]}`; }
     }
   });
@@ -20653,7 +20868,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const grouped = (items, /** @type {string} */ qf) => {
       /** @type {Map<string, any[]>} */ const by = new Map();
       for (const x of items) { if (!by.has(x.client)) by.set(x.client, []); /** @type {any[]} */ (by.get(x.client)).push(x); }
-      return Array.from(by.entries()).map(([name, list]) => `<div class="q-client"${qf ? ` data-qf="${qf}"` : ''}><h3 class="q-client-h">${CC() && list[0].tid ? CC().badge(list[0].tid) : ''}${esc(name)} · ${list.length}</h3>
+      return Array.from(by.entries()).map(([name, list]) => `<div class="q-client"${qf ? ` data-qf="${qf}"` : ''}${qf === 'other' ? ' data-qplain' : ''}><h3 class="q-client-h">${CC() && list[0].tid ? CC().badge(list[0].tid) : ''}${esc(name)} · ${list.length}</h3>
         <ul class="q">${list.slice(0, 3).map((x) => qRow(x)).join('')}</ul>
         ${list.length > 3 ? `<details class="reveal q-more"><summary>Show ${list.length - 3} more</summary><ul class="q">${list.slice(3).map((x) => qRow(x)).join('')}</ul></details>` : ''}</div>`).join('');
     };
@@ -20666,20 +20881,37 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const N = partOf('needs');
     const typed = N ? needs.filter((x) => x.kind === 'exception') : [];
     const plain = N ? needs.filter((x) => x.kind !== 'exception') : needs;
-    const view = { typed, dmCount: reviewCount(null), otherCount: plain.length };
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Needs you</h1><p>Everything waiting on the team, most urgent first. Plan and limit items say what is wrong, what the client sees right now and the fastest way to fix it.</p></div>
+    // Plain rows behind "Show N more" in the client groups (3 open per client): counted in Do now but not visible.
+    /** @type {Map<string, number>} */ const perClient = new Map();
+    for (const x of plain) perClient.set(x.client, (perClient.get(x.client) || 0) + 1);
+    let folded = 0;
+    let folds = 0;
+    for (const k of perClient.values()) if (k > 3) { folded += k - 3; folds++; }
+    const view = { typed, dmCount: reviewCount(null), otherCount: plain.length, total: typed.length + reviewCount(null) + plain.length, folded };
+    const botWaiting = partOf('bot') && partOf('bot').pendingCount ? partOf('bot').pendingCount() : 0;
+    const start = 'Start at the top. Each card says what to press.';
+    const lead = !all.tenants.length ? start : view.total ? `${start} ${plural(view.total, 'thing')} for the team.`
+      : botWaiting ? `Nothing else for the team. ${botWaiting === 1 ? '1 bot draft waits' : `${botWaiting} bot drafts wait`} in Bot chat.` : `${start} Nothing for the team right now.`;
+    // The breakdown under Do now, only when there is more than one kind (applyFilter hides it under a chip).
+    const parts = [view.dmCount ? (view.dmCount === 1 ? '1 to check before it goes live' : `${view.dmCount} to check before they go live`) : '', typed.length ? plural(typed.length, 'plan and billing card') : '', plain.length ? plural(plain.length, 'other to-do') : ''].filter(Boolean);
+    // The fold line, first drawn from the per-client counts; mod-needs.js foldLine recounts it from the closed folds.
+    const foldText = folds === 1 ? `${doNow - folded} shown, ${folded} more in client groups. Open "Show ${folded} more" to see them.` : `${doNow - folded} shown, ${folded} more in client groups. Open "Show more" in each group to see them.`;
+    const trulyEmpty = !needs.length && !reviewCount(null) && !botWaiting;
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Needs you</h1><p>${esc(lead)}</p></div>
       <div class="btns updated"><span class="meta">Updated ${esc(ago(new Date(all.at).toISOString()))}</span><button class="icon-btn icon-btn-sm" type="button" data-action="refresh" aria-label="Reload" title="Reload">${icon('refresh')}</button></div></div>
       ${N ? N.top(view) : ''}
-      ${soon.length ? `<details class="soon-strip" data-qf="other"><summary>${icon('clock')}<span><b>Coming up this week: ${soon.length}.</b> Next: ${esc(next.client)}, ${esc(next.label)}${nd ? `, ${esc(nd.days === 0 ? 'today' : nd.text)}` : ''}</span></summary><ul class="q">${soon.map((x) => qRow(x, x.client)).join('')}</ul></details>` : ''}
-      ${partOf('intake') ? partOf('intake').block() : ''}
-      ${partOf('usage') ? partOf('usage').needsBlock() : ''}
       ${all.tenants.length ? '' : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p><a class="btn" href="#/new">Add a client</a></div>`}
-      <section class="q-group" id="q-needs"><h2>Do now <span class="meta">${doNow}</span></h2>
+      <section class="q-group" id="q-needs"><h2>Do now <span class="meta" data-qtotal>${doNow}</span></h2>
+        ${parts.length > 1 ? `<p class="meta" data-qparts>${esc(parts.map((x) => x.replace(/ /g, ' ')).join(' · '))}</p>` : ''}
+        <p class="lede" data-qcount${folds ? '' : ' hidden'}>${folds ? esc(foldText) : ''}</p>
         ${N ? N.cards(typed) : ''}
         ${dm}
         ${partOf('bot') ? partOf('bot').needsBlock() : ''}
-        ${needs.length ? (plain.length ? grouped(plain, 'other') : '') : `<div class="empty"><p><strong>Nothing needs you right now.</strong></p><p>New requests, messages, change requests and late dates show up here.</p></div>`}
+        ${!trulyEmpty ? (plain.length ? grouped(plain, 'other') : '') : `<div class="empty"><p><strong>Nothing needs you right now.</strong></p><p>New requests, messages, change requests and late dates show up here.</p></div>`}
       </section>
+      ${soon.length ? `<details class="soon-strip" data-qf="other"><summary>${icon('clock')}<span><b>Coming up this week: ${soon.length}.</b> Next: ${esc(next.client)}, ${esc(next.label)}${nd ? `, ${esc(nd.days === 0 ? 'today' : nd.text)}` : ''}</span></summary><ul class="q">${soon.map((x) => qRow(x, x.client)).join('')}</ul></details>` : ''}
+      ${partOf('intake') ? partOf('intake').block() : ''}
+      ${partOf('usage') ? partOf('usage').needsBlock() : ''}
       ${waiting.length ? `<details class="q-group q-fold" id="q-waiting" data-qf="other"><summary><h2>Waiting on clients <span class="meta">${waiting.length}</span></h2></summary>
         <p class="lede">Approvals they have not answered, and next steps that are theirs. Late ones first.</p>${grouped(waiting)}</details>` : ''}`;
     if (N) N.wire(main, view);
@@ -21044,6 +21276,15 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       pf.approval_level ? approvalChip(pf.approval_level, true) : '',
       `Changed <time datetime="${esc(current.updated_at)}" title="${esc(when(current.updated_at))}">${esc(ago(current.updated_at))}</time>`
     ].filter(Boolean);
+    // On a phone only the first few tabs show, so one line under the bar says where you are and what is off the edge (audit C1.3).
+    // It is built from the same list as the bar; on the last tab it points back the other way.
+    const tabsWhere = (() => {
+      const all = allTabs(), at = all.findIndex((x) => x[0] === t), last = at === all.length - 1;
+      const rest = (last ? all.slice(0, at).reverse() : all.slice(at + 1)).map((x) => x[1]);
+      const names = rest.length > 2 ? `${rest[0]}, ${rest[1]} and more` : rest.join(' and ');
+      // The last two words are held together so a narrow phone never leaves one word alone on the second line.
+      return `${all[at][1]} · ${at + 1} of ${all.length} tabs.${rest.length ? ` Swipe ${last ? 'back ' : ''}for ${names}.` : ''}`.replace(/ (\S+)$/, ' $1');
+    })();
     main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a>
       <div class="client-head"><div><h1 id="page-title" tabindex="-1">${esc(current.name)}</h1>
         <div class="who">${statusChip}${CC() ? CC().headerControl(current.id) : ''}${pinHead(current.id)}${warns}<details class="about"><summary>About</summary><p class="about-line">${about.map((x) => `<span class="t">${x}</span>`).join('')}</p></details></div></div></div>
@@ -21053,7 +21294,17 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         const count = k === 'talk' && talkCount ? `<span class="count" title="Needs a reply">${talkCount}</span>` : k === 'work' && openCards ? `<span class="count quiet" title="Open cards">${openCards}</span>` : k === 'bot' ? `<span class="count" title="Drafts waiting" data-bot-tab-count${botN ? '' : ' hidden'}>${botN}</span>` : '';
         return `<a href="#/client/${esc(id)}/${k}"${k === t ? ' aria-current="page"' : ''}>${label}${count}</a>`;
       }).join('')}</nav>
+      <p class="meta tabs-where" aria-hidden="true">${esc(tabsWhere)}</p>
       <div id="tab"></div>`;
+    // The head is drawn afresh on every tab change, so a phone's sideways tab row starts at its left end again; slide the row
+    // (never the page) until the current tab sits fully in view, clear of the faded right edge (audit C1.3).
+    const row = /** @type {HTMLElement | null} */ ($('.tabs', main)), on = row && /** @type {HTMLElement | null} */ ($('[aria-current="page"]', row));
+    if (row && on && row.scrollWidth > row.clientWidth) {
+      const r = row.getBoundingClientRect(), a = on.getBoundingClientRect(), max = row.scrollWidth - row.clientWidth;
+      const right = Math.max(r.left, r.right - 84);
+      const by = a.left < r.left ? a.left - r.left : a.right > right ? Math.min(a.right - right, a.left - r.left) : 0;
+      if (by) row.scrollLeft = Math.max(0, Math.min(max, row.scrollLeft + by));
+    }
     const box = /** @type {HTMLElement} */ ($('#tab'));
     try { localStorage.setItem('d8c.tab.' + id, t); } catch (e) { /* remembering the tab is a nicety */ }
     stopPulling();
@@ -23583,6 +23834,12 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
   /** The keyboard shortcuts, from the "?" in the sidebar. */
   function openKeys() {
     const dlg = /** @type {HTMLDialogElement} */ ($('#keys'));
+    // The Alt keys, from the same list as the keys themselves, so the dialog says what they do.
+    const tabs = keyTabs(), dt = $('dt[data-keys-tabs]', dlg), dd = $('dd[data-keys-tabs]', dlg);
+    if (dt && dd && tabs.length) {
+      dt.innerHTML = tabs.length === 1 ? '<kbd>Alt</kbd> <kbd>1</kbd>' : `<kbd>Alt</kbd> <kbd>1</kbd> to <kbd>${Math.min(tabs.length, 9)}</kbd>${tabs.length === 10 ? ', then <kbd>0</kbd>' : ''}`;
+      dd.textContent = `Client tabs, in order: ${tabs.map((x) => x[1]).join(', ')}`;
+    }
     if (!dlg.open) dlg.showModal();
     const b = $('[value="close"]', dlg);
     if (b) b.focus();

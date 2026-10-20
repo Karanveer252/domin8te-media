@@ -70,7 +70,7 @@
         <p><button class="btn btn-quiet btn-sm" type="button" data-us-build="${esc(id)}">Build last week's summary now</button></p></div>
       <details class="reveal us-block"${u && u.quiet ? ' open' : ''}><summary>They wrote by text, email or phone</summary>
         <p class="meta">Log it, answer it inside their dashboard, and send them this line so the next one comes there:</p>
-        <p class="us-reply"><q>${esc(REPLY)}</q> <button class="linkish" type="button" data-us-copy>Copy the line</button></p>
+        <p class="us-reply"><q>${esc(REPLY)}</q> <button class="linkish" type="button" data-us-copy>Copy nudge message</button></p>
         <form class="us-log" data-us-log="${esc(id)}" novalidate>
           <div class="field"><label for="us-ch">How it came</label><select id="us-ch" name="channel">${CHANNELS.map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join('')}</select></div>
           <div class="field us-note"><label for="us-note">What they asked <span class="meta">(optional, for the team)</span></label><input id="us-note" name="note" type="text" maxlength="500" autocomplete="off"></div>
@@ -84,9 +84,9 @@
     if (!state.rows || state.missing) return '';
     const quiet = [...state.rows.values()].filter((u) => u.quiet && hasLogin(u.tenant_id)).map((u) => ({ u, t: C().tenant(u.tenant_id) })).filter((x) => x.t);
     if (!quiet.length) return '';
-    return `<section class="q-group us-quiet" aria-labelledby="q-quiet-h" data-qf="other"><h2 id="q-quiet-h">Quiet on the dashboard <span class="meta">${quiet.length}</span></h2>
-      <p class="lede">They wrote by text, email or phone in the last 14 days but have not opened their dashboard in 7. Put the next request inside it and send them: <q>${esc(REPLY)}</q> <button class="linkish" type="button" data-us-copy>Copy the line</button></p>
-      <ul class="q">${quiet.map(({ u, t }) => `<li><a class="todo-row" href="#/client/${esc(t.id)}/overview?at=usage"><span class="chip warn">Quiet</span><span class="text">${esc(t.name)}: ${C().plural(u.outside_14d, 'message')} from outside, dashboard ${esc(ago(u.last_seen_at, 'never opened'))}</span><span class="meta">${esc(ago(u.last_outside_at, ''))}</span></a></li>`).join('')}</ul></section>`;
+    return `<details class="q-group q-fold us-quiet" aria-labelledby="q-quiet-h" data-qf="other"><summary><h2 id="q-quiet-h">Clients not using their dashboard <span class="meta">${quiet.length}</span></h2></summary>
+      <p class="lede">They wrote by text, email or phone in the last 14 days but have not opened their dashboard in 7. Put the next request inside it and send them: <q>${esc(REPLY)}</q> <button class="linkish" type="button" data-us-copy>Copy nudge message</button></p>
+      <ul class="q">${quiet.map(({ u, t }) => `<li><a class="todo-row" href="#/client/${esc(t.id)}/overview?at=usage"><span class="chip warn">Quiet</span><span class="text">${esc(t.name)}: ${C().plural(u.outside_14d, 'message')} from outside, dashboard ${esc(ago(u.last_seen_at, 'never opened'))}</span><span class="meta">${esc(ago(u.last_outside_at, ''))}</span></a></li>`).join('')}</ul></details>`;
   }
 
   /** Redraws the panel in place after a write, if it is on screen. @param {string} id */

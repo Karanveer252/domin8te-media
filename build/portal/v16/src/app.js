@@ -425,7 +425,7 @@
       .then(() => {
         if (!document.contains(btn)) return;
         btn.disabled = false;
-        btn.innerHTML = `${icon('refresh')}Check for new numbers`;
+        btn.innerHTML = `${icon('refresh')}Refresh numbers`;
       });
   }
 

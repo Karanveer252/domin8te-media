@@ -8509,14 +8509,19 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
 
   /**
    * The plan card on Billing. With nothing chosen for next month it shows the services and the way to change them;
-   * with a change confirmed it shrinks to this month and the confirmation takes over (confirmed()).
-   * @param {any} m the plan model @param {{compact?: boolean}} [o]
+   * with a change confirmed it shrinks to this month and the confirmation takes over (confirmed()). Given the billing
+   * record, a payment that did not go through turns the badge into "Active until" the paid-through day, never a green one.
+   * @param {any} m the plan model @param {{compact?: boolean, billing?: any}} [o]
    */
   function overview(m, o = {}) {
     const c = m.now;
     const changing = m.confirmed && m.changes.differs;
     const eyebrow = changing || o.compact ? 'Your plan this month' : 'Your plan';
-    const status = m.confirmed && m.changes.differs ? '' : `<span class="badge tone-success">${icon('check')}Active · no changes coming</span>`;
+    const sub = o.billing && o.billing.subscription;
+    const pastDue = !!sub && sub.status === 'past_due';
+    const status = changing ? ''
+      : pastDue ? (sub.graceUntil ? `<span class="badge tone-warning">${icon('clock')}Active until ${esc(day(sub.graceUntil))}</span>` : '')
+        : `<span class="badge tone-success">${icon('check')}No plan changes coming</span>`;
     const head = `<header class="po-head"><div><p class="eyebrow">${eyebrow}</p><h2 class="po-name" id="h-plan">${esc(c.name)}${perMonth(c) ? `<span class="po-price"> · ${esc(perMonth(c))}</span>` : ''}</h2>${chips(c.picks)}</div>${o.compact ? '' : status}</header>`;
     if (o.compact || changing) {
       return `<section class="card plan-overview is-compact" aria-labelledby="h-plan">${head}<div class="po-facts">${facts(m)}</div></section>`;
@@ -10560,7 +10565,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     return `${fresh}
       ${b.subscription && b.subscription.status === 'past_due' ? payBanner(b) : ''}
       ${changing ? D8.plan.confirmed(m, ctx.account.user.email) : ''}
-      ${D8.plan.overview(m)}
+      ${D8.plan.overview(m, { billing: b })}
       <div class="bill-cols">${D8.plan.payment(b)}${D8.plan.bills(b.invoices, m)}</div>
       ${help}`;
   }

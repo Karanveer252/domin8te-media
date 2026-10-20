@@ -102,7 +102,7 @@
   const ALWAYS_EMAILS = [
     { id: 'bill7', label: 'Reminder 7 days before your bill', text: 'What you have now, and what you can change for next month.' },
     { id: 'bill3', label: 'Reminder 3 days before your bill', text: "Last chance to change next month's services." },
-    { id: 'picks', label: 'Confirmation when you change your picks', text: 'A copy of what you chose and when it starts.' }
+    { id: 'picks', label: 'Confirmation when you change your services', text: 'A copy of what you chose and when it starts.' }
   ];
 
   /**

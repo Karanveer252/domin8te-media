@@ -368,7 +368,7 @@
   function tools() {
     const c = C();
     const b = (/** @type {string} */ id, /** @type {string} */ data, /** @type {string} */ ic, /** @type {string} */ label) => `<button class="btn btn-quiet btn-sm" type="button" id="${id}" ${data} aria-haspopup="dialog">${c.icon(ic)}${label}</button>`;
-    return `<div class="rv-tools" role="group" aria-label="Revenue tools">${b('rv-qa-btn', 'data-rv-qa', 'plus', 'Add a cost')}${b('rv-find-btn', 'data-rv-find', 'search', 'Find')}${b('rv-exp-btn', 'data-rv-exp', 'page', 'Export')}${b('rv-goals-btn', 'data-rv-goals', 'trend', 'Goals and tax')}</div>`;
+    return `<div class="rv-tools" role="group" aria-label="Revenue tools">${b('rv-qa-btn', 'data-rv-qa', 'plus', 'Add a cost')}${b('rv-find-btn', 'data-rv-find', 'search', 'Find a transaction')}${b('rv-exp-btn', 'data-rv-exp', 'page', 'Export')}${b('rv-goals-btn', 'data-rv-goals', 'trend', 'Goals and tax')}</div>`;
   }
 
   /** The four sections, as the console's segmented pills. @param {string} ym */
@@ -2017,7 +2017,7 @@
     return `<dialog class="rv-cust rv-dlg" id="rv-qa" aria-labelledby="rv-qa-h"><form class="rv-cust-in" id="rv-qa-f" novalidate>${dlgHead('rv-qa', 'Add a cost', PERS() ? 'One personal cost, saved straight away. Business costs go on the Business tab.' : 'One cost for the business, saved straight away. Not client costs or client ad spend.')}
         <div class="rv-dlg-body" id="rv-qa-body"></div>
         <div class="rv-cust-foot"><button class="btn btn-quiet btn-sm" type="button" data-rv-dlg-close>Cancel</button><button class="btn btn-sm rv-cust-done" type="submit">${c.icon('check')}Add cost</button></div></form></dialog>
-      <dialog class="rv-cust rv-dlg" id="rv-find" aria-labelledby="rv-find-h"><div class="rv-cust-in">${dlgHead('rv-find', 'Find', 'Every cost and income line you have entered, in every month.')}
+      <dialog class="rv-cust rv-dlg" id="rv-find" aria-labelledby="rv-find-h"><div class="rv-cust-in">${dlgHead('rv-find', 'Find a transaction', 'Every cost and income line you have entered, in every month.')}
         <div class="rv-dlg-body"><div class="field"><label for="rv-find-q">Name to find</label><input id="rv-find-q" type="search" autocomplete="off" placeholder="For example: Canva" maxlength="60" aria-describedby="rv-find-sum"></div>
         <p class="rv-find-sum" id="rv-find-sum" aria-live="polite"></p><div id="rv-find-r"></div></div>
         <div class="rv-cust-foot"><button class="btn btn-sm rv-cust-done" type="button" data-rv-dlg-close>Done</button></div></div></dialog>

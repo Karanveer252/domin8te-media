@@ -32,16 +32,16 @@
     plan_mismatch: { f: 'mismatch', label: 'Plan mismatch', tone: 'bad', icon: 'alert', rank: 0 },
     result_outlier: { f: 'mismatch', label: 'Result check', tone: 'warn', icon: 'chart', rank: 0 },
     plan_backfill_needed: { f: 'mismatch', label: 'Plan not set', tone: 'warn', icon: 'card', rank: 1 },
-    over_cap: { f: 'limit', label: 'Over cap', tone: 'you', icon: 'plus', rank: 0 },
+    over_cap: { f: 'limit', label: 'Over limit', tone: 'you', icon: 'plus', rank: 0 },
     over_cap_request: { f: 'limit', label: 'Over limit', tone: 'you', icon: 'plus', rank: 0 },
     service_not_picked: { f: 'limit', label: 'Not in plan', tone: 'you', icon: 'slash', rank: 1 },
     picks_unconfirmed: { f: 'deadline', label: 'Picks not confirmed', tone: 'warn', icon: 'clock', rank: 1 },
     reminder_failed: { f: 'email', label: 'Reminder failed', tone: 'bad', icon: 'mail', rank: 1 },
     notification_failed: { f: 'email', label: 'Message email failed', tone: 'bad', icon: 'mail', rank: 1 }
   };
-  const FILTERS = [['all', 'All'], ['mismatch', 'Mismatches'], ['limit', 'Limit decisions'], ['deadline', 'Pick deadlines'], ['email', 'Failed emails'], ['approval', 'Client approvals']];
+  const FILTERS = [['all', 'All'], ['mismatch', 'Mismatches'], ['limit', 'Over limit'], ['deadline', 'Pick deadlines'], ['email', 'Failed emails'], ['approval', 'Check before live']];
   /** The chip in use stays when the page is drawn again after an action. */
-  const state = { filter: 'all' };
+  const state = { filter: 'all', /** @type {any} */ view: null };
 
   const ICONS = {
     alert: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.6v5.2M12 16.3h.01"/>',
@@ -355,7 +355,7 @@
     const isReq = ex.reason_code === 'over_cap_request';
     const planNm = pl.nowPlan ? pl.nowPlan.name : 'their plan';
     const known = !!(L.metric && L.cap);
-    const title = known ? `Over cap: ${metricName(L.metric, L.label)} ${L.would} of ${L.cap} (${planNm})` : String(ex.message || 'Over cap').replace(/\.$/, '');
+    const title = known ? `Over limit: ${metricName(L.metric, L.label)} ${L.would} of ${L.cap} (${planNm})` : String(ex.message || 'Over limit').replace(/^Over cap\b/, 'Over limit').replace(/\.$/, '');
     const who = L.req && L.req.by_name ? L.req.by_name : cx.first || 'The client';
     const wrong = isReq
       ? `${who} asked${L.req ? ` ${c.ago(L.req.at)}` : ''}${L.req ? `: ${quoted(L.req.body, 140)}` : ' for more than the plan allows.'} ${known ? `${planNm} allows ${L.cap} ${perPeriod(L.metric, L.label)} and ${L.used} ${L.used === 1 ? 'is' : 'are'} ${usedWord(L.metric)}, so this would make ${L.would}.` : String(ex.message || '')}`
@@ -612,7 +612,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
         }
       },
       {
-        id: 'phone', label: 'Mark as told by phone', tone: 'quiet',
+        id: 'phone', label: 'Mark as handled (told by phone)', tone: 'quiet',
         sheet: {
           lead: `<strong>Mark as told by phone?</strong> You have told ${esc(cx.first || cx.name)} about the ${esc(n)} reminder yourself, so nothing is sent. This item closes.`,
           fields: '', confirm: 'Mark as told',
@@ -804,12 +804,13 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     return `<section class="panel nx-panel" aria-label="Plans, limits and bill emails"><ul class="nx-list">${list.map((x) => card(x.ex)).join('')}</ul></section>`;
   }
 
-  /** The line under the title and the filter chips. @param {{typed: any[], dmCount: number, otherCount: number}} view */
+  /** The line under the title and the filter chips. @param {{typed: any[], dmCount: number, otherCount: number, total?: number, folded?: number, n?: Record<string, number>}} view */
   function top(view) {
     const c = C();
     const typed = view.typed || [];
     /** @type {Record<string, number>} */ const n = { all: typed.length + view.dmCount + view.otherCount, approval: view.dmCount, mismatch: 0, limit: 0, deadline: 0, email: 0 };
     for (const x of typed) n[KINDS[x.ex.reason_code].f]++;
+    view.n = n; // applyFilter puts the chip's number in the Do now heading
     const failed = !!(c.all.reviews && c.all.reviews.error);
     const held = typed.filter((x) => x.ex.reason_code === 'plan_mismatch' || x.ex.reason_code === 'result_outlier').length;
     const fresh = c.pageFresh({
@@ -820,7 +821,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       note: failed ? 'The queue could not be fully loaded, so do not assume nothing is waiting. Reload to try again.' : held ? 'For every unverified item the client keeps seeing the last verified value until you resolve it.' : ''
     });
     const chips = `<div class="nx-chips"><div class="seg" id="nx-filter" role="group" aria-label="Show">${FILTERS.map(([key, label]) => `<button type="button" data-nx-filter="${key}" aria-pressed="${state.filter === key}">${esc(label)}<span class="count quiet">${n[key]}</span></button>`).join('')}</div></div>`;
-    return `${fresh}${chips}`;
+    // Under a chip: what shows and a way back to All (applyFilter fills the text).
+    const status = `<p class="meta" data-nx-status hidden><span data-nx-status-text></span> <button class="linkish" type="button" data-nx-clear>Clear filter</button></p>`;
+    return `${fresh}${chips}${status}`;
   }
 
   /** Shows what the chip in use asks for and hides the rest. @param {HTMLElement} main */
@@ -845,6 +848,79 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
       empty.innerHTML = `<p><strong>Nothing under ${esc(label)}.</strong></p><p>Choose All to see everything that is waiting.</p>`;
       empty.hidden = false;
     } else if (empty) empty.hidden = true;
+    statusLine(main);
+    // "Do now T" under All, "Do now N of T" under a chip (N is the chip's number); the fold line counts only the client
+    // groups' "Show N more" rows, which show under All only.
+    const view = state.view;
+    if (!view) return;
+    const total = view.total || 0;
+    const head = /** @type {HTMLElement|null} */ (main.querySelector('[data-qtotal]'));
+    if (head) head.textContent = f === 'all' ? String(total) : `${(view.n && view.n[f]) || 0} of ${total}`;
+    const parts = /** @type {HTMLElement|null} */ (main.querySelector('[data-qparts]'));
+    if (parts) parts.hidden = f !== 'all';
+    foldLine(main);
+  }
+
+  /**
+   * The line under the chips while one is on: "Showing X only." plus any section outside the chip that still shows (read
+   * from the page, so a block without data-qf is named rather than silently left in). Hidden under All. @param {HTMLElement} main
+   */
+  function statusLine(main) {
+    const line = /** @type {HTMLElement|null} */ (main.querySelector('[data-nx-status]'));
+    if (!line) return;
+    const f = state.filter;
+    line.hidden = f === 'all';
+    if (f === 'all') return;
+    const label = (FILTERS.find((x) => x[0] === f) || ['', ''])[1];
+    const row = main.querySelector('.nx-chips');
+    const fold = main.querySelector('#q-needs');
+    /** @type {Element[]} */ const blocks = [];
+    let after = !row;
+    for (const el of Array.from(main.children)) {
+      if (el === row) { after = true; continue; }
+      if (after && el !== fold) blocks.push(el);
+    }
+    if (fold) blocks.push(...Array.from(fold.children));
+    /** @type {string[]} */ const extra = [];
+    for (const el of blocks) {
+      const h = /** @type {HTMLElement} */ (el);
+      if (h === line || h.hidden || h.closest('[hidden]') || h.getAttribute('data-qf') === f) continue;
+      if (h.matches('h2, h3, [data-qparts], [data-qcount], [data-nx-empty]')) continue;
+      if (h.classList.contains('nx-panel') && h.querySelector(`[data-qf="${f}"]:not([hidden])`)) continue;
+      const head = h.querySelector('h2, h3');
+      if (!head) continue;
+      const copy = /** @type {HTMLElement} */ (head.cloneNode(true));
+      for (const m of Array.from(copy.querySelectorAll('.meta'))) m.remove();
+      const name = (copy.textContent || '').replace(/[\s·]+$/, '').trim();
+      if (name && !extra.includes(name)) extra.push(name);
+    }
+    const plus = extra.length ? `, plus ${extra.length === 1 ? extra[0] : `${extra.slice(0, -1).join(', ')} and ${extra[extra.length - 1]}`}` : '';
+    const text = /** @type {HTMLElement} */ (line.querySelector('[data-nx-status-text]'));
+    text.textContent = `Showing ${label} only${plus}. Other sections are hidden.`;
+  }
+
+  /**
+   * The fold line under Do now: counts the closed "Show N more" folds in the client groups that show, so it follows the
+   * chips and every fold opened or closed. Hidden under a chip and when nothing is folded away. @param {HTMLElement} main
+   */
+  function foldLine(main) {
+    const line = /** @type {HTMLElement|null} */ (main.querySelector('[data-qcount]'));
+    const view = state.view;
+    if (!line || !view) return;
+    const total = view.total || 0;
+    let fd = 0;
+    let g = 0;
+    let one = 0;
+    if (state.filter === 'all') {
+      for (const d of /** @type {HTMLDetailsElement[]} */ (Array.from(main.querySelectorAll('#q-needs [data-qplain] > details.q-more')))) {
+        if (d.open || d.closest('[hidden]')) continue;
+        one = d.querySelectorAll('ul.q > li').length;
+        fd += one;
+        g++;
+      }
+    }
+    line.hidden = !g;
+    if (g) line.textContent = g === 1 ? `${total - fd} shown, ${fd} more in client groups. Open "Show ${one} more" to see them.` : `${total - fd} shown, ${fd} more in client groups. Open "Show more" in each group to see them.`;
   }
 
   /** @param {HTMLElement} slot */
@@ -926,14 +1002,22 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
 
   /** The page's clicks: the chips and the action buttons. @param {HTMLElement} main @param {any} view */
   function wire(main, view) {
-    void view;
+    state.view = view;
     main.onclick = (e) => {
       const t = /** @type {HTMLElement} */ (e.target);
       const chip = t.closest('[data-nx-filter]');
       if (chip) { state.filter = chip.getAttribute('data-nx-filter') || 'all'; applyFilter(main); return; }
+      if (t.closest('[data-nx-clear]')) {
+        state.filter = 'all';
+        applyFilter(main);
+        /** @type {HTMLElement|null} */ (main.querySelector('[data-nx-filter="all"]'))?.focus();
+        return;
+      }
       const b = /** @type {HTMLButtonElement|null} */ (t.closest('[data-nx-act]'));
       if (b && !b.disabled) openSheet(b);
     };
+    // "toggle" does not bubble: each fold of this drawing gets one listener (a new drawing makes new folds, so none stack).
+    for (const d of Array.from(main.querySelectorAll('#q-needs [data-qplain] > details.q-more'))) d.addEventListener('toggle', () => foldLine(main));
     applyFilter(main);
     // #/queue/<item id> (the link a client's Overview gives) scrolls to the card and marks it.
     const m = /^#\/queue\/(.+)$/.exec(location.hash || '');
@@ -947,5 +1031,5 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     }
   }
 
-  EXT.needs = { CODES, KINDS, FILTERS, handles, toNeed, claimedItems, top, cards, wire, applyFilter, state, modelOf, metricName };
+  EXT.needs = { CODES, KINDS, FILTERS, handles, toNeed, claimedItems, top, cards, wire, applyFilter, foldLine, state, modelOf, metricName };
 })();

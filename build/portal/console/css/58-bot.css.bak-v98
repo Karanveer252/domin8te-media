@@ -1,0 +1,306 @@
+/*
+ * Bot chat (2026-10-14): the list reuses the queue's rows (.q-row), the filter the console's glass pills (.seg), the card the
+ * console's panel, and the status the console's chips (Pending = you, Approved = good, Rejected = bad, Expired = off).
+ * Only spacing and the draft's marked phrases are new here. Colours come from the console's tokens.
+ */
+
+.bot-filter { margin-bottom: 14px; }
+.q-row .bot-kind { color: var(--ink-3); font-weight: 600; }
+.q-row .bot-kind::after { content: " ·"; }
+
+.bot-card { display: grid; gap: 18px; }
+.bot-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; }
+.bot-head h2 { font-size: 20px; }
+.bot-head .meta { margin-top: 4px; }
+.bot-part h3 { margin-bottom: 8px; color: var(--ink-2); font-size: 13.5px; font-weight: 650; }
+.bot-part blockquote { margin: 0; padding: 10px 14px; border-left: 2px solid var(--line-2); color: var(--ink-2); white-space: pre-wrap; }
+.bot-text { padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); white-space: pre-wrap; }
+.bot-text mark { padding: 1px 3px; border-radius: 4px; background: var(--warn-bg); color: var(--ink); }
+.bot-note { padding: 11px 14px; border-radius: 10px; background: var(--surface-2); color: var(--ink-2); }
+.bot-note strong { color: var(--ink); }
+/* A long word or link in a draft wraps inside the card instead of widening the page (R2-10, 15 Oct). */
+.bot-text, .bot-part blockquote, .bot-after blockquote, .bot-note, .q-row .text { overflow-wrap: anywhere; min-width: 0; }
+.bot-part .thread { margin: 0; }
+.bot-actions, .bot-form .actions, .bot-after .actions { margin-top: 0; }
+.bot-form { display: grid; gap: 12px; }
+.bot-after { display: grid; gap: 12px; }
+.bot-after blockquote { margin: 0; padding: 10px 14px; border-left: 2px solid rgba(179, 38, 30, 0.35); color: var(--ink-2); white-space: pre-wrap; }
+
+/* The client's Bot tab. */
+.bot-tab { display: grid; gap: 14px; }
+.bot-tab-head h2 { font-size: 17px; }
+.bot-tab-head .meta { margin-top: 4px; }
+.bot-tab .crumb { margin-bottom: 0; }
+
+/* The block on Needs you. */
+.bot-needs .q-client-h { display: flex; align-items: baseline; gap: 12px; }
+.bot-needs .bot-all { margin-left: auto; font-size: 13px; font-weight: 600; }
+/* On the moving sky the link reads in the same light words as the heading it sits in (contrast fix, 2026-10-14). */
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs .bot-all { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+/* "Counted in Bot chat, not in the Needs you total above" (critic R11-9): the same light words on the sky. */
+.bot-needs .bot-needs-note { margin: -2px 0 8px 2px; }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] .bot-needs .bot-needs-note { color: rgba(246, 243, 238, 0.92); text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+
+/* ==== Bot chat plus (2026-10-15): filters, pick many, stars, snooze, move, saved reasons, edit history, numbers ====
+ * Same tokens, glass pills (.seg), buttons and panels as the rest of the console; the selected pill keeps the solid ink look. */
+
+/* The order on the page (design pass, 2026-10-15): the status pills first (they are the main question: waiting, snoozed, decided),
+ * then the quieter search and dropdowns, then the client pills, smaller than the status ones, right above the list. The toolbar
+ * is drawn once and the results after it, so the order is set here: the results box lays its parts out as if they were its
+ * parent's, and each part names its place. */
+#bot-box { display: grid; gap: 12px; align-content: start; }
+#bot-results { display: contents; }
+#bot-results > * { order: 3; }
+#bot-results > .bot-status { order: 1; }
+.bot-toolbar { order: 2; }
+#bot-results > .bot-bulk, #bot-results > .bot-form, #bot-results > .bot-list, #bot-results > .empty, #bot-results > .bot-showing { order: 4; }
+#bot-box > .bot-card-top, #bot-box > .crumb { order: 0; }
+#bot-box > .notice, #bot-box > .bot-card { order: 1; }
+/* The search box and the bot, type and date choices: one quiet row; under 1100px the search takes its own row and the choices share the next */
+.bot-toolbar { gap: 8px 10px; margin-bottom: 0; }
+.bot-toolbar input[type="search"] { flex: 1 1 240px; width: auto; max-width: 360px; }
+.bot-toolbar select { flex: 0 1 170px; width: auto; min-width: 0; max-width: 100%; }
+.bot-starred-only { gap: 6px; }
+.bot-starred-only[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.bot-status { margin-bottom: 0; }
+.bot-status, .bot-filter { display: flex; flex-wrap: wrap; max-width: 100%; }
+.bot-filter { margin-bottom: 0; }
+.bot-filter button { min-height: 34px; padding: 5px 13px; font-size: 13.5px; }
+.bot-filter .count { font-size: 11px; }
+.bot-showing { margin: -4px 0 0; }
+/* The client dropdown stands in for the client pills on a phone only. */
+.bot-client-pick { display: none; }
+@media (max-width: 1100px) {
+  .bot-toolbar input[type="search"] { flex-basis: 100%; max-width: none; }
+  .bot-toolbar select { flex: 1 1 120px; }
+}
+
+/* Pick many: the bar above the list. With something picked it turns into a panel that stays in view while the list scrolls. */
+.bot-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 -2px; padding: 6px 12px; border: 1px solid transparent; border-radius: 12px; }
+.bot-bulk.is-on { position: sticky; top: 8px; z-index: 5; border-color: var(--line-2); background: var(--surface); box-shadow: var(--shadow); }
+@media (max-width: 900px) { .bot-bulk.is-on { top: 64px; } }
+.bot-pickall { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; color: var(--ink-2); font-size: 14px; font-weight: 600; cursor: pointer; }
+.bot-bulk-btns { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+.bot-bulk + .bot-form { margin: 0 0 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+.bot-pickall input, .bot-pick input, .bot-keep input { width: 18px; height: 18px; margin: 0; accent-color: var(--ink); cursor: pointer; }
+
+/* A row: pick box, the queue row, a star. The status chip takes only its own width here (the queue's 160px column left the draft
+ * one word at 1024px); between 761 and 1200px the row is two lines, the draft on its own line, so it still reads at a glance. */
+.bot-list > li.bot-li { display: grid; grid-template-columns: 34px minmax(0, 1fr) 40px; align-items: center; gap: 6px; }
+.bot-list .q-row { grid-template-columns: minmax(140px, 200px) auto minmax(0, 1fr) auto; }
+.bot-list .q-row.no-client { grid-template-columns: auto minmax(0, 1fr) auto; }
+@media (min-width: 761px) and (max-width: 1200px) {
+  .bot-list .q-row { grid-template-columns: minmax(0, max-content) auto minmax(0, 1fr); gap: 6px 12px; }
+  .bot-list .q-row.no-client { grid-template-columns: auto minmax(0, 1fr); }
+  .bot-list .q-row .text { grid-column: 1 / -1; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .bot-list .q-row .when { grid-column: 3; grid-row: 1; justify-self: end; }
+  .bot-list .q-row.no-client .when { grid-column: 2; }
+}
+@media (max-width: 760px) { .bot-list .q-row, .bot-list .q-row.no-client { grid-template-columns: minmax(0, 1fr) auto; } }
+.bot-pick { display: flex; justify-content: center; }
+.bot-pick label { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; }
+.bot-pick label:hover { background: var(--hover); }
+.bot-li.is-picked > .q-row { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.q-row .bot-src { color: var(--ink-3); }
+.bot-star { color: var(--ink-3); }
+.bot-star:hover { color: var(--ink); }
+.bot-star-ic.is-on { fill: #E0A21A; stroke: #A86F00; }
+.bot-star[aria-pressed="true"] { color: #A86F00; }
+
+/* The card: Previous and Next, the star by the status, the tools row and its small menus */
+.bot-card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin-bottom: 8px; }
+.bot-card-top .crumb { margin-bottom: 0; }
+.bot-pager { display: inline-flex; align-items: center; gap: 8px; }
+.bot-pager .meta { min-width: 56px; text-align: center; }
+.bot-head-r { display: inline-flex; align-items: center; gap: 6px; }
+/* A long client name in "Put in reply to ..." wraps instead of widening the card at phone width. */
+.bot-card > * { min-width: 0; }
+.bot-card .actions .btn { max-width: 100%; white-space: normal; text-align: left; }
+.bot-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.bot-tools { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.bot-menu { position: relative; }
+.bot-menu > summary { list-style: none; gap: 6px; cursor: pointer; }
+.bot-menu > summary::-webkit-details-marker { display: none; }
+.bot-menu[open] > summary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.bot-menu-box { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); min-width: 200px; }
+.bot-menu-box .btn { justify-content: flex-start; }
+.bot-move label { color: var(--ink-2); font-size: 13.5px; font-weight: 600; }
+.bot-move select { width: 100%; }
+
+/* Saved reasons and notes */
+.bot-saved { display: grid; gap: 8px; }
+.bot-saved .meta { margin: 0; }
+.bot-saved-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.bot-saved-list li { display: inline-flex; align-items: center; max-width: 100%; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface-2); }
+.bot-use { min-height: 34px; max-width: 100%; padding: 6px 4px 6px 13px; border: 0; background: none; color: var(--ink); font-size: 13.5px; font-weight: 550; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.bot-use:hover { text-decoration: underline; text-underline-offset: 3px; }
+.bot-unsave { flex: none; color: var(--ink-3); }
+.bot-keep { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; color: var(--ink-2); font-size: 13.5px; cursor: pointer; }
+
+/* Edit history: the shared timeline, with the changes marked against the draft from the bot */
+.bot-history > summary { color: var(--ink-2); font-weight: 650; font-size: 13.5px; cursor: pointer; }
+.bot-history[open] > summary { margin-bottom: 10px; }
+.bot-history > .meta { margin: 0 0 12px; }
+.bot-hist > li { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.bot-hist > li p { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-2); }
+.bot-hist > li p strong { color: var(--ink); }
+.bot-diff { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
+:is(.bot-diff, .bot-diff-key) ins { padding: 0 2px; border-radius: 3px; background: var(--good-bg); color: var(--good); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+:is(.bot-diff, .bot-diff-key) del { padding: 0 2px; border-radius: 3px; background: var(--bad-bg); color: var(--bad); text-decoration: line-through; }
+.bot-diff { line-height: 1.6; }
+/* A space or line break that changed on its own: drawn as a mark, so it can be seen (R7-7, 15 Oct) */
+.bot-diff :is(ins, del).bot-ws { padding: 0 4px; font-weight: 700; }
+.bot-ws-note { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 650; color: var(--ink-2); }
+
+/* The numbers */
+.bot-stats .panel-head { align-items: center; }
+.bot-days { display: flex; flex-wrap: wrap; max-width: 100%; }
+.bot-days button { flex: 1 1 auto; }
+.bot-stats-table table.grid td, .bot-stats-table table.grid th { white-space: nowrap; }
+.bot-stats-table .bot-total th, .bot-stats-table .bot-total td { font-weight: 700; border-top: 2px solid var(--line-2); }
+.bot-stats .table-wrap + .meta { margin-top: 12px; }
+.bot-keys-btn { font-weight: 700; font-size: 15px; }
+
+/* Dark theme */
+html[data-theme="dark"] .bot-star-ic.is-on { fill: #F0C04A; stroke: #F0C04A; }
+html[data-theme="dark"] .bot-star[aria-pressed="true"] { color: #F0C04A; }
+html[data-theme="dark"] .bot-saved-list li { background: rgba(255, 255, 255, 0.05); }
+html[data-theme="dark"] :is(.bot-bulk.is-on, .bot-menu-box, .bot-bulk + .bot-form) { background: var(--surface-2); }
+
+/* Scenes: the new parts sit on glass like the rest of the page; words straight on the sky turn light */
+html[data-scene="scenes"] :is(.bot-bulk.is-on, .bot-menu-box, .bot-bulk + .bot-form) { background-color: rgba(255, 255, 255, 0.94); -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2); }
+html[data-scene="scenes"][data-theme="dark"] :is(.bot-bulk.is-on, .bot-menu-box, .bot-bulk + .bot-form) { background-color: rgba(18, 20, 28, 0.94); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] :is(main > .page-head, main > .crumb, .bot-showing, .bot-bulk:not(.is-on) .bot-pickall, .bot-card-top .crumb, .bot-card-top .bot-pager .meta) { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+/* The client's Bot tab sits on the light sky of a client's page: the darker inks, as the rest of that page */
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.bot-tab-head .meta, .bot-tab .bot-showing, .bot-tab .bot-bulk:not(.is-on) .bot-pickall, .bot-tab .bot-card-top .bot-pager .meta) { color: var(--ink-2); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] .bot-tab-head .linkish { color: var(--ink); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] :is(main > .page-head p, main > .page-head .meta) { color: rgba(246, 243, 238, 0.9); }
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="bot"] .bot-showing .linkish { color: #FFFFFF; }
+
+/* Phones: every control at least 44px; the head's "Updated" line sits above its buttons instead of pushing one to a third line */
+@media (max-width: 600px) {
+  html[data-page="bot"] .page-head .updated > .meta { flex-basis: 100%; }
+  .bot-list > li.bot-li { grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 4px; }
+  .bot-pick label { width: 44px; height: 44px; }
+  .bot-pickall, .bot-keep { min-height: 44px; }
+  .bot-use { min-height: 44px; }
+  .bot-toolbar input[type="search"] { flex-basis: 100%; max-width: none; }
+  .bot-toolbar select { flex: 1 1 130px; }
+  .bot-client-pick { display: contents; }
+  .bot-filter { display: none; }
+  .bot-pager { width: 100%; justify-content: space-between; }
+  .bot-menu, .bot-menu > summary { width: 100%; }
+  .bot-menu-box { position: static; margin-top: 8px; }
+  .bot-tools > .btn { width: 100%; }
+  .bot-bulk-btns { width: 100%; }
+  .bot-bulk-btns .btn { flex: 1 1 auto; }
+}
+
+/* Ask bots (2026-10-17, Karan; rev 3; v2 2026-10-18 "like a Claude-style sidebar"): Karan's projects and threads with the router,
+ * shown in place of the list when the "Ask bots" status pill (first in .bot-status, the same pill as Waiting) is pressed. Left: one
+ * project per client with its threads (the console's own side-nav look: a quiet row, the open one lifted onto the surface). Right:
+ * the open thread, the Messages page's log and reply box (.convo-log, .msg, .convo-reply, .log-card). The search and dropdown row is
+ * for drafts, so it steps aside while the chat shows. New here: the two-pane placement, the thread rows and the small status word on
+ * Karan's own message (.bo-state: a dot and a word, quieter than a chip). Every colour, radius and font is the console's own token.
+ * v98 (2026-10-19): one-column at 900px, a Reload in the thread head, router notes and instant replies drawn as messages. */
+#bot-results > .bot-owner { order: 4; }
+#bot-box:has(> #bot-results > .bot-owner) > .bot-toolbar { display: none; }
+.bot-owner.bo2 { display: grid; grid-template-columns: minmax(220px, 268px) minmax(0, 1fr); padding: 0; overflow: hidden; }
+.bo-side { display: flex; flex-direction: column; gap: 6px; min-width: 0; max-height: max(460px, calc(100dvh - 250px)); padding: 18px 12px 14px; overflow-y: auto; overscroll-behavior: contain; border-right: 1px solid var(--line); background: var(--surface-2); }
+.bo-side-head { padding: 0 8px 8px; }
+.bo-side-head h2 { margin: 0; font-size: 17px; }
+.bo-side-head .meta { margin-top: 2px; }
+.bo-projs { display: grid; gap: 2px; }
+.bo-proj-h { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 34px; padding: 5px 8px; border: 0; border-radius: var(--r); background: none; color: var(--ink); font: 650 14px/1.3 var(--font); text-align: left; cursor: pointer; transition: background 160ms var(--ease); }
+.bo-proj-h:hover { background: var(--hover); }
+.bo-proj-h .ic { width: 13px; height: 13px; flex: none; color: var(--ink-3); transition: transform 160ms var(--ease); }
+.bo-proj-h[aria-expanded="true"] .ic { transform: rotate(90deg); }
+.bo-proj-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-proj-h .count { padding: 0 6px; border-radius: 999px; background: var(--you-bg); color: var(--you); font-size: 11.5px; line-height: 1.6; }
+.bo-threads { display: grid; gap: 1px; margin: 0 0 6px; padding: 0 0 0 19px; list-style: none; }
+.bo-threads[hidden] { display: none; }
+.bo-thread { display: grid; gap: 0; width: 100%; padding: 6px 10px; border: 0; border-radius: var(--r); background: none; color: var(--ink-2); font: 550 14px/1.3 var(--font); text-align: left; cursor: pointer; transition: background 160ms var(--ease), color 160ms var(--ease); }
+.bo-thread:hover { background: var(--hover); color: var(--ink); }
+.bo-thread[aria-current="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(40, 30, 20, 0.08); }
+.bo-thread-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-thread-m { color: var(--ink-3); font-size: 12.5px; font-weight: 500; }
+.bo-thread.is-busy .bo-thread-m { color: var(--you); }
+.bo-new { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 0; border-radius: var(--r); background: none; color: var(--ink-3); font: 550 13.5px/1.3 var(--font); cursor: pointer; }
+.bo-new:hover { background: var(--hover); color: var(--ink); }
+.bo-new .ic { width: 14px; height: 14px; }
+.bo-new-form { display: grid; gap: 6px; padding: 4px 4px 6px 6px; }
+.bo-new-form input, .bo-rename input { width: 100%; min-height: 34px; padding: 5px 10px; border: 1px solid var(--line-2); border-radius: var(--r); background: var(--surface); color: var(--ink); font: 15px var(--font); }
+.bo-new-actions { display: flex; align-items: center; gap: 10px; }
+.bo-earlier { margin-top: 6px; padding: 8px 0 0; border-top: 1px solid var(--line); }
+.bo-side-foot { margin-top: auto; padding: 10px 8px 0; font-size: 13.5px; }
+.bo-main { display: flex; flex-direction: column; min-width: 0; padding: 18px 22px 20px; }
+.bo-head { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.bo-head-t { flex: 1 1 auto; min-width: 0; }
+.bo-head-t .meta { margin: 0; }
+.bo-head h3 { margin: 0; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-head h3:focus { outline: none; }
+.bo-tools { display: flex; gap: 6px; flex: none; }
+/* v98 Reload: the v97 head-button look (as Rename / Archive), its icon sized like New chat's, dimmed while it runs */
+.bo-reload { display: inline-flex; align-items: center; gap: 6px; }
+.bo-reload .ic { width: 14px; height: 14px; flex: none; }
+.bo-reload[disabled] { opacity: 0.5; cursor: default; }
+.bo-back { display: none; flex: none; }
+.bo-rename { display: flex; align-items: center; gap: 8px; max-width: 460px; }
+.bo-main .convo-log { min-height: 280px; max-height: max(320px, calc(100dvh - 470px)); }
+.bo-main .convo-empty { display: grid; place-items: center; text-align: center; }
+.bo-main > .empty { margin: auto 0; }
+.bo-ro { margin-top: 10px; }
+.bot-owner .log-card .bot-text { margin: 0 0 8px; }
+.bot-owner .log-card { justify-self: start; max-width: min(88%, 640px); }
+/* The router's words for a pause or a hand-over to Grok: one quiet line under Karan's message, not a bubble */
+.bo-note { justify-self: end; max-width: min(76%, 560px); margin-top: -4px; text-align: right; }
+/* The status word on Karan's own message: a dot and the word, in the meta line's colour */
+.bo-state { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.bo-state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: 0.6; }
+.msg.team .bo-state.good::before { background: #6FD6A0; opacity: 1; }
+.msg.team .bo-state.warn::before { background: #F2B751; opacity: 1; }
+.msg.team .bo-state.bad::before { background: #FF8B7E; opacity: 1; }
+.msg.team .bo-state.info::before { background: #9CC2F5; opacity: 1; }
+.msg.team .bo-state.you::before { background: #FF8A4C; opacity: 1; animation: bo-pulse 1.6s var(--ease) infinite; }
+@keyframes bo-pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .msg.team .bo-state.you::before { animation: none; } }
+html[data-theme="dark"] .bo-side { background: rgba(255, 255, 255, 0.03); }
+html[data-theme="dark"] .bo-thread[aria-current="true"] { background: rgba(255, 255, 255, 0.08); box-shadow: none; }
+/* In dark mode Karan's bubble is light, so the dots take the light theme's deeper colours */
+html[data-theme="dark"] .msg.team .bo-state.good::before { background: #1F7A4C; }
+html[data-theme="dark"] .msg.team .bo-state.warn::before { background: #B57200; }
+html[data-theme="dark"] .msg.team .bo-state.bad::before { background: #B3261E; }
+html[data-theme="dark"] .msg.team .bo-state.info::before { background: #3C78D2; }
+html[data-theme="dark"] .msg.team .bo-state.you::before { background: #FF5B1F; }
+/* Phones and narrow windows (v98: 900px, where the Messages page also goes to one column; was 760px): the list and the open thread
+ * are two views of the panel; the back button returns to the threads */
+@media (max-width: 900px) {
+  .bot-owner.bo2 { grid-template-columns: minmax(0, 1fr); }
+  .bot-owner.bo2[data-view="list"] .bo-main, .bot-owner.bo2[data-view="thread"] .bo-side { display: none; }
+  .bo-side { max-height: none; border-right: 0; background: none; padding: 16px 10px 14px; }
+  html[data-theme="dark"] .bo-side { background: none; }
+  .bo-back { display: inline-flex; }
+  .bo-main { padding: 12px 12px 14px; }
+  .bo-head { flex-wrap: wrap; row-gap: 8px; }
+  .bo-head-t { flex-basis: calc(100% - 64px); }
+  .bo-tools { margin-left: auto; }
+  .bo-tools .btn-sm { padding-inline: 9px; }
+  .bo-main .convo-log { min-height: 0; max-height: max(300px, calc(100dvh - 330px)); }
+  .bo-thread { padding: 9px 10px; }
+  .bo-proj-h { min-height: 40px; }
+}
+/* "+ New chat" under the heading, and the client picker on a chat with no client yet */
+.bo-newchat { margin-top: 10px; gap: 6px; }
+.bo-newchat .ic { width: 14px; height: 14px; }
+.bo-pick { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.bo-pick select { width: auto; max-width: 260px; min-height: 28px; padding: 2px 28px 2px 8px; font-size: 13.5px; }
+/* Live progress under Karan's message while the router works: a quiet line, a pulsing accent dot and the time so far. It updates
+ * in place and goes when the final reply comes in; the dot holds still for reduced motion. */
+.bo-live { justify-self: end; max-width: min(76%, 560px); margin-top: -4px; }
+.bo-live .meta { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
+.bo-live-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+.bo-live-time { flex: none; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.bo-live-dot { position: relative; width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--accent); }
+.bo-live-dot::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; background: var(--accent); opacity: 0; animation: bo-ping 1.4s var(--ease) infinite; }
+@keyframes bo-ping { 0% { transform: scale(0.4); opacity: 0.45; } 100% { transform: scale(1.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .bo-live-dot::after { animation: none; } }

@@ -118,7 +118,7 @@
       out.push({ tone: 'bad', text: 'Over-limit request', sub: what });
     } else if (r.lines.some((/** @type {any} */ l) => l.used >= l.cap)) {
       const l = r.lines.find((/** @type {any} */ x) => x.used >= x.cap);
-      out.push({ tone: 'warn', text: 'At the limit', sub: `${LBL(l.metric) || l.label} ${l.used}/${l.cap}` });
+      out.push({ tone: 'warn', text: 'At limit', sub: `${LBL(l.metric) || l.label} ${l.used}/${l.cap}` });
     } else if (r.near) {
       const l = r.lines.slice().sort((/** @type {any} */ a, /** @type {any} */ b) => b.used / b.cap - a.used / a.cap)[0];
       out.push({ tone: 'warn', text: 'Near limit', sub: `${LBL(l.metric) || l.label} ${l.used}/${l.cap}` });
@@ -278,9 +278,9 @@
       const nn = needN(r);
       const first = r.d.needs.length ? r.d.needs[0].label : 'Check before it goes live';
       const needsCell = nn
-        ? `<div class="cl-needs"><span class="chip you">${nn}</span><span class="cl-sub">${esc(first)}${nn > 1 ? ` + ${nn - 1} more` : ''}</span></div>`
+        ? `<div class="cl-needs"><span class="chip you">${nn} for you</span><span class="cl-sub">${esc(first)}${nn > 1 ? ` + ${nn - 1} more` : ''}</span></div>`
         : '<span class="none">Nothing</span>';
-      const waiting = r.d.waiting.length ? `<div class="cl-needs cl-wait"><span class="chip them">${r.d.waiting.length}</span><span class="cl-sub">Waiting on client</span></div>` : '';
+      const waiting = r.d.waiting.length ? `<div class="cl-needs cl-wait"><span class="chip them">${r.d.waiting.length} waiting on them</span></div>` : '';
       const bars = r.bars.slice(0, MAX_BARS).map((/** @type {any} */ l) => c.usageBar({ label: LBL(l.metric) || l.label, used: l.used, cap: l.cap, pct: l.pct, tone: l.tone })).join('');
       const more = r.lines.length - Math.min(r.bars.length, MAX_BARS);
       const stamp = c.plans.at || c.all.at;
@@ -292,10 +292,10 @@
         <td data-label="Usage this month" class="cl-usage-cell"><div class="cl-v">${bars ? `<div class="cl-usage">${bars}</div>${more > 0 ? `<span class="cl-sub">and ${c.plural(more, 'more limit')} on their page</span>` : ''}` : '<span class="none">No limits yet</span>'}${period ? `<span class="cl-month">${esc(period)}</span>` : ''}</div></td>
         <td data-label="Needs you"><div class="cl-v">${needsCell}${waiting}</div></td>
         <td data-label="Status"><div class="cl-v"><div class="cl-status">${status.map((s) => `<div><span class="chip ${s.tone}">${esc(s.text)}</span>${s.sub ? `<span class="cl-sub">${esc(s.sub)}</span>` : ''}</div>`).join('')}</div></div></td>
-        <td data-label="Freshness" class="cl-fresh"><div class="cl-v"><span class="cl-sub">Updated ${esc(shortStamp(stamp))}</span><span class="cl-sub">Source: console</span>${check}</div></td></tr>`;
+        <td data-label="Numbers checked?" class="cl-fresh"><div class="cl-v"><span class="cl-sub">Updated ${esc(shortStamp(stamp))}</span>${check}</div></td></tr>`;
     };
     return `<div class="table-wrap cl-table"><table class="grid"><thead><tr>
-        ${th('name', 'Client')}${th('plan', 'Plan')}<th scope="col">Picks this cycle</th>${th('usage', 'Usage this month')}${th('needs', 'Needs you')}<th scope="col">Status</th><th scope="col">Freshness</th>
+        ${th('name', 'Client')}${th('plan', 'Plan')}<th scope="col">Picks this cycle</th>${th('usage', 'Usage this month')}${th('needs', 'Needs you')}<th scope="col">Status</th><th scope="col">Numbers checked?</th>
       </tr></thead><tbody>${rows.map(fmt).join('')}</tbody></table></div>
       <p class="meta cl-foot">${c.plural(rows.length, 'client')}${rows.length !== all.length ? ` of ${all.length}` : ''}. Click Client, Plan, Usage or Needs you to sort. A bar turns amber from 85 percent of a limit, says At limit when it is full, and turns red only when it is over.</p>`;
   }
