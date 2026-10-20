@@ -156,7 +156,7 @@
       return `${p ? p.name : 'Domin8te'} is taken right now.`;
     }
     if (/overlaps-another-month/i.test(text) || code === '23P01') return 'That month overlaps another month this client already has.';
-    if (/picks-do-not-fit/i.test(text) || code === '23514') return 'Those services do not fit that plan. Check the picks and try again.';
+    if (/picks-do-not-fit/i.test(text) || code === '23514') return 'Those services do not fit that plan. Check the services and try again.';
     if (/reason-required/i.test(text)) return 'Add a reason. It is kept in the history.';
     if (/month-locked/i.test(text)) return 'This month is already running. Give a new reason, different from the last one, to change it.';
     if (/month-ended/i.test(text)) return 'That month has already ended, so it cannot be changed.';
@@ -166,6 +166,9 @@
     if (/not-a-stripe-link/i.test(text)) return 'That payment link is not a Stripe link, so it was not approved.';
     if (/hidden/i.test(text) && /unhide/i.test(text)) return 'That invoice is hidden. Unhide it first.';
     if (/not-found/i.test(text) || code === 'P0002') return 'That was not found. Reload the page and try again.';
+    // C3.1b: Postgres wording never reaches the page (no function names or signatures)
+    if (/function .* does not exist|could not find the function/i.test(text) || code === '42883' || code === 'PGRST202') return 'This save is not set up on the server yet, so nothing was changed. Tell Karan.';
+    if (/permission denied for function/i.test(text) || code === '42501') return 'You are not allowed to make this change, so nothing was changed.';
     if (what && C() && C().failMessage) return C().failMessage(err, what);
     return text ? `That did not save: ${text.replace(/^[a-z-]+:\s*/i, '')}` : 'That did not save. Nothing was changed.';
   }
@@ -189,12 +192,12 @@
       if (line.includes('*')) proposed = true;
       const inPlan = r.fixed.includes(id) || (st.picks || []).includes(id);
       if (inPlan) return `<span class="pp-cap"><b>${esc(label(id))}:</b> ${esc(line)}</span>`;
-      return `<span class="pp-cap is-off"><b>${esc(label(id))}:</b> ${noPicks ? esc(line) : 'not picked'}</span>`;
+      return `<span class="pp-cap is-off"><b>${esc(label(id))}:</b> ${noPicks ? esc(line) : 'not chosen'}</span>`;
     }).join('');
-    const over = chosen.length > r.choose ? `<span class="pp-note is-warn">${esc(p.name)} takes ${r.choose} pick${r.choose === 1 ? '' : 's'}${r.fixed.length ? ` besides ${esc(andList(r.fixed.map(label)))}` : ''}. You have ${chosen.length}.</span>` : '';
+    const over = chosen.length > r.choose ? `<span class="pp-note is-warn">${esc(p.name)} takes ${r.choose} service${r.choose === 1 ? '' : 's'}${r.fixed.length ? ` besides ${esc(andList(r.fixed.map(label)))}` : ''}. You have ${chosen.length}.</span>` : '';
     const taken = full && !slot.locked ? `<span class="pp-note is-bad">${p.maxClients === 1 ? 'The one' : `All ${p.maxClients}`} ${esc(p.name)} ${p.maxClients === 1 ? 'spot is' : 'spots are'} taken. It opens when that client changes plan or leaves.</span>` : '';
     const lock = slot.locked ? `<span class="pp-note is-lock">${esc(p.name)} is locked. An owner can unlock it in <a class="pp-link" href="#/settings">Settings</a>.</span>` : '';
-    return `<span class="pp-caps"><span class="pp-caps-h">Limits for your picks, each month</span>${rows}</span>${proposed ? '<span class="pp-star">* proposed</span>' : ''}${over}${lock}${taken}`;
+    return `<span class="pp-caps"><span class="pp-caps-h">Limits for your services, each month</span>${rows}</span>${proposed ? '<span class="pp-star">* proposed</span>' : ''}${over}${lock}${taken}`;
   }
 
   /** @param {any} ctl @param {boolean} compact */
@@ -204,7 +207,7 @@
     return `<div class="pp-plans${compact ? ' is-compact' : ''}" role="radiogroup" aria-label="Plan">${m.plans.map((/** @type {any} */ p) => {
       const r = PM().rule(p);
       const price = p.priceMinor != null ? C().money(p.priceMinor, p.currency) : '';
-      const rule = r.fixed.length ? `${r.fixed.map(label).join(' + ')} + ${r.choose} pick${r.choose === 1 ? '' : 's'}` : `${r.choose} pick${r.choose === 1 ? '' : 's'}`;
+      const rule = r.fixed.length ? `${r.fixed.map(label).join(' + ')} + ${r.choose} service${r.choose === 1 ? '' : 's'}` : `${r.choose} service${r.choose === 1 ? '' : 's'}`;
       const nid = `pp-n-${ctl.id}-${p.id}`, rid = `pp-r-${ctl.id}-${p.id}`;
       return `<label class="pp-plan" data-plan="${esc(p.id)}"><input type="radio" name="pp-plan-${ctl.id}" value="${esc(p.id)}" aria-labelledby="${esc(nid)}" aria-describedby="${esc(rid)}">
         <span class="pp-plan-top"><span class="pp-plan-name" id="${esc(nid)}">${esc(p.name)}</span>${price ? `<span class="pp-plan-price">${esc(price)}<small>/mo</small></span>` : ''}</span>
@@ -250,7 +253,7 @@
       if (!v.ok && v.code === 'website-option') {
         const ls = PM().lines(m.caps, p.id, 'website', null);
         const a = ls.find((/** @type {any} */ l) => l.metric === 'web_pages'), b = ls.find((/** @type {any} */ l) => l.metric === 'web_edits');
-        return { ok: false, code: v.code, error: `Choose how the website pick works: ${a ? `${a.cap} ${unitOf(a.metric, a.label, a.cap)}` : '1 new page'} or ${b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)}` : '2 website edits'} a month.` };
+        return { ok: false, code: v.code, error: `Choose how the website service works: ${a ? `${a.cap} ${unitOf(a.metric, a.label, a.cap)}` : '1 new page'} or ${b ? `${b.cap} ${unitOf(b.metric, b.label, b.cap)}` : '2 website edits'} a month.` };
       }
       return v;
     };

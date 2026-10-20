@@ -467,7 +467,7 @@
     const c = C();
     const to = at || line.used + qty;
     return {
-      message: `Over limit: ${c.svcLabel(t.service)} ${line.label} ${to} of ${line.cap} (${plan.nowPlan ? plan.nowPlan.name : 'plan'}).`,
+      message: `Over limit: ${c.svcLabel(t.service)} ${line.label} ${to} of ${line.cap} (${plan.nowPlan ? plan.nowPlan.name + ' plan' : 'plan'}).`,
       last: { task: t.id, title: t.title, service: t.service, metric: line.metric, qty, used: to - qty, cap: line.cap, plan: plan.now.plan_id, cycle: plan.now.id, request: t.request_id || null }
     };
   }
@@ -703,7 +703,7 @@
     if (!LIVE_ASK[l.metric]) return bar;
     const who = (C().tenant(tenantId) || {}).name || '';
     const demo = !!(/** @type {any} */ (window).D8DEMO_SITE);
-    return `<div class="wk-livebar" data-wk-live-box="${E(l.metric)}" data-wk-tenant="${E(tenantId)}" data-wk-label="${E(label)}">${bar}<button class="linkish wk-live" type="button" data-wk-live="${E(l.metric)}" data-wk-tenant="${E(tenantId)}" aria-label="Set live count: ${E(label)}${who ? `, ${E(who)}` : ''}"${demo ? ' disabled title="This is a demo. Nothing is saved or sent."' : ''}>Set live count</button></div>`;
+    return `<div class="wk-livebar" data-wk-live-box="${E(l.metric)}" data-wk-tenant="${E(tenantId)}" data-wk-label="${E(label)}">${bar}<button class="linkish wk-live" type="button" data-wk-live="${E(l.metric)}" data-wk-tenant="${E(tenantId)}" aria-label="Update count: ${E(label)}${who ? `, ${E(who)}` : ''}"${demo ? ' disabled title="This is a demo. Nothing is saved or sent."' : ''}>Update count</button></div>`;
   }
   /**
    * How many are live right now: a number from 0 to 100, prefilled with the count now. Resolves the number, or null (Cancel or Esc).
@@ -713,7 +713,7 @@
     const w = LIVE_ASK[line.metric];
     const who = C().tenant(tenantId);
     const html = `<form class="wk-form" novalidate>
-      <p class="wk-kicker">Set live count</p>
+      <p class="wk-kicker">Update count</p>
       <h2 id="wk-live-h">${E(w.q)}</h2>
       <p class="wk-sub"><strong>${E(who ? who.name : '')}</strong><span>Limit ${E(line.cap)} at once</span></p>
       <div class="field wk-qty"><label for="wk-live-n">${E(w.field)}</label><input id="wk-live-n" type="number" name="qty" min="0" max="100" step="1" value="${E(line.used)}" inputmode="numeric" aria-describedby="wk-live-says"></div>
@@ -791,12 +791,12 @@
       if (err && err.code === 'demo-readonly') { /* the demo console: its note was said, and nothing changed */ }
       else if (err && err.code === '23514' && /^over_cap/.test(said)) {
         const opened = await reportException({ tenant_id: tid, id: metric }, 'over_cap',
-          `Over limit: ${c.svcLabel(line.service)} ${line.label} ${n} of ${line.cap} (${plan.nowPlan ? plan.nowPlan.name : 'plan'}).`,
+          `Over limit: ${c.svcLabel(line.service)} ${line.label} ${n} of ${line.cap} (${plan.nowPlan ? plan.nowPlan.name + ' plan' : 'plan'}).`,
           { metric, service: line.service, qty: Math.max(1, n - line.used), used: line.used, cap: line.cap, plan: plan.now ? plan.now.plan_id : null, cycle: plan.now ? plan.now.id : null, live: true }, 'live_count');
         wroteIt = true;
         c.toast(`${n} is over the limit of ${line.cap}, so nothing changed. ${opened ? 'It is in Needs you now' : 'It is already in Needs you'}, where a one-off can be approved.`, true);
       } else if (err) {
-        if (/PGRST202|42883|could not find the function/i.test(`${err.code || ''} ${said}`)) throw new Error('Set live count needs the database update from 14 October first. Nothing was saved.');
+        if (/PGRST202|42883|could not find the function/i.test(`${err.code || ''} ${said}`)) throw new Error('Updating the count needs the database update from 14 October first. Nothing was saved.');
         if (/cycle-not-running/.test(said)) throw new Error('This client has no plan month running, so there is nothing to set yet. Set their plan in Billing first.');
         if (/service_not_picked/.test(said)) throw new Error(`${c.svcLabel(line.service)} is not in this month’s plan, so nothing was saved.`);
         if (/qty-out-of-range/.test(said)) throw new Error('How many: a whole number from 0 to 100. Nothing was saved.');
@@ -907,10 +907,13 @@
     const boardHtml = grouped
       ? `<div class="wk-lanes" id="board">${withCards.map(lane).join('')}</div><div class="board wk-bin">${o.columns([], cardHtml, { binOnly: true })}</div>`
       : `<div class="board" id="board">${o.columns(shown, cardHtml, { doneLabel: 'Done this month' })}</div>`;
+    // C8.1: the limit cards fold away (open only when a card is over its limit or a client is picked), so the board shows first.
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">All work</h1><p>Every client’s team cards on one board. Each card shows where it lands against that client’s plan limit, so nothing over the limit gets started without a decision.</p></div></div>
       ${fresh}
+      ${strips.length ? `<details class="wk-rest wk-limits"${everyCard.some(flagged) || st.client ? " open" : ""}><summary>Limits by client · ${strips.length}</summary>` : ""}
       ${strips.length ? `<div class="wk-strips" role="group" aria-label="Plan limits by client">${strips.slice(0, 6).map((/** @type {any} */ t) => strip(t.id, { filter: true, pressed: st.client === t.id })).join('')}</div>` : ''}
       ${strips.length > 6 ? `<details class="wk-rest"${strips.slice(6).some((/** @type {any} */ t) => st.client === t.id) ? ' open' : ''}><summary>${c.plural(strips.length - 6, 'more client')}</summary><div class="wk-strips">${strips.slice(6).map((/** @type {any} */ t) => strip(t.id, { filter: true, pressed: st.client === t.id })).join('')}</div></details>` : ''}
+      ${strips.length ? "</details>" : ""}
       <div class="wk-bar"><div class="wk-chips" role="group" aria-label="Filter the board">
         ${chip('all', 'All clients', !st.client && !st.service && !st.over)}
         ${chip('over', 'Cards over limit', !!st.over, `<span class="wk-n${overN ? ' is-bad' : ''}">${overN}</span>`)}

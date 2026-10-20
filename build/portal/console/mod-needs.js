@@ -35,11 +35,11 @@
     over_cap: { f: 'limit', label: 'Over limit', tone: 'you', icon: 'plus', rank: 0 },
     over_cap_request: { f: 'limit', label: 'Over limit', tone: 'you', icon: 'plus', rank: 0 },
     service_not_picked: { f: 'limit', label: 'Not in plan', tone: 'you', icon: 'slash', rank: 1 },
-    picks_unconfirmed: { f: 'deadline', label: 'Picks not confirmed', tone: 'warn', icon: 'clock', rank: 1 },
+    picks_unconfirmed: { f: 'deadline', label: 'Services not confirmed', tone: 'warn', icon: 'clock', rank: 1 },
     reminder_failed: { f: 'email', label: 'Reminder failed', tone: 'bad', icon: 'mail', rank: 1 },
     notification_failed: { f: 'email', label: 'Message email failed', tone: 'bad', icon: 'mail', rank: 1 }
   };
-  const FILTERS = [['all', 'All'], ['mismatch', 'Mismatches'], ['limit', 'Over limit'], ['deadline', 'Pick deadlines'], ['email', 'Failed emails'], ['approval', 'Check before live']];
+  const FILTERS = [['all', 'All'], ['mismatch', 'Mismatches'], ['limit', 'Over limit'], ['deadline', 'Service deadlines'], ['email', 'Failed emails'], ['approval', 'Check before live']];
   /** The chip in use stays when the page is drawn again after an action. */
   const state = { filter: 'all', /** @type {any} */ view: null };
 
@@ -198,7 +198,7 @@
       [/cycle-not-running/, () => 'There is no running month to count this in.'],
       [/cycle-not-this-client/, () => 'That month belongs to another client.'],
       [/unknown-metric/, () => 'This plan has no limit for that kind of work.'],
-      [/picks-do-not-fit/, () => 'Those picks do not fit the plan.'],
+      [/picks-do-not-fit/, () => 'Those services do not fit the plan.'],
       [/plan-full/, () => 'The Domin8te place is taken right now.'],
       [/plan-locked/, () => 'That plan is locked, so nobody new can be put on it. An owner can lift the lock in Settings.'],
       [/month-locked/, () => 'This month is locked. Changes apply from next month.'],
@@ -209,11 +209,14 @@
       [/only-requeue/, () => 'This email is no longer failed, so it cannot be sent again.'],
       [/owner-only/, () => 'Only an owner can send this email to a different address. Keep the same address, or ask an owner.'],
       [/not-staff/, () => 'Your sign-in is not on the Domin8te team. Sign out and in again.'],
-      [/unknown-reason|bad-status|bad-decision/, () => 'The database did not accept that. Reload and try again.']
+      [/unknown-reason|bad-status|bad-decision/, () => 'The database did not accept that. Reload and try again.'],
+      // C3.1b: Postgres wording never reaches the page (no function names or signatures)
+      [/function .* does not exist|could not find the function/i, () => 'This save is not set up on the server yet, so nothing was changed. Tell Karan.'],
+      [/permission denied for function/i, () => 'You are not allowed to make this change, so nothing was changed.']
     ];
     for (const [re, to] of map) { const m = re.exec(raw); if (m) return to(m); }
     if (code === '42501') return 'You are not allowed to do that here.';
-    return raw || 'Something went wrong.';
+    return raw ? raw.replace(/\b(public\.)?override_plan_cycle\b(\([^)]*\))?/g, 'the plan save') : 'Something went wrong.';
   }
   /** Like D8C.check, but with the team's words. @param {any} res */
   function got(res) { if (res && res.error) throw Object.assign(new Error(say(res.error)), { raw: res.error }); return res ? res.data : null; }
@@ -336,14 +339,14 @@
         }
       },
       {
-        id: 'keep', label: 'Keep client value', tone: 'quiet',
+        id: 'keep', label: 'Keep what the client sees', tone: 'quiet',
         sheet: {
           lead: `<strong>Keep what the client sees?</strong> ${esc(dash ? planName(dash.plan) : 'The last verified plan')} stays on their dashboard and the console is not pushed. Fix the console in Billing if it is the one that is wrong.`,
-          confirm: 'Keep client value',
+          confirm: 'Keep what the client sees',
           run: async (f, note) => ({ status: 'ignored', note: withNote(`Kept the client value${dash ? ` (${planName(dash.plan)})` : ''}.`, note), toast: 'Kept what the client sees.' })
         }
       },
-      { id: 'billing', label: 'Open in Billing', tone: 'link', href: `#/billing/${tid}` }
+      { id: 'billing', label: 'Open in Billing →', tone: 'link', href: `#/billing/${tid}` }
     ];
     return { title, wrong, sees, fix: 'Use the console value: it is the source of truth and replaces what they see.', detail: compare('Console (source of truth)', 'Client dashboard', rows), actions };
   }
@@ -355,7 +358,7 @@
     const isReq = ex.reason_code === 'over_cap_request';
     const planNm = pl.nowPlan ? pl.nowPlan.name : 'their plan';
     const known = !!(L.metric && L.cap);
-    const title = known ? `Over limit: ${metricName(L.metric, L.label)} ${L.would} of ${L.cap} (${planNm})` : String(ex.message || 'Over limit').replace(/^Over cap\b/, 'Over limit').replace(/\.$/, '');
+    const title = known ? `Over limit: ${metricName(L.metric, L.label)} ${L.would} of ${L.cap} (${planNm} plan)` : String(ex.message || 'Over limit').replace(/^Over cap\b/, 'Over limit').replace(/\.$/, '');
     const who = L.req && L.req.by_name ? L.req.by_name : cx.first || 'The client';
     const wrong = isReq
       ? `${who} asked${L.req ? ` ${c.ago(L.req.at)}` : ''}${L.req ? `: ${quoted(L.req.body, 140)}` : ' for more than the plan allows.'} ${known ? `${planNm} allows ${L.cap} ${perPeriod(L.metric, L.label)} and ${L.used} ${L.used === 1 ? 'is' : 'are'} ${usedWord(L.metric)}, so this would make ${L.would}.` : String(ex.message || '')}`
@@ -435,7 +438,7 @@
     });
     if (up) {
       actions.push({
-        id: 'upgrade', label: `Suggest ${up.name}`, tone: 'quiet',
+        id: 'upgrade', label: `Suggest the ${up.name} plan`, tone: 'quiet',
         sheet: {
           lead: `<strong>Draft a message suggesting ${esc(up.name)}?</strong> It opens in Messages for you to read and edit. Nothing is sent. This item closes as "suggested".`,
           confirm: 'Open the draft',
@@ -490,9 +493,9 @@ Two ways forward: ${live ? 'we can start the new one when one that is running no
           lead: `<strong>Draft a message about ${esc(svc)} for next month?</strong> It opens in Messages for you to read and edit. Nothing is sent. This item closes as "suggested".`,
           confirm: 'Open the draft',
           run: async (f, note) => {
-            const text = packed ? letter(cx, `Thanks for your request about ${svc}. ${svc} is not one of your picks this month, so we have not started it.
+            const text = packed ? letter(cx, `Thanks for your request about ${svc}. ${svc} is not one of your services this month, so we have not started it.
 
-Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and ${slots === 1 ? 'it is' : 'they are all'} in use. For next month you can swap ${svc} in for one of your current picks${up ? `, or move up to ${up.name}, which is Ads plus ${Number(up.picks_allowed)} picks` : ''}. Open Billing in your dashboard${deadline ? ` before the end of ${dayText(deadline)}` : ''} to choose. Plan changes start from your next bill date${nextStart ? `, ${dayText(nextStart)}` : ''}. Reply here if you would like help choosing.`)
+Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'service' : 'services'}, and ${slots === 1 ? 'it is' : 'they are all'} in use. For next month you can swap ${svc} in for one of your current picks${up ? `, or move up to ${up.name}, which is Ads plus ${Number(up.picks_allowed)} services` : ''}. Open Billing in your dashboard${deadline ? ` before the end of ${dayText(deadline)}` : ''} to choose. Plan changes start from your next bill date${nextStart ? `, ${dayText(nextStart)}` : ''}. Reply here if you would like help choosing.`)
             : letter(cx, `Thanks for your request about ${svc}. ${svc} is not part of your ${planNm} plan this month, so we have not started it.\n\nYou can add it for next month: open Billing in your dashboard and choose it${deadline ? ` before the end of ${dayText(deadline)}` : ''}. Plan changes start from your next bill date${nextStart ? `, ${dayText(nextStart)}` : ''}. Reply here if you would like help choosing.`);
             return { status: 'resolved', note: withNote(`Suggested ${svc} for next month (a draft was opened in Messages, not sent).`, note), toast: 'Draft ready. Read it, edit it, then press Send. Nothing has been sent.', draft: { tid, text } };
           }
@@ -528,26 +531,26 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const deadline = bill ? addDays(bill, -1) : '';
     const left = deadline ? daysTo(deadline) : null;
     const picks = nx ? picksOfCycle(nx) : [];
-    const what = nx ? `${planName(nx.plan_id)}: ${picksText(picks)}` : 'the same picks';
-    const title = left === null ? 'Picks not confirmed' : left < 0 ? 'Picks not confirmed, the deadline has passed' : left === 0 ? 'Picks not confirmed, the last day to change them is today' : `Picks not confirmed, ${plural(left + 1, 'day')} left`;
-    const stale = nx && nx.source !== 'auto_carry' ? 'The picks have been confirmed since.' : '';
+    const what = nx ? `${planName(nx.plan_id)}: ${picksText(picks)}` : 'the same services';
+    const title = left === null ? 'Services not confirmed' : left < 0 ? 'Services not confirmed, the deadline has passed' : left === 0 ? 'Services not confirmed, the last day to change them is today' : `Services not confirmed, ${plural(left + 1, 'day')} left`;
+    const stale = nx && nx.source !== 'auto_carry' ? 'The services have been confirmed since.' : '';
     /** @type {Action[]} */ const actions = [
       {
-        id: 'confirm', label: 'Confirm current picks', tone: 'primary', disabled: !nx, hint: nx ? '' : 'There is no next month to confirm.',
+        id: 'confirm', label: 'Confirm current services', tone: 'primary', disabled: !nx, hint: nx ? '' : 'There is no next month to confirm.',
         sheet: {
           lead: `<strong>Confirm ${esc(what)}?</strong> They stay as they are for the month starting ${esc(dayText(bill))}, and this stops being a carry-over. The client can still change them until the day before the bill.`,
-          confirm: 'Confirm picks',
+          confirm: 'Confirm services',
           run: async (f, note) => {
             const client = await c.db();
-            got(await client.rpc('override_plan_cycle', { p_tenant: tid, p_period_start: nx.period_start, p_plan: nx.plan_id, p_picks: nx.picks, p_website_option: nx.website_option || null, p_reason: withNote('Confirmed the picks that were carried over.', note) }));
-            return { status: 'resolved', note: withNote(`Confirmed the current picks (${planName(nx.plan_id)}: ${picksText(picks)}).`, note), toast: 'Next month\'s picks are confirmed.' };
+            got(await client.rpc('override_plan_cycle', { p_tenant: tid, p_period_start: nx.period_start, p_plan: nx.plan_id, p_picks: nx.picks, p_website_option: nx.website_option || null, p_reason: withNote('Confirmed the services that were carried over.', note) }));
+            return { status: 'resolved', note: withNote(`Confirmed the current services (${planName(nx.plan_id)}: ${picksText(picks)}).`, note), toast: 'Next month\'s services are confirmed.' };
           }
         }
       },
       {
         id: 'message', label: 'Message client', tone: 'quiet',
         sheet: {
-          lead: '<strong>Draft a message about the picks?</strong> It opens in Messages for you to read and edit. Nothing is sent. This item stays open until the picks are confirmed.',
+          lead: '<strong>Draft a message about the services?</strong> It opens in Messages for you to read and edit. Nothing is sent. This item stays open until the services are confirmed.',
           confirm: 'Open the draft', noNote: true,
           run: async (f, note) => {
             const text = letter(cx, `A quick check on next month. Your plan has been carried over from this month and not confirmed yet: ${what}. If that is right, you do not need to do anything. If you want to change it, you can do that in Billing in your dashboard until the end of ${dayText(deadline)}.\n\nYour next bill date is ${dayText(bill)}.`);
@@ -558,9 +561,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     ];
     return {
       title,
-      wrong: `Next month's picks were carried over from this month and nobody has confirmed them. The bill is on ${dayText(bill)}.${picks.length ? ` If nothing changes, ${picksText(picks)} carry over.` : ''}`,
-      sees: `Their picks page shows ${what} for next month, marked as carried over. They can change it until the end of ${dayText(deadline)}.`,
-      fix: 'Confirm the picks if they are right, or message the client first.',
+      wrong: `Next month's services were carried over from this month and nobody has confirmed them. The bill is on ${dayText(bill)}.${picks.length ? ` If nothing changes, ${picksText(picks)} carry over.` : ''}`,
+      sees: `Their services page shows ${what} for next month, marked as carried over. They can change it until the end of ${dayText(deadline)}.`,
+      fix: 'Confirm the services if they are right, or message the client first.',
       stale, actions
     };
   }
@@ -623,7 +626,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     return {
       title: `${n.charAt(0).toUpperCase()}${n.slice(1)} reminder failed${reason && /bounce/i.test(reason) ? ' (bounced)' : ''}`,
       wrong,
-      sees: `They did not get this email. Their dashboard is unchanged${bill ? `: it still shows the bill date, ${dayText(bill)}, and when picks lock` : ''}.`,
+      sees: `They did not get this email. Their dashboard is unchanged${bill ? `: it still shows the bill date, ${dayText(bill)}, and when services lock` : ''}.`,
       fix: 'Fix the address and send it again, or tell them by phone.',
       stale, actions
     };
@@ -738,9 +741,9 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     ];
     return {
       title: 'Plan not set',
-      wrong: String(ex.message || 'This client has no plan and picks on record.'),
+      wrong: String(ex.message || 'This client has no plan and services on record.'),
       sees: 'No plan or monthly limits on their dashboard yet.',
-      fix: 'Set their plan and picks in Billing. That puts the plan on their dashboard and starts counting usage.',
+      fix: 'Set their plan and services in Billing. That puts the plan on their dashboard and starts counting usage.',
       detail: services.length ? `<p class="nx-services"><span class="nx-services-k">Services on record</span>${services.map((/** @type {string} */ s) => `<span class="chip plain">${esc(svcName(s))}</span>`).join('')}</p>` : '',
       stale, actions
     };
@@ -815,10 +818,10 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'pick' : 'picks'}, and 
     const held = typed.filter((x) => x.ex.reason_code === 'plan_mismatch' || x.ex.reason_code === 'result_outlier').length;
     const fresh = c.pageFresh({
       updatedAt: c.all.at,
-      source: 'plan, usage and bill email records in the console, and the checks on what clients see',
+      source: 'console records',
       status: failed ? 'delayed' : held ? 'kept' : 'ok',
-      label: failed ? 'Some data did not load' : held ? `${held} unverified` : 'Up to date',
-      note: failed ? 'The queue could not be fully loaded, so do not assume nothing is waiting. Reload to try again.' : held ? 'For every unverified item the client keeps seeing the last verified value until you resolve it.' : ''
+      label: failed ? 'Some data did not load' : held ? `${held} ${held === 1 ? 'item' : 'items'} not checked yet` : 'Up to date',
+      note: failed ? 'The queue could not be fully loaded, so do not assume nothing is waiting. Reload to try again.' : held ? 'For every item not checked yet, the client keeps seeing the last checked value until you resolve it.' : ''
     });
     const chips = `<div class="nx-chips"><div class="seg" id="nx-filter" role="group" aria-label="Show">${FILTERS.map(([key, label]) => `<button type="button" data-nx-filter="${key}" aria-pressed="${state.filter === key}">${esc(label)}<span class="count quiet">${n[key]}</span></button>`).join('')}</div></div>`;
     // Under a chip: what shows and a way back to All (applyFilter fills the text).

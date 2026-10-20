@@ -358,8 +358,11 @@
     // Ask bots (owner only, never inside a client's tab): first in the row; its count is the requests the router is still on.
     const ask = !inTab && ownerOn();
     if (!ask && state.view.status === 'ask') state.view.status = VIEW_DEFAULT.status;
-    const askChip = ask ? chip('data-bot-status', 'ask', 'Ask bots', ownerOpen(), v.status === 'ask') : '';
-    const statusSeg = `<div class="seg bot-status" role="group" aria-label="Status">${askChip}${STATUSES.map(([k, t]) => chip('data-bot-status', k, t, mine.filter((r) => matches(r, { ...v, status: k })).length, v.status === k)).join('')}</div>`;
+    // C4.1: Ask bots is a chat, not a status, so it sits in its own pill group, apart from the statuses (existing .toolbar gap, no new CSS).
+    const statusPills = STATUSES.map(([k, t]) => chip('data-bot-status', k, t, mine.filter((r) => matches(r, { ...v, status: k })).length, v.status === k)).join('');
+    const statusSeg = ask
+      ? `<div class="toolbar bot-status"><div class="seg bot-ask" role="group" aria-label="Chat">${chip('data-bot-status', 'ask', 'Ask bots (chat)', ownerOpen(), v.status === 'ask')}</div><div class="seg" role="group" aria-label="Status">${statusPills}</div></div>`
+      : `<div class="seg bot-status" role="group" aria-label="Status">${statusPills}</div>`;
     if (ask && v.status === 'ask') return `${statusSeg}${ownerPanel()}`;
     let clientSeg = '';
     if (!inTab) {
@@ -1774,7 +1777,13 @@
       const seg = box.querySelector('.bot-status');
       if (!seg || seg.querySelector('[data-bot-status="ask"]')) return;
       const n = ownerOpen();
-      seg.insertAdjacentHTML('afterbegin', `<button type="button" data-bot-status="ask" aria-pressed="false">Ask bots${n ? `<span class="count">${n}</span>` : ''}</button>`);
+      // the same two groups as the first draw (C4.1): the status pills move into a row with the Ask bots group first
+      seg.insertAdjacentHTML('beforebegin', `<div class="toolbar bot-status"><div class="seg bot-ask" role="group" aria-label="Chat"><button type="button" data-bot-status="ask" aria-pressed="false">Ask bots (chat)${n ? `<span class="count">${n}</span>` : ''}</button></div></div>`);
+      const row = /** @type {HTMLElement} */ (seg.previousElementSibling);
+      seg.classList.remove('bot-status');
+      row.appendChild(seg);
+      const lead = document.querySelector('#bot-lead-ask');
+      if (lead) lead.hidden = false;
     });
   }
 
@@ -1790,7 +1799,7 @@
     const n = pending().length;
     const z = rows.filter((x) => viewStatus(x) === 'snoozed' && liveTenant(x.tenant_id)).length;
     document.title = (r ? `${r.kind || 'Change request'} · ` : '') + 'Bot chat · Domin8te console';
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Bot chat</h1><p>Drafts the bots dropped in, waiting for a yes. ${n ? `${C0.plural(n, 'draft')} waiting.` : 'Nothing is waiting.'}${z ? ` ${z} snoozed.` : ''} Clients never see this page.</p></div>
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Bot chat</h1><p>Approve bot drafts below<span id="bot-lead-ask"${ownerOn() ? '' : ' hidden'}>, or use Ask bots to chat with them</span>. ${n ? `${C0.plural(n, 'draft')} waiting.` : 'Nothing is waiting.'}${z ? ` ${z} snoozed.` : ''} Clients never see this page.</p></div>
       ${headTools()}</div>
       <div id="bot-box">${openId ? (r ? card(r) : `<a class="crumb" href="#/bot">${C0.icon('back')}All bot chat</a><p class="notice">That item was not found. The link may be old.</p>`) : list()}</div>`;
     const keysBtn = main.querySelector('[data-bot-keys]');

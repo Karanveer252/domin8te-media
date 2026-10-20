@@ -1014,10 +1014,7 @@
     const fine = s.sources.filter((src) => !(src.pending || src.state !== 'fresh'));
     const count = working === s.sources.length ? `All ${s.sources.length} working` : `${working} of ${s.sources.length} working`;
     // The emails that cannot be switched off (the bill reminders, the confirmation of a change of picks, payment problems) show as rows, always on.
-    const always = [...(s.always || []), ...s.categories.filter((c) => c.required)].map((c) => `<div class="toggle-row is-always">
-        <input class="switch" type="checkbox" id="a-${esc(c.id)}" checked disabled aria-describedby="a-${esc(c.id)}-text">
-        <label for="a-${esc(c.id)}"><span class="toggle-label">${esc(c.label)}<span class="chip-always">Always sent</span></span><span class="toggle-text" id="a-${esc(c.id)}-text">${esc(c.text)}</span></label>
-      </div>`).join('');
+    const always = [...(s.always || []), ...s.categories.filter((c) => c.required)].map((c) => `<li>${icon('check')}<span><strong>${esc(c.label)}</strong>. ${esc(c.text)}</span></li>`).join('');
     const fresh = UI.PageFresh({ updatedAt: s.savedAt || null, source: 'Your account', zone: ctx.account.zoneAbbr, status: 'ok' });
     return `${fresh}<section class="card set-card" id="sources" tabindex="-1" aria-labelledby="h-sources">
         <div class="sec-head"><h2 id="h-sources">Connected accounts</h2><p class="sec-meta set-count">${esc(count)}</p></div>
@@ -1047,7 +1044,7 @@
       <section class="card set-card" aria-labelledby="h-email">
         <h2 id="h-email">Emails</h2>
         <p class="meta">We send these to ${esc(s.email)}.</p>
-        <div class="toggles is-always" role="group" aria-label="Emails we always send">${always}</div>
+        <h3 class="po-h po-h-more" id="h-always">Emails we always send</h3><ul class="po-included" aria-labelledby="h-always">${always}</ul>
         <details class="fold fold-emails">
           <summary>Choose which other emails you get${icon('chevron-down')}</summary>
           <form id="notify-form" novalidate>
@@ -1225,8 +1222,8 @@
   ];
   const FAQ = [
     ['What does my plan include?', 'Every plan includes Ads. Starter adds one service you choose, Growth adds two, and Domin8te adds three. You choose from Social media, Website, SEO and Google Maps, and Email.'],
-    ['How do I change my plan or my services?', 'Go to Billing and pick for next month. Your choice starts on your next bill date. This month stays as it is.'],
-    ['When can I change my picks?', 'Any time up to the last day shown in Billing, which is the day before your next bill. We email you 7 days and 3 days before, so you never miss it. Pick again as often as you like until then.'],
+    ['How do I change my plan or my services?', 'Go to Billing and choose your services for next month. Your choice starts on your next bill date. This month stays as it is.'],
+    ['When can I change my services?', 'Any time up to the last day shown in Billing, which is the day before your next bill. We email you 7 days and 3 days before, so you never miss it. Change them as often as you like until then.'],
     ['What happens to a service I stop?', 'We keep your work saved. You can add the service back for a later month.'],
     ['Is ad spend part of my plan?', `${D8.plan.AD_SPEND} We never change your ad budget without asking you first.`],
     ['What if I need more posts or changes this month?', 'Ask from Work. If it goes over your plan, Karan replies with options first. Nothing extra is charged without your OK.'],
@@ -1243,7 +1240,7 @@
     title: () => 'Help',
     render(ctx) {
       return `<div class="page page-help">
-        ${UI.PageHeader({ title: 'Help', intro: 'How to reach us, and answers to common questions.', sample: ctx.account.business.name })}
+        ${UI.PageHeader({ title: 'Help', intro: 'How to reach us, and answers to common questions.', sample: ctx.account.business.name, aside: `<a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a>` })}
         ${UI.PageFresh({ updatedAt: HELP_UPDATED, source: 'Domin8te team', status: 'ok' })}
         <section class="sec" aria-labelledby="h-faq"><h2 id="h-faq" class="sec-title">Common questions</h2>
           <div class="card faq">${FAQ.map(([q, a]) => `<details><summary>${esc(q)}${icon('chevron-down')}</summary>${a.startsWith('<') ? a : `<p>${esc(a)}</p>`}</details>`).join('')}</div>

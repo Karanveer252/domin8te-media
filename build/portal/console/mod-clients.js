@@ -139,7 +139,7 @@
     const lines = [];
     if (pl.now && pl.next && pl.next.source === 'auto_carry' && pl.next.state !== 'ended') {
       const left = daysTo(addDays(pl.next.period_start, -1)) + 1;
-      lines.push(left > 0 ? `Picks not confirmed, ${c.plural(left, 'day')} left` : 'Picks not confirmed, the deadline has passed');
+      lines.push(left > 0 ? `Services not confirmed, ${c.plural(left, 'day')} left` : 'Services not confirmed, the deadline has passed');
     } else if (pl.now && pl.next && (pl.next.plan_id !== pl.now.plan_id || picksLine(pl.next) !== picksLine(pl.now))) {
       lines.push(`Next: ${picksLine(pl.next)} from ${c.when(pl.next.period_start)}`);
     }
@@ -200,7 +200,7 @@
     }
     const who = on.length && on.length <= 3 ? `: ${esc(on.map((/** @type {any} */ t) => t.name).join(', '))}` : '';
     const count = on.length ? `${c.plural(on.length, 'client')} on it${who}.` : 'No clients on it yet.';
-    return `<div class="cl-card"><span class="cl-dot ${locked ? 'is-taken' : 'is-free'}" aria-hidden="true"></span><div><p class="cl-card-t">${locked ? `${name} is locked` : `${name}: open to new clients`}</p>
+    return `<div class="cl-card"><span class="cl-dot ${locked ? 'is-taken' : 'is-free'}" aria-hidden="true"></span><div><p class="cl-card-t">${locked ? `${name} plan is locked` : `${name} plan: open to new clients`}</p>
       <p class="cl-card-s">${count}${lock}</p></div></div>`;
   }
 
@@ -227,10 +227,10 @@
     const unverified = rows.filter((r) => r.unverified).length;
     const fresh = c.pageFresh({
       updatedAt: c.plans.at || c.all.at,
-      source: 'plan rows and this month\'s usage counts in the console',
+      source: 'console records',
       status: !loaded ? 'delayed' : unverified ? 'kept' : 'ok',
-      label: !loaded ? 'Plan data did not load' : unverified ? `${unverified} unverified` : 'Up to date',
-      note: !loaded ? 'The plan tables could not be read, so plans and usage are blank here. Reload to try again.' : unverified ? 'A restaurant with an open plan or result check keeps seeing its last verified values until you resolve it in Needs you.' : ''
+      label: !loaded ? 'Plan data did not load' : unverified ? `${unverified} ${unverified === 1 ? 'client' : 'clients'} not checked yet` : 'Up to date',
+      note: !loaded ? 'The plan tables could not be read, so plans and usage are blank here. Reload to try again.' : unverified ? 'A restaurant with an open plan or result check keeps seeing its last checked values until you resolve it in Needs you.' : ''
     });
     const planChips = c.plans.plans.map((/** @type {any} */ p) => [p.id, p.name]);
     const main6 = [['all', 'All'], ...planChips, ['over', 'Over limit'], ['near', 'Near limit (85%+)']];
@@ -244,13 +244,12 @@
     const chip = (/** @type {string[]} */ [k, l]) => SAY[k]
       ? `<button type="button" data-filter="${esc(k)}" aria-pressed="${st.filter === k}">${esc(SAY[k](n[k] || 0))}</button>`
       : `<button type="button" data-filter="${esc(k)}" aria-pressed="${st.filter === k}">${esc(l)}<span class="count quiet">${n[k] === undefined ? 0 : n[k]}</span></button>`;
-    return `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Clients</h1><p>Every restaurant's plan, picks and how much of this month's limits they have used. The limits come from the plan.</p></div>
+    return `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Clients</h1><p>Every restaurant's plan, services and how much of this month's limits they have used. The limits come from the plan.</p></div>
       <div class="btns">${canAdd ? `<a class="btn" href="#/new">${c.icon('plus')}Add a client</a>` : ''}</div></div>
       ${fresh}
       ${cardsHtml(rows)}
-      <div class="cl-chips"><div class="seg" id="list-filter" role="group" aria-label="Show">${main6.map(chip).join('')}</div></div>
-      <div class="toolbar cl-toolbar"><input id="list-q" type="search" placeholder="Search by name, kind, plan or picks" aria-label="Search clients" value="${esc(st.q)}" autocomplete="off">
-        <div class="seg cl-more" role="group" aria-label="Also show">${more2.map(chip).join('')}</div></div>`;
+      <div class="cl-chips"><div class="seg" id="list-filter" role="group" aria-label="Show">${main6.concat(more2).map(chip).join('')}</div></div>
+      <div class="toolbar cl-toolbar"><input id="list-q" type="search" placeholder="Search by name, kind, plan or services" aria-label="Search clients" value="${esc(st.q)}" autocomplete="off"></div>`;
   }
 
   /** The list itself, or what to say when it is empty. @param {any} st */
@@ -266,7 +265,7 @@
     const th = (/** @type {string} */ k, /** @type {string} */ label) => `<th scope="col"${st.sort === k ? ` aria-sort="${st.dir === 'asc' ? 'ascending' : 'descending'}"` : ''}><button type="button" data-sort="${k}">${label}${st.sort === k ? c.icon('sort') : ''}</button></th>`;
     if (!rows.length) {
       return all.length
-        ? '<div class="empty"><p><strong>No client matches.</strong></p><p>Try another name or a different filter.</p></div>'
+        ? '<div class="empty"><p><strong>No client matches.</strong></p><p>Try another name or a different filter.</p><button class="btn btn-quiet" type="button" data-cl-clear>Clear filters</button></div>'
         : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p>${c.me && c.me.role === 'super_admin' ? '<a class="btn" href="#/new">Add a client</a>' : ''}</div>`;
     }
     const fmt = (/** @type {any} */ r) => {
@@ -287,15 +286,15 @@
       const check = !pl.now ? '<span class="chip plain">No plan</span>' : r.unverified ? '<span class="chip warn">Unverified</span>' : '<span class="chip good">Verified</span>';
       return `<tr data-href="#/client/${esc(t.id)}/overview"${t.status !== 'active' ? ' class="paused"' : ''}>
         <td data-label="Client"><a class="row-link" href="#/client/${esc(t.id)}/overview">${colorDot(t.id)}${esc(t.name)}</a>${notes.map((x) => `<span class="sub">${esc(x)}</span>`).join('')}${t.clerk_org_id ? (EXT.usage ? EXT.usage.clientLine(t.id) : '') : '<span class="row-chips"><span class="chip warn">No login yet</span></span>'}</td>
-        <td data-label="Plan"><div class="cl-v">${pl.nowPlan ? `<strong class="cl-plan-name">${esc(pl.nowPlan.name)}</strong>` : `<a class="chip warn chip-link" href="#/billing/${esc(t.id)}" title="Set their plan and picks in Billing">No plan set</a>`}</div></td>
-        <td data-label="Picks this cycle"><div class="cl-v">${pl.now ? esc(picksLine(pl.now)) : '<span class="none">Not set</span>'}</div></td>
+        <td data-label="Plan"><div class="cl-v">${pl.nowPlan ? `<strong class="cl-plan-name">${esc(pl.nowPlan.name)}</strong>` : `<a class="chip warn chip-link" href="#/billing/${esc(t.id)}" title="Set their plan and services in Billing">No plan set</a>`}</div></td>
+        <td data-label="Services this cycle"><div class="cl-v">${pl.now ? esc(picksLine(pl.now)) : '<span class="none">Not set</span>'}</div></td>
         <td data-label="Usage this month" class="cl-usage-cell"><div class="cl-v">${bars ? `<div class="cl-usage">${bars}</div>${more > 0 ? `<span class="cl-sub">and ${c.plural(more, 'more limit')} on their page</span>` : ''}` : '<span class="none">No limits yet</span>'}${period ? `<span class="cl-month">${esc(period)}</span>` : ''}</div></td>
         <td data-label="Needs you"><div class="cl-v">${needsCell}${waiting}</div></td>
         <td data-label="Status"><div class="cl-v"><div class="cl-status">${status.map((s) => `<div><span class="chip ${s.tone}">${esc(s.text)}</span>${s.sub ? `<span class="cl-sub">${esc(s.sub)}</span>` : ''}</div>`).join('')}</div></div></td>
         <td data-label="Numbers checked?" class="cl-fresh"><div class="cl-v"><span class="cl-sub">Updated ${esc(shortStamp(stamp))}</span>${check}</div></td></tr>`;
     };
     return `<div class="table-wrap cl-table"><table class="grid"><thead><tr>
-        ${th('name', 'Client')}${th('plan', 'Plan')}<th scope="col">Picks this cycle</th>${th('usage', 'Usage this month')}${th('needs', 'Needs you')}<th scope="col">Status</th><th scope="col">Numbers checked?</th>
+        ${th('name', 'Client')}${th('plan', 'Plan')}<th scope="col">Services this cycle</th>${th('usage', 'Usage this month')}${th('needs', 'Needs you')}<th scope="col">Status</th><th scope="col">Numbers checked?</th>
       </tr></thead><tbody>${rows.map(fmt).join('')}</tbody></table></div>
       <p class="meta cl-foot">${c.plural(rows.length, 'client')}${rows.length !== all.length ? ` of ${all.length}` : ''}. Click Client, Plan, Usage or Needs you to sort. A bar turns amber from 85 percent of a limit, says At limit when it is full, and turns red only when it is over.</p>`;
   }
@@ -319,7 +318,7 @@
       ${block('This month', pl.now, pl.nowPlan)}
       ${block('Next month', pl.next, pl.nextPlan)}
     </div>
-    <p class="cl-plan-link"><a class="btn btn-quiet btn-sm" href="#/billing/${esc(id)}">Change plan and picks in Billing</a><span class="meta">${t && t.status === 'paused' && pl.nowPlan && pl.nowPlan.max_clients ? `Paused: a ${esc(pl.nowPlan.name)} spot stays held until the client is archived. ` : ''}Picks lock when the billing month starts; changes apply from next month.</span></p>
+    <p class="cl-plan-link"><a class="btn btn-quiet btn-sm" href="#/billing/${esc(id)}">Change plan and services in Billing</a><span class="meta">${t && t.status === 'paused' && pl.nowPlan && pl.nowPlan.max_clients ? `Paused: a ${esc(pl.nowPlan.name)} spot stays held until the client is archived. ` : ''}Picks lock when the billing month starts; changes apply from next month.</span></p>
     ${pl.nowPlan && pl.nowPlan.locked ? `<p class="meta cl-plan-lock">${esc(pl.nowPlan.name)} is locked. This client keeps it. ${lockedLine(pl.nowPlan)}</p>` : ''}`;
   }
 

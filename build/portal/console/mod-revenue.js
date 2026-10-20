@@ -400,7 +400,8 @@
   const chartOf = (/** @type {string} */ id) => CHARTS.find((c) => c[0] === id);
   const CHOICE_KEY = 'd8c.revenue.charts';
   /** What Karan chose: the charts hidden, and the order of all of them. @type {{hidden: string[], order: string[]}} */
-  let choice = { hidden: [], order: CHARTS.map((c) => c[0]) };
+  // C9.2: a first visit shows the first 4 charts; the rest are one click away in Customize. A saved choice is kept as it was.
+  let choice = cleanChoice(null);
   let choiceFor = '';   // the signed-in person whose saved choice has been read from the account
   /** @type {Promise<void>|null} */ let choiceP = null;
   let saveT = 0;
@@ -416,7 +417,7 @@
       for (let k = i - 1; k >= 0 && at < 0; k -= 1) at = order.indexOf(ids[k]);
       order.splice(at + 1, 0, id);
     });
-    return { hidden: keep(p && p.hidden), order };
+    return { hidden: p ? keep(p.hidden) : CHARTS.slice(4).map((c) => c[0]), order };   // no saved choice (or Reset): the first 4 (C9.2)
   }
   const shown = () => choice.order.filter((id) => !choice.hidden.includes(id) && !(PERS() && CLIENT_CHARTS.includes(id)));
   function readLocalChoice() { try { const s = localStorage.getItem(CHOICE_KEY); if (s) choice = cleanChoice(JSON.parse(s)); } catch (e) { /* the default order */ } }

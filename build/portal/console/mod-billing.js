@@ -170,16 +170,16 @@
     }
     const by = n.source === 'client_picker' ? `Confirmed by the client ${esc(dayShort(dayOfStamp(n.confirmed_at)))}`
       : n.source === 'console' ? `Set by the team ${esc(dayShort(dayOfStamp(n.confirmed_at)))}`
-      : n.source === 'auto_carry' ? 'No reply yet, current picks carry over'
+      : n.source === 'auto_carry' ? 'No reply yet, current services carry over'
       : all ? `${esc(r.P.nextPlan.name)} includes everything` : '';
     return `<div class="bl-chips">${chips.join('')}</div>${by ? `<span class="sub">${by}</span>` : ''}`;
   }
   /** @param {any} r */
   function lockCell(r) {
     if (!r.now && !r.next) return '<span class="none">Not set</span>';
-    if (!r.now) return `<span class="chip them">Starts ${esc(dayShort(r.next.period_start))}</span><span class="sub">Picks can change until it starts</span>`;
-    if (r.notStarted) return `<span class="chip them">Starts ${esc(dayShort(r.now.period_start))}</span><span class="sub">Picks can change until it starts</span>`;
-    if (!r.next) return `<span class="chip them">Locked (can't change)</span><span class="sub">Next cycle's picks can change until ${esc(dayLong(r.lastDay))}</span>`;
+    if (!r.now) return `<span class="chip them">Starts ${esc(dayShort(r.next.period_start))}</span><span class="sub">Services can change until it starts</span>`;
+    if (r.notStarted) return `<span class="chip them">Starts ${esc(dayShort(r.now.period_start))}</span><span class="sub">Services can change until it starts</span>`;
+    if (!r.next) return `<span class="chip them">Locked (can't change)</span><span class="sub">Next cycle's services can change until ${esc(dayLong(r.lastDay))}</span>`;
     if (r.next.source === 'auto_carry') {
       const left = daysBetween(r.today, r.lastDay);
       const text = left > 1 ? `${left} days left, until ${dayLong(r.lastDay)}` : left === 1 ? `1 day left, until ${dayLong(r.lastDay)}` : left === 0 ? `Last day is today, ${dayLong(r.lastDay)}` : `Closed on ${dayLong(r.lastDay)}`;
@@ -192,7 +192,7 @@
     const n = kind === 'd7' ? 7 : 3;
     const row = r.rem.find((/** @type {any} */ x) => x.kind === kind);
     if (!row && r.t.status !== 'active') return `<span class="chip plain" title="Bill reminders are skipped while a client is ${esc(r.t.status)}">${n}d skipped</span>`;
-    if (!row) return r.bill ? `<span class="chip plain" title="Planned once next cycle's picks exist">${n}d due ${esc(dayShort(addDays(r.bill, -n)))}</span>` : '<span class="none">None</span>';
+    if (!row) return r.bill ? `<span class="chip plain" title="Planned once next cycle's services exist">${n}d due ${esc(dayShort(addDays(r.bill, -n)))}</span>` : '<span class="none">None</span>';
     if (row.status === 'sent') return `<span class="chip good" title="${esc(`Sent to ${row.to_email}`)}">${n}-day sent ${esc(dayShort(dayOfStamp(row.sent_at || row.send_at)))}</span>`;
     if (row.status === 'failed') return `<span class="chip bad" title="${esc(row.error || 'It did not go out.')}">${n}-day failed ${esc(dayShort(dayOfStamp(row.updated_at || row.send_at)))}</span>`;
     if (row.status === 'skipped') return `<span class="chip plain" title="${esc(row.error || 'Skipped')}">${n}d skipped</span>`;
@@ -292,7 +292,7 @@
     const locked = !!feat.locked;
     const full = slot.limited && slot.taken;
     const dot = locked ? 'is-lock' : full ? 'is-used' : 'is-free';
-    const title = locked ? `${feat.name} is locked` : slot.limited ? `${feat.name} ${slot.max === 1 ? 'spot' : 'spots'}: ${full ? `${slot.used} of ${slot.max} taken` : 'free'}` : `${feat.name}: open to new clients`;
+    const title = locked ? `${feat.name} plan is locked` : slot.limited ? `${feat.name} plan ${slot.max === 1 ? 'spot' : 'spots'}: ${full ? `${slot.used} of ${slot.max} taken` : 'free'}` : `${feat.name} plan: open to new clients`;
     const sub = locked ? `${esc(count)} New clients and plan changes to ${esc(feat.name)} are refused until an owner unlocks it. <a href="#/settings">Open Settings</a>`
       : slot.limited ? (full ? `${esc(count)} ${placeNote ? esc(placeNote) : `New ${esc(feat.name)} sign-ups are blocked until this spot frees up.`}` : `${esc(count)} ${placeNote ? esc(placeNote) : `A client can take it now. Only ${slot.max} ${slot.max === 1 ? 'client' : 'clients'} at a time.`}`)
       : esc(count);
@@ -323,7 +323,7 @@
     const box = c.$('#bl-top');
     if (!box) return;
     const rows = allRows();
-    const filters = [['all', 'All', rows.length], ['soon', 'Bills in 7 days', rows.filter((r) => matches(r, 'soon')).length], ['unconfirmed', 'Picks not confirmed', rows.filter((r) => matches(r, 'unconfirmed')).length], ['failed', 'Reminder failed', rows.filter((r) => matches(r, 'failed')).length], ['late', 'Past due', rows.filter((r) => matches(r, 'late')).length]];
+    const filters = [['all', 'All', rows.length], ['soon', 'Bills in 7 days', rows.filter((r) => matches(r, 'soon')).length], ['unconfirmed', 'Services not confirmed', rows.filter((r) => matches(r, 'unconfirmed')).length], ['failed', 'Reminder failed', rows.filter((r) => matches(r, 'failed')).length], ['late', 'Past due', rows.filter((r) => matches(r, 'late')).length]];
     box.innerHTML = `<div class="toolbar"><div class="seg" role="group" aria-label="Show">${filters.map(([k, l, n]) => `<button type="button" data-bl-filter="${k}" aria-pressed="${state.filter === k}">${l}<span class="count${n && k !== 'all' ? '' : ' quiet'}">${n}</span></button>`).join('')}</div></div>${summary(rows)}`;
   }
   function paintList() {
@@ -340,7 +340,7 @@
       box.innerHTML = `<div class="empty"><p><strong>${state.filter === 'all' ? 'No clients yet.' : 'Nothing here.'}</strong></p><p>${state.filter === 'all' ? 'Add a client and choose their plan.' : 'No client matches this filter right now.'}</p>${state.filter === 'all' && c.me && c.me.role === 'super_admin' ? '<a class="btn" href="#/new">Add a client</a>' : ''}</div>`;
       return;
     }
-    box.innerHTML = `<div class="table-wrap bl-wrap"><table class="grid bl-grid"><caption class="sr-only">Every client's plan, picks, reminders and latest invoice</caption><thead><tr>
+    box.innerHTML = `<div class="table-wrap bl-wrap"><table class="grid bl-grid"><caption class="sr-only">Every client's plan, services, reminders and latest invoice</caption><thead><tr>
       <th scope="col">Client</th><th scope="col">Plan</th><th scope="col">This cycle</th><th scope="col">Next cycle</th><th scope="col">Next month's services</th><th scope="col">Bill reminders (7 and 3 days before)</th><th scope="col">Latest invoice</th><th scope="col">Stripe</th><th scope="col" class="bl-c-act">Actions</th></tr></thead><tbody>
       ${shown.map((r) => `<tr data-id="${esc(r.t.id)}"${r.t.status !== 'active' ? ' class="paused"' : ''}>
         <th scope="row" class="bl-c-client" data-label="Client">${clientCell(r)}</th>
@@ -397,7 +397,7 @@
     const main = c.main;
     document.title = 'Billing · Domin8te console';
     const seq = ++state.seq;
-    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Billing</h1><p>Each client's plan, what they have now, what changes next cycle and whether the 7 and 3 day reminders went out. Picks lock for the billing month; changes apply from the next bill.</p></div></div>
+    main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Billing</h1><p>Each client's plan, what they have now, what changes next cycle and whether the 7 and 3 day reminders went out. Services lock for the billing month; changes apply from the next bill.</p></div></div>
       <div id="bl-fresh"></div><div id="bl-top"></div><div id="bl-list"></div>`;
     paintFresh();
     paintTop();
@@ -473,7 +473,7 @@
     } else if (r.action === 'plan_cycle_update') {
       const bits = [];
       if (d.old_plan && d.old_plan !== d.plan) bits.push(`plan from ${plan(d.old_plan)} to ${plan(d.plan)}`);
-      if (d.old_picks && JSON.stringify(d.old_picks) !== JSON.stringify(d.picks)) bits.push(`picks from ${picks(d.old_picks, d.old_plan)} to ${picks(d.picks, d.plan)}`);
+      if (d.old_picks && JSON.stringify(d.old_picks) !== JSON.stringify(d.picks)) bits.push(`services from ${picks(d.old_picks, d.old_plan)} to ${picks(d.picks, d.plan)}`);
       what = `${bits.length ? `changed ${bits.join(' and ')}` : 'updated'} for the cycle starting ${dayShort(d.period_start)}.${reason}`;
     } else if (r.action === 'invoice_link_approved') what = `approved the Stripe link for invoice ${d.number || ''}.`.replace('  ', ' ');
     else if (r.action === 'dashboard.invoice.approved') what = `approved invoice ${d.number || ''} for their Billing page.`.replace('  ', ' ');
@@ -537,23 +537,23 @@
     dlg.setAttribute('aria-labelledby', 'bd-h');
     const nowBits = r.now && plan ? `${esc(plan.name)}${plan.price_minor != null ? ` · ${esc(c.money(plan.price_minor, plan.currency))} / mo` : ''} · ${esc(PP().andList(PM().ordered(r.now.picks || []).map((/** @type {string} */ s) => PP().label(s))))}` : '';
     const usage = r.P.lines || [];
-    const confirmedNote = r.next && r.next.source === 'client_picker' ? `The client already confirmed these picks on ${esc(dayShort(dayOfStamp(r.next.confirmed_at)))}. Saving replaces them.` : '';
+    const confirmedNote = r.next && r.next.source === 'client_picker' ? `The client already confirmed these services on ${esc(dayShort(dayOfStamp(r.next.confirmed_at)))}. Saving replaces them.` : '';
     dlg.innerHTML = `<form class="bd-form" id="bd-form" novalidate>
-      <header class="bd-head"><div><p class="bd-eyebrow">${esc(t.name)}</p><h2 id="bd-h">${mode === 'none' ? 'Set the plan' : 'Change plan or picks'}</h2></div><button class="icon-btn" type="button" data-bd="close" aria-label="Close">${c.icon('x')}</button></header>
+      <header class="bd-head"><div><p class="bd-eyebrow">${esc(t.name)}</p><h2 id="bd-h">${mode === 'none' ? 'Set the plan' : 'Change plan or services'}</h2></div><button class="icon-btn" type="button" data-bd="close" aria-label="Close">${c.icon('x')}</button></header>
       <div class="bd-body">
         <p class="bd-lede">The console is the source of truth. The client's dashboard updates after you save, and the client is emailed only if you tick it.</p>
         ${r.now ? `<section class="bd-now" aria-label="Right now"><p class="bd-now-h"><strong>Right now</strong> <span>${nowBits}</span></p><p class="meta">${r.notStarted ? 'The first bill' : 'The next bill'} is ${esc(dayLong(r.bill))}${r.billIn !== null ? `, in ${r.billIn} ${r.billIn === 1 ? 'day' : 'days'}` : ''}.</p>
           ${usage.length ? `<details class="reveal bd-limits"${fromLimits ? ' open' : ''}><summary>This month's limits and use (${usage.length})</summary><div class="bd-usage">${usage.map((/** @type {any} */ l) => drawerBar(t.id, l)).join('')}</div></details>` : ''}</section>` : ''}
         <fieldset class="bd-sec"><legend>Plan</legend><div id="bd-plans"></div></fieldset>
-        <fieldset class="bd-sec"><legend>Picks for the cycle starting <span id="bd-start">${esc(dayLong(target.start))}</span></legend><div id="bd-picks"></div><p class="bd-change" id="bd-change" aria-live="polite"></p></fieldset>
+        <fieldset class="bd-sec"><legend>Services for the cycle starting <span id="bd-start">${esc(dayLong(target.start))}</span></legend><div id="bd-picks"></div><p class="bd-change" id="bd-change" aria-live="polite"></p></fieldset>
         ${mode === 'running' ? `<fieldset class="bd-sec bd-applies"><legend>Applies</legend>
           <label class="bd-opt"><input type="radio" name="applies" value="next" checked><span class="bd-opt-t">Next cycle</span><span class="bd-opt-d">From ${esc(dayLong(targets.next.start))}. This is the usual way.</span></label>
           <label class="bd-opt"><input type="radio" name="applies" value="now"><span class="bd-opt-t">This cycle</span><span class="bd-opt-d">${r.notStarted ? `Changes the first month, which starts ${esc(dayShort(r.now.period_start))}.` : `Changes the month that is running now, since ${esc(dayShort(r.now.period_start))}.`} You will be asked to confirm.</span></label>
           ${confirmedNote ? `<p class="bd-info" id="bd-confirmed">${confirmedNote}</p>` : ''}</fieldset>`
           : mode === 'future' ? `<p class="bd-info">This client's first cycle starts ${esc(dayLong(r.next.period_start))}. The change applies from then.</p>`
-          : `<div class="field bd-sec"><label for="bd-first">First cycle starts</label><input id="bd-first" name="first" type="date" value="${esc(today)}"><p class="hint">The plan and picks count from this day. The next bill is a month later.</p></div>`}
+          : `<div class="field bd-sec"><label for="bd-first">First cycle starts</label><input id="bd-first" name="first" type="date" value="${esc(today)}"><p class="hint">The plan and services count from this day. The next bill is a month later.</p></div>`}
         <div class="field bd-reason"><label for="bd-reason">Reason (required, kept in the history)</label><textarea id="bd-reason" name="reason" rows="3" maxlength="500" placeholder="For example: Owner asked by phone to swap Social for Email from next month."></textarea><p class="hint"><span id="bd-count">0</span> of 500 characters</p></div>
-        <label class="bd-switch"><input type="checkbox" name="email" role="switch"><span class="bd-sw" aria-hidden="true"></span><span class="bd-sw-t">Email the client a copy of their picks</span></label>
+        <label class="bd-switch"><input type="checkbox" name="email" role="switch"><span class="bd-sw" aria-hidden="true"></span><span class="bd-sw-t">Email the client a copy of their services</span></label>
         <p class="field-error" id="bd-err" role="alert" hidden></p>
         <section class="bd-sec bd-hist" aria-labelledby="bd-hist-h"><h3 id="bd-hist-h">History</h3><div id="bd-hist" aria-busy="true"><p class="meta">Reading the history.</p></div></section>
       </div>

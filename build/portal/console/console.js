@@ -122,7 +122,7 @@
     throw Object.assign(new Error(DEMO_NOTE), { code: 'demo-readonly' });
   }
   /** The buttons that would change something, by their words (the demo switches them off). */
-  const DEMO_WRITE_WORDS = /^(Save|Approve|Decline|Reject|Send|Respond|Remove|Hide|Show again|Show it and approve|Show to client|Mark|Publish|Unlink|Link|Lock|Unlock|Give them a login|Add this login|Add the|Add to|Create in Stripe|Count it|Void|Move to Done|Post the update|Record the check|Put (it|them) back|Use this text|Use the time now|Edit, then approve|With my edits|Ask for an|Ask client to approve|Upload logo|Replace logo|Keep the card|Keep it|Keep hidden|Keep client value|Use console value|Confirm|Count as|Fix email|Move to|Verify and publish|Suggest|Use the automatic tag|Start fresh|Decide|Set address|Undo$)|\((ours|Multica's)\)$/;
+  const DEMO_WRITE_WORDS = /^(Save|Approve|Decline|Reject|Send|Respond|Remove|Hide|Show again|Show it and approve|Show to client|Mark|Publish|Unlink|Link|Lock|Unlock|Close the|Reopen the|Give them a login|Add this login|Add the|Add to|Create in Stripe|Count it|Void|Move to Done|Post the update|Record the check|Put (it|them) back|Use this text|Use the time now|Edit, then approve|With my edits|Ask for an|Ask client to approve|Upload logo|Replace logo|Keep the card|Keep it|Keep hidden|Keep client value|Keep what the client sees|Use console value|Confirm|Count as|Fix email|Move to|Verify and publish|Suggest|Use the automatic tag|Start fresh|Decide|Show or hide|Set address|Undo$|Keep ours \(|Use Multica's \()|\((ours|Multica's)\)$/;
   /**
    * The demo console shows its write controls switched off (2026-10-14): the reply boxes and every button that would save, send or
    * approve, each with the demo note as its tooltip. The refusal in watchWrites stays the real guard; this is so nobody is invited to try.
@@ -733,7 +733,8 @@
     const st = o.status || 'ok';
     const chip = { ok: 'Up to date', checking: 'Being checked', delayed: 'Source delayed', kept: 'Showing the last checked data' }[st];
     const at = o.updatedAt ? clockTime(o.updatedAt) : '';
-    return `<div class="page-fresh is-${st}">${at ? `<span class="pf-part"><strong>Last updated</strong> ${esc(at)}</span>` : ''}<span class="pf-part"><strong>Source:</strong> ${esc(o.source)}</span><span class="pf-chip is-${st}"><span class="pf-dot" aria-hidden="true"></span>${esc(o.label || chip)}</span>${o.note ? `<p class="pf-note">${esc(o.note)}</p>` : ''}</div>`;
+    // C11.4: short on screen ("Updated <time> · Up to date"); where the numbers come from is in the strip's title
+    return `<div class="page-fresh is-${st}" title="${esc(`Source: ${o.source}`)}">${at ? `<span class="pf-part"><strong>Updated</strong> ${esc(at)}</span>` : ''}<span class="pf-chip is-${st}"><span class="pf-dot" aria-hidden="true"></span>${esc(o.label || chip)}</span>${o.note ? `<p class="pf-note">${esc(o.note)}</p>` : ''}</div>`;
   }
   /** Where each page's numbers come from, for the freshness line a page does not draw itself. */
   const FRESH_SOURCE = { queue: 'Console and the database', messages: 'Messages from the portal', clients: 'Console and the database', board: 'Console and Multica', billing: 'Stripe and console', revenue: 'The revenue ledger in the console', settings: 'Console', new: 'Console', bot: 'Bot chat drafts in the console', client: 'Console and the database' };
@@ -1713,6 +1714,7 @@
       const el = /** @type {HTMLElement} */ (e.target);
       const chip = el.closest('[data-filter]');
       if (chip) { setFilter(chip.getAttribute('data-filter') || 'all'); return; }
+      if (el.closest('[data-cl-clear]')) { listState.q = ''; const q = /** @type {HTMLInputElement|null} */ ($('#list-q')); if (q) q.value = ''; setFilter('all'); if (q) q.focus(); return; }
       const go = el.closest('[data-cl-go]');
       if (go) { setFilter(go.getAttribute('data-cl-go') || 'all'); return; }
       const th = el.closest('[data-sort]');
@@ -1925,13 +1927,13 @@
      only two on their dashboard, and the console must show the others as not provided). The client's services are
      doc.package.services; their dashboard already shows nothing of a service outside it (Work, updates, approvals,
      results). Taking one away deletes nothing: doc.services keeps its history, and adding it back brings it back.
-     Every change is noted in doc.package.changes (newest first, the last twenty). Since 2026-10-13 the services follow the picks of
+     Every change is noted in doc.package.changes (newest first, the last twenty). Since 2026-10-13 the services follow the services of
      the client's plan: Change services opens that client's plan drawer in Billing, and nothing here edits the services. ---- */
   /** @type {Record<string, string>} */
   const SVC_ICON = { website: 'globe', social: 'share', advertising: 'megaphone', local: 'pin' };
   /** A work status as the team reads it: "waiting" is "Waiting on client" here (the client sees "Waiting for you"). @param {string} k */
   const teamStatus = (k) => (k === 'waiting' ? 'Waiting on client' : (STATUS[k] || STATUS.planned).label);
-  const CHANGE_SVC_HINT = 'A client\'s services are the picks of their plan. Change them in Billing.';
+  const CHANGE_SVC_HINT = 'A client\'s services are the services of their plan. Change them in Billing.';
   /** @param {string[]} list */
   const andList = (list) => list.length < 2 ? list.join('') : list.some((/** @type {string} */ x) => / and /.test(x)) ? list.join(', ') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
 
@@ -2425,7 +2427,7 @@
    * @param {any[]} cards @param {(t: any) => string} draw @param {{doneLabel?: string, blocked?: boolean, noDelete?: boolean, binOnly?: boolean}} [opts]
    */
   function boardColumns(cards, draw, opts) {
-    const bin = `<section class="col col-delete" data-col="__delete" aria-label="Remove: drop a card here to remove it"><h2 class="col-h">${icon('trash')}Remove</h2><p class="del-zone">Drop a card here to remove it. We ask why and keep its history.</p></section>`;
+    const bin = `<section class="col col-delete" data-col="__delete" aria-label="Remove: drop a card here to remove it"><h2 class="col-h">${icon('trash')}Drop here to remove</h2><p class="del-zone">Drop a card here to remove it. We ask why and keep its history.</p></section>`;
     if (opts && opts.binOnly) return bin;
     return COLUMNS.map(([k, l]) => {
       const items = cards.filter((t) => t.status === k || (k === 'done' && t.status === 'cancelled'));
@@ -4155,7 +4157,7 @@
     const ours = esc(TASK_STATUS_LABEL[v.local] || v.local);
     const theirs = esc(TASK_STATUS_LABEL[v.remote] || v.remote);
     const buttons = conflict
-      ? `<button class="btn btn-sm" type="button" data-dm="keep-ours" title="Keeps ours and copies it to Multica">${ours} (ours)</button><button class="btn btn-quiet btn-sm" type="button" data-dm="take-theirs" title="Moves the card here to match Multica">${theirs} (Multica's)</button>`
+      ? `<button class="btn btn-sm" type="button" data-dm="keep-ours" title="Keeps ours and copies it to Multica">Keep ours (${ours})</button><button class="btn btn-quiet btn-sm" type="button" data-dm="take-theirs" title="Moves the card here to match Multica">Use Multica's (${theirs})</button>`
       : '<button class="btn btn-quiet btn-sm" type="button" data-dm="resolve">Mark as fixed</button>';
     const task = conflict && all ? (all.tasks || []).find((/** @type {any} */ k) => k.id === v.taskId) : null;
     const text = conflict
@@ -4191,8 +4193,13 @@
     const lede = `Things our system made for client dashboards (work, updates, results and invoices), and problems it found. ${gate} If it replaces something they see now, they keep the old version until then.`;
     const loadErr = all && all.reviews && all.reviews.error;
     const notice = loadErr ? `<p class="notice bad" role="alert">Could not load the approvals queue (${esc(loadErr)}). Reload. Do not assume nothing is waiting.</p>` : '';
+    // C1.6: a board conflict is a different kind of item, so it gets its own sub-heading above the approvals
+    const hx = tenantId ? 'h3' : 'h4';
+    const conflicts = r.exceptions.filter((x) => x.reason_code === 'multica_conflict');
+    const rest = `${r.exceptions.filter((x) => x.reason_code !== 'multica_conflict').map((x) => dmExceptionCard(x, showClient)).join('')}${r.items.map((x) => dmItemCard(x, showClient)).join('')}${r.invoices.map((x) => dmInvoiceCard(x, showClient)).join('')}`;
     const body = count
-      ? `<ul class="q dm-list">${r.exceptions.map((x) => dmExceptionCard(x, showClient)).join('')}${r.items.map((x) => dmItemCard(x, showClient)).join('')}${r.invoices.map((x) => dmInvoiceCard(x, showClient)).join('')}</ul>`
+      ? (conflicts.length ? `<${hx} class="panel-sub">Board and Multica disagree</${hx}><ul class="q dm-list">${conflicts.map((x) => dmExceptionCard(x, showClient)).join('')}</ul>${rest ? `<${hx} class="panel-sub">Approvals</${hx}>` : ''}` : '')
+        + (rest ? `<ul class="q dm-list">${rest}</ul>` : '')
       : `<p class="meta">Nothing to check.</p>`;
     if (tenantId) return `<section class="panel" aria-labelledby="g-dm"><div class="panel-head"><h2 id="g-dm">Check before it goes live <span class="meta">${count}</span></h2><p title="${esc(lede)}">${autoOn ? 'Some items may go live by themselves. Hover for details.' : 'Clients see nothing new until you approve it.'}</p></div>${notice}${dmSyncLine(tenantId)}${body}</section>`;
     // On Needs you it sits pinned at the top of Do now.
@@ -4367,8 +4374,8 @@
     // Folded shut by default; a redraw keeps it open if it was.
     const wasOpen = !!$('details.fold-panel[open]', box);
     // The first line says what is true now: the switches are per client, so it reads them once they have loaded.
-    let state = 'Off for now. It turns on only after 4 safety checks pass, an owner switches it on, and the client\'s own switch is on.';
-    const head = () => `<summary class="fold-sum"><h2 id="s-gates">Automatic publishing (owner only)</h2><span class="meta">${state} Invoices always wait for you.</span></summary>
+    let state = 'Off. Needs 4 checks, then an owner switch, then the client\'s switch.';
+    const head = () => `<summary class="fold-sum"><h2 id="s-gates">Auto-publish (owner only)</h2><span class="meta">${state} Invoices always wait for you.</span></summary>
       <p class="hint">The owner's switch is AUTO_PUBLISH_ENABLED on the server. Until all three are on, everything waits in Check before it goes live.</p>`;
     const wrap = (/** @type {string} */ inner) => `<details class="fold-panel"${wasOpen ? ' open' : ''}>${head()}${inner}</details>`;
     box.innerHTML = wrap(skeleton(1));
@@ -4383,7 +4390,7 @@
     box.innerHTML = wrap(`
       <h3 class="panel-sub">The 4 safety checks</h3>
       <dl class="facts">${GATES.map(([k, l, tech]) => `<dt>${esc(l)}<span class="gate-tech">${esc(tech)}</span></dt><dd>${passed[k] ? `<span class="chip good">Passed</span> <span class="meta">${esc(ago(passed[k].passed_at))}: ${esc(passed[k].evidence_ref)}</span>` : '<span class="chip warn">Not yet</span>'}</dd>`).join('')}</dl>
-      <form id="gate-form" novalidate><h3 class="panel-sub">Record a safety check <span class="meta">Add a link to the evidence: the CI run, test report or sign-off.</span></h3>
+      <form id="gate-form" novalidate><h3 class="panel-sub">Record a safety check <span class="meta">Add a link to the proof, such as a test report or a written OK.</span></h3>
         <div class="grid-3"><div class="field"><label for="g-gate">Safety check</label><select id="g-gate" name="gate">${GATES.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</select></div>
           <div class="field"><label for="g-ev">Evidence</label><input id="g-ev" name="evidence" type="url" pattern="https://.+" placeholder="https://" maxlength="1000" required></div></div>
         <div class="actions"><button class="btn" type="submit">Record the check</button></div></form>

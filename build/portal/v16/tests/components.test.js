@@ -70,10 +70,10 @@ test('a result card: value, its own period, the source and when it was read, and
   const tile = { id: 'calls', label: 'Calls from Google', value: 64, unit: 'calls', state: 'ok', periodStart: '2026-09-01', periodEnd: '2026-09-30', source: 'Google Business Profile', readAt: '2026-10-01', badge: 'verified', newer: false };
   const h = text(ui.ResultTile(tile, now));
   assert.match(h, /Calls from Google/);
-  assert.match(h, /Verified/);
+  assert.doesNotMatch(h, /Verified/, 'a checked number carries no badge (D2.2)');
   assert.match(h, /64/);
   assert.match(h, /1 Sep to 30 Sep 2026/);
-  assert.match(h, /Source: Google Business Profile read Thu 1 Oct/);
+  assert.doesNotMatch(h, /Source:/, 'the source is in the one table, not on every card (D2.2)');
   const checking = ui.ResultTile({ ...tile, badge: 'checking', newer: true, periodStart: '2026-08-01', periodEnd: '2026-08-31' }, now);
   assert.match(text(checking), /Being checked/);
   assert.match(text(checking), /We are checking a newer number before we show it/);
@@ -246,7 +246,7 @@ test('Billing: what comes with each plan, and ad spend is said to be separate fr
 test('Help: the questions are about plans, picks and limits, and "message us to change your plan" is gone', () => {
   const src = fs.readFileSync(path.join(SRC, 'ui', 'pages.js'), 'utf8');
   const faq = src.slice(src.indexOf('const FAQ = ['), src.indexOf('const help = {'));
-  for (const q of ['What does my plan include?', 'How do I change my plan or my services?', 'When can I change my picks?', 'What happens to a service I stop?', 'What if I need more posts or changes this month?', 'Do urgent fixes count?', 'Where do the numbers come from?']) assert.ok(faq.includes(q), q);
+  for (const q of ['What does my plan include?', 'How do I change my plan or my services?', 'When can I change my services?', 'What happens to a service I stop?', 'What if I need more posts or changes this month?', 'Do urgent fixes count?', 'Where do the numbers come from?']) assert.ok(faq.includes(q), q);
   assert.ok(faq.includes('Every plan includes Ads. Starter adds one service you choose, Growth adds two, and Domin8te adds three.'), 'the plan rule is said in plain words');
   assert.ok(faq.includes('We email you 7 days and 3 days before'), 'the reminders are named');
   assert.ok(faq.includes('Karan replies with options first. Nothing extra is charged without your OK.'), 'over the limit: Karan replies first, no charge without an OK');

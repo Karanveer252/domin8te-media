@@ -40,12 +40,12 @@ test('an approval on Home answers on the card: Approve, Ask for changes with the
   assert.match(html, /data-action="quick-approve" data-id="apv_posts"/);
   assert.match(html, />\s*.*Approve<span class="sr-only">/s);
   assert.match(html, /data-action="approve" data-note="1" data-id="apv_posts"[^>]*>Ask for changes/);
-  assert.match(html, /data-action="approve" data-id="apv_posts"[^>]*>See it first/);
+  assert.match(html, /data-action="approve" data-id="apv_posts"[^>]*>See the posts and details/);
   assert.match(html, /data-approval="apv_posts"/);
   const hours = ui.ActionNeededItem({ id: 'a2', kind: 'approval', severity: 'scheduled', title: 'Autumn hours', detail: 'x', approvalId: 'apv_hours', primary: { label: 'Confirm hours', does: 'approval' } }, new Date('2026-09-24T10:00'));
   assert.match(hours, /Confirm hours<span class="sr-only">/, 'a confirm keeps its own word');
   const pay = ui.ActionNeededItem({ id: 'a3', kind: 'billing', severity: 'critical', title: 'Payment', detail: 'x', primary: { label: 'Update payment method', does: 'billing-portal' } }, new Date('2026-09-24T10:00'));
-  assert.doesNotMatch(pay, /quick-approve|See it first/, 'anything else keeps its one button');
+  assert.doesNotMatch(pay, /quick-approve|See the posts and details/, 'anything else keeps its one button');
 });
 
 test('Just done: an approval the client said yes to shows what happens next, then the done line from the team; never before a yes', async () => {

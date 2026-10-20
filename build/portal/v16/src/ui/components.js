@@ -183,6 +183,9 @@
       kept: ['is-checking', o.label || 'Showing the last checked update']
     }[st];
     const when = o.updatedAt ? (String(o.updatedAt).length > 10 ? `${F.dateTime12(o.updatedAt)}${o.zone ? ' ' + o.zone : ''}` : F.date(o.updatedAt)) : '';
+    // D9.3: on a phone, a strip with nothing wrong is one short line ("Updated Thu 24 Sep"); a delayed or kept one shows in full
+    const phone = typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
+    if (phone && st === 'ok' && !o.note && !o.extra) return o.updatedAt ? `<div class="page-fresh is-ok"><span class="pf-part"><strong>Updated</strong> ${esc(F.date(o.updatedAt))}</span></div>` : '';
     return `<div class="page-fresh is-${st}">
       ${when ? `<span class="pf-part"><strong>Last updated</strong> ${esc(when)}</span>` : ''}
       <span class="pf-part"><strong>Source:</strong> ${esc(o.source)}</span>
@@ -234,17 +237,15 @@
     if (t.state === 'error') return `<article class="card rtile is-error"><header class="rt-head"><p class="rt-label">${esc(label)}</p></header><p class="rt-empty">${icon('alert')}Couldn't load just now</p><p class="rt-note">${esc(t.text)} The other numbers are fine.</p><button class="btn-text" type="button" data-action="retry" data-section="${o.compact ? 'strip' : 'results'}">${icon('refresh')}Try again</button></article>`;
     const m = t.metric;
     const period = t.periodStart && t.periodEnd ? periodText(t.periodStart, t.periodEnd) : '';
-    const read = t.readAt ? `read ${F.date(t.readAt)}` : '';
     const value = t.value === null || t.value === undefined || Number.isNaN(Number(t.value)) ? 'None' : F.num(t.value);
     const delta = o.delta && m ? Delta(m, o.days || 30) + NewBadge(m, o.days || 30) : '';
     const note = o.delta && m ? ComparisonNote(m, o.days || 30) : '';
     const more = `${t.newer ? `<p class="rt-check">${icon('clock')}<span>We are checking a newer number before we show it. This is the last number we checked.</span></p>` : ''}${note ? `<p class="rt-note">${note}</p>` : ''}`;
     return `<article class="card rtile${o.compact ? ' is-compact is-link' : ''}${t.badge ? ' is-' + t.badge : ''}">
-      <header class="rt-head"><p class="rt-label">${esc(label)}</p>${VerifyBadge(t.badge)}</header>
+      <header class="rt-head"><p class="rt-label">${esc(label)}</p>${t.badge && t.badge !== 'verified' ? VerifyBadge(t.badge) : ''}</header>
       <p class="rt-value"><span class="fig">${esc(value)}</span>${t.unit && !o.compact ? `<span class="rt-unit">${esc(t.unit)}</span>` : ''}${delta}</p>
       ${period ? `<p class="rt-period">${esc(period)}</p>` : ''}
       ${more ? `<div class="rt-more">${more}</div>` : ''}
-      ${t.source ? `<p class="rt-source"><strong>Source:</strong> ${esc(t.source)}${read ? ` <span class="rt-read">${esc(read)}</span>` : ''}</p>` : ''}
       ${o.compact ? `<a class="card-link" href="#/results"><span class="sr-only">${esc(label)}: see it in Results</span></a>` : ''}
     </article>`;
   }
@@ -353,7 +354,7 @@
   }
   /** "See it first": the full item (the posts, the hours) in the review window. */
   const seeFirst = (a) => (a.primary.does === 'approval'
-    ? `<button class="link-btn act-see" type="button" data-action="approve" data-id="${esc(a.approvalId)}">See it first<span class="sr-only">: ${esc(a.title)}</span></button>`
+    ? `<button class="link-btn act-see" type="button" data-action="approve" data-id="${esc(a.approvalId)}">See the posts and details<span class="sr-only">: ${esc(a.title)}</span></button>`
     : '');
 
   /**
@@ -376,7 +377,7 @@
     const more = (a.more && a.more.length) || (a.link && /^(#\/|https:\/\/)/.test(String(a.link.href || '')))
       ? `<div class="act-more" id="${moreId}" hidden>${(a.more || []).map((p) => `<p>${esc(p)}</p>`).join('')}${a.link && /^(#\/|https:\/\/)/.test(String(a.link.href || '')) ? `<a class="link link-more" href="${esc(a.link.href)}">${esc(a.link.label)}${icon('arrow-right')}</a>` : ''}</div>`
       : '';
-    const toggle = more ? `<button class="link-btn act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span></button>` : '';
+    const toggle = more && a.primary.does !== 'approval' ? `<button class="link-btn act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span></button>` : '';
     // No severity chip (2026-10-09): the order (red first), the red tint and the icon carry it.
     return `<li class="act-card sev-${esc(a.severity)}" data-row="${esc(a.id)}"${a.approvalId ? ` data-approval="${esc(a.approvalId)}"` : ''}>
       <span class="act-icon">${icon(kindIcon)}</span>
@@ -461,7 +462,7 @@
       <header class="work-head"><h3 id="wc-${esc(s.id)}">${icon(svc.icon)}${esc(svc.label)}</h3>${StatusBadge(s.status)}</header>
       <dl class="facts work-facts">
         <div><dt>Right now</dt><dd>${esc(s.now || 'Getting started')}</dd></div>
-        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${s.next.who === 'client' && act ? 'Waiting for you' : nextStep(s.next, act)}</dd></div>` : ''}
+        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${s.next.who === 'client' && act ? `<a class="link" href="#/home">Waiting for you${act.deadline && act.deadline.kind === 'due' ? `, by ${esc(day(act.deadline.date))}` : ''}: go to Home →</a>` : nextStep(s.next, act)}</dd></div>` : ''}
         ${s.expected && s.expected.date ? `<div><dt>Coming</dt><dd>${comingLine(s)}</dd></div>` : ''}
         ${s.proof && s.proof.text ? `<div><dt>Last done</dt><dd>${esc(s.proof.text)}, ${esc(day(s.proof.date))}</dd></div>` : ''}
       </dl>

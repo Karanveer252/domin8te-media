@@ -205,7 +205,10 @@
   /** A service's usage on the Work page: a bar for each limit and when it resets. @param {any} s a service with usage @param {any} m */
   function workUsage(s, m) {
     if (!s.usage || !s.usage.length) return '';
-    return `<div class="work-usage"><h3 class="sr-only">Used this month</h3>${s.usage.map((/** @type {any} */ l) => UI.UsageBar(l, { chip: sample(), plain: true })).join('')}<p class="usage-reset">Resets ${esc(day(m.bill))}</p></div>`;
+    // D4.2: a bar only for a limit at 80 percent or more; otherwise one line
+    const near = s.usage.filter((/** @type {any} */ l) => l.pct >= 80 || l.used > l.cap);
+    const bars = near.length ? near.map((/** @type {any} */ l) => UI.UsageBar(l, { chip: sample(), plain: true })).join('') : '<p class="usage-ok">Plenty left this month.</p>';
+    return `<div class="work-usage"><h3 class="sr-only">Used this month</h3>${bars}<p class="usage-reset">Resets ${esc(day(m.bill))}</p></div>`;
   }
   /**
    * A service that is not in this month's plan: one quiet card (its icon tile, its name, the word that says so, and the

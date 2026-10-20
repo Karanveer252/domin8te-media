@@ -25,7 +25,7 @@
 
   /** The dashboard pages a decision is made for, with why each one is on or off to start with. */
   const PAGES = [
-    ['home', 'Home', true, 'Their plan, their picks and the next billing date.'],
+    ['home', 'Home', true, 'Their plan, their services and the next billing date.'],
     ['work', 'Work', true, 'The cards for the services they picked, and what is used of each limit.'],
     ['results', 'Results', false, 'No verified results yet. Turn it on after the first verified report.'],
     ['updates', 'Updates', true, 'The updates you write for them.'],
@@ -107,7 +107,7 @@
 
         <div class="nc-two">
           <section class="panel nc-step" id="nc-s3" aria-labelledby="nc-h3"><h2 id="nc-h3"><span class="nc-num" aria-hidden="true">3</span>Starting services</h2>
-            <p class="nc-sub">Same rules as Billing: picks lock for the billing month, and changes apply from the next bill.</p>
+            <p class="nc-sub">Same rules as Billing: services lock for the billing month, and changes apply from the next bill.</p>
             <div id="nc-picks"></div>
           </section>
           <section class="panel nc-step" id="nc-s4" aria-labelledby="nc-h4"><h2 id="nc-h4"><span class="nc-num" aria-hidden="true">4</span>Billing</h2>
@@ -135,7 +135,7 @@
 
         <p class="field-error" id="n-err" role="alert" hidden></p>
         <div class="nc-actions">
-          <button class="btn" type="submit" id="nc-submit" disabled>Add the client</button>
+          <button class="btn" type="submit" id="nc-submit" disabled aria-describedby="nc-status">Add the client</button>
           <button class="btn btn-quiet" type="button" data-nc="draft">Save as draft</button>
           <span class="meta nc-status" id="nc-status" aria-live="polite"></span>
         </div>
@@ -173,7 +173,7 @@
       if (S.email && !EMAIL.test(S.email)) m.push('a valid contact email');
       const chk = pp.check();
       if (!pp.state.planId) m.push('a plan');
-      else if (!chk.ok) m.push(chk.code === 'plan-full' || chk.code === 'plan-locked' ? 'a plan that is open' : 'the picks');
+      else if (!chk.ok) m.push(chk.code === 'plan-full' || chk.code === 'plan-locked' ? 'a plan that is open' : 'the services');
       if (!dateOk(S.date)) m.push('a first billing date');
       return m;
     }
@@ -187,8 +187,10 @@
       const r7 = T().isoDay(T().dayNum(S.date) - 7), r3 = T().isoDay(T().dayNum(S.date) - 3);
       const last = T().isoDay(T().dayNum(endOf(S.date)) - 1);
       const when = (/** @type {string} */ iso) => (iso < today ? `${esc(short(iso))}<small class="nc-past">Already past, so it will not be sent</small>` : esc(short(iso)));
-      box.innerHTML = `<div><dt>7 day reminder</dt><dd>${when(r7)}</dd></div><div><dt>3 day reminder</dt><dd>${when(r3)}</dd></div><div><dt>First pick lock</dt><dd>${esc(short(S.date))} to ${esc(short(last))}</dd></div>`;
+      box.innerHTML = `<div><dt>7 day reminder</dt><dd>${when(r7)}</dd></div><div><dt>3 day reminder</dt><dd>${when(r3)}</dd></div><div><dt>First service lock</dt><dd>${esc(short(S.date))} to ${esc(short(last))}</dd></div>`;
     }
+    // C7.1: steps 4 to 6 (Billing, What they see, Stripe) start with defaults, so they show their number until you have been there.
+    /** @type {Set<string>} */ const visited = new Set(['nc-s1', 'nc-s2', 'nc-s3']);
     function paintSteps() {
       const ok = [
         !!S.name.trim() && (!S.email || EMAIL.test(S.email)),
@@ -196,7 +198,8 @@
         pp.check().ok,
         dateOk(S.date), true, true
       ];
-      ok.forEach((good, i) => {
+      ok.forEach((done, i) => {
+        const good = done && visited.has(`nc-s${i + 1}`);
         const pill = $(`#nc-pill-${i + 1}`);
         pill.classList.toggle('is-done', good);
         pill.querySelector('.nc-pill-n').innerHTML = good ? c.icon('check') : String(i + 1);
@@ -238,6 +241,7 @@
       for (const p of Array.from(form.querySelectorAll('.nc-pill'))) {
         if (p.getAttribute('data-nc-go') === id) p.setAttribute('aria-current', 'step'); else p.removeAttribute('aria-current');
       }
+      if (!visited.has(id)) { visited.add(id); paintSteps(); }
     }
     markStep('nc-s1');
     form.addEventListener('focusin', (e) => { const st = /** @type {HTMLElement} */ (e.target).closest('.nc-step'); if (st && st.id) markStep(st.id); });

@@ -7820,6 +7820,9 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       kept: ['is-checking', o.label || 'Showing the last checked update']
     }[st];
     const when = o.updatedAt ? (String(o.updatedAt).length > 10 ? `${F.dateTime12(o.updatedAt)}${o.zone ? ' ' + o.zone : ''}` : F.date(o.updatedAt)) : '';
+    // D9.3: on a phone, a strip with nothing wrong is one short line ("Updated Thu 24 Sep"); a delayed or kept one shows in full
+    const phone = typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
+    if (phone && st === 'ok' && !o.note && !o.extra) return o.updatedAt ? `<div class="page-fresh is-ok"><span class="pf-part"><strong>Updated</strong> ${esc(F.date(o.updatedAt))}</span></div>` : '';
     return `<div class="page-fresh is-${st}">
       ${when ? `<span class="pf-part"><strong>Last updated</strong> ${esc(when)}</span>` : ''}
       <span class="pf-part"><strong>Source:</strong> ${esc(o.source)}</span>
@@ -7871,17 +7874,15 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     if (t.state === 'error') return `<article class="card rtile is-error"><header class="rt-head"><p class="rt-label">${esc(label)}</p></header><p class="rt-empty">${icon('alert')}Couldn't load just now</p><p class="rt-note">${esc(t.text)} The other numbers are fine.</p><button class="btn-text" type="button" data-action="retry" data-section="${o.compact ? 'strip' : 'results'}">${icon('refresh')}Try again</button></article>`;
     const m = t.metric;
     const period = t.periodStart && t.periodEnd ? periodText(t.periodStart, t.periodEnd) : '';
-    const read = t.readAt ? `read ${F.date(t.readAt)}` : '';
     const value = t.value === null || t.value === undefined || Number.isNaN(Number(t.value)) ? 'None' : F.num(t.value);
     const delta = o.delta && m ? Delta(m, o.days || 30) + NewBadge(m, o.days || 30) : '';
     const note = o.delta && m ? ComparisonNote(m, o.days || 30) : '';
     const more = `${t.newer ? `<p class="rt-check">${icon('clock')}<span>We are checking a newer number before we show it. This is the last number we checked.</span></p>` : ''}${note ? `<p class="rt-note">${note}</p>` : ''}`;
     return `<article class="card rtile${o.compact ? ' is-compact is-link' : ''}${t.badge ? ' is-' + t.badge : ''}">
-      <header class="rt-head"><p class="rt-label">${esc(label)}</p>${VerifyBadge(t.badge)}</header>
+      <header class="rt-head"><p class="rt-label">${esc(label)}</p>${t.badge && t.badge !== 'verified' ? VerifyBadge(t.badge) : ''}</header>
       <p class="rt-value"><span class="fig">${esc(value)}</span>${t.unit && !o.compact ? `<span class="rt-unit">${esc(t.unit)}</span>` : ''}${delta}</p>
       ${period ? `<p class="rt-period">${esc(period)}</p>` : ''}
       ${more ? `<div class="rt-more">${more}</div>` : ''}
-      ${t.source ? `<p class="rt-source"><strong>Source:</strong> ${esc(t.source)}${read ? ` <span class="rt-read">${esc(read)}</span>` : ''}</p>` : ''}
       ${o.compact ? `<a class="card-link" href="#/results"><span class="sr-only">${esc(label)}: see it in Results</span></a>` : ''}
     </article>`;
   }
@@ -7990,7 +7991,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   }
   /** "See it first": the full item (the posts, the hours) in the review window. */
   const seeFirst = (a) => (a.primary.does === 'approval'
-    ? `<button class="link-btn act-see" type="button" data-action="approve" data-id="${esc(a.approvalId)}">See it first<span class="sr-only">: ${esc(a.title)}</span></button>`
+    ? `<button class="link-btn act-see" type="button" data-action="approve" data-id="${esc(a.approvalId)}">See the posts and details<span class="sr-only">: ${esc(a.title)}</span></button>`
     : '');
 
   /**
@@ -8013,7 +8014,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     const more = (a.more && a.more.length) || (a.link && /^(#\/|https:\/\/)/.test(String(a.link.href || '')))
       ? `<div class="act-more" id="${moreId}" hidden>${(a.more || []).map((p) => `<p>${esc(p)}</p>`).join('')}${a.link && /^(#\/|https:\/\/)/.test(String(a.link.href || '')) ? `<a class="link link-more" href="${esc(a.link.href)}">${esc(a.link.label)}${icon('arrow-right')}</a>` : ''}</div>`
       : '';
-    const toggle = more ? `<button class="link-btn act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span></button>` : '';
+    const toggle = more && a.primary.does !== 'approval' ? `<button class="link-btn act-toggle" type="button" data-action="toggle-more" aria-expanded="false" aria-controls="${moreId}">See details<span class="sr-only">: ${esc(a.title)}</span></button>` : '';
     // No severity chip (2026-10-09): the order (red first), the red tint and the icon carry it.
     return `<li class="act-card sev-${esc(a.severity)}" data-row="${esc(a.id)}"${a.approvalId ? ` data-approval="${esc(a.approvalId)}"` : ''}>
       <span class="act-icon">${icon(kindIcon)}</span>
@@ -8098,7 +8099,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       <header class="work-head"><h3 id="wc-${esc(s.id)}">${icon(svc.icon)}${esc(svc.label)}</h3>${StatusBadge(s.status)}</header>
       <dl class="facts work-facts">
         <div><dt>Right now</dt><dd>${esc(s.now || 'Getting started')}</dd></div>
-        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${s.next.who === 'client' && act ? 'Waiting for you' : nextStep(s.next, act)}</dd></div>` : ''}
+        ${s.next && s.next.text ? `<div><dt>Next</dt><dd>${s.next.who === 'client' && act ? `<a class="link" href="#/home">Waiting for you${act.deadline && act.deadline.kind === 'due' ? `, by ${esc(day(act.deadline.date))}` : ''}: go to Home →</a>` : nextStep(s.next, act)}</dd></div>` : ''}
         ${s.expected && s.expected.date ? `<div><dt>Coming</dt><dd>${comingLine(s)}</dd></div>` : ''}
         ${s.proof && s.proof.text ? `<div><dt>Last done</dt><dd>${esc(s.proof.text)}, ${esc(day(s.proof.date))}</dd></div>` : ''}
       </dl>
@@ -8434,7 +8435,10 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   /** A service's usage on the Work page: a bar for each limit and when it resets. @param {any} s a service with usage @param {any} m */
   function workUsage(s, m) {
     if (!s.usage || !s.usage.length) return '';
-    return `<div class="work-usage"><h3 class="sr-only">Used this month</h3>${s.usage.map((/** @type {any} */ l) => UI.UsageBar(l, { chip: sample(), plain: true })).join('')}<p class="usage-reset">Resets ${esc(day(m.bill))}</p></div>`;
+    // D4.2: a bar only for a limit at 80 percent or more; otherwise one line
+    const near = s.usage.filter((/** @type {any} */ l) => l.pct >= 80 || l.used > l.cap);
+    const bars = near.length ? near.map((/** @type {any} */ l) => UI.UsageBar(l, { chip: sample(), plain: true })).join('') : '<p class="usage-ok">Plenty left this month.</p>';
+    return `<div class="work-usage"><h3 class="sr-only">Used this month</h3>${bars}<p class="usage-reset">Resets ${esc(day(m.bill))}</p></div>`;
   }
   /**
    * A service that is not in this month's plan: one quiet card (its icon tile, its name, the word that says so, and the
@@ -8479,7 +8483,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
 
   /** The services of one month with what each allows. @param {any} c a month of the plan */
   function serviceList(c) {
-    return `<ul class="svc-list">${c.services.map((/** @type {any} */ s) => `<li>${ico(s.id)}<div><p class="sl-name">${esc(s.label)}</p><p class="sl-about">${esc(/** @type {any} */ (ABOUT)[s.id] || '')}</p>${s.lines.length ? `<ul class="sl-lines">${s.lines.map((/** @type {any} */ l) => `<li>${esc(l.capText)}${l.weeklyHint ? ` <span class="sl-hint">(${esc(l.weeklyHint)})</span>` : ''} ${sample()}</li>`).join('')}</ul>` : ''}${s.id === 'advertising' ? `<p class="sl-fine">${esc(AD_SPEND)}</p>` : ''}</div></li>`).join('')}</ul>`;
+    return `<ul class="svc-list">${c.services.map((/** @type {any} */ s) => `<li>${ico(s.id)}<div><p class="sl-name">${esc(s.label)}</p><p class="sl-about">${esc(/** @type {any} */ (ABOUT)[s.id] || '')}</p>${s.lines.length ? `<details class="chart-table sl-fold"><summary>What's included</summary><ul class="sl-lines">${s.lines.map((/** @type {any} */ l) => `<li>${esc(l.capText)}${l.weeklyHint ? ` <span class="sl-hint">(${esc(l.weeklyHint)})</span>` : ''} ${sample()}</li>`).join('')}</ul></details>` : ''}${s.id === 'advertising' ? `<p class="sl-fine">${esc(AD_SPEND)}</p>` : ''}</div></li>`).join('')}</ul>`;
   }
   /** What comes with the plan besides the services: a summary, a call. @param {any} c a month of the plan */
   function included(c) {
@@ -8491,16 +8495,16 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     const c = m.now;
     const p = price(m.next || c);
     return `<dl class="facts-lite">
-      <div><dt>This month</dt><dd>${esc(day(c.start))} to ${esc(day(m.lastDay))}</dd></div>
       <div><dt>Next bill</dt><dd>${p ? `${esc(p)} on ` : ''}${esc(day(m.bill))}</dd></div>
-      ${m.open ? `<div><dt>Change by</dt><dd>${esc(stamp(m.lastDay))} ${esc(m.zone)}</dd></div>` : ''}
+      ${m.open ? `<div><dt>Change services by</dt><dd>end of ${esc(day(m.lastDay))}</dd></div>` : ''}
+      <div><dt>This month</dt><dd>${esc(day(c.start))} to ${esc(day(m.lastDay))}</dd></div>
     </dl>`;
   }
   /** The days left to change, as a small figure. @param {any} m */
   function daysLeft(m) {
     if (!m.open) return '';
     const n = m.daysLeft;
-    return `<p class="days-left"><strong>${n === 0 ? 'Today' : n}</strong><span>${n === 0 ? 'is the last day' : F.plural(n, 'day left', 'days left')}</span></p>`;
+    return `<p class="days-left"><strong>${n === 0 ? 'Today' : n}</strong><span>${n === 0 ? 'is the last day to change next month' : `${F.plural(n, 'day left', 'days left')} to change next month`}</span></p>`;
   }
 
   /**
@@ -8523,14 +8527,14 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       return `<section class="card plan-overview is-compact" aria-labelledby="h-plan">${head}<div class="po-facts">${facts(m)}</div></section>`;
     }
     const note = m.open
-      ? `<p class="po-note">${icon('info')}<span>Do nothing and your plan stays the same next month. Want something different? Pick by ${esc(day(m.lastDay))}.</span></p>`
+      ? `<p class="po-note">${icon('info')}<span>Change your services by the end of ${esc(day(m.lastDay))}. Do nothing and your plan stays the same next month.</span></p>`
       : `<p class="po-note">${icon('info')}<span>Next month is set: the last day to change it has passed. Message us if something is wrong.</span></p>`;
     return `<section class="card plan-overview" aria-labelledby="h-plan">${head}
       <div class="rule-rainbow" aria-hidden="true"></div>
       <div class="po-grid">
         <div><h3 class="po-h">Your services each month</h3>${serviceList(c)}${included(c)}</div>
-        <div class="po-side"><h3 class="po-h">Billing</h3>${facts(m)}<div class="po-when">${daysLeft(m)}${note}</div>
-          <div class="po-actions">${m.open ? `<a class="btn btn-solid btn-block" href="#/billing/change">Change my services${icon('arrow-right')}</a>` : ''}<a class="link" href="#bills">Past bills ↓</a></div>
+        <div class="po-side"><h3 class="po-h">Billing</h3>${facts(m)}<div class="po-when">${note}${daysLeft(m)}</div>
+          <div class="po-actions">${m.open ? `<a class="btn ${pastDue ? 'btn-glass' : 'btn-solid'} btn-block" href="#/billing/change">Change my services${icon('arrow-right')}</a>` : ''}<a class="link" href="#bills">Past bills ↓</a></div>
         </div>
       </div>
     </section>`;
@@ -8571,7 +8575,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         <div><h3 class="po-h">What happens next</h3>${timeline(items)}</div>
       </div>
       ${m.open ? `<p class="pcf-warn">${icon('info')}<span><strong>Picked the wrong thing?</strong> Change it any time until ${esc(day(m.lastDay))}, or <a class="link" href="#/messages">message Karan</a>. No charge for changing your mind.</span></p>` : ''}
-      <div class="pcf-actions">${m.open ? `<a class="btn btn-solid" href="#/billing/change">Change my picks</a>` : ''}<a class="btn btn-glass" href="#/messages">${icon('message')}Message Karan</a><a class="link" href="#bills">Past bills ↓</a></div>
+      <div class="pcf-actions">${m.open ? `<a class="btn btn-solid" href="#/billing/change">Change my services</a>` : ''}<a class="btn btn-glass" href="#/messages">${icon('message')}Message Karan</a><a class="link" href="#bills">Past bills ↓</a></div>
     </section>`;
   }
 
@@ -8794,7 +8798,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           <fieldset class="plan-choices"><legend class="sr-only">Your plan for next month</legend>${planCards(m, st)}</fieldset></section>
         <section class="pk-step" aria-labelledby="step2"><div class="step-head"><h2 class="step-h" id="step2">${stepTitle(r)}</h2><span class="pick-count${have === total ? ' is-done' : ''}" id="pick-count" aria-live="polite">${icon('check')}${have} of ${total} picked</span></div>
           <fieldset class="svc-choices" id="svc-choices"><legend class="sr-only">Services for next month</legend>${serviceCards(m, st)}</fieldset>
-          <p class="pick-help">${icon('info')}<span>Not sure? <a class="link" href="#/messages">Message Karan</a> and we will help you choose. You can change your picks as many times as you like until ${esc(day(m.lastDay))}.</span></p></section>
+          <p class="pick-help">${icon('info')}<span>Not sure? <a class="link" href="#/messages">Message Karan</a> and we will help you choose. You can change your services as many times as you like until ${esc(day(m.lastDay))}.</span></p></section>
       </div>
       <aside class="card pk-panel" id="pk-panel" aria-labelledby="h-check">${panel(m, pv, st)}</aside>
       <div class="pk-bar" id="pk-bar"><div><p class="pk-bar-name" id="pk-bar-name"></p><p class="pk-bar-sub" id="pk-bar-sub"></p></div><a class="btn btn-primary" href="#pk-panel">Review</a></div>
@@ -10651,10 +10655,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     const fine = s.sources.filter((src) => !(src.pending || src.state !== 'fresh'));
     const count = working === s.sources.length ? `All ${s.sources.length} working` : `${working} of ${s.sources.length} working`;
     // The emails that cannot be switched off (the bill reminders, the confirmation of a change of picks, payment problems) show as rows, always on.
-    const always = [...(s.always || []), ...s.categories.filter((c) => c.required)].map((c) => `<div class="toggle-row is-always">
-        <input class="switch" type="checkbox" id="a-${esc(c.id)}" checked disabled aria-describedby="a-${esc(c.id)}-text">
-        <label for="a-${esc(c.id)}"><span class="toggle-label">${esc(c.label)}<span class="chip-always">Always sent</span></span><span class="toggle-text" id="a-${esc(c.id)}-text">${esc(c.text)}</span></label>
-      </div>`).join('');
+    const always = [...(s.always || []), ...s.categories.filter((c) => c.required)].map((c) => `<li>${icon('check')}<span><strong>${esc(c.label)}</strong>. ${esc(c.text)}</span></li>`).join('');
     const fresh = UI.PageFresh({ updatedAt: s.savedAt || null, source: 'Your account', zone: ctx.account.zoneAbbr, status: 'ok' });
     return `${fresh}<section class="card set-card" id="sources" tabindex="-1" aria-labelledby="h-sources">
         <div class="sec-head"><h2 id="h-sources">Connected accounts</h2><p class="sec-meta set-count">${esc(count)}</p></div>
@@ -10684,7 +10685,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       <section class="card set-card" aria-labelledby="h-email">
         <h2 id="h-email">Emails</h2>
         <p class="meta">We send these to ${esc(s.email)}.</p>
-        <div class="toggles is-always" role="group" aria-label="Emails we always send">${always}</div>
+        <h3 class="po-h po-h-more" id="h-always">Emails we always send</h3><ul class="po-included" aria-labelledby="h-always">${always}</ul>
         <details class="fold fold-emails">
           <summary>Choose which other emails you get${icon('chevron-down')}</summary>
           <form id="notify-form" novalidate>
@@ -10862,8 +10863,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   ];
   const FAQ = [
     ['What does my plan include?', 'Every plan includes Ads. Starter adds one service you choose, Growth adds two, and Domin8te adds three. You choose from Social media, Website, SEO and Google Maps, and Email.'],
-    ['How do I change my plan or my services?', 'Go to Billing and pick for next month. Your choice starts on your next bill date. This month stays as it is.'],
-    ['When can I change my picks?', 'Any time up to the last day shown in Billing, which is the day before your next bill. We email you 7 days and 3 days before, so you never miss it. Pick again as often as you like until then.'],
+    ['How do I change my plan or my services?', 'Go to Billing and choose your services for next month. Your choice starts on your next bill date. This month stays as it is.'],
+    ['When can I change my services?', 'Any time up to the last day shown in Billing, which is the day before your next bill. We email you 7 days and 3 days before, so you never miss it. Change them as often as you like until then.'],
     ['What happens to a service I stop?', 'We keep your work saved. You can add the service back for a later month.'],
     ['Is ad spend part of my plan?', `${D8.plan.AD_SPEND} We never change your ad budget without asking you first.`],
     ['What if I need more posts or changes this month?', 'Ask from Work. If it goes over your plan, Karan replies with options first. Nothing extra is charged without your OK.'],
@@ -10880,7 +10881,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     title: () => 'Help',
     render(ctx) {
       return `<div class="page page-help">
-        ${UI.PageHeader({ title: 'Help', intro: 'How to reach us, and answers to common questions.', sample: ctx.account.business.name })}
+        ${UI.PageHeader({ title: 'Help', intro: 'How to reach us, and answers to common questions.', sample: ctx.account.business.name, aside: `<a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a>` })}
         ${UI.PageFresh({ updatedAt: HELP_UPDATED, source: 'Domin8te team', status: 'ok' })}
         <section class="sec" aria-labelledby="h-faq"><h2 id="h-faq" class="sec-title">Common questions</h2>
           <div class="card faq">${FAQ.map(([q, a]) => `<details><summary>${esc(q)}${icon('chevron-down')}</summary>${a.startsWith('<') ? a : `<p>${esc(a)}</p>`}</details>`).join('')}</div>

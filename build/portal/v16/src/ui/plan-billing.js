@@ -19,7 +19,7 @@
 
   /** The services of one month with what each allows. @param {any} c a month of the plan */
   function serviceList(c) {
-    return `<ul class="svc-list">${c.services.map((/** @type {any} */ s) => `<li>${ico(s.id)}<div><p class="sl-name">${esc(s.label)}</p><p class="sl-about">${esc(/** @type {any} */ (ABOUT)[s.id] || '')}</p>${s.lines.length ? `<ul class="sl-lines">${s.lines.map((/** @type {any} */ l) => `<li>${esc(l.capText)}${l.weeklyHint ? ` <span class="sl-hint">(${esc(l.weeklyHint)})</span>` : ''} ${sample()}</li>`).join('')}</ul>` : ''}${s.id === 'advertising' ? `<p class="sl-fine">${esc(AD_SPEND)}</p>` : ''}</div></li>`).join('')}</ul>`;
+    return `<ul class="svc-list">${c.services.map((/** @type {any} */ s) => `<li>${ico(s.id)}<div><p class="sl-name">${esc(s.label)}</p><p class="sl-about">${esc(/** @type {any} */ (ABOUT)[s.id] || '')}</p>${s.lines.length ? `<details class="chart-table sl-fold"><summary>What's included</summary><ul class="sl-lines">${s.lines.map((/** @type {any} */ l) => `<li>${esc(l.capText)}${l.weeklyHint ? ` <span class="sl-hint">(${esc(l.weeklyHint)})</span>` : ''} ${sample()}</li>`).join('')}</ul></details>` : ''}${s.id === 'advertising' ? `<p class="sl-fine">${esc(AD_SPEND)}</p>` : ''}</div></li>`).join('')}</ul>`;
   }
   /** What comes with the plan besides the services: a summary, a call. @param {any} c a month of the plan */
   function included(c) {
@@ -31,16 +31,16 @@
     const c = m.now;
     const p = price(m.next || c);
     return `<dl class="facts-lite">
-      <div><dt>This month</dt><dd>${esc(day(c.start))} to ${esc(day(m.lastDay))}</dd></div>
       <div><dt>Next bill</dt><dd>${p ? `${esc(p)} on ` : ''}${esc(day(m.bill))}</dd></div>
-      ${m.open ? `<div><dt>Change by</dt><dd>${esc(stamp(m.lastDay))} ${esc(m.zone)}</dd></div>` : ''}
+      ${m.open ? `<div><dt>Change services by</dt><dd>end of ${esc(day(m.lastDay))}</dd></div>` : ''}
+      <div><dt>This month</dt><dd>${esc(day(c.start))} to ${esc(day(m.lastDay))}</dd></div>
     </dl>`;
   }
   /** The days left to change, as a small figure. @param {any} m */
   function daysLeft(m) {
     if (!m.open) return '';
     const n = m.daysLeft;
-    return `<p class="days-left"><strong>${n === 0 ? 'Today' : n}</strong><span>${n === 0 ? 'is the last day' : F.plural(n, 'day left', 'days left')}</span></p>`;
+    return `<p class="days-left"><strong>${n === 0 ? 'Today' : n}</strong><span>${n === 0 ? 'is the last day to change next month' : `${F.plural(n, 'day left', 'days left')} to change next month`}</span></p>`;
   }
 
   /**
@@ -63,14 +63,14 @@
       return `<section class="card plan-overview is-compact" aria-labelledby="h-plan">${head}<div class="po-facts">${facts(m)}</div></section>`;
     }
     const note = m.open
-      ? `<p class="po-note">${icon('info')}<span>Do nothing and your plan stays the same next month. Want something different? Pick by ${esc(day(m.lastDay))}.</span></p>`
+      ? `<p class="po-note">${icon('info')}<span>Change your services by the end of ${esc(day(m.lastDay))}. Do nothing and your plan stays the same next month.</span></p>`
       : `<p class="po-note">${icon('info')}<span>Next month is set: the last day to change it has passed. Message us if something is wrong.</span></p>`;
     return `<section class="card plan-overview" aria-labelledby="h-plan">${head}
       <div class="rule-rainbow" aria-hidden="true"></div>
       <div class="po-grid">
         <div><h3 class="po-h">Your services each month</h3>${serviceList(c)}${included(c)}</div>
-        <div class="po-side"><h3 class="po-h">Billing</h3>${facts(m)}<div class="po-when">${daysLeft(m)}${note}</div>
-          <div class="po-actions">${m.open ? `<a class="btn btn-solid btn-block" href="#/billing/change">Change my services${icon('arrow-right')}</a>` : ''}<a class="link" href="#bills">Past bills ↓</a></div>
+        <div class="po-side"><h3 class="po-h">Billing</h3>${facts(m)}<div class="po-when">${note}${daysLeft(m)}</div>
+          <div class="po-actions">${m.open ? `<a class="btn ${pastDue ? 'btn-glass' : 'btn-solid'} btn-block" href="#/billing/change">Change my services${icon('arrow-right')}</a>` : ''}<a class="link" href="#bills">Past bills ↓</a></div>
         </div>
       </div>
     </section>`;
@@ -111,7 +111,7 @@
         <div><h3 class="po-h">What happens next</h3>${timeline(items)}</div>
       </div>
       ${m.open ? `<p class="pcf-warn">${icon('info')}<span><strong>Picked the wrong thing?</strong> Change it any time until ${esc(day(m.lastDay))}, or <a class="link" href="#/messages">message Karan</a>. No charge for changing your mind.</span></p>` : ''}
-      <div class="pcf-actions">${m.open ? `<a class="btn btn-solid" href="#/billing/change">Change my picks</a>` : ''}<a class="btn btn-glass" href="#/messages">${icon('message')}Message Karan</a><a class="link" href="#bills">Past bills ↓</a></div>
+      <div class="pcf-actions">${m.open ? `<a class="btn btn-solid" href="#/billing/change">Change my services</a>` : ''}<a class="btn btn-glass" href="#/messages">${icon('message')}Message Karan</a><a class="link" href="#bills">Past bills ↓</a></div>
     </section>`;
   }
 

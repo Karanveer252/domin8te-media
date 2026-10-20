@@ -114,7 +114,7 @@
     const po = C.planOf(id);
     if (!po.now || !po.next) return null;
     /** @param {any} c */
-    const picks = (c) => c.picks || [];   // a month's picks already include Ads on every plan
+    const picks = (c) => c.picks || [];   // a month's services already include Ads on every plan
     const a = picks(po.now);
     const b = picks(po.next);
     const adds = b.filter((/** @type {string} */ x) => !a.includes(x));

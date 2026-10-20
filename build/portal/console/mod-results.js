@@ -231,11 +231,11 @@
           <div class="rs-vis"><label class="switch-row"><input type="checkbox" role="switch" name="visible" disabled${opened && opened.client_visible ? ' checked' : ''}><span><span class="pick-t">Client sees this</span><span class="pick-d" data-rs-vis-hint>Off until verified</span></span></label></div>
           <p class="field-error" data-rs-error role="alert" hidden></p>
           <div class="actions rs-actions">
-            <button class="btn" type="button" data-rs-publish disabled>Mark verified and publish</button>
+            <button class="btn" type="button" data-rs-publish disabled${frozen ? "" : " aria-describedby=\"rs-need\""}>Mark verified and publish</button>
             <button class="btn btn-quiet" type="button" data-rs-keep${frozen ? '' : ' hidden'}>Keep hidden</button>
             ${frozen ? '' : '<button class="btn btn-quiet" type="button" data-rs-draft disabled>Save draft</button>'}
           </div>
-          ${frozen ? '' : '<p class="hint rs-need" data-rs-need role="status"></p>'}
+          ${frozen ? '' : '<p class="hint rs-need" id="rs-need" data-rs-need role="status"></p>'}
         </form>
         <aside class="rs-side" aria-label="Checklist and what the client sees">
           <section class="panel rs-check"><h2>Publish checklist</h2><ol class="rs-list" data-rs-list></ol></section>

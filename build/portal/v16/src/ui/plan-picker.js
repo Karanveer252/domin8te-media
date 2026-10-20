@@ -151,7 +151,7 @@
           <fieldset class="plan-choices"><legend class="sr-only">Your plan for next month</legend>${planCards(m, st)}</fieldset></section>
         <section class="pk-step" aria-labelledby="step2"><div class="step-head"><h2 class="step-h" id="step2">${stepTitle(r)}</h2><span class="pick-count${have === total ? ' is-done' : ''}" id="pick-count" aria-live="polite">${icon('check')}${have} of ${total} picked</span></div>
           <fieldset class="svc-choices" id="svc-choices"><legend class="sr-only">Services for next month</legend>${serviceCards(m, st)}</fieldset>
-          <p class="pick-help">${icon('info')}<span>Not sure? <a class="link" href="#/messages">Message Karan</a> and we will help you choose. You can change your picks as many times as you like until ${esc(day(m.lastDay))}.</span></p></section>
+          <p class="pick-help">${icon('info')}<span>Not sure? <a class="link" href="#/messages">Message Karan</a> and we will help you choose. You can change your services as many times as you like until ${esc(day(m.lastDay))}.</span></p></section>
       </div>
       <aside class="card pk-panel" id="pk-panel" aria-labelledby="h-check">${panel(m, pv, st)}</aside>
       <div class="pk-bar" id="pk-bar"><div><p class="pk-bar-name" id="pk-bar-name"></p><p class="pk-bar-sub" id="pk-bar-sub"></p></div><a class="btn btn-primary" href="#pk-panel">Review</a></div>

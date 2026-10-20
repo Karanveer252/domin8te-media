@@ -2,70 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "portal-directions",
+      "name": "portal",
       "runtimeExecutable": "node",
-      "runtimeArgs": [
-        "C:/Work/domin8te-build/portal/serve.js"
-      ],
-      "port": 4173,
-      "autoPort": true
-    },
-    {
-      "name": "site",
-      "runtimeExecutable": "node",
-      "runtimeArgs": [
-        "C:/Work/domin8te-build/serve.js"
-      ],
-      "port": 8080,
-      "autoPort": true
-    },
-    {
-      "name": "dash-variants",
-      "runtimeExecutable": "node",
-      "runtimeArgs": [
-        "C:/Work/domin8te-build/dashboard-variants/serve.js"
-      ],
-      "port": 8090,
-      "autoPort": true
-    },
-    {
-      "name": "onboarding",
-      "runtimeExecutable": "node",
-      "runtimeArgs": [
-        "C:/Work/domin8te-build/onboarding/serve.js"
-      ],
-      "port": 4310,
-      "autoPort": true
-    },
-    {
-      "name": "held-back-fixes",
-      "runtimeExecutable": "node",
-      "runtimeArgs": [
-        "C:/Work/domin8te-build/held-back-20261004/serve.js"
-      ],
-      "port": 8093,
-      "autoPort": true
-    },
-    {
-      "name": "working-copies",
-      "runtimeExecutable": "node",
-      "runtimeArgs": [
-        "C:/Work/domin8te-build/dash-integration/tools/wc-serve.js"
-      ],
-      "port": 8100,
-      "autoPort": true
-    },
-    {
-      "name": "askbots-mock",
-      "runtimeExecutable": "python",
-      "runtimeArgs": [
-        "-m",
-        "http.server",
-        "8731",
-        "--directory",
-        "C:/Users/kvsd1/AppData/Local/Temp/claude/C--Work-domin8te-media/df485d76-965a-4c19-935d-dc59a389b2eb/scratchpad/askbots"
-      ],
-      "port": 8731
+      "runtimeArgs": ["C:/Work/domin8te-build/portal/serve.js", "4173"],
+      "port": 4173
     }
   ]
 }

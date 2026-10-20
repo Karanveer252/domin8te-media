@@ -417,7 +417,7 @@
         if (r.ctl.kind === 'switch') {
           const on = !!r.ctl.on;
           ctl = `<button class="vz-sw" type="button" role="switch" aria-checked="${on}" data-vz="toggle" data-key="${esc(r.key)}"${locked ? ' disabled aria-describedby="vz-owner" title="Only an owner can hide this"' : ''} aria-label="Client sees: ${esc(clip(r.title, 70))}"><span class="vz-knob" aria-hidden="true"></span></button><span class="vz-sw-word" aria-hidden="true">${on ? 'Shown' : 'Hidden'}</span>`;
-        } else if (r.ctl.kind === 'decide') ctl = `<button class="btn btn-quiet btn-sm" type="button" data-vz="decide" data-key="${esc(r.key)}" aria-expanded="${open === 'decide' || open === 'keep'}" aria-label="Decide: ${esc(clip(r.title, 70))}">Decide</button>`;
+        } else if (r.ctl.kind === 'decide') ctl = `<button class="btn btn-quiet btn-sm" type="button" data-vz="decide" data-key="${esc(r.key)}" aria-expanded="${open === 'decide' || open === 'keep'}" aria-label="Show or hide: ${esc(clip(r.title, 70))}">Show or hide…</button>`;
         else if (r.ctl.kind === 'again') ctl = `<button class="btn btn-quiet btn-sm" type="button" data-vz="again" data-key="${esc(r.key)}" aria-expanded="${open === 'again'}" aria-label="Show again: ${esc(clip(r.title, 70))}">Show again</button>`;
         else ctl = `<span class="vz-sw-word">${esc(r.ctl.off || 'Not shown')}</span>`;
         const row = `<tr class="vz-row is-${r.group}${open ? ' is-open' : ''}" data-key="${esc(r.key)}">
@@ -446,7 +446,7 @@
             <div class="panel-head"><h3 id="vz-list-h">Client-facing items</h3><p class="vz-count" aria-live="polite">${esc(summary)}</p></div>
             <div class="seg vz-filter" role="group" aria-label="Show">${filters.map(([k, label, c]) => `<button type="button" data-vz="filter" data-filter="${k}" aria-pressed="${st.filter === k}">${label}<span class="count${k === 'decide' && c ? '' : ' quiet'}">${c}</span></button>`).join('')}</div>
             <div class="vz-tablewrap"><table class="vz-table"><caption class="sr-only">Everything ${esc(client)} can see, or could see once someone decides</caption>
-              <thead><tr><th scope="col">Type</th><th scope="col">Item</th><th scope="col">Status</th><th scope="col">Client sees</th></tr></thead>
+              <thead><tr><th scope="col">Type</th><th scope="col">Item</th><th scope="col">Status</th><th scope="col">Client sees it</th></tr></thead>
               <tbody>${tableRows()}</tbody></table></div>
             <p id="vz-owner" class="sr-only">Only an owner can hide results, updates and invoices.</p>
             ${lockedNote}

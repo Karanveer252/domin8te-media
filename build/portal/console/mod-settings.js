@@ -91,7 +91,7 @@
   /** The words for what a plan includes: "Ads + 1 pick", "Ads + 2 picks", "Ads + 3 picks" (from the plan row: its required services, then its pick count). @param {any} pl */
   function ruleOf(pl) {
     const req = (pl.required_services || []).map((/** @type {string} */ id) => { const s = D().plans.services.find((/** @type {any} */ x) => x.id === id); return s ? s.label : id; });
-    const picks = plural(Number(pl.picks_allowed), 'pick');
+    const picks = plural(Number(pl.picks_allowed), 'service');
     return req.length ? `${req.join(' + ')} + ${picks}` : picks;
   }
   /**
@@ -163,11 +163,11 @@
     const words = locked
       ? `No new client can be put on ${name}, and a client cannot pick it themselves. Clients already on ${name} keep it.`
       : `New clients can be put on ${name}, and a client can pick it themselves in their dashboard. Clients already on ${name} keep it either way.`;
-    const act = !owner ? `<p class="meta pl-avail-note">Only an owner can lock or unlock ${esc(name)}.</p>`
+    const act = !owner ? `<p class="meta pl-avail-note">Only an owner can close or reopen the ${esc(name)} plan.</p>`
       : ST.editing ? '<p class="meta pl-avail-note">Save or cancel your edits to change this.</p>'
-        : `<button class="btn btn-quiet" type="button" data-pl-lock="${locked ? 'unlock' : 'lock'}">${locked ? 'Unlock' : 'Lock'} ${esc(name)}</button>`;
+        : `<button class="btn btn-quiet" type="button" data-pl-lock="${locked ? 'unlock' : 'lock'}">${locked ? 'Reopen' : 'Close'} the ${esc(name)} plan to new clients</button>`;
     return `<div class="pl-avail" id="pl-avail" role="group" aria-labelledby="pl-avail-h"><div class="pl-avail-txt">
-        <h3 class="pl-avail-h" id="pl-avail-h">${esc(name)} availability <span class="chip ${locked ? 'warn' : 'good'}">${locked ? 'Locked' : 'Open to new clients'}</span></h3>
+        <h3 class="pl-avail-h" id="pl-avail-h">${esc(name)} plan availability <span class="chip ${locked ? 'warn' : 'good'}">${locked ? 'Locked' : 'Open to new clients'}</span></h3>
         <p>${esc(words)}</p>${said ? `<p class="meta">${esc(said)}</p>` : ''}</div>${act}</div>`;
   }
 
@@ -198,7 +198,7 @@
   function plansHtml() {
     const p = D().plans;
     const owner = isOwner();
-    const head = (/** @type {string} */ btn) => `<div class="panel-head pl-head"><div class="pl-head-txt"><h2 id="s-plans">Plans and limits</h2><p>The one list every page reads: plan names, prices, picks and monthly limits. Clients see their own plan only.</p></div>${btn}</div>`;
+    const head = (/** @type {string} */ btn) => `<div class="panel-head pl-head"><div class="pl-head-txt"><h2 id="s-plans">Plans and limits</h2><p>The one list every page reads: plan names, prices, services and monthly limits. Clients see their own plan only.</p></div>${btn}</div>`;
     if (!p.ok || !p.plans.length) return `${head('')}<div class="empty"><p><strong>The plan tables are not on this database yet.</strong></p><p>Plans and limits show here as soon as they are.</p></div>`;
     const m = model();
     const ed = ST.editing && owner;
@@ -343,10 +343,10 @@
     }
     const el = dlg;
     const name = esc(pl.name);
-    el.innerHTML = `<form method="dialog" novalidate><h2 id="pl-lock-h">${want ? 'Lock' : 'Unlock'} ${name}?</h2>
+    el.innerHTML = `<form method="dialog" novalidate><h2 id="pl-lock-h">${want ? 'Close' : 'Reopen'} the ${name} plan to new clients?</h2>
       <p>${want ? `Locked: no new client can be put on ${name}, and a client cannot pick it themselves. Clients already on ${name} keep it.` : `Unlocked: new clients can be put on ${name} again, and a client can pick it themselves.`}</p>
       <div class="field"><label for="pl-lock-why">Reason (optional)</label><textarea id="pl-lock-why" name="why" maxlength="500" rows="3" placeholder="${want ? 'For example: no room for new clients this month' : 'For example: there is room again'}"></textarea><p class="hint">Kept in the history.</p><p class="field-error" id="pl-lock-err" role="alert" hidden></p></div>
-      <div class="actions"><button class="btn btn-quiet" type="submit" value="cancel" formnovalidate>Cancel</button><button class="btn" type="submit" value="ok">${want ? 'Lock' : 'Unlock'} ${name}</button></div></form>`;
+      <div class="actions"><button class="btn btn-quiet" type="submit" value="cancel" formnovalidate>Cancel</button><button class="btn" type="submit" value="ok">${want ? 'Close' : 'Reopen'} the ${name} plan</button></div></form>`;
     return new Promise((resolve) => {
       // The answer comes from the buttons and from Escape, not from the dialog's close event: the browser sends that one with the
       // next animation frame, which a tab in the background does not draw, and a dialog remembers its last returnValue.
@@ -521,9 +521,9 @@
   /* ---- Picks and lock, and Change history ----------------------------------------------------------- */
 
   function picksHtml() {
-    return `<div class="panel-head"><h2 id="s-picks">Picks and lock</h2></div>
-      <p class="pk-lead"><strong>Picks lock each billing month.</strong></p>
-      <p class="pk-body">A change starts on the next bill date. Clients can change their picks until the day before the bill, and picks they leave alone carry over.</p>
+    return `<div class="panel-head"><h2 id="s-picks">Services and lock</h2></div>
+      <p class="pk-lead"><strong>Services lock each billing month.</strong></p>
+      <p class="pk-body">A change starts on the next bill date. Clients can change their services until the day before the bill, and services they leave alone carry over.</p>
       <dl class="facts pk-facts"><dt>Last day to change</dt><dd>The day before the next bill, until the end of the day on the restaurant's clock</dd>
         <dt>Not confirmed</dt><dd>3 days before the bill, a carry-over nobody confirmed opens an item in <a href="#/queue">Needs you</a></dd>
         <dt>Over a limit</dt><dd>The work is held until someone approves a one-off. Nothing is charged automatically.</dd></dl>`;
@@ -607,8 +607,8 @@
 
   /* ---- Reminder emails ------------------------------------------------------------------------------ */
 
-  const KIND = { d7: '7 day reminder', d3: '3 day reminder', picks_confirmed: 'picks confirmed email' };
-  const KIND_WHEN = { d7: '7 days before the bill', d3: '3 days before the bill', picks_confirmed: 'copy of their picks' };
+  const KIND = { d7: '7 day reminder', d3: '3 day reminder', picks_confirmed: 'services confirmed email' };
+  const KIND_WHEN = { d7: '7 days before the bill', d3: '3 days before the bill', picks_confirmed: 'copy of their services' };
   const kindOf = (/** @type {string} */ k) => /** @type {any} */ (KIND)[k] || k;
   const clientOf = (/** @type {string} */ id) => { const t = D().tenant(id); return t ? t.name : 'a client'; };
 
@@ -893,7 +893,7 @@
   }
   /** The freshness line and a row of links to the parts of this long page. */
   function top() {
-    const links = [['sec-plans', 'Plans and limits'], ['sec-reminders', 'Reminder emails'], ['sec-notify', 'Message emails'], ['team-box', 'Team'], ['sec-access', 'Client access details'], ['sec-stripe', 'Stripe (payments)'], ['sec-multica', 'Multica (work board sync)'], ['sec-look', 'Preferences']];
+    const links = [['sec-plans', 'Plans and limits'], ['sec-reminders', 'Reminder emails'], ['sec-notify', 'Message emails'], ['team-box', 'Team'], ['sec-access', 'Client access details'], ['sec-stripe', 'Stripe (payments)'], ['sec-multica', 'Multica (work board sync)'], ...(isOwner() ? [['gates-box', 'Auto-publish']] : []), ['sec-look', 'Preferences']];
     return `${freshHtml()}
       <nav class="set-index" aria-label="On this page">${links.map(([id, t]) => `<button type="button" data-action="jump" data-to="${id}">${esc(t)}</button>`).join('')}</nav>`;
   }
