@@ -283,7 +283,7 @@
       const bars = r.bars.slice(0, MAX_BARS).map((/** @type {any} */ l) => c.usageBar({ label: LBL(l.metric) || l.label, used: l.used, cap: l.cap, pct: l.pct, tone: l.tone })).join('');
       const more = r.lines.length - Math.min(r.bars.length, MAX_BARS);
       const stamp = c.plans.at || c.all.at;
-      const check = !pl.now ? '<span class="chip plain">No plan</span>' : r.unverified ? '<span class="chip warn">Unverified</span>' : '<span class="chip good">Verified</span>';
+      const check = !pl.now ? '<span class="chip plain">No plan</span>' : r.unverified ? '<span class="chip warn">Not checked yet</span>' : '<span class="chip good">Checked</span>';
       return `<tr data-href="#/client/${esc(t.id)}/overview"${t.status !== 'active' ? ' class="paused"' : ''}>
         <td data-label="Client"><a class="row-link" href="#/client/${esc(t.id)}/overview">${colorDot(t.id)}${esc(t.name)}</a>${notes.map((x) => `<span class="sub">${esc(x)}</span>`).join('')}${t.clerk_org_id ? (EXT.usage ? EXT.usage.clientLine(t.id) : '') : '<span class="row-chips"><span class="chip warn">No login yet</span></span>'}</td>
         <td data-label="Plan"><div class="cl-v">${pl.nowPlan ? `<strong class="cl-plan-name">${esc(pl.nowPlan.name)}</strong>` : `<a class="chip warn chip-link" href="#/billing/${esc(t.id)}" title="Set their plan and services in Billing">No plan set</a>`}</div></td>

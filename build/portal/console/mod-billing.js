@@ -172,6 +172,9 @@
       : n.source === 'console' ? `Set by the team ${esc(dayShort(dayOfStamp(n.confirmed_at)))}`
       : n.source === 'auto_carry' ? 'No reply yet, current services carry over'
       : all ? `${esc(r.P.nextPlan.name)} includes everything` : '';
+    const sameAsNow = !!r.now && !(d && d.planChanged) && n.plan_id === r.now.plan_id && (n.website_option || null) === (r.now.website_option || null)
+      && (n.picks || []).length === (r.now.picks || []).length && (n.picks || []).every((/** @type {string} */ s) => (r.now.picks || []).includes(s));
+    if (sameAsNow) return `<div class="bl-chips"><span class="bchip">Same as this cycle</span></div>${by ? `<span class="sub">${by}</span>` : ''}`;
     return `<div class="bl-chips">${chips.join('')}</div>${by ? `<span class="sub">${by}</span>` : ''}`;
   }
   /** @param {any} r */
@@ -191,12 +194,12 @@
   function remChip(r, kind) {
     const n = kind === 'd7' ? 7 : 3;
     const row = r.rem.find((/** @type {any} */ x) => x.kind === kind);
-    if (!row && r.t.status !== 'active') return `<span class="chip plain" title="Bill reminders are skipped while a client is ${esc(r.t.status)}">${n}d skipped</span>`;
-    if (!row) return r.bill ? `<span class="chip plain" title="Planned once next cycle's services exist">${n}d due ${esc(dayShort(addDays(r.bill, -n)))}</span>` : '<span class="none">None</span>';
+    if (!row && r.t.status !== 'active') return `<span class="chip plain" title="Bill reminders are skipped while a client is ${esc(r.t.status)}">${n}-day skipped</span>`;
+    if (!row) return r.bill ? `<span class="chip plain" title="Planned once next cycle's services exist">${n}-day due ${esc(dayShort(addDays(r.bill, -n)))}</span>` : '<span class="none">None</span>';
     if (row.status === 'sent') return `<span class="chip good" title="${esc(`Sent to ${row.to_email}`)}">${n}-day sent ${esc(dayShort(dayOfStamp(row.sent_at || row.send_at)))}</span>`;
     if (row.status === 'failed') return `<span class="chip bad" title="${esc(row.error || 'It did not go out.')}">${n}-day failed ${esc(dayShort(dayOfStamp(row.updated_at || row.send_at)))}</span>`;
-    if (row.status === 'skipped') return `<span class="chip plain" title="${esc(row.error || 'Skipped')}">${n}d skipped</span>`;
-    return `<span class="chip plain">${n}d due ${esc(dayShort(dayOfStamp(row.send_at)))}</span>`;
+    if (row.status === 'skipped') return `<span class="chip plain" title="${esc(row.error || 'Skipped')}">${n}-day skipped</span>`;
+    return `<span class="chip plain">${n}-day due ${esc(dayShort(dayOfStamp(row.send_at)))}</span>`;
   }
   /** The open Needs you item for one of this row's failed reminders, or null; the fix link shows only when it exists (critic R11-3). @param {any} r */
   function needOf(r) {
@@ -341,7 +344,7 @@
       return;
     }
     box.innerHTML = `<div class="table-wrap bl-wrap"><table class="grid bl-grid"><caption class="sr-only">Every client's plan, services, reminders and latest invoice</caption><thead><tr>
-      <th scope="col">Client</th><th scope="col">Plan</th><th scope="col">This cycle</th><th scope="col">Next cycle</th><th scope="col">Next month's services</th><th scope="col">Bill reminders (7 and 3 days before)</th><th scope="col">Latest invoice</th><th scope="col">Stripe</th><th scope="col" class="bl-c-act">Actions</th></tr></thead><tbody>
+      <th scope="col">Client</th><th scope="col">Plan</th><th scope="col">This cycle</th><th scope="col">Next cycle</th><th scope="col">Next month's <span class="sub">services</span></th><th scope="col">Bill reminders <span class="sub">7 and 3 days before</span></th><th scope="col">Latest invoice</th><th scope="col">Stripe</th><th scope="col" class="bl-c-act">Actions</th></tr></thead><tbody>
       ${shown.map((r) => `<tr data-id="${esc(r.t.id)}"${r.t.status !== 'active' ? ' class="paused"' : ''}>
         <th scope="row" class="bl-c-client" data-label="Client">${clientCell(r)}</th>
         <td class="bl-c-plan" data-label="Plan">${planCell(r)}</td>

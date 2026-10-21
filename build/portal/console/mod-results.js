@@ -228,10 +228,10 @@
                 <p class="hint">A PNG, JPG, WebP, PDF or CSV up to 10 MB. It is kept privately, for the team only.</p>`}</div>
           </div>
           <div class="rs-hold" data-rs-hold hidden role="status"></div>
-          <div class="rs-vis"><label class="switch-row"><input type="checkbox" role="switch" name="visible" disabled${opened && opened.client_visible ? ' checked' : ''}><span><span class="pick-t">Client sees this</span><span class="pick-d" data-rs-vis-hint>Off until verified</span></span></label></div>
+          <div class="rs-vis"><label class="switch-row"><input type="checkbox" role="switch" name="visible" disabled${opened && opened.client_visible ? ' checked' : ''}><span><span class="pick-t">Client sees this</span><span class="pick-d" data-rs-vis-hint>Off until checked</span></span></label></div>
           <p class="field-error" data-rs-error role="alert" hidden></p>
           <div class="actions rs-actions">
-            <button class="btn" type="button" data-rs-publish disabled${frozen ? "" : " aria-describedby=\"rs-need\""}>Mark verified and publish</button>
+            <button class="btn" type="button" data-rs-publish disabled${frozen ? "" : " aria-describedby=\"rs-need\""}>Mark checked and publish</button>
             <button class="btn btn-quiet" type="button" data-rs-keep${frozen ? '' : ' hidden'}>Keep hidden</button>
             ${frozen ? '' : '<button class="btn btn-quiet" type="button" data-rs-draft disabled>Save draft</button>'}
           </div>
@@ -300,7 +300,7 @@
       const item = (/** @type {boolean} */ yes, /** @type {string} */ text, /** @type {string} */ note) => `<li class="${yes ? 'is-done' : 'is-todo'}"><span class="rs-mark" aria-hidden="true">${yes ? C.icon('check') : ''}</span><span>${E(text)}${note ? `<span class="meta rs-note">${E(note)}</span>` : ''}${yes ? '<span class="sr-only"> (done)</span>' : '<span class="sr-only"> (not done)</span>'}</span></li>`;
       const list = $('[data-rs-list]');
       if (list) list.innerHTML = item(ck.value, 'Value entered', '') + item(ck.period, 'Reporting period', '') + item(ck.source, 'Named source and read time', '') + item(ck.proof, 'Proof attached', '')
-        + item(done, 'Verified by a person', done ? '' : 'Done when you press Mark verified and publish')
+        + item(done, 'Checked by a person', done ? '' : 'Done when you press Mark checked and publish')
         + item(done || (!!opened && opened.verification_status === 'rejected'), 'Client sees it: decided', done ? '' : 'Decided when you publish or keep it hidden');
       // held: more than 40 percent away from the last verified value
       const holdBox = $('[data-rs-hold]');
@@ -312,7 +312,7 @@
           holdBox.innerHTML = `<strong>Held for a check.</strong> ${E(num(r.value))} is ${Math.abs(h.pct)}% ${h.pct < 0 ? 'lower' : 'higher'} than the last verified value (${E(num(h.was))}, ${E(lastPeriod)}). The client keeps seeing ${E(lastPeriod)} until you confirm. ${exc ? 'A Needs you item was opened. <a href="#/queue">Open Needs you</a>' : 'A Needs you item opens when you save it.'}`;
         } else holdBox.hidden = true;
       }
-      const visHint = $('[data-rs-vis-hint]'); if (visHint) visHint.textContent = done ? 'On. The client sees this now.' : opened && opened.verification_status === 'rejected' ? 'Turned down. The client does not see it.' : 'Off until verified';
+      const visHint = $('[data-rs-vis-hint]'); if (visHint) visHint.textContent = done ? 'On. The client sees this now.' : opened && opened.verification_status === 'rejected' ? 'Turned down. The client does not see it.' : 'Off until checked';
       // the buttons: publish needs every piece of evidence; the draft needs what the database insists on
       const publish = /** @type {HTMLButtonElement} */ ($('[data-rs-publish]'));
       const all = ck.value && ck.period && ck.source && ck.proof && ck.metric;

@@ -242,7 +242,7 @@
     const menu = $('#account-menu');
     if (!btn || !menu) return;
     const open = force !== undefined ? force : btn.getAttribute('aria-expanded') !== 'true';
-    btn.setAttribute('aria-expanded', String(open));
+    for (const b of document.querySelectorAll('[data-action="account-menu"]')) b.setAttribute('aria-expanded', String(open));
     menu.hidden = !open;
     if (open) {
       const first = menu.querySelector('a, button:not([hidden])');
@@ -477,7 +477,7 @@
 
   function onClick(e) {
     const target = /** @type {HTMLElement} */ (e.target);
-    if (menuOpen() && !target.closest('.account')) toggleMenu(false);
+    if (menuOpen() && !target.closest('.account, [data-action="account-menu"]')) toggleMenu(false);
     const t = /** @type {HTMLElement|null} */ (target.closest('[data-action]'));
     if (!t) {
       // The whole attention card opens its details, except its buttons, links and text selection.

@@ -122,7 +122,7 @@
     throw Object.assign(new Error(DEMO_NOTE), { code: 'demo-readonly' });
   }
   /** The buttons that would change something, by their words (the demo switches them off). */
-  const DEMO_WRITE_WORDS = /^(Save|Approve|Decline|Reject|Send|Respond|Remove|Hide|Show again|Show it and approve|Show to client|Mark|Publish|Unlink|Link|Lock|Unlock|Close the|Reopen the|Give them a login|Add this login|Add the|Add to|Create in Stripe|Count it|Void|Move to Done|Post the update|Record the check|Put (it|them) back|Use this text|Use the time now|Edit, then approve|With my edits|Ask for an|Ask client to approve|Upload logo|Replace logo|Keep the card|Keep it|Keep hidden|Keep client value|Keep what the client sees|Use console value|Confirm|Count as|Fix email|Move to|Verify and publish|Suggest|Use the automatic tag|Start fresh|Decide|Show or hide|Set address|Undo$|Keep ours \(|Use Multica's \()|\((ours|Multica's)\)$/;
+  const DEMO_WRITE_WORDS = /^(Save|Approve|Decline|Reject|Send|Respond|Remove|Hide|Show again|Show it and approve|Show to client|Mark|Publish|Unlink|Link|Lock|Unlock|Close the|Reopen the|Give them a login|Add this login|Add the|Add to|Create in Stripe|Count it|Void|Move to Done|Post the update|Record the check|Put (it|them) back|Use this text|Use the time now|Edit, then approve|With my edits|Ask for an|Ask client to approve|Upload logo|Replace logo|Keep the card|Keep it|Keep hidden|Keep client value|Keep what the client sees|Use console value|Confirm|Count as|Fix email|Move to|Verify and publish|Suggest|Use the automatic tag|Start fresh|Decide|Show or hide|Set address|Undo$|Keep ours \(|Use Multica's \(|Use the work board's \()|\((ours|Multica's)\)$/;
   /**
    * The demo console shows its write controls switched off (2026-10-14): the reply boxes and every button that would save, send or
    * approve, each with the demo note as its tooltip. The refusal in watchWrites stays the real guard; this is so nobody is invited to try.
@@ -734,7 +734,9 @@
     const chip = { ok: 'Up to date', checking: 'Being checked', delayed: 'Source delayed', kept: 'Showing the last checked data' }[st];
     const at = o.updatedAt ? clockTime(o.updatedAt) : '';
     // C11.4: short on screen ("Updated <time> · Up to date"); where the numbers come from is in the strip's title
-    return `<div class="page-fresh is-${st}" title="${esc(`Source: ${o.source}`)}">${at ? `<span class="pf-part"><strong>Updated</strong> ${esc(at)}</span>` : ''}<span class="pf-chip is-${st}"><span class="pf-dot" aria-hidden="true"></span>${esc(o.label || chip)}</span>${o.note ? `<p class="pf-note">${esc(o.note)}</p>` : ''}</div>`;
+    // C13.1: on a phone a "kept" strip's explainer moves into the tooltip (a delayed strip keeps its warning on screen)
+    const quietNote = !!o.note && st === 'kept' && !!(window.matchMedia && window.matchMedia('(max-width: 760px)').matches);
+    return `<div class="page-fresh is-${st}" title="${esc(`Source: ${o.source}${quietNote ? `. ${o.note}` : ''}`)}">${at ? `<span class="pf-part"><strong>Updated</strong> ${esc(at)}</span>` : ''}<span class="pf-chip is-${st}"><span class="pf-dot" aria-hidden="true"></span>${esc(o.label || chip)}</span>${o.note && !quietNote ? `<p class="pf-note">${esc(o.note)}</p>` : ''}</div>`;
   }
   /** Where each page's numbers come from, for the freshness line a page does not draw itself. */
   const FRESH_SOURCE = { queue: 'Console and the database', messages: 'Messages from the portal', clients: 'Console and the database', board: 'Console and Multica', billing: 'Stripe and console', revenue: 'The revenue ledger in the console', settings: 'Console', new: 'Console', bot: 'Bot chat drafts in the console', client: 'Console and the database' };
@@ -1486,7 +1488,9 @@
     const view = { typed, dmCount: reviewCount(null), otherCount: plain.length, total: typed.length + reviewCount(null) + plain.length, folded };
     const botWaiting = partOf('bot') && partOf('bot').pendingCount ? partOf('bot').pendingCount() : 0;
     const start = 'Start at the top. Each card says what to press.';
-    const lead = !all.tenants.length ? start : view.total ? `${start} ${plural(view.total, 'thing')} for the team.`
+    // C13.1: on a phone the lead is just the count, so the first card's buttons reach the first screen
+    const onPhone = !!(window.matchMedia && window.matchMedia('(max-width: 760px)').matches);
+    const lead = !all.tenants.length ? start : view.total ? `${onPhone ? '' : start + ' '}${plural(view.total, 'thing')} for the team.`
       : botWaiting ? `Nothing else for the team. ${botWaiting === 1 ? '1 bot draft waits' : `${botWaiting} bot drafts wait`} in Bot chat.` : `${start} Nothing for the team right now.`;
     // The breakdown under Do now, only when there is more than one kind (applyFilter hides it under a chip).
     const parts = [view.dmCount ? (view.dmCount === 1 ? '1 to check before it goes live' : `${view.dmCount} to check before they go live`) : '', typed.length ? plural(typed.length, 'plan and billing card') : '', plain.length ? plural(plain.length, 'other to-do') : ''].filter(Boolean);
@@ -1499,7 +1503,7 @@
       ${all.tenants.length ? '' : `<div class="empty"><p><strong>No clients yet.</strong></p><p>Add your first restaurant, then give them a login.</p><a class="btn" href="#/new">Add a client</a></div>`}
       <section class="q-group" id="q-needs"><h2>Do now <span class="meta" data-qtotal>${doNow}</span></h2>
         ${parts.length > 1 ? `<p class="meta" data-qparts>${esc(parts.map((x) => x.replace(/ /g, ' ')).join(' · '))}</p>` : ''}
-        <p class="lede" data-qcount${folds ? '' : ' hidden'}>${folds ? esc(foldText) : ''}</p>
+        <p class="lede" data-qcount${folds && !onPhone ? '' : ' hidden'}>${folds ? esc(foldText) : ''}</p>
         ${N ? N.cards(typed) : ''}
         ${dm}
         ${partOf('bot') ? partOf('bot').needsBlock() : ''}
@@ -1864,7 +1868,7 @@
     // Warnings only when something is missing; everything else about them folds into About.
     const warns = [
       current.clerk_org_id ? '' : `<a class="chip warn chip-link" href="#/client/${esc(id)}/setup/login">Give them a login →</a>`,
-      pf.approval_level ? '' : `<a class="chip warn chip-link" href="#/client/${esc(id)}/setup/plan?at=signoff" title="How often we ask them before work goes out">Set sign-off level →</a>`
+      pf.approval_level ? '' : `<a class="chip warn chip-link" href="#/client/${esc(id)}/setup/plan?at=signoff" title="Their sign-off level: how often we ask them before work goes out">Set how often we ask them →</a>`
     ].join('');
     const about = [
       d.business.kind ? esc(d.business.kind) : '',
@@ -1880,7 +1884,7 @@
       const rest = (last ? all.slice(0, at).reverse() : all.slice(at + 1)).map((x) => x[1]);
       const names = rest.length > 2 ? `${rest[0]}, ${rest[1]} and more` : rest.join(' and ');
       // The last two words are held together so a narrow phone never leaves one word alone on the second line.
-      return `${all[at][1]} · ${at + 1} of ${all.length} tabs.${rest.length ? ` Swipe ${last ? 'back ' : ''}for ${names}.` : ''}`.replace(/ (\S+)$/, ' $1');
+      return `${all[at][1]} · ${at + 1} of ${all.length} tabs.${rest.length ? ` ${window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 'Swipe' : 'Scroll'} ${last ? 'back ' : ''}for ${names}.` : ''}`.replace(/ (\S+)$/, ' $1');
     })();
     main.innerHTML = `<a class="crumb" href="#/clients">${icon('back')}All clients</a>
       <div class="client-head"><div><h1 id="page-title" tabindex="-1">${esc(current.name)}</h1>
@@ -1896,6 +1900,7 @@
     // The head is drawn afresh on every tab change, so a phone's sideways tab row starts at its left end again; slide the row
     // (never the page) until the current tab sits fully in view, clear of the faded right edge (audit C1.3).
     const row = /** @type {HTMLElement | null} */ ($('.tabs', main)), on = row && /** @type {HTMLElement | null} */ ($('[aria-current="page"]', row));
+    if (row) row.classList.toggle('is-over', row.scrollWidth > row.clientWidth + 1);
     if (row && on && row.scrollWidth > row.clientWidth) {
       const r = row.getBoundingClientRect(), a = on.getBoundingClientRect(), max = row.scrollWidth - row.clientWidth;
       const right = Math.max(r.left, r.right - 84);
@@ -2010,12 +2015,12 @@
           <div class="span-all"><p class="hint meta">They sign in at domin8temedia.com/dashboard with this email. We email them a 6-digit code each time, no password. Nothing is sent until they ask for a code.</p></div>
           <div class="actions span-all" style="margin-top:0"><button class="btn" type="submit">${current.clerk_org_id ? 'Add this login' : 'Give them a login'}</button><span id="login-out" class="meta"></span></div>
         </form>`)}
-      ${fold('sec-plan', 'plan-h', 'Plan and sign-off', `${esc(partOf('clients').planNameOf(current.id) || 'No plan set')}, ${pf.approval_level && APPROVAL_LEVELS[pf.approval_level] ? `${APPROVAL_LEVELS[pf.approval_level][0]} sign-off` : 'no sign-off level'}. The plan comes from Billing. The sign-off level is for the team only.`, part === 'plan', `
+      ${fold('sec-plan', 'plan-h', 'Plan and sign-off', `${esc(partOf('clients').planNameOf(current.id) || 'No plan set')}, ${pf.approval_level && APPROVAL_LEVELS[pf.approval_level] ? `${APPROVAL_LEVELS[pf.approval_level][0]} sign-off` : 'not yet set how often we ask them'}. The plan comes from Billing. How often we ask them is for the team only.`, part === 'plan', `
         ${partOf('clients').planPanel(current.id)}
         ${CC() ? CC().setupBlock(current.id) : ''}
         <form id="profile-form" class="cl-signoff" data-at="signoff" novalidate>
         ${profilePickers(pf)}
-        <div class="actions"><button class="btn" type="submit">Save sign-off level</button></div>
+        <div class="actions"><button class="btn" type="submit">Save how often we ask</button></div>
         </form>`)}
       ${fold('sec-details', 'details-h', 'Details and services', `${esc(current.name)}, ${services.length ? esc(andList(services.map(svcLabel))) : 'no services'}`, part === 'details', `
         <form id="ov-form" novalidate>
@@ -2065,14 +2070,14 @@
     const to = ({ billing: 'billing', meeting: 'sec-meeting', login: 'sec-login', plan: 'sec-plan', accounts: 'sec-accounts', details: 'sec-details', more: 'sec-more' })[/** @type {'billing'} */ (part)];
     if (to) setTimeout(() => { const el = document.getElementById(to); if (el) el.scrollIntoView({ block: 'start' }); }, 0);
     const pfm = /** @type {HTMLFormElement} */ ($('#profile-form', box));
-    track(pfm, 'Sign-off level');
+    track(pfm, 'How often we ask them first');
     pfm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const done = busy($('button[type=submit]', pfm), 'Saving');
       try {
         await saveProfile(current.id, val(pfm, 'approval'));
         clean(pfm);
-        toast('Sign-off level saved.');
+        toast('Saved how often we ask them.');
         afterSave(done);
       } catch (x) { done(); toast(failMessage(x), true); }
     });
@@ -2477,7 +2482,7 @@
     const chip = st.pending
       ? `<span class="chip plain" title="${esc(MULTICA_HINT)}">Checking Multica</span>`
       : st.configured
-      ? `<span class="chip good multica-chip" title="${esc(how + (st.workspace ? ` Workspace: ${st.workspace}.` : ''))}">Linked to Multica · <button class="linkish" type="button" data-action="board-sync">Check now</button></span>`
+      ? `<span class="chip good multica-chip" title="${esc(how + (st.workspace ? ` Workspace: ${st.workspace}.` : ''))}">Linked to the work board · <button class="linkish" type="button" data-action="board-sync">Check now</button></span>`
       : `<span class="chip warn" title="${esc(st.failed ? `Multica isn't linked: ${st.failed}` : 'Multica isn\'t linked yet. Cards save here as normal. Ask an owner to link it.')}">Multica not linked</span>`;
     box.innerHTML = `${pageFresh({ updatedAt: all.at, source: 'Console work cards, usage and Multica', status: all.reviews && all.reviews.error ? 'delayed' : 'ok', label: all.reviews && all.reviews.error ? 'Some data did not load' : undefined })}
       <div class="toolbar">${toggle}<span class="grow"></span>${chip}<button class="btn btn-sm" type="button" data-action="reveal" aria-expanded="${part === 'new'}" aria-controls="card-form">${icon('plus')}Add a card</button></div>
@@ -3060,7 +3065,7 @@
         </div><div class="actions"><button class="btn" type="submit">Save for all clients</button></div></form>` : `<p class="meta">Meta business ID: ${esc(agencyAccess().metaBusinessId || 'not set')}. Google access email: ${esc(agencyAccess().accessEmail || 'not set')}. Only an owner can change these.</p>`}
       </section>
       <section class="panel" aria-labelledby="s-stripe" id="sec-stripe">${stripePanel()}</section>
-      <section class="panel" aria-labelledby="s-multica" id="sec-multica"><div class="panel-head"><h2 id="s-multica">Multica</h2><p>${MULTICA_HINT}${FLAGS.hermes ? ' ' + HERMES_HINT : ''} ${st.pending ? 'Checking the connection.' : st.configured ? `Linked to the <strong>${esc(st.workspace)}</strong> workspace${st.agent ? '. New cards go to your agent' : ''}. Each card is an issue in the client's Multica project: moves here copy there, and moves there show here.` : `Not linked yet, so cards save here only.${st.failed ? ` ${esc(st.failed)}` : ' Once MULTICA_TOKEN and MULTICA_WORKSPACE are in the Supabase secrets, each card also becomes an issue in its client\'s Multica project.'}`}</p></div>
+      <section class="panel" aria-labelledby="s-multica" id="sec-multica"><div class="panel-head"><h2 id="s-multica" title="Multica">Work board sync</h2><p>${MULTICA_HINT}${FLAGS.hermes ? ' ' + HERMES_HINT : ''} ${st.pending ? 'Checking the connection.' : st.configured ? `Linked to the <strong>${esc(st.workspace)}</strong> workspace${st.agent ? '. New cards go to your agent' : ''}. Each card is an issue in the client's Multica project: moves here copy there, and moves there show here.` : `Not linked yet, so cards save here only.${st.failed ? ` ${esc(st.failed)}` : ' Once MULTICA_TOKEN and MULTICA_WORKSPACE are in the Supabase secrets, each card also becomes an issue in its client\'s Multica project.'}`}</p></div>
         <label class="switch-row"><input type="checkbox" role="switch" data-pref-toggle="autoPull"${prefs.autoPull ? ' checked' : ''}><span><span class="pick-t">Keep boards in step with Multica</span><span class="pick-d">Checks every 90 seconds while a board is open, when it opens, and when you come back to the tab. Off: press Check now yourself.</span></span></label>
       </section>
       ${X ? X.hermes({ hint: HERMES_HINT }) : ''}
@@ -3145,7 +3150,7 @@
     const seg = (name, legend, opts, chosen) => `<fieldset class="pick-set seg-set"><legend>${legend}</legend>
       <div class="seg seg-radio">${opts.map(([k, l]) => `<label><input type="radio" name="${name}" value="${k}"${chosen === k ? ' checked' : ''}><span>${esc(l)}</span></label>`).join('')}</div>
       ${opts.map(([k, , desc]) => `<p class="hint seg-desc" data-v="${k}">${esc(desc)}</p>`).join('')}</fieldset>`;
-    return seg('approval', 'Sign-off level', Object.entries(APPROVAL_LEVELS).map(([k, v]) => [k, v[0], `${v[1]}. ${v[2]}`]), p.approval_level || '');
+    return seg('approval', 'How often we ask them first', Object.entries(APPROVAL_LEVELS).map(([k, v]) => [k, v[0], `${v[1]}. ${v[2]}`]), p.approval_level || '');
   }
   /**
    * Saves the sign-off level for one client. The old call shape (id, tier, level) is still accepted so the parts that were
@@ -4157,7 +4162,7 @@
     const ours = esc(TASK_STATUS_LABEL[v.local] || v.local);
     const theirs = esc(TASK_STATUS_LABEL[v.remote] || v.remote);
     const buttons = conflict
-      ? `<button class="btn btn-sm" type="button" data-dm="keep-ours" title="Keeps ours and copies it to Multica">Keep ours (${ours})</button><button class="btn btn-quiet btn-sm" type="button" data-dm="take-theirs" title="Moves the card here to match Multica">Use Multica's (${theirs})</button>`
+      ? `<button class="btn btn-sm" type="button" data-dm="keep-ours" title="Keeps ours and copies it to Multica, the work board">Keep ours (${ours})</button><button class="btn btn-quiet btn-sm" type="button" data-dm="take-theirs" title="Moves the card here to match Multica, the work board">Use the work board's (${theirs})</button>`
       : '<button class="btn btn-quiet btn-sm" type="button" data-dm="resolve">Mark as fixed</button>';
     const task = conflict && all ? (all.tasks || []).find((/** @type {any} */ k) => k.id === v.taskId) : null;
     const text = conflict
@@ -4198,7 +4203,7 @@
     const conflicts = r.exceptions.filter((x) => x.reason_code === 'multica_conflict');
     const rest = `${r.exceptions.filter((x) => x.reason_code !== 'multica_conflict').map((x) => dmExceptionCard(x, showClient)).join('')}${r.items.map((x) => dmItemCard(x, showClient)).join('')}${r.invoices.map((x) => dmInvoiceCard(x, showClient)).join('')}`;
     const body = count
-      ? (conflicts.length ? `<${hx} class="panel-sub">Board and Multica disagree</${hx}><ul class="q dm-list">${conflicts.map((x) => dmExceptionCard(x, showClient)).join('')}</ul>${rest ? `<${hx} class="panel-sub">Approvals</${hx}>` : ''}` : '')
+      ? (conflicts.length ? `<${hx} class="panel-sub" title="This board and Multica, the work board, show different columns">This board and the work board disagree</${hx}><ul class="q dm-list">${conflicts.map((x) => dmExceptionCard(x, showClient)).join('')}</ul>${rest ? `<${hx} class="panel-sub">Approvals</${hx}>` : ''}` : '')
         + (rest ? `<ul class="q dm-list">${rest}</ul>` : '')
       : `<p class="meta">Nothing to check.</p>`;
     if (tenantId) return `<section class="panel" aria-labelledby="g-dm"><div class="panel-head"><h2 id="g-dm">Check before it goes live <span class="meta">${count}</span></h2><p title="${esc(lede)}">${autoOn ? 'Some items may go live by themselves. Hover for details.' : 'Clients see nothing new until you approve it.'}</p></div>${notice}${dmSyncLine(tenantId)}${body}</section>`;

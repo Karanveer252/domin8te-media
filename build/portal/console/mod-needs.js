@@ -348,7 +348,7 @@
       },
       { id: 'billing', label: 'Open in Billing →', tone: 'link', href: `#/billing/${tid}` }
     ];
-    return { title, wrong, sees, fix: 'Use the console value: it is the source of truth and replaces what they see.', detail: compare('Console (source of truth)', 'Client dashboard', rows), actions };
+    return { title, wrong, sees, fix: 'Use the console value: it is the one we keep up to date, and it replaces what they see.', detail: compare('Console', 'Client dashboard', rows), actions };
   }
 
   /** @param {any} cx @returns {Model} */
@@ -721,11 +721,11 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'service' : 'services'}
     ];
     void tid;
     return {
-      title: `${label}: the new number is far from the last verified`,
+      title: `${label}: the new number is far from the last checked one`,
       wrong: String(ex.message || 'This number is more than 40% away from the last verified one.'),
       sees: `They keep seeing ${old === undefined ? 'the last verified number' : `${old}${unit}`}${v.period_end ? `, verified to ${dayText(String(v.period_end).slice(0, 10))}` : ''}. The new number is hidden.`,
       fix: 'Check it against the source: if it is right, verify and publish it; if not, keep it hidden.',
-      detail: compare('Last verified', 'New number (hidden)', rows), actions
+      detail: compare('Last checked', 'New number (hidden)', rows), actions
     };
   }
 
@@ -770,6 +770,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'service' : 'services'}
   /* ---- drawing -------------------------------------------------------------------------------------------- */
 
   /** @param {any} ex */
+  /** A phone-width screen (the console's 760px switch). C13.1 */
+  const phone = () => !!(window.matchMedia && window.matchMedia('(max-width: 760px)').matches);
   function card(ex) {
     const k = KINDS[ex.reason_code];
     const { cx, m } = modelOf(ex);
@@ -786,12 +788,16 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'service' : 'services'}
         <div class="nx-body">
           <div class="nx-head"><h3 id="nx-h-${id}">${esc(m.title)}</h3><span class="nx-who"><a href="#/client/${esc(cx.tid)}/overview">${esc(cx.name)}</a><span class="nx-sep" aria-hidden="true"> · </span><span>${esc(C().ago(ex.detected_at))}</span>${ex.severity === 'critical' ? '<span class="chip bad plain">Urgent</span>' : ''}</span></div>
           ${m.stale ? `<p class="nx-stale">${esc(m.stale)} Close it to clear it from the queue.</p>` : ''}
-          <dl class="nx-facts">
+          ${phone()
+            // C13.1: on a phone only "What is wrong" shows; what the client sees, the fix and the comparison fold (closed), so the buttons reach the first screen
+            ? `<dl class="nx-facts"><div><dt>What is wrong</dt><dd>${esc(m.wrong)}</dd></div></dl>
+          <details class="reveal nx-more-fold"><summary>What they see and the fix</summary><dl class="nx-facts"><div><dt>Client sees now</dt><dd>${esc(m.sees)}</dd></div>${m.stale ? '' : `<div><dt>Fastest fix</dt><dd>${esc(m.fix)}</dd></div>`}</dl>${m.detail ? `<div class="nx-detail">${m.detail}</div>` : ''}</details>`
+            : `<dl class="nx-facts">
             <div><dt>What is wrong</dt><dd>${esc(m.wrong)}</dd></div>
             <div><dt>Client sees now</dt><dd>${esc(m.sees)}</dd></div>
             ${m.stale ? '' : `<div><dt>Fastest fix</dt><dd>${esc(m.fix)}</dd></div>`}
           </dl>
-          ${m.detail ? `<div class="nx-detail">${m.detail}</div>` : ''}
+          ${m.detail ? `<div class="nx-detail">${m.detail}</div>` : ''}`}
           ${hints.length ? `<p class="nx-hint">${esc(hints[0])}</p>` : ''}
         </div>
       </div>
@@ -922,7 +928,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'service' : 'services'}
         g++;
       }
     }
-    line.hidden = !g;
+    line.hidden = !g || phone();   // C13.1: on a phone each group's own "Show more" says it
     if (g) line.textContent = g === 1 ? `${total - fd} shown, ${fd} more in client groups. Open "Show ${one} more" to see them.` : `${total - fd} shown, ${fd} more in client groups. Open "Show more" in each group to see them.`;
   }
 

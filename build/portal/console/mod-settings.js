@@ -190,7 +190,7 @@
     };
     return `<div class="pl-wrap"><table class="pl-grid"><caption class="sr-only">Monthly limits for each plan</caption>
       <thead><tr><th scope="col" class="pl-corner"><span class="sr-only">Limit</span></th>${m.plans.map((/** @type {any} */ pl) => `<th scope="col">${esc(pl.name)}</th>`).join('')}</tr></thead>
-      ${m.services.map((/** @type {any} */ s) => `<tbody><tr class="pl-svc"><th scope="colgroup" colspan="${cols}">${esc(s.label)}${s.id === 'website' && starter ? `<span class="pl-svc-note">${esc(starter.name)} gets one of these each month, chosen with its pick.</span>` : ''}</th></tr>
+      ${m.services.map((/** @type {any} */ s) => `<tbody><tr class="pl-svc"><th scope="colgroup" colspan="${cols}">${esc(s.label)}${s.id === 'website' && starter ? `<span class="pl-svc-note">${esc(starter.name)} gets one of these each month, when Website is one of its services.</span>` : ''}</th></tr>
         ${s.metrics.map((/** @type {any} */ x) => `<tr><th scope="row">${esc(mLabel(x.metric, x.label))}</th>${m.plans.map((/** @type {any} */ pl) => cellHtml(pl, s, x)).join('')}</tr>`).join('')}</tbody>`).join('')}
     </table></div>`;
   }
@@ -893,7 +893,7 @@
   }
   /** The freshness line and a row of links to the parts of this long page. */
   function top() {
-    const links = [['sec-plans', 'Plans and limits'], ['sec-reminders', 'Reminder emails'], ['sec-notify', 'Message emails'], ['team-box', 'Team'], ['sec-access', 'Client access details'], ['sec-stripe', 'Stripe (payments)'], ['sec-multica', 'Multica (work board sync)'], ...(isOwner() ? [['gates-box', 'Auto-publish']] : []), ['sec-look', 'Preferences']];
+    const links = [['sec-plans', 'Plans and limits'], ['sec-reminders', 'Reminder emails'], ['sec-notify', 'Message emails'], ['team-box', 'Team'], ['sec-access', 'Client access details'], ['sec-stripe', 'Stripe (payments)'], ['sec-multica', 'Work board sync'], ...(isOwner() ? [['gates-box', 'Auto-publish']] : []), ['sec-look', 'Preferences']];
     return `${freshHtml()}
       <nav class="set-index" aria-label="On this page">${links.map(([id, t]) => `<button type="button" data-action="jump" data-to="${id}">${esc(t)}</button>`).join('')}</nav>`;
   }

@@ -170,7 +170,7 @@
         ctl = { kind: 'off', off: 'Turned down' };
         sub = 'Turned down. It needs a new version before it can be shown.';
       } else if (live) {
-        chip = it.pending_at ? ['info', 'Change waiting'] : it.verification_status === 'stale' ? ['warn', 'Delayed'] : ['good', 'Verified'];
+        chip = it.pending_at ? ['info', 'Change waiting'] : it.verification_status === 'stale' ? ['warn', 'Delayed'] : ['good', 'Checked'];
         ctl = { kind: 'switch', on: true };
         const bits = kind === 'result'
           ? [`${c.value != null ? c.value + (c.unit ? ' ' + c.unit : '') : ''}`, c.source || it.source_ref, it.source_observed_at ? `read ${dayText(it.source_observed_at)}` : '']
@@ -183,7 +183,7 @@
         ctl = { kind: 'decide' };
         const bits = [it.source_kind === 'manager' ? 'Sent by the Dashboard Manager' : it.source_kind === 'integration' ? 'From an integration' : 'Added in the console', it.updated_at ? dayText(it.updated_at) : '', it.publish_requested ? 'The team asked to publish this' : 'Not verified yet'];
         sub = dot(bits);
-        if (held) sub += `<br>The new value is far from the last verified one, so it is held. ${needsYou}`;
+        if (held) sub += `<br>The new value is far from the last checked one, so it is held. ${needsYou}`;
       }
       rows.push({ key: 'item:' + it.id, type: kind, id: it.id, title, sub, group: hidden || rejected ? 'off' : live ? 'live' : 'decide', chip, ctl, src: it, when: it.updated_at || it.created_at || '' });
     }

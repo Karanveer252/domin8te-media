@@ -70,7 +70,7 @@
     if (typeof S.logo !== 'string' || S.logo.length > 60000 || !/^data:image\/(png|jpeg|webp);base64,/.test(S.logo)) S.logo = '';
     const logoBlock = K ? `<div class="field nc-logo">${K.logoRow('', { draft: true, value: S.logo, color: S.cardColor, name: S.name })}</div>` : '';
     const levels = c.APPROVAL_LEVELS || {};
-    const approvalPicker = `<fieldset class="pick-set seg-set"><legend>Sign-off level</legend>
+    const approvalPicker = `<fieldset class="pick-set seg-set"><legend>How often we ask them first</legend>
         <div class="seg seg-radio">${Object.entries(levels).map(([k, v]) => `<label><input type="radio" name="approval" value="${esc(k)}"${S.approval === k ? ' checked' : ''}><span>${esc(/** @type {any} */ (v)[0])}</span></label>`).join('')}</div>
         ${Object.entries(levels).map(([k, v]) => `<p class="hint seg-desc" data-v="${esc(k)}">${esc(/** @type {any} */ (v)[1])}. ${esc(/** @type {any} */ (v)[2])}</p>`).join('')}</fieldset>`;
 
@@ -93,10 +93,10 @@
           <p class="field-error" id="n-email-err" role="alert" hidden>That email does not look right. Fix it or leave it empty.</p>
           ${colorPicker}
           ${logoBlock}
-          <details class="reveal fold-more"><summary>More (optional): kind of place, sign-off level</summary>
+          <details class="reveal fold-more"><summary>More (optional): kind of place, how often we ask them first</summary>
             <div class="field"><label for="n-kind">Kind of place</label><input id="n-kind" name="kind" type="text" placeholder="Restaurant, cafe, bar, bakery" maxlength="60" autocomplete="off" value="${esc(S.kind)}"></div>
             ${approvalPicker}
-            <p class="hint">For the team only. The client never sees the sign-off level.</p>
+            <p class="hint">For the team only. The client never sees this setting.</p>
           </details>
         </section>
 

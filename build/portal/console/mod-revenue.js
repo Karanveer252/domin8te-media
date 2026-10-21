@@ -300,7 +300,7 @@
     const arrow = (/** @type {boolean} */ on, /** @type {string} */ to, /** @type {string} */ dir) => on
       ? `<a class="btn btn-quiet rv-arrow" href="${base()}/${to}${tail}" aria-label="${dir === 'back' ? 'Earlier' : 'Later'} month: ${esc(monthName(to))}">${c.icon(dir === 'back' ? 'back' : 'arrow')}</a>`
       : `<span class="btn btn-quiet rv-arrow" aria-disabled="true" role="img" aria-label="${dir === 'back' ? 'No earlier months' : 'This is the latest month'}" style="opacity:.4;pointer-events:none">${c.icon(dir === 'back' ? 'back' : 'arrow')}</span>`;
-    return `<div class="rv-month"><div class="rv-month-card">${arrow(canPrev, prev, 'back')}<h2 class="rv-month-h" id="rv-month-h" aria-live="polite">${esc(monthName(ym))}</h2>${arrow(canNext, next, 'next')}</div></div>`;
+    return `<div class="rv-month"><div class="rv-month-card">${arrow(canPrev, prev, 'back')}<h2 class="rv-month-h" id="rv-month-h" aria-live="polite">${esc(monthName(ym))}</h2>${arrow(canNext, next, 'next')}</div> ${books()}</div>`;
   }
 
   /** The three totals: made, spent, kept. @param {any} d */
@@ -2301,11 +2301,11 @@
       <div class="empty"><p><strong>${failed ? 'This page did not load.' : 'This page is private.'}</strong></p><p>${failed ? 'Check your connection and try again.' : 'Only the business owner can see it.'}</p>${failed ? '<a class="btn btn-quiet" href="#/revenue" data-rv-retry>Try again</a>' : '<a class="btn btn-quiet" href="#/queue">Back to Needs you</a>'}</div>`;
   }
 
-  /** The Business / Personal switch at the top of every Revenue page. */
+  /** The Business / Personal switch, beside the month switcher (C9.1: one control row per purpose; the second row is the page tabs). */
   function books() {
     const tail = state.view === 'overview' ? '' : `/${state.view}`;
     const at = (/** @type {string} */ b) => (state.book === b ? ' aria-current="page"' : '');
-    return `<nav class="rv-books" aria-label="Which money"><div class="seg" role="group"><a href="#/revenue/${esc(state.ym)}${tail}"${at('business')}>Business</a><a href="#/revenue/personal/${esc(state.ym)}${tail}"${at('personal')}>Personal</a></div></nav>`;
+    return `<div class="seg rv-book-seg" role="group" aria-label="Which money"><a href="#/revenue/${esc(state.ym)}${tail}"${at('business')}>Business</a><a href="#/revenue/personal/${esc(state.ym)}${tail}"${at('personal')}>Personal</a></div>`;
   }
 
   /**
@@ -2346,7 +2346,7 @@
     state.view = v;
     state.error = '';
     main.innerHTML = `<div class="page-head"><div><h1 id="page-title" tabindex="-1">Revenue</h1><p>${PERS() ? 'Your own money: your job\'s pay, your personal costs and what the business made you. Only you can see this page.' : 'Your business only: what you made, what you spent, what you kept. Only you can see this page.'}</p></div></div>
-      ${books()}<div id="rv-fresh"></div><div id="rv-body" aria-live="off"><div id="rv-wait">${c.skeleton(3)}</div></div><div id="rv-dlgs">${dialogs()}</div>`;
+      <div id="rv-fresh"></div><div id="rv-body" aria-live="off"><div id="rv-wait">${c.skeleton(3)}</div></div><div id="rv-dlgs">${dialogs()}</div>`;
     paintFresh();
     wireDialogs();
     main.onclick = onClick;

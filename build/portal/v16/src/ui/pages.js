@@ -730,7 +730,7 @@
     // The note stays; reconnecting is done from Waiting for you on Home and from Settings.
     const notes = g.notes.map((n) => `<div class="notice is-off">${icon('linkoff')}<p>${esc(n.name)} has been disconnected since ${esc(day(n.since))}${n.lastDay ? `, so its numbers stop on ${esc(day(n.lastDay))}` : ''}. The gap means missing numbers, not a drop.</p></div>`).join('');
     let chart = '';
-    if (g.chart) { chart = chartBlock(g.chart, w, seen.chartShown); seen.chartShown = true; }
+    if (g.chart) { chart = chartBlock(g.chart, w, true); seen.chartShown = true; }
     return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head(groupSources(g, now))}<div class="rtiles">${tiles}</div>${notes}${chart}${g.campaigns.length ? campaigns(g.campaigns) : ''}</section>`;
   }
 
@@ -773,7 +773,8 @@
       const seen = { chartShown: false, tiles: new Map(res.items.map((/** @type {any} */ t) => [t.id, t])) };
       for (const g of res.groups) out.push(group(g, res.window, now, seen));
     }
-    out.push(UI.SourcesTable(res.items));
+    const where = UI.SourcesTable(res.items);
+    if (where) out.push(`<details class="fold fold-where"><summary>Where these numbers come from${icon('chevron-down')}</summary>${where}</details>`);
     return out.join('');
   }
 
