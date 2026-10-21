@@ -566,6 +566,9 @@ select { background-color: rgba(255, 255, 255, 0.78); }
 }
 /* The "1 of 10 tabs, swipe for more" line under the tabs is hidden above 760px (audit C1.3). */
 @media (min-width: 761px) { .tabs-where { display: none; } }
+/* C1.3b (approved by Karan 2026-10-20): from 761px up, a row that overflows (console.js sets .is-over) fades at its edge and keeps its "N of 10 tabs" line */
+.tabs.is-over { margin-right: -16px; padding-right: 64px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 84px), transparent calc(100% - 6px)); mask-image: linear-gradient(to right, #000 calc(100% - 84px), transparent calc(100% - 6px)); }
+@media (min-width: 761px) { .tabs.is-over + .tabs-where { display: block; } }
 .req-status { border: 0; background: rgba(94, 72, 50, 0.08); border-radius: 999px; padding: 3px; }
 .req-status button { border-radius: 999px; min-height: 30px; padding: 0 12px; font-size: 13px; }
 .req-status button[aria-pressed="true"] { background: var(--glass-strong); box-shadow: var(--pill-on); }
@@ -980,8 +983,9 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-
 .soon-strip { margin: 0 0 18px; padding: 10px 16px; border: 1px solid var(--line); border-radius: var(--r-item, 12px); background-color: var(--glass-soft, var(--surface)); box-shadow: var(--glass-shadow-sm, none); }
 .soon-strip > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; color: var(--ink-2); font-size: 14px; }
 .soon-strip > summary::-webkit-details-marker { display: none; }
-.soon-strip > summary::after { content: "+"; margin-left: auto; color: var(--ink-3); }
-.soon-strip[open] > summary::after { content: "\2212"; }
+/* C2.8 (approved by Karan 2026-10-20): the same ▸ fold marker as the other folds, before the text */
+.soon-strip > summary::before { content: "\25B8"; color: var(--ink-3); }
+.soon-strip[open] > summary::before { content: "\25BE"; }
 .soon-strip[open] > summary { margin-bottom: 10px; }
 .soon-strip b { color: var(--ink); font-weight: 650; }
 .soon-strip .q { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
@@ -993,6 +997,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-
 .q-dm { margin-bottom: 14px; }
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] :is(main > .q-fold > summary h2, main > .q-fold > .lede, main > .q-fold .q-client-h, main > .q-fold > .q-client > .q-more > summary) { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > .q-fold > summary h2 .meta { color: #F6F3EE; background-color: rgba(10, 12, 30, 0.32); border-radius: 999px; padding: 3px 7px; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+/* C2.1b (approved by Karan 2026-10-20): the fold headings get the same dark backing as their count, so they read on a bright sky */
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > .q-fold > summary h2 { display: inline-block; padding: 2px 10px; border-radius: 999px; background-color: rgba(10, 12, 30, 0.40); }
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > .q-fold > summary h2::after, html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > #q-intake > .q-fold > summary h2::after { color: rgba(246, 243, 238, 0.86); }
 /* Check before it goes live: one line and two buttons; the rest under Details. */
 .dm-card { gap: 6px; }

@@ -3371,6 +3371,9 @@ select { background-color: rgba(255, 255, 255, 0.78); }
 }
 /* The "1 of 10 tabs, swipe for more" line under the tabs is hidden above 760px (audit C1.3). */
 @media (min-width: 761px) { .tabs-where { display: none; } }
+/* C1.3b (approved by Karan 2026-10-20): from 761px up, a row that overflows (console.js sets .is-over) fades at its edge and keeps its "N of 10 tabs" line */
+.tabs.is-over { margin-right: -16px; padding-right: 64px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 84px), transparent calc(100% - 6px)); mask-image: linear-gradient(to right, #000 calc(100% - 84px), transparent calc(100% - 6px)); }
+@media (min-width: 761px) { .tabs.is-over + .tabs-where { display: block; } }
 .req-status { border: 0; background: rgba(94, 72, 50, 0.08); border-radius: 999px; padding: 3px; }
 .req-status button { border-radius: 999px; min-height: 30px; padding: 0 12px; font-size: 13px; }
 .req-status button[aria-pressed="true"] { background: var(--glass-strong); box-shadow: var(--pill-on); }
@@ -3785,8 +3788,9 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-
 .soon-strip { margin: 0 0 18px; padding: 10px 16px; border: 1px solid var(--line); border-radius: var(--r-item, 12px); background-color: var(--glass-soft, var(--surface)); box-shadow: var(--glass-shadow-sm, none); }
 .soon-strip > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; color: var(--ink-2); font-size: 14px; }
 .soon-strip > summary::-webkit-details-marker { display: none; }
-.soon-strip > summary::after { content: "+"; margin-left: auto; color: var(--ink-3); }
-.soon-strip[open] > summary::after { content: "\2212"; }
+/* C2.8 (approved by Karan 2026-10-20): the same ▸ fold marker as the other folds, before the text */
+.soon-strip > summary::before { content: "\25B8"; color: var(--ink-3); }
+.soon-strip[open] > summary::before { content: "\25BE"; }
 .soon-strip[open] > summary { margin-bottom: 10px; }
 .soon-strip b { color: var(--ink); font-weight: 650; }
 .soon-strip .q { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
@@ -3798,6 +3802,8 @@ html[data-scene="scenes"]:not([data-theme="dark"])[data-page="client"] :is(.tab-
 .q-dm { margin-bottom: 14px; }
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] :is(main > .q-fold > summary h2, main > .q-fold > .lede, main > .q-fold .q-client-h, main > .q-fold > .q-client > .q-more > summary) { color: #F6F3EE; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > .q-fold > summary h2 .meta { color: #F6F3EE; background-color: rgba(10, 12, 30, 0.32); border-radius: 999px; padding: 3px 7px; text-shadow: 0 1px 10px rgba(10, 12, 30, 0.35); }
+/* C2.1b (approved by Karan 2026-10-20): the fold headings get the same dark backing as their count, so they read on a bright sky */
+html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > .q-fold > summary h2 { display: inline-block; padding: 2px 10px; border-radius: 999px; background-color: rgba(10, 12, 30, 0.40); }
 html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > .q-fold > summary h2::after, html[data-scene="scenes"]:not([data-theme="dark"])[data-page="queue"] main > #q-intake > .q-fold > summary h2::after { color: rgba(246, 243, 238, 0.86); }
 /* Check before it goes live: one line and two buttons; the rest under Details. */
 .dm-card { gap: 6px; }
@@ -4940,7 +4946,6 @@ table.bl-grid td .sub, table.bl-grid th .sub { display: block; margin-top: 3px; 
 .bl-c-rem { width: 11%; min-width: 108px; }
 .bl-c-inv { width: 16%; min-width: 148px; }
 .bl-c-stripe { width: 9%; min-width: 90px; }
-.bl-c-inv .bl-approve { width: 100%; }
 table.bl-grid a.row-link { color: var(--ink); font-size: 15px; font-weight: 700; letter-spacing: -0.1px; text-decoration: none; }
 table.bl-grid a.row-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .bl-open { margin-top: 10px; }
@@ -4950,6 +4955,17 @@ table.bl-grid a.row-link:hover { text-decoration: underline; text-underline-offs
 @media (min-width: 1301px) {
   /* Actions stay in view while the table scrolls sideways: the table's own opaque surface (.table-wrap's var(--surface)) and cell-border token (var(--line)) */
   table.bl-grid th.bl-c-act, table.bl-grid td.bl-c-act { position: sticky; right: 0; z-index: 1; background: var(--surface); box-shadow: inset 1px 0 0 var(--line); }
+}
+/* C3.2b option B (approved by Karan 2026-10-20): headers and action buttons may wrap, chips stay on one line, narrower minimums, and the
+   Stripe column hides (the Actions column says "Connect Stripe…" or "Stripe settings"). Fits at 1440 and 1920; from about 1350px up. */
+@media (min-width: 1301px) {
+  table.bl-grid thead th { white-space: normal; }
+  table.bl-grid td.bl-c-act .btn { white-space: normal; text-align: center; }
+  .bl-c-now, .bl-c-next { min-width: 104px; }
+  .bl-c-inv { min-width: 120px; }
+  .bl-c-act { min-width: 124px; }
+  .bl-c-client, .bl-c-lock, .bl-c-rem { min-width: 96px; }
+  table.bl-grid thead th:nth-child(8), table.bl-grid td.bl-c-stripe { display: none; }
 }
 .bl-plan { display: block; font-size: 15px; font-weight: 700; letter-spacing: -0.15px; }
 .bl-mini { margin-top: 6px; padding: 2px 10px 2px 8px; font-size: 12.5px; }
@@ -5065,6 +5081,11 @@ dialog.bill-drawer::backdrop { background: rgba(29, 26, 22, 0.3); -webkit-backdr
   .bd-usage { grid-template-columns: 1fr; }
   .bd-hist-list li { grid-template-columns: 1fr; gap: 0; }
   .bd-foot .btn { flex: 1 1 auto; }
+}
+/* C13.2 (approved by Karan 2026-10-20): phone cards drop the Stripe cell (the action below says Connect Stripe… or Stripe settings) and tighten their rows */
+@media (max-width: 700px) {
+  table.bl-grid td.bl-c-stripe { display: none; }
+  table.bl-grid th, table.bl-grid td { padding-top: 7px; padding-bottom: 7px; }
 }
 
 /* css/32-newclient.css */
