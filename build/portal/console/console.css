@@ -424,6 +424,9 @@ main:has(> .signin) { max-width: none; padding: 16px; }
   .shell { grid-template-columns: minmax(0, 1fr); }
   .topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; background: rgba(244, 241, 236, 0.94); border-bottom: 1px solid var(--line); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
   .topbar .btns { display: flex; gap: 6px; }
+  /* C11.5 (approved by Karan 2026-10-21): the phone search button says Search; under 360px it is the icon again */
+  .topbar .icon-btn.has-word { width: auto; gap: 6px; padding: 0 14px 0 11px; }
+  .icon-btn-word { font-size: 14px; font-weight: 600; }
   .side { position: fixed; inset: 0 auto 0 0; z-index: 45; width: min(320px, 88vw); height: 100dvh; transform: translateX(-100%); transition: transform 220ms var(--ease); box-shadow: none; }
   .side.open { transform: none; box-shadow: 0 0 60px rgba(0, 0, 0, 0.3); }
   .side .side-close { display: inline-flex; }
@@ -1197,3 +1200,4 @@ html[data-theme="dark"] .pick[aria-pressed="true"]::after, html[data-theme="dark
 .btn[aria-current="true"]:hover { background-color: #2B2722; color: #FBF8F3; }
 html[data-theme="dark"] .btn[aria-current="true"] { background-color: #F1EFEA; color: #1D1A16; }
 html[data-theme="dark"] .btn[aria-current="true"]:hover { background-color: #FFFFFF; color: #1D1A16; }
+@media (max-width: 359px) { .topbar .icon-btn.has-word { width: 40px; padding: 0; } .icon-btn-word { display: none; } }
