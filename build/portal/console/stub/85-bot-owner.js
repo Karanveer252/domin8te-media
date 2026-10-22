@@ -55,9 +55,24 @@
     if (!t) throw { code: 'P0002', message: 'thread-missing' };
     if (typeof a.title === 'string' && a.title.trim()) t.title = a.title.trim().slice(0, 80);
     if (typeof a.archived === 'boolean') t.archived = a.archived;
-    if (a.client && NAMES[a.client]) { t.client_slug = a.client; t.client_name = NAMES[a.client]; t.tenant_id = T[a.client]; }
+    const slug = a.p_client || a.client;
+    if (slug) {
+      if (!NAMES[slug]) throw { code: 'PGRST202', message: 'could not find the function' };
+      if (t.kind !== 'custom' && slug !== t.client_slug) throw { code: '22023', message: 'default-thread' };
+      const title = (typeof a.title === 'string' && a.title.trim()) ? a.title.trim() : t.title;
+      if (S.db.bot_owner_threads.some((/** @type {any} */ x) => x.id !== t.id && !x.archived && x.client_slug === slug && x.title.toLowerCase() === title.toLowerCase())) throw { code: '23505', message: 'title-taken' };
+      t.client_slug = slug; t.client_name = NAMES[slug]; t.tenant_id = T[slug];
+    }
     return listed(S.db, t);
   };
+  S.rpcs.bot_owner_thread_delete = (/** @type {any} */ a) => {
+    const i = S.db.bot_owner_threads.findIndex((/** @type {any} */ x) => x.id === a.id);
+    if (i < 0) throw { code: 'PGRST202', message: 'could not find the function' };
+    S.db.bot_owner_msgs = S.db.bot_owner_msgs.filter((/** @type {any} */ m) => m.thread_id !== a.id);
+    S.db.bot_owner_threads.splice(i, 1);   // every thread goes; the real seed skips a deleted default thread (bot_owner_removed)
+    return null;
+  };
+  S.rpcs.bot_owner_clients = () => Object.keys(NAMES).map((slug) => ({ client_slug: slug, client_name: NAMES[slug] }));
   S.rpcs.bot_owner_send = (/** @type {any} */ a) => {
     const t = S.db.bot_owner_threads.find((/** @type {any} */ x) => x.id === a.p_thread_id);
     if (!t) throw { code: 'P0002', message: 'thread-missing' };

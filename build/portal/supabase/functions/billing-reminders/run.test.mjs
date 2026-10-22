@@ -138,3 +138,13 @@ test("without a reply address the email says not to reply, in the text and the h
     assert.ok(!/don(&#39;|')t reply/.test(withReply.text + withReply.html));
   }
 });
+
+test("a copy for a month that already started says so: no 'next month', no change-by date in the past", () => {
+  const r = { ...ROW, kind: "picks_confirmed", bill_date: "2026-10-21", change_by: "2026-10-20" };
+  const m = renderReminder(r, false, "2026-10-22");
+  assert.ok(!/next month/i.test(m.text), m.text);
+  assert.ok(!/until Tue 20 Oct/.test(m.text + m.html));
+  assert.match(m.text, /This is what you have from Wed 21 Oct/);
+  const future = renderReminder({ ...r, bill_date: "2026-11-21", change_by: "2026-11-20" }, false, "2026-10-22");
+  assert.match(future.text, /next month/);
+});

@@ -1078,6 +1078,49 @@
     }
     return dlg;
   }
+  /** "Delete this thread?" in the console's own dialog: Delete or Cancel, Escape cancels. @param {any} t @returns {Promise<boolean>} */
+  function ownerConfirmDelete(t) {
+    const C0 = C();
+    let dlg = /** @type {HTMLDialogElement|null} */ (document.getElementById('bo-delete'));
+    if (!dlg) {
+      dlg = document.createElement('dialog');
+      dlg.className = 'keys-dlg bo-delete';
+      dlg.id = 'bo-delete';
+      dlg.setAttribute('aria-labelledby', 'bo-delete-h');
+      document.body.appendChild(dlg);
+    }
+    const d = dlg;
+    const n = owner.msgs.filter((m) => ownerTid(m) === t.id).length;
+    const where = t.client_name ? ` (${C0.esc(t.client_name)})` : '';
+    d.innerHTML = `<h2 id="bo-delete-h">Delete “${C0.esc(t.title)}”${where}?</h2><p>${n ? `The thread and its ${C0.plural(n, 'message')} go. ` : 'The thread goes. '}This cannot be undone. Archive keeps it out of the way instead.</p>
+      <div class="actions"><button class="btn btn-danger" type="button" value="yes">Delete</button><button class="btn btn-quiet" type="button" value="close">Cancel</button></div>`;
+    const back = /** @type {HTMLElement|null} */ (document.activeElement);
+    return new Promise((resolve) => {
+      // the answer is given the moment Delete or Cancel is pressed (the dialog's own close event can come late, or not at all in
+      // a hidden tab); the close event is only for Escape. finish() runs once.
+      let done = false;
+      const finish = (/** @type {boolean} */ answer) => {
+        if (done) return;
+        done = true;
+        d.removeEventListener('click', onClick);
+        d.removeEventListener('close', onClose);
+        if (d.open) d.close();
+        if (back && back.isConnected) back.focus();
+        resolve(answer);
+      };
+      const onClick = (/** @type {MouseEvent} */ e) => {
+        const el = /** @type {HTMLElement} */ (e.target);
+        if (el.closest('[value="yes"]')) finish(true);
+        else if (e.target === d || el.closest('[value="close"]')) finish(false);
+      };
+      const onClose = () => finish(false);
+      d.addEventListener('click', onClick);
+      d.addEventListener('close', onClose);
+      if (!d.open) d.showModal();
+      const c = /** @type {HTMLElement|null} */ (d.querySelector('[value="close"]'));
+      if (c) c.focus();
+    });
+  }
   function openKeys() {
     const dlg = keysDialog();
     const back = /** @type {HTMLElement|null} */ (document.activeElement);
@@ -1218,6 +1261,7 @@
   });
   const owner = {
     unfolded: /** @type {Set<string>} */ (new Set()),
+    clients: /** @type {{client_slug: string, client_name: string}[]} */ ([]),
     ok: /** @type {boolean|null} */ (null), asking: /** @type {Promise<void>|null} */ (null),
     msgs: /** @type {any[]} */ ([]), threads: /** @type {any[]} */ ([]), threadsOk: true,
     cur: '', view: 'thread', showArchived: false, creating: '', renaming: false,
@@ -1267,7 +1311,7 @@
       if (t.archived && !owner.showArchived) continue;
       const slug = t.client_slug || '';
       let p = out.find((x) => x.slug === slug);
-      if (!p) { p = { slug, name: slug ? t.client_name : 'New chats', threads: [] }; out.push(p); }
+      if (!p) { p = { slug, name: slug ? t.client_name : 'No client yet', threads: [] }; out.push(p); }
       p.threads.push(t);
     }
     return out;
@@ -1277,6 +1321,8 @@
     /** @type {{slug: string, name: string}[]} */
     const out = [];
     for (const t of owner.threads) if (t.client_slug && !out.some((c) => c.slug === t.client_slug)) out.push({ slug: t.client_slug, name: t.client_name });
+    // and the clients whose threads were all deleted (bot_owner_clients), so a new chat can still go to them
+    for (const c of owner.clients) if (c.client_slug && !out.some((x) => x.slug === c.client_slug)) out.push({ slug: c.client_slug, name: c.client_name });
     return out;
   }
   /* v3 (2026-10-22): the client's record (threads carry its slug and name; the record is matched by id, by the slug in its doc, or
@@ -1341,6 +1387,7 @@
     try {
       owner.threads = (await call('bot_owner_threads_list', owner.showArchived ? { p_include_archived: true } : {})) || [];
       owner.threadsOk = true;
+      try { owner.clients = (await call('bot_owner_clients', {})) || []; } catch (x) { owner.clients = []; }   // an older server: the threads' clients only
     } catch (x) { owner.threadsOk = false; }
     if (!owner.cur || (owner.cur !== EARLIER && !ownerThread(owner.cur))) owner.cur = ownerDefault();
     const t = ownerThread(owner.cur);
@@ -1367,7 +1414,8 @@
       : busy ? (ownerProgress(busy) || (OWNER_STATE[ownerStatusOf(busy) || 'queued'] || OWNER_STATE.working).label)
       : last ? last.body : t.last_message_at ? C0.ago(t.last_message_at) : 'No messages yet';
     const when = t.last_message_at ? C0.ago(t.last_message_at) : '';
-    return `<li><button type="button" class="bo-thread${t.open_count ? ' is-busy' : ''}" data-oc-thread="${C0.esc(t.id)}"${on ? ' aria-current="true"' : ''}><span class="bo-thread-t">${C0.esc(t.title)}</span><span class="bo-when">${C0.esc(when)}</span><span class="bo-thread-m">${C0.esc(String(sub).slice(0, 80))}</span></button></li>`;
+    const del = t.archived ? '' : `<button type="button" class="bo-del" data-oc-delete="${C0.esc(t.id)}" aria-label="${C0.esc(`Delete ${t.title}`)}" title="Delete">${C0.icon('trash')}</button>`;
+    return `<li class="bo-row">${del}<button type="button" class="bo-thread${t.open_count ? ' is-busy' : ''}" data-oc-thread="${C0.esc(t.id)}"${on ? ' aria-current="true"' : ''}><span class="bo-thread-t">${C0.esc(t.title)}</span><span class="bo-when">${C0.esc(when)}</span><span class="bo-thread-m">${C0.esc(String(sub).slice(0, 80))}</span></button></li>`;
   }
   /** One project: its name (opens and closes it), its threads, "+ New thread". @param {{slug: string, name: string, threads: any[]}} p */
   function ownerProject(p) {
@@ -1387,7 +1435,7 @@
     const C0 = C();
     const earlier = owner.msgs.some((m) => !ownerTid(m));
     const archivedN = owner.threads.filter((t) => t.archived).length;
-    return `<div class="bo-side-head"><h2 id="bot-owner-h">Ask bots</h2><p class="meta">One chat per client, by topic. The bots draft; nothing goes to a client. Only you see this.</p>${owner.threadsOk ? `<button type="button" class="btn-quiet btn-sm bo-newchat" data-oc-new-chat>${C0.icon('plus')}New chat</button>` : ''}</div>
+    return `<div class="bo-side-head"><div class="bo-side-row"><h2 id="bot-owner-h">Ask bots</h2>${owner.threadsOk ? `<button type="button" class="btn-quiet btn-sm bo-newchat" data-oc-new-chat>${C0.icon('plus')}New chat</button>` : ''}</div><p class="meta">One chat per client, by topic. Drafts only, and only you see this.</p></div>
       ${owner.threadsOk ? '' : '<p class="notice">Projects are not set up on the server yet. Earlier messages are below.</p>'}
       <div class="bo-projs">${ownerProjects().map(ownerProject).join('')}</div>
       ${earlier ? `<ul class="bo-threads bo-earlier"><li><button type="button" class="bo-thread" data-oc-thread="${EARLIER}"${owner.cur === EARLIER ? ' aria-current="true"' : ''}><span class="bo-thread-t">Earlier messages</span><span class="bo-thread-m">From before projects</span></button></li></ul>` : ''}
@@ -1479,7 +1527,7 @@
     const drafts = waiting ? `<button type="button" class="btn-quiet btn-sm bo-drafts-link" data-oc-waiting>Drafts for this client <span class="count">${waiting}</span></button>` : '';
     const tools = drafts + reload + (t.archived
       ? `<button type="button" class="btn-quiet btn-sm" data-oc-restore>Restore</button>`
-      : owner.renaming ? '' : `<details class="bot-menu bo-more"><summary class="btn btn-quiet btn-sm" aria-label="More: rename or archive this thread" title="Rename or archive">···</summary><div class="bot-menu-box" role="group" aria-label="This thread"><button type="button" class="btn btn-quiet btn-sm" data-oc-rename>Rename</button><button type="button" class="btn btn-quiet btn-sm" data-oc-archive>Archive</button></div></details>`);
+      : owner.renaming ? '' : `<details class="bot-menu bo-more"><summary class="btn btn-quiet btn-sm" aria-label="More: rename or archive this thread" title="Rename or archive">···</summary><div class="bot-menu-box" role="group" aria-label="This thread"><button type="button" class="btn btn-quiet btn-sm" data-oc-rename>Rename</button><button type="button" class="btn btn-quiet btn-sm" data-oc-archive>Archive</button><button type="button" class="btn btn-danger btn-sm" data-oc-delete="${C0.esc(t.id)}">Delete</button></div></details>`);
     const reply = t.archived
       ? `<p class="meta bo-ro">This thread is archived. Restore it to write here.</p>`
       : `<form class="convo-reply" id="bot-owner-reply" novalidate>
@@ -1701,6 +1749,13 @@
       if (!sel.matches || !sel.matches('[data-oc-client]') || !sel.value) return;
       sel.disabled = true;
       try {
+        const me = ownerThread(owner.cur);
+        const taken = (/** @type {string} */ title) => owner.threads.some((x) => x.id !== owner.cur && !x.archived && x.client_slug === sel.value && String(x.title).toLowerCase() === title.toLowerCase());
+        if (me && taken(me.title)) {
+          let n = 2, free = `${me.title} ${n}`;
+          while (taken(free)) free = `${me.title} ${++n}`;
+          await ownerUpdate(owner.cur, { title: free });
+        }
         const t = await ownerUpdate(owner.cur, { p_client: sel.value });
         owner.open.add(t.client_slug || '');
         C0.toast(`This chat is now for ${t.client_name}.`);
@@ -1800,6 +1855,22 @@
           if (!owner.showArchived) { owner.cur = ownerDefault(); owner.view = phone() ? 'list' : 'thread'; }
           ownerRedraw(phone() ? '[data-oc-archived]' : '#bo-thread-h');
           C0.undoToast(`Archived “${t.title}”.`, async () => { await ownerUpdate(t.id, { archived: false }); owner.cur = t.id; owner.view = 'thread'; ownerRedraw('#bo-thread-h'); });
+        } catch (x) { C0.toast(say(x), true); }
+        return;
+      }
+      const delBtn = /** @type {HTMLElement|null} */ (el.closest('[data-oc-delete]'));
+      if (delBtn) {
+        const t = ownerThread(delBtn.getAttribute('data-oc-delete') || owner.cur);
+        if (!t || !(await ownerConfirmDelete(t))) return;
+        try {
+          await call('bot_owner_thread_delete', { id: t.id });
+          owner.msgs = owner.msgs.filter((m) => ownerTid(m) !== t.id);
+          owner.drafts.delete(t.id);
+          owner.threads = owner.threads.filter((x) => x.id !== t.id);
+          owner.loaded.delete(t.id);
+          if (owner.cur === t.id) { owner.cur = ownerDefault(); owner.view = phone() ? 'list' : 'thread'; }
+          ownerRedraw(phone() ? '[data-oc-new-chat]' : (owner.cur ? '#bo-thread-h' : '[data-oc-new-chat]'));
+          C0.toast(`Deleted “${t.title}”.`);
         } catch (x) { C0.toast(say(x), true); }
         return;
       }

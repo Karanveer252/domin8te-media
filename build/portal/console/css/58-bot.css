@@ -324,6 +324,37 @@ html[data-theme="dark"] .msg.team .bo-state.you::before { background: #FF5B1F; }
 .bo-thread.is-busy .bo-thread-t::before { content: ""; width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--you-bg); animation: bo-pulse 1.6s var(--ease) infinite; }
 @media (prefers-reduced-motion: reduce) { .bo-thread.is-busy .bo-thread-t::before { animation: none; } }
 .bo-side-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; }
+/* v3 round 4 (Karan's sidebar picture): the title and New chat on one row, one short line under them, a thin scrollbar, and the
+ * "No client yet" group reads as its own thing */
+.bo-side { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+.bo-side-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bo-side-head .bo-newchat { margin: 0; flex: none; }
+.bo-side-head .meta { margin-top: 4px; font-size: 13px; line-height: 1.4; }
+.bo-proj + .bo-proj { margin-top: 2px; }
+.bo-proj-h .bo-mark, .bo-proj-h .cc-badge { margin-right: 2px; }
+.bo-threads { padding-left: 26px; }
+.bo-thread { padding: 6px 10px 7px; }
+.bo-more .bot-menu-box { min-width: 200px; }
+.bo-more .btn-danger { justify-content: flex-start; }
+.bo-menu-note { max-width: 220px; font-size: 12.5px; line-height: 1.35; }
+.bo-delete p { margin: 8px 0 0; color: var(--ink-2); }
+/* round 5 (Karan: "unable to see the delete", "the sidebar isn't fixed"): New chat is a real flex button; every row has a trash
+ * button that takes the time's place on hover, on focus and on the open row (always there on touch screens); the side column runs
+ * the full height of the panel and scrolls inside it */
+.bo-side-head .bo-newchat { display: inline-flex; align-items: center; gap: 6px; }
+.bo-row { position: relative; }
+.bo-row > .bo-thread { padding-right: 40px; }
+.bo-del { position: absolute; top: 6px; right: 6px; z-index: 1; display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--r); background: none; color: var(--ink-3); cursor: pointer; opacity: 0; transition: opacity 120ms var(--ease), background 120ms var(--ease), color 120ms var(--ease); }
+.bo-del .ic { width: 15px; height: 15px; }
+.bo-del:hover { background: var(--bad-bg); color: var(--bad); }
+.bo-del:focus-visible { opacity: 1; outline: 2px solid var(--focus); outline-offset: 1px; }
+.bo-row:hover > .bo-del, .bo-row:focus-within > .bo-del, .bo-row:has(> [aria-current="true"]) > .bo-del { opacity: 1; }
+.bo-row:hover .bo-when, .bo-row:focus-within .bo-when, .bo-row:has(> [aria-current="true"]) .bo-when { visibility: hidden; }
+@media (hover: none) { .bo-del { opacity: 1; } .bo-row .bo-when { visibility: hidden; } }
+@media (min-width: 901px) {
+  .bot-owner.bo2 .bo-side { align-self: stretch; max-height: none; contain: size; }   /* the row is as tall as the thread; the list scrolls inside it */
+}
+.bo-delete .actions { justify-content: flex-end; }
 .bo-head .bo-mark { width: 36px; height: 36px; border-radius: 11px; font-size: 13px; }
 .bo-head { flex-wrap: wrap; row-gap: 8px; }
 .bo-head-t { flex: 1 1 260px; }
@@ -366,3 +397,23 @@ html[data-scene="scenes"] .bo-draft.is-folded .bot-text::after { background: lin
   .bo-tools .bo-more .bot-menu-box { position: absolute; margin-top: 0; }
   .bo-live .bo-lands, #bot-owner-reply .bo-keys { display: none; }   /* the head's Drafts link covers it; Ctrl Enter is a keyboard thing */
 }
+/* round 6 (Karan: "a fixed ratio so that every time I click through ... chats ... it does not change ... the height and width", "fully
+ * optimized for phone and for multiple viewpoints"): the panel is one size whatever the thread holds. Wide screens: the panel is a set
+ * height that follows the window (never under 540px, never over 940px), the side list and the message log scroll inside it, and the
+ * head and the reply box keep their place. Phones and narrow windows (one column): the list is its natural height; an open thread fills
+ * the screen under the top bar, with the reply box pinned to its foot. The reply box only grows by the user's own drag, up to a third. */
+@media (min-width: 901px) {
+  .bot-owner.bo2 { height: clamp(540px, calc(100dvh - 160px), 940px); grid-template-rows: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .bot-owner.bo2[data-view="thread"] { height: max(460px, calc(100dvh - 88px)); grid-template-rows: minmax(0, 1fr); }
+}
+.bot-owner.bo2 .bo-main { min-height: 0; }
+.bot-owner.bo2 .bo-main > .bo-head, .bot-owner.bo2 .bo-main > .convo-reply, .bot-owner.bo2 .bo-main > .bo-ro { flex: none; }
+.bot-owner.bo2 .bo-main .convo-log { flex: 1 1 auto; min-height: 0; max-height: none; }
+.bot-owner.bo2 .bo-main > .empty { flex: 1 1 auto; display: grid; place-content: center; margin: 16px 0 0; }
+.bot-owner.bo2 #bot-owner-body { max-height: 33vh; }
+/* the draft card's header stays one line: the time gives way first */
+.bo-draft-h { white-space: nowrap; min-width: 0; }
+.bo-draft-h .meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 900px) { .bot-owner .log-card { max-width: 100%; } }

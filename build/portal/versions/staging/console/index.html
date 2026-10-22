@@ -1989,6 +1989,101 @@
 })();
 </script>
 <script>
+/* stub/85-bot-owner.js */
+// LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). Ask bots' stand-ins (2026-10-22): Karan's threads with
+// the router (one project per client, General / Photos & social / Website changes) and their messages, with the same shape the real
+// functions return (bot_owner_threads_list, bot_owner_list, bot_owner_thread_create, bot_owner_thread_update, bot_owner_send). A sent
+// message comes alive on its own: queued, then working with a progress line, then a draft from the router, so the live line and the
+// draft card can be looked at here. Nothing is saved or sent anywhere.
+(function () {
+  'use strict';
+  const S = /** @type {any} */ (window).D8STUB;
+  if (!S) return;
+  const T = { bayleaf: 'tnt_preview_bayleaf', osteria: 'tnt_preview_osteria', marlow: 'tnt_preview_marlow' };
+  const NAMES = { bayleaf: 'Bayleaf Kitchen (preview)', osteria: 'Osteria Nove', marlow: 'Marlow & Finch' };
+  const KINDS = [['General', 'general'], ['Photos & social', 'photos_social'], ['Website changes', 'website']];
+  /** @param {number} minutesAgo */
+  const ago = (minutesAgo) => new Date(Date.now() - minutesAgo * 60000).toISOString();
+  let n = 100;
+  const nextId = (/** @type {string} */ p) => `${p}_preview_${++n}`;
+  const copy = (/** @type {any} */ x) => JSON.parse(JSON.stringify(x));
+
+  S.seeds.push((/** @type {any} */ db) => {
+    const threads = [];
+    for (const slug of Object.keys(T)) for (const [title, kind] of KINDS) threads.push({ id: `bot_${slug}_${kind}`, title, kind, client_slug: slug, client_name: NAMES[slug], tenant_id: T[slug], archived: false, created_at: ago(60 * 24 * 9) });
+    threads.push({ id: 'bot_bayleaf_old', title: 'Old brunch ideas', kind: 'custom', client_slug: 'bayleaf', client_name: NAMES.bayleaf, tenant_id: T.bayleaf, archived: true, created_at: ago(60 * 24 * 20) });
+    db.bot_owner_threads = threads;
+    const draft = 'Ten ways to make approving drafts faster\n\n1) Approve all: one button for every small draft that is waiting.\n2) Batch approval: tick several drafts, approve in one click.\n3) Lock after approval: approved items go read-only until un-approved.\n4) Pending approval reminders: a nudge for time-sensitive drafts.\n5) Seasonal job proposer: suggests jobs 3 weeks ahead from holidays and events.\n6) Inline text suggestions with one-click accept.\n7) Voice-note requests with read-back.\n8) Phone photo-drop link per client with auto-enhancement.\n9) Cost and Claude-run meter per client.\n10) Weekly client digest with job templates.\n\nHonorable mentions: a keyboard-only approval flow; a "why this draft" line on every card; a calendar view of what is scheduled; a one-tap "ask for a change" with three preset reasons; a quiet mode for the weekend so nothing nudges you until Monday.';
+    db.bot_owner_msgs = [
+      { id: 'bom_1', thread_id: 'bot_bayleaf_general', author: 'owner', body: 'Give me ten ideas for features that would make approving drafts faster.', status: 'draft_ready', parent_id: null, created_at: ago(60 * 22), updated_at: ago(60 * 22 - 2) },
+      { id: 'bom_2', thread_id: 'bot_bayleaf_general', author: 'router', body: draft, status: 'draft_ready', parent_id: 'bom_1', created_at: ago(60 * 22 - 2), updated_at: ago(60 * 22 - 2) },
+      { id: 'bom_3', thread_id: 'bot_bayleaf_general', author: 'owner', body: 'A post for the Sunday roast, warm not salesy.', status: 'working', parent_id: 'bom_1', created_at: ago(9), updated_at: ago(8) },
+      { id: 'bom_4', thread_id: 'bot_bayleaf_general', author: 'router', body: 'Got it. This is not a coding job, so I have passed it to Grok to draft for Bayleaf Kitchen. The draft will show up in Needs you.', status: 'queued_for_grok', parent_id: 'bom_3', created_at: ago(8), updated_at: ago(8) },
+      { id: 'bom_5', thread_id: 'bot_bayleaf_general', author: 'owner', body: 'Write a caption for the new patio photos.', status: 'working', progress_text: 'Reading the last 20 posts', progress_at: ago(1), parent_id: 'bom_1', created_at: ago(3), updated_at: ago(1) },
+      { id: 'bom_6', thread_id: 'bot_osteria_website', author: 'owner', body: 'Add the new opening hours to the menu page.', status: 'draft_ready', parent_id: null, created_at: ago(60 * 30), updated_at: ago(60 * 30 - 3) },
+      { id: 'bom_7', thread_id: 'bot_osteria_website', author: 'router', body: 'Here is the menu page line: Open Tuesday to Sunday, 12 to 3 and 6 to 10. Closed Mondays.', status: 'draft_ready', parent_id: 'bom_6', created_at: ago(60 * 30 - 3), updated_at: ago(60 * 30 - 3) }
+    ];
+  });
+
+  /** A thread as the server lists it: with how many of Karan's messages are still open and when it last moved. @param {any} db @param {any} t */
+  function listed(db, t) {
+    const mine = db.bot_owner_msgs.filter((/** @type {any} */ m) => m.thread_id === t.id);
+    const open = mine.filter((/** @type {any} */ m) => m.author === 'owner' && !['draft_ready', 'needs_client', 'failed'].includes(m.status)).length;
+    const last = mine.map((/** @type {any} */ m) => m.created_at).sort().pop() || null;
+    return { ...copy(t), open_count: open, last_message_at: last };
+  }
+  S.rpcs.bot_owner_threads_list = (/** @type {any} */ a) =>
+    S.db.bot_owner_threads.filter((/** @type {any} */ t) => a.p_include_archived || !t.archived).map((/** @type {any} */ t) => listed(S.db, t));
+  S.rpcs.bot_owner_list = (/** @type {any} */ a) =>
+    copy(S.db.bot_owner_msgs.filter((/** @type {any} */ m) => (!a.p_thread_id || m.thread_id === a.p_thread_id) && (!a.since || String(m.updated_at || m.created_at) > String(a.since))));
+  S.rpcs.bot_owner_thread_create = (/** @type {any} */ a) => {
+    const slug = a.client || '';
+    const t = { id: nextId('bot'), title: a.title || (slug ? 'New thread' : 'New chat'), kind: 'custom', client_slug: slug, client_name: slug ? NAMES[slug] || slug : '', tenant_id: T[slug] || null, archived: false, created_at: new Date().toISOString() };
+    S.db.bot_owner_threads.unshift(t);
+    return listed(S.db, t);
+  };
+  S.rpcs.bot_owner_thread_update = (/** @type {any} */ a) => {
+    const t = S.db.bot_owner_threads.find((/** @type {any} */ x) => x.id === a.id);
+    if (!t) throw { code: 'P0002', message: 'thread-missing' };
+    if (typeof a.title === 'string' && a.title.trim()) t.title = a.title.trim().slice(0, 80);
+    if (typeof a.archived === 'boolean') t.archived = a.archived;
+    const slug = a.p_client || a.client;
+    if (slug) {
+      if (!NAMES[slug]) throw { code: 'PGRST202', message: 'could not find the function' };
+      if (t.kind !== 'custom' && slug !== t.client_slug) throw { code: '22023', message: 'default-thread' };
+      const title = (typeof a.title === 'string' && a.title.trim()) ? a.title.trim() : t.title;
+      if (S.db.bot_owner_threads.some((/** @type {any} */ x) => x.id !== t.id && !x.archived && x.client_slug === slug && x.title.toLowerCase() === title.toLowerCase())) throw { code: '23505', message: 'title-taken' };
+      t.client_slug = slug; t.client_name = NAMES[slug]; t.tenant_id = T[slug];
+    }
+    return listed(S.db, t);
+  };
+  S.rpcs.bot_owner_thread_delete = (/** @type {any} */ a) => {
+    const i = S.db.bot_owner_threads.findIndex((/** @type {any} */ x) => x.id === a.id);
+    if (i < 0) throw { code: 'PGRST202', message: 'could not find the function' };
+    if (S.db.bot_owner_threads[i].kind !== 'custom') throw { code: '22023', message: 'default-thread' };
+    S.db.bot_owner_msgs = S.db.bot_owner_msgs.filter((/** @type {any} */ m) => m.thread_id !== a.id);
+    S.db.bot_owner_threads.splice(i, 1);
+    return null;
+  };
+  S.rpcs.bot_owner_send = (/** @type {any} */ a) => {
+    const t = S.db.bot_owner_threads.find((/** @type {any} */ x) => x.id === a.p_thread_id);
+    if (!t) throw { code: 'P0002', message: 'thread-missing' };
+    if (t.archived) throw { code: 'P0001', message: 'thread-archived' };
+    const now = new Date().toISOString();
+    const m = { id: nextId('bom'), thread_id: t.id, author: 'owner', body: String(a.body || '').slice(0, 4000), status: 'queued', parent_id: a.p_parent_id || null, created_at: now, updated_at: now };
+    S.db.bot_owner_msgs.push(m);
+    // the router's side of it, in this page only: working with a progress line, then a draft
+    setTimeout(() => { m.status = 'working'; m.progress_text = 'Reading the last 20 posts'; m.progress_at = new Date().toISOString(); m.updated_at = m.progress_at; }, 1500);
+    setTimeout(() => {
+      const at = new Date().toISOString();
+      m.status = 'draft_ready'; m.updated_at = at;
+      S.db.bot_owner_msgs.push({ id: nextId('bom'), thread_id: t.id, author: 'router', body: `Draft for ${t.client_name || 'the client'}: ${m.body}\n\nThree short lines, warm and plain, ending with a reason to come in this week.`, status: 'draft_ready', parent_id: m.id, created_at: at, updated_at: at });
+    }, 7000);
+    return copy(m);
+  };
+})();
+</script>
+<script>
 /* stub/86-atomic.js */
 // LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). Stand-ins for 20261014110100_usage_live_and_atomic.sql
 // (2026-10-14): the "live at a time" limits are snapshots (a row says how many are live now; the newest row that is not voided is what is
@@ -5779,6 +5874,83 @@ html[data-theme="dark"] .msg.team .bo-state.you::before { background: #FF5B1F; }
 @keyframes bo-ping { 0% { transform: scale(0.4); opacity: 0.45; } 100% { transform: scale(1.4); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .bo-live-dot::after { animation: none; } }
 
+/* Ask bots v3 (2026-10-22, Karan: "match the current design language and then build on it"): additions only, on the rules above.
+ * The status row says "Drafts" before the draft pills; a thread row shows a client mark, a pulsing dot when busy, the time of its
+ * newest message and what is going on in it; the thread head carries the client's mark, a lock ("Only you see this"), a link to that
+ * client's waiting drafts, and Rename / Archive behind one "More" button; a draft is a card with a header, folded when long, with
+ * Copy text and Ask again; the hand-over note is a centred line with the status chip; the live line links to Waiting; the reply box
+ * has starters above it and a short "To" line with the keys. Every colour, radius and font stays the console's own. */
+.bot-status .seg-label { align-self: center; margin: 0 2px 0 8px; color: var(--ink-3); font-size: 13.5px; font-weight: 600; }
+.bo-mark { display: inline-grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 7px; background: var(--surface-3); color: var(--ink-2); font: 700 10.5px/1 var(--font); letter-spacing: 0.02em; }
+.bo-mark.is-d8 { background: linear-gradient(135deg, #FF5B1F, #F3CB3C); color: #fff; }
+.bo-proj-h .cc-badge, .bo-head .cc-badge { flex: none; }
+.bo-side { overflow-x: hidden; }
+.bo-projs, .bo-proj, .bo-proj-h, .bo-threads, .bo-threads > li, .bo-thread { min-width: 0; max-width: 100%; }
+.bo-thread { grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; align-items: baseline; }
+.bo-thread .bo-when { color: var(--ink-3); font-size: 12px; font-weight: 500; }
+.bo-thread .bo-thread-m { grid-column: 1 / -1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-thread.is-busy .bo-thread-t { display: inline-flex; align-items: center; gap: 7px; }
+.bo-thread.is-busy .bo-thread-t::before { content: ""; width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--you-bg); animation: bo-pulse 1.6s var(--ease) infinite; }
+@media (prefers-reduced-motion: reduce) { .bo-thread.is-busy .bo-thread-t::before { animation: none; } }
+.bo-side-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; }
+/* v3 round 4 (Karan's sidebar picture): the title and New chat on one row, one short line under them, a thin scrollbar, and the
+ * "No client yet" group reads as its own thing */
+.bo-side { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+.bo-side-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bo-side-head .bo-newchat { margin: 0; flex: none; }
+.bo-side-head .meta { margin-top: 4px; font-size: 13px; line-height: 1.4; }
+.bo-proj + .bo-proj { margin-top: 2px; }
+.bo-proj-h .bo-mark, .bo-proj-h .cc-badge { margin-right: 2px; }
+.bo-threads { padding-left: 26px; }
+.bo-thread { padding: 6px 10px 7px; }
+.bo-more .bot-menu-box { min-width: 200px; }
+.bo-more .btn-danger { justify-content: flex-start; }
+.bo-menu-note { max-width: 220px; font-size: 12.5px; line-height: 1.35; }
+.bo-delete p { margin: 8px 0 0; color: var(--ink-2); }
+.bo-delete .actions { justify-content: flex-end; }
+.bo-head .bo-mark { width: 36px; height: 36px; border-radius: 11px; font-size: 13px; }
+.bo-head { flex-wrap: wrap; row-gap: 8px; }
+.bo-head-t { flex: 1 1 260px; }
+.bo-head-t .meta { display: flex; align-items: center; gap: 4px 8px; white-space: nowrap; }
+.bo-head-t .meta > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.bo-tools { margin-left: auto; flex-wrap: nowrap; }
+@media (max-width: 1360px) { .bo-lock > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .bo-starters .chip:nth-of-type(3) { display: none; } }   /* a narrow pane keeps the lock, its words go to the title and to readers */
+.bo-lock { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.bo-lock .ic { width: 12px; height: 12px; flex: none; }
+.bo-tools { align-items: center; }
+.bo-tools .btn-quiet, .bo-draft-f .btn-quiet { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.bo-tools .btn-quiet .ic, .bo-draft-f .btn-quiet .ic { width: 14px; height: 14px; flex: none; }
+.bo-drafts-link .count { padding: 0 6px; border-radius: 999px; background: var(--you); color: #fff; font-size: 11.5px; line-height: 1.6; }
+.bo-more { flex: none; }
+.bo-more > summary { display: inline-flex; min-width: 36px; padding-inline: 10px; font-size: 16px; letter-spacing: 0.08em; }
+.bo-more .bot-menu-box { left: auto; right: 0; }
+.bo-draft-h { display: flex; align-items: center; gap: 8px; margin: -2px 0 10px; padding: 0 0 8px; border-bottom: 1px solid var(--line); color: var(--ink-2); font-size: 13px; font-weight: 650; }
+.bo-draft-h .ic { width: 14px; height: 14px; flex: none; }
+.bo-draft-h .meta { margin-left: auto; font-size: 12.5px; }
+.bo-draft.is-folded .bot-text { position: relative; max-height: 230px; overflow: hidden; }
+.bo-draft.is-folded .bot-text::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(rgba(255, 255, 255, 0), var(--surface)); }
+html[data-scene="scenes"] .bo-draft.is-folded .bot-text::after { background: linear-gradient(rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.96)); }
+.bo-draft-f { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.bo-draft-f .linkish { margin-right: auto; }
+.bo-sys { justify-self: center; display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px; max-width: min(88%, 640px); color: var(--ink-3); font-size: 13.5px; text-align: center; }
+.bo-live .meta .linkish { font-size: inherit; }
+.bo-starters { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; margin: 0 0 10px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.bo-starters::-webkit-scrollbar { display: none; }
+.bo-starters > * { flex: none; }
+.bo-starters .chip { border: 0; cursor: pointer; }
+.bo-starters .chip:hover { background: var(--surface-3); color: var(--ink); }
+.bo-to { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); font-weight: 600; }
+.bo-to .ic { width: 12px; height: 12px; flex: none; }
+#bot-owner-reply .actions { flex-wrap: nowrap; }
+#bot-owner-to { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#bot-owner-reply .bo-keys { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+@media (max-width: 900px) {
+  .bo-tools { flex-wrap: wrap; justify-content: flex-end; }
+  .bo-tools .bo-more, .bo-tools .bo-more > summary { width: auto; }   /* the card menus go full width on phones; this one stays a button */
+  .bo-tools .bo-more .bot-menu-box { position: absolute; margin-top: 0; }
+  .bo-live .bo-lands, #bot-owner-reply .bo-keys { display: none; }   /* the head's Drafts link covers it; Ctrl Enter is a keyboard thing */
+}
+
 /* css/59-usage.css */
 /* Dashboard use (mod-usage.js, 2026-10-16): the Overview panel, the Clients table line and the Needs you block. */
 .us-panel { margin-top: var(--gap, 16px); }
@@ -6782,6 +6954,8 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 10 5.5 4h13L20 10"/><path d="M4 10a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5.5 12v8h13v-8"/><path d="M10 20v-5h4v5"/></symbol>
   <symbol id="i-pushpin" viewBox="0 0 24 24"><path d="M9 3.5h6l-1 5.5 3.5 3.5v2h-11v-2L10 9z"/><path d="M12 14.5V21"/></symbol>
   <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
 </svg>
 <div class="shell">
   <aside class="side" id="side" hidden aria-label="Console navigation">
@@ -11130,7 +11304,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     // C4.1: Ask bots is a chat, not a status, so it sits in its own pill group, apart from the statuses (existing .toolbar gap, no new CSS).
     const statusPills = STATUSES.map(([k, t]) => chip('data-bot-status', k, t, mine.filter((r) => matches(r, { ...v, status: k })).length, v.status === k)).join('');
     const statusSeg = ask
-      ? `<div class="toolbar bot-status"><div class="seg bot-ask" role="group" aria-label="Chat">${chip('data-bot-status', 'ask', 'Ask bots (chat)', ownerOpen(), v.status === 'ask')}</div><div class="seg" role="group" aria-label="Status">${statusPills}</div></div>`
+      ? `<div class="toolbar bot-status"><div class="seg bot-ask" role="group" aria-label="Chat">${chip('data-bot-status', 'ask', 'Ask bots (chat)', ownerOpen(), v.status === 'ask')}</div><span class="seg-label" aria-hidden="true">Drafts</span><div class="seg" role="group" aria-label="Status">${statusPills}</div></div>`
       : `<div class="seg bot-status" role="group" aria-label="Status">${statusPills}</div>`;
     if (ask && v.status === 'ask') return `${statusSeg}${ownerPanel()}`;
     let clientSeg = '';
@@ -11847,6 +12021,36 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     }
     return dlg;
   }
+  /** "Delete this thread?" in the console's own dialog: Delete or Cancel, Escape cancels. @param {any} t @returns {Promise<boolean>} */
+  function ownerConfirmDelete(t) {
+    const C0 = C();
+    let dlg = /** @type {HTMLDialogElement|null} */ (document.getElementById('bo-delete'));
+    if (!dlg) {
+      dlg = document.createElement('dialog');
+      dlg.className = 'keys-dlg bo-delete';
+      dlg.id = 'bo-delete';
+      dlg.setAttribute('aria-labelledby', 'bo-delete-h');
+      document.body.appendChild(dlg);
+    }
+    const d = dlg;
+    const n = owner.msgs.filter((m) => ownerTid(m) === t.id).length;
+    d.innerHTML = `<h2 id="bo-delete-h">Delete “${C0.esc(t.title)}”?</h2><p>${n ? `${C0.plural(n, 'message')} in it ${n === 1 ? 'goes' : 'go'} too. ` : ''}This cannot be undone. Archive keeps it out of the way instead.</p>
+      <div class="actions"><button class="btn btn-danger" type="button" value="yes">Delete</button><button class="btn btn-quiet" type="button" value="close">Cancel</button></div>`;
+    const back = /** @type {HTMLElement|null} */ (document.activeElement);
+    return new Promise((resolve) => {
+      let answer = false;
+      const onClick = (/** @type {MouseEvent} */ e) => {
+        const el = /** @type {HTMLElement} */ (e.target);
+        if (el.closest('[value="yes"]')) { answer = true; d.close(); }
+        else if (e.target === d || el.closest('[value="close"]')) d.close();
+      };
+      d.addEventListener('click', onClick);
+      d.addEventListener('close', () => { d.removeEventListener('click', onClick); if (back && back.isConnected) back.focus(); resolve(answer); }, { once: true });
+      if (!d.open) d.showModal();
+      const c = /** @type {HTMLElement|null} */ (d.querySelector('[value="close"]'));
+      if (c) c.focus();
+    });
+  }
   function openKeys() {
     const dlg = keysDialog();
     const back = /** @type {HTMLElement|null} */ (document.activeElement);
@@ -11986,6 +12190,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     custom: 'Write to the router'
   });
   const owner = {
+    unfolded: /** @type {Set<string>} */ (new Set()),
     ok: /** @type {boolean|null} */ (null), asking: /** @type {Promise<void>|null} */ (null),
     msgs: /** @type {any[]} */ ([]), threads: /** @type {any[]} */ ([]), threadsOk: true,
     cur: '', view: 'thread', showArchived: false, creating: '', renaming: false,
@@ -12035,7 +12240,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       if (t.archived && !owner.showArchived) continue;
       const slug = t.client_slug || '';
       let p = out.find((x) => x.slug === slug);
-      if (!p) { p = { slug, name: slug ? t.client_name : 'New chats', threads: [] }; out.push(p); }
+      if (!p) { p = { slug, name: slug ? t.client_name : 'No client yet', threads: [] }; out.push(p); }
       p.threads.push(t);
     }
     return out;
@@ -12047,6 +12252,39 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     for (const t of owner.threads) if (t.client_slug && !out.some((c) => c.slug === t.client_slug)) out.push({ slug: t.client_slug, name: t.client_name });
     return out;
   }
+  /* v3 (2026-10-22): the client's record (threads carry its slug and name; the record is matched by id, by the slug in its doc, or
+   * by name), its mark (the console's colour badge where the record is known, else its initials) and its waiting drafts. */
+  /** @param {string} slug @param {string} name */
+  function ownerTenant(slug, name) {
+    const C0 = C();
+    const all = (C0.all && C0.all.tenants) || [];
+    return all.find((/** @type {any} */ t) => t.id === slug || (t.doc && t.doc.slug === slug))
+      || all.find((/** @type {any} */ t) => name && t.name === name) || null;
+  }
+  /** @param {string} slug @param {string} name */
+  function ownerMark(slug, name) {
+    const C0 = C();
+    const t = ownerTenant(slug, name);
+    const cc = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.color;
+    if (t && cc && cc.badge) return cc.badge(t.id);
+    const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+    const tag = (words.length > 1 ? words[0][0] + words[1][0] : (words[0] || '?').slice(0, 2)).toUpperCase();
+    return `<span class="bo-mark${/^domin8te/i.test(name || '') ? ' is-d8' : ''}" aria-hidden="true">${C0.esc(tag)}</span>`;
+  }
+  /** This client's drafts that wait for Karan (the Waiting pill's count for that client). @param {string} slug @param {string} name */
+  function ownerWaiting(slug, name) {
+    const t = ownerTenant(slug, name);
+    return t ? placeRows(false).filter((r) => r.tenant_id === t.id && viewStatus(r) === 'waiting').length : 0;
+  }
+  /** Three ways to start, by the thread's kind. */
+  const STARTERS = /** @type {Record<string, string[]>} */ ({
+    general: ['3 Instagram captions for this week', 'Reply to a Google review', 'Plan next month\'s posts'],
+    photos_social: ['Caption these photos', 'A week of posts from our photos', 'A reel idea for this week'],
+    website: ['Rewrite the homepage hero', 'Add this week\'s special to the menu page', 'Fix the opening hours on the site'],
+    custom: ['Write a short update for the client', 'Reply to a Google review', 'Plan next month\'s posts']
+  });
+  /** A draft longer than this is folded until "Show all". */
+  const FOLD_AT = 900;
   /** Where to start: the thread with the newest message, else Domin8te Media's General. */
   function ownerDefault() {
     const live = owner.threads.filter((t) => !t.archived);
@@ -12093,8 +12331,16 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   function ownerThreadItem(t) {
     const C0 = C();
     const on = t.id === owner.cur;
-    const sub = t.archived ? 'Archived' : t.open_count ? `${t.open_count} in progress` : t.last_message_at ? C0.ago(t.last_message_at) : 'No messages yet';
-    return `<li><button type="button" class="bo-thread${t.open_count ? ' is-busy' : ''}" data-oc-thread="${C0.esc(t.id)}"${on ? ' aria-current="true"' : ''}><span class="bo-thread-t">${C0.esc(t.title)}</span><span class="bo-thread-m">${C0.esc(sub)}</span></button></li>`;
+    // v3: the newest message's time on the right; underneath, what is going on (the router's progress line while it works, else
+    // the start of Karan's newest message, else "No messages yet")
+    const mine = owner.msgs.filter((m) => m.author === 'owner' && ownerTid(m) === t.id);
+    const busy = mine.filter((m) => OWNER_ACTIVE.includes(ownerStatusOf(m)) || (!ownerStatusOf(m) && !m.status)).pop();
+    const last = mine[mine.length - 1];
+    const sub = t.archived ? 'Archived'
+      : busy ? (ownerProgress(busy) || (OWNER_STATE[ownerStatusOf(busy) || 'queued'] || OWNER_STATE.working).label)
+      : last ? last.body : t.last_message_at ? C0.ago(t.last_message_at) : 'No messages yet';
+    const when = t.last_message_at ? C0.ago(t.last_message_at) : '';
+    return `<li><button type="button" class="bo-thread${t.open_count ? ' is-busy' : ''}" data-oc-thread="${C0.esc(t.id)}"${on ? ' aria-current="true"' : ''}><span class="bo-thread-t">${C0.esc(t.title)}</span><span class="bo-when">${C0.esc(when)}</span><span class="bo-thread-m">${C0.esc(String(sub).slice(0, 80))}</span></button></li>`;
   }
   /** One project: its name (opens and closes it), its threads, "+ New thread". @param {{slug: string, name: string, threads: any[]}} p */
   function ownerProject(p) {
@@ -12106,7 +12352,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       ? `<li><form class="bo-new-form" data-oc-create="${C0.esc(p.slug)}" novalidate><label class="sr-only" for="bo-new-${C0.esc(p.slug)}">New thread name for ${C0.esc(p.name)}</label><input id="bo-new-${C0.esc(p.slug)}" name="title" maxlength="80" placeholder="Thread name" autocomplete="off"><div class="bo-new-actions"><button class="btn btn-sm" type="submit">Add</button><button class="linkish" type="button" data-oc-create-cancel>Cancel</button></div></form></li>`
       : `<li><button type="button" class="bo-new" data-oc-new-thread="${C0.esc(p.slug)}">${C0.icon('plus')}New thread</button></li>`;
     return `<section class="bo-proj${open ? ' is-open' : ''}">
-      <button type="button" class="bo-proj-h" data-oc-proj="${C0.esc(p.slug)}" aria-expanded="${open}" aria-controls="${C0.esc(id)}">${C0.icon('arrow')}<span class="bo-proj-name">${C0.esc(p.name)}</span>${busy ? `<span class="count" title="${C0.esc(C0.plural(busy, 'request'))} in progress">${busy}</span>` : ''}</button>
+      <button type="button" class="bo-proj-h" data-oc-proj="${C0.esc(p.slug)}" aria-expanded="${open}" aria-controls="${C0.esc(id)}">${C0.icon('arrow')}${p.slug ? ownerMark(p.slug, p.name) : ''}<span class="bo-proj-name">${C0.esc(p.name)}</span>${busy ? `<span class="count" title="${C0.esc(C0.plural(busy, 'request'))} in progress">${busy}</span>` : ''}</button>
       <ul class="bo-threads" id="${C0.esc(id)}"${open ? '' : ' hidden'}>${p.threads.map(ownerThreadItem).join('')}${!p.slug || (owner.showArchived && p.threads.every((t) => t.archived)) ? '' : form}</ul>
     </section>`;
   }
@@ -12114,7 +12360,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     const C0 = C();
     const earlier = owner.msgs.some((m) => !ownerTid(m));
     const archivedN = owner.threads.filter((t) => t.archived).length;
-    return `<div class="bo-side-head"><h2 id="bot-owner-h">Ask bots</h2><p class="meta">Pick a client and a conversation. The bots draft; nothing goes to a client. Only you see this.</p>${owner.threadsOk ? `<button type="button" class="btn-quiet btn-sm bo-newchat" data-oc-new-chat>${C0.icon('plus')}New chat</button>` : ''}</div>
+    return `<div class="bo-side-head"><div class="bo-side-row"><h2 id="bot-owner-h">Ask bots</h2>${owner.threadsOk ? `<button type="button" class="btn-quiet btn-sm bo-newchat" data-oc-new-chat>${C0.icon('plus')}New chat</button>` : ''}</div><p class="meta">One chat per client, by topic. Drafts only, and only you see this.</p></div>
       ${owner.threadsOk ? '' : '<p class="notice">Projects are not set up on the server yet. Earlier messages are below.</p>'}
       <div class="bo-projs">${ownerProjects().map(ownerProject).join('')}</div>
       ${earlier ? `<ul class="bo-threads bo-earlier"><li><button type="button" class="bo-thread" data-oc-thread="${EARLIER}"${owner.cur === EARLIER ? ' aria-current="true"' : ''}><span class="bo-thread-t">Earlier messages</span><span class="bo-thread-m">From before projects</span></button></li></ul>` : ''}
@@ -12134,7 +12380,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       const live = OWNER_ACTIVE.includes(st) || (!st && !m.status);
       // v98: the router's instant reply sits right under the message (before the live line and any note), when it is in this thread
       const acks = owner.msgs.filter((x) => ownerIsAck(x) && x.parent_id === m.id && ownerTid(x) === ownerTid(m)).map(ownerReply).join('');
-      return `<li class="msg team" data-k="${C0.esc(m.id)}"><p>${C0.esc(m.body)}</p><p class="meta">${C0.esc((C0.me && C0.me.name) || 'You')} · ${at}${st && !live ? ` · ${ownerState(st)}` : ''}</p></li>${acks}${live ? ownerLive(m, st) : ''}${noteOn ? `<li class="bo-note" data-k="note-${C0.esc(m.id)}"><p class="meta">${C0.esc(scrubIds(note))}</p></li>` : ''}`;
+      return `<li class="msg team" data-k="${C0.esc(m.id)}"><p>${C0.esc(m.body)}</p><p class="meta">${C0.esc((C0.me && C0.me.name) || 'You')} · ${at}${st && !live ? ` · ${ownerState(st)}` : ''}</p></li>${acks}${live ? ownerLive(m, st) : ''}${noteOn ? `<li class="bo-sys" data-k="note-${C0.esc(m.id)}"><span class="chip ${C0.esc((OWNER_STATE[st] || {}).tone || 'info')}">${C0.esc((OWNER_STATE[st] || {}).label || 'Note')}</span><span>${C0.esc(scrubIds(note))}</span></li>` : ''}`;
     }
     // v98: an ack is drawn under its message when that message is in the same thread, on its own otherwise (archived-thread
     // fallback); a router row with no parent is a note from the router. Both are a plain message, ids scrubbed, whatever their
@@ -12147,8 +12393,12 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     if (!OWNER_FINAL.includes(m.status)) return '';
     const text = scrubIds(m.body);
     if (m.status === 'draft_ready') {
-      return `<li class="item-card log-card bo-draft" data-k="${C0.esc(m.id)}"><div class="bot-text">${C0.esc(text)}</div>
-        <p class="meta">Router · ${at} · <button class="linkish" type="button" data-oc-copy="${C0.esc(m.id)}">Copy text</button></p></li>`;
+      const long = text.length > FOLD_AT && !owner.unfolded.has(m.id);
+      const parent = m.parent_id ? ownerRow(m.parent_id) : null;
+      return `<li class="item-card log-card bo-draft${long ? ' is-folded' : ''}" data-k="${C0.esc(m.id)}${long ? '' : '-open'}">
+        <div class="bo-draft-h">${C0.icon('bot')}Draft answer<span class="meta">Router · ${at}</span></div>
+        <div class="bot-text">${C0.esc(text)}</div>
+        <div class="bo-draft-f">${text.length > FOLD_AT ? `<button class="linkish" type="button" data-oc-more="${C0.esc(m.id)}" aria-expanded="${!long}">${long ? 'Show all' : 'Show less'}</button>` : ''}<button type="button" class="btn-quiet btn-sm" data-oc-copy="${C0.esc(m.id)}">${C0.icon('copy')}Copy text</button>${parent && parent.author === 'owner' && parent.body ? `<button type="button" class="btn-quiet btn-sm" data-oc-again="${C0.esc(parent.id)}">${C0.icon('refresh')}Ask again</button>` : ''}</div></li>`;
     }
     return `<li class="msg" data-k="${C0.esc(m.id)}"><p>${C0.esc(text)}</p><p class="meta">Router · ${at}</p></li>`;
   }
@@ -12171,7 +12421,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     const C0 = C();
     const text = ownerProgress(m) || (st === 'retrying' ? 'Trying again' : st === 'working' ? 'Working on it' : 'Waiting for the router');
     const long = Date.now() - new Date(m.created_at).getTime() < 6 * 3600000;   // no clock on something stuck for hours
-    return `<li class="bo-live" data-k="live-${C0.esc(m.id)}" data-live><p class="meta" role="status"><span class="bo-live-dot" aria-hidden="true"></span><span class="bo-live-t">${C0.esc(text)}</span>${long ? `<span class="bo-live-time" data-from="${C0.esc(m.created_at)}" aria-hidden="true">${ownerElapsed(m.created_at)}</span>` : ''}</p></li>`;
+    return `<li class="bo-live" data-k="live-${C0.esc(m.id)}" data-live><p class="meta" role="status"><span class="bo-live-dot" aria-hidden="true"></span><span class="bo-live-t">${C0.esc(text)}</span>${long ? `<span class="bo-live-time" data-from="${C0.esc(m.created_at)}" aria-hidden="true">${ownerElapsed(m.created_at)}</span>` : ''}${ownerThread(owner.cur) && ownerThread(owner.cur).client_slug ? `<span class="bo-lands">· lands in <button class="linkish" type="button" data-oc-waiting>Waiting</button></span>` : ''}</p></li>`;
   }
   /** Anything in the open thread the router is working on right now. */
   const ownerLiveNow = () => ownerRowsOf(owner.cur).some((m) => m.author === 'owner' && (OWNER_ACTIVE.includes(ownerStatusOf(m)) || !ownerStatusOf(m)));
@@ -12197,18 +12447,23 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     const title = owner.renaming
       ? `<form class="bo-rename" data-oc-rename-form novalidate><label class="sr-only" for="bo-rename-in">Thread name</label><input id="bo-rename-in" name="title" maxlength="80" value="${C0.esc(t.title)}" autocomplete="off"><button class="btn btn-sm" type="submit">Save</button><button class="linkish" type="button" data-oc-rename-cancel>Cancel</button></form>`
       : `<h3 id="bo-thread-h">${C0.esc(t.title)}</h3>`;
-    const tools = reload + (t.archived
+    // v3: this client's waiting drafts first, then Reload, then Rename / Archive behind one "More" button
+    const waiting = t.client_slug ? ownerWaiting(t.client_slug, t.client_name) : 0;
+    const drafts = waiting ? `<button type="button" class="btn-quiet btn-sm bo-drafts-link" data-oc-waiting>Drafts for this client <span class="count">${waiting}</span></button>` : '';
+    const tools = drafts + reload + (t.archived
       ? `<button type="button" class="btn-quiet btn-sm" data-oc-restore>Restore</button>`
-      : owner.renaming ? '' : `<button type="button" class="btn-quiet btn-sm" data-oc-rename>Rename</button><button type="button" class="btn-quiet btn-sm" data-oc-archive>Archive</button>`);
+      : owner.renaming ? '' : `<details class="bot-menu bo-more"><summary class="btn btn-quiet btn-sm" aria-label="More: rename or archive this thread" title="Rename or archive">···</summary><div class="bot-menu-box" role="group" aria-label="This thread"><button type="button" class="btn btn-quiet btn-sm" data-oc-rename>Rename</button><button type="button" class="btn btn-quiet btn-sm" data-oc-archive>Archive</button>${t.kind === 'custom' ? `<button type="button" class="btn btn-danger btn-sm" data-oc-delete>Delete</button>` : `<p class="meta bo-menu-note">General, Photos &amp; social and Website changes stay; archive them instead.</p>`}</div></details>`);
     const reply = t.archived
       ? `<p class="meta bo-ro">This thread is archived. Restore it to write here.</p>`
       : `<form class="convo-reply" id="bot-owner-reply" novalidate>
+          <div class="bo-starters"><span class="meta">Try:</span>${(STARTERS[t.kind] || STARTERS.custom).map((x) => `<button type="button" class="chip plain" data-oc-starter="${C0.esc(x)}">${C0.esc(x)}</button>`).join('')}</div>
           <div class="field"><label for="bot-owner-body">Message the router</label><textarea id="bot-owner-body" name="body" maxlength="4000" rows="3" placeholder="${C0.esc(t.client_slug ? PLACEHOLDER[t.kind] || PLACEHOLDER.custom : 'Ask the router anything')}" aria-describedby="bot-owner-to"></textarea></div>
-          <div class="actions"><button class="btn" type="submit">Send</button><span class="meta" id="bot-owner-to">${t.client_slug ? `Goes to ${C0.esc(t.client_name)} · ${C0.esc(t.title)}.` : 'No client yet: pick one above, or the router will ask.'} Drafts only. <kbd>Ctrl</kbd> <kbd>Enter</kbd> sends.</span></div>
+          <div class="actions"><button class="btn" type="submit">Send</button><span class="meta" id="bot-owner-to">${t.client_slug ? `<span class="bo-to">${C0.icon('lock')}To ${C0.esc(t.client_name)} · ${C0.esc(t.title)}</span> · drafts only.` : 'No client yet: pick one above, or the router will ask. Drafts only.'}</span><span class="meta bo-keys"><kbd>Ctrl</kbd><kbd>Enter</kbd> sends</span></div>
         </form>`;
-    const crumb = t.client_slug ? `<p class="meta">${C0.esc(t.client_name)}</p>`
+    const lock = `<span class="bo-lock" title="Only you see this">${C0.icon('lock')}<span>Only you see this</span></span>`;
+    const crumb = t.client_slug ? `<p class="meta"><span>${C0.esc(t.client_name)}</span>${lock}</p>`
       : `<p class="meta bo-pick">No client yet · <label class="sr-only" for="bo-client">Client for this chat</label><select id="bo-client" data-oc-client${t.archived ? ' disabled' : ''}><option value="">Choose a client</option>${ownerClients().map((c) => `<option value="${C0.esc(c.slug)}">${C0.esc(c.name)}</option>`).join('')}</select></p>`;
-    return `<div class="bo-head">${back}<div class="bo-head-t">${crumb}${title}</div><div class="bo-tools">${tools}</div></div>
+    return `<div class="bo-head">${back}${t.client_slug ? ownerMark(t.client_slug, t.client_name) : ''}<div class="bo-head-t">${crumb}${title}</div><div class="bo-tools">${tools}</div></div>
       ${ownerLog()}${reply}`;
   }
   /** The panel, or nothing for anyone but the owner. */
@@ -12419,6 +12674,13 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       if (!sel.matches || !sel.matches('[data-oc-client]') || !sel.value) return;
       sel.disabled = true;
       try {
+        const me = ownerThread(owner.cur);
+        const taken = (/** @type {string} */ title) => owner.threads.some((x) => x.id !== owner.cur && !x.archived && x.client_slug === sel.value && String(x.title).toLowerCase() === title.toLowerCase());
+        if (me && taken(me.title)) {
+          let n = 2, free = `${me.title} ${n}`;
+          while (taken(free)) free = `${me.title} ${++n}`;
+          await ownerUpdate(owner.cur, { title: free });
+        }
         const t = await ownerUpdate(owner.cur, { p_client: sel.value });
         owner.open.add(t.client_slug || '');
         C0.toast(`This chat is now for ${t.client_name}.`);
@@ -12460,6 +12722,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
         const done = C0.busy(sub, 'Adding');
         try {
           const t = await call('bot_owner_thread_create', { client: slug, title });
+          if (!t || !t.id) throw new Error('No thread came back from the server.');
           owner.threads.push(t);
           owner.creating = '';
           done();
@@ -12497,7 +12760,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       const nc = /** @type {HTMLButtonElement|null} */ (el.closest('[data-oc-new-chat]'));
       if (nc) {
         const done = C0.busy(nc, 'Starting');
-        try { const t = await call('bot_owner_thread_create', {}); owner.threads.unshift(t); done(); await ownerOpenThread(t.id); }
+        try { const t = await call('bot_owner_thread_create', {}); if (!t || !t.id) throw new Error('No chat came back from the server.'); owner.threads.unshift(t); done(); await ownerOpenThread(t.id); }
         catch (x) { done(); C0.toast(say(x), true); }
         return;
       }
@@ -12520,8 +12783,59 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
         } catch (x) { C0.toast(say(x), true); }
         return;
       }
+      if (el.closest('[data-oc-delete]')) {
+        const t = ownerThread(owner.cur);
+        if (!t || !(await ownerConfirmDelete(t))) return;
+        try {
+          await call('bot_owner_thread_delete', { id: t.id });
+          owner.threads = owner.threads.filter((x) => x.id !== t.id);
+          owner.msgs = owner.msgs.filter((m) => ownerTid(m) !== t.id);
+          owner.loaded.delete(t.id);
+          owner.drafts.delete(t.id);
+          owner.cur = ownerDefault();
+          owner.view = phone() ? 'list' : 'thread';
+          ownerRedraw(phone() ? '[data-oc-new-chat]' : '#bo-thread-h');
+          C0.toast(`Deleted “${t.title}”.`);
+        } catch (x) { C0.toast(/default-thread/.test(String(x && /** @type {any} */ (x).message)) ? 'That thread stays. Archive it instead.' : say(x), true); }
+        return;
+      }
       if (el.closest('[data-oc-restore]')) {
         try { await ownerUpdate(owner.cur, { archived: false }); C0.toast('Restored.'); ownerRedraw('#bot-owner-body'); } catch (x) { C0.toast(say(x), true); }
+        return;
+      }
+      // v3: a folded draft opens (and closes) in place
+      const more = /** @type {HTMLElement|null} */ (el.closest('[data-oc-more]'));
+      if (more) {
+        const id = more.getAttribute('data-oc-more') || '';
+        if (owner.unfolded.has(id)) owner.unfolded.delete(id); else owner.unfolded.add(id);
+        redrawOwnerLog();
+        const again = /** @type {HTMLElement|null} */ (document.querySelector(`[data-oc-more="${id}"]`));
+        if (again) again.focus({ preventScroll: true });
+        return;
+      }
+      // v3: Ask again and a starter put words in the box (what was typed stays if the box is not empty); Waiting opens that
+      // client's waiting drafts (the Waiting pill with the client picked)
+      const fill = /** @type {HTMLElement|null} */ (el.closest('[data-oc-again],[data-oc-starter]'));
+      if (fill) {
+        const ta = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('bot-owner-body'));
+        if (!ta) return;
+        const src = fill.hasAttribute('data-oc-again') ? owner.msgs.find((x) => x.id === fill.getAttribute('data-oc-again')) : null;
+        const words = src ? src.body : (fill.getAttribute('data-oc-starter') || '');
+        if (ta.value.trim() && ta.value.trim() !== words.trim()) { C0.toast('There is text in the box already. Clear it first.', true); ta.focus(); return; }
+        ta.value = words;
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+        ta.focus();
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+        return;
+      }
+      if (el.closest('[data-oc-waiting]')) {
+        const t = ownerThread(owner.cur);
+        const ten = t && t.client_slug ? ownerTenant(t.client_slug, t.client_name) : null;
+        ownerKeepDraft();
+        state.view.client = ten ? ten.id : 'all';
+        keepView();
+        const f = /** @type {HTMLElement|null} */ (document.querySelector('[data-bot-status="waiting"]'));
+        if (f) f.click();   // the pill's own handler presses Waiting and redraws the list with this client picked
         return;
       }
       const b = /** @type {HTMLElement|null} */ (el.closest('[data-oc-copy]'));

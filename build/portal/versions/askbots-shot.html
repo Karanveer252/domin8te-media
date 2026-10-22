@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8"><title>Ask bots shot (local only)</title>
+<style>html,body{margin:0;height:100%;overflow:hidden}iframe{border:0;width:100%;height:100%}</style></head>
+<body>
+<!-- LOCAL ONLY, never deployed: opens the preview console on Bot chat and presses Ask bots, so a headless screenshot can see the chat. -->
+<iframe id="f" src="console-preview.html?shot=1#/bot"></iframe>
+<script>
+  const f = document.getElementById('f');
+  f.addEventListener('load', () => {
+    const tick = () => {
+      const w = f.contentWindow, d = f.contentDocument;
+      const pill = d && d.querySelector('[data-bot-status="ask"]');
+      if (!pill) return setTimeout(tick, 200);
+      pill.click();
+      setTimeout(() => {
+        const more = d.querySelector('.bo-more');
+        if (more) more.open = false;
+        w.scrollTo(0, 0);
+      }, 1500);
+    };
+    tick();
+  });
+</script>
+</body></html>

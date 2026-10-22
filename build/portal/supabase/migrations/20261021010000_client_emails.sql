@@ -56,6 +56,12 @@ create or replace function app.tenant_kind(p_tenant uuid) returns text language 
   from (select 1) one left join public.tenants t on t.id = p_tenant
 $$;
 
+-- Addresses that asked for no email. Already there on TEST (outreach work); prod gets an empty, locked copy (2026-10-22).
+create table if not exists public.email_suppressions (
+  email text primary key, created_at timestamptz not null default now(), reason text not null default 'unsubscribe', source text);
+alter table public.email_suppressions enable row level security;
+revoke all on public.email_suppressions from anon, authenticated;
+
 create or replace function app.client_recipients(p_tenant uuid) returns text[] language sql stable security definer set search_path = '' as $$
   select coalesce(array_agg(distinct e order by e), '{}') from (
     select lower(btrim(x)) as e from public.tenants t,

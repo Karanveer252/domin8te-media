@@ -42,7 +42,9 @@ const sameAsNow = (r: ReminderRow) => r.plan_now === r.plan_next &&
   JSON.stringify([...(r.picks_now || [])].sort()) === JSON.stringify([...(r.picks_next || [])].sort());
 
 // canReply: true only when REMINDERS_REPLY_TO is set. Without it a reply goes nowhere, so the sign-off sends people to the dashboard instead.
-export function renderReminder(r: ReminderRow, canReply = false): { subject: string; preview: string; html: string; text: string } {
+// today: the calendar date the email is sent (YYYY-MM-DD). A copy sent for a month that has already started (a "this cycle" change)
+// must not say "next month" or offer a change-by date in the past (Karan, 2026-10-22).
+export function renderReminder(r: ReminderRow, canReply = false, today = new Date().toISOString().slice(0, 10)): { subject: string; preview: string; html: string; text: string } {
   const bill = day(r.bill_date), by = day(r.change_by), zone = zoneName(r.tz);
   const name = r.first_name ? esc(r.first_name.split(" ")[0]) : "there";
   const price = money(r.price_next_minor, r.currency);
@@ -51,7 +53,16 @@ export function renderReminder(r: ReminderRow, canReply = false): { subject: str
     ? (r.website_option_next === "page" ? " (1 new page a month)" : " (2 edits a month)") : "";
   const carried = r.next_source === "auto_carry" || sameAsNow(r);
   let subject: string, preview: string, eyebrow: string, title: string, intro: string, note: string, after: string, button: string, sign: string;
-  if (r.kind === "picks_confirmed") {
+  const started = r.bill_date.slice(0, 10) <= today;
+  if (r.kind === "picks_confirmed" && started) {
+    subject = `Confirmed: ${r.plan_next_name} with ${list(next)}, from ${bill}`;
+    preview = `This is what you have now. Want a change? Message us in your dashboard.`;
+    eyebrow = "Services confirmed"; title = "Your services are set.";
+    intro = `Hi ${name}, thanks. This is what you have from <strong>${esc(bill)}</strong>.`;
+    note = `Want to change something? Send us a message in your dashboard.`;
+    after = `<strong>Nothing to pay today.</strong> This runs from ${esc(bill)}${price ? ` at ${esc(price)} a month` : ""}.`;
+    button = "See my Billing page"; sign = canReply ? "Questions? Just reply to this email." : "Questions? Send us a message in your dashboard.";
+  } else if (r.kind === "picks_confirmed") {
     subject = `Confirmed: ${r.plan_next_name} with ${list(next)} from ${bill}`;
     preview = `Nothing to pay today. You can still change it until ${by}.`;
     eyebrow = "Services confirmed"; title = "Your services for next month are set.";
@@ -86,7 +97,7 @@ export function renderReminder(r: ReminderRow, canReply = false): { subject: str
     ? [["Plan", r.plan_next_name], ["Services", list(next) + site], ["Starts", bill], ...(price ? [["Monthly", price] as [string, string]] : [])]
     : [["Plan", r.plan_now_name || r.plan_next_name], ["Services", list(now.length ? now : next)], ["Next bill", price ? `${price} on ${bill}` : bill]];
   if (r.kind !== "picks_confirmed" && !carried) rows.push(["Next month", `${r.plan_next_name}: ${list(next)}${site}`]);
-  const box = r.kind === "picks_confirmed" ? "Next month" : "Your plan now";
+  const box = r.kind === "picks_confirmed" ? (started ? "Your services" : "Next month") : "Your plan now";
 
   const ink = "#1D1A16", soft = "#5E574F", accent = "#AE3A0B", line = "#ECE6DD";
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -97,7 +108,7 @@ export function renderReminder(r: ReminderRow, canReply = false): { subject: str
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#FAF7F2;border:1px solid ${line};border-radius:22px;overflow:hidden">
 <tr><td style="height:4px;background:#FF5B1F;background:linear-gradient(90deg,#FF5B1F,#F5B700,#2BB673,#2E86DE,#8E44AD,#E84393)"></td></tr>
 <tr><td style="padding:28px 28px 8px">
-<p style="margin:0 0 20px;font-weight:700;font-size:17px">Domin8te</p>
+<p style="margin:0 0 20px;font-weight:700;font-size:17px">Domin8te Media</p>
 <p style="margin:0 0 6px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${accent}">${esc(r.restaurant)} &middot; ${esc(eyebrow)}</p>
 <h1 style="margin:0 0 10px;font-size:28px;line-height:1.15">${esc(title)}</h1>
 <p style="margin:0 0 18px;font-size:16px;line-height:1.5;color:#3A342E">${intro}</p>
