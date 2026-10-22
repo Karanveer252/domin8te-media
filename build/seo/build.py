@@ -166,7 +166,7 @@ def jsonld(p, pages):
                       'description': p['description'], 'datePublished': p['date'],
                       'dateModified': p.get('updated', p['date']), 'author': org, 'publisher': org,
                       'mainEntityOfPage': {'@id': url + '#webpage'}, 'inLanguage': 'en-CA',
-                      'image': BASE + p.get('image', '/assets/og.jpg')})
+                      'image': BASE + p.get('image', '/assets/og.jpg?v=20261022')})
     if p['kind'] == 'blog':
         graph.append({'@type': 'Blog', '@id': url + '#blog', 'name': 'Domin8te Media notes', 'url': url,
                       'publisher': org, 'blogPost': [
@@ -321,7 +321,7 @@ def main_html(p, pages):
 def render(p, pages):
     url = BASE + p['path']
     og_type = 'article' if p['kind'] == 'post' else 'website'
-    image = BASE + (p.get('og') or '/assets/og.jpg')
+    image = BASE + (p.get('og') or '/assets/og.jpg?v=20261022')
     css = ''.join('<link rel="stylesheet" href="%s">\n' % asset(c) for c in
                   ['/assets/site.css', '/assets/v-editorial.css', '/assets/light.css', '/assets/v3.css',
                    '/assets/work.css', '/assets/seo.css'])

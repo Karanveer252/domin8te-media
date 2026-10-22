@@ -113,7 +113,7 @@ org['alternateName'] = ['Domin8te', 'Dominate Media']
 org['description'] = ('Restaurant marketing studio for independent restaurants and cafés: websites, Google Business '
                       'Profile and local SEO, social media and ads, run through one client dashboard.')
 org['logo'] = {'@type': 'ImageObject', 'url': BASE + '/assets/mark-720.webp', 'width': 720, 'height': 397}
-org['image'] = BASE + '/assets/og.jpg'
+org['image'] = BASE + '/assets/og.jpg?v=20261022'
 org['areaServed'] = [{'@type': 'Country', 'name': 'Canada'}, {'@type': 'Country', 'name': 'United States'}]
 org['sameAs'] = org.get('sameAs', [])
 org['contactPoint'] = {'@type': 'ContactPoint', 'contactType': 'sales', 'email': 'karanhelps@domin8temedia.com',
