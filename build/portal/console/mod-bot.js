@@ -1435,7 +1435,7 @@
     const C0 = C();
     const earlier = owner.msgs.some((m) => !ownerTid(m));
     const archivedN = owner.threads.filter((t) => t.archived).length;
-    return `<div class="bo-side-head"><div class="bo-side-row"><h2 id="bot-owner-h">Ask bots</h2>${owner.threadsOk ? `<button type="button" class="btn-quiet btn-sm bo-newchat" data-oc-new-chat>${C0.icon('plus')}New chat</button>` : ''}</div><p class="meta">One chat per client, by topic. Drafts only, and only you see this.</p></div>
+    return `<div class="bo-side-head"><div class="bo-side-row"><h2 id="bot-owner-h">Ask bots</h2>${owner.threadsOk ? `<button type="button" class="btn btn-quiet btn-sm bo-newchat" data-oc-new-chat>${C0.icon('plus')}New chat</button>` : ''}</div><p class="meta">One chat per client, by topic. Drafts only, and only you see this.</p></div>
       ${owner.threadsOk ? '' : '<p class="notice">Projects are not set up on the server yet. Earlier messages are below.</p>'}
       <div class="bo-projs">${ownerProjects().map(ownerProject).join('')}</div>
       ${earlier ? `<ul class="bo-threads bo-earlier"><li><button type="button" class="bo-thread" data-oc-thread="${EARLIER}"${owner.cur === EARLIER ? ' aria-current="true"' : ''}><span class="bo-thread-t">Earlier messages</span><span class="bo-thread-m">From before projects</span></button></li></ul>` : ''}
@@ -1473,7 +1473,7 @@
       return `<li class="item-card log-card bo-draft${long ? ' is-folded' : ''}" data-k="${C0.esc(m.id)}${long ? '' : '-open'}">
         <div class="bo-draft-h">${C0.icon('bot')}Draft answer<span class="meta">Router · ${at}</span></div>
         <div class="bot-text">${C0.esc(text)}</div>
-        <div class="bo-draft-f">${text.length > FOLD_AT ? `<button class="linkish" type="button" data-oc-more="${C0.esc(m.id)}" aria-expanded="${!long}">${long ? 'Show all' : 'Show less'}</button>` : ''}<button type="button" class="btn-quiet btn-sm" data-oc-copy="${C0.esc(m.id)}">${C0.icon('copy')}Copy text</button>${parent && parent.author === 'owner' && parent.body ? `<button type="button" class="btn-quiet btn-sm" data-oc-again="${C0.esc(parent.id)}">${C0.icon('refresh')}Ask again</button>` : ''}</div></li>`;
+        <div class="bo-draft-f">${text.length > FOLD_AT ? `<button class="linkish" type="button" data-oc-more="${C0.esc(m.id)}" aria-expanded="${!long}">${long ? 'Show all' : 'Show less'}</button>` : ''}<button type="button" class="btn btn-quiet btn-sm" data-oc-copy="${C0.esc(m.id)}">${C0.icon('copy')}Copy text</button>${parent && parent.author === 'owner' && parent.body ? `<button type="button" class="btn btn-quiet btn-sm" data-oc-again="${C0.esc(parent.id)}">${C0.icon('refresh')}Ask again</button>` : ''}</div></li>`;
     }
     return `<li class="msg" data-k="${C0.esc(m.id)}"><p>${C0.esc(text)}</p><p class="meta">Router · ${at}</p></li>`;
   }
@@ -1512,7 +1512,7 @@
     const C0 = C();
     const back = `<button type="button" class="icon-btn icon-btn-sm bo-back" data-oc-back aria-label="All threads">${C0.icon('back')}</button>`;
     // v98: Reload, first in the head's tools, in the same look as the v97 Rename / Archive buttons
-    const reload = `<button type="button" class="btn-quiet btn-sm bo-reload" data-oc-refresh${owner.refreshing ? ' disabled aria-busy="true"' : ''}>${C0.icon('refresh')}Reload</button>`;
+    const reload = `<button type="button" class="btn btn-quiet btn-sm bo-reload" data-oc-refresh${owner.refreshing ? ' disabled aria-busy="true"' : ''}>${C0.icon('refresh')}Reload</button>`;
     if (owner.cur === EARLIER) {
       return `<div class="bo-head">${back}<div class="bo-head-t"><p class="meta">Before projects</p><h3 id="bo-thread-h">Earlier messages</h3></div><div class="bo-tools">${reload}</div></div>
         ${ownerLog()}<p class="meta bo-ro">These came in before projects. New messages go in a client's thread.</p>`;
@@ -1524,9 +1524,9 @@
       : `<h3 id="bo-thread-h">${C0.esc(t.title)}</h3>`;
     // v3: this client's waiting drafts first, then Reload, then Rename / Archive behind one "More" button
     const waiting = t.client_slug ? ownerWaiting(t.client_slug, t.client_name) : 0;
-    const drafts = waiting ? `<button type="button" class="btn-quiet btn-sm bo-drafts-link" data-oc-waiting>Drafts for this client <span class="count">${waiting}</span></button>` : '';
+    const drafts = waiting ? `<button type="button" class="btn btn-quiet btn-sm bo-drafts-link" data-oc-waiting>Drafts for this client <span class="count">${waiting}</span></button>` : '';
     const tools = drafts + reload + (t.archived
-      ? `<button type="button" class="btn-quiet btn-sm" data-oc-restore>Restore</button>`
+      ? `<button type="button" class="btn btn-quiet btn-sm" data-oc-restore>Restore</button>`
       : owner.renaming ? '' : `<details class="bot-menu bo-more"><summary class="btn btn-quiet btn-sm" aria-label="More: rename or archive this thread" title="Rename or archive">···</summary><div class="bot-menu-box" role="group" aria-label="This thread"><button type="button" class="btn btn-quiet btn-sm" data-oc-rename>Rename</button><button type="button" class="btn btn-quiet btn-sm" data-oc-archive>Archive</button><button type="button" class="btn btn-danger btn-sm" data-oc-delete="${C0.esc(t.id)}">Delete</button></div></details>`);
     const reply = t.archived
       ? `<p class="meta bo-ro">This thread is archived. Restore it to write here.</p>`

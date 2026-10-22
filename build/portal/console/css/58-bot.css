@@ -417,3 +417,7 @@ html[data-scene="scenes"] .bo-draft.is-folded .bot-text::after { background: lin
 .bo-draft-h { white-space: nowrap; min-width: 0; }
 .bo-draft-h .meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 900px) { .bot-owner .log-card { max-width: 100%; } }
+/* pills (Karan, 2026-10-22: "make the buttons in the bot chat ... the same pill shape like the whole website"): every Ask bots button
+ * is a .btn now (New chat, Drafts for this client, Reload, Rename / Archive / Restore, Copy text, Ask again); the row's trash is round */
+.bo-del { border-radius: 999px; }
+.bo-side-head .bo-newchat, .bo-tools .btn-sm, .bo-draft-f .btn-sm { white-space: nowrap; }
