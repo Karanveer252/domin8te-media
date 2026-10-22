@@ -190,6 +190,8 @@
     let changed = false;
     open(head('Loading', '') + `<div class="dlg-body">${D8.ui.Skeleton('text', 3)}</div>`, trigger, () => { if (changed) ctx.afterChange(); });
     const my = gen;
+    // Opened counts for Karan's Wednesday check (live only; quiet if it fails)
+    if (ctx.client.markOpened) ctx.client.markOpened('approval', id);
     ctx.client.getApproval(id).then((a) => {
       if (my !== gen) return; // another dialog opened while this one loaded
       const now = ctx.client.now();
@@ -215,7 +217,7 @@
           ${demoLine()}
           <p class="form-error" role="alert" hidden></p>
           <div class="dlg-actions">
-            <button class="btn btn-tint" type="submit" value="approved">${esc(a.approve.label)}</button>
+            <button class="btn btn-primary" type="submit" value="approved">${esc(a.approve.label)}</button>
             <button class="btn btn-glass" type="submit" value="changes">${esc(a.change.label)}</button>
           </div>
         </form></div>`;
@@ -553,10 +555,16 @@
    */
   function demo(trigger, ctx) {
     const cur = D8.data.currentScenario();
-    open(head('Preview mode', 'Demo data only. Not a client account.') + `<div class="dlg-body">
+    // A prospect's way in comes first (2026-10-21, item 1), then what we promise (item 20), then the situations to try.
+    const cta = D8.prospect ? `<div class="dlg-cta">${D8.prospect.ctaBlock('h-dlg-cta')}</div>` : '';
+    const promises = D8.promises ? `<h3 class="dlg-h3">What we promise</h3>${D8.promises.html()}` : '';
+    const list = D8.data.scenarios().filter((s) => !s.dev || s.id === cur.id);
+    open(head('Preview mode', 'Demo account with sample figures. Not a real restaurant.') + `<div class="dlg-body">
+      ${cta}
       <p class="dlg-intro">Everything here is made up. ${esc(ctx.account.business.name)} is not a real ${esc(ctx.account.business.kind.toLowerCase())}, and nothing is live. Stripe (our payment service), our sign-in service and the connected accounts are not hooked up, so their buttons tell you what would happen instead.</p>
+      ${promises}
       <h3 class="dlg-h3" id="scn-title">Try another situation</h3>
-      <ul class="scenarios" aria-labelledby="scn-title">${D8.data.scenarios().map((s) => `<li><button class="scenario${s.id === cur.id ? ' is-current' : ''}" type="button" data-scenario="${esc(s.id)}"${s.id === cur.id ? ' aria-current="true"' : ''}><strong>${esc(s.label)}${s.id === cur.id ? '<span class="scn-now">Showing now</span>' : ''}</strong><span>${esc(s.about)}</span></button></li>`).join('')}</ul>
+      <ul class="scenarios" aria-labelledby="scn-title">${list.map((s) => `<li><button class="scenario${s.id === cur.id ? ' is-current' : ''}" type="button" data-scenario="${esc(s.id)}"${s.id === cur.id ? ' aria-current="true"' : ''}><strong>${esc(s.label)}${s.id === cur.id ? '<span class="scn-now">Showing now</span>' : ''}</strong><span>${esc(s.about)}</span></button></li>`).join('')}</ul>
       <p class="meta">Tip: press Alt, Shift and P together to open this panel from any page.</p>
       <h3 class="dlg-h3">Start again</h3>
       <p>Clears the demo approvals, messages and settings.</p>

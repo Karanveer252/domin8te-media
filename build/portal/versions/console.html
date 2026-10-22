@@ -3271,6 +3271,68 @@ html[data-theme="dark"] .msg.team .bo-state.you::before { background: #FF5B1F; }
 @keyframes bo-ping { 0% { transform: scale(0.4); opacity: 0.45; } 100% { transform: scale(1.4); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .bo-live-dot::after { animation: none; } }
 
+/* Ask bots v3 (2026-10-22, Karan: "match the current design language and then build on it"): additions only, on the rules above.
+ * The status row says "Drafts" before the draft pills; a thread row shows a client mark, a pulsing dot when busy, the time of its
+ * newest message and what is going on in it; the thread head carries the client's mark, a lock ("Only you see this"), a link to that
+ * client's waiting drafts, and Rename / Archive behind one "More" button; a draft is a card with a header, folded when long, with
+ * Copy text and Ask again; the hand-over note is a centred line with the status chip; the live line links to Waiting; the reply box
+ * has starters above it and a short "To" line with the keys. Every colour, radius and font stays the console's own. */
+.bot-status .seg-label { align-self: center; margin: 0 2px 0 8px; color: var(--ink-3); font-size: 13.5px; font-weight: 600; }
+.bo-mark { display: inline-grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 7px; background: var(--surface-3); color: var(--ink-2); font: 700 10.5px/1 var(--font); letter-spacing: 0.02em; }
+.bo-mark.is-d8 { background: linear-gradient(135deg, #FF5B1F, #F3CB3C); color: #fff; }
+.bo-proj-h .cc-badge, .bo-head .cc-badge { flex: none; }
+.bo-side { overflow-x: hidden; }
+.bo-projs, .bo-proj, .bo-proj-h, .bo-threads, .bo-threads > li, .bo-thread { min-width: 0; max-width: 100%; }
+.bo-thread { grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; align-items: baseline; }
+.bo-thread .bo-when { color: var(--ink-3); font-size: 12px; font-weight: 500; }
+.bo-thread .bo-thread-m { grid-column: 1 / -1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-thread.is-busy .bo-thread-t { display: inline-flex; align-items: center; gap: 7px; }
+.bo-thread.is-busy .bo-thread-t::before { content: ""; width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--you-bg); animation: bo-pulse 1.6s var(--ease) infinite; }
+@media (prefers-reduced-motion: reduce) { .bo-thread.is-busy .bo-thread-t::before { animation: none; } }
+.bo-side-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; }
+.bo-head .bo-mark { width: 36px; height: 36px; border-radius: 11px; font-size: 13px; }
+.bo-head { flex-wrap: wrap; row-gap: 8px; }
+.bo-head-t { flex: 1 1 260px; }
+.bo-head-t .meta { display: flex; align-items: center; gap: 4px 8px; white-space: nowrap; }
+.bo-head-t .meta > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.bo-tools { margin-left: auto; flex-wrap: nowrap; }
+@media (max-width: 1360px) { .bo-lock > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .bo-starters .chip:nth-of-type(3) { display: none; } }   /* a narrow pane keeps the lock, its words go to the title and to readers */
+.bo-lock { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.bo-lock .ic { width: 12px; height: 12px; flex: none; }
+.bo-tools { align-items: center; }
+.bo-tools .btn-quiet, .bo-draft-f .btn-quiet { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.bo-tools .btn-quiet .ic, .bo-draft-f .btn-quiet .ic { width: 14px; height: 14px; flex: none; }
+.bo-drafts-link .count { padding: 0 6px; border-radius: 999px; background: var(--you); color: #fff; font-size: 11.5px; line-height: 1.6; }
+.bo-more { flex: none; }
+.bo-more > summary { display: inline-flex; min-width: 36px; padding-inline: 10px; font-size: 16px; letter-spacing: 0.08em; }
+.bo-more .bot-menu-box { left: auto; right: 0; }
+.bo-draft-h { display: flex; align-items: center; gap: 8px; margin: -2px 0 10px; padding: 0 0 8px; border-bottom: 1px solid var(--line); color: var(--ink-2); font-size: 13px; font-weight: 650; }
+.bo-draft-h .ic { width: 14px; height: 14px; flex: none; }
+.bo-draft-h .meta { margin-left: auto; font-size: 12.5px; }
+.bo-draft.is-folded .bot-text { position: relative; max-height: 230px; overflow: hidden; }
+.bo-draft.is-folded .bot-text::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(rgba(255, 255, 255, 0), var(--surface)); }
+html[data-scene="scenes"] .bo-draft.is-folded .bot-text::after { background: linear-gradient(rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.96)); }
+.bo-draft-f { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.bo-draft-f .linkish { margin-right: auto; }
+.bo-sys { justify-self: center; display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px; max-width: min(88%, 640px); color: var(--ink-3); font-size: 13.5px; text-align: center; }
+.bo-live .meta .linkish { font-size: inherit; }
+.bo-starters { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; margin: 0 0 10px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.bo-starters::-webkit-scrollbar { display: none; }
+.bo-starters > * { flex: none; }
+.bo-starters .chip { border: 0; cursor: pointer; }
+.bo-starters .chip:hover { background: var(--surface-3); color: var(--ink); }
+.bo-to { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); font-weight: 600; }
+.bo-to .ic { width: 12px; height: 12px; flex: none; }
+#bot-owner-reply .actions { flex-wrap: nowrap; }
+#bot-owner-to { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#bot-owner-reply .bo-keys { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+@media (max-width: 900px) {
+  .bo-tools { flex-wrap: wrap; justify-content: flex-end; }
+  .bo-tools .bo-more, .bo-tools .bo-more > summary { width: auto; }   /* the card menus go full width on phones; this one stays a button */
+  .bo-tools .bo-more .bot-menu-box { position: absolute; margin-top: 0; }
+  .bo-live .bo-lands, #bot-owner-reply .bo-keys { display: none; }   /* the head's Drafts link covers it; Ctrl Enter is a keyboard thing */
+}
+
 /* css/59-usage.css */
 /* Dashboard use (mod-usage.js, 2026-10-16): the Overview panel, the Clients table line and the Needs you block. */
 .us-panel { margin-top: var(--gap, 16px); }
@@ -4274,6 +4336,8 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 10 5.5 4h13L20 10"/><path d="M4 10a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5.5 12v8h13v-8"/><path d="M10 20v-5h4v5"/></symbol>
   <symbol id="i-pushpin" viewBox="0 0 24 24"><path d="M9 3.5h6l-1 5.5 3.5 3.5v2h-11v-2L10 9z"/><path d="M12 14.5V21"/></symbol>
   <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
 </svg>
 <div class="shell">
   <aside class="side" id="side" hidden aria-label="Console navigation">
@@ -5127,7 +5191,14 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       timezone: t.timezone || 'America/Winnipeg',
       plan: t.plan || null,
       homeSections: t.homeSections || [],
-      verifiedResults: t.verifiedResults || null
+      verifiedResults: t.verifiedResults || null,
+      // 2026-10-21: today's panel (live: the daily job's row), the first-visit welcome, missed leads, the next check-in and who checked
+      today: t.today || null,
+      welcome: t.welcome || null,
+      weekWin: t.weekWin || null,
+      missed: t.missed || null,
+      checkin: t.checkin || null,
+      checkedBy: t.checkedBy || null
     });
   }
   /**
@@ -5226,11 +5297,21 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     return st;
   }
 
+  /** The visitor's own wall clock, written the portal's way (local time in UTC fields). */
+  function wallClock() {
+    const d = new Date();
+    return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes());
+  }
+
   /** The demo: a fixture, and the client's actions kept in this browser. @param {any} session */
   function demoSource(session) {
     const sc = currentScenario();
     // Each demo situation can carry its own plan (the same restaurant on Starter, Growth or Domin8te)
-    const raw = fixtures().record ? fixtures().record(session.tenantId, sc) : fixtures().tenants[session.tenantId];
+    const fixed = fixtures().record ? fixtures().record(session.tenantId, sc) : fixtures().tenants[session.tenantId];
+    // Every demo date is relative to the visitor's today (2026-10-21): the fixtures are written for Thu 24 Sep 2026 and move by
+    // whole days, so "today" is always today and the deadlines agree. Tests keep the written dates (D8_DEMO_FIXED_DATE).
+    // ?dates=fixed does the same for the page checks (tools/smoke.js).
+    const raw = fixed && fixtures().rebase && !root.D8_DEMO_FIXED_DATE && query().get('dates') !== 'fixed' ? fixtures().rebase(fixed, wallClock()) : fixed;
     const key = NS + '.demo.' + session.tenantId;
     const state = () => {
       const s = readJSON(key) || {};
@@ -5617,7 +5698,8 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       const pct = Math.round(Math.abs(t.change.pct));
       return {
         state: 'ok', metric: id, label: m.label, unit: m.unit, value: t.value, previous: t.previous, pct, dir: t.change.dir,
-        headline: `${m.label} ${up ? 'rose' : 'fell'} ${pct}% compared with the previous 30 days: ${n2s(t.value)}, ${up ? 'up' : 'down'} from ${n2s(t.previous)}.`,
+        // counted in its own unit, never a percentage first (2026-10-21)
+        headline: `${m.label}: ${n2s(Math.abs(t.change.diff))} ${up ? 'more' : 'fewer'} than the previous 30 days (${n2s(t.value)}, ${up ? 'up' : 'down'} from ${n2s(t.previous)}).`,
         detail, weekdays: top.map((x) => x.dow), sources: srcs
       };
     }
@@ -5639,12 +5721,87 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
         updatedAt: latest ? T.isoTime(latest) : null, openActions: attention().length,
         // What staff wrote for Home (running now, next month, nothing to do, a note); only the ones they made visible
         homeSections: clone(tenant.homeSections || []),
+        // Next check-in with Karan (every two weeks; live: the database's date, else the next meeting) and who last checked the numbers
+        checkin: checkinDay(), checkedBy: checkedBy(),
+        // the one-time welcome on a first sign-in (item 32), or null
+        welcome: welcome(),
         // The restaurant's own clock: every time on every page is in it
         timezone: tenant.timezone, zoneAbbr: F.zoneAbbr(tenant.timezone),
         // The look the client chose (theme, and the ground where the design has one), kept with the
         // account so it follows them to every device. Null until they first choose.
         appearance: clone(state().appearance || null)
       };
+    }
+
+    /** The next check-in with Karan: the day the database set, else the next confirmed meeting, never one in the past. */
+    function checkinDay() {
+      const today = T.dayNum(now());
+      const m = tenant.meeting;
+      const set = tenant.checkin ? String(tenant.checkin).slice(0, 10) : m && m.at && (!m.status || m.status === 'confirmed') ? String(m.at).slice(0, 10) : null;
+      return set && T.dayNum(set) >= today ? set : null;
+    }
+    /**
+     * Who last checked the numbers by hand, and when: the record's own line, else the newest checked summary, else the newest
+     * verified number. Null when nobody has, so nothing is claimed.
+     */
+    function checkedBy() {
+      if (tenant.checkedBy && tenant.checkedBy.at) return clone(tenant.checkedBy);
+      const s = reviewedSummary(null);
+      if (s) return { name: s.reviewedBy, at: s.reviewedAt };
+      const v = (tenant.verifiedResults || []).map((/** @type {any} */ r) => r.verifiedAt).filter(Boolean).sort().pop();
+      return v ? { name: 'Karan', at: v } : null;
+    }
+
+    /**
+     * "Today at <restaurant>" (2026-10-21): the day's numbers against yesterday's and what changed. Live: the row the daily job wrote
+     * for the restaurant's today, or "updating" (never an older day). Demo: the sample tiles with today's date and a "what changed"
+     * line that rotates by day. A number shows only when its source is connected; nothing is estimated and a missing one is not zero.
+     */
+    function today() {
+      const day = T.isoDay(T.dayNum(now()));
+      const p = tenant.today;
+      if (!p) return { day, state: 'none', tiles: [], changed: null };
+      if (MODE === 'live') {
+        if (p.state !== 'ready' || p.day !== day) return { day, state: 'updating', tiles: [], changed: null };
+        return { ...clone(p), day, tiles: (p.tiles || []).filter((/** @type {any} */ x) => hasValue(x.value)) };
+      }
+      const lines = p.changed || [];
+      const connected = (/** @type {string} */ id) => id !== 'adSpend' || inPackage('advertising');
+      return {
+        day, state: 'ready', builtAt: `${day}T06:00`,
+        tiles: (p.tiles || []).filter((/** @type {any} */ x) => connected(x.id)).map((/** @type {any} */ x) => ({ ...clone(x), sourceDay: day })),
+        changed: lines.length ? lines[T.dayNum(now()) % lines.length] : null
+      };
+    }
+    const hasValue = (/** @type {any} */ v) => v !== null && v !== undefined && v !== '' && !Number.isNaN(Number(v));
+
+    /** What was being lost (missed calls and unanswered messages) and what came back. Only when it is on record; never estimated. */
+    function missed() {
+      const m = tenant.missed;
+      return m && hasValue(m.lost) ? clone(m) : null;
+    }
+
+    /** Last week's single biggest result, in customers or dollars: what staff recorded, or none. */
+    function weekWin() {
+      return tenant.weekWin && tenant.weekWin.text ? clone(tenant.weekWin) : null;
+    }
+
+    /** The one-time welcome on a first sign-in: live from the server, the demo once per browser. */
+    function welcome() {
+      const w = tenant.welcome;
+      if (!w || !w.title) return null;
+      if (MODE === 'live') return w.show === false ? null : clone(w);
+      let stored = null;
+      try { stored = local ? local.getItem(NS + '.demo.welcome') : null; } catch (e) { stored = null; }
+      // ?welcome=off: the page checks open Home itself (tools/smoke.js)
+      return (stored || seenWelcome || query().get('welcome') === 'off') ? null : clone(w);
+    }
+    let seenWelcome = false;
+    function markWelcomeSeen() {
+      seenWelcome = true;
+      if (src.welcomeSeen) return src.welcomeSeen().catch(() => null);
+      try { if (local) local.setItem(NS + '.demo.welcome', '1'); } catch (e) { /* storage blocked: shown once this visit */ }
+      return Promise.resolve(null);
     }
 
     function results(days) {
@@ -5975,6 +6132,13 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       savePicks,
       getHighlights: () => call(highlights),
       getRecentDone: () => call(recentDone),
+      getToday: () => call(today, 0),
+      getMissed: () => call(missed, 0),
+      getWeekWin: () => call(weekWin, 0),
+      getWelcome: () => call(welcome, 0),
+      markWelcomeSeen,
+      // The client opened something waiting for them (an approval): the console's Wednesday check reads it. Live only, quiet.
+      markOpened: (/** @type {string} */ kind, /** @type {string} */ id) => (src.opened && !READ_ONLY && !VIEW_AS ? src.opened(kind, id).catch(() => null) : Promise.resolve(null)),
       // First week (2026-10-16): a client who has never answered anything gets one real first job on Home.
       getFirstWeek: () => call(() => ({ first: Object.keys(decisions()).length === 0 })),
       getUpcoming: () => call(upcoming),
@@ -6014,6 +6178,13 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     return makeClient(session, demoSource(session));
   }
 
+  /**
+   * The "Add Domin8te to your home screen" tip (2026-10-21, item 42): a phone, not already installed, the live portal (never the
+   * demo, never while staff view as a client), the second visit or later, and never shown before.
+   * @param {{live: boolean, viewAs: boolean, phone: boolean, standalone: boolean, visits: number, shown: boolean}} o
+   */
+  const homeTipDue = (o) => !!(o.live && !o.viewAs && o.phone && !o.standalone && o.visits >= 2 && !o.shown);
+
   D8.auth = auth;
   D8.integrations = integrations;
   D8.data = {
@@ -6021,6 +6192,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     connect, scenarios, currentScenario, switchScenario,
     // For live-data.js: build a client on another source, and the shared helpers it needs.
     makeClient, normalize, mergeProjections, apply, fail,
+    homeTipDue,
     /** Tests only: pick a scenario without a URL. */
     useScenario: (id) => { scenarioOverride = id; }
   };
@@ -6389,6 +6561,13 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       zone = 'America/Winnipeg';
       if (row.doc && typeof row.doc.timezone === 'string') { try { new Intl.DateTimeFormat('en-GB', { timeZone: row.doc.timezone }); zone = row.doc.timezone; } catch (e) { /* unknown zone: keep Winnipeg */ } }
       const none = { data: null, error: { code: 'PGRST202', message: 'no rpc' } };
+      // 2026-10-21: today's panel (the daily job's row; "updating" until today's is built) and the one-time welcome. Either may be
+      // missing before its migration, or fail: the rest of the account still loads, and the panel then says it is updating.
+      const rpc = (/** @type {string} */ name, /** @type {any} */ args) => (typeof sb.rpc === 'function' ? Promise.resolve(sb.rpc(name, args)).catch((e) => ({ data: null, error: e || { code: 'failed' } })) : Promise.resolve(none));
+      const extra = Promise.all([
+        VIEW ? rpc('client_today_panel', { p_tenant: row.id }) : rpc('client_today_panel', {}),
+        VIEW || PREVIEW ? Promise.resolve(none) : rpc('client_welcome', {})
+      ]);
       const [d, m, r, p, items, inv, cards, cyc, menu, usage, res, home, wk] = await Promise.all([
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
@@ -6468,7 +6647,19 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
           .map((/** @type {any} */ n) => ({ id: String(n.id), now: Number(n.now), before: n.before === null || n.before === undefined || !Number.isFinite(Number(n.before)) ? null : Number(n.before) })),
         extras: (Array.isArray(w0.extras) ? w0.extras : []).filter((/** @type {any} */ x) => x && x.label).map((/** @type {any} */ x) => ({ label: String(x.label), value: String(x.value) }))
       } : null;
-      const merged = mergeProjections(normalize({ ...(row.doc || {}), plan: planRec, timezone: zone, homeSections: sections, verifiedResults: verified, weekly }, now), itemRows, invRows);
+      const [panelRes, welcomeRes] = await extra;
+      const pd = panelRes && !panelRes.error && panelRes.data && typeof panelRes.data === 'object' ? panelRes.data : null;
+      // A panel that could not be read is "updating", with today's date: never an older day's numbers.
+      const todayRec = pd ? {
+        day: String(pd.day || '').slice(0, 10), state: pd.state === 'ready' ? 'ready' : 'updating', builtAt: toWall(pd.builtAt) || null, changed: pd.changed ? String(pd.changed) : null,
+        tiles: (Array.isArray(pd.tiles) ? pd.tiles : []).filter((/** @type {any} */ x) => x && x.id && x.value !== null && x.value !== undefined && Number.isFinite(Number(x.value)))
+          .map((/** @type {any} */ x) => ({ id: String(x.id), label: String(x.label || ''), value: Number(x.value), yesterday: x.yesterday === null || x.yesterday === undefined || !Number.isFinite(Number(x.yesterday)) ? null : Number(x.yesterday), unit: /^(CAD|USD|dollars)$/i.test(String(x.unit || '')) ? 'dollars' : String(x.unit || ''), source: String(x.source || ''), sourceDay: String(x.sourceDay || '').slice(0, 10) || null, about: x.about ? String(x.about) : '' }))
+      } : { day: today, state: 'updating', tiles: [], changed: null };
+      const missedRec = pd && pd.missed && Number.isFinite(Number(pd.missed.customers)) ? { lost: Number(pd.missed.customers), back: Number.isFinite(Number(pd.missed.back)) ? Number(pd.missed.back) : null, period: String(pd.missed.period || 'last month'), source: String(pd.missed.source || '') } : null;
+      const wd = welcomeRes && !welcomeRes.error && welcomeRes.data && welcomeRes.data.show ? welcomeRes.data : null;
+      const welcomeRec = wd ? { show: true, title: String(wd.title || ''), text: String(wd.text || ''), href: /^#\//.test(String(wd.href || '')) ? String(wd.href) : '#/home', button: String(wd.button || 'See it') } : null;
+      const merged = mergeProjections(normalize({ ...(row.doc || {}), plan: planRec, timezone: zone, homeSections: sections, verifiedResults: verified, weekly,
+        today: todayRec, missed: missedRec, welcome: welcomeRec, checkin: pd && pd.checkin ? String(pd.checkin).slice(0, 10) : (row.doc && row.doc.checkin) || null }, now), itemRows, invRows);
       if (verified) { merged.metrics = {}; merged.strip = []; merged.pending = []; merged.insightMetric = ''; }
       tenant = { ...merged, tenantId: row.id, name: row.name };
       // The client opened their dashboard (2026-10-16): once per page load, quietly; the console's "Last visit" reads it.
@@ -6496,6 +6687,10 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       failing: new Set(),
       now,
       state: () => st,
+      /** The welcome was shown: never again for this person (live only). */
+      welcomeSeen: async () => { if (VIEW || PREVIEW) return null; const sb = await db(); return typeof sb.rpc === 'function' ? sb.rpc('client_welcome_seen') : null; },
+      /** The client opened something waiting for them (Karan's Wednesday check reads it). Quiet: a failure never troubles them. @param {string} kind @param {string} id */
+      opened: async (kind, id) => { if (VIEW || PREVIEW) return null; const sb = await db(); return typeof sb.rpc === 'function' ? sb.rpc('client_mark_opened', { p_kind: kind, p_id: id }) : null; },
       /** @param {string} kind @param {any} rec @returns {Promise<any>} */
       async put(kind, rec) {
         if (VIEW) throw viewRefusal(); // read only: never a write while viewing as a client
@@ -6685,13 +6880,18 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     return `<span class="src-line"><span class="src-from${src.state === 'fresh' ? '' : ' is-' + esc(src.state)}">${esc(fromSource(src))}</span>${h ? `<span class="src-health is-${esc(src.state)}">${esc(h)}</span>` : ''}${when ? `<span class="src-when" title="When this number last changed">${esc(when)}</span>` : ''}</span>`;
   }
 
-  /** Direction of change as an arrow and words, never colour alone. @param {any} m @param {number} [days] */
+  /**
+   * Direction of change as an arrow and words, never colour alone. Counted in the number's own unit ("41 more bookings"), never as a
+   * percentage first (2026-10-21): the percentage is small secondary text only. @param {any} m @param {number} [days]
+   */
   function Delta(m, days) {
     const why = `Compared with the ${days || 30} days before this.`;
     if (!m.change) return '';
     if (m.change.dir === 'flat') return `<span class="delta is-flat" title="${esc(why)}">${icon('minus')}About the same</span>`;
     const up = m.change.dir === 'up';
-    return `<span class="delta ${up ? 'is-up' : 'is-down'}" title="${esc(why)}">${icon(up ? 'up' : 'down')}${up ? 'Up' : 'Down'} ${Math.round(Math.abs(m.change.pct))}%</span>`;
+    const n = Math.round(Math.abs(m.change.diff !== undefined ? m.change.diff : 0));
+    const unit = String(m.unit || '');
+    return `<span class="delta ${up ? 'is-up' : 'is-down'}" title="${esc(why)}">${icon(up ? 'up' : 'down')}${esc(F.num(n))} ${up ? 'more' : 'fewer'}${unit ? ' ' + esc(unit) : ''} than the ${days || 30} days before <span class="delta-pct">${up ? 'up' : 'down'} ${Math.round(Math.abs(m.change.pct))}%</span></span>`;
   }
 
   /** A quiet pill where a metric has no change to show because there were no ads before. @param {any} m @param {number} days */
@@ -6752,18 +6952,17 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   /* ---- page structure --------------------------------------------------------------- */
 
   /**
-   * In the public demo every page says so, at the top: the names and numbers are made up (2026-10-13). Never in a real portal.
-   * @param {string} [name] the sample restaurant
+   * In the public demo, one label sits next to the numbers (2026-10-21: one label, not two pills): "Demo account with sample
+   * figures". Never in a real portal.
    */
-  function SampleChip(name) {
-    const who = name || (D8.account && D8.account.business ? D8.account.business.name : '');
-    return D8.data.MODE === 'demo' ? `<p class="sample-chip"><strong>Sample data</strong><span>${who ? esc(who) + ' is not a real restaurant' : 'names and numbers are examples'}</span></p>` : '';
+  function SampleChip() {
+    return D8.data.MODE === 'demo' ? '<p class="sample-chip"><span>Demo account with sample figures</span></p>' : '';
   }
 
   /** @param {{title: string, intro?: string, introHtml?: boolean, cls?: string, after?: string, aside?: string, sample?: string}} o */
   function PageHeader(o) {
-    const sample = SampleChip(o.sample);
-    const aside = (sample || o.aside) ? `<div class="page-aside">${o.aside || ''}${sample}</div>` : '';
+    // the sample label sits with the numbers on each page now, not in the header
+    const aside = o.aside ? `<div class="page-aside">${o.aside}</div>` : '';
     return `<header class="page-head${o.cls ? ' ' + o.cls : ''}"><div class="page-head-text"><h1 id="page-title" tabindex="-1">${esc(o.title)}</h1>${o.intro ? `<p class="lede">${o.introHtml ? o.intro : esc(o.intro)}</p>` : ''}${o.after || ''}</div>${aside}</header>`;
   }
 
@@ -6841,8 +7040,10 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     const delta = o.delta && m ? Delta(m, o.days || 30) + NewBadge(m, o.days || 30) : '';
     const note = o.delta && m ? ComparisonNote(m, o.days || 30) : '';
     const more = `${t.newer ? `<p class="rt-check">${icon('clock')}<span>We are checking a newer number before we show it. This is the last number we checked.</span></p>` : ''}${note ? `<p class="rt-note">${note}</p>` : ''}`;
-    return `<article class="card rtile${o.compact ? ' is-compact is-link' : ''}${t.badge ? ' is-' + t.badge : ''}">
-      <header class="rt-head"><p class="rt-label">${esc(label)}</p>${t.badge && t.badge !== 'verified' ? VerifyBadge(t.badge) : ''}</header>
+    // A source that stopped part way (Instagram disconnected): grey, and said plainly, never compared (2026-10-21)
+    const partial = !!(m && m.state === 'partial');
+    return `<article class="card rtile${o.compact ? ' is-compact is-link' : ''}${t.badge ? ' is-' + t.badge : ''}${partial ? ' is-partial' : ''}">
+      <header class="rt-head"><p class="rt-label">${esc(label)}</p>${partial ? '<span class="vbadge is-paused"><span class="vb-dot" aria-hidden="true"></span>Paused, partial numbers</span>' : t.badge && t.badge !== 'verified' ? VerifyBadge(t.badge) : ''}</header>
       <p class="rt-value"><span class="fig">${esc(value)}</span>${t.unit && !o.compact ? `<span class="rt-unit">${esc(t.unit)}</span>` : ''}${delta}</p>
       ${period ? `<p class="rt-period">${esc(period)}</p>` : ''}
       ${more ? `<div class="rt-more">${more}</div>` : ''}
@@ -6939,7 +7140,8 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   /* ---- needs your attention ------------------------------------------------------------ */
 
   /** The primary button's weight follows the severity: solid orange only for the urgent one. */
-  const PRIMARY_STYLE = { critical: 'btn btn-primary', approval: 'btn btn-tint', connection: 'btn btn-glass', scheduled: 'btn btn-glass' };
+  // Approve is the solid orange primary (2026-10-21): the one tap the page is for.
+  const PRIMARY_STYLE = { critical: 'btn btn-primary', approval: 'btn btn-primary', connection: 'btn btn-glass', scheduled: 'btn btn-glass' };
 
   /**
    * An approval answers on the card itself (2026-10-16, Karan: one tap to approve, one to ask for changes): Approve
@@ -7116,15 +7318,17 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
    * and a link to all updates.
    */
   function UpdateCard(u, o = {}) {
+    // On Done (2026-10-21) the result is the row's title, with what it was about above it; it is not repeated under See details.
+    const lead = o.resultTitle && u.result ? u.result : '';
     const main = o.compact ? [] : [['What we did', u.completed]];
-    const extra = (o.compact ? [['What we did', u.completed]] : []).concat([['Next', u.next], ['Anything different', u.changed], ['Result', u.result], ['Why it matters', u.why]]);
+    const extra = (o.compact ? [['What we did', u.completed]] : []).concat([['Next', u.next], ['Anything different', u.changed], ['Result', lead ? '' : u.result], ['Why it matters', u.why]]);
     const dl = (/** @type {any[]} */ rows) => `<dl class="facts facts-wide">${rows.filter((r) => r[1]).map((r) => `<div><dt>${r[0]}</dt><dd>${esc(r[1])}</dd></div>`).join('')}</dl>`;
     const more = extra.filter((r) => r[1]);
     const tag = o.headingLevel || 'h3';
     const foot = o.compact ? `<footer class="update-foot"><a class="link link-more" href="#/updates">See all updates${icon('arrow-right')}</a></footer>` : '';
     return `<article class="card update${o.compact ? ' is-compact' : ''}"${o.id ? ` id="${esc(o.id)}"` : ''}>${o.lead || ''}
       <header class="update-head"><p class="update-date"><time datetime="${esc(u.date)}">${esc(day(u.date))}</time></p>${ServiceTag(u.service)}${author(u)}</header>
-      <${tag} class="update-title">${esc(u.title)}</${tag}>
+      ${lead ? `<p class="update-kicker">${esc(u.title)}</p><${tag} class="update-title is-result">${esc(lead)}</${tag}>` : `<${tag} class="update-title">${esc(u.title)}</${tag}>`}
       ${main.some((r) => r[1]) ? dl(main) : ''}
       ${more.length ? `<details class="update-more"><summary>See details${icon('chevron-down')}</summary>${dl(more)}</details>` : ''}
       ${foot}
@@ -7278,8 +7482,8 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       text = `You chose ${m.changes.planChanged ? n.name : 'your new services'}${n.confirmedAt ? ` on ${day(n.confirmedAt)}` : ''}. Nothing to do. ${F.list(c.services.map((/** @type {any} */ s) => s.label))} keep running until then.`;
     } else {
       title = 'All running as normal';
-      const p = price(n || c);
-      text = `You're on ${c.name}. ${p ? `Next bill ${p} on ${day(m.bill)}.` : `Your next bill is on ${day(m.bill)}.`} Nothing to do.`;
+      // no amount on Home (2026-10-21): Billing has it
+      text = `You're on ${c.name}. Your next bill is on ${day(m.bill)}. Nothing to do.`;
     }
     const staff = o.staff && o.staff.content && (o.staff.content.title || o.staff.content.body) ? o.staff.content : null;
     return `<div class="card plan-banner${changing ? ' is-change' : ''}">
@@ -7400,8 +7604,11 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     if (!s.usage || !s.usage.length) return '';
     // D4.2: a bar only for a limit at 80 percent or more; otherwise one line
     const near = s.usage.filter((/** @type {any} */ l) => l.pct >= 80 || l.used > l.cap);
-    const bars = near.length ? near.map((/** @type {any} */ l) => UI.UsageBar(l, { chip: sample(), plain: true })).join('') : '<p class="usage-ok">Plenty left this month.</p>';
-    return `<div class="work-usage"><h3 class="sr-only">Used this month</h3>${bars}<p class="usage-reset">Resets ${esc(day(m.bill))}</p></div>`;
+    // Always the real counts in one line (2026-10-21): "Posts 9 of 12, Reels 1 of 2, Stories 3 of 8". A bar only near a limit.
+    const up1 = (/** @type {string} */ x) => x.charAt(0).toUpperCase() + x.slice(1);
+    const counts = s.usage.map((/** @type {any} */ l) => `${up1(String(l.label || l.name))} ${l.tail}`).join(', ');
+    const bars = near.map((/** @type {any} */ l) => UI.UsageBar(l, { chip: sample(), plain: true })).join('');
+    return `<div class="work-usage"><h3 class="sr-only">Used this month</h3><p class="usage-counts">${esc(counts)}</p>${bars}<p class="usage-reset">Resets ${esc(day(m.bill))}</p></div>`;
   }
   /**
    * A service that is not in this month's plan: one quiet card (its icon tile, its name, the word that says so, and the
@@ -7410,6 +7617,8 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
    */
   function offCards(off, m) {
     if (!off.length) return '';
+    // The demo says it in one short line (2026-10-21): fewer cards to read.
+    if (D8.data.MODE === 'demo') return `<p class="off-line">${icon('info')}<span>Not in this month's plan: ${esc(F.list(off.map((s) => s.label)))}. You can add them from <a class="link" href="#/billing">Billing</a>.</span></p>`;
     return off.map((s) => `<section class="card svc-off" aria-labelledby="off-${esc(s.id)}">
       ${ico(s.id)}
       <div class="off-body">
@@ -8477,7 +8686,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     // C4.1: Ask bots is a chat, not a status, so it sits in its own pill group, apart from the statuses (existing .toolbar gap, no new CSS).
     const statusPills = STATUSES.map(([k, t]) => chip('data-bot-status', k, t, mine.filter((r) => matches(r, { ...v, status: k })).length, v.status === k)).join('');
     const statusSeg = ask
-      ? `<div class="toolbar bot-status"><div class="seg bot-ask" role="group" aria-label="Chat">${chip('data-bot-status', 'ask', 'Ask bots (chat)', ownerOpen(), v.status === 'ask')}</div><div class="seg" role="group" aria-label="Status">${statusPills}</div></div>`
+      ? `<div class="toolbar bot-status"><div class="seg bot-ask" role="group" aria-label="Chat">${chip('data-bot-status', 'ask', 'Ask bots (chat)', ownerOpen(), v.status === 'ask')}</div><span class="seg-label" aria-hidden="true">Drafts</span><div class="seg" role="group" aria-label="Status">${statusPills}</div></div>`
       : `<div class="seg bot-status" role="group" aria-label="Status">${statusPills}</div>`;
     if (ask && v.status === 'ask') return `${statusSeg}${ownerPanel()}`;
     let clientSeg = '';
@@ -9333,6 +9542,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     custom: 'Write to the router'
   });
   const owner = {
+    unfolded: /** @type {Set<string>} */ (new Set()),
     ok: /** @type {boolean|null} */ (null), asking: /** @type {Promise<void>|null} */ (null),
     msgs: /** @type {any[]} */ ([]), threads: /** @type {any[]} */ ([]), threadsOk: true,
     cur: '', view: 'thread', showArchived: false, creating: '', renaming: false,
@@ -9394,6 +9604,39 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     for (const t of owner.threads) if (t.client_slug && !out.some((c) => c.slug === t.client_slug)) out.push({ slug: t.client_slug, name: t.client_name });
     return out;
   }
+  /* v3 (2026-10-22): the client's record (threads carry its slug and name; the record is matched by id, by the slug in its doc, or
+   * by name), its mark (the console's colour badge where the record is known, else its initials) and its waiting drafts. */
+  /** @param {string} slug @param {string} name */
+  function ownerTenant(slug, name) {
+    const C0 = C();
+    const all = (C0.all && C0.all.tenants) || [];
+    return all.find((/** @type {any} */ t) => t.id === slug || (t.doc && t.doc.slug === slug))
+      || all.find((/** @type {any} */ t) => name && t.name === name) || null;
+  }
+  /** @param {string} slug @param {string} name */
+  function ownerMark(slug, name) {
+    const C0 = C();
+    const t = ownerTenant(slug, name);
+    const cc = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.color;
+    if (t && cc && cc.badge) return cc.badge(t.id);
+    const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+    const tag = (words.length > 1 ? words[0][0] + words[1][0] : (words[0] || '?').slice(0, 2)).toUpperCase();
+    return `<span class="bo-mark${/^domin8te/i.test(name || '') ? ' is-d8' : ''}" aria-hidden="true">${C0.esc(tag)}</span>`;
+  }
+  /** This client's drafts that wait for Karan (the Waiting pill's count for that client). @param {string} slug @param {string} name */
+  function ownerWaiting(slug, name) {
+    const t = ownerTenant(slug, name);
+    return t ? placeRows(false).filter((r) => r.tenant_id === t.id && viewStatus(r) === 'waiting').length : 0;
+  }
+  /** Three ways to start, by the thread's kind. */
+  const STARTERS = /** @type {Record<string, string[]>} */ ({
+    general: ['3 Instagram captions for this week', 'Reply to a Google review', 'Plan next month\'s posts'],
+    photos_social: ['Caption these photos', 'A week of posts from our photos', 'A reel idea for this week'],
+    website: ['Rewrite the homepage hero', 'Add this week\'s special to the menu page', 'Fix the opening hours on the site'],
+    custom: ['Write a short update for the client', 'Reply to a Google review', 'Plan next month\'s posts']
+  });
+  /** A draft longer than this is folded until "Show all". */
+  const FOLD_AT = 900;
   /** Where to start: the thread with the newest message, else Domin8te Media's General. */
   function ownerDefault() {
     const live = owner.threads.filter((t) => !t.archived);
@@ -9440,8 +9683,16 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
   function ownerThreadItem(t) {
     const C0 = C();
     const on = t.id === owner.cur;
-    const sub = t.archived ? 'Archived' : t.open_count ? `${t.open_count} in progress` : t.last_message_at ? C0.ago(t.last_message_at) : 'No messages yet';
-    return `<li><button type="button" class="bo-thread${t.open_count ? ' is-busy' : ''}" data-oc-thread="${C0.esc(t.id)}"${on ? ' aria-current="true"' : ''}><span class="bo-thread-t">${C0.esc(t.title)}</span><span class="bo-thread-m">${C0.esc(sub)}</span></button></li>`;
+    // v3: the newest message's time on the right; underneath, what is going on (the router's progress line while it works, else
+    // the start of Karan's newest message, else "No messages yet")
+    const mine = owner.msgs.filter((m) => m.author === 'owner' && ownerTid(m) === t.id);
+    const busy = mine.filter((m) => OWNER_ACTIVE.includes(ownerStatusOf(m)) || (!ownerStatusOf(m) && !m.status)).pop();
+    const last = mine[mine.length - 1];
+    const sub = t.archived ? 'Archived'
+      : busy ? (ownerProgress(busy) || (OWNER_STATE[ownerStatusOf(busy) || 'queued'] || OWNER_STATE.working).label)
+      : last ? last.body : t.last_message_at ? C0.ago(t.last_message_at) : 'No messages yet';
+    const when = t.last_message_at ? C0.ago(t.last_message_at) : '';
+    return `<li><button type="button" class="bo-thread${t.open_count ? ' is-busy' : ''}" data-oc-thread="${C0.esc(t.id)}"${on ? ' aria-current="true"' : ''}><span class="bo-thread-t">${C0.esc(t.title)}</span><span class="bo-when">${C0.esc(when)}</span><span class="bo-thread-m">${C0.esc(String(sub).slice(0, 80))}</span></button></li>`;
   }
   /** One project: its name (opens and closes it), its threads, "+ New thread". @param {{slug: string, name: string, threads: any[]}} p */
   function ownerProject(p) {
@@ -9453,7 +9704,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       ? `<li><form class="bo-new-form" data-oc-create="${C0.esc(p.slug)}" novalidate><label class="sr-only" for="bo-new-${C0.esc(p.slug)}">New thread name for ${C0.esc(p.name)}</label><input id="bo-new-${C0.esc(p.slug)}" name="title" maxlength="80" placeholder="Thread name" autocomplete="off"><div class="bo-new-actions"><button class="btn btn-sm" type="submit">Add</button><button class="linkish" type="button" data-oc-create-cancel>Cancel</button></div></form></li>`
       : `<li><button type="button" class="bo-new" data-oc-new-thread="${C0.esc(p.slug)}">${C0.icon('plus')}New thread</button></li>`;
     return `<section class="bo-proj${open ? ' is-open' : ''}">
-      <button type="button" class="bo-proj-h" data-oc-proj="${C0.esc(p.slug)}" aria-expanded="${open}" aria-controls="${C0.esc(id)}">${C0.icon('arrow')}<span class="bo-proj-name">${C0.esc(p.name)}</span>${busy ? `<span class="count" title="${C0.esc(C0.plural(busy, 'request'))} in progress">${busy}</span>` : ''}</button>
+      <button type="button" class="bo-proj-h" data-oc-proj="${C0.esc(p.slug)}" aria-expanded="${open}" aria-controls="${C0.esc(id)}">${C0.icon('arrow')}${p.slug ? ownerMark(p.slug, p.name) : ''}<span class="bo-proj-name">${C0.esc(p.name)}</span>${busy ? `<span class="count" title="${C0.esc(C0.plural(busy, 'request'))} in progress">${busy}</span>` : ''}</button>
       <ul class="bo-threads" id="${C0.esc(id)}"${open ? '' : ' hidden'}>${p.threads.map(ownerThreadItem).join('')}${!p.slug || (owner.showArchived && p.threads.every((t) => t.archived)) ? '' : form}</ul>
     </section>`;
   }
@@ -9461,7 +9712,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     const C0 = C();
     const earlier = owner.msgs.some((m) => !ownerTid(m));
     const archivedN = owner.threads.filter((t) => t.archived).length;
-    return `<div class="bo-side-head"><h2 id="bot-owner-h">Ask bots</h2><p class="meta">Pick a client and a conversation. The bots draft; nothing goes to a client. Only you see this.</p>${owner.threadsOk ? `<button type="button" class="btn-quiet btn-sm bo-newchat" data-oc-new-chat>${C0.icon('plus')}New chat</button>` : ''}</div>
+    return `<div class="bo-side-head"><h2 id="bot-owner-h">Ask bots</h2><p class="meta">One chat per client, by topic. The bots draft; nothing goes to a client. Only you see this.</p>${owner.threadsOk ? `<button type="button" class="btn-quiet btn-sm bo-newchat" data-oc-new-chat>${C0.icon('plus')}New chat</button>` : ''}</div>
       ${owner.threadsOk ? '' : '<p class="notice">Projects are not set up on the server yet. Earlier messages are below.</p>'}
       <div class="bo-projs">${ownerProjects().map(ownerProject).join('')}</div>
       ${earlier ? `<ul class="bo-threads bo-earlier"><li><button type="button" class="bo-thread" data-oc-thread="${EARLIER}"${owner.cur === EARLIER ? ' aria-current="true"' : ''}><span class="bo-thread-t">Earlier messages</span><span class="bo-thread-m">From before projects</span></button></li></ul>` : ''}
@@ -9481,7 +9732,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       const live = OWNER_ACTIVE.includes(st) || (!st && !m.status);
       // v98: the router's instant reply sits right under the message (before the live line and any note), when it is in this thread
       const acks = owner.msgs.filter((x) => ownerIsAck(x) && x.parent_id === m.id && ownerTid(x) === ownerTid(m)).map(ownerReply).join('');
-      return `<li class="msg team" data-k="${C0.esc(m.id)}"><p>${C0.esc(m.body)}</p><p class="meta">${C0.esc((C0.me && C0.me.name) || 'You')} · ${at}${st && !live ? ` · ${ownerState(st)}` : ''}</p></li>${acks}${live ? ownerLive(m, st) : ''}${noteOn ? `<li class="bo-note" data-k="note-${C0.esc(m.id)}"><p class="meta">${C0.esc(scrubIds(note))}</p></li>` : ''}`;
+      return `<li class="msg team" data-k="${C0.esc(m.id)}"><p>${C0.esc(m.body)}</p><p class="meta">${C0.esc((C0.me && C0.me.name) || 'You')} · ${at}${st && !live ? ` · ${ownerState(st)}` : ''}</p></li>${acks}${live ? ownerLive(m, st) : ''}${noteOn ? `<li class="bo-sys" data-k="note-${C0.esc(m.id)}"><span class="chip ${C0.esc((OWNER_STATE[st] || {}).tone || 'info')}">${C0.esc((OWNER_STATE[st] || {}).label || 'Note')}</span><span>${C0.esc(scrubIds(note))}</span></li>` : ''}`;
     }
     // v98: an ack is drawn under its message when that message is in the same thread, on its own otherwise (archived-thread
     // fallback); a router row with no parent is a note from the router. Both are a plain message, ids scrubbed, whatever their
@@ -9494,8 +9745,12 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     if (!OWNER_FINAL.includes(m.status)) return '';
     const text = scrubIds(m.body);
     if (m.status === 'draft_ready') {
-      return `<li class="item-card log-card bo-draft" data-k="${C0.esc(m.id)}"><div class="bot-text">${C0.esc(text)}</div>
-        <p class="meta">Router · ${at} · <button class="linkish" type="button" data-oc-copy="${C0.esc(m.id)}">Copy text</button></p></li>`;
+      const long = text.length > FOLD_AT && !owner.unfolded.has(m.id);
+      const parent = m.parent_id ? ownerRow(m.parent_id) : null;
+      return `<li class="item-card log-card bo-draft${long ? ' is-folded' : ''}" data-k="${C0.esc(m.id)}${long ? '' : '-open'}">
+        <div class="bo-draft-h">${C0.icon('bot')}Draft answer<span class="meta">Router · ${at}</span></div>
+        <div class="bot-text">${C0.esc(text)}</div>
+        <div class="bo-draft-f">${text.length > FOLD_AT ? `<button class="linkish" type="button" data-oc-more="${C0.esc(m.id)}" aria-expanded="${!long}">${long ? 'Show all' : 'Show less'}</button>` : ''}<button type="button" class="btn-quiet btn-sm" data-oc-copy="${C0.esc(m.id)}">${C0.icon('copy')}Copy text</button>${parent && parent.author === 'owner' && parent.body ? `<button type="button" class="btn-quiet btn-sm" data-oc-again="${C0.esc(parent.id)}">${C0.icon('refresh')}Ask again</button>` : ''}</div></li>`;
     }
     return `<li class="msg" data-k="${C0.esc(m.id)}"><p>${C0.esc(text)}</p><p class="meta">Router · ${at}</p></li>`;
   }
@@ -9518,7 +9773,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     const C0 = C();
     const text = ownerProgress(m) || (st === 'retrying' ? 'Trying again' : st === 'working' ? 'Working on it' : 'Waiting for the router');
     const long = Date.now() - new Date(m.created_at).getTime() < 6 * 3600000;   // no clock on something stuck for hours
-    return `<li class="bo-live" data-k="live-${C0.esc(m.id)}" data-live><p class="meta" role="status"><span class="bo-live-dot" aria-hidden="true"></span><span class="bo-live-t">${C0.esc(text)}</span>${long ? `<span class="bo-live-time" data-from="${C0.esc(m.created_at)}" aria-hidden="true">${ownerElapsed(m.created_at)}</span>` : ''}</p></li>`;
+    return `<li class="bo-live" data-k="live-${C0.esc(m.id)}" data-live><p class="meta" role="status"><span class="bo-live-dot" aria-hidden="true"></span><span class="bo-live-t">${C0.esc(text)}</span>${long ? `<span class="bo-live-time" data-from="${C0.esc(m.created_at)}" aria-hidden="true">${ownerElapsed(m.created_at)}</span>` : ''}${ownerThread(owner.cur) && ownerThread(owner.cur).client_slug ? `<span class="bo-lands">· lands in <button class="linkish" type="button" data-oc-waiting>Waiting</button></span>` : ''}</p></li>`;
   }
   /** Anything in the open thread the router is working on right now. */
   const ownerLiveNow = () => ownerRowsOf(owner.cur).some((m) => m.author === 'owner' && (OWNER_ACTIVE.includes(ownerStatusOf(m)) || !ownerStatusOf(m)));
@@ -9544,18 +9799,23 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
     const title = owner.renaming
       ? `<form class="bo-rename" data-oc-rename-form novalidate><label class="sr-only" for="bo-rename-in">Thread name</label><input id="bo-rename-in" name="title" maxlength="80" value="${C0.esc(t.title)}" autocomplete="off"><button class="btn btn-sm" type="submit">Save</button><button class="linkish" type="button" data-oc-rename-cancel>Cancel</button></form>`
       : `<h3 id="bo-thread-h">${C0.esc(t.title)}</h3>`;
-    const tools = reload + (t.archived
+    // v3: this client's waiting drafts first, then Reload, then Rename / Archive behind one "More" button
+    const waiting = t.client_slug ? ownerWaiting(t.client_slug, t.client_name) : 0;
+    const drafts = waiting ? `<button type="button" class="btn-quiet btn-sm bo-drafts-link" data-oc-waiting>Drafts for this client <span class="count">${waiting}</span></button>` : '';
+    const tools = drafts + reload + (t.archived
       ? `<button type="button" class="btn-quiet btn-sm" data-oc-restore>Restore</button>`
-      : owner.renaming ? '' : `<button type="button" class="btn-quiet btn-sm" data-oc-rename>Rename</button><button type="button" class="btn-quiet btn-sm" data-oc-archive>Archive</button>`);
+      : owner.renaming ? '' : `<details class="bot-menu bo-more"><summary class="btn btn-quiet btn-sm" aria-label="More: rename or archive this thread" title="Rename or archive">···</summary><div class="bot-menu-box" role="group" aria-label="This thread"><button type="button" class="btn btn-quiet btn-sm" data-oc-rename>Rename</button><button type="button" class="btn btn-quiet btn-sm" data-oc-archive>Archive</button></div></details>`);
     const reply = t.archived
       ? `<p class="meta bo-ro">This thread is archived. Restore it to write here.</p>`
       : `<form class="convo-reply" id="bot-owner-reply" novalidate>
+          <div class="bo-starters"><span class="meta">Try:</span>${(STARTERS[t.kind] || STARTERS.custom).map((x) => `<button type="button" class="chip plain" data-oc-starter="${C0.esc(x)}">${C0.esc(x)}</button>`).join('')}</div>
           <div class="field"><label for="bot-owner-body">Message the router</label><textarea id="bot-owner-body" name="body" maxlength="4000" rows="3" placeholder="${C0.esc(t.client_slug ? PLACEHOLDER[t.kind] || PLACEHOLDER.custom : 'Ask the router anything')}" aria-describedby="bot-owner-to"></textarea></div>
-          <div class="actions"><button class="btn" type="submit">Send</button><span class="meta" id="bot-owner-to">${t.client_slug ? `Goes to ${C0.esc(t.client_name)} · ${C0.esc(t.title)}.` : 'No client yet: pick one above, or the router will ask.'} Drafts only. <kbd>Ctrl</kbd> <kbd>Enter</kbd> sends.</span></div>
+          <div class="actions"><button class="btn" type="submit">Send</button><span class="meta" id="bot-owner-to">${t.client_slug ? `<span class="bo-to">${C0.icon('lock')}To ${C0.esc(t.client_name)} · ${C0.esc(t.title)}</span> · drafts only.` : 'No client yet: pick one above, or the router will ask. Drafts only.'}</span><span class="meta bo-keys"><kbd>Ctrl</kbd><kbd>Enter</kbd> sends</span></div>
         </form>`;
-    const crumb = t.client_slug ? `<p class="meta">${C0.esc(t.client_name)}</p>`
+    const lock = `<span class="bo-lock" title="Only you see this">${C0.icon('lock')}<span>Only you see this</span></span>`;
+    const crumb = t.client_slug ? `<p class="meta"><span>${C0.esc(t.client_name)}</span>${lock}</p>`
       : `<p class="meta bo-pick">No client yet · <label class="sr-only" for="bo-client">Client for this chat</label><select id="bo-client" data-oc-client${t.archived ? ' disabled' : ''}><option value="">Choose a client</option>${ownerClients().map((c) => `<option value="${C0.esc(c.slug)}">${C0.esc(c.name)}</option>`).join('')}</select></p>`;
-    return `<div class="bo-head">${back}<div class="bo-head-t">${crumb}${title}</div><div class="bo-tools">${tools}</div></div>
+    return `<div class="bo-head">${back}${t.client_slug ? ownerMark(t.client_slug, t.client_name) : ''}<div class="bo-head-t">${crumb}${title}</div><div class="bo-tools">${tools}</div></div>
       ${ownerLog()}${reply}`;
   }
   /** The panel, or nothing for anyone but the owner. */
@@ -9807,6 +10067,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
         const done = C0.busy(sub, 'Adding');
         try {
           const t = await call('bot_owner_thread_create', { client: slug, title });
+          if (!t || !t.id) throw new Error('No thread came back from the server.');
           owner.threads.push(t);
           owner.creating = '';
           done();
@@ -9844,7 +10105,7 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       const nc = /** @type {HTMLButtonElement|null} */ (el.closest('[data-oc-new-chat]'));
       if (nc) {
         const done = C0.busy(nc, 'Starting');
-        try { const t = await call('bot_owner_thread_create', {}); owner.threads.unshift(t); done(); await ownerOpenThread(t.id); }
+        try { const t = await call('bot_owner_thread_create', {}); if (!t || !t.id) throw new Error('No chat came back from the server.'); owner.threads.unshift(t); done(); await ownerOpenThread(t.id); }
         catch (x) { done(); C0.toast(say(x), true); }
         return;
       }
@@ -9869,6 +10130,41 @@ html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
       }
       if (el.closest('[data-oc-restore]')) {
         try { await ownerUpdate(owner.cur, { archived: false }); C0.toast('Restored.'); ownerRedraw('#bot-owner-body'); } catch (x) { C0.toast(say(x), true); }
+        return;
+      }
+      // v3: a folded draft opens (and closes) in place
+      const more = /** @type {HTMLElement|null} */ (el.closest('[data-oc-more]'));
+      if (more) {
+        const id = more.getAttribute('data-oc-more') || '';
+        if (owner.unfolded.has(id)) owner.unfolded.delete(id); else owner.unfolded.add(id);
+        redrawOwnerLog();
+        const again = /** @type {HTMLElement|null} */ (document.querySelector(`[data-oc-more="${id}"]`));
+        if (again) again.focus({ preventScroll: true });
+        return;
+      }
+      // v3: Ask again and a starter put words in the box (what was typed stays if the box is not empty); Waiting opens that
+      // client's waiting drafts (the Waiting pill with the client picked)
+      const fill = /** @type {HTMLElement|null} */ (el.closest('[data-oc-again],[data-oc-starter]'));
+      if (fill) {
+        const ta = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('bot-owner-body'));
+        if (!ta) return;
+        const src = fill.hasAttribute('data-oc-again') ? owner.msgs.find((x) => x.id === fill.getAttribute('data-oc-again')) : null;
+        const words = src ? src.body : (fill.getAttribute('data-oc-starter') || '');
+        if (ta.value.trim() && ta.value.trim() !== words.trim()) { C0.toast('There is text in the box already. Clear it first.', true); ta.focus(); return; }
+        ta.value = words;
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+        ta.focus();
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+        return;
+      }
+      if (el.closest('[data-oc-waiting]')) {
+        const t = ownerThread(owner.cur);
+        const ten = t && t.client_slug ? ownerTenant(t.client_slug, t.client_name) : null;
+        ownerKeepDraft();
+        state.view.client = ten ? ten.id : 'all';
+        keepView();
+        const f = /** @type {HTMLElement|null} */ (document.querySelector('[data-bot-status="waiting"]'));
+        if (f) f.click();   // the pill's own handler presses Waiting and redraws the list with this client picked
         return;
       }
       const b = /** @type {HTMLElement|null} */ (el.closest('[data-oc-copy]'));
@@ -17679,6 +17975,11 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'service' : 'services'}
  * console.js calls window.D8C_EXT.usage.load() in loadAll, .panel(id) on a client's Overview, .needsBlock() on Needs you;
  * mod-clients.js calls .clientLine(id) in the Clients table. Writes: log_outside_message, remove_outside_message,
  * rebuild_weekly_summary (staff RPCs). Nothing here reaches the client.
+ *
+ * 2026-10-21 (read only): client_followups() (migration 20261021040000) adds, per client, "Check-in due" (next check-in
+ * today or overdue), "Call this owner" (from Wednesday on the restaurant's clock: not opened since Monday, or an approval
+ * waiting that nobody there opened; a flag for a human call, nothing is sent), the last time they opened the dashboard
+ * and how many team messages they have not read. A database without it shows none of this.
  */
 (function () {
   'use strict';
@@ -17691,7 +17992,8 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'service' : 'services'}
   const CHANNELS = [['text', 'Text'], ['email', 'Email'], ['call', 'Phone call'], ['in_person', 'In person'], ['social', 'Social media DM'], ['other', 'Other']];
   const chName = (/** @type {string} */ k) => (CHANNELS.find((c) => c[0] === k) || [k, k])[1];
   /** rows by client id; null until loaded. A database without the function (before its migration) reads as none. */
-  const state = { /** @type {Map<string, any>|null} */ rows: null, missing: false, /** @type {Record<string, string>} */ lastLogged: {} };
+  const state = { /** @type {Map<string, any>|null} */ rows: null, missing: false, /** @type {Record<string, string>} */ lastLogged: {},
+    /** @type {Map<string, any>|null} */ follow: null };
 
   async function load() {
     try {
@@ -17701,6 +18003,25 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'service' : 'services'}
       state.missing = false;
       state.rows = new Map((r.data || []).map((/** @type {any} */ x) => [x.tenant_id, x]));
     } catch (e) { state.rows = state.rows || new Map(); }
+    try {
+      const f = await (await C().db()).rpc('client_followups');
+      state.follow = f.error ? null : new Map((f.data || []).map((/** @type {any} */ x) => [x.tenant_id, x]));
+    } catch (e) { state.follow = null; }
+  }
+  const fu = (/** @type {string} */ id) => (state.follow && state.follow.get(id)) || null;
+  /** The follow-up chips: Check-in due, Call this owner. @param {string} id */
+  function followChips(id) {
+    const f = fu(id);
+    if (!f) return '';
+    return (f.checkin_due ? `<span class="chip warn" title="Next check-in ${esc(C().when(f.next_checkin))}">Check-in due</span>` : '')
+      + (f.call_owner ? `<span class="chip warn" title="${esc(f.call_reason || '')}">Call this owner</span>` : '');
+  }
+  /** "Last opened the dashboard 19 Oct" and "Unread from Karan: 2", shown beside the flags. @param {string} id */
+  function followFacts(id) {
+    const f = fu(id);
+    if (!f) return '';
+    const opened = f.last_seen_at ? `Last opened the dashboard ${C().when(String(f.last_seen_at).slice(0, 10))}` : 'Never opened the dashboard';
+    return `<span class="sub us-line">${esc(opened)} &middot; Unread from Karan: ${esc(f.unread_from_team || 0)}</span>`;
   }
   const of = (/** @type {string} */ id) => (state.rows && state.rows.get(id)) || null;
   const hasLogin = (/** @type {string} */ id) => { const t = C().tenant(id); return !!(t && t.clerk_org_id); };
@@ -17712,7 +18033,10 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'service' : 'services'}
     const u = of(id);
     if (!u || !hasLogin(id)) return '';
     const seen = u.last_seen_at ? `Opened dashboard ${C().ago(u.last_seen_at)}` : 'Has not opened the dashboard';
-    return `<span class="sub us-line">${esc(seen)}</span>${u.quiet ? '<span class="row-chips"><span class="chip warn" title="They wrote from outside the dashboard and have not opened it in 7 days">Quiet on dashboard</span></span>' : ''}`;
+    const chips = (u.quiet ? '<span class="chip warn" title="They wrote from outside the dashboard and have not opened it in 7 days">Quiet on dashboard</span>' : '') + followChips(id);
+    const f = fu(id);
+    const facts = f && (f.checkin_due || f.call_owner || f.unread_from_team > 0) ? followFacts(id) : '';
+    return `<span class="sub us-line">${esc(seen)}</span>${chips ? `<span class="row-chips">${chips}</span>` : ''}${facts}`;
   }
 
   /** The week line: what the client's Home says this week, and whether they opened it. @param {any} u */
@@ -17732,8 +18056,14 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'service' : 'services'}
       ['Last approval', ago(u && u.last_approval_at, 'None yet')],
       ['Messages from outside', u && u.outside_30d ? `${u.outside_30d} in 30 days, last by ${chName(u.last_outside_channel || 'other').toLowerCase()} ${C().ago(u.last_outside_at)}` : 'None in 30 days']
     ];
+    const f = fu(id);
+    if (f) rows.push(
+      ['Last opened the dashboard', f.last_seen_at ? C().when(String(f.last_seen_at).slice(0, 10)) : 'Never'],
+      ['Unread from Karan', String(f.unread_from_team || 0)],
+      ['Next check-in', f.next_checkin ? C().when(f.next_checkin) + (f.checkin_due ? ' (due)' : '') : 'Not set']);
     return `<section class="panel us-panel" id="us-panel" aria-labelledby="us-h" data-us-client="${esc(id)}" data-at="usage">
-      <div class="panel-head"><h2 id="us-h">Dashboard use</h2>${u && u.quiet ? '<span class="chip warn">Quiet on dashboard</span>' : ''}</div>
+      <div class="panel-head"><h2 id="us-h">Dashboard use</h2>${u && u.quiet ? '<span class="chip warn">Quiet on dashboard</span>' : ''}${followChips(id)}</div>
+      ${f && f.call_owner && f.call_reason ? `<p class="meta">${esc(f.call_reason)}. A flag for you to call; nothing is sent to them.</p>` : ''}
       <dl class="us-facts">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
       <div class="us-block"><h3 class="panel-sub">Last week, on their Home</h3>${weekLine(u)}
         <p><button class="btn btn-quiet btn-sm" type="button" data-us-build="${esc(id)}">Build last week's summary now</button></p></div>
@@ -17749,7 +18079,17 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'service' : 'services'}
   }
 
   /** Needs you: clients who write from outside but are quiet on the dashboard. */
-  function needsBlock() {
+  function needsBlock() { return quietBlock() + followBlock(); }
+  /** Needs you: check-ins due and owners to call (read only). */
+  function followBlock() {
+    if (!state.follow) return '';
+    const list = [...state.follow.values()].filter((f) => f.checkin_due || f.call_owner).map((f) => ({ f, t: C().tenant(f.tenant_id) })).filter((x) => x.t);
+    if (!list.length) return '';
+    return `<details class="q-group q-fold us-follow" aria-labelledby="q-follow-h" data-qf="other"><summary><h2 id="q-follow-h">Check-ins and calls <span class="meta">${list.length}</span></h2></summary>
+      <ul class="q">${list.map(({ f, t }) => `<li><a class="todo-row" href="#/client/${esc(t.id)}/overview?at=usage">${f.checkin_due ? '<span class="chip warn">Check-in due</span>' : ''}${f.call_owner ? '<span class="chip warn">Call this owner</span>' : ''}<span class="text">${esc(t.name)}: ${esc(f.last_seen_at ? 'last opened the dashboard ' + C().when(String(f.last_seen_at).slice(0, 10)) : 'never opened the dashboard')}, unread from Karan: ${esc(f.unread_from_team || 0)}</span></a></li>`).join('')}</ul>
+    </details>`;
+  }
+  function quietBlock() {
     if (!state.rows || state.missing) return '';
     const quiet = [...state.rows.values()].filter((u) => u.quiet && hasLogin(u.tenant_id)).map((u) => ({ u, t: C().tenant(u.tenant_id) })).filter((x) => x.t);
     if (!quiet.length) return '';

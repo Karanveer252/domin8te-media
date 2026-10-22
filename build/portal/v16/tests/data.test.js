@@ -164,8 +164,10 @@ test('the written summary and the insight agree with the figures', async () => {
   const ins = await bay.client.getInsight();
   assert.equal(ins.state, 'ok');
   assert.deepEqual([...ins.weekdays].sort(), [5, 6], 'Fridays and Saturdays');
-  assert.ok(r.summary.text.includes('Fridays and Saturdays'));
-  assert.ok(ins.headline.includes('212') && ins.headline.includes('171') && ins.headline.includes('24%'));
+  // the written summary makes no weekday claim (2026-10-21: the demo's dates move with today); the insight works them out
+  assert.ok(!/Fridays|Saturdays/.test(r.summary.text));
+  // counted in bookings, never a percentage first
+  assert.ok(ins.headline.includes('212') && ins.headline.includes('171') && ins.headline.includes('41 more') && !ins.headline.includes('%'));
 
   const cafe = await client('cornerbean');
   const cr = await cafe.client.getResults(30);
@@ -322,7 +324,8 @@ test('coming up only lists dates on record, in order, once each, for this tenant
 
 test('demo situations switch in place, are kept for the tab, and never mix tenants', async () => {
   const D8 = load();
-  assert.equal(D8.data.currentScenario().id, 'bayleaf');
+  // a good week opens by default (2026-10-21)
+  assert.equal(D8.data.currentScenario().id, 'good');
   const s = D8.data.switchScenario('cornerbean');
   assert.equal(s.tenantId, 'tnt_demo_cornerbean');
   assert.equal(D8.data.currentScenario().id, 'cornerbean');

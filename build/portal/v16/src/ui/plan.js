@@ -85,8 +85,8 @@
       text = `You chose ${m.changes.planChanged ? n.name : 'your new services'}${n.confirmedAt ? ` on ${day(n.confirmedAt)}` : ''}. Nothing to do. ${F.list(c.services.map((/** @type {any} */ s) => s.label))} keep running until then.`;
     } else {
       title = 'All running as normal';
-      const p = price(n || c);
-      text = `You're on ${c.name}. ${p ? `Next bill ${p} on ${day(m.bill)}.` : `Your next bill is on ${day(m.bill)}.`} Nothing to do.`;
+      // no amount on Home (2026-10-21): Billing has it
+      text = `You're on ${c.name}. Your next bill is on ${day(m.bill)}. Nothing to do.`;
     }
     const staff = o.staff && o.staff.content && (o.staff.content.title || o.staff.content.body) ? o.staff.content : null;
     return `<div class="card plan-banner${changing ? ' is-change' : ''}">
@@ -207,8 +207,11 @@
     if (!s.usage || !s.usage.length) return '';
     // D4.2: a bar only for a limit at 80 percent or more; otherwise one line
     const near = s.usage.filter((/** @type {any} */ l) => l.pct >= 80 || l.used > l.cap);
-    const bars = near.length ? near.map((/** @type {any} */ l) => UI.UsageBar(l, { chip: sample(), plain: true })).join('') : '<p class="usage-ok">Plenty left this month.</p>';
-    return `<div class="work-usage"><h3 class="sr-only">Used this month</h3>${bars}<p class="usage-reset">Resets ${esc(day(m.bill))}</p></div>`;
+    // Always the real counts in one line (2026-10-21): "Posts 9 of 12, Reels 1 of 2, Stories 3 of 8". A bar only near a limit.
+    const up1 = (/** @type {string} */ x) => x.charAt(0).toUpperCase() + x.slice(1);
+    const counts = s.usage.map((/** @type {any} */ l) => `${up1(String(l.label || l.name))} ${l.tail}`).join(', ');
+    const bars = near.map((/** @type {any} */ l) => UI.UsageBar(l, { chip: sample(), plain: true })).join('');
+    return `<div class="work-usage"><h3 class="sr-only">Used this month</h3><p class="usage-counts">${esc(counts)}</p>${bars}<p class="usage-reset">Resets ${esc(day(m.bill))}</p></div>`;
   }
   /**
    * A service that is not in this month's plan: one quiet card (its icon tile, its name, the word that says so, and the
@@ -217,6 +220,8 @@
    */
   function offCards(off, m) {
     if (!off.length) return '';
+    // The demo says it in one short line (2026-10-21): fewer cards to read.
+    if (D8.data.MODE === 'demo') return `<p class="off-line">${icon('info')}<span>Not in this month's plan: ${esc(F.list(off.map((s) => s.label)))}. You can add them from <a class="link" href="#/billing">Billing</a>.</span></p>`;
     return off.map((s) => `<section class="card svc-off" aria-labelledby="off-${esc(s.id)}">
       ${ico(s.id)}
       <div class="off-body">

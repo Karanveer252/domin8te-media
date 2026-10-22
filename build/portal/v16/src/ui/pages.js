@@ -164,27 +164,94 @@
      The biggest change moved into the Results summary, the latest update lives under Work > Done, the plan
      on Billing and the connected accounts in Settings. */
 
-  /** The grey line under the numbers: when they were last checked against their sources. */
-  function checkedText(a, now) {
-    return a.updatedAt ? `Checked ${esc(F.when(a.updatedAt, now))}.` : 'Not checked yet.';
-  }
-  /* (the same line on every page that says when it last looked: the restaurant's own clock) */
-  function checkedLine(a, now) {
-    return `<p class="meta home-checked"><span id="home-checked">${checkedText(a, now)}</span> <a class="link" href="#/results">See all results</a></p>`;
+  /**
+   * The line under the greeting (2026-10-21, items 23 and 30): when the page was last updated, that Karan checked it (a person,
+   * not a bot: the thing that sets Domin8te apart, so it is seen without scrolling) and the next check-in with him.
+   * @param {any} a the account @param {number} now
+   */
+  function trustLine(a, now) {
+    const upd = a.updatedAt ? `Last updated ${F.when(a.updatedAt, now)}.` : '';
+    const chk = a.checkedBy && a.checkedBy.at ? `<span class="checked-by">${icon('check')}Checked by ${esc(a.checkedBy.name || 'Karan')}, ${esc(day(a.checkedBy.at))}</span>` : '';
+    const meet = a.checkin ? `<span class="home-checkin">${icon('calendar')}Next check-in with Karan: ${esc(day(a.checkin))}</span>` : '';
+    return `<p class="home-trust" id="home-trust">${upd ? `<span>${esc(upd)}</span>` : ''}${chk}${meet}</p>`;
   }
 
-  /** Next meeting and Message us, in one quiet strip at the bottom of Home. */
-  function contactStrip(a, now) {
-    const m = a.meeting;
-    // A cancelled or past meeting is "none booked"; a date without a time shows no "at 00:00".
-    const live = m && m.at && (!m.status || m.status === 'confirmed') && D8.time.dayNum(m.at) >= D8.time.dayNum(now);
-    const timed = live && /[T ]\d\d:\d\d/.test(String(m.at));
-    const when = live ? `${day(m.at)}${timed ? ` at ${F.time(m.at)}` : ''}` : 'none booked';
-    return `<section class="card contact-strip" aria-label="Talk to us">
-      <p class="contact-meet">${icon('calendar')}<span>Next meeting: ${esc(when)}</span></p>
-      <a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a>
+  /** The words for a number in Today's panel, by what it counts: customers or dollars, never a percentage. */
+  const TODAY_WORDS = {
+    customers: ['new customer', 'new customers'],
+    bookings: ['new customer booked from your website', 'new customers booked from your website'], orders: ['order from your website', 'orders from your website'],
+    sales: ['in sales', 'in sales'], leads: ['new lead', 'new leads'], calls: ['call from Google', 'calls from Google'], adSpend: ['ad spend', 'ad spend']
+  };
+  /** @param {any} t a tile */
+  const todayFig = (t) => (t.unit === 'dollars' ? '$' + F.num(t.value) : F.num(t.value));
+  /** @param {any} t @param {number} v */
+  const todayWord = (t, v) => { const w = t.words || /** @type {any} */ (TODAY_WORDS)[t.id]; return w ? F.plural(v, w[0], w[1]) : String(t.label || '').toLowerCase(); };
+  /** "7 yesterday" (or "$21 yesterday"): small grey text, never counted as one of Home's numbers. @param {any} t */
+  const todayWas = (t) => (t.yesterday === null || t.yesterday === undefined ? '' : `${t.unit === 'dollars' ? '$' + F.num(t.yesterday) : F.num(t.yesterday)} yesterday`);
+  /** Where a number comes from, and its day. @param {any} t */
+  const todaySrc = (t) => `From ${t.source}${t.sourceDay ? `, ${day(t.sourceDay)}` : ''}`;
+
+  /**
+   * "Today at <restaurant>" (items 24 and 26), pinned under the greeting: the money number big, then new leads and ad spend, each
+   * against yesterday in small grey words, and one line on what changed. Only numbers whose source is connected; never an estimate,
+   * never a zero for missing data. Until today's numbers are built it says "Updating today's numbers" with today's date.
+   * @param {any} p from getToday() @param {string} name the restaurant
+   */
+  function todayPanel(p, name) {
+    const head = `<div class="tp-head"><h2 id="h-today">Today at ${esc(name)}</h2><p class="tp-date">${esc(F.date(p.day))}</p>${UI.SampleChip()}</div>`;
+    if (p.state === 'updating') return `${head}<p class="tp-updating">${icon('refresh')}<span>Updating today's numbers. They show here once they are checked.</span></p>`;
+    const [big, ...rest] = p.tiles || [];
+    const bigHtml = big ? `<div class="tp-big"><p class="tp-big-fig"><span class="fig">${esc(todayFig(big))}</span> <span class="tp-big-words">${esc(todayWord(big, big.value))}</span></p>
+      <p class="tp-meta">${todayWas(big) ? `<span class="tp-was">${esc(todayWas(big))}</span>` : ''}<span class="tp-src">${esc(todaySrc(big))}</span></p></div>` : '';
+    const tiles = rest.length ? `<ul class="tp-tiles">${rest.map((t) => `<li class="tp-tile">
+        <p class="tp-fig"><span class="fig">${esc(todayFig(t))}</span> <span class="tp-word">${esc(todayWord(t, t.value))}</span></p>
+        ${t.about ? `<p class="tp-about">${esc(t.about)}</p>` : ''}
+        <p class="tp-meta">${todayWas(t) ? `<span class="tp-was">${esc(todayWas(t))}</span>` : ''}<span class="tp-src">${esc(todaySrc(t))}</span></p>
+      </li>`).join('')}</ul>` : '';
+    const changed = p.changed ? `<p class="tp-changed"><strong>What changed:</strong> ${esc(p.changed)}</p>` : '';
+    return `${head}${bigHtml}${tiles}${changed}`;
+  }
+
+  /**
+   * The prospect's way in (items 1 and 29), at the bottom of the demo's Home only: what most agencies send against this, then
+   * one button to Karan. No price, ever. Never in a client's portal.
+   */
+  function prospectBlock() {
+    if (D8.data.MODE !== 'demo' || D8.data.viewAs) return '';
+    const page = '<span class="pdf-page"><span class="pdf-tag">PDF</span><span class="pdf-line"></span><span class="pdf-line is-short"></span><span class="pdf-line"></span><span class="pdf-line is-short"></span></span>';
+    return `<section class="card prospect" aria-labelledby="h-prospect">
+      <div class="pros-compare" aria-hidden="true">
+        <figure class="pros-side is-pdf"><div class="pdf-stack">${page}${page}${page}</div><figcaption>What most agencies send</figcaption></figure>
+        <figure class="pros-side is-dash"><div class="mini-dash"><span class="md-row"><svg class="md-spark" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M2,28 L18,24 L34,26 L50,17 L66,19 L82,11 L98,13 L118,5"/></svg><span class="md-src">From your booking system, today</span></span><span class="md-approve">${icon('check')}Approve</span></div><figcaption>What you get: approve in one tap, every number with its source.</figcaption></figure>
+      </div>
+      <p class="sr-only">Most agencies send a pile of PDF reports. Here you approve in one tap, and every number shows its source.</p>
+      ${ctaBlock('h-prospect')}
     </section>`;
   }
+  /** The one call to action for a prospect (demo only). Links to Karan's contact form on the website. @param {string} id heading id */
+  const CTA_HREF = '/#contact';
+  function ctaBlock(id) {
+    return `<div class="pros-cta"><div><h2 id="${esc(id)}" class="pros-h">Want this for your restaurant?</h2><p class="pros-why">I only take 3 restaurants at a time.</p></div>
+      <a class="btn btn-primary" href="${CTA_HREF}" target="_top">${icon('message')}Message Karan</a></div>`;
+  }
+  D8.prospect = { ctaBlock, CTA_HREF };
+
+  /**
+   * The one-time welcome on a client's first sign-in (item 32): their first finished piece of work and one button to see it.
+   * Shown once, then Home as usual. @param {any} w @param {any} a the account
+   */
+  function welcomeScreen(w, a) {
+    return `<div class="page page-welcome">
+      <section class="card welcome-card" aria-labelledby="page-title">
+        <p class="eyebrow">Welcome to your dashboard, ${esc(a.user.firstName)}</p>
+        <h1 id="page-title" tabindex="-1">${esc(w.title)}</h1>
+        <p class="lede">${esc(w.text)}</p>
+        <a class="btn btn-primary" href="${esc(w.href || '#/home')}" data-welcome-go>${esc(w.button || 'See it')}${icon('arrow-right')}</a>
+        ${D8.data.MODE === 'demo' ? `<p class="meta">${UI.SampleChip()}</p>` : ''}
+      </section>
+    </div>`;
+  }
+  let welcomeShown = false;
 
   /** "Next planned" and "Latest win", as a quiet line under the calm banner. @param {any} h */
   function calmFacts(h) {
@@ -212,56 +279,28 @@
   const hasNum = (/** @type {any} */ v) => v !== null && v !== undefined;
 
   /**
-   * "Last week" (the last full Monday to Sunday, or the last 7 days in the demo): one sentence, up to three numbers with
-   * the week before beside them, and what staff recorded. The lead moves only on a real change: the average change of the
-   * numbers that can be compared, 10 percent either way, so one call less never reads as a quiet week. @param {any} wk
+   * "Last week" (item 8, 2026-10-21): what we did, then the single biggest result, in customers or dollars, never a percentage.
+   * What we did comes from the updates of the last 7 days; the result is what staff recorded, else the number that grew the most.
+   * @param {any} wk the weekly numbers (or null) @param {any[]} ups the updates @param {any} win staff's biggest result (or null) @param {number} now
    */
-  function weekBlock(wk) {
-    if (!wk || !wk.numbers || !wk.numbers.length) {
-      return UI.EmptyState({ icon: 'results', title: 'No weekly numbers yet.', text: 'Calls, directions and bookings show here, next to the week before, once we have checked them.' });
+  function weekBlock(wk, ups, win, now) {
+    const today = D8.time.dayNum(now);
+    const did = (ups || []).filter((/** @type {any} */ u) => u.author !== 'automatic' && today - D8.time.dayNum(u.date) <= 7 && today >= D8.time.dayNum(u.date)).slice(0, 3);
+    /** @type {string} */ let result = '';
+    if (win && win.text) result = win.text;
+    else if (wk && wk.numbers && wk.numbers.length) {
+      const grown = wk.numbers.filter((/** @type {any} */ n) => hasNum(n.before) && n.now > n.before).sort((/** @type {any} */ a, /** @type {any} */ b) => (b.now - b.before) - (a.now - a.before))[0];
+      const top = grown || wk.numbers[0];
+      result = grown ? `${F.num(top.now - top.before)} more ${weekWord(top, top.now - top.before)} than the week before.` : `${F.num(top.now)} ${weekWord(top, top.now)} last week.`;
     }
-    const nums = wk.numbers;
-    const compared = nums.filter((/** @type {any} */ n) => hasNum(n.before));
-    const moves = compared.filter((/** @type {any} */ n) => n.before > 0).map((/** @type {any} */ n) => (n.now - n.before) / n.before);
-    const avg = moves.length ? moves.reduce((/** @type {number} */ a, /** @type {number} */ b) => a + b, 0) / moves.length : 0;
-    const lead = !compared.length ? 'Your first week of checked numbers.' : avg >= 0.1 ? 'Busier than the week before.' : avg <= -0.1 ? 'Quieter than the week before.' : 'About the same as the week before.';
-    const said = (/** @type {'now'|'before'} */ k) => nums.filter((/** @type {any} */ n) => hasNum(n[k])).map((/** @type {any} */ n) => `${F.num(n[k])} ${weekWord(n, n[k])}`).join(', ');
-    const extras = (wk.extras || []).filter((/** @type {any} */ x) => x && x.label).map((/** @type {any} */ x) => `${x.label}: ${x.value}.`).join(' ');
-    const line = `Last week: ${said('now')}.${compared.length ? ` The week before: ${said('before')}.` : ''}`;
-    const cells = nums.map((/** @type {any} */ n) => {
-      const had = hasNum(n.before);
-      const dir = !had ? '' : n.now > n.before ? 'up' : n.now < n.before ? 'down' : 'flat';
-      return `<li class="wn${dir ? ' is-' + dir : ''}"><span class="wn-val">${esc(F.num(n.now))}</span><span class="wn-word">${esc(weekWord(n, n.now))}</span>${had ? `<span class="wn-was">${esc(F.num(n.before))} the week before</span>` : ''}</li>`;
-    }).join('');
-    return `<div class="card week-card" data-week="${esc(wk.id || '')}">
-      <p class="week-lead">${esc(lead)}</p>
-      <p class="sr-only">${esc(line)}</p>
-      <ul class="week-nums" aria-hidden="true">${cells}</ul>
-      ${extras ? `<p class="week-extras">${esc(extras)}</p>` : ''}
-      <p class="meta week-meta">${wk.from && wk.to ? `${esc(F.range(wk.from, wk.to))}. ` : ''}<a class="link" href="#/results">See all results</a></p>
+    if (!did.length && !result) {
+      return UI.EmptyState({ icon: 'results', title: 'Nothing to report from last week yet.', text: 'What we did and the biggest result show here every week.' });
+    }
+    return `<div class="card week-card"${wk && wk.id ? ` data-week="${esc(wk.id)}"` : ''}>
+      ${did.length ? `<p class="week-did-h">What we did</p><ul class="week-did">${did.map((/** @type {any} */ u) => `<li>${icon('check')}<span>${esc(u.title)}</span></li>`).join('')}</ul>` : ''}
+      ${result ? `<p class="week-win"><strong>Biggest result:</strong> ${esc(result)}</p>` : ''}
+      <p class="meta week-meta">${UI.SampleChip()}<a class="link" href="#/results">See all results</a></p>
     </div>`;
-  }
-
-  /**
-   * One next step, picked by a fixed order: answer what is waiting, read our reply, the meeting this week, otherwise
-   * how to ask for something. Always one sentence and one button.
-   * A client who has never answered anything gets their first real job instead, while one waits: the first card.
-   * @param {number} waiting @param {number} unread @param {any} a the account @param {Date} now @param {boolean} [first]
-   */
-  function nextStep(waiting, unread, a, now, first) {
-    const m = a.meeting;
-    const gap = m && m.at ? D8.time.dayNum(m.at) - D8.time.dayNum(now) : -1;
-    const soon = m && m.at && (!m.status || m.status === 'confirmed') && gap >= 0 && gap <= 7;
-    const timed = soon && /[T ]\d\d:\d\d/.test(String(m.at));
-    /** @type {string[]} icon, words, button */
-    let s;
-    if (first && waiting > 0) s = ['check', 'Your first job here: the card at the top. One tap to approve, or tell us what to change. That is how all the work comes to you from now on.', '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Go to the first card</button>'];
-    else if (waiting > 0) s = ['check', waiting === 1 ? 'Answer the one thing above and you are done for now.' : `Answer the ${waiting} things above. It takes about a minute.`, '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Go to the first card</button>'];
-    else if (unread > 0) s = ['message', unread === 1 ? 'We replied to your message.' : `We sent you ${unread} replies.`, `<a class="btn btn-tint btn-sm" href="#/messages">Read ${unread === 1 ? 'it' : 'them'}</a>`];
-    else if (soon) s = ['calendar', `Our next meeting is ${day(m.at)}${timed ? ` at ${F.time(m.at)}` : ''}. Anything to add first?`, '<a class="btn btn-glass btn-sm" href="#/messages">Message us</a>'];
-    // the request form itself (new hours go in as an urgent fix that never counts toward the plan)
-    else s = ['message', 'Nothing needed from you. New hours, a special or a change? Tell us here and we do it.', '<button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="request">Ask for something</button>'];
-    return `<div class="card next-card"><span class="next-icon">${icon(s[0])}</span><p class="next-text">${esc(s[1])}</p>${s[2]}</div>`;
   }
 
   /** "Approved lately": what they approved and where it stands, for a week. @param {any[]} list @param {Date} now */
@@ -278,16 +317,20 @@
 
   const home = {
     title: () => 'Home',
-    /** #/home?more=open opens "More about your plan" (a link from an email or another page can land there). */
+    /* Home, shrunk (2026-10-21, Karan: "a client feels the value in under 10 seconds"): the greeting and one line that says it was
+       checked by Karan, Today's numbers pinned at the top, what is waiting (Approve first, solid orange), last week, and in the
+       demo only the way to get one. No more than five numbers on the page. #/home?approval=<id> opens that approval (email links). */
     render(ctx, r) {
       const now = ctx.client.now();
       const a = ctx.account;
+      if (a.welcome && !welcomeShown && !D8.data.viewAs) return welcomeScreen(a.welcome, a);
       return `<div class="page page-home is-narrow">
-        ${UI.PageHeader({ cls: 'is-home', title: `${F.greeting(now)}, ${a.user.firstName}.`, intro: '<span id="home-summary">Checking your account.</span>', introHtml: true, sample: a.business.name })}
-        ${UI.PageFresh({ updatedAt: a.updatedAt || D8.time.isoTime(now), source: 'Domin8te team', zone: a.zoneAbbr, status: 'ok' })}
+        <header class="page-head is-home"><div class="page-head-text"><h1 id="page-title" tabindex="-1">${esc(F.greeting(now))}, ${esc(a.user.firstName)}.</h1>${trustLine(a, now)}</div></header>
+        <p class="sr-only" id="home-summary" role="status">Checking your account.</p>
+        <section class="card today-panel" id="home-today" aria-labelledby="h-today">${UI.Skeleton('card', 1)}</section>
         <p class="sr-only" id="home-live" role="status" aria-live="polite"></p>
         <section class="sec sec-attention" aria-labelledby="h-attention">
-          ${UI.SectionHead('h-attention', 'Waiting for you')}
+          ${UI.SectionHead('h-attention', 'Waiting for you', '<p class="sec-meta wed-line">If something waits past Wednesday, Karan will check in.</p>')}
           <div id="home-attention">${UI.Skeleton('row', 2)}</div>
         </section>
         <section class="sec sec-done" aria-labelledby="h-done" hidden>
@@ -298,95 +341,66 @@
           ${UI.SectionHead('h-week', 'Last week')}
           <div id="home-week">${UI.Skeleton('card', 1)}</div>
         </section>
-        <section class="sec sec-next" aria-labelledby="h-next">
-          ${UI.SectionHead('h-next', 'Your next step')}
-          <div id="home-next">${UI.Skeleton('row', 1)}</div>
-        </section>
-        <details class="home-more" id="home-more"${r && r.params && r.params.more === 'open' ? ' open' : ''}>
-          <summary class="home-more-sum"><span class="hm-title">Your plan, last 30 days and next meeting</span><span class="hm-sub">This month, the last 30 days and your next meeting</span>${icon('chevron-down', 'hm-chev')}</summary>
-          <div class="home-more-body">
-            <div class="sec home-plan" id="home-plan">${UI.Skeleton('card', 2)}</div>
-            <section class="sec sec-strip" aria-labelledby="h-strip">
-              ${UI.SectionHead('h-strip', 'Last 30 days')}
-              <div id="home-strip">${UI.Skeleton('strip', 3)}</div>
-              ${checkedLine(a, now)}
-            </section>
-            ${contactStrip(a, now)}
-          </div>
-        </details>
+        ${prospectBlock()}
       </div>`;
     },
     mount(ctx, r, el) {
       const now = () => ctx.client.now();
+      // The welcome (item 32): shown once, then never again. Its button leads to the work itself.
+      if (el.querySelector('.page-welcome')) {
+        welcomeShown = true;
+        ctx.client.markWelcomeSeen();
+        return {};
+      }
       /** @type {number|null} */ let count = null;
       /** What staff wrote for one part of Home, when they made it visible. @param {string} k */
       const staffSection = (k) => (ctx.account.homeSections || []).find((/** @type {any} */ s) => s.section === k) || null;
-      /** First week: the header says what this page is for, once, until their first answer. */
-      let firstTime = false;
       /** What still waits: an answer in its Undo window no longer counts. */
       const waitingNow = () => Math.max((count || 0) - held.size, 0);
+      // Said to screen readers only: the cards themselves show what waits, and Home keeps to five numbers.
       const summary = () => {
         if (count === null) return;
         const n = waitingNow();
-        const said = count < 0 ? 'We could not check what is waiting for you just now.' : n ? `${n} ${F.plural(n, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.';
-        setText(el, '#home-summary', firstTime && n > 0 ? `Welcome to your dashboard. Approvals, updates and your numbers all come here. ${said}` : said);
+        setText(el, '#home-summary', count < 0 ? 'We could not check what is waiting for you just now.' : n ? `${n} ${F.plural(n, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.');
       };
       const live = (/** @type {string} */ t) => setText(el, '#home-live', t);
-      const setFirst = (/** @type {boolean} */ f) => { if (f !== firstTime) { firstTime = f; summary(); } };
-      const more = /** @type {HTMLDetailsElement|null} */ (el.querySelector('#home-more'));
-      const moreOpen = () => !!(more && more.open);
+      /** An email's link to one approval (#/home?approval=<id>) opens it once the cards are there. */
+      let wantApproval = r && r.params && r.params.approval ? String(r.params.approval) : '';
       /** @type {Record<string, () => any>} */
       const loaders = {
+        today: () => section(el, '#home-today', () => ctx.client.getToday(), (p) => {
+          const box = /** @type {HTMLElement|null} */ (el.querySelector('#home-today'));
+          if (box) box.hidden = !p || p.state === 'none';
+          return p && p.state !== 'none' ? todayPanel(p, ctx.account.business.name) : '';
+        }, () => ({ title: "We couldn't load today's numbers.", text: 'The rest of this page works.', retry: 'today' })),
         attention: () => section(el, '#home-attention', () => Promise.all([ctx.client.getAttention(), ctx.client.getPlan().catch(() => null)])
           .then(([items, plan]) => (items.length ? { items, plan, highlights: null } : ctx.client.getHighlights().catch(() => null).then((h) => ({ items, plan, highlights: h })))), (d) => {
           count = d.items.length;
           summary();
           ctx.setBadges(d.items);
-          loaders.next();
           const ok = d.plan && d.plan.state === 'ok';
           const sec = el.querySelector('.sec-attention');
           if (sec) sec.classList.toggle('is-calm', !count && !!ok);
+          if (wantApproval && d.items.some((/** @type {any} */ x) => x.approvalId === wantApproval)) {
+            const id = wantApproval;
+            wantApproval = '';
+            setTimeout(() => { if (el.isConnected) D8.dialogs.approval(id, null, ctx, {}); }, 0);
+          }
           if (count) return UI.ActionNeededList(d.items, now());
           return ok ? D8.plan.banner(d.plan, { staff: staffSection('nothing_to_do'), facts: calmFacts(d.highlights) }) : UI.CaughtUp(d.highlights);
-        }, () => { count = -1; summary(); loaders.next(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
-        // Shown is seen: the first time a summary is drawn, the server learns the client opened it (live only).
+        }, () => { count = -1; summary(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
         // Shown only when something was approved or finished this week; otherwise the section stays hidden.
         done: () => section(el, '#home-done', () => ctx.client.getRecentDone(), (list) => {
           const sec = /** @type {HTMLElement|null} */ (el.querySelector('.sec-done'));
           if (sec) sec.hidden = !list || !list.length;
           return doneBlock(list, now());
         }, () => { const sec = /** @type {HTMLElement|null} */ (el.querySelector('.sec-done')); if (sec) sec.hidden = true; return { title: '', text: '' }; }),
-        week: () => section(el, '#home-week', () => ctx.client.getWeekly(), (wk) => {
+        // Shown is seen: the first time a summary is drawn, the server learns the client opened it (live only).
+        week: () => section(el, '#home-week', () => Promise.all([ctx.client.getWeekly(), ctx.client.getUpdates().catch(() => []), ctx.client.getWeekWin().catch(() => null)]), ([wk, ups, win]) => {
           if (wk && wk.id) setTimeout(() => watchSeen(wk.id), 0);
-          return weekBlock(wk);
+          return weekBlock(wk, ups, win, now());
         },
-          () => ({ title: "We couldn't load this week's numbers.", text: 'The rest of this page works.', retry: 'week' })),
-        // Waits for the attention count; the unread replies are a best effort (no reply count is not an error).
-        next: () => {
-          if (count === null) return Promise.resolve(null);
-          return section(el, '#home-next', () => Promise.all([ctx.client.getUnreadReplies().catch(() => 0), ctx.client.getFirstWeek().catch(() => ({ first: false }))]),
-            ([n, fw]) => {
-              const first = !!(fw && fw.first);
-              setFirst(first);
-              return nextStep(waitingNow(), Number(n) || 0, ctx.account, now(), first);
-            },
-            () => ({ title: "We couldn't work out your next step.", text: 'The rest of this page works.', retry: 'next' }));
-        },
-        strip: () => (moreOpen() ? section(el, '#home-strip', () => ctx.client.getStrip(30), (d) => {
-          const verified = d.mode === 'verified';
-          const head = el.querySelector('#h-strip');
-          if (head) head.textContent = verified ? 'Latest checked numbers' : 'Last 30 days';
-          const list = d.items.filter((/** @type {any} */ x) => x.state !== 'pending' || !verified).slice(0, 3);
-          if (!list.length) return UI.EmptyState({ icon: 'results', title: 'No checked numbers yet.', text: 'They show here once we have checked them against your accounts.' });
-          return `<div class="strip is-3">${list.map((/** @type {any} */ t) => UI.ResultTile(t, now(), { compact: true, delta: !verified, days: 30 })).join('')}</div>`;
-        }, () => ({ title: "We couldn't load your numbers.", text: 'The rest of this page works.', retry: 'strip' })) : Promise.resolve(null)),
-        // The plan this month, what is used, and what comes next.
-        plan: () => (moreOpen() ? section(el, '#home-plan', () => Promise.all([ctx.client.getPlan(), ctx.client.getWorkSummary(), ctx.client.getAttention().catch(() => [])]), ([m, list, acts]) => {
-          if (m.state !== 'ok') return D8.plan.notSetUp(m);
-          const changing = m.confirmed && m.changes.differs;
-          const note = staffSection('note');
-          return `<div class="home-cols">${D8.plan.runningNow(m, { summary: list, actions: acts, staff: staffSection('running_now') })}${changing ? D8.plan.whatChanges(m, staffSection('next_month')) : D8.plan.comingUp(m, staffSection('next_month'), ctx.account.user.email)}</div>${note && D8.plan.staffNote(note) ? `<section class="card home-note" aria-label="A note from Domin8te">${D8.plan.staffNote(note)}</section>` : ''}`;
-        }, () => ({ title: "We couldn't load your plan.", text: 'The rest of this page works.', retry: 'plan' })) : Promise.resolve(null))
+          () => ({ title: "We couldn't load last week.", text: 'The rest of this page works.', retry: 'week' }))
       };
       /**
        * Opened means read: the summary counts as opened once at least half of it has been on screen for a second
@@ -407,10 +421,7 @@
         }, { threshold: [0, 0.5, 1] });
         seenWatch.observe(card);
       };
-      // The folded part loads the first time it opens, and again on every refresh while it is open.
-      let moreLoaded = moreOpen();
-      if (moreLoaded) { loaders.plan(); loaders.strip(); }
-      if (more) more.addEventListener('toggle', () => { if (more.open && !moreLoaded) { moreLoaded = true; loaders.plan(); loaders.strip(); } });
+      loaders.today();
       loaders.attention();
       loaders.done();
       loaders.week();
@@ -448,7 +459,7 @@
           cardState(h.li, `${h.title}: approved.`, "Thanks. We'll take it from here.", '');
           focusCard(h.li);
           live(`${h.title}: approved and saved.`);
-          if (count !== null && count > 0) { count -= 1; summary(); loaders.next(); }
+          if (count !== null && count > 0) { count -= 1; summary(); }
           ctx.client.getAttention().then((/** @type {any[]} */ items) => ctx.setBadges(items)).catch(() => {});
           // a moment later the card leaves Waiting for you and shows under Approved lately, with what happens next
           setTimeout(() => { if (el.isConnected && !held.size) { loaders.attention(); loaders.done(); } }, 2500);
@@ -472,33 +483,28 @@
 
       return {
         refresh() {
-          const c = el.querySelector('#home-checked');
-          if (c) c.innerHTML = checkedText(ctx.account, now());
+          const c = el.querySelector('#home-trust');
+          if (c) c.outerHTML = trustLine(ctx.account, now());
           // an answer still in its Undo window is saved first, and the page reads again only after it is saved
           flush().then(() => {
             if (!el.isConnected) return;
+            loaders.today();
             loaders.attention();
             loaders.done();
             loaders.week();
-            if (moreLoaded) { loaders.plan(); loaders.strip(); }
           });
         },
         /** @param {string} which */
         retry(which) {
           const f = loaders[which];
           if (!f) return;
-          const box = /** @type {HTMLElement|null} */ (el.querySelector(/** @type {any} */ ({ strip: '#home-strip', attention: '#home-attention', plan: '#home-plan', week: '#home-week', next: '#home-next' })[which] || ''));
+          const box = /** @type {HTMLElement|null} */ (el.querySelector(/** @type {any} */ ({ today: '#home-today', attention: '#home-attention', week: '#home-week' })[which] || ''));
           // A section that never loaded goes back to its placeholder; one with content keeps it, dimmed.
-          if (box && !box.hasAttribute('data-loaded')) box.innerHTML = UI.Skeleton(/** @type {any} */ ({ strip: 'strip', attention: 'row', plan: 'card', week: 'card', next: 'row' })[which] || 'block', which === 'strip' ? 3 : which === 'plan' ? 2 : 1);
+          if (box && !box.hasAttribute('data-loaded')) box.innerHTML = UI.Skeleton(/** @type {any} */ ({ today: 'card', attention: 'row', week: 'card' })[which] || 'block', 1);
           f();
         },
         /** @param {string} act @param {HTMLElement} t */
         action(act, t) {
-          if (act === 'go-first') {
-            const b = /** @type {HTMLElement|null} */ (el.querySelector('#home-attention .act-card .act-do .btn'));
-            if (b) { b.scrollIntoView({ block: 'center', behavior: 'smooth' }); b.focus({ preventScroll: true }); }
-            return;
-          }
           const id = t.dataset.id || '';
           if (act === 'undo-approve') {
             const h0 = held.get(id);
@@ -507,7 +513,6 @@
             const h = restore(id);
             if (!h) return;
             summary();
-            loaders.next();
             focusCard(h.li);
             live(`${h.title}: not approved yet.`);
             return;
@@ -525,7 +530,6 @@
           focusCard(li);
           live(`${title}: approved. Saving in ${HOLD_MS / 1000} seconds. The Undo button is on the card.`);
           summary();
-          loaders.next();
         },
         /** Leaving Home saves any answer still in its Undo window. */
         leave() { flush(); root.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', onHidden); if (seenWatch) seenWatch.disconnect(); }
@@ -572,7 +576,7 @@
     const done = out.filter((x) => x.kind === 'done').sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
     return { open, done };
   }
-  /** The steps: "N of M done", what is left, and the done ones behind "Show N done steps". One colour per row: the icon's. @param {any} s */
+  /** The steps: "N of M done", what is left, the last 3 done ones, and older ones behind "Show N more". One colour per row: the icon's. @param {any} s */
   function stepList(s) {
     const { open, done } = steps(s);
     const all = open.length + done.length;
@@ -585,7 +589,21 @@
     };
     return `<div class="steps-head"><h3>Steps</h3><p class="meta">${done.length} of ${all} done</p></div>
       ${open.length ? `<ol class="steps">${open.map(row).join('')}</ol>` : ''}
-      ${done.length ? `<details class="steps-earlier"><summary class="btn-text">Show ${done.length} done ${F.plural(done.length, 'step', 'steps')}${icon('chevron-down')}</summary><ol class="steps">${done.map(row).join('')}</ol></details>` : ''}`;
+      ${done.length ? `<ol class="steps is-done">${done.slice(0, 3).map(row).join('')}</ol>` : ''}
+      ${done.length > 3 ? `<details class="steps-earlier"><summary class="btn-text">Show ${done.length - 3} more done ${F.plural(done.length - 3, 'step', 'steps')}${icon('chevron-down')}</summary><ol class="steps">${done.slice(3).map(row).join('')}</ol></details>` : ''}`;
+  }
+
+  /**
+   * "Right now" says what the status beside it is about (2026-10-21): a service waiting for the client names the thing that waits,
+   * not the team's other work. @param {any} s @param {any[]} needs what waits for the client on this service
+   */
+  function nowLine(s, needs) {
+    if (s.status === 'waiting') {
+      const mine = s.next && s.next.who === 'client' && s.next.text ? s.next.text : '';
+      const what = needs[0] ? needs[0].title : mine || ((s.cards || []).find((/** @type {any} */ c) => c.status === 'in_review') || {}).title;
+      if (what) return `Waiting for you: ${F.lcFirst(String(what))}`;
+    }
+    return s.now || 'Getting started';
   }
 
   /** @param {any} s @param {any[]} actions @param {any} [m] the plan model */
@@ -602,7 +620,7 @@
       <header class="svc-head">
         <h2 id="h-svc-${esc(s.id)}">${icon(svc.icon)}${esc(svc.label)}</h2>${UI.StatusBadge(s.status)}
       </header>
-      <p class="svc-now"><span class="svc-now-label">Right now:</span> ${esc(s.now || 'Getting started')}</p>
+      <p class="svc-now"><span class="svc-now-label">Right now:</span> ${esc(nowLine(s, needs))}</p>
       ${m && m.state === 'ok' ? D8.plan.workUsage(s, m) : ''}
       ${note}
       ${stepList(s)}
@@ -613,7 +631,7 @@
   function workHead(cur) {
     const ask = `<button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="request" title="Opens a message to us. Tell us anything you want different. We usually reply within one working day.">${icon('edit')}Ask for a change</button>`;
     const tab = (/** @type {string} */ id, /** @type {string} */ href, /** @type {string} */ text) => `<a class="work-tab" href="${href}"${cur === id ? ' aria-current="page"' : ''}>${text}</a>`;
-    return `${UI.PageHeader({ title: cur === 'done' ? 'Finished work' : 'Work', intro: cur === 'done' ? 'Everything we finished for you, newest first.' : "What we are doing for you now, and how much of this month's plan is used.", aside: ask })}
+    return `${UI.PageHeader({ title: cur === 'done' ? 'Done' : 'Work', intro: cur === 'done' ? 'Everything we finished for you, newest first.' : "What we are doing for you now, and how much of this month's plan is used.", aside: ask })}
       <nav class="work-tabs" aria-label="Work">${tab('now', '#/work', 'Now')}${tab('done', '#/updates', 'Done')}</nav>`;
   }
 
@@ -637,7 +655,7 @@
         const body = w.services.length
           ? w.services.map((s) => serviceSection(s, w.actions, m)).join('')
           : UI.EmptyState({ icon: 'work', title: 'No work started yet.', text: 'Your services show here once we start.' });
-        return fresh + body + D8.plan.offCards(w.off, m);
+        return fresh + UI.SampleChip() + body + D8.plan.offCards(w.off, m);
       },
       () => ({ title: "We couldn't load your work.", text: 'Your other pages still work. Try again soon.', retry: 'work' }))
         .then(() => {
@@ -734,6 +752,8 @@
     return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head(groupSources(g, now))}<div class="rtiles">${tiles}</div>${notes}${chart}${g.campaigns.length ? campaigns(g.campaigns) : ''}</section>`;
   }
 
+  /** The one attribution line, the same everywhere (item 16). */
+  const WRITTEN_BY = 'Written by our assistant, checked by Karan.';
   /** The summary at the top: the assistant's few lines, only once a person has checked them, and who. */
   function summaryCard(res, ins) {
     const big = ins && ins.state !== 'error' && ins.state !== 'none' && ins.headline ? ins : null;
@@ -741,9 +761,30 @@
     if (!s && !big) return '';
     return `<section class="card ai-summary" aria-labelledby="h-summary">
         <div class="sec-head"><h2 id="h-summary">Summary</h2>${s ? `<span class="checked-chip">${icon('check')}Checked by ${esc(s.reviewedBy)}, ${esc(day(s.reviewedAt))}</span>` : ''}</div>
-        ${s ? `<p class="ai-text">${esc(s.text)}</p><p class="ai-label">${icon('spark')}Checked by ${esc(s.reviewedBy)}.</p>` : ''}
-        ${big ? `<p class="ai-big"><strong>Biggest change this month:</strong> ${esc(big.headline)} ${esc(big.detail || '')}</p>` : ''}
+        ${s ? `<p class="ai-text">${esc(s.text)}</p><p class="ai-label">${icon('spark')}${esc(WRITTEN_BY)}</p>` : ''}
+        ${big ? `<p class="ai-big"><strong>Biggest change this month:</strong> ${esc(big.headline)}</p>` : ''}
       </section>`;
+  }
+
+  /** The order Results' three headline numbers are picked in: customers first, then the ways people found you (item 14). */
+  const HEADLINE = ['bookings', 'orders', 'calls', 'leads', 'adClicks', 'directions', 'visits', 'profileViews', 'facebookViews', 'instagramViews'];
+  /** @param {any[]} items */
+  function headlineTiles(items) {
+    const ok = items.filter((/** @type {any} */ t) => t.state === 'ok' && !(t.metric && t.metric.state === 'partial'));
+    const rank = (/** @type {any} */ t) => { const i = HEADLINE.indexOf(t.id); return i < 0 ? 99 : i; };
+    return ok.slice().sort((a, b) => rank(a) - rank(b)).slice(0, 3);
+  }
+  /**
+   * What was being lost, said first, then what came back (item 27): only when it is on record, never estimated.
+   * @param {any} m from getMissed()
+   */
+  function missedLine(m) {
+    if (!m) return '';
+    return `<section class="card missed-card" aria-label="Missed customers">
+      <p class="missed-lost"><strong>Missed calls and unanswered messages ${esc(/^\d{4}-\d{2}$/.test(String(m.period)) ? 'in ' + F.monthYear(m.period + '-01') : m.period || 'last month')}:</strong> about ${esc(F.num(m.lost))} ${esc(F.plural(m.lost, 'customer', 'customers'))}.</p>
+      ${m.back !== null && m.back !== undefined ? `<p class="missed-back">Since we started answering them, ${esc(F.num(m.back))} came back.</p>` : ''}
+      ${m.source ? `<p class="meta">From ${esc(m.source)}.</p>` : ''}
+    </section>`;
   }
 
   /** The freshness line for Results: the newest read, every source named, and whether anything is still being checked. @param {any} res @param {any} ctx */
@@ -759,10 +800,18 @@
     };
   }
 
-  /** @param {any} res @param {any} ins @param {number} now @param {any} ctx */
-  function resultsBody(res, ins, now, ctx) {
-    const out = [UI.PageFresh(resultsFresh(res, ctx))];
-    out.push(summaryCard(res, res.mode === 'series' && res.window && res.window.days === 30 ? ins : null));
+  /**
+   * Results, about one screen (item 14): the summary, three headline numbers and the missed customers above the fold; the groups,
+   * charts, daily tables and where the numbers come from behind one "See the detail".
+   * @param {any} res @param {any} ins @param {number} now @param {any} ctx @param {any} [missed]
+   */
+  function resultsBody(res, ins, now, ctx, missed) {
+    const top = [UI.PageFresh(resultsFresh(res, ctx))];
+    top.push(summaryCard(res, res.mode === 'series' && res.window && res.window.days === 30 ? ins : null));
+    const heads = headlineTiles(res.items || []);
+    if (heads.length) top.push(`<section class="sec results-head" aria-label="Headline numbers"><div class="rtiles is-3">${heads.map((t) => UI.ResultTile(t, now, { delta: res.mode === 'series', days: t.days || (res.window && res.window.days) || 30 })).join('')}</div>${UI.SampleChip()}</section>`);
+    top.push(missedLine(missed));
+    const out = [];
     if (res.mode === 'verified') {
       if (!res.groups.length) out.push(UI.EmptyState({ icon: 'results', title: 'No checked results yet.', text: 'Numbers show here once we have checked them against your accounts. Nothing unchecked is ever shown.' }));
       for (const g of res.groups) {
@@ -774,8 +823,9 @@
       for (const g of res.groups) out.push(group(g, res.window, now, seen));
     }
     const where = UI.SourcesTable(res.items);
-    if (where) out.push(`<details class="fold fold-where"><summary>Where these numbers come from${icon('chevron-down')}</summary>${where}</details>`);
-    return out.join('');
+    if (where) out.push(where);
+    const detail = out.join('');
+    return top.join('') + (detail ? `<details class="fold fold-detail" id="results-detail"><summary>See the detail${icon('chevron-down')}</summary><div class="detail-body">${detail}</div></details>` : '');
   }
 
   const results = {
@@ -797,19 +847,24 @@
         // Changing the range keeps the current figures on screen, dimmed, until the new ones arrive.
         if (!body.hasAttribute('data-loaded')) body.innerHTML = UI.Skeleton('block', 3);
         // The biggest change is extra: if it fails, the results still show.
-        return section(el, '#results-body', () => Promise.all([ctx.client.getResults(days), ctx.client.getInsight().catch(() => null)]), ([res, ins]) => {
+        const wasOpen = !!el.querySelector('#results-detail[open]');
+        return section(el, '#results-body', () => Promise.all([ctx.client.getResults(days), ctx.client.getInsight().catch(() => null), ctx.client.getMissed().catch(() => null)]), ([res, ins, missed]) => {
           const bar = el.querySelector('.range-bar');
           if (bar) bar.classList.toggle('is-verified', res.mode === 'verified');
           if (res.mode === 'series') { const w = res.window; setText(el, '#range-text', `${F.range(w.from, w.to)} vs the ${w.days} days before`); } else setText(el, '#range-text', '');
-          return resultsBody(res, ins, ctx.client.now(), ctx);
+          return resultsBody(res, ins, ctx.client.now(), ctx, missed);
         }, () => ({ title: "We couldn't load your results.", text: 'Your other pages still work. Try again soon.', retry: 'results' }))
-          .then(() => D8.charts.mountAll(el));
+          .then(() => {
+            const d = /** @type {HTMLDetailsElement|null} */ (el.querySelector('#results-detail'));
+            if (d && wasOpen) d.open = true;
+            D8.charts.mountAll(el);
+          });
       };
       // A folded chart is drawn when it opens, at its real width. (The page element, not main, which outlives it.)
       const page = el.querySelector('.page-results');
       if (page) page.addEventListener('toggle', (e) => {
         const d = /** @type {HTMLElement} */ (e.target);
-        if (d && d.classList && d.classList.contains('fold-chart') && /** @type {HTMLDetailsElement} */ (d).open) D8.charts.mountAll(d);
+        if (d && d.classList && (d.classList.contains('fold-chart') || d.classList.contains('fold-detail')) && /** @type {HTMLDetailsElement} */ (d).open) D8.charts.mountAll(d);
       }, true);
       load();
       return {
@@ -842,7 +897,7 @@
       if (!m) { m = { k, items: [] }; months.push(m); }
       m.items.push(u);
     }
-    return months.map((m) => `<section class="feed-month" aria-labelledby="m-${esc(m.k)}"><h2 id="m-${esc(m.k)}">${esc(F.monthYear(m.k + '-01'))}</h2><div class="feed">${m.items.map((u) => UI.UpdateCard(u, { id: 'u-' + u.id })).join('')}</div></section>`).join('');
+    return months.map((m) => `<section class="feed-month" aria-labelledby="m-${esc(m.k)}"><h2 id="m-${esc(m.k)}">${esc(F.monthYear(m.k + '-01'))}</h2><div class="feed">${m.items.map((u) => UI.UpdateCard(u, { id: 'u-' + u.id, resultTitle: true })).join('')}</div></section>`).join('');
   }
 
   /* The updates are the Done tab of Work (2026-10-09). #/updates still opens them, with ?service= kept. */
@@ -868,10 +923,18 @@
         const label = filter === 'all' ? '' : F.lcFirst(SVC()[filter].label) + ' ';
         setText(el, '#updates-status', `${list.length} ${label}${F.plural(list.length, 'update', 'updates')}`);
         const fresh = UI.PageFresh({ updatedAt: all && all[0] ? all[0].date : null, source: 'Domin8te team', status: 'ok' });
-        return fresh + (list.length ? feed(list) : UI.EmptyState({ icon: 'updates', title: `No ${label}updates yet.`, text: 'They show here when we finish something.' }));
+        return fresh + UI.SampleChip() + (list.length ? feed(list) : UI.EmptyState({ icon: 'updates', title: `No ${label}updates yet.`, text: 'They show here when we finish something.' }));
       };
+      let landed = false;
       const load = () => section(el, '#updates-body', () => ctx.client.getUpdates(), (list) => { all = list; return draw(); },
-        () => ({ title: "We couldn't load your updates.", text: 'Your other pages still work. Try again soon.', retry: 'updates' }));
+        () => ({ title: "We couldn't load your updates.", text: 'Your other pages still work. Try again soon.', retry: 'updates' }))
+        .then(() => {
+          // #/updates?u=<id> (an email's link): glide to that update once
+          if (landed || !r.params.u) return;
+          landed = true;
+          const t = /** @type {HTMLElement|null} */ (document.getElementById('u-' + r.params.u));
+          if (t && el.contains(t)) { t.setAttribute('tabindex', '-1'); ring(t); }
+        });
       load();
       return {
         retry: load,
@@ -907,11 +970,8 @@
 
   /** The freshness line for Billing: when a person last checked a bill, and a note while a payment needs a look. @param {any} b @param {any} ctx */
   function billFresh(b, ctx) {
-    const problem = !!b.subscription && b.subscription.status === 'past_due';
-    return UI.PageFresh({
-      updatedAt: b.checkedAt || null, zone: ctx.account.zoneAbbr, source: 'Stripe, our payment service',
-      status: problem ? 'delayed' : 'ok', label: 'Payment needs a look'
-    });
+    // the payment itself is said once, in the banner and on the plan card; this line is only about how fresh the page is
+    return UI.PageFresh({ updatedAt: b.checkedAt || null, zone: ctx.account.zoneAbbr, source: 'Stripe, our payment service', status: 'ok' });
   }
 
   /** @param {any} b the billing record, with the plan model as b.plan @param {any} ctx */
@@ -922,7 +982,7 @@
     // A new client has no month of a plan yet: say so, never a "could not load". Any bills they do have still show.
     if (m.state !== 'ok') return `${fresh}${D8.plan.notSetUp(m)}${b.invoices.length ? D8.plan.bills(b.invoices, m) : ''}${help}`;
     const changing = m.confirmed && m.changes.differs;
-    return `${fresh}
+    return `${fresh}${UI.SampleChip()}
       ${b.subscription && b.subscription.status === 'past_due' ? payBanner(b) : ''}
       ${changing ? D8.plan.confirmed(m, ctx.account.user.email) : ''}
       ${D8.plan.overview(m, { billing: b })}
@@ -934,7 +994,7 @@
   function changeFrame(ctx) {
     return `<div class="page page-billing page-change">
       <p class="crumb"><a class="link" href="#/billing">${icon('chevron-left')}Back to billing</a></p>
-      ${UI.PageHeader({ title: 'Change your plan or services', intro: 'Choose what you want from your next bill. Nothing changes until you confirm.', sample: ctx.account.business.name })}
+      ${UI.PageHeader({ title: 'Change your plan or services', intro: 'Choose what you want from your next bill. Nothing changes until you confirm.' })}
       <div id="change-body">${UI.Skeleton('block', 2)}</div>
     </div>`;
   }
@@ -944,18 +1004,18 @@
     const fresh = UI.PageFresh({ updatedAt: D8.time.isoTime(ctx.client.now()), zone: ctx.account.zoneAbbr, source: 'Domin8te team', status: 'ok' });
     if (m.state !== 'ok') return fresh + D8.plan.notSetUp(m);
     if (!m.open) {
-      return `${fresh}<section class="card plan-locked" aria-labelledby="h-locked">
+      return `${fresh}${UI.SampleChip()}<section class="card plan-locked" aria-labelledby="h-locked">
         <div class="empty">${icon('lock', 'empty-icon')}<div><h2 id="h-locked" class="empty-title">Next month is set.</h2><p class="empty-text">The last day to change it, ${esc(day(m.lastDay))}, has passed. Message us if something is wrong.</p><a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a></div></div>
       </section>`;
     }
-    return fresh + D8.plan.deadline(m) + D8.plan.overview(m, { compact: true }) + D8.plan.picker(m);
+    return fresh + UI.SampleChip() + D8.plan.deadline(m) + D8.plan.overview(m, { compact: true }) + D8.plan.picker(m);
   }
 
   const billing = {
     title: (ctx, r) => (r && r.sub === 'change' ? 'Change your plan' : 'Billing'),
     render(ctx, r) {
       if (r && r.sub === 'change') return changeFrame(ctx);
-      return `<div class="page page-billing">${UI.PageHeader({ title: 'Billing', intro: 'Your plan, payments and bills.', sample: ctx.account.business.name })}<div id="billing-body">${UI.Skeleton('block', 2)}</div></div>`;
+      return `<div class="page page-billing">${UI.PageHeader({ title: 'Billing', intro: 'Your plan, payments and bills.' })}<div id="billing-body">${UI.Skeleton('block', 2)}</div></div>`;
     },
     mount(ctx, r, el) {
       if (r && r.sub === 'change') {
@@ -982,8 +1042,8 @@
   /* ================================================================ SETTINGS */
 
   /* Settings, simplified (2026-10-09): Connected accounts (a count, only the ones with a problem, the rest folded),
-     Who can sign in (sign-in and asking for a login, merged), Emails (the optional ones folded) and How it looks
-     (folded). */
+     Who can sign in (sign-in and asking for a login, merged) and Emails (the optional ones folded). How it looks was taken
+     out on 2026-10-21 (not needed): the portal is light. */
   function sourceRow(src, now) {
     const when = src.pending ? `You told us you ${src.pending.kind === 'disconnect' ? 'removed our access' : 'connected it'}${src.pending.at ? ` on ${day(src.pending.at)}` : ''}. We confirm it, usually within one working day.`
       : src.state === 'missing' ? 'Not connected yet. Press Connect to let us in.'
@@ -1003,7 +1063,6 @@
   }
 
   function settingsBody(s, ctx) {
-    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
     const now = ctx.client.now();
     const optional = s.categories.filter((c) => !c.required);
     const rows = optional.map((c) => `<div class="toggle-row">
@@ -1017,7 +1076,7 @@
     // The emails that cannot be switched off (the bill reminders, the confirmation of a change of picks, payment problems) show as rows, always on.
     const always = [...(s.always || []), ...s.categories.filter((c) => c.required)].map((c) => `<li>${icon('check')}<span><strong>${esc(c.label)}</strong>. ${esc(c.text)}</span></li>`).join('');
     const fresh = UI.PageFresh({ updatedAt: s.savedAt || null, source: 'Your account', zone: ctx.account.zoneAbbr, status: 'ok' });
-    return `${fresh}<section class="card set-card" id="sources" tabindex="-1" aria-labelledby="h-sources">
+    return `${fresh}${UI.SampleChip()}<section class="card set-card" id="sources" tabindex="-1" aria-labelledby="h-sources">
         <div class="sec-head"><h2 id="h-sources">Connected accounts</h2><p class="sec-meta set-count">${esc(count)}</p></div>
         ${problems.length ? `<ul class="sources">${problems.map((src) => sourceRow(src, now)).join('')}</ul>` : ''}
         ${fine.length ? `<details class="fold fold-sources"${problems.length ? '' : ' open'}><summary>See all connections${icon('chevron-down')}</summary><p class="meta">You connect and disconnect on the app's own page. We never see your password.</p><ul class="sources">${fine.map((src) => sourceRow(src, now)).join('')}</ul></details>` : ''}
@@ -1053,15 +1112,6 @@
             <p class="form-error" role="alert" hidden></p>
             <div class="form-foot"><button class="btn btn-solid" type="submit" disabled>Save changes</button><p class="meta" id="notify-status" aria-live="polite">${s.savedAt ? `Saved ${esc(F.when(s.savedAt, now))}.` : 'No changes yet.'}</p></div>
           </form>
-        </details>
-      </section>
-      <section class="card set-card" aria-labelledby="h-look">
-        <details class="fold fold-look">
-          <summary><h2 id="h-look">How it looks</h2>${icon('chevron-down')}</summary>
-          <fieldset class="theme-pick"><legend class="pick-legend">Colours</legend>
-            <label class="theme-opt"><input type="radio" name="theme" value="light" data-change="theme"${theme === 'light' ? ' checked' : ''}><span class="theme-swatch is-light" aria-hidden="true"></span><span><strong>Light</strong><span class="meta">The usual look</span></span></label>
-            <label class="theme-opt"><input type="radio" name="theme" value="dark" data-change="theme"${theme === 'dark' ? ' checked' : ''}><span class="theme-swatch is-dark" aria-hidden="true"></span><span><strong>Dark</strong><span class="meta">Easier on the eyes at night</span></span></label>
-          </fieldset>
         </details>
       </section>`;
   }
@@ -1192,7 +1242,7 @@
   const settings = {
     title: () => 'Settings',
     render(ctx) {
-      return `<div class="page page-settings">${UI.PageHeader({ title: 'Settings', intro: 'Your connected accounts, who can sign in, your emails and how the portal looks.', sample: ctx.account.business.name })}<div id="settings-body" class="settings-stack">${UI.Skeleton('block', 2)}</div></div>`;
+      return `<div class="page page-settings">${UI.PageHeader({ title: 'Settings', intro: 'Your connected accounts, who can sign in and your emails.' })}<div id="settings-body" class="settings-stack">${UI.Skeleton('block', 2)}</div></div>`;
     },
     mount(ctx, r, el) {
       const load = () => section(el, '#settings-body', () => ctx.client.getSettings(), (s) => settingsBody(s, ctx),
@@ -1212,39 +1262,43 @@
   /* ================================================================ HELP */
 
   /* Help (2026-10-09): the common questions, and a card that leads to Messages, where the conversation lives.
-     2026-10-13: the answers cover plans, picks, limits and where the numbers come from. Change HELP_UPDATED with the words. */
-  const HELP_UPDATED = '2026-10-14';
+     2026-10-21: what we promise first (the closest thing to a guarantee), five questions, the rest behind "More questions", and one
+     way to message us. */
   const PROMISES = [
     'We only publish posts, pages and ads you have approved.',
     'We never change your ad budget without asking you first.',
     'Every number shows its period, where it came from and whether we checked it.',
-    'Summaries written by our assistant are labelled, and checked by a person against the numbers.',
+    'Every summary says who wrote it: Written by our assistant, checked by Karan.',
     'Only people you invite can see your account.'
   ];
+  const promiseList = () => `<ul class="promise-list">${PROMISES.map((p) => `<li>${icon('check')}<span>${esc(p)}</span></li>`).join('')}</ul>`;
   const FAQ = [
     ['What does my plan include?', 'Every plan includes Ads. Starter adds one service you choose, Growth adds two, and Domin8te adds three. You choose from Social media, Website, SEO and Google Maps, and Email.'],
+    ['How do approvals work?', 'When we need your OK, it shows under Waiting for you on your Home page, with a date. Approve it, or ask for changes with a short note. Nothing goes out until you approve it.'],
+    ['How fast do you make changes?', 'Small changes, like new opening hours or a menu price, usually go live within one working day. Bigger jobs, like a new page or an ad campaign, follow the dates on your Work page.'],
+    ['Where do the numbers come from?', 'Each number on Results names its source, its dates, and whether we checked it. If an account disconnects, we tell you instead of guessing.'],
+    ['Who can see my account?', 'You, the people at your restaurant we have given a login (ask for one in Settings), and the Domin8te team working for you. Other clients never see your numbers.']
+  ];
+  const MORE_FAQ = [
     ['How do I change my plan or my services?', 'Go to Billing and choose your services for next month. Your choice starts on your next bill date. This month stays as it is.'],
     ['When can I change my services?', 'Any time up to the last day shown in Billing, which is the day before your next bill. We email you 7 days and 3 days before, so you never miss it. Change them as often as you like until then.'],
     ['What happens to a service I stop?', 'We keep your work saved. You can add the service back for a later month.'],
     ['Is ad spend part of my plan?', `${D8.plan.AD_SPEND} We never change your ad budget without asking you first.`],
     ['What if I need more posts or changes this month?', 'Ask from Work. If it goes over your plan, Karan replies with options first. Nothing extra is charged without your OK.'],
     ['Do urgent fixes count?', 'No. Hours, closures, phone numbers and sold-out items are always fixed and never counted.'],
-    ['Where do the numbers come from?', 'Each number on Results names its source, its dates, and whether we checked it. If an account disconnects, we tell you instead of guessing.'],
-    ['How do approvals work?', 'When we need your OK, it shows under Waiting for you on your Home page, with a date. Approve it, or ask for changes with a short note. Nothing goes out until you approve it.'],
-    ['How fast do you make changes?', 'Small changes, like new opening hours or a menu price, usually go live within one working day. Bigger jobs, like a new page or an ad campaign, follow the dates on your Work page.'],
-    ['How do I change my card?', 'Change your payment details on Stripe (our payment service), from your Billing page.'],
-    ['Who can see my account?', 'You, the people at your restaurant we have given a login (ask for one in Settings), and the Domin8te team working for you. Other clients never see your numbers.'],
-    ['What we promise', `<ul class="promise-list">${PROMISES.map((p) => `<li>${icon('check')}<span>${esc(p)}</span></li>`).join('')}</ul>`]
+    ['How do I change my card?', 'Change your payment details on Stripe (our payment service), from your Billing page.']
   ];
+  const faqRows = (/** @type {string[][]} */ list) => list.map(([q, a]) => `<details><summary>${esc(q)}${icon('chevron-down')}</summary><p>${esc(a)}</p></details>`).join('');
 
   const help = {
     title: () => 'Help',
     render(ctx) {
       return `<div class="page page-help">
-        ${UI.PageHeader({ title: 'Help', intro: 'How to reach us, and answers to common questions.', sample: ctx.account.business.name, aside: `<a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a>` })}
-        ${UI.PageFresh({ updatedAt: HELP_UPDATED, source: 'Domin8te team', status: 'ok' })}
+        ${UI.PageHeader({ title: 'Help', intro: 'What we promise, answers to common questions, and how to reach us.' })}
+        <section class="card promise-card" aria-labelledby="h-promise"><h2 id="h-promise" class="sec-title">What we promise</h2>${promiseList()}</section>
         <section class="sec" aria-labelledby="h-faq"><h2 id="h-faq" class="sec-title">Common questions</h2>
-          <div class="card faq">${FAQ.map(([q, a]) => `<details><summary>${esc(q)}${icon('chevron-down')}</summary>${a.startsWith('<') ? a : `<p>${esc(a)}</p>`}</details>`).join('')}</div>
+          <div class="card faq">${faqRows(FAQ)}</div>
+          <details class="fold fold-faq"><summary>More questions${icon('chevron-down')}</summary><div class="card faq">${faqRows(MORE_FAQ)}</div></details>
         </section>
         <section class="card help-contact" aria-labelledby="h-contact">
           <div class="help-contact-row">
@@ -1256,6 +1310,7 @@
     },
     mount() { return {}; }
   };
+  D8.promises = { list: PROMISES, html: promiseList };
 
   /* ================================================================ MESSAGES */
 
@@ -1317,7 +1372,7 @@
       // The demo is view-only (2026-10-13): the conversation can be read, nothing can be sent.
       const ro = D8.data.READ_ONLY;
       return `<div class="page page-messages">
-        ${UI.PageHeader({ title: 'Messages', intro: `Talk to your Domin8te team. ${reply}`, aside: `<button class="btn btn-glass btn-sm" type="button" data-msg-reload title="Checks for new messages now. The page also checks by itself every 10 seconds.">${icon('refresh')}Reload conversation</button>`, sample: ctx.account.business.name })}
+        ${UI.PageHeader({ title: 'Messages', intro: `Talk to your Domin8te team. ${reply}${ctx.account.checkin ? ` Next check-in with Karan: ${day(ctx.account.checkin)}.` : ''}`, aside: `<button class="btn btn-glass btn-sm" type="button" data-msg-reload title="Checks for new messages now. The page also checks by itself every 10 seconds.">${icon('refresh')}Reload conversation</button>` })}
         <div id="msg-fresh">${UI.PageFresh({ source: 'Domin8te team', zone: ctx.account.zoneAbbr, status: 'ok' })}</div>
         <section class="card msg-card${ro ? ' is-view-only' : ''}" aria-labelledby="h-thread">
           <h2 id="h-thread" class="sr-only">Your conversation with Domin8te</h2>
@@ -1491,7 +1546,7 @@
         </form>
         <div id="signin-sent" hidden></div>
         <p class="meta signin-foot">${icon('lock')}<span>Only invited people can sign in. Our sign-in service handles this, and we never email passwords.</span></p>
-        ${isLive() && demoUrl() ? `<p class="signin-demo">Not a client yet? <a href="${esc(demoUrl())}">See a demo of the portal</a></p>` : ''}
+        ${isLive() && demoUrl() ? `<p class="signin-demo">Not a client yet? <a href="${esc(demoUrl())}">See what owners see every Monday.</a></p>` : ''}
       </div></div>`;
     },
     mount(ctx, r, el) {

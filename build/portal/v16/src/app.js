@@ -307,6 +307,36 @@
   /** The current hash, decoded: some mail clients and tools encode the slash as %2F. */
   const currentHash = () => { try { return decodeURIComponent(root.location.hash || ''); } catch (e) { return root.location.hash || ''; } };
 
+  /**
+   * Links from emails (2026-10-21): #/go/<kind>/<id> becomes that thing's own address. approval opens the card on Home, message
+   * the conversation, update that update on Done, work that service. Nothing in a link signs anyone in: no password, no token.
+   * @param {string} h
+   */
+  function resolveGo(h) {
+    const m = /^#\/go\/([a-z]+)(?:\/([^?/#]+))?/.exec(h);
+    if (!m) return h;
+    const id = m[2] ? encodeURIComponent(m[2]) : '';
+    if (m[1] === 'approval') return id ? '#/home?approval=' + id : '#/home';
+    if (m[1] === 'message') return '#/messages';
+    if (m[1] === 'update') return id ? '#/updates?u=' + id : '#/updates';
+    if (m[1] === 'work') return id ? '#/work/' + id : '#/work';
+    return ['results', 'billing', 'settings', 'help', 'home'].includes(m[1]) ? '#/' + m[1] : '#/home';
+  }
+  /**
+   * Where to go once signed in: the page a link asked for survives the 6-digit sign-in (kept for this tab only), so an email's
+   * link lands on that exact item, not Home.
+   */
+  const NEXT_KEY = NS + '.next';
+  function rememberNext(/** @type {string} */ h) {
+    if (!h.startsWith('#/') || h.startsWith('#/sign-in')) return;
+    try { root.sessionStorage.setItem(NEXT_KEY, h); } catch (e) { /* blocked: Home after sign-in */ }
+  }
+  function takeNext() {
+    let h = null;
+    try { h = root.sessionStorage.getItem(NEXT_KEY); root.sessionStorage.removeItem(NEXT_KEY); } catch (e) { h = null; }
+    return h && h.startsWith('#/') ? h : null;
+  }
+
   function parse() {
     const raw = currentHash();
     const h = raw.startsWith('#/') ? raw : '#/home';
@@ -323,8 +353,8 @@
       setBadges,
       setMessagesBadge,
       switchScenario,
-      /** Live sign-in finished: open the portal. */
-      signedIn: () => start('#/home'),
+      /** Live sign-in finished: open the page a link asked for, or Home. */
+      signedIn: () => start(takeNext() || '#/home'),
       /** After an approval, message or reset: reload the page's data in place and move focus sensibly. */
       afterChange() {
         if (!app.client) return;
@@ -358,6 +388,7 @@
   /** @param {boolean} first */
   function render(first) {
     if (!app.ready) return;
+    if (currentHash().startsWith('#/go/')) D8.ui.replaceHash(resolveGo(currentHash()));
     const r = parse();
     if (menuOpen()) toggleMenu(false);
     hideTip();
@@ -505,7 +536,7 @@
     else if (act === 'demo') { if (menuOpen()) toggleMenu(false); if (app.account) D8.dialogs.demo(t, ctx); }
     else if (act === 'sign-out') signOut(t);
     else if (act === 'retry-start') start(app.lastRoute);
-    else if (act === 'demo-sign-in') D8.auth.demoSignIn().then(() => start('#/home'));
+    else if (act === 'demo-sign-in') D8.auth.demoSignIn().then(() => start(takeNext() || '#/home'));
     else if (act === 'rerender') render(false);
   }
 
@@ -535,6 +566,38 @@
       const dlg = /** @type {HTMLDialogElement} */ ($('#dlg'));
       if (!dlg.open) D8.dialogs.demo(/** @type {HTMLElement} */ (document.activeElement), context());
     }
+  }
+
+  /* ---- add to home screen (2026-10-21, item 42) ----------------------------------------------------------------------
+     On a phone, from the client's second visit, once: "Add Domin8te to your home screen". The browser's own install prompt where
+     it offers one, otherwise a short how-to. Never in the demo or while staff view as a client. */
+  /** @type {any} */ let installAsk = null;
+  root.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installAsk = e; });
+  function homeScreenTip() {
+    const VISITS = NS + '.visits';
+    const SHOWN = NS + '.a2hs';
+    let visits = Number(pref(VISITS)) || 0;
+    // a visit is a browser session: count each one once
+    try { if (!root.sessionStorage.getItem(VISITS)) { root.sessionStorage.setItem(VISITS, '1'); visits += 1; pref(VISITS, String(visits)); } } catch (e) { /* storage blocked: no tip */ return; }
+    const mq = (/** @type {string} */ q) => !!(root.matchMedia && root.matchMedia(q).matches);
+    const ok = D8.data.homeTipDue({ live: D8.data.MODE === 'live', viewAs: !!D8.data.viewAs, phone: mq('(max-width: 760px)'), standalone: mq('(display-mode: standalone)') || !!(/** @type {any} */ (root.navigator).standalone), visits, shown: pref(SHOWN) === '1' });
+    if (!ok || $('#a2hs')) return;
+    pref(SHOWN, '1');
+    const ios = /iphone|ipad|ipod/i.test(String(root.navigator.userAgent));
+    const how = installAsk ? 'One tap and it opens like an app.' : ios ? 'Tap the Share button, then Add to Home Screen.' : 'Open your browser menu, then Add to Home screen.';
+    const bar = document.createElement('div');
+    bar.id = 'a2hs';
+    bar.className = 'a2hs';
+    bar.setAttribute('role', 'region');
+    bar.setAttribute('aria-label', 'Add Domin8te to your home screen');
+    bar.innerHTML = `<p class="a2hs-text"><strong>Add Domin8te to your home screen</strong><span>${F.esc(how)}</span></p>${installAsk ? '<button class="btn btn-primary btn-sm" type="button" data-a2hs="add">Add</button>' : ''}<button class="btn btn-glass btn-sm" type="button" data-a2hs="close">Not now</button>`;
+    document.body.appendChild(bar);
+    bar.addEventListener('click', (e) => {
+      const b = /** @type {HTMLElement} */ (e.target).closest('[data-a2hs]');
+      if (!b) return;
+      if (b.getAttribute('data-a2hs') === 'add' && installAsk) { installAsk.prompt(); installAsk = null; }
+      bar.remove();
+    });
   }
 
   /* ---- start -------------------------------------------------------------------------------- */
@@ -568,6 +631,8 @@
       if (!s) {
         app.client = null;
         app.account = null;
+        // a link to one thing (an email's) is kept through the sign-in
+        rememberNext(resolveGo(app.wanted || currentHash()));
         if (!(root.location.hash || '').startsWith('#/sign-in')) D8.ui.replaceHash('#/sign-in');
         app.wanted = null;
         app.ready = true;
@@ -598,6 +663,7 @@
         app.ready = true;
         render(!next);
         if (D8.data.viewAs && !lastRouteSent) { lastRouteSent = currentHash() || '#/home'; toParent({ type: 'd8:ready', route: lastRouteSent }); }
+        homeScreenTip();
       }).catch(fatal);
     }).catch(fatal);
   }

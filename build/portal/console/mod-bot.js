@@ -361,7 +361,7 @@
     // C4.1: Ask bots is a chat, not a status, so it sits in its own pill group, apart from the statuses (existing .toolbar gap, no new CSS).
     const statusPills = STATUSES.map(([k, t]) => chip('data-bot-status', k, t, mine.filter((r) => matches(r, { ...v, status: k })).length, v.status === k)).join('');
     const statusSeg = ask
-      ? `<div class="toolbar bot-status"><div class="seg bot-ask" role="group" aria-label="Chat">${chip('data-bot-status', 'ask', 'Ask bots (chat)', ownerOpen(), v.status === 'ask')}</div><div class="seg" role="group" aria-label="Status">${statusPills}</div></div>`
+      ? `<div class="toolbar bot-status"><div class="seg bot-ask" role="group" aria-label="Chat">${chip('data-bot-status', 'ask', 'Ask bots (chat)', ownerOpen(), v.status === 'ask')}</div><span class="seg-label" aria-hidden="true">Drafts</span><div class="seg" role="group" aria-label="Status">${statusPills}</div></div>`
       : `<div class="seg bot-status" role="group" aria-label="Status">${statusPills}</div>`;
     if (ask && v.status === 'ask') return `${statusSeg}${ownerPanel()}`;
     let clientSeg = '';
@@ -1217,6 +1217,7 @@
     custom: 'Write to the router'
   });
   const owner = {
+    unfolded: /** @type {Set<string>} */ (new Set()),
     ok: /** @type {boolean|null} */ (null), asking: /** @type {Promise<void>|null} */ (null),
     msgs: /** @type {any[]} */ ([]), threads: /** @type {any[]} */ ([]), threadsOk: true,
     cur: '', view: 'thread', showArchived: false, creating: '', renaming: false,
@@ -1278,6 +1279,39 @@
     for (const t of owner.threads) if (t.client_slug && !out.some((c) => c.slug === t.client_slug)) out.push({ slug: t.client_slug, name: t.client_name });
     return out;
   }
+  /* v3 (2026-10-22): the client's record (threads carry its slug and name; the record is matched by id, by the slug in its doc, or
+   * by name), its mark (the console's colour badge where the record is known, else its initials) and its waiting drafts. */
+  /** @param {string} slug @param {string} name */
+  function ownerTenant(slug, name) {
+    const C0 = C();
+    const all = (C0.all && C0.all.tenants) || [];
+    return all.find((/** @type {any} */ t) => t.id === slug || (t.doc && t.doc.slug === slug))
+      || all.find((/** @type {any} */ t) => name && t.name === name) || null;
+  }
+  /** @param {string} slug @param {string} name */
+  function ownerMark(slug, name) {
+    const C0 = C();
+    const t = ownerTenant(slug, name);
+    const cc = /** @type {any} */ (window).D8C_EXT && /** @type {any} */ (window).D8C_EXT.color;
+    if (t && cc && cc.badge) return cc.badge(t.id);
+    const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+    const tag = (words.length > 1 ? words[0][0] + words[1][0] : (words[0] || '?').slice(0, 2)).toUpperCase();
+    return `<span class="bo-mark${/^domin8te/i.test(name || '') ? ' is-d8' : ''}" aria-hidden="true">${C0.esc(tag)}</span>`;
+  }
+  /** This client's drafts that wait for Karan (the Waiting pill's count for that client). @param {string} slug @param {string} name */
+  function ownerWaiting(slug, name) {
+    const t = ownerTenant(slug, name);
+    return t ? placeRows(false).filter((r) => r.tenant_id === t.id && viewStatus(r) === 'waiting').length : 0;
+  }
+  /** Three ways to start, by the thread's kind. */
+  const STARTERS = /** @type {Record<string, string[]>} */ ({
+    general: ['3 Instagram captions for this week', 'Reply to a Google review', 'Plan next month\'s posts'],
+    photos_social: ['Caption these photos', 'A week of posts from our photos', 'A reel idea for this week'],
+    website: ['Rewrite the homepage hero', 'Add this week\'s special to the menu page', 'Fix the opening hours on the site'],
+    custom: ['Write a short update for the client', 'Reply to a Google review', 'Plan next month\'s posts']
+  });
+  /** A draft longer than this is folded until "Show all". */
+  const FOLD_AT = 900;
   /** Where to start: the thread with the newest message, else Domin8te Media's General. */
   function ownerDefault() {
     const live = owner.threads.filter((t) => !t.archived);
@@ -1324,8 +1358,16 @@
   function ownerThreadItem(t) {
     const C0 = C();
     const on = t.id === owner.cur;
-    const sub = t.archived ? 'Archived' : t.open_count ? `${t.open_count} in progress` : t.last_message_at ? C0.ago(t.last_message_at) : 'No messages yet';
-    return `<li><button type="button" class="bo-thread${t.open_count ? ' is-busy' : ''}" data-oc-thread="${C0.esc(t.id)}"${on ? ' aria-current="true"' : ''}><span class="bo-thread-t">${C0.esc(t.title)}</span><span class="bo-thread-m">${C0.esc(sub)}</span></button></li>`;
+    // v3: the newest message's time on the right; underneath, what is going on (the router's progress line while it works, else
+    // the start of Karan's newest message, else "No messages yet")
+    const mine = owner.msgs.filter((m) => m.author === 'owner' && ownerTid(m) === t.id);
+    const busy = mine.filter((m) => OWNER_ACTIVE.includes(ownerStatusOf(m)) || (!ownerStatusOf(m) && !m.status)).pop();
+    const last = mine[mine.length - 1];
+    const sub = t.archived ? 'Archived'
+      : busy ? (ownerProgress(busy) || (OWNER_STATE[ownerStatusOf(busy) || 'queued'] || OWNER_STATE.working).label)
+      : last ? last.body : t.last_message_at ? C0.ago(t.last_message_at) : 'No messages yet';
+    const when = t.last_message_at ? C0.ago(t.last_message_at) : '';
+    return `<li><button type="button" class="bo-thread${t.open_count ? ' is-busy' : ''}" data-oc-thread="${C0.esc(t.id)}"${on ? ' aria-current="true"' : ''}><span class="bo-thread-t">${C0.esc(t.title)}</span><span class="bo-when">${C0.esc(when)}</span><span class="bo-thread-m">${C0.esc(String(sub).slice(0, 80))}</span></button></li>`;
   }
   /** One project: its name (opens and closes it), its threads, "+ New thread". @param {{slug: string, name: string, threads: any[]}} p */
   function ownerProject(p) {
@@ -1337,7 +1379,7 @@
       ? `<li><form class="bo-new-form" data-oc-create="${C0.esc(p.slug)}" novalidate><label class="sr-only" for="bo-new-${C0.esc(p.slug)}">New thread name for ${C0.esc(p.name)}</label><input id="bo-new-${C0.esc(p.slug)}" name="title" maxlength="80" placeholder="Thread name" autocomplete="off"><div class="bo-new-actions"><button class="btn btn-sm" type="submit">Add</button><button class="linkish" type="button" data-oc-create-cancel>Cancel</button></div></form></li>`
       : `<li><button type="button" class="bo-new" data-oc-new-thread="${C0.esc(p.slug)}">${C0.icon('plus')}New thread</button></li>`;
     return `<section class="bo-proj${open ? ' is-open' : ''}">
-      <button type="button" class="bo-proj-h" data-oc-proj="${C0.esc(p.slug)}" aria-expanded="${open}" aria-controls="${C0.esc(id)}">${C0.icon('arrow')}<span class="bo-proj-name">${C0.esc(p.name)}</span>${busy ? `<span class="count" title="${C0.esc(C0.plural(busy, 'request'))} in progress">${busy}</span>` : ''}</button>
+      <button type="button" class="bo-proj-h" data-oc-proj="${C0.esc(p.slug)}" aria-expanded="${open}" aria-controls="${C0.esc(id)}">${C0.icon('arrow')}${p.slug ? ownerMark(p.slug, p.name) : ''}<span class="bo-proj-name">${C0.esc(p.name)}</span>${busy ? `<span class="count" title="${C0.esc(C0.plural(busy, 'request'))} in progress">${busy}</span>` : ''}</button>
       <ul class="bo-threads" id="${C0.esc(id)}"${open ? '' : ' hidden'}>${p.threads.map(ownerThreadItem).join('')}${!p.slug || (owner.showArchived && p.threads.every((t) => t.archived)) ? '' : form}</ul>
     </section>`;
   }
@@ -1345,7 +1387,7 @@
     const C0 = C();
     const earlier = owner.msgs.some((m) => !ownerTid(m));
     const archivedN = owner.threads.filter((t) => t.archived).length;
-    return `<div class="bo-side-head"><h2 id="bot-owner-h">Ask bots</h2><p class="meta">Pick a client and a conversation. The bots draft; nothing goes to a client. Only you see this.</p>${owner.threadsOk ? `<button type="button" class="btn-quiet btn-sm bo-newchat" data-oc-new-chat>${C0.icon('plus')}New chat</button>` : ''}</div>
+    return `<div class="bo-side-head"><h2 id="bot-owner-h">Ask bots</h2><p class="meta">One chat per client, by topic. The bots draft; nothing goes to a client. Only you see this.</p>${owner.threadsOk ? `<button type="button" class="btn-quiet btn-sm bo-newchat" data-oc-new-chat>${C0.icon('plus')}New chat</button>` : ''}</div>
       ${owner.threadsOk ? '' : '<p class="notice">Projects are not set up on the server yet. Earlier messages are below.</p>'}
       <div class="bo-projs">${ownerProjects().map(ownerProject).join('')}</div>
       ${earlier ? `<ul class="bo-threads bo-earlier"><li><button type="button" class="bo-thread" data-oc-thread="${EARLIER}"${owner.cur === EARLIER ? ' aria-current="true"' : ''}><span class="bo-thread-t">Earlier messages</span><span class="bo-thread-m">From before projects</span></button></li></ul>` : ''}
@@ -1365,7 +1407,7 @@
       const live = OWNER_ACTIVE.includes(st) || (!st && !m.status);
       // v98: the router's instant reply sits right under the message (before the live line and any note), when it is in this thread
       const acks = owner.msgs.filter((x) => ownerIsAck(x) && x.parent_id === m.id && ownerTid(x) === ownerTid(m)).map(ownerReply).join('');
-      return `<li class="msg team" data-k="${C0.esc(m.id)}"><p>${C0.esc(m.body)}</p><p class="meta">${C0.esc((C0.me && C0.me.name) || 'You')} · ${at}${st && !live ? ` · ${ownerState(st)}` : ''}</p></li>${acks}${live ? ownerLive(m, st) : ''}${noteOn ? `<li class="bo-note" data-k="note-${C0.esc(m.id)}"><p class="meta">${C0.esc(scrubIds(note))}</p></li>` : ''}`;
+      return `<li class="msg team" data-k="${C0.esc(m.id)}"><p>${C0.esc(m.body)}</p><p class="meta">${C0.esc((C0.me && C0.me.name) || 'You')} · ${at}${st && !live ? ` · ${ownerState(st)}` : ''}</p></li>${acks}${live ? ownerLive(m, st) : ''}${noteOn ? `<li class="bo-sys" data-k="note-${C0.esc(m.id)}"><span class="chip ${C0.esc((OWNER_STATE[st] || {}).tone || 'info')}">${C0.esc((OWNER_STATE[st] || {}).label || 'Note')}</span><span>${C0.esc(scrubIds(note))}</span></li>` : ''}`;
     }
     // v98: an ack is drawn under its message when that message is in the same thread, on its own otherwise (archived-thread
     // fallback); a router row with no parent is a note from the router. Both are a plain message, ids scrubbed, whatever their
@@ -1378,8 +1420,12 @@
     if (!OWNER_FINAL.includes(m.status)) return '';
     const text = scrubIds(m.body);
     if (m.status === 'draft_ready') {
-      return `<li class="item-card log-card bo-draft" data-k="${C0.esc(m.id)}"><div class="bot-text">${C0.esc(text)}</div>
-        <p class="meta">Router · ${at} · <button class="linkish" type="button" data-oc-copy="${C0.esc(m.id)}">Copy text</button></p></li>`;
+      const long = text.length > FOLD_AT && !owner.unfolded.has(m.id);
+      const parent = m.parent_id ? ownerRow(m.parent_id) : null;
+      return `<li class="item-card log-card bo-draft${long ? ' is-folded' : ''}" data-k="${C0.esc(m.id)}${long ? '' : '-open'}">
+        <div class="bo-draft-h">${C0.icon('bot')}Draft answer<span class="meta">Router · ${at}</span></div>
+        <div class="bot-text">${C0.esc(text)}</div>
+        <div class="bo-draft-f">${text.length > FOLD_AT ? `<button class="linkish" type="button" data-oc-more="${C0.esc(m.id)}" aria-expanded="${!long}">${long ? 'Show all' : 'Show less'}</button>` : ''}<button type="button" class="btn-quiet btn-sm" data-oc-copy="${C0.esc(m.id)}">${C0.icon('copy')}Copy text</button>${parent && parent.author === 'owner' && parent.body ? `<button type="button" class="btn-quiet btn-sm" data-oc-again="${C0.esc(parent.id)}">${C0.icon('refresh')}Ask again</button>` : ''}</div></li>`;
     }
     return `<li class="msg" data-k="${C0.esc(m.id)}"><p>${C0.esc(text)}</p><p class="meta">Router · ${at}</p></li>`;
   }
@@ -1402,7 +1448,7 @@
     const C0 = C();
     const text = ownerProgress(m) || (st === 'retrying' ? 'Trying again' : st === 'working' ? 'Working on it' : 'Waiting for the router');
     const long = Date.now() - new Date(m.created_at).getTime() < 6 * 3600000;   // no clock on something stuck for hours
-    return `<li class="bo-live" data-k="live-${C0.esc(m.id)}" data-live><p class="meta" role="status"><span class="bo-live-dot" aria-hidden="true"></span><span class="bo-live-t">${C0.esc(text)}</span>${long ? `<span class="bo-live-time" data-from="${C0.esc(m.created_at)}" aria-hidden="true">${ownerElapsed(m.created_at)}</span>` : ''}</p></li>`;
+    return `<li class="bo-live" data-k="live-${C0.esc(m.id)}" data-live><p class="meta" role="status"><span class="bo-live-dot" aria-hidden="true"></span><span class="bo-live-t">${C0.esc(text)}</span>${long ? `<span class="bo-live-time" data-from="${C0.esc(m.created_at)}" aria-hidden="true">${ownerElapsed(m.created_at)}</span>` : ''}${ownerThread(owner.cur) && ownerThread(owner.cur).client_slug ? `<span class="bo-lands">· lands in <button class="linkish" type="button" data-oc-waiting>Waiting</button></span>` : ''}</p></li>`;
   }
   /** Anything in the open thread the router is working on right now. */
   const ownerLiveNow = () => ownerRowsOf(owner.cur).some((m) => m.author === 'owner' && (OWNER_ACTIVE.includes(ownerStatusOf(m)) || !ownerStatusOf(m)));
@@ -1428,18 +1474,23 @@
     const title = owner.renaming
       ? `<form class="bo-rename" data-oc-rename-form novalidate><label class="sr-only" for="bo-rename-in">Thread name</label><input id="bo-rename-in" name="title" maxlength="80" value="${C0.esc(t.title)}" autocomplete="off"><button class="btn btn-sm" type="submit">Save</button><button class="linkish" type="button" data-oc-rename-cancel>Cancel</button></form>`
       : `<h3 id="bo-thread-h">${C0.esc(t.title)}</h3>`;
-    const tools = reload + (t.archived
+    // v3: this client's waiting drafts first, then Reload, then Rename / Archive behind one "More" button
+    const waiting = t.client_slug ? ownerWaiting(t.client_slug, t.client_name) : 0;
+    const drafts = waiting ? `<button type="button" class="btn-quiet btn-sm bo-drafts-link" data-oc-waiting>Drafts for this client <span class="count">${waiting}</span></button>` : '';
+    const tools = drafts + reload + (t.archived
       ? `<button type="button" class="btn-quiet btn-sm" data-oc-restore>Restore</button>`
-      : owner.renaming ? '' : `<button type="button" class="btn-quiet btn-sm" data-oc-rename>Rename</button><button type="button" class="btn-quiet btn-sm" data-oc-archive>Archive</button>`);
+      : owner.renaming ? '' : `<details class="bot-menu bo-more"><summary class="btn btn-quiet btn-sm" aria-label="More: rename or archive this thread" title="Rename or archive">···</summary><div class="bot-menu-box" role="group" aria-label="This thread"><button type="button" class="btn btn-quiet btn-sm" data-oc-rename>Rename</button><button type="button" class="btn btn-quiet btn-sm" data-oc-archive>Archive</button></div></details>`);
     const reply = t.archived
       ? `<p class="meta bo-ro">This thread is archived. Restore it to write here.</p>`
       : `<form class="convo-reply" id="bot-owner-reply" novalidate>
+          <div class="bo-starters"><span class="meta">Try:</span>${(STARTERS[t.kind] || STARTERS.custom).map((x) => `<button type="button" class="chip plain" data-oc-starter="${C0.esc(x)}">${C0.esc(x)}</button>`).join('')}</div>
           <div class="field"><label for="bot-owner-body">Message the router</label><textarea id="bot-owner-body" name="body" maxlength="4000" rows="3" placeholder="${C0.esc(t.client_slug ? PLACEHOLDER[t.kind] || PLACEHOLDER.custom : 'Ask the router anything')}" aria-describedby="bot-owner-to"></textarea></div>
-          <div class="actions"><button class="btn" type="submit">Send</button><span class="meta" id="bot-owner-to">${t.client_slug ? `Goes to ${C0.esc(t.client_name)} · ${C0.esc(t.title)}.` : 'No client yet: pick one above, or the router will ask.'} Drafts only. <kbd>Ctrl</kbd> <kbd>Enter</kbd> sends.</span></div>
+          <div class="actions"><button class="btn" type="submit">Send</button><span class="meta" id="bot-owner-to">${t.client_slug ? `<span class="bo-to">${C0.icon('lock')}To ${C0.esc(t.client_name)} · ${C0.esc(t.title)}</span> · drafts only.` : 'No client yet: pick one above, or the router will ask. Drafts only.'}</span><span class="meta bo-keys"><kbd>Ctrl</kbd><kbd>Enter</kbd> sends</span></div>
         </form>`;
-    const crumb = t.client_slug ? `<p class="meta">${C0.esc(t.client_name)}</p>`
+    const lock = `<span class="bo-lock" title="Only you see this">${C0.icon('lock')}<span>Only you see this</span></span>`;
+    const crumb = t.client_slug ? `<p class="meta"><span>${C0.esc(t.client_name)}</span>${lock}</p>`
       : `<p class="meta bo-pick">No client yet · <label class="sr-only" for="bo-client">Client for this chat</label><select id="bo-client" data-oc-client${t.archived ? ' disabled' : ''}><option value="">Choose a client</option>${ownerClients().map((c) => `<option value="${C0.esc(c.slug)}">${C0.esc(c.name)}</option>`).join('')}</select></p>`;
-    return `<div class="bo-head">${back}<div class="bo-head-t">${crumb}${title}</div><div class="bo-tools">${tools}</div></div>
+    return `<div class="bo-head">${back}${t.client_slug ? ownerMark(t.client_slug, t.client_name) : ''}<div class="bo-head-t">${crumb}${title}</div><div class="bo-tools">${tools}</div></div>
       ${ownerLog()}${reply}`;
   }
   /** The panel, or nothing for anyone but the owner. */
@@ -1691,6 +1742,7 @@
         const done = C0.busy(sub, 'Adding');
         try {
           const t = await call('bot_owner_thread_create', { client: slug, title });
+          if (!t || !t.id) throw new Error('No thread came back from the server.');
           owner.threads.push(t);
           owner.creating = '';
           done();
@@ -1728,7 +1780,7 @@
       const nc = /** @type {HTMLButtonElement|null} */ (el.closest('[data-oc-new-chat]'));
       if (nc) {
         const done = C0.busy(nc, 'Starting');
-        try { const t = await call('bot_owner_thread_create', {}); owner.threads.unshift(t); done(); await ownerOpenThread(t.id); }
+        try { const t = await call('bot_owner_thread_create', {}); if (!t || !t.id) throw new Error('No chat came back from the server.'); owner.threads.unshift(t); done(); await ownerOpenThread(t.id); }
         catch (x) { done(); C0.toast(say(x), true); }
         return;
       }
@@ -1753,6 +1805,41 @@
       }
       if (el.closest('[data-oc-restore]')) {
         try { await ownerUpdate(owner.cur, { archived: false }); C0.toast('Restored.'); ownerRedraw('#bot-owner-body'); } catch (x) { C0.toast(say(x), true); }
+        return;
+      }
+      // v3: a folded draft opens (and closes) in place
+      const more = /** @type {HTMLElement|null} */ (el.closest('[data-oc-more]'));
+      if (more) {
+        const id = more.getAttribute('data-oc-more') || '';
+        if (owner.unfolded.has(id)) owner.unfolded.delete(id); else owner.unfolded.add(id);
+        redrawOwnerLog();
+        const again = /** @type {HTMLElement|null} */ (document.querySelector(`[data-oc-more="${id}"]`));
+        if (again) again.focus({ preventScroll: true });
+        return;
+      }
+      // v3: Ask again and a starter put words in the box (what was typed stays if the box is not empty); Waiting opens that
+      // client's waiting drafts (the Waiting pill with the client picked)
+      const fill = /** @type {HTMLElement|null} */ (el.closest('[data-oc-again],[data-oc-starter]'));
+      if (fill) {
+        const ta = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('bot-owner-body'));
+        if (!ta) return;
+        const src = fill.hasAttribute('data-oc-again') ? owner.msgs.find((x) => x.id === fill.getAttribute('data-oc-again')) : null;
+        const words = src ? src.body : (fill.getAttribute('data-oc-starter') || '');
+        if (ta.value.trim() && ta.value.trim() !== words.trim()) { C0.toast('There is text in the box already. Clear it first.', true); ta.focus(); return; }
+        ta.value = words;
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+        ta.focus();
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+        return;
+      }
+      if (el.closest('[data-oc-waiting]')) {
+        const t = ownerThread(owner.cur);
+        const ten = t && t.client_slug ? ownerTenant(t.client_slug, t.client_name) : null;
+        ownerKeepDraft();
+        state.view.client = ten ? ten.id : 'all';
+        keepView();
+        const f = /** @type {HTMLElement|null} */ (document.querySelector('[data-bot-status="waiting"]'));
+        if (f) f.click();   // the pill's own handler presses Waiting and redraws the list with this client picked
         return;
       }
       const b = /** @type {HTMLElement|null} */ (el.closest('[data-oc-copy]'));

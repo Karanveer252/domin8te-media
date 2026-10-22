@@ -1,0 +1,180 @@
+/*
+ * The value pass (2026-10-21, Karan's brief items 1 to 45): Today's panel pinned at the top of Home, "Checked by Karan" under the
+ * greeting, last week as work done plus one result, the prospect's way in (demo only), the welcome on a first sign-in, one sample
+ * label beside the numbers, Results in about one screen, and the phone fixes (no sideways scroll, nothing under the tab bar).
+ * Tokens only, so the dark set follows. Brand orange #F15C22 for the one primary action.
+ */
+
+html:not([data-theme="dark"]) { --p-accent: #F15C22; --p-accent-hover: #F37442; }
+
+/* On Scenes the page's words sit on a deep sky; the new cards keep the glass inks, like the other cards. */
+html[data-variant="18h"] .page :is(.today-panel, .week-card, .prospect, .welcome-card, .missed-card, .promise-card, .off-line, .results-head .sample-chip) {
+  --p-ink: var(--k-ink); --p-ink-2: var(--k-ink-2); --p-ink-3: var(--k-ink-3);
+  --p-accent-ink: var(--k-accent-ink); --p-focus: var(--k-focus); --p-line: var(--k-line); --p-line-2: var(--k-line-2);
+  color: var(--p-ink);
+}
+
+/* ------------------------------------------------------------------ one sample label, beside the numbers */
+
+.sample-chip { padding: 4px 12px; font-size: 12.5px; font-weight: 600; color: var(--p-ink-2); }
+.sample-chip span::before { content: none; }
+.main .sample-chip { margin: 0 0 12px; }
+.tp-head .sample-chip, .week-meta .sample-chip, .results-head .sample-chip { margin: 0; }
+
+/* ------------------------------------------------------------------ Home: the line under the greeting */
+
+.page-head.is-home { margin-bottom: 14px; }
+.home-trust { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin: 6px 0 0; font-size: 14px; line-height: 1.45; color: var(--p-ink-2); }
+.home-trust .i { width: 15px; height: 15px; margin-right: 5px; vertical-align: -2px; }
+.home-trust .checked-by { font-weight: 650; color: var(--p-ink); }
+.home-trust .checked-by .i { color: var(--p-success); }
+html[data-variant="18h"] .home-trust .checked-by .i { color: currentColor; }
+
+/* ------------------------------------------------------------------ Home: Today at <restaurant> */
+
+.today-panel { padding: 18px 20px; margin: 0 0 22px; }
+.tp-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 12px; }
+.tp-head h2 { margin: 0; font-size: 18px; line-height: 1.25; }
+.tp-date { margin: 0; font-size: 14px; color: var(--p-ink-3); }
+.tp-head .sample-chip { margin-left: auto; }
+.tp-big { padding-bottom: 12px; border-bottom: 1px solid var(--p-line); }
+.tp-big-fig { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.tp-big-fig .fig { font-size: clamp(40px, 6vw, 56px); font-weight: 750; line-height: 1; letter-spacing: -0.02em; color: var(--p-ink); }
+.tp-big-words { font-size: 17px; font-weight: 600; color: var(--p-ink); }
+.tp-meta { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: var(--p-ink-3); }
+.tp-was { color: var(--p-ink-3); }
+.tp-tiles { list-style: none; margin: 0; padding: 12px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 24px; }
+.tp-tile p { margin: 0; }
+.tp-fig { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.tp-fig .fig { font-size: 28px; font-weight: 720; line-height: 1.1; color: var(--p-ink); }
+.tp-word { font-size: 15px; font-weight: 600; color: var(--p-ink); }
+.tp-about { font-size: 13px; color: var(--p-ink-2); }
+.tp-changed { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--p-line); font-size: 15px; line-height: 1.5; color: var(--p-ink); }
+.tp-updating { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 15px; color: var(--p-ink-2); }
+.tp-updating .i { width: 18px; height: 18px; }
+
+/* the line beside "Waiting for you" */
+.sec-attention .sec-head { flex-wrap: wrap; }
+.wed-line { font-size: 13.5px; color: var(--p-ink-3); }
+
+/* ------------------------------------------------------------------ Home: last week */
+
+.week-did-h { margin: 0 0 6px; font-size: 13px; font-weight: 650; letter-spacing: 0.02em; color: var(--p-ink-3); }
+.week-did { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+.week-did li { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; line-height: 1.45; color: var(--p-ink); }
+.week-did .i { flex: none; width: 16px; height: 16px; margin-top: 3px; color: var(--p-success); }
+.week-win { margin: 0; padding: 10px 14px; border-radius: var(--p-r); background: var(--p-attn-bg); font-size: 15.5px; line-height: 1.45; color: var(--p-ink); }
+.week-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; }
+
+/* ------------------------------------------------------------------ the prospect's way in (demo only) */
+
+.prospect { margin-top: 28px; padding: 22px; display: grid; gap: 20px; }
+.pros-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pros-side { margin: 0; display: grid; gap: 10px; justify-items: center; text-align: center; }
+.pros-side figcaption { font-size: 14px; line-height: 1.4; color: var(--p-ink-2); max-width: 26ch; }
+.pros-side.is-dash figcaption { font-weight: 650; color: var(--p-ink); }
+.pdf-stack { position: relative; width: 120px; height: 120px; }
+.pdf-page { position: absolute; width: 78px; height: 100px; padding: 18px 10px 0; border: 1px solid var(--p-line-2); border-radius: 4px; background: var(--p-surface); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); display: grid; align-content: start; gap: 7px; }
+.pdf-page:nth-child(1) { left: 0; top: 14px; transform: rotate(-8deg); }
+.pdf-page:nth-child(2) { left: 20px; top: 6px; transform: rotate(-2deg); }
+.pdf-page:nth-child(3) { left: 40px; top: 0; transform: rotate(5deg); }
+.pdf-tag { position: absolute; top: 4px; left: 6px; padding: 0 4px; border-radius: 3px; background: #B3261E; color: #fff; font-size: 9px; font-weight: 700; line-height: 1.5; }
+.pdf-line { display: block; height: 5px; border-radius: 3px; background: var(--p-surface-3); }
+.pdf-line.is-short { width: 60%; }
+.mini-dash { width: 170px; min-height: 120px; padding: 14px; border: 1px solid var(--p-line); border-radius: 14px; background: var(--p-surface); box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.3); display: grid; align-content: space-between; gap: 10px; text-align: left; }
+.md-row { display: grid; gap: 2px; }
+.md-fig { font-size: 30px; font-weight: 750; line-height: 1; color: var(--p-ink); }
+.md-src { font-size: 11px; color: var(--p-ink-3); }
+.md-approve { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 10px; border-radius: 999px; background: var(--p-accent); color: var(--p-on-accent); font-size: 13px; font-weight: 650; }
+.md-approve .i { width: 14px; height: 14px; }
+.pros-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding-top: 16px; border-top: 1px solid var(--p-line); }
+.pros-h { margin: 0; font-size: 20px; line-height: 1.25; }
+.pros-why { margin: 4px 0 0; font-size: 14.5px; color: var(--p-ink-2); }
+.dlg-cta { margin: 0 0 18px; padding: 16px; border-radius: var(--p-r-lg); background: var(--p-attn-bg); }
+.dlg-cta .pros-cta { padding-top: 0; border-top: 0; }
+.dlg-cta .pros-h { font-size: 18px; }
+
+/* ------------------------------------------------------------------ the welcome on a first sign-in */
+
+.page-welcome { min-height: 60vh; display: grid; place-items: center; }
+.welcome-card { max-width: 560px; padding: 32px 28px; display: grid; gap: 14px; justify-items: start; }
+.welcome-card h1 { margin: 0; font-size: clamp(26px, 4vw, 34px); line-height: 1.15; }
+.welcome-card .lede { margin: 0; font-size: 17px; }
+
+/* ------------------------------------------------------------------ Work and Done */
+
+.usage-counts { margin: 0 0 6px; font-size: 14.5px; font-weight: 600; color: var(--p-ink); }
+.steps.is-done { margin-top: 6px; }
+.off-line { display: flex; gap: 8px; align-items: flex-start; margin: 16px 0 0; padding: 12px 16px; border: 1px solid var(--p-line); border-radius: var(--p-r); background: var(--p-glass-soft); font-size: 14.5px; line-height: 1.45; color: var(--p-ink-2); }
+.off-line .i { flex: none; width: 16px; height: 16px; margin-top: 2px; }
+.update-kicker { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--p-ink-3); }
+.update-title.is-result { margin-top: 2px; }
+
+/* ------------------------------------------------------------------ Results in about one screen */
+
+.results-head { margin-top: 18px; }
+.rtiles.is-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.results-head > .sample-chip { margin-top: 10px; }
+.missed-card { margin-top: 16px; padding: 14px 18px; display: grid; gap: 4px; }
+.missed-card p { margin: 0; }
+.missed-lost { font-size: 15.5px; color: var(--p-ink); }
+.missed-back { font-size: 15px; color: var(--p-ink-2); }
+.fold-detail { margin-top: 18px; }
+.fold-detail > summary { font-size: 16px; font-weight: 650; }
+.fold-detail .detail-body > * + * { margin-top: 18px; }
+.rtile.is-partial { opacity: 0.62; filter: grayscale(1); }
+.vbadge.is-paused { background: var(--p-neutral-bg); color: var(--p-neutral); }
+.delta .delta-pct { margin-left: 4px; font-size: 0.82em; font-weight: 500; opacity: 0.8; }
+
+/* ------------------------------------------------------------------ Help */
+
+.promise-card { padding: 18px 20px; margin-bottom: 20px; }
+.promise-card .sec-title { margin-top: 0; }
+.promise-card .promise-list { padding-bottom: 0; }
+.fold-faq { margin-top: 12px; }
+.fold-faq > summary { font-weight: 650; }
+
+/* ------------------------------------------------------------------ add to home screen (phones, live only) */
+
+.a2hs {
+  position: fixed; left: 12px; right: 12px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 60;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px;
+  border: 1px solid var(--p-line); border-radius: var(--p-r-lg); background: var(--p-glass-strong);
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.35); color: var(--p-ink);
+}
+.a2hs-text { flex: 1 1 200px; margin: 0; display: grid; gap: 2px; font-size: 14px; line-height: 1.4; }
+.a2hs-text span { color: var(--p-ink-2); }
+
+/* ------------------------------------------------------------------ phones: no sideways scroll, nothing under the tab bar */
+
+html, body { max-width: 100%; overflow-x: clip; }
+.main, .page { min-width: 0; max-width: 100%; }
+.page :is(.card, .sec, section, header, .page-head-text) { min-width: 0; }
+@media (max-width: 760px) {
+  .main { padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important; }
+  .today-panel { padding: 16px; }
+  .tp-head .sample-chip { margin-left: 0; }
+  .pros-compare { grid-template-columns: 1fr; }
+  .prospect { padding: 18px; }
+  .pros-cta .btn { width: 100%; justify-content: center; }
+  .rtiles.is-3 { grid-template-columns: 1fr; }
+}
+
+/* ------------------------------------------------------------------ Billing: the days left to change (item 17) */
+
+.po-when { grid-template-columns: auto minmax(0, 1fr); }
+.po-when .days-left { order: -1; min-width: 96px; padding: 4px 18px 4px 0; }
+@media (max-width: 760px) {
+  .po-when { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .po-when .days-left { justify-items: start; grid-auto-flow: column; align-items: baseline; gap: 8px; min-width: 0; padding: 0 0 10px; border-right: 0; border-bottom: 1px solid var(--p-line); text-align: left; }
+  .po-when .days-left span { margin-top: 0; }
+  /* the page's own pill on the tab bar: a rounded box, so its label never runs into the curve */
+  html.lg-heavy body .tabbar::before { border-radius: 18px; }
+  html.lg-heavy body .tab { border-radius: 18px; }
+}
+.md-spark { display: block; width: 100%; height: 34px; }
+.md-spark path { fill: none; stroke: var(--p-accent); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the change in words is longer than a percentage: it wraps inside its card */
+.delta { white-space: normal; max-width: 100%; text-align: left; }
+.rt-value .delta, .metric-value .delta { flex: 1 1 100%; }

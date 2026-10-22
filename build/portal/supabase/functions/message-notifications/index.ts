@@ -6,11 +6,17 @@
 // The database queues the rows (a trigger on messages) and batches a short run of messages into one email; this function sends them.
 //
 // Settings (function secrets; names only here): MESSAGE_NOTIFY_CRON_SECRET, RESEND_API_KEY, NOTIFY_FROM
-// (for example "Domin8te <notifications@domin8temedia.com>", a Resend-verified sender), optional NOTIFY_REPLY_TO,
+// (for example "Domin8te Media <updates@notify.domin8temedia.com>", a Resend-verified sender), optional NOTIFY_REPLY_TO,
 // optional MESSAGE_NOTIFY_DRY_RUN=1 (count what is due and return the ids; never calls Resend; use this on the test project;
 // add ?show=1 to the URL to see the rendered emails; never leave dry run on for the prod cron).
 // The team's own address is a database setting (app.settings notify_team_email), set by an owner in the console Settings.
 // No RESEND_API_KEY or NOTIFY_FROM: it sends nothing, and the rows wait.
+//
+// 2026-10-21: the same run sends the client emails queued in public.client_emails (update emails bundled per 15 minutes,
+// staff messages and questions at once, the unread reminder, the Monday email, and Today-panel failure alerts to the
+// admin address only). Demo restaurant: never (logged in the database). Test/internal restaurant: only the test inbox
+// (app.settings test_inbox_email). Dry run with ?show=1 also returns those rendered emails (clientEmails).
+// Optional PORTAL_SITE_ORIGIN (https origin only) for the links; default https://domin8temedia.com.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { secretMatches } from "../_shared/secret.ts";

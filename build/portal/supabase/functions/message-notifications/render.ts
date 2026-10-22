@@ -67,7 +67,7 @@ export function renderNotification(r: NotifyRow): { subject: string; preview: st
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#FAF7F2;border:1px solid ${line};border-radius:22px;overflow:hidden">
 <tr><td style="height:4px;background:#FF5B1F;background:linear-gradient(90deg,#FF5B1F,#F5B700,#2BB673,#2E86DE,#8E44AD,#E84393)"></td></tr>
 <tr><td style="padding:28px 28px 8px">
-<p style="margin:0 0 20px;font-weight:700;font-size:17px">Domin8te</p>
+<p style="margin:0 0 20px;font-weight:700;font-size:17px">Domin8te Media</p>
 <p style="margin:0 0 6px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${accent}">${esc(r.restaurant)} &middot; ${esc(eyebrow)}</p>
 <h1 style="margin:0 0 10px;font-size:28px;line-height:1.15">${esc(title)}</h1>
 <p style="margin:0 0 18px;font-size:16px;line-height:1.5;color:#3A342E">${intro}</p>

@@ -31,6 +31,15 @@
     };
   };
   S.rpcs.client_usage = () => Object.keys(seen).map(row);
+  // 2026-10-21 follow-ups (migration 20261021040000): Marlow has a check-in due and has not opened the dashboard since
+  // Monday (Call this owner); Bayleaf has 2 unread messages from the team.
+  const day = (/** @type {number} */ d) => { const x = new Date(); x.setDate(x.getDate() + d); return x.toISOString().slice(0, 10); };
+  S.rpcs.client_followups = () => Object.keys(seen).map((id) => ({
+    tenant_id: id, last_seen_at: seen[id], unread_from_team: id === 'tnt_preview_bayleaf' ? 2 : id === 'tnt_preview_marlow' ? 1 : 0,
+    next_checkin: id === 'tnt_preview_marlow' ? day(-1) : id === 'tnt_preview_bayleaf' ? day(9) : null, checkin_due: id === 'tnt_preview_marlow',
+    pending_approvals: id === 'tnt_preview_bayleaf' ? 2 : 0, unopened_approvals: 0,
+    call_owner: id === 'tnt_preview_marlow', call_reason: id === 'tnt_preview_marlow' ? 'Has not opened the dashboard since Monday' : null, local_today: day(0)
+  }));
   S.rpcs.log_outside_message = (/** @type {any} */ a) => {
     const r = { id: 'ca_' + (outside.length + 1) + '_' + Date.now(), tenant_id: a.p_tenant, kind: 'outside_message', channel: a.p_channel, note: a.p_note || null, at: new Date().toISOString() };
     outside.push(r);

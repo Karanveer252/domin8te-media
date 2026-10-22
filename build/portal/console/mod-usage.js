@@ -10,6 +10,11 @@
  * console.js calls window.D8C_EXT.usage.load() in loadAll, .panel(id) on a client's Overview, .needsBlock() on Needs you;
  * mod-clients.js calls .clientLine(id) in the Clients table. Writes: log_outside_message, remove_outside_message,
  * rebuild_weekly_summary (staff RPCs). Nothing here reaches the client.
+ *
+ * 2026-10-21 (read only): client_followups() (migration 20261021040000) adds, per client, "Check-in due" (next check-in
+ * today or overdue), "Call this owner" (from Wednesday on the restaurant's clock: not opened since Monday, or an approval
+ * waiting that nobody there opened; a flag for a human call, nothing is sent), the last time they opened the dashboard
+ * and how many team messages they have not read. A database without it shows none of this.
  */
 (function () {
   'use strict';
@@ -22,7 +27,8 @@
   const CHANNELS = [['text', 'Text'], ['email', 'Email'], ['call', 'Phone call'], ['in_person', 'In person'], ['social', 'Social media DM'], ['other', 'Other']];
   const chName = (/** @type {string} */ k) => (CHANNELS.find((c) => c[0] === k) || [k, k])[1];
   /** rows by client id; null until loaded. A database without the function (before its migration) reads as none. */
-  const state = { /** @type {Map<string, any>|null} */ rows: null, missing: false, /** @type {Record<string, string>} */ lastLogged: {} };
+  const state = { /** @type {Map<string, any>|null} */ rows: null, missing: false, /** @type {Record<string, string>} */ lastLogged: {},
+    /** @type {Map<string, any>|null} */ follow: null };
 
   async function load() {
     try {
@@ -32,6 +38,25 @@
       state.missing = false;
       state.rows = new Map((r.data || []).map((/** @type {any} */ x) => [x.tenant_id, x]));
     } catch (e) { state.rows = state.rows || new Map(); }
+    try {
+      const f = await (await C().db()).rpc('client_followups');
+      state.follow = f.error ? null : new Map((f.data || []).map((/** @type {any} */ x) => [x.tenant_id, x]));
+    } catch (e) { state.follow = null; }
+  }
+  const fu = (/** @type {string} */ id) => (state.follow && state.follow.get(id)) || null;
+  /** The follow-up chips: Check-in due, Call this owner. @param {string} id */
+  function followChips(id) {
+    const f = fu(id);
+    if (!f) return '';
+    return (f.checkin_due ? `<span class="chip warn" title="Next check-in ${esc(C().when(f.next_checkin))}">Check-in due</span>` : '')
+      + (f.call_owner ? `<span class="chip warn" title="${esc(f.call_reason || '')}">Call this owner</span>` : '');
+  }
+  /** "Last opened the dashboard 19 Oct" and "Unread from Karan: 2", shown beside the flags. @param {string} id */
+  function followFacts(id) {
+    const f = fu(id);
+    if (!f) return '';
+    const opened = f.last_seen_at ? `Last opened the dashboard ${C().when(String(f.last_seen_at).slice(0, 10))}` : 'Never opened the dashboard';
+    return `<span class="sub us-line">${esc(opened)} &middot; Unread from Karan: ${esc(f.unread_from_team || 0)}</span>`;
   }
   const of = (/** @type {string} */ id) => (state.rows && state.rows.get(id)) || null;
   const hasLogin = (/** @type {string} */ id) => { const t = C().tenant(id); return !!(t && t.clerk_org_id); };
@@ -43,7 +68,10 @@
     const u = of(id);
     if (!u || !hasLogin(id)) return '';
     const seen = u.last_seen_at ? `Opened dashboard ${C().ago(u.last_seen_at)}` : 'Has not opened the dashboard';
-    return `<span class="sub us-line">${esc(seen)}</span>${u.quiet ? '<span class="row-chips"><span class="chip warn" title="They wrote from outside the dashboard and have not opened it in 7 days">Quiet on dashboard</span></span>' : ''}`;
+    const chips = (u.quiet ? '<span class="chip warn" title="They wrote from outside the dashboard and have not opened it in 7 days">Quiet on dashboard</span>' : '') + followChips(id);
+    const f = fu(id);
+    const facts = f && (f.checkin_due || f.call_owner || f.unread_from_team > 0) ? followFacts(id) : '';
+    return `<span class="sub us-line">${esc(seen)}</span>${chips ? `<span class="row-chips">${chips}</span>` : ''}${facts}`;
   }
 
   /** The week line: what the client's Home says this week, and whether they opened it. @param {any} u */
@@ -63,8 +91,14 @@
       ['Last approval', ago(u && u.last_approval_at, 'None yet')],
       ['Messages from outside', u && u.outside_30d ? `${u.outside_30d} in 30 days, last by ${chName(u.last_outside_channel || 'other').toLowerCase()} ${C().ago(u.last_outside_at)}` : 'None in 30 days']
     ];
+    const f = fu(id);
+    if (f) rows.push(
+      ['Last opened the dashboard', f.last_seen_at ? C().when(String(f.last_seen_at).slice(0, 10)) : 'Never'],
+      ['Unread from Karan', String(f.unread_from_team || 0)],
+      ['Next check-in', f.next_checkin ? C().when(f.next_checkin) + (f.checkin_due ? ' (due)' : '') : 'Not set']);
     return `<section class="panel us-panel" id="us-panel" aria-labelledby="us-h" data-us-client="${esc(id)}" data-at="usage">
-      <div class="panel-head"><h2 id="us-h">Dashboard use</h2>${u && u.quiet ? '<span class="chip warn">Quiet on dashboard</span>' : ''}</div>
+      <div class="panel-head"><h2 id="us-h">Dashboard use</h2>${u && u.quiet ? '<span class="chip warn">Quiet on dashboard</span>' : ''}${followChips(id)}</div>
+      ${f && f.call_owner && f.call_reason ? `<p class="meta">${esc(f.call_reason)}. A flag for you to call; nothing is sent to them.</p>` : ''}
       <dl class="us-facts">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
       <div class="us-block"><h3 class="panel-sub">Last week, on their Home</h3>${weekLine(u)}
         <p><button class="btn btn-quiet btn-sm" type="button" data-us-build="${esc(id)}">Build last week's summary now</button></p></div>
@@ -80,7 +114,17 @@
   }
 
   /** Needs you: clients who write from outside but are quiet on the dashboard. */
-  function needsBlock() {
+  function needsBlock() { return quietBlock() + followBlock(); }
+  /** Needs you: check-ins due and owners to call (read only). */
+  function followBlock() {
+    if (!state.follow) return '';
+    const list = [...state.follow.values()].filter((f) => f.checkin_due || f.call_owner).map((f) => ({ f, t: C().tenant(f.tenant_id) })).filter((x) => x.t);
+    if (!list.length) return '';
+    return `<details class="q-group q-fold us-follow" aria-labelledby="q-follow-h" data-qf="other"><summary><h2 id="q-follow-h">Check-ins and calls <span class="meta">${list.length}</span></h2></summary>
+      <ul class="q">${list.map(({ f, t }) => `<li><a class="todo-row" href="#/client/${esc(t.id)}/overview?at=usage">${f.checkin_due ? '<span class="chip warn">Check-in due</span>' : ''}${f.call_owner ? '<span class="chip warn">Call this owner</span>' : ''}<span class="text">${esc(t.name)}: ${esc(f.last_seen_at ? 'last opened the dashboard ' + C().when(String(f.last_seen_at).slice(0, 10)) : 'never opened the dashboard')}, unread from Karan: ${esc(f.unread_from_team || 0)}</span></a></li>`).join('')}</ul>
+    </details>`;
+  }
+  function quietBlock() {
     if (!state.rows || state.missing) return '';
     const quiet = [...state.rows.values()].filter((u) => u.quiet && hasLogin(u.tenant_id)).map((u) => ({ u, t: C().tenant(u.tenant_id) })).filter((x) => x.t);
     if (!quiet.length) return '';

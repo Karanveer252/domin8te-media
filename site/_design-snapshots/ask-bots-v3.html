@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en-GB" data-theme="light" data-scene="static" data-page="bot">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask bots v3 mockup (console language)</title>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="console.css">
+<style>
+/* ===== Additions on top of the console's own rules (nothing above is changed) ===== */
+
+/* 1. The status row reads as two things: the chat, then the draft filters. */
+.bot-status .seg-label { align-self: center; margin: 0 2px 0 8px; color: var(--ink-3); font-size: 13.5px; font-weight: 600; }
+
+/* 2. Sidebar: a client mark, a live dot on a busy thread, and what the thread is doing now. */
+.bo-mark { display: inline-grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 7px; color: #fff; font: 700 10.5px/1 var(--font); letter-spacing: .02em; }
+.bo-mark.d8 { background: linear-gradient(135deg, #FF5B1F, #F3CB3C); }
+.bo-mark.fr { background: #2790D4; }
+.bo-mark.sb { background: #7C4DE8; }
+.bo-thread { grid-template-columns: 1fr auto; column-gap: 8px; }
+.bo-thread .bo-when { color: var(--ink-3); font-size: 12px; font-weight: 500; }
+.bo-thread .bo-thread-m { grid-column: 1 / -1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-thread.is-busy .bo-thread-t { display: inline-flex; align-items: center; gap: 7px; }
+.bo-thread.is-busy .bo-thread-t::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--you-bg); animation: bo-pulse 1.6s var(--ease) infinite; }
+.bo-side-foot { display: flex; justify-content: space-between; gap: 10px; }
+
+/* 3. Thread head: the lock chip, drafts link, and Rename/Archive behind one quiet button. */
+.bo-head .bo-mark { width: 36px; height: 36px; border-radius: 11px; font-size: 13px; }
+.bo-head-t .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bo-lock { display: inline-flex; align-items: center; gap: 4px; }
+.bo-lock .ic { width: 12px; height: 12px; }
+.bo-drafts-link { display: inline-flex; align-items: center; gap: 7px; }
+.bo-drafts-link .count { padding: 0 6px; border-radius: 999px; background: var(--you); color: #fff; font-size: 11.5px; line-height: 1.6; }
+
+/* 4. The log: a draft card with a header and actions; the hand-over as a centred system line. */
+.bo-draft .bo-draft-h { display: flex; align-items: center; gap: 8px; margin: -4px -4px 10px; padding: 0 0 8px; border-bottom: 1px solid var(--line); color: var(--ink-2); font-size: 13px; font-weight: 650; }
+.bo-draft .bo-draft-h .ic { width: 14px; height: 14px; }
+.bo-draft .bo-draft-h .meta { margin-left: auto; font-size: 12.5px; }
+.bo-draft .bot-text { max-height: 230px; overflow: hidden; position: relative; white-space: normal; }
+.bo-draft .bot-text ol { margin: 6px 0 0; padding-left: 20px; }
+.bo-draft .bo-draft-f .btn-quiet, .bo-tools .btn-quiet { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.bo-draft .bo-draft-f .btn-quiet .ic { width: 14px; height: 14px; }
+.bo-main .convo-log { max-height: 600px; }
+.bo-draft .bot-text::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,.95)); }
+.bo-draft .bot-text ol { margin: 6px 0 0; padding-left: 20px; }
+.bo-draft .bot-text li { margin: 0 0 4px; }
+.bo-draft .bo-draft-f { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.bo-draft .bo-draft-f .linkish { margin-right: auto; font-weight: 600; }
+.bo-sys { justify-self: center; display: inline-flex; align-items: center; gap: 10px; max-width: 80%; color: var(--ink-3); font-size: 13.5px; text-align: center; }
+.bo-live { justify-self: end; }
+.bo-live .meta a { color: var(--accent-ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* 5. The reply box: starters above, a short "to" line and the keys inside the actions row. */
+.bo-starters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; }
+.bo-starters .meta { margin-right: 2px; }
+.bo-starters .chip { cursor: pointer; border: 0; }
+.bo-starters .chip:hover { background: var(--surface-3); color: var(--ink); }
+.convo-reply .field > label { font-size: 13px; }
+#bot-owner-to .bo-to { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); font-weight: 600; }
+#bot-owner-to .bo-to .ic { width: 12px; height: 12px; }
+#bot-owner-reply .actions { justify-content: flex-start; }
+#bot-owner-reply .bo-keys { margin-left: auto; display: inline-flex; gap: 4px; align-items: center; }
+</style>
+</head>
+<body>
+<svg hidden aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4.5 5h15a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-5 4v-4h-.5A1.5 1.5 0 0 1 3 15.5v-9A1.5 1.5 0 0 1 4.5 5z"/><path d="M8 10h8M8 13h5"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24"><rect x="4.5" y="8" width="15" height="11" rx="3"/><path d="M12 4.5V8"/><circle cx="12" cy="3.6" r="1"/><path d="M9.5 12.5v1M14.5 12.5v1"/><path d="M2.5 12.5v3M21.5 12.5v3"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M17.5 13.6A6.5 6.5 0 0 1 21.5 20"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 18l-6-6 6-6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-sort" viewBox="0 0 24 24"><path d="M12 5v14M7 10l5-5 5 5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-jump" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></symbol>
+  <symbol id="i-page" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2.8 12h2.4M18.8 12h2.4M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"/></symbol>
+  <symbol id="i-board" viewBox="0 0 24 24"><rect x="3.5" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="11" rx="1.5"/><rect x="15.5" y="4" width="5" height="7" rx="1.5"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.6"/><path d="m8.2 13.2 7.6 4.6"/></symbol>
+  <symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M4 10v4h3l7 4V6l-7 4z"/><path d="M18 9a4 4 0 0 1 0 6"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 10 5.5 4h13L20 10"/><path d="M4 10a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5.5 12v8h13v-8"/><path d="M10 20v-5h4v5"/></symbol>
+  <symbol id="i-pushpin" viewBox="0 0 24 24"><path d="M9 3.5h6l-1 5.5 3.5 3.5v2h-11v-2L10 9z"/><path d="M12 14.5V21"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></symbol><symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol></svg>
+<div class="shell">
+  <aside class="side" id="side" hidden></aside>
+  <div>
+  <main id="main" tabindex="-1">
+    <div class="page-head"><div><h1 id="page-title" tabindex="-1">Bot chat</h1><p>Approve bot drafts below, or use Ask bots to chat with them. 2 drafts waiting. Clients never see this page.</p></div>
+      <div class="btns updated"><span class="meta">Updated 2 min ago</span><a class="btn btn-quiet btn-sm" href="#"><svg class="ic"><use href="#i-trend"/></svg>Bot numbers</a><button class="icon-btn icon-btn-sm" type="button" aria-label="Keyboard keys">?</button><button class="icon-btn icon-btn-sm" type="button" aria-label="Reload"><svg class="ic"><use href="#i-refresh"/></svg></button></div>
+    </div>
+    <div class="page-fresh is-ok" title="Source: Bot chat drafts in the console"><span class="pf-part"><strong>Updated</strong> 19 Oct, 12:00 AM CDT</span><span class="pf-chip is-ok"><span class="pf-dot" aria-hidden="true"></span>Up to date</span></div>
+
+    <div id="bot-box">
+      <div class="toolbar bot-status">
+        <div class="seg bot-ask" role="group" aria-label="Chat"><button type="button" aria-pressed="true">Ask bots<span class="count">1 working</span></button></div>
+        <span class="seg-label">Drafts</span>
+        <div class="seg" role="group" aria-label="Status"><button type="button">Waiting<span class="count">2</span></button><button type="button">Snoozed</button><button type="button">Approved</button><button type="button">Rejected</button><button type="button">Expired</button><button type="button">All</button></div>
+      </div>
+
+      <div id="bot-results">
+      <section class="panel bot-owner bo2" aria-labelledby="bot-owner-h" data-view="thread">
+        <nav class="bo-side" aria-label="Clients and threads">
+          <div class="bo-side-head"><h2 id="bot-owner-h">Ask bots</h2><p class="meta">One chat per client, by topic. Only you see this.</p><button type="button" class="btn-quiet btn-sm bo-newchat"><svg class="ic"><use href="#i-plus"/></svg>New chat</button></div>
+          <div class="bo-projs">
+            <section class="bo-proj is-open">
+              <button type="button" class="bo-proj-h" aria-expanded="true"><svg class="ic"><use href="#i-arrow"/></svg><span class="bo-mark d8">D8</span><span class="bo-proj-name">Domin8te Media</span><span class="count">1</span></button>
+              <ul class="bo-threads">
+                <li><button type="button" class="bo-thread is-busy" aria-current="true"><span class="bo-thread-t">General</span><span class="bo-when">23:16</span><span class="bo-thread-m">Grok is drafting your test…</span></button></li>
+                <li><button type="button" class="bo-thread"><span class="bo-thread-t">Photos &amp; social</span><span class="bo-when"></span><span class="bo-thread-m">No messages yet</span></button></li>
+                <li><button type="button" class="bo-thread"><span class="bo-thread-t">Website changes</span><span class="bo-when"></span><span class="bo-thread-m">No messages yet</span></button></li>
+                <li><button type="button" class="bo-new"><svg class="ic"><use href="#i-plus"/></svg>New thread</button></li>
+              </ul>
+            </section>
+            <section class="bo-proj">
+              <button type="button" class="bo-proj-h" aria-expanded="false"><svg class="ic"><use href="#i-arrow"/></svg><span class="bo-mark fr">FR</span><span class="bo-proj-name">Freddy's</span></button>
+            </section>
+            <section class="bo-proj">
+              <button type="button" class="bo-proj-h" aria-expanded="false"><svg class="ic"><use href="#i-arrow"/></svg><span class="bo-mark sb">SB</span><span class="bo-proj-name">Steakburger Winnipeg</span></button>
+            </section>
+          </div>
+          <ul class="bo-threads bo-earlier"><li><button type="button" class="bo-thread"><span class="bo-thread-t">Earlier messages</span><span class="bo-when"></span><span class="bo-thread-m">From before projects</span></button></li></ul>
+          <p class="bo-side-foot"><button type="button" class="linkish">Show archived threads (3)</button></p>
+        </nav>
+
+        <div class="bo-main">
+          <div class="bo-head">
+            <span class="bo-mark d8">D8</span>
+            <div class="bo-head-t"><p class="meta">Domin8te Media <span class="bo-lock"><svg class="ic"><use href="#i-lock"/></svg>Only you see this</span></p><h3 id="bo-thread-h">General</h3></div>
+            <div class="bo-tools">
+              <a class="btn-quiet btn-sm bo-drafts-link" href="#">Drafts for this client <span class="count">1</span></a>
+              <button type="button" class="btn-quiet btn-sm bo-reload"><svg class="ic"><use href="#i-refresh"/></svg>Reload</button>
+              <button type="button" class="icon-btn icon-btn-sm" aria-label="Rename or archive this thread" title="Rename or archive">···</button>
+            </div>
+          </div>
+
+          <ol class="convo-log" id="bot-owner-log" tabindex="0">
+            <li class="msg team"><p>Give me ten ideas for features that would make approving drafts faster.</p><p class="meta">Karan · 18 Oct, 01:50 · <span class="bo-state good">Draft ready</span></p></li>
+            <li class="item-card log-card bo-draft">
+              <div class="bo-draft-h"><svg class="ic"><use href="#i-bot"/></svg>Draft answer<span class="meta">Router · 18 Oct, 01:52</span></div>
+              <div class="bot-text"><strong>Ten ways to make approving drafts faster</strong>
+                <ol>
+                  <li><strong>Approve all.</strong> One button for every small draft that is waiting.</li>
+                  <li><strong>Batch approval.</strong> Tick several drafts, approve in one click.</li>
+                  <li><strong>Lock after approval.</strong> Approved items go read-only until un-approved.</li>
+                  <li><strong>Pending reminders.</strong> A nudge for time-sensitive drafts.</li>
+                  <li><strong>Seasonal job proposer.</strong> Suggests jobs 3 weeks ahead from holidays and events.</li>
+                  <li><strong>Inline text suggestions</strong> with one-click accept.</li>
+                  <li><strong>Voice-note requests</strong> with read-back.</li>
+                  <li><strong>Phone photo-drop link</strong> per client with auto-enhancement.</li>
+                </ol>
+              </div>
+              <div class="bo-draft-f"><button class="linkish" type="button">Show the rest (10 items)</button><button type="button" class="btn-quiet btn-sm"><svg class="ic"><use href="#i-copy"/></svg>Copy text</button><button type="button" class="btn-quiet btn-sm"><svg class="ic"><use href="#i-refresh"/></svg>Ask again</button></div>
+            </li>
+            <li class="msg team"><p>test</p><p class="meta">Karan · 18 Oct, 23:16 · <span class="bo-state info">With Grok</span></p></li>
+            <li class="bo-sys"><span class="chip info">With Grok</span>Not a coding job, so the router passed it to Grok to draft for Domin8te Media.</li>
+            <li class="bo-live"><p class="meta" role="status"><span class="bo-live-dot" aria-hidden="true"></span><span class="bo-live-t">Grok is drafting</span><span class="bo-live-time">0:42</span><span>· lands in <a href="#">Waiting</a></span></p></li>
+          </ol>
+
+          <form class="convo-reply" id="bot-owner-reply" novalidate>
+            <div class="bo-starters"><span class="meta">Try:</span><button type="button" class="chip plain">3 Instagram captions for this week</button><button type="button" class="chip plain">Reply to a Google review</button><button type="button" class="chip plain">Plan next month's posts</button></div>
+            <div class="field"><label for="bot-owner-body">Message the router</label><textarea id="bot-owner-body" name="body" rows="3" placeholder="Ask for anything for Domin8te Media"></textarea></div>
+            <div class="actions"><button class="btn" type="submit">Send</button><span class="meta" id="bot-owner-to"><span class="bo-to"><svg class="ic"><use href="#i-lock"/></svg>To Domin8te Media · General</span> · drafts only, nothing reaches the client.</span><span class="bo-keys meta"><kbd>Ctrl</kbd><kbd>Enter</kbd> sends</span></div>
+          </form>
+        </div>
+      </section>
+      </div>
+    </div>
+  </main>
+  </div>
+</div>
+<script>var l=document.getElementById('bot-owner-log'); if(l) l.scrollTop=1e6;</script>
+</body>
+</html>

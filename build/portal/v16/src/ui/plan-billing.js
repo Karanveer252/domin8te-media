@@ -56,7 +56,7 @@
     const sub = o.billing && o.billing.subscription;
     const pastDue = !!sub && sub.status === 'past_due';
     const status = changing ? ''
-      : pastDue ? (sub.graceUntil ? `<span class="badge tone-warning">${icon('clock')}Active until ${esc(day(sub.graceUntil))}</span>` : '')
+      : pastDue ? (sub.graceUntil ? `<span class="badge tone-warning">${icon('clock')}Running normally. Card needs updating by ${esc(day(sub.graceUntil))}</span>` : '')
         : `<span class="badge tone-success">${icon('check')}No plan changes coming</span>`;
     const head = `<header class="po-head"><div><p class="eyebrow">${eyebrow}</p><h2 class="po-name" id="h-plan">${esc(c.name)}${perMonth(c) ? `<span class="po-price"> · ${esc(perMonth(c))}</span>` : ''}</h2>${chips(c.picks)}</div>${o.compact ? '' : status}</header>`;
     if (o.compact || changing) {

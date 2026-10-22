@@ -342,7 +342,14 @@
       timezone: t.timezone || 'America/Winnipeg',
       plan: t.plan || null,
       homeSections: t.homeSections || [],
-      verifiedResults: t.verifiedResults || null
+      verifiedResults: t.verifiedResults || null,
+      // 2026-10-21: today's panel (live: the daily job's row), the first-visit welcome, missed leads, the next check-in and who checked
+      today: t.today || null,
+      welcome: t.welcome || null,
+      weekWin: t.weekWin || null,
+      missed: t.missed || null,
+      checkin: t.checkin || null,
+      checkedBy: t.checkedBy || null
     });
   }
   /**
@@ -441,11 +448,21 @@
     return st;
   }
 
+  /** The visitor's own wall clock, written the portal's way (local time in UTC fields). */
+  function wallClock() {
+    const d = new Date();
+    return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes());
+  }
+
   /** The demo: a fixture, and the client's actions kept in this browser. @param {any} session */
   function demoSource(session) {
     const sc = currentScenario();
     // Each demo situation can carry its own plan (the same restaurant on Starter, Growth or Domin8te)
-    const raw = fixtures().record ? fixtures().record(session.tenantId, sc) : fixtures().tenants[session.tenantId];
+    const fixed = fixtures().record ? fixtures().record(session.tenantId, sc) : fixtures().tenants[session.tenantId];
+    // Every demo date is relative to the visitor's today (2026-10-21): the fixtures are written for Thu 24 Sep 2026 and move by
+    // whole days, so "today" is always today and the deadlines agree. Tests keep the written dates (D8_DEMO_FIXED_DATE).
+    // ?dates=fixed does the same for the page checks (tools/smoke.js).
+    const raw = fixed && fixtures().rebase && !root.D8_DEMO_FIXED_DATE && query().get('dates') !== 'fixed' ? fixtures().rebase(fixed, wallClock()) : fixed;
     const key = NS + '.demo.' + session.tenantId;
     const state = () => {
       const s = readJSON(key) || {};
@@ -832,7 +849,8 @@
       const pct = Math.round(Math.abs(t.change.pct));
       return {
         state: 'ok', metric: id, label: m.label, unit: m.unit, value: t.value, previous: t.previous, pct, dir: t.change.dir,
-        headline: `${m.label} ${up ? 'rose' : 'fell'} ${pct}% compared with the previous 30 days: ${n2s(t.value)}, ${up ? 'up' : 'down'} from ${n2s(t.previous)}.`,
+        // counted in its own unit, never a percentage first (2026-10-21)
+        headline: `${m.label}: ${n2s(Math.abs(t.change.diff))} ${up ? 'more' : 'fewer'} than the previous 30 days (${n2s(t.value)}, ${up ? 'up' : 'down'} from ${n2s(t.previous)}).`,
         detail, weekdays: top.map((x) => x.dow), sources: srcs
       };
     }
@@ -854,12 +872,87 @@
         updatedAt: latest ? T.isoTime(latest) : null, openActions: attention().length,
         // What staff wrote for Home (running now, next month, nothing to do, a note); only the ones they made visible
         homeSections: clone(tenant.homeSections || []),
+        // Next check-in with Karan (every two weeks; live: the database's date, else the next meeting) and who last checked the numbers
+        checkin: checkinDay(), checkedBy: checkedBy(),
+        // the one-time welcome on a first sign-in (item 32), or null
+        welcome: welcome(),
         // The restaurant's own clock: every time on every page is in it
         timezone: tenant.timezone, zoneAbbr: F.zoneAbbr(tenant.timezone),
         // The look the client chose (theme, and the ground where the design has one), kept with the
         // account so it follows them to every device. Null until they first choose.
         appearance: clone(state().appearance || null)
       };
+    }
+
+    /** The next check-in with Karan: the day the database set, else the next confirmed meeting, never one in the past. */
+    function checkinDay() {
+      const today = T.dayNum(now());
+      const m = tenant.meeting;
+      const set = tenant.checkin ? String(tenant.checkin).slice(0, 10) : m && m.at && (!m.status || m.status === 'confirmed') ? String(m.at).slice(0, 10) : null;
+      return set && T.dayNum(set) >= today ? set : null;
+    }
+    /**
+     * Who last checked the numbers by hand, and when: the record's own line, else the newest checked summary, else the newest
+     * verified number. Null when nobody has, so nothing is claimed.
+     */
+    function checkedBy() {
+      if (tenant.checkedBy && tenant.checkedBy.at) return clone(tenant.checkedBy);
+      const s = reviewedSummary(null);
+      if (s) return { name: s.reviewedBy, at: s.reviewedAt };
+      const v = (tenant.verifiedResults || []).map((/** @type {any} */ r) => r.verifiedAt).filter(Boolean).sort().pop();
+      return v ? { name: 'Karan', at: v } : null;
+    }
+
+    /**
+     * "Today at <restaurant>" (2026-10-21): the day's numbers against yesterday's and what changed. Live: the row the daily job wrote
+     * for the restaurant's today, or "updating" (never an older day). Demo: the sample tiles with today's date and a "what changed"
+     * line that rotates by day. A number shows only when its source is connected; nothing is estimated and a missing one is not zero.
+     */
+    function today() {
+      const day = T.isoDay(T.dayNum(now()));
+      const p = tenant.today;
+      if (!p) return { day, state: 'none', tiles: [], changed: null };
+      if (MODE === 'live') {
+        if (p.state !== 'ready' || p.day !== day) return { day, state: 'updating', tiles: [], changed: null };
+        return { ...clone(p), day, tiles: (p.tiles || []).filter((/** @type {any} */ x) => hasValue(x.value)) };
+      }
+      const lines = p.changed || [];
+      const connected = (/** @type {string} */ id) => id !== 'adSpend' || inPackage('advertising');
+      return {
+        day, state: 'ready', builtAt: `${day}T06:00`,
+        tiles: (p.tiles || []).filter((/** @type {any} */ x) => connected(x.id)).map((/** @type {any} */ x) => ({ ...clone(x), sourceDay: day })),
+        changed: lines.length ? lines[T.dayNum(now()) % lines.length] : null
+      };
+    }
+    const hasValue = (/** @type {any} */ v) => v !== null && v !== undefined && v !== '' && !Number.isNaN(Number(v));
+
+    /** What was being lost (missed calls and unanswered messages) and what came back. Only when it is on record; never estimated. */
+    function missed() {
+      const m = tenant.missed;
+      return m && hasValue(m.lost) ? clone(m) : null;
+    }
+
+    /** Last week's single biggest result, in customers or dollars: what staff recorded, or none. */
+    function weekWin() {
+      return tenant.weekWin && tenant.weekWin.text ? clone(tenant.weekWin) : null;
+    }
+
+    /** The one-time welcome on a first sign-in: live from the server, the demo once per browser. */
+    function welcome() {
+      const w = tenant.welcome;
+      if (!w || !w.title) return null;
+      if (MODE === 'live') return w.show === false ? null : clone(w);
+      let stored = null;
+      try { stored = local ? local.getItem(NS + '.demo.welcome') : null; } catch (e) { stored = null; }
+      // ?welcome=off: the page checks open Home itself (tools/smoke.js)
+      return (stored || seenWelcome || query().get('welcome') === 'off') ? null : clone(w);
+    }
+    let seenWelcome = false;
+    function markWelcomeSeen() {
+      seenWelcome = true;
+      if (src.welcomeSeen) return src.welcomeSeen().catch(() => null);
+      try { if (local) local.setItem(NS + '.demo.welcome', '1'); } catch (e) { /* storage blocked: shown once this visit */ }
+      return Promise.resolve(null);
     }
 
     function results(days) {
@@ -1190,6 +1283,13 @@
       savePicks,
       getHighlights: () => call(highlights),
       getRecentDone: () => call(recentDone),
+      getToday: () => call(today, 0),
+      getMissed: () => call(missed, 0),
+      getWeekWin: () => call(weekWin, 0),
+      getWelcome: () => call(welcome, 0),
+      markWelcomeSeen,
+      // The client opened something waiting for them (an approval): the console's Wednesday check reads it. Live only, quiet.
+      markOpened: (/** @type {string} */ kind, /** @type {string} */ id) => (src.opened && !READ_ONLY && !VIEW_AS ? src.opened(kind, id).catch(() => null) : Promise.resolve(null)),
       // First week (2026-10-16): a client who has never answered anything gets one real first job on Home.
       getFirstWeek: () => call(() => ({ first: Object.keys(decisions()).length === 0 })),
       getUpcoming: () => call(upcoming),
@@ -1229,6 +1329,13 @@
     return makeClient(session, demoSource(session));
   }
 
+  /**
+   * The "Add Domin8te to your home screen" tip (2026-10-21, item 42): a phone, not already installed, the live portal (never the
+   * demo, never while staff view as a client), the second visit or later, and never shown before.
+   * @param {{live: boolean, viewAs: boolean, phone: boolean, standalone: boolean, visits: number, shown: boolean}} o
+   */
+  const homeTipDue = (o) => !!(o.live && !o.viewAs && o.phone && !o.standalone && o.visits >= 2 && !o.shown);
+
   D8.auth = auth;
   D8.integrations = integrations;
   D8.data = {
@@ -1236,6 +1343,7 @@
     connect, scenarios, currentScenario, switchScenario,
     // For live-data.js: build a client on another source, and the shared helpers it needs.
     makeClient, normalize, mergeProjections, apply, fail,
+    homeTipDue,
     /** Tests only: pick a scenario without a URL. */
     useScenario: (id) => { scenarioOverride = id; }
   };

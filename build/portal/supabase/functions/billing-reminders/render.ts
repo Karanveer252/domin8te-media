@@ -54,7 +54,7 @@ export function renderReminder(r: ReminderRow, canReply = false): { subject: str
   if (r.kind === "picks_confirmed") {
     subject = `Confirmed: ${r.plan_next_name} with ${list(next)} from ${bill}`;
     preview = `Nothing to pay today. You can still change it until ${by}.`;
-    eyebrow = "Picks confirmed"; title = "Your services for next month are set.";
+    eyebrow = "Services confirmed"; title = "Your services for next month are set.";
     intro = `Hi ${name}, thanks. This is what starts on <strong>${esc(bill)}</strong>.`;
     note = `Picked the wrong thing? You can change it until ${esc(by)}, 11:59 PM ${esc(zone)}.`;
     after = `<strong>You pay nothing extra today.</strong> The new month starts on ${esc(bill)}${price ? ` at ${esc(price)} a month` : ""}.`;
@@ -80,6 +80,8 @@ export function renderReminder(r: ReminderRow, canReply = false): { subject: str
       : `<strong>Next month is ${esc(r.plan_next_name)} with ${esc(list(next))}${esc(site)}</strong>${price ? ` at ${esc(price)} a month` : ""}. You pay nothing extra today.`;
     button = "Change my services"; sign = canReply ? "Not sure what to pick? Reply and I will help you choose." : "Not sure what to pick? Send us a message in your dashboard and I will help you choose.";
   }
+  // Without a reply address this inbox takes no replies: say so plainly, and send people to the dashboard (Karan, 2026-10-22).
+  const noReply = canReply ? "" : "Please don't reply to this email. We don't read replies here. To ask us anything, send a message in your dashboard.";
   const rows: [string, string][] = r.kind === "picks_confirmed"
     ? [["Plan", r.plan_next_name], ["Services", list(next) + site], ["Starts", bill], ...(price ? [["Monthly", price] as [string, string]] : [])]
     : [["Plan", r.plan_now_name || r.plan_next_name], ["Services", list(now.length ? now : next)], ["Next bill", price ? `${price} on ${bill}` : bill]];
@@ -109,12 +111,12 @@ ${rows.map(([k, v], i) => `<tr><td style="padding:10px 18px;${i ? `border-top:1p
 <p style="margin:0 0 18px;font-size:14px;color:${soft}">Opens your Billing page. Takes about 2 minutes.</p>
 <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#3A342E">${esc(sign)}<br>Karan, Domin8te Media</p>
 </td></tr>
-<tr><td style="padding:16px 28px 22px;border-top:1px solid ${line};font-size:12px;line-height:1.5;color:${soft}">You are getting this because ${esc(r.restaurant)} has a plan with Domin8te Media. ${r.kind === "picks_confirmed" ? "We send this when your services for next month are confirmed." : "We send these reminders 7 days and 3 days before each bill."}</td></tr>
+<tr><td style="padding:16px 28px 22px;border-top:1px solid ${line};font-size:12px;line-height:1.5;color:${soft}">${noReply ? `<strong style="color:#3A342E">${esc(noReply)}</strong><br><br>` : ""}You are getting this because ${esc(r.restaurant)} has a plan with Domin8te Media. ${r.kind === "picks_confirmed" ? "We send this when your services for next month are confirmed." : "We send these reminders 7 days and 3 days before each bill."}</td></tr>
 </table></td></tr></table></body></html>`;
   const text = [
     `${r.restaurant} | ${eyebrow}`, "", title, "", intro.replace(/<[^>]+>/g, ""), "", note.replace(/<[^>]+>/g, ""), "",
     `${box}:`, ...rows.map(([k, v]) => `  ${k}: ${v}`), "", after.replace(/<[^>]+>/g, ""), "",
-    `${button}: ${BILLING_URL}`, "", sign, "Karan, Domin8te Media",
+    `${button}: ${BILLING_URL}`, "", sign, "Karan, Domin8te Media", ...(noReply ? ["", noReply] : []),
   ].join("\n").replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">");
   return { subject, preview, html, text };
 }

@@ -304,3 +304,65 @@ html[data-theme="dark"] .msg.team .bo-state.you::before { background: #FF5B1F; }
 .bo-live-dot::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; background: var(--accent); opacity: 0; animation: bo-ping 1.4s var(--ease) infinite; }
 @keyframes bo-ping { 0% { transform: scale(0.4); opacity: 0.45; } 100% { transform: scale(1.4); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .bo-live-dot::after { animation: none; } }
+
+/* Ask bots v3 (2026-10-22, Karan: "match the current design language and then build on it"): additions only, on the rules above.
+ * The status row says "Drafts" before the draft pills; a thread row shows a client mark, a pulsing dot when busy, the time of its
+ * newest message and what is going on in it; the thread head carries the client's mark, a lock ("Only you see this"), a link to that
+ * client's waiting drafts, and Rename / Archive behind one "More" button; a draft is a card with a header, folded when long, with
+ * Copy text and Ask again; the hand-over note is a centred line with the status chip; the live line links to Waiting; the reply box
+ * has starters above it and a short "To" line with the keys. Every colour, radius and font stays the console's own. */
+.bot-status .seg-label { align-self: center; margin: 0 2px 0 8px; color: var(--ink-3); font-size: 13.5px; font-weight: 600; }
+.bo-mark { display: inline-grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 7px; background: var(--surface-3); color: var(--ink-2); font: 700 10.5px/1 var(--font); letter-spacing: 0.02em; }
+.bo-mark.is-d8 { background: linear-gradient(135deg, #FF5B1F, #F3CB3C); color: #fff; }
+.bo-proj-h .cc-badge, .bo-head .cc-badge { flex: none; }
+.bo-side { overflow-x: hidden; }
+.bo-projs, .bo-proj, .bo-proj-h, .bo-threads, .bo-threads > li, .bo-thread { min-width: 0; max-width: 100%; }
+.bo-thread { grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; align-items: baseline; }
+.bo-thread .bo-when { color: var(--ink-3); font-size: 12px; font-weight: 500; }
+.bo-thread .bo-thread-m { grid-column: 1 / -1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-thread.is-busy .bo-thread-t { display: inline-flex; align-items: center; gap: 7px; }
+.bo-thread.is-busy .bo-thread-t::before { content: ""; width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--you-bg); animation: bo-pulse 1.6s var(--ease) infinite; }
+@media (prefers-reduced-motion: reduce) { .bo-thread.is-busy .bo-thread-t::before { animation: none; } }
+.bo-side-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; }
+.bo-head .bo-mark { width: 36px; height: 36px; border-radius: 11px; font-size: 13px; }
+.bo-head { flex-wrap: wrap; row-gap: 8px; }
+.bo-head-t { flex: 1 1 260px; }
+.bo-head-t .meta { display: flex; align-items: center; gap: 4px 8px; white-space: nowrap; }
+.bo-head-t .meta > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.bo-tools { margin-left: auto; flex-wrap: nowrap; }
+@media (max-width: 1360px) { .bo-lock > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .bo-starters .chip:nth-of-type(3) { display: none; } }   /* a narrow pane keeps the lock, its words go to the title and to readers */
+.bo-lock { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.bo-lock .ic { width: 12px; height: 12px; flex: none; }
+.bo-tools { align-items: center; }
+.bo-tools .btn-quiet, .bo-draft-f .btn-quiet { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.bo-tools .btn-quiet .ic, .bo-draft-f .btn-quiet .ic { width: 14px; height: 14px; flex: none; }
+.bo-drafts-link .count { padding: 0 6px; border-radius: 999px; background: var(--you); color: #fff; font-size: 11.5px; line-height: 1.6; }
+.bo-more { flex: none; }
+.bo-more > summary { display: inline-flex; min-width: 36px; padding-inline: 10px; font-size: 16px; letter-spacing: 0.08em; }
+.bo-more .bot-menu-box { left: auto; right: 0; }
+.bo-draft-h { display: flex; align-items: center; gap: 8px; margin: -2px 0 10px; padding: 0 0 8px; border-bottom: 1px solid var(--line); color: var(--ink-2); font-size: 13px; font-weight: 650; }
+.bo-draft-h .ic { width: 14px; height: 14px; flex: none; }
+.bo-draft-h .meta { margin-left: auto; font-size: 12.5px; }
+.bo-draft.is-folded .bot-text { position: relative; max-height: 230px; overflow: hidden; }
+.bo-draft.is-folded .bot-text::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(rgba(255, 255, 255, 0), var(--surface)); }
+html[data-scene="scenes"] .bo-draft.is-folded .bot-text::after { background: linear-gradient(rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.96)); }
+.bo-draft-f { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.bo-draft-f .linkish { margin-right: auto; }
+.bo-sys { justify-self: center; display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px; max-width: min(88%, 640px); color: var(--ink-3); font-size: 13.5px; text-align: center; }
+.bo-live .meta .linkish { font-size: inherit; }
+.bo-starters { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; margin: 0 0 10px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.bo-starters::-webkit-scrollbar { display: none; }
+.bo-starters > * { flex: none; }
+.bo-starters .chip { border: 0; cursor: pointer; }
+.bo-starters .chip:hover { background: var(--surface-3); color: var(--ink); }
+.bo-to { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); font-weight: 600; }
+.bo-to .ic { width: 12px; height: 12px; flex: none; }
+#bot-owner-reply .actions { flex-wrap: nowrap; }
+#bot-owner-to { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#bot-owner-reply .bo-keys { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+@media (max-width: 900px) {
+  .bo-tools { flex-wrap: wrap; justify-content: flex-end; }
+  .bo-tools .bo-more, .bo-tools .bo-more > summary { width: auto; }   /* the card menus go full width on phones; this one stays a button */
+  .bo-tools .bo-more .bot-menu-box { position: absolute; margin-top: 0; }
+  .bo-live .bo-lands, #bot-owner-reply .bo-keys { display: none; }   /* the head's Drafts link covers it; Ctrl Enter is a keyboard thing */
+}

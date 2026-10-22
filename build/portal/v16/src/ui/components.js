@@ -85,13 +85,18 @@
     return `<span class="src-line"><span class="src-from${src.state === 'fresh' ? '' : ' is-' + esc(src.state)}">${esc(fromSource(src))}</span>${h ? `<span class="src-health is-${esc(src.state)}">${esc(h)}</span>` : ''}${when ? `<span class="src-when" title="When this number last changed">${esc(when)}</span>` : ''}</span>`;
   }
 
-  /** Direction of change as an arrow and words, never colour alone. @param {any} m @param {number} [days] */
+  /**
+   * Direction of change as an arrow and words, never colour alone. Counted in the number's own unit ("41 more bookings"), never as a
+   * percentage first (2026-10-21): the percentage is small secondary text only. @param {any} m @param {number} [days]
+   */
   function Delta(m, days) {
     const why = `Compared with the ${days || 30} days before this.`;
     if (!m.change) return '';
     if (m.change.dir === 'flat') return `<span class="delta is-flat" title="${esc(why)}">${icon('minus')}About the same</span>`;
     const up = m.change.dir === 'up';
-    return `<span class="delta ${up ? 'is-up' : 'is-down'}" title="${esc(why)}">${icon(up ? 'up' : 'down')}${up ? 'Up' : 'Down'} ${Math.round(Math.abs(m.change.pct))}%</span>`;
+    const n = Math.round(Math.abs(m.change.diff !== undefined ? m.change.diff : 0));
+    const unit = String(m.unit || '');
+    return `<span class="delta ${up ? 'is-up' : 'is-down'}" title="${esc(why)}">${icon(up ? 'up' : 'down')}${esc(F.num(n))} ${up ? 'more' : 'fewer'}${unit ? ' ' + esc(unit) : ''} than the ${days || 30} days before <span class="delta-pct">${up ? 'up' : 'down'} ${Math.round(Math.abs(m.change.pct))}%</span></span>`;
   }
 
   /** A quiet pill where a metric has no change to show because there were no ads before. @param {any} m @param {number} days */
@@ -152,18 +157,17 @@
   /* ---- page structure --------------------------------------------------------------- */
 
   /**
-   * In the public demo every page says so, at the top: the names and numbers are made up (2026-10-13). Never in a real portal.
-   * @param {string} [name] the sample restaurant
+   * In the public demo, one label sits next to the numbers (2026-10-21: one label, not two pills): "Demo account with sample
+   * figures". Never in a real portal.
    */
-  function SampleChip(name) {
-    const who = name || (D8.account && D8.account.business ? D8.account.business.name : '');
-    return D8.data.MODE === 'demo' ? `<p class="sample-chip"><strong>Sample data</strong><span>${who ? esc(who) + ' is not a real restaurant' : 'names and numbers are examples'}</span></p>` : '';
+  function SampleChip() {
+    return D8.data.MODE === 'demo' ? '<p class="sample-chip"><span>Demo account with sample figures</span></p>' : '';
   }
 
   /** @param {{title: string, intro?: string, introHtml?: boolean, cls?: string, after?: string, aside?: string, sample?: string}} o */
   function PageHeader(o) {
-    const sample = SampleChip(o.sample);
-    const aside = (sample || o.aside) ? `<div class="page-aside">${o.aside || ''}${sample}</div>` : '';
+    // the sample label sits with the numbers on each page now, not in the header
+    const aside = o.aside ? `<div class="page-aside">${o.aside}</div>` : '';
     return `<header class="page-head${o.cls ? ' ' + o.cls : ''}"><div class="page-head-text"><h1 id="page-title" tabindex="-1">${esc(o.title)}</h1>${o.intro ? `<p class="lede">${o.introHtml ? o.intro : esc(o.intro)}</p>` : ''}${o.after || ''}</div>${aside}</header>`;
   }
 
@@ -241,8 +245,10 @@
     const delta = o.delta && m ? Delta(m, o.days || 30) + NewBadge(m, o.days || 30) : '';
     const note = o.delta && m ? ComparisonNote(m, o.days || 30) : '';
     const more = `${t.newer ? `<p class="rt-check">${icon('clock')}<span>We are checking a newer number before we show it. This is the last number we checked.</span></p>` : ''}${note ? `<p class="rt-note">${note}</p>` : ''}`;
-    return `<article class="card rtile${o.compact ? ' is-compact is-link' : ''}${t.badge ? ' is-' + t.badge : ''}">
-      <header class="rt-head"><p class="rt-label">${esc(label)}</p>${t.badge && t.badge !== 'verified' ? VerifyBadge(t.badge) : ''}</header>
+    // A source that stopped part way (Instagram disconnected): grey, and said plainly, never compared (2026-10-21)
+    const partial = !!(m && m.state === 'partial');
+    return `<article class="card rtile${o.compact ? ' is-compact is-link' : ''}${t.badge ? ' is-' + t.badge : ''}${partial ? ' is-partial' : ''}">
+      <header class="rt-head"><p class="rt-label">${esc(label)}</p>${partial ? '<span class="vbadge is-paused"><span class="vb-dot" aria-hidden="true"></span>Paused, partial numbers</span>' : t.badge && t.badge !== 'verified' ? VerifyBadge(t.badge) : ''}</header>
       <p class="rt-value"><span class="fig">${esc(value)}</span>${t.unit && !o.compact ? `<span class="rt-unit">${esc(t.unit)}</span>` : ''}${delta}</p>
       ${period ? `<p class="rt-period">${esc(period)}</p>` : ''}
       ${more ? `<div class="rt-more">${more}</div>` : ''}
@@ -339,7 +345,8 @@
   /* ---- needs your attention ------------------------------------------------------------ */
 
   /** The primary button's weight follows the severity: solid orange only for the urgent one. */
-  const PRIMARY_STYLE = { critical: 'btn btn-primary', approval: 'btn btn-tint', connection: 'btn btn-glass', scheduled: 'btn btn-glass' };
+  // Approve is the solid orange primary (2026-10-21): the one tap the page is for.
+  const PRIMARY_STYLE = { critical: 'btn btn-primary', approval: 'btn btn-primary', connection: 'btn btn-glass', scheduled: 'btn btn-glass' };
 
   /**
    * An approval answers on the card itself (2026-10-16, Karan: one tap to approve, one to ask for changes): Approve
@@ -516,15 +523,17 @@
    * and a link to all updates.
    */
   function UpdateCard(u, o = {}) {
+    // On Done (2026-10-21) the result is the row's title, with what it was about above it; it is not repeated under See details.
+    const lead = o.resultTitle && u.result ? u.result : '';
     const main = o.compact ? [] : [['What we did', u.completed]];
-    const extra = (o.compact ? [['What we did', u.completed]] : []).concat([['Next', u.next], ['Anything different', u.changed], ['Result', u.result], ['Why it matters', u.why]]);
+    const extra = (o.compact ? [['What we did', u.completed]] : []).concat([['Next', u.next], ['Anything different', u.changed], ['Result', lead ? '' : u.result], ['Why it matters', u.why]]);
     const dl = (/** @type {any[]} */ rows) => `<dl class="facts facts-wide">${rows.filter((r) => r[1]).map((r) => `<div><dt>${r[0]}</dt><dd>${esc(r[1])}</dd></div>`).join('')}</dl>`;
     const more = extra.filter((r) => r[1]);
     const tag = o.headingLevel || 'h3';
     const foot = o.compact ? `<footer class="update-foot"><a class="link link-more" href="#/updates">See all updates${icon('arrow-right')}</a></footer>` : '';
     return `<article class="card update${o.compact ? ' is-compact' : ''}"${o.id ? ` id="${esc(o.id)}"` : ''}>${o.lead || ''}
       <header class="update-head"><p class="update-date"><time datetime="${esc(u.date)}">${esc(day(u.date))}</time></p>${ServiceTag(u.service)}${author(u)}</header>
-      <${tag} class="update-title">${esc(u.title)}</${tag}>
+      ${lead ? `<p class="update-kicker">${esc(u.title)}</p><${tag} class="update-title is-result">${esc(lead)}</${tag}>` : `<${tag} class="update-title">${esc(u.title)}</${tag}>`}
       ${main.some((r) => r[1]) ? dl(main) : ''}
       ${more.length ? `<details class="update-more"><summary>See details${icon('chevron-down')}</summary>${dl(more)}</details>` : ''}
       ${foot}

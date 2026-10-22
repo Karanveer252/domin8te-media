@@ -128,3 +128,13 @@ test("the sign-off says 'just reply' only when a reply address is set", () => {
     assert.ok(!/message in your dashboard/.test(withReply.text));
   }
 });
+
+test("without a reply address the email says not to reply, in the text and the html; with one it does not", () => {
+  for (const kind of ["d7", "d3", "picks_confirmed"]) {
+    const plain = renderReminder({ ...ROW, kind });
+    assert.match(plain.text, /Please don't reply to this email/);
+    assert.match(plain.html, /Please don(&#39;|')t reply to this email/);
+    const withReply = renderReminder({ ...ROW, kind }, true);
+    assert.ok(!/don(&#39;|')t reply/.test(withReply.text + withReply.html));
+  }
+});

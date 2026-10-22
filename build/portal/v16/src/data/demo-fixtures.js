@@ -240,11 +240,28 @@
     // Home's "This week" line: what staff recorded for the week, said plainly (sample data in the demo).
     weeklyExtras: [{ label: 'Specials posted', value: 'yes' }, { label: 'Posts this week', value: '3' }],
     insightMetric: 'bookings',
+    // "Today at Bayleaf Kitchen" (2026-10-21): the day's numbers, each against yesterday, and what changed. Sample figures. Live: the
+    // daily job writes these every morning (client_today_panel). The "what changed" line rotates by day so the demo never looks frozen.
+    today: {
+      tiles: [
+        { id: 'bookings', label: 'Bookings', value: 9, yesterday: 7, unit: 'customers', words: ['new customer booked from your website', 'new customers booked from your website'], source: 'your booking system' },
+        { id: 'leads', label: 'New leads', value: 6, yesterday: 4, unit: 'customers', words: ['new lead', 'new leads'], about: 'Calls, messages and form fills', source: 'Google calls, Facebook messages and your website form' },
+        { id: 'adSpend', label: 'Ad spend', value: 23, yesterday: 21, unit: 'dollars', words: ['ad spend', 'ad spend'], about: 'Your own spend, paid to Meta', source: 'your Meta ads account' }
+      ],
+      changed: ['New brunch post went live and new reviews got a reply.', 'Your Sunday roast ad is running as planned. A new review got a reply.', 'Quiet day. Your ads and posts are running as planned.', 'Your weekend specials post went live on Facebook.']
+    },
+    // Home's "Last week": the work done and the single biggest result (sample).
+    weekWin: { text: 'The Sunday roast ads brought 186 people to your booking page.' },
+    // Results: what was being lost first, then what came back (sample figures).
+    missed: { lost: 12, back: 9, period: 'last month', source: 'Google calls and Facebook messages' },
+    // The first sign-in shows this once (sample).
+    welcome: { title: 'Your first posts are ready', text: "We wrote next week's posts for Facebook and Instagram. Have a look and approve them in one tap.", href: '#/go/approval/apv_posts', button: 'See the posts' },
+    checkedBy: { name: 'Karan', at: '2026-09-24T09:30' },
     // Written by the Domin8te assistant from the figures above, then checked against them
     // (tests/data.test.js fails if a number here stops matching the series). It shows only once a person has checked it.
     summaries: [{
       days: 30, writtenAt: '2026-09-24T14:20', reviewedBy: 'Karan', reviewedAt: '2026-09-24T14:40', facts: { bookings: 212, extraBookings: 41 },
-      text: 'Your website brought in 212 bookings in the last 30 days, 41 more than the 30 days before, and the rise was biggest on Fridays and Saturdays. Instagram has been disconnected since 21 Sep, so Instagram figures after 20 Sep are missing.'
+      text: 'Your website brought in 212 bookings in the last 30 days, 41 more than the 30 days before. Instagram has been disconnected since 21 Sep, so Instagram figures after 20 Sep are missing.'
     }],
     campaigns: [
       { name: 'Summer terrace', from: '2026-07-03', to: '2026-07-16', status: 'complete', channel: 'Meta' },
@@ -264,7 +281,7 @@
       {
         id: 'act_posts', kind: 'approval', approvalId: 'apv_posts', severity: 'approval', service: 'social', icon: 'image',
         title: "Approve next week's social posts",
-        detail: '3 posts for Mon, Wed and Fri. Nothing is scheduled until you approve them.',
+        detail: "Next week's posts for Facebook and Instagram. Nothing is scheduled until you approve them.",
         deadline: { date: '2026-09-25', kind: 'due' },
         primary: { label: 'Review and approve', does: 'approval' },
         more: ['Mon 28 Sep: roast squash risotto. Wed 30 Sep: Sunday roast. Fri 2 Oct: weekend brunch.', 'The Instagram copies wait until Instagram is reconnected. The Facebook posts go out as planned.'],
@@ -296,16 +313,16 @@
         preview: {
           type: 'posts',
           items: [
-            { day: 'Mon 28 Sep', channels: 'Facebook and Instagram', image: 'Your photo: squash risotto', text: 'Autumn is on the menu. Roast squash risotto with sage butter, from Monday. Book a table on our website.' },
+            { day: 'Mon 28 Sep', channels: 'Facebook and Instagram', image: 'Your photo: squash risotto', text: 'Autumn is on the menu. Roast squash risotto with sage butter, from this week. Book a table on our website.' },
             { day: 'Wed 30 Sep', channels: 'Facebook and Instagram', image: 'Designed post: Sunday roast', text: 'Sunday roast is back every week from 12 until 4. Book ahead, it goes fast.' },
             { day: 'Fri 2 Oct', channels: 'Facebook and Instagram', image: 'Your photo: brunch table', text: 'Weekend brunch starts at 9. Shakshuka, pancakes and good coffee. See you Saturday.' }
           ]
         },
         trackDone: true,
-        approve: { label: 'Approve posts', done: "Approved. We'll schedule them for Mon, Wed and Fri." },
+        approve: { label: 'Approve posts', done: "Approved. We'll schedule them for the days shown." },
         change: { label: 'Request changes', done: "Thanks. We'll revise the posts and send them back to you." },
         effects: {
-          approved: [{ service: 'social', status: 'in_progress', now: 'Scheduling your 3 approved posts', next: { who: 'domin8te', text: 'Posts go out Mon, Wed and Fri' } }],
+          approved: [{ service: 'social', status: 'in_progress', now: 'Scheduling your approved posts', next: { who: 'domin8te', text: 'Posts go out on the days you approved' } }],
           changes: [{ service: 'social', status: 'in_progress', now: 'Revising the posts from your notes', next: { who: 'domin8te', text: 'Send the revised posts back to you' } }]
         }
       },
@@ -356,7 +373,7 @@
         status: 'waiting',
         objective: 'Three posts a week, so regulars and people nearby know what is on.',
         now: "Next week's 3 posts are drafted and ready for you",
-        expected: { date: '2026-09-28', text: 'Posts go out Mon, Wed and Fri' },
+        expected: { date: '2026-09-28', text: "Next week's posts go out" },
         next: { who: 'client', text: 'Approve the 3 posts', actionId: 'act_posts' },
         proof: { date: '2026-09-18', text: '4 posts published on Facebook and Instagram' },
         note: 'Instagram posts are paused until Instagram is reconnected. Facebook posts continue.',
@@ -381,7 +398,7 @@
         next: { who: 'domin8te', text: 'Final check of both ad versions' },
         proof: { date: '2026-09-21', text: 'Sunday roast ads finished: 186 clicks to your booking page' },
         milestones: [
-          { title: 'Ran the Sunday roast ads, 12 to 21 Sep', date: '2026-09-21', state: 'done' },
+          { title: 'Ran the Sunday roast ads', date: '2026-09-21', state: 'done' },
           { title: 'Two autumn ad versions ready', date: '2026-09-28', state: 'current' },
           { title: 'Ads start on Facebook and Instagram', date: '2026-10-02', state: 'next' },
           { title: 'Ads start on Google', date: '2026-10-09', state: 'next' }
@@ -420,11 +437,11 @@
         changed: 'Instagram disconnected on Mon 21 Sep, so Instagram posts are paused. Facebook posts continue as planned.',
         result: 'Posts with your own food photos drew the most comments this month.',
         why: 'Nothing goes out on social until you approve it.',
-        next: 'Your approval by Fri 25 Sep, then we schedule the posts for Mon, Wed and Fri.'
+        next: 'Your approval by Fri 25 Sep, then we schedule the posts for next week.'
       },
       {
         id: 'upd_0922', date: '2026-09-22', service: 'advertising', author: 'team', title: 'Sunday roast campaign results',
-        completed: 'The Sunday roast ads ran on Facebook and Instagram from Sat 12 to Mon 21 Sep.',
+        completed: 'The Sunday roast ads ran on Facebook and Instagram from Sat 12 Sep to Mon 21 Sep.',
         changed: 'Nothing changed during the campaign; it ran as planned.',
         result: 'The ads brought 186 clicks to your booking page.',
         why: 'It shows the kind of dish people click through for, which shapes the autumn ad.',
@@ -464,7 +481,7 @@
       },
       {
         id: 'upd_0717', date: '2026-07-17', service: 'advertising', author: 'team', title: 'Summer terrace campaign results',
-        completed: 'The summer terrace ads ran on Facebook and Instagram from Fri 3 to Thu 16 Jul.',
+        completed: 'The summer terrace ads ran on Facebook and Instagram from Fri 3 Jul to Thu 16 Jul.',
         result: 'The ads brought 140 clicks to your booking page.',
         next: 'Plan the autumn campaigns with you in September.'
       }
@@ -527,6 +544,15 @@
     ],
     strip: ['calls', 'directions', 'adClicks', 'orders'],
     weeklyExtras: [{ label: 'Reviews answered', value: '4' }],
+    // Today's panel (sample): no booking system or online orders connected, so leads come first and there is no bookings figure.
+    today: {
+      tiles: [
+        { id: 'leads', label: 'New leads', value: 4, yesterday: 3, unit: 'customers', words: ['new lead', 'new leads'], about: 'Calls from Google and website messages', source: 'your Google listing and your website form' },
+        { id: 'adSpend', label: 'Ad spend', value: 8, yesterday: 8, unit: 'dollars', words: ['ad spend', 'ad spend'], about: 'Your own spend, paid to Meta', source: 'your Meta ads account' }
+      ],
+      changed: ['Quiet day. Your ad and your Google profile are running as planned.', 'New photos went up on your Google profile.', 'A new review got a reply.']
+    },
+    checkedBy: { name: 'Karan', at: '2026-09-24T08:30' },
     insightMetric: 'calls',
     summaries: [{
       days: 30, writtenAt: '2026-09-24T07:55', reviewedBy: 'Karan', reviewedAt: '2026-09-24T08:30', facts: { calls: 41, extraCalls: 4, directionsBefore: 49, directions: 58 },
@@ -617,10 +643,24 @@
     // the written summary for the plan that includes Google: it mentions calls
     summaries: [{
       days: 30, writtenAt: '2026-09-24T14:20', reviewedBy: 'Karan', reviewedAt: '2026-09-24T14:40', facts: { bookings: 212, extraBookings: 41, calls: 148 },
-      text: 'Your website brought in 212 bookings in the last 30 days, 41 more than the 30 days before, and the rise was biggest on Fridays and Saturdays. Calls from Google rose to 148. Instagram has been disconnected since 21 Sep, so Instagram figures after 20 Sep are missing.'
+      text: 'Your website brought in 212 bookings in the last 30 days, 41 more than the 30 days before. Calls from Google rose to 148. Instagram has been disconnected since 21 Sep, so Instagram figures after 20 Sep are missing.'
     }]
   };
+  /** A good week (2026-10-21, the demo's default): nothing wrong with the payment, a paid month at the top of Billing. */
+  const GOOD_WEEK = {
+    actions: (/** @type {any[]} */ list) => list.filter((a) => a.id !== 'act_payment'),
+    billing: {
+      subscription: { status: 'active', nextBilling: '2026-10-22' },
+      paymentMethod: { brand: 'Visa', last4: '4412' },
+      invoices: [
+        { id: 'in_bay_0009', number: 'BAY-0009', issued: '2026-09-22', due: '2026-09-22', period: ['2026-09-22', '2026-10-21'], status: 'paid', paidOn: '2026-09-22' },
+        { id: 'in_bay_0008', number: 'BAY-0008', issued: '2026-08-22', due: '2026-08-22', period: ['2026-08-22', '2026-09-21'], status: 'paid', paidOn: '2026-08-22' },
+        { id: 'in_bay_0007', number: 'BAY-0007', issued: '2026-07-22', due: '2026-07-22', period: ['2026-07-22', '2026-08-21'], status: 'paid', paidOn: '2026-07-22' }
+      ]
+    }
+  };
   const PATCHES = {
+    good: GOOD_WEEK,
     // Domin8te: Ads plus three services (Social media, Website, SEO and Google Maps), the same busy week
     everything: EVERYTHING,
     // Growth with next month already chosen: SEO and Google Maps instead of Website (Ads and Social media stay), nothing else waiting
@@ -644,24 +684,82 @@
     if (p.plan) t.plan = p.plan();
     if (p.strip) t.strip = p.strip.slice();
     if (p.summaries) t.summaries = JSON.parse(JSON.stringify(p.summaries));
-    if (p.actions) t.actions = p.actions.slice();
+    if (p.actions) t.actions = typeof p.actions === 'function' ? p.actions(t.actions) : p.actions.slice();
     if (p.billing) t.billing = { ...t.billing, ...p.billing };
     return t;
   }
   const TENANTS = { tnt_demo_bayleaf: BAYLEAF, tnt_demo_cornerbean: CORNERBEAN };
 
+  /* ---- relative dates (2026-10-21) ----------------------------------------------------------------------------------
+     The fixtures are written as if today were Thu 24 Sep 2026 (ANCHOR). The demo moves every date by the same number of days,
+     so "today" is the visitor's today: last updated today, due tomorrow, the bill date ahead, and they always agree. Times on the
+     anchor day keep their order but fit between midnight and now, so nothing is ever in the future. Dates written in words
+     ("Tue 22 Sep", "21 Sep") move too, with their weekday worked out again. */
+  const ANCHOR = '2026-09-24';
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const isoOf = (/** @type {number} */ n) => new Date(n * DAY).toISOString().slice(0, 10);
+  const ordinal = (/** @type {number} */ n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
+  /**
+   * A copy of one record with every date moved so the anchor day is `nowMs`'s day. @param {any} rec
+   * @param {number} nowMs the visitor's wall clock, written as UTC (the portal's time convention)
+   */
+  function rebase(rec, nowMs) {
+    if (!rec) return rec;
+    const today = Math.floor(nowMs / DAY);
+    const shift = today - dayNum(ANCHOR);
+    const anchorAsOf = Date.parse(String(rec.asOf) + ':00Z');
+    const anchorStart = dayNum(ANCHOR) * DAY;
+    // the anchor day's times, squeezed into today so far (keeps their order, never later than now)
+    const squeeze = Math.max(0, Math.min(1, (nowMs - today * DAY) / Math.max(1, anchorAsOf - anchorStart)));
+    const moveIso = (/** @type {string} */ v) => {
+      const m = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}):(\d{2}))?$/.exec(v);
+      if (!m) return v;
+      const n = dayNum(m[1]) + shift;
+      if (!m[2]) return isoOf(n);
+      const mins = +m[2] * 60 + +m[3];
+      let ms = n * DAY + mins * 60e3;
+      if (n === today) ms = today * DAY + Math.round(mins * squeeze) * 60e3;
+      if (n <= today && ms > nowMs) ms = nowMs - 60e3; // past and today: never later than now (a future meeting stays as it is)
+      return new Date(ms).toISOString().slice(0, 16);
+    };
+    const anchorYear = +ANCHOR.slice(0, 4);
+    const words = (/** @type {string} */ v) => v.replace(/\b(?:(Mon|Tue|Wed|Thu|Fri|Sat|Sun) )?(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g, (all, wd, d, mon) => {
+      const n = Math.round(Date.UTC(anchorYear, MONTHS.indexOf(mon), +d) / DAY) + shift;
+      const x = new Date(n * DAY);
+      return `${wd ? WEEKDAYS[x.getUTCDay()] + ' ' : ''}${x.getUTCDate()} ${MONTHS[x.getUTCMonth()]}`;
+    });
+    /** @param {any} v @returns {any} */
+    const walk = (v) => {
+      if (typeof v === 'string') return words(moveIso(v));
+      if (Array.isArray(v)) return v.map(walk);
+      if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x)]));
+      return v;
+    };
+    const out = walk(rec);
+    out.asOf = new Date(nowMs).toISOString().slice(0, 16);
+    const bill = out.plan && out.plan.now && out.plan.now.start;
+    if (bill && out.package) out.package = { ...out.package, billing: `Billed monthly on the ${ordinal(+bill.slice(8, 10))}` };
+    return out;
+  }
+
   D8.demoFixtures = {
     // Demo scenarios exist for development only. Each one picks a tenant and, optionally,
     // simulates a failing source or a slow connection. They never mix tenants.
+    // The first one opens by default (2026-10-21: a good week). The Preview panel lists only the ones not marked dev; the dev ones
+    // still open from ?demo= for testing.
     scenarios: [
-      { id: 'bayleaf', tenantId: 'tnt_demo_bayleaf', label: 'Busy week', about: 'Growth plan (Ads, Social media and Website): four things to do, a disconnected account and a payment problem.' },
-      { id: 'cornerbean', tenantId: 'tnt_demo_cornerbean', label: 'All caught up', about: 'Starter plan (Ads and SEO and Google Maps): nothing to do, and online orders not connected yet.' },
-      { id: 'domin8te', tenantId: 'tnt_demo_bayleaf', label: 'Domin8te plan', about: 'Domin8te plan (Ads, Social media, Website and SEO and Google Maps): the same busy week.', patch: 'everything' },
-      { id: 'change', tenantId: 'tnt_demo_bayleaf', label: 'Plan change confirmed', about: 'Growth now, and next month already chosen: Ads, Social media and SEO and Google Maps. Nothing waiting.', patch: 'change' },
-      { id: 'google-down', tenantId: 'tnt_demo_bayleaf', label: 'Google figures failing', about: 'Google Business Profile does not load. Everything else still works.', fail: ['gbp'], patch: 'everything' },
-      { id: 'slow', tenantId: 'tnt_demo_bayleaf', label: 'Slow connection', about: 'Every section takes about two seconds, so you can see the loading states.', latency: 2000 }
+      { id: 'good', tenantId: 'tnt_demo_bayleaf', label: 'A good week', about: "Next week's posts are ready to approve, the numbers are in, and the month is paid.", patch: 'good' },
+      { id: 'bayleaf', tenantId: 'tnt_demo_bayleaf', label: 'Something went wrong (see how we handle it)', about: 'A card was declined and Instagram disconnected. See how the dashboard tells you and what keeps running.' },
+      { id: 'cornerbean', tenantId: 'tnt_demo_cornerbean', label: 'All caught up', about: 'A café with nothing waiting: the numbers and the work, nothing to do.' },
+      { id: 'domin8te', tenantId: 'tnt_demo_bayleaf', label: 'Domin8te plan', about: 'Domin8te plan (Ads, Social media, Website and SEO and Google Maps): the same busy week.', patch: 'everything', dev: true },
+      { id: 'change', tenantId: 'tnt_demo_bayleaf', label: 'Plan change confirmed', about: 'Growth now, and next month already chosen: Ads, Social media and SEO and Google Maps. Nothing waiting.', patch: 'change', dev: true },
+      { id: 'google-down', tenantId: 'tnt_demo_bayleaf', label: 'Google figures failing', about: 'Google Business Profile does not load. Everything else still works.', fail: ['gbp'], patch: 'everything', dev: true },
+      { id: 'slow', tenantId: 'tnt_demo_bayleaf', label: 'Slow connection', about: 'Every section takes about two seconds, so you can see the loading states.', latency: 2000, dev: true }
     ],
     tenants: TENANTS,
-    record
+    record,
+    rebase,
+    ANCHOR
   };
 })(typeof window !== 'undefined' ? window : globalThis);

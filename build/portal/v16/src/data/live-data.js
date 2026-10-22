@@ -359,6 +359,13 @@
       zone = 'America/Winnipeg';
       if (row.doc && typeof row.doc.timezone === 'string') { try { new Intl.DateTimeFormat('en-GB', { timeZone: row.doc.timezone }); zone = row.doc.timezone; } catch (e) { /* unknown zone: keep Winnipeg */ } }
       const none = { data: null, error: { code: 'PGRST202', message: 'no rpc' } };
+      // 2026-10-21: today's panel (the daily job's row; "updating" until today's is built) and the one-time welcome. Either may be
+      // missing before its migration, or fail: the rest of the account still loads, and the panel then says it is updating.
+      const rpc = (/** @type {string} */ name, /** @type {any} */ args) => (typeof sb.rpc === 'function' ? Promise.resolve(sb.rpc(name, args)).catch((e) => ({ data: null, error: e || { code: 'failed' } })) : Promise.resolve(none));
+      const extra = Promise.all([
+        VIEW ? rpc('client_today_panel', { p_tenant: row.id }) : rpc('client_today_panel', {}),
+        VIEW || PREVIEW ? Promise.resolve(none) : rpc('client_welcome', {})
+      ]);
       const [d, m, r, p, items, inv, cards, cyc, menu, usage, res, home, wk] = await Promise.all([
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
@@ -438,7 +445,19 @@
           .map((/** @type {any} */ n) => ({ id: String(n.id), now: Number(n.now), before: n.before === null || n.before === undefined || !Number.isFinite(Number(n.before)) ? null : Number(n.before) })),
         extras: (Array.isArray(w0.extras) ? w0.extras : []).filter((/** @type {any} */ x) => x && x.label).map((/** @type {any} */ x) => ({ label: String(x.label), value: String(x.value) }))
       } : null;
-      const merged = mergeProjections(normalize({ ...(row.doc || {}), plan: planRec, timezone: zone, homeSections: sections, verifiedResults: verified, weekly }, now), itemRows, invRows);
+      const [panelRes, welcomeRes] = await extra;
+      const pd = panelRes && !panelRes.error && panelRes.data && typeof panelRes.data === 'object' ? panelRes.data : null;
+      // A panel that could not be read is "updating", with today's date: never an older day's numbers.
+      const todayRec = pd ? {
+        day: String(pd.day || '').slice(0, 10), state: pd.state === 'ready' ? 'ready' : 'updating', builtAt: toWall(pd.builtAt) || null, changed: pd.changed ? String(pd.changed) : null,
+        tiles: (Array.isArray(pd.tiles) ? pd.tiles : []).filter((/** @type {any} */ x) => x && x.id && x.value !== null && x.value !== undefined && Number.isFinite(Number(x.value)))
+          .map((/** @type {any} */ x) => ({ id: String(x.id), label: String(x.label || ''), value: Number(x.value), yesterday: x.yesterday === null || x.yesterday === undefined || !Number.isFinite(Number(x.yesterday)) ? null : Number(x.yesterday), unit: /^(CAD|USD|dollars)$/i.test(String(x.unit || '')) ? 'dollars' : String(x.unit || ''), source: String(x.source || ''), sourceDay: String(x.sourceDay || '').slice(0, 10) || null, about: x.about ? String(x.about) : '' }))
+      } : { day: today, state: 'updating', tiles: [], changed: null };
+      const missedRec = pd && pd.missed && Number.isFinite(Number(pd.missed.customers)) ? { lost: Number(pd.missed.customers), back: Number.isFinite(Number(pd.missed.back)) ? Number(pd.missed.back) : null, period: String(pd.missed.period || 'last month'), source: String(pd.missed.source || '') } : null;
+      const wd = welcomeRes && !welcomeRes.error && welcomeRes.data && welcomeRes.data.show ? welcomeRes.data : null;
+      const welcomeRec = wd ? { show: true, title: String(wd.title || ''), text: String(wd.text || ''), href: /^#\//.test(String(wd.href || '')) ? String(wd.href) : '#/home', button: String(wd.button || 'See it') } : null;
+      const merged = mergeProjections(normalize({ ...(row.doc || {}), plan: planRec, timezone: zone, homeSections: sections, verifiedResults: verified, weekly,
+        today: todayRec, missed: missedRec, welcome: welcomeRec, checkin: pd && pd.checkin ? String(pd.checkin).slice(0, 10) : (row.doc && row.doc.checkin) || null }, now), itemRows, invRows);
       if (verified) { merged.metrics = {}; merged.strip = []; merged.pending = []; merged.insightMetric = ''; }
       tenant = { ...merged, tenantId: row.id, name: row.name };
       // The client opened their dashboard (2026-10-16): once per page load, quietly; the console's "Last visit" reads it.
@@ -466,6 +485,10 @@
       failing: new Set(),
       now,
       state: () => st,
+      /** The welcome was shown: never again for this person (live only). */
+      welcomeSeen: async () => { if (VIEW || PREVIEW) return null; const sb = await db(); return typeof sb.rpc === 'function' ? sb.rpc('client_welcome_seen') : null; },
+      /** The client opened something waiting for them (Karan's Wednesday check reads it). Quiet: a failure never troubles them. @param {string} kind @param {string} id */
+      opened: async (kind, id) => { if (VIEW || PREVIEW) return null; const sb = await db(); return typeof sb.rpc === 'function' ? sb.rpc('client_mark_opened', { p_kind: kind, p_id: id }) : null; },
       /** @param {string} kind @param {any} rec @returns {Promise<any>} */
       async put(kind, rec) {
         if (VIEW) throw viewRefusal(); // read only: never a write while viewing as a client

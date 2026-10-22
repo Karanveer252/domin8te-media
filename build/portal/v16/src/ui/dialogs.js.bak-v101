@@ -1,0 +1,594 @@
+// @ts-check
+/*
+ * Dialogs and toasts. One native <dialog> is reused: it traps focus, closes on Escape
+ * (except while saving) and hands focus back to the button that opened it.
+ */
+(function (root) {
+  'use strict';
+  /** @type {any} */
+  const D8 = (root.D8 = root.D8 || {});
+  const F = D8.fmt;
+  const esc = F.esc;
+  const icon = (n, c) => D8.ui.icon(n, c);
+
+  const dlg = () => /** @type {HTMLDialogElement} */ (document.getElementById('dlg'));
+  const inner = () => /** @type {HTMLElement} */ (document.getElementById('dlg-inner'));
+  /** @type {HTMLElement|null} */
+  let returnTo = null;
+  /** @type {null|(() => void)} */
+  let onClosed = null;
+
+  /* ---- toasts ------------------------------------------------------------------------ */
+
+  /** @param {string} text @param {{tone?: string}} [o] */
+  function toast(text, o = {}) {
+    const box = document.getElementById('toasts');
+    if (!box) return;
+    const el = document.createElement('div');
+    el.className = 'toast' + (o.tone ? ' tone-' + o.tone : '');
+    el.innerHTML = `${icon(o.tone === 'error' ? 'alert' : 'check')}<p>${esc(text)}</p><button class="icon-btn" type="button" aria-label="Dismiss">${icon('x')}</button>`;
+    const btn = /** @type {HTMLElement} */ (el.querySelector('button'));
+    const remove = () => el.remove();
+    btn.addEventListener('click', remove);
+    box.appendChild(el);
+    setTimeout(remove, 6000);
+  }
+
+  /* ---- the shell ----------------------------------------------------------------------- */
+
+  function head(title, sub) {
+    return `<div class="dlg-head"><div><h2 id="dlg-title" tabindex="-1">${esc(title)}</h2>${sub ? `<p class="dlg-sub">${sub}</p>` : ''}</div><button class="icon-btn dlg-x" type="button" data-dlg-close aria-label="Close">${icon('x')}</button></div>`;
+  }
+
+  /** Opens the dialog with `html` and moves focus to its title. */
+  /** Counts dialogs opened, so a slow answer for an old one cannot draw over a newer one. */
+  let gen = 0;
+  function open(html, trigger, closed) {
+    gen++;
+    const d = dlg();
+    returnTo = trigger || /** @type {HTMLElement|null} */ (document.activeElement);
+    onClosed = closed || null;
+    inner().innerHTML = html;
+    d.removeAttribute('data-busy');
+    if (!d.open) d.showModal();
+    focusTitle();
+  }
+  function focusTitle() {
+    const t = /** @type {HTMLElement|null} */ (document.getElementById('dlg-title'));
+    if (t) t.focus();
+  }
+  /**
+   * Everything that happens after a dialog closes: clear it, hand focus back, run the
+   * follow-up (for example reloading the page's data after an approval). It runs straight
+   * from close(), because Chrome only delivers the dialog's own "close" event on the next
+   * animation frame, which never comes in a background tab.
+   */
+  function finish() {
+    const d = dlg();
+    if (d.open) return; // a newer dialog is already showing
+    const cb = onClosed;
+    const back = returnTo;
+    onClosed = null;
+    returnTo = null;
+    if (inner().innerHTML) inner().innerHTML = '';
+    if (back && document.contains(back)) back.focus();
+    if (cb) cb();
+  }
+  function close() {
+    const d = dlg();
+    if (d.hasAttribute('data-busy')) return;
+    if (d.open) d.close();
+    finish();
+  }
+  function wire() {
+    const d = dlg();
+    // Escape takes the same path as the close button, and does nothing while saving.
+    d.addEventListener('cancel', (e) => { e.preventDefault(); close(); });
+    // Safety net for any other way the dialog closes; finish() only acts once.
+    d.addEventListener('close', finish);
+    // A click on the backdrop closes, but only when the press started there too: dragging a text selection out of
+    // the note box and letting go outside must not throw the note away.
+    let downOnBackdrop = false;
+    d.addEventListener('pointerdown', (e) => { downOnBackdrop = e.target === d; });
+    d.addEventListener('click', (e) => {
+      const t = /** @type {HTMLElement} */ (e.target);
+      if (t.closest('[data-dlg-close]')) close();
+      else if (t === d && downOnBackdrop) close(); // a click on the backdrop
+      downOnBackdrop = false;
+    });
+  }
+
+  function setBusy(on, button, label) {
+    const d = dlg();
+    if (on) d.setAttribute('data-busy', '1');
+    else d.removeAttribute('data-busy');
+    inner().querySelectorAll('button, textarea, input, select').forEach((el) => {
+      const b = /** @type {HTMLButtonElement} */ (el);
+      if (b.hasAttribute('data-dlg-close') && !on) { b.disabled = false; return; }
+      b.disabled = on;
+    });
+    if (button) {
+      if (on) {
+        button.setAttribute('data-label', button.innerHTML);
+        button.innerHTML = `<span class="spinner" aria-hidden="true"></span>${esc(label)}`;
+        button.classList.add('is-busy');
+      } else if (button.hasAttribute('data-label')) {
+        button.innerHTML = button.getAttribute('data-label') || '';
+        button.classList.remove('is-busy');
+      }
+    }
+  }
+
+  /** A request that never answers must not lock the dialog for ever. @param {Promise<any>} p @param {string} where @param {number} [ms] */
+  function slow(p, where, ms) {
+    return new Promise((res, rej) => {
+      const t = setTimeout(() => rej(Object.assign(new Error(`Still waiting for an answer. Check ${where} before trying again, in case it went through.`), { code: 'slow' })), ms || 25000);
+      p.then((v) => { clearTimeout(t); res(v); }, (e) => { clearTimeout(t); rej(e); });
+    });
+  }
+  /** In the view-only demo: a line up front, so nobody types a long note first. */
+  const demoLine = () => (D8.data.READ_ONLY ? `<div class="notice">${icon('info')}<p>${esc(D8.data.DEMO_NOTE)}</p></div>` : '');
+
+  function fieldError(field, msg) {
+    const input = /** @type {HTMLElement|null} */ (inner().querySelector(`[name="${field}"]`));
+    const err = /** @type {HTMLElement|null} */ (inner().querySelector(`#err-${field}`));
+    if (!input || !err) return false;
+    if (msg) {
+      err.innerHTML = `${icon('alert')}${esc(msg)}`;
+      err.hidden = false;
+      input.setAttribute('aria-invalid', 'true');
+      input.focus();
+    } else {
+      err.hidden = true;
+      input.removeAttribute('aria-invalid');
+    }
+    return true;
+  }
+
+  function formError(msg) {
+    const box = /** @type {HTMLElement|null} */ (inner().querySelector('.form-error'));
+    if (!box) return;
+    box.innerHTML = msg ? `${icon('alert')}<span>${esc(msg)}</span>` : '';
+    box.hidden = !msg;
+  }
+
+  /* ---- approvals ------------------------------------------------------------------------ */
+
+  function preview(p) {
+    if (!p) return '';
+    if (p.type === 'posts') {
+      return `<ol class="posts">${(p.items || []).map((it) => `<li class="post"><div class="post-img">${icon('image')}<span>${esc(it.image)}</span></div><div class="post-body"><p class="post-when">${esc(it.day)} <span class="meta">on ${esc(it.channels)}</span></p><p class="post-text">${esc(it.text)}</p></div></li>`).join('')}</ol>`;
+    }
+    if (p.type === 'hours') {
+      return `<table class="hours"><caption class="sr-only">Proposed opening hours</caption><tbody>${(p.rows || []).map((r) => `<tr><th scope="row">${esc(r[0])}</th><td>${esc(r[1])}</td></tr>`).join('')}</tbody></table>`;
+    }
+    // Added for the agency console: a plain list, and a link to the draft (only https addresses).
+    if (p.type === 'list') {
+      return `<ul class="apv-list">${(p.items || []).map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    }
+    if (p.type === 'link' && /^https:\/\//.test(String(p.url || ''))) {
+      return `<p class="apv-link"><a class="btn btn-glass" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.label || 'Open the draft')}${icon('external')}</a></p>`;
+    }
+    return '';
+  }
+
+  function decided(a, rec, now) {
+    const ok = rec.decision === 'approved';
+    return `<div class="confirm-state" role="status">
+      <span class="confirm-icon tone-${ok ? 'success' : 'info'}">${icon(ok ? 'check' : 'edit')}</span>
+      <h3>${ok ? 'Approved' : 'Changes requested'}</h3>
+      <p>${esc(ok ? a.approve.done : a.change.done)}</p>
+      ${rec.comment ? `<blockquote class="your-note"><p class="meta">Your note</p><p>${esc(rec.comment)}</p></blockquote>` : ''}
+      <p class="audit">${icon('clock')}${ok ? 'Approved' : 'Changes requested'} by ${esc(rec.by)} on ${esc(F.date(rec.at))} at ${esc(F.time(rec.at))}</p>
+      <div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div>
+    </div>`;
+  }
+
+  /** Review an item and approve it or ask for changes, with an optional note. */
+  /** @param {string} id @param {HTMLElement} trigger @param {any} ctx @param {{note?: boolean}} [o] note: open with the note box ready (Ask for changes) */
+  function approval(id, trigger, ctx, o) {
+    let changed = false;
+    open(head('Loading', '') + `<div class="dlg-body">${D8.ui.Skeleton('text', 3)}</div>`, trigger, () => { if (changed) ctx.afterChange(); });
+    const my = gen;
+    ctx.client.getApproval(id).then((a) => {
+      if (my !== gen) return; // another dialog opened while this one loaded
+      const now = ctx.client.now();
+      const svc = D8.data.SERVICES[a.service];
+      const due = a.due ? F.due(a.due, now) : null;
+      const label = esc(svc ? svc.label : '');
+      const sub = due ? `${label} · <span class="due tone-${due.tone}">${esc(due.text)}</span>` : label;
+      // Once answered, no "Due" or "Overdue" any more.
+      if (a.decision) {
+        inner().innerHTML = head(a.title, label) + `<div class="dlg-body">${decided(a, a.decision, now)}</div>`;
+        focusTitle();
+        return;
+      }
+      inner().innerHTML = head(a.title, sub) + `<div class="dlg-body">
+        <p class="dlg-intro">${esc(a.intro)}</p>
+        ${preview(a.preview)}
+        <form class="dlg-form" novalidate>
+          <div class="field">
+            <label for="apv-comment">Note for us <span class="optional">(needed if you ask for changes)</span></label>
+            <textarea id="apv-comment" name="comment" rows="3" maxlength="1000" aria-describedby="err-comment"></textarea>
+            <p class="field-error" id="err-comment" hidden></p>
+          </div>
+          ${demoLine()}
+          <p class="form-error" role="alert" hidden></p>
+          <div class="dlg-actions">
+            <button class="btn btn-tint" type="submit" value="approved">${esc(a.approve.label)}</button>
+            <button class="btn btn-glass" type="submit" value="changes">${esc(a.change.label)}</button>
+          </div>
+        </form></div>`;
+      focusTitle();
+      const form = /** @type {HTMLFormElement} */ (inner().querySelector('form'));
+      if (o && o.note) { const box = /** @type {HTMLTextAreaElement|null} */ (form.querySelector('#apv-comment')); if (box) box.focus(); }
+      // Older Safari does not say which button sent the form; never guess "approved" from that.
+      /** @type {HTMLButtonElement|null} */ let clicked = null;
+      form.querySelectorAll('button[type=submit]').forEach((b) => b.addEventListener('click', () => { clicked = /** @type {HTMLButtonElement} */ (b); }));
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const btn = /** @type {HTMLButtonElement} */ (/** @type {SubmitEvent} */ (e).submitter || clicked);
+        if (!btn) return;
+        const decision = btn.value === 'changes' ? 'changes' : 'approved';
+        const comment = /** @type {HTMLTextAreaElement} */ (form.elements.namedItem('comment')).value;
+        fieldError('comment', '');
+        formError('');
+        if (decision === 'changes' && !comment.trim()) { fieldError('comment', 'Tell us what to change so we can fix it.'); return; }
+        if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
+        setBusy(true, btn, decision === 'approved' ? 'Saving' : 'Sending');
+        slow(ctx.client.decide(id, decision, comment), 'Home').then((rec) => {
+          changed = true;
+          setBusy(false);
+          inner().innerHTML = head(a.title, label) + `<div class="dlg-body">${decided(a, rec, ctx.client.now())}</div>`;
+          focusTitle();
+          toast(decision === 'approved' ? `${a.title}: approved.` : `${a.title}: changes requested.`);
+        }).catch((err) => {
+          setBusy(false, btn);
+          if (err.code === 'already-decided' && err.previous) {
+            changed = true;
+            inner().innerHTML = head(a.title, label) + `<div class="dlg-body">${decided(a, err.previous, ctx.client.now())}</div>`;
+            focusTitle();
+          } else if (err.code === 'already-decided') {
+            // Answered already, but the saved answer could not be read back: say so, do not say "nothing changed".
+            changed = true;
+            inner().innerHTML = head(a.title, label) + `<div class="dlg-body"><div class="notice">${icon('info')}<p>${esc(err.message)}</p></div><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div>`;
+            focusTitle();
+          } else if (err.field && fieldError(err.field, err.message)) {
+            /* shown next to the field */
+          } else if (err.code === 'slow') {
+            formError(err.message);
+          } else {
+            formError(`We couldn't save your answer, so nothing changed. ${err.message || ''} Try again.`);
+          }
+        });
+      });
+    }).catch((err) => {
+      if (my !== gen) return;
+      inner().innerHTML = head('Something went wrong', '') + `<div class="dlg-body">${D8.ui.ErrorState({ title: "We couldn't open this.", text: err.message || 'Try again soon.' })}<div class="dlg-actions"><button class="btn btn-glass" type="button" data-dlg-close>Close</button></div></div>`;
+      focusTitle();
+    });
+  }
+
+  /* ---- outside pages: Stripe, Instagram, Clerk -------------------------------------------- */
+
+  const OUTSIDE = {
+    'billing-portal': { title: 'Update your payment method', where: 'Stripe', text: 'Stripe, our payment service, looks after your card on its own safe page. We never see the full card number.' },
+    invoice: { title: 'Invoice', where: 'Stripe', text: 'Invoices open on Stripe, our payment service, with the amount and a PDF to download.' },
+    'connect-instagram': { title: 'Reconnect Instagram', where: 'Instagram', text: "You sign in on Instagram's own page and pick the account we can post to. We never see your password." },
+    'clerk-account': { title: 'Sign-in and security', where: 'our sign-in service', text: 'Our sign-in service looks after your email address, how you sign in, and where you are signed in.' }
+  };
+
+  /** The page context, kept from the last account button, so old Reconnect buttons can open the guide. */
+  let lastCtx = /** @type {any} */ (null);
+  function external(kind, id, trigger, ctx) {
+    if (ctx) lastCtx = ctx;
+    if (String(kind).startsWith('connect-') && lastCtx) { account(String(kind).slice(8), 'reconnect', trigger, lastCtx); return; }
+    const o = OUTSIDE[kind] || (String(kind).startsWith('connect-') ? { title: 'Reconnect this account', where: 'the provider', text: "You sign in on that service's own page and choose what we can use. We never see your password." } : null);
+    if (!o) return;
+    // Viewing as a client (the console's read-only preview): Stripe's and the sign-in service's pages are the client's own.
+    if (D8.data.viewAs) { toast(D8.data.DEMO_NOTE, { tone: 'error' }); return; }
+    const b = /** @type {HTMLButtonElement|null} */ (trigger && trigger.tagName === 'BUTTON' ? trigger : null);
+    if (b) b.disabled = true;
+    const number = trigger && trigger.getAttribute('data-number');
+    // An invoice that already carries its own payment page opens straight away; no billing function needed.
+    const direct = trigger && trigger.getAttribute('data-url');
+    if (kind === 'invoice' && direct && /^https:\/\/([a-z0-9-]+\.)*stripe\.com\//i.test(direct)) { root.open(direct, '_blank', 'noopener'); if (b) b.disabled = false; return; }
+    // Live: sign-in and security is Clerk's own profile window.
+    if (kind === 'clerk-account' && D8.live) {
+      if (b) b.disabled = true;
+      D8.live.clerk().then((c) => { if (!c.openUserProfile) throw new Error('no profile'); c.openUserProfile(); })
+        .catch(() => toast('We could not open this. Press Message us and we change it for you.', { tone: 'error' }))
+        .then(() => { if (b) b.disabled = false; });
+      return;
+    }
+    D8.integrations.resolve(kind, id, number || undefined).then((url) => {
+      if (b) b.disabled = false;
+      if (url && /^https:\/\//.test(url)) { root.location.assign(url); return; }
+      open(head(number ? `${o.title} ${number}` : o.title, '') + `<div class="dlg-body">
+        <p class="dlg-intro">${esc(o.text)}</p>
+        ${D8.live
+          ? `<div class="notice">${icon('info')}<p>Online ${esc(o.where)} is not switched on for your account yet. Press <strong>Message us</strong> and we sort it out.</p></div>`
+          : `<div class="notice">${icon('info')}<p><strong>This is a demo</strong>, so ${esc(o.where)} does not open and nothing changes. In your real portal, this button takes you to ${esc(o.where)} and back.</p></div>`}
+        <div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Close</button></div></div>`, trigger);
+    }).catch((/** @type {any} */ err) => {
+      if (b) b.disabled = false;
+      toast(err && err.code ? err.message : `We couldn't reach ${o.where}. Try again in a minute.`, { tone: 'error' });
+    });
+  }
+
+  /* ---- connected accounts: connect, reconnect, disconnect (2026-10-09) ---------------------- */
+
+  /* The steps on each app's own site, each with where to find the setting (Karan: "instructions to find the specific
+     setting ... visible and easy to read"). **Words** are the buttons and menus to press, shown bold. Our business ID and
+     access email come from the client record (team, set in the console's Settings) when there.
+     Meta: Instagram, the Facebook page and the ad account are all shared from one screen, so one trip covers every
+     Meta account they still need ("one Meta connection for all three"). */
+  const askId = (/** @type {any} */ t) => t.metaBusinessId ? `**${t.metaBusinessId}**` : '(no ID yet? Press Message us and we send it)';
+  // Our Google access email (2026-10-09, Karan: "add our email right here, don't ask them to message us"). The console's
+  // Settings value wins when set; this is the default.
+  const ACCESS_EMAIL = 'karanhelps@domin8temedia.com';
+  const askMail = (/** @type {any} */ t) => `**${t.accessEmail || ACCESS_EMAIL}**`;
+  const META_LIST = { instagram: ['Instagram accounts', 'your Instagram account'], facebook: ['Pages', 'your Facebook page'], 'meta-ads': ['Ad accounts', 'your ad account'] };
+  const GUIDE = {
+    meta: {
+      where: "Meta's", link: 'https://business.facebook.com/settings/partners', button: 'Open Meta Business settings',
+      on: (/** @type {string[]} */ ids, /** @type {any} */ t) => [
+        { do: 'Press **Open Meta Business settings** below and sign in with the Facebook account that runs your restaurant.', where: 'It opens business.facebook.com. If you have more than one business, choose the restaurant at the top left.' },
+        { do: 'In the menu on the left, press **Users**, then **Partners**.', where: 'No menu? Press **Settings**, the gear at the bottom left, first.' },
+        { do: 'Press **Add**, then **Give a partner access to your business assets**.' },
+        { do: `Type Domin8te's business ID ${askId(t)}, then press **Next**.` },
+        { do: `On the left, open ${ids.length > 1 ? 'each of these' : 'this'} and tick yours. Switch on **Full control** for ${ids.length > 1 ? 'each one' : 'it'}.`, list: ids.map((id) => `**${META_LIST[/** @type {'instagram'} */ (id)][0]}**: tick ${META_LIST[/** @type {'instagram'} */ (id)][1]}`), where: 'Some screens say **Everything** instead of Full control.' },
+        { do: 'Press **Save changes**.' }
+      ],
+      off: (/** @type {string[]} */ ids) => [
+        { do: 'Press **Open Meta Business settings** below and sign in.' },
+        { do: 'In the menu on the left, press **Users**, then **Partners**, then **Domin8te**.' },
+        { do: `Find ${META_LIST[/** @type {'instagram'} */ (ids[0])][1]} under **${META_LIST[/** @type {'instagram'} */ (ids[0])][0]}** and press **Remove** next to it.` }
+      ],
+      tip: "Instagram not in the list? It has to join your business first: press **Accounts**, then **Instagram accounts**, then **Add**."
+    },
+    gbp: {
+      where: "Google's", link: 'https://business.google.com/', button: 'Open Google Business Profile',
+      on: (/** @type {string[]} */ ids, /** @type {any} */ t) => [
+        { do: 'Press **Open Google Business Profile** below and sign in with the Google account that owns your listing.', where: 'Quickest way: search Google for **my business** while signed in. Your profile opens at the top.' },
+        { do: 'Press the menu with **three dots**, then **Business Profile settings**.' },
+        { do: 'Press **People and access**, then **Add**.', where: 'Older screens say **Managers** instead of People and access.' },
+        { do: `Type Domin8te's email ${askMail(t)}, choose **Manager**, then press **Invite**.` }
+      ],
+      off: (/** @type {string[]} */ ids, /** @type {any} */ t) => [
+        { do: 'Press **Open Google Business Profile** below and sign in.' },
+        { do: 'Press the menu with **three dots**, then **Business Profile settings**, then **People and access**.' },
+        { do: `Find ${askMail(t)} in the list, then press **Remove access**.` }
+      ],
+      tip: 'No Business Profile settings? Your Google account may not own the listing. Ask whoever set it up, or press Message us.'
+    },
+    analytics: {
+      where: "Google's", link: 'https://analytics.google.com/', button: 'Open Google Analytics',
+      on: (/** @type {string[]} */ ids, /** @type {any} */ t) => [
+        { do: 'Press **Open Google Analytics** below and sign in.', where: "Check your restaurant's website is the one chosen at the top left." },
+        { do: 'Press **Admin**, the gear at the bottom left.' },
+        { do: 'In the **Property** column, press **Property access management**.' },
+        { do: 'Press the blue **+** at the top right, then **Add users**.' },
+        { do: `Type Domin8te's email ${askMail(t)}, tick **Viewer**, then press **Add**.` }
+      ],
+      off: (/** @type {string[]} */ ids, /** @type {any} */ t) => [
+        { do: 'Press **Open Google Analytics** below and sign in.' },
+        { do: 'Press **Admin**, then **Property access management**.' },
+        { do: `Press the **three dots** on the row for ${askMail(t)}, then **Remove access**.` }
+      ],
+      tip: 'No Admin gear? Your login can only look, not change. Ask whoever set up Analytics, or press Message us.'
+    },
+    other: {
+      where: '', link: '', button: '',
+      on: () => [
+        { do: 'Every booking system (OpenTable, Resy, SevenRooms and others) works a little differently.' },
+        { do: 'Press **Tell us** below. We reply with the exact steps for yours, or set it up with you.' }
+      ],
+      off: () => [{ do: 'Press **Tell us** below.' }, { do: 'We stop using it and help you remove our access.' }],
+      tip: ''
+    }
+  };
+  /** Escapes, then turns **words** into bold. @param {string} x */
+  const rich = (x) => esc(x).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  const WORKING = ['fresh', 'stale'];
+
+  /** @param {string} id @param {string} mode connect, reconnect or disconnect @param {HTMLElement|null} trigger @param {any} ctx */
+  function account(id, mode, trigger, ctx) {
+    const srcs = ctx.account.sources || [];
+    const s = srcs.find((/** @type {any} */ x) => x.id === id) || { id, name: id };
+    const a = D8.data.ACCOUNTS[id] || { name: s.name, guide: 'other', asset: 'account', stops: 'use it' };
+    const g = /** @type {any} */ (GUIDE)[a.guide] || GUIDE.other;
+    const off = mode === 'disconnect';
+    // One Meta trip: this account plus every other Meta account they need that isn't working or waiting yet.
+    const ids = !off && a.guide === 'meta'
+      ? [id, ...srcs.filter((/** @type {any} */ x) => x.id !== id && D8.data.ACCOUNTS[x.id] && D8.data.ACCOUNTS[x.id].guide === 'meta' && !x.pending && x.state !== 'error' && !WORKING.includes(x.state)).map((/** @type {any} */ x) => x.id)]
+        .sort((p, q) => Object.keys(META_LIST).indexOf(p) - Object.keys(META_LIST).indexOf(q))
+      : [id];
+    const names = ids.map((x) => (srcs.find((/** @type {any} */ y) => y.id === x) || { name: (D8.data.ACCOUNTS[x] || {}).name || x }).name);
+    const verb = off ? 'Disconnect' : mode === 'reconnect' ? 'Reconnect' : 'Connect';
+    const title = ids.length > 1 ? `${verb} ${F.list(names)}` : `${verb} ${s.name}`;
+    const steps = (off ? g.off : g.on)(ids, ctx.account.team || {});
+    const intro = off
+      ? `${g.where ? `You remove Domin8te on ${g.where} own page.` : 'We stop using it.'} While it is off, we can't ${a.stops}.`
+      : g.where ? `About two minutes. You let Domin8te in on ${g.where} own page.${ids.length > 1 ? ` One trip connects all ${ids.length}.` : ''} We never see your password.` : 'We set this one up with you. We never see your password.';
+    let sent = false;
+    open(head(title, '') + `<div class="dlg-body">
+      <p class="dlg-intro">${esc(intro)}</p>
+      <ol class="guide-steps">${steps.map((/** @type {any} */ x) => `<li><p class="guide-do">${rich(x.do)}</p>${x.list ? `<ul class="guide-list">${x.list.map((/** @type {string} */ y) => `<li>${rich(y)}</li>`).join('')}</ul>` : ''}${x.where ? `<p class="guide-where">${icon('info')}<span>${rich(x.where)}</span></p>` : ''}</li>`).join('')}</ol>
+      ${g.tip && !off ? `<p class="guide-tip">${icon('help')}<span><strong>Stuck?</strong> ${rich(g.tip)}</span></p>` : ''}
+      ${g.link ? '<p class="meta">Menus move now and then. If yours looks different, press Message us and we help.</p>' : ''}
+      ${demoLine()}
+      <p class="form-error" role="alert" hidden></p>
+      <div class="dlg-actions">${g.link ? `<a class="btn btn-glass" href="${g.link}" target="_blank" rel="noopener noreferrer">${esc(g.button)}${icon('external')}<span class="sr-only"> (opens in a new tab)</span></a>` : ''}<button class="btn btn-solid" type="button" data-account-done>${g.link ? "I've done it" : 'Tell us'}</button><button class="btn btn-glass" type="button" data-dlg-close>Cancel</button></div></div>`, trigger, () => { if (sent) ctx.afterChange(); });
+    const done = /** @type {HTMLButtonElement} */ (inner().querySelector('[data-account-done]'));
+    done.addEventListener('click', () => {
+      formError('');
+      if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
+      setBusy(true, done, 'Sending');
+      slow(ctx.client.accountRequest(ids, mode), 'Settings').then(() => {
+        sent = true;
+        setBusy(false);
+        const what = F.list(names);
+        inner().innerHTML = head(`Thanks${ctx.session.firstName ? ', ' + ctx.session.firstName : ''}`, '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-success">${icon('check')}</span><h3>We got it.</h3><p>${off ? `We stop using ${esc(what)} and confirm it` : `We check ${esc(what)} ${ids.length > 1 ? 'work' : 'works'} and confirm it`}, usually within one working day. Until then ${ids.length > 1 ? 'they say' : 'it says'} Waiting for us to confirm.</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
+        focusTitle();
+        toast('Sent. We will confirm soon.');
+      }).catch((/** @type {any} */ err) => {
+        setBusy(false, done);
+        formError(err.code === 'slow' ? err.message : `That did not send. ${err.message || ''} Try again.`);
+      });
+    });
+  }
+
+  /* ---- messages and change requests ------------------------------------------------------ */
+
+  function compose(o, trigger, ctx) {
+    const isRequest = o.mode === 'request';
+    const svc = isRequest ? D8.data.SERVICES[o.service] : null;
+    const pkg = ctx.account.package.services.filter((/** @type {string} */ x) => D8.data.SERVICES[x]);
+    const title = isRequest ? (svc ? `Ask for a change: ${svc.label}` : 'Ask for a change') : 'Message us';
+    // A request says which service it is for: this month's picks, or an urgent fix (hours, a closure, a phone number, a
+    // sold-out item), which never counts toward the plan (2026-10-13). Once the plan has loaded it also asks how many, and
+    // shows how that fits this month's limit before anything is sent.
+    const pick = `<div class="field"><label for="msg-service">Which service?</label><select id="msg-service" name="service">${pkg.map((s) => `<option value="${esc(s)}"${s === o.service ? ' selected' : ''}>${esc(D8.data.SERVICES[s].label)}</option>`).join('')}<option value="urgent"${o.service === 'urgent' ? ' selected' : ''}>Urgent fix (hours, closure, phone, sold out)</option></select></div>
+        <div class="ask-qty" id="ask-qty" hidden></div>`;
+    const about = isRequest ? pick : `<div class="field"><label for="msg-about">What is it about?</label><select id="msg-about" name="about"><option value="general">Something else</option>${pkg.map((s) => `<option value="${esc(s)}">${esc(D8.data.SERVICES[s].label)}</option>`).join('')}<option value="billing">Billing</option></select></div>`;
+    let sent = false;
+    open(head(title, esc(D8.ui.replyLine(ctx.account.team.reply || ''))) + `<div class="dlg-body">
+      <form class="dlg-form" novalidate>
+        ${about}
+        <div class="field">
+          <label for="msg-text">${isRequest ? 'What would you like changed?' : 'Your message'}</label>
+          <textarea id="msg-text" name="text" rows="5" maxlength="2000" aria-describedby="msg-hint err-text"></textarea>
+          <p class="hint" id="msg-hint">${isRequest ? 'For example: swap the brunch photo for the one I sent on Monday.' : 'We read every message. If it is urgent, say so in the first line.'}</p>
+          <p class="field-error" id="err-text" hidden></p>
+        </div>
+        ${isRequest ? '<div class="ask-note-box" id="ask-note" aria-live="polite"></div>' : ''}
+        ${demoLine()}
+        <p class="form-error" role="alert" hidden></p>
+        <div class="dlg-actions"><button class="btn btn-solid" type="submit">${isRequest ? 'Send request' : 'Send message'}</button><button class="btn btn-glass" type="button" data-dlg-close>Cancel</button></div>
+      </form></div>`, trigger, () => { if (sent) ctx.afterChange(); });
+    const form = /** @type {HTMLFormElement} */ (inner().querySelector('form'));
+    const submit = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
+    const qtyBox = /** @type {HTMLElement|null} */ (form.querySelector('#ask-qty'));
+    const noteBox = /** @type {HTMLElement|null} */ (form.querySelector('#ask-note'));
+    /** This month's plan, once it has loaded: the limit check reads it. @type {any} */
+    let plan = null;
+
+    /** What the form is asking for right now: the service, the kind of work and how many, and how that fits the month's limit. */
+    function asking() {
+      const sel = /** @type {HTMLSelectElement|null} */ (form.elements.namedItem('service'));
+      const service = sel ? sel.value : o.service;
+      const urgent = service === 'urgent';
+      const s = plan && plan.state === 'ok' && !urgent ? plan.now.services.find((/** @type {any} */ x) => x.id === service) : null;
+      /** @type {any[]} */
+      const lines = s ? s.lines : [];
+      const m = /** @type {HTMLSelectElement|null} */ (form.elements.namedItem('metric'));
+      const q = /** @type {HTMLInputElement|null} */ (form.elements.namedItem('qty'));
+      const metric = lines.length ? (m && lines.some((l) => l.metric === m.value) ? m.value : lines[0].metric) : null;
+      const qty = q ? Math.max(1, Math.min(100, Math.floor(Number(q.value)) || 1)) : 1;
+      return { service, urgent, lines, metric, qty, preview: metric ? D8.planModel.askPreview(plan, service, metric, qty) : null };
+    }
+    /** Redraws the quantity row when the service changed, then the limit note and the button's words. @param {boolean} rebuild */
+    function refresh(rebuild) {
+      if (!isRequest || !qtyBox || !noteBox) return;
+      if (rebuild) {
+        const a = asking();
+        if (!a.lines.length) { qtyBox.hidden = true; qtyBox.innerHTML = ''; } else {
+          const one = a.lines.length === 1;
+          qtyBox.hidden = false;
+          qtyBox.innerHTML = `${one ? '' : `<div class="field"><label for="ask-metric">What kind of work?</label><select id="ask-metric" name="metric">${a.lines.map((l) => `<option value="${esc(l.metric)}">${esc(l.name)}</option>`).join('')}</select></div>`}
+            <div class="field ask-n"><label for="ask-n">${one ? `How many ${esc(a.lines[0].unit)}?` : 'How many?'}</label><input id="ask-n" name="qty" type="number" min="1" max="100" step="1" value="1" inputmode="numeric"></div>`;
+        }
+      }
+      const b = asking();
+      noteBox.innerHTML = D8.plan.askNote(b.preview, { urgent: b.urgent });
+      const over = !!(b.preview && b.preview.over);
+      if (!submit.classList.contains('is-busy')) submit.textContent = over ? 'Send to Karan for a decision' : b.urgent ? 'Send urgent fix' : 'Send request';
+    }
+    if (isRequest) {
+      form.addEventListener('change', (e) => { const t = /** @type {HTMLInputElement} */ (e.target); refresh(!!t && t.name === 'service'); });
+      form.addEventListener('input', (e) => { const t = /** @type {HTMLInputElement} */ (e.target); if (t && t.name === 'qty') refresh(false); });
+      // Without the plan the request still goes; it just is not checked against a limit here.
+      ctx.client.getPlan().then((m) => { plan = m; if (document.contains(form)) refresh(true); }).catch(() => { /* no limit check */ });
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = /** @type {HTMLTextAreaElement} */ (form.elements.namedItem('text')).value;
+      const aboutEl = /** @type {HTMLSelectElement|null} */ (form.elements.namedItem('about'));
+      fieldError('text', '');
+      formError('');
+      if (!text.trim()) { fieldError('text', isRequest ? 'Tell us what you would like changed.' : 'Write your message first.'); return; }
+      const btn = /** @type {HTMLButtonElement} */ (form.querySelector('[type=submit]'));
+      if (D8.data.READ_ONLY) { formError(D8.data.DEMO_NOTE); return; }
+      const a = isRequest ? asking() : null;
+      setBusy(true, btn, 'Sending');
+      /** @type {{metric?: string|null, estQty?: number|null, urgent?: boolean}} */
+      const extra = a ? (a.urgent ? { urgent: true } : a.metric ? { metric: a.metric, estQty: a.qty } : {}) : {};
+      const p = slow(a ? ctx.client.sendRequest(a.service, text, extra) : ctx.client.sendMessage(aboutEl ? aboutEl.value : 'general', text), 'Messages');
+      p.then((rec) => {
+        sent = true;
+        setBusy(false);
+        const over = !!((rec && rec.overCap) || (a && a.preview && a.preview.over));
+        const line = over
+          ? 'This is over your plan for this month. Karan will reply with options before anything happens. Nothing is charged without your OK.'
+          : a && a.urgent ? 'Urgent fixes go to the front of the line, and they never count toward your plan.'
+            : `${ctx.account.team.reply ? D8.ui.replyLine(ctx.account.team.reply) + ' ' : ''}We'll answer here and by email.`;
+        inner().innerHTML = head(isRequest ? (over ? 'Sent to Karan' : 'Request sent') : 'Message sent', '') + `<div class="dlg-body"><div class="confirm-state" role="status"><span class="confirm-icon tone-${over ? 'info' : 'success'}">${icon('check')}</span><h3>Thanks${ctx.session.firstName ? ', ' + esc(ctx.session.firstName) : ''}.</h3><p>${esc(line)}</p><p class="audit">${icon('clock')}Sent on ${esc(F.date(rec.at))} at ${esc(F.time(rec.at))}</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-dlg-close>Done</button></div></div></div>`;
+        focusTitle();
+        toast(isRequest ? (over ? 'Sent to Karan.' : 'Request sent.') : 'Message sent.');
+      }).catch((err) => {
+        setBusy(false, btn);
+        if (!(err.field && fieldError(err.field, err.message))) formError(err.code === 'slow' ? err.message : `That did not send. ${err.message || ''} Try again.`);
+      });
+    });
+  }
+
+  /* ---- demo data ---------------------------------------------------------------------------- */
+
+  /**
+   * Preview mode: a development panel, never part of a client's account. It says plainly that
+   * everything is demo data and switches between demo situations in place (no page load, so it
+   * works from any page and with no server running), keeping the page you are on.
+   */
+  function demo(trigger, ctx) {
+    const cur = D8.data.currentScenario();
+    open(head('Preview mode', 'Demo data only. Not a client account.') + `<div class="dlg-body">
+      <p class="dlg-intro">Everything here is made up. ${esc(ctx.account.business.name)} is not a real ${esc(ctx.account.business.kind.toLowerCase())}, and nothing is live. Stripe (our payment service), our sign-in service and the connected accounts are not hooked up, so their buttons tell you what would happen instead.</p>
+      <h3 class="dlg-h3" id="scn-title">Try another situation</h3>
+      <ul class="scenarios" aria-labelledby="scn-title">${D8.data.scenarios().map((s) => `<li><button class="scenario${s.id === cur.id ? ' is-current' : ''}" type="button" data-scenario="${esc(s.id)}"${s.id === cur.id ? ' aria-current="true"' : ''}><strong>${esc(s.label)}${s.id === cur.id ? '<span class="scn-now">Showing now</span>' : ''}</strong><span>${esc(s.about)}</span></button></li>`).join('')}</ul>
+      <p class="meta">Tip: press Alt, Shift and P together to open this panel from any page.</p>
+      <h3 class="dlg-h3">Start again</h3>
+      <p>Clears the demo approvals, messages and settings.</p>
+      <div class="dlg-actions"><button class="btn btn-glass" type="button" data-demo-reset>Reset the demo</button><button class="btn btn-glass" type="button" data-dlg-close>Close</button></div></div>`, trigger);
+    inner().querySelectorAll('[data-scenario]').forEach((b) => b.addEventListener('click', () => {
+      const id = b.getAttribute('data-scenario') || '';
+      close();
+      if (id !== cur.id && ctx.switchScenario) ctx.switchScenario(id);
+    }));
+    const reset = /** @type {HTMLButtonElement} */ (inner().querySelector('[data-demo-reset]'));
+    reset.addEventListener('click', () => {
+      setBusy(true, reset, 'Resetting');
+      ctx.client.resetDemo().then(() => {
+        setBusy(false, reset);
+        close();
+        ctx.afterChange();
+        toast('Demo reset. Everything is back to the start.');
+      });
+    });
+  }
+
+  /* ---- confirm --------------------------------------------------------------------------- */
+
+  /** @returns {Promise<boolean>} */
+  function confirm(o, trigger) {
+    return new Promise((resolve) => {
+      let answer = false;
+      open(head(o.title, '') + `<div class="dlg-body"><p class="dlg-intro">${esc(o.text)}</p><div class="dlg-actions"><button class="btn btn-solid" type="button" data-confirm-yes>${esc(o.yes)}</button><button class="btn btn-glass" type="button" data-dlg-close>${esc(o.no || 'Cancel')}</button></div></div>`, trigger, () => resolve(answer));
+      const yes = /** @type {HTMLElement} */ (inner().querySelector('[data-confirm-yes]'));
+      yes.addEventListener('click', () => { answer = true; close(); });
+    });
+  }
+
+  D8.dialogs = { wire, open, close, approval, external, account, compose, demo, confirm, toast, slow };
+})(typeof window !== 'undefined' ? window : globalThis);

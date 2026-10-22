@@ -88,11 +88,12 @@ set local request.jwt.claims = '{"sub":"user_TEST_staff","role":"authenticated",
 insert into public.messages (tenant_id, body, from_staff, by_name) values ('e1000000-0000-0000-0000-00000000000a', 'Yes, send the photo and I will swap it today.', true, 'Karan');
 insert into public.messages (tenant_id, body, from_staff, by_name) values ('e1000000-0000-0000-0000-00000000000a', 'The hours are updated too.', true, 'Karan');
 reset role;
-select pg_temp.v('M5 two staff replies are one waiting row to the client address', '1/a.owner@example.test/2',
-  (select count(*) || '/' || min(to_email) || '/' || max(cardinality(message_ids)) from public.message_notifications
-    where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and direction = 'to_client' and status = 'scheduled'));
-select pg_temp.v('M5 the client row never got the team address', '0',
-  (select count(*)::text from public.message_notifications where direction = 'to_client' and to_email = 'team@example.test'));
+-- (2026-10-21: staff messages now go to client_emails, one email each, at once; see tests/client_emails.sql)
+select pg_temp.v('M5 two staff replies are two client emails to the client address, none batched here', '2/{a.owner@example.test}/0',
+  (select count(*) || '/' || min(to_emails::text) from public.client_emails where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and kind = 'message')
+  || '/' || (select count(*) from public.message_notifications where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and direction = 'to_client'));
+select pg_temp.v('M5 the client email never got the team address', '0',
+  (select count(*)::text from public.client_emails where 'team@example.test' = any (to_emails) and audience = 'client'));
 
 -- M6 a paused client and a client with no email are skipped, each with its reason -------------------------------------------
 set local role authenticated;
@@ -102,10 +103,11 @@ set local request.jwt.claims = '{"sub":"user_TEST_staff","role":"authenticated",
 insert into public.messages (tenant_id, body, from_staff, by_name) values ('e1000000-0000-0000-0000-00000000000b', 'Reply to a paused client', true, 'Karan');
 insert into public.messages (tenant_id, body, from_staff, by_name) values ('e1000000-0000-0000-0000-00000000000c', 'Reply to a client with no email', true, 'Karan');
 reset role;
-select pg_temp.v('M6 paused client: both directions skipped', '2/skipped/client is paused',
-  (select count(*) || '/' || min(status) || '/' || min(error) from public.message_notifications where tenant_id = 'e1000000-0000-0000-0000-00000000000b'));
+select pg_temp.v('M6 paused client: both directions skipped', '1/skipped/client is paused/skipped/client is paused',
+  (select count(*) || '/' || min(status) || '/' || min(error) from public.message_notifications where tenant_id = 'e1000000-0000-0000-0000-00000000000b')
+  || '/' || (select min(status) || '/' || min(error) from public.client_emails where tenant_id = 'e1000000-0000-0000-0000-00000000000b'));
 select pg_temp.v('M6 no email on file: skipped with the reason', '1/skipped/no email on file',
-  (select count(*) || '/' || min(status) || '/' || min(error) from public.message_notifications where tenant_id = 'e1000000-0000-0000-0000-00000000000c'));
+  (select count(*) || '/' || min(status) || '/' || min(error) from public.client_emails where tenant_id = 'e1000000-0000-0000-0000-00000000000c'));
 
 -- M7 who can see the queue ------------------------------------------------------------------------------------------------------
 set local role authenticated;
@@ -124,20 +126,20 @@ select pg_temp.e('M7 signed out cannot call the sender functions', '42501', $q$s
 reset role;
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"user_TEST_staff","role":"authenticated","o":{"id":"org_TEST_team","rol":"org:member"}}';
-select pg_temp.v('M7 staff read the queue', 'true', (select (count(*) >= 6)::text from public.message_notifications));
+select pg_temp.v('M7 staff read the queue', 'true', (select (count(*) >= 3)::text from public.message_notifications));
 reset role;
 
 -- M8 the sender: the dry run changes nothing, the claim takes due rows, a message that arrives meanwhile starts a new row -----
 set local request.jwt.claims = '{"role":"service_role"}';
 update public.message_notifications set send_at = now() - interval '1 minute' where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and status = 'scheduled';
-select pg_temp.v('M8 the dry run sees both due rows with their texts', '2/3/2',
+select pg_temp.v('M8 the dry run sees the due team row with its texts', '1/3/3',
   (select count(*) || '/' || max(message_count) || '/' || min(message_count) from public.peek_message_notifications(10) where tenant_id = 'e1000000-0000-0000-0000-00000000000a'));
-select pg_temp.v('M8 the dry run claimed nothing', '2',
+select pg_temp.v('M8 the dry run claimed nothing', '1',
   (select count(*)::text from public.message_notifications where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and status = 'scheduled'));
 select pg_temp.v('M8 the claim gives the restaurant, first name and all 3 texts, oldest first', 'Notify test A/Ana/3/Can we change the brunch menu photo?',
   (select restaurant || '/' || first_name || '/' || jsonb_array_length(messages) || '/' || (messages -> 0 ->> 'body')
      from public.claim_message_notifications(10) where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and direction = 'to_team'));
-select pg_temp.v('M8 both rows are now sending', '2',
+select pg_temp.v('M8 the row is now sending', '1',
   (select count(*)::text from public.message_notifications where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and status = 'sending'));
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"user_TEST_na","role":"authenticated","o":{"id":"org_TEST_na"}}';
@@ -150,11 +152,13 @@ select pg_temp.v('M8 a message that arrives while one is sending is a new waitin
 -- M9 success, then three failures: retry, retry, failed, and exactly one Needs you item with the address masked ----------------
 set local request.jwt.claims = '{"role":"service_role"}';
 select pg_temp.v('M9 a good send is recorded', 'sent',
-  (select public.finish_message_notification(id, true, 're_TEST_1', null) from public.message_notifications where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and direction = 'to_client'));
+  (select public.finish_message_notification(id, true, 're_TEST_1', null) from public.message_notifications where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and direction = 'to_team' and status = 'sending'));
 select pg_temp.v('M9 it keeps the provider id and the time', 're_TEST_1/sent/true',
-  (select provider_id || '/' || status || '/' || (sent_at is not null)::text from public.message_notifications where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and direction = 'to_client'));
+  (select provider_id || '/' || status || '/' || (sent_at is not null)::text from public.message_notifications where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and direction = 'to_team' and provider_id = 're_TEST_1'));
 select pg_temp.v('M9 finishing a row twice does nothing', 'ignored',
-  (select public.finish_message_notification(id, true, 're_TEST_1', null) from public.message_notifications where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and direction = 'to_client'));
+  (select public.finish_message_notification(id, true, 're_TEST_1', null) from public.message_notifications where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and direction = 'to_team' and provider_id = 're_TEST_1'));
+-- the newer waiting team row (from M8) is the one that fails three times
+update public.message_notifications set status = 'sending' where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and direction = 'to_team' and status = 'scheduled';
 select pg_temp.v('M9 failure 1 retries', 'retry',
   (select public.finish_message_notification(id, false, null, 'resend 500') from public.message_notifications
     where tenant_id = 'e1000000-0000-0000-0000-00000000000a' and direction = 'to_team' and status = 'sending'));

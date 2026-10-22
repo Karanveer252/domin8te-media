@@ -3034,6 +3034,188 @@ html[data-viewas] .nav-signout, html[data-viewas] [data-action="sign-out"] { dis
   .switch { border-color: transparent; border-width: 8px 0; box-shadow: inset 0 0 0 1px CanvasText; }
 }
 
+/* ================================================================ css/90-value.css */
+/*
+ * The value pass (2026-10-21, Karan's brief items 1 to 45): Today's panel pinned at the top of Home, "Checked by Karan" under the
+ * greeting, last week as work done plus one result, the prospect's way in (demo only), the welcome on a first sign-in, one sample
+ * label beside the numbers, Results in about one screen, and the phone fixes (no sideways scroll, nothing under the tab bar).
+ * Tokens only, so the dark set follows. Brand orange #F15C22 for the one primary action.
+ */
+
+html:not([data-theme="dark"]) { --p-accent: #F15C22; --p-accent-hover: #F37442; }
+
+/* On Scenes the page's words sit on a deep sky; the new cards keep the glass inks, like the other cards. */
+html[data-variant="18h"] .page :is(.today-panel, .week-card, .prospect, .welcome-card, .missed-card, .promise-card, .off-line, .results-head .sample-chip) {
+  --p-ink: var(--k-ink); --p-ink-2: var(--k-ink-2); --p-ink-3: var(--k-ink-3);
+  --p-accent-ink: var(--k-accent-ink); --p-focus: var(--k-focus); --p-line: var(--k-line); --p-line-2: var(--k-line-2);
+  color: var(--p-ink);
+}
+
+/* ------------------------------------------------------------------ one sample label, beside the numbers */
+
+.sample-chip { padding: 4px 12px; font-size: 12.5px; font-weight: 600; color: var(--p-ink-2); }
+.sample-chip span::before { content: none; }
+.main .sample-chip { margin: 0 0 12px; }
+.tp-head .sample-chip, .week-meta .sample-chip, .results-head .sample-chip { margin: 0; }
+
+/* ------------------------------------------------------------------ Home: the line under the greeting */
+
+.page-head.is-home { margin-bottom: 14px; }
+.home-trust { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin: 6px 0 0; font-size: 14px; line-height: 1.45; color: var(--p-ink-2); }
+.home-trust .i { width: 15px; height: 15px; margin-right: 5px; vertical-align: -2px; }
+.home-trust .checked-by { font-weight: 650; color: var(--p-ink); }
+.home-trust .checked-by .i { color: var(--p-success); }
+html[data-variant="18h"] .home-trust .checked-by .i { color: currentColor; }
+
+/* ------------------------------------------------------------------ Home: Today at <restaurant> */
+
+.today-panel { padding: 18px 20px; margin: 0 0 22px; }
+.tp-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 12px; }
+.tp-head h2 { margin: 0; font-size: 18px; line-height: 1.25; }
+.tp-date { margin: 0; font-size: 14px; color: var(--p-ink-3); }
+.tp-head .sample-chip { margin-left: auto; }
+.tp-big { padding-bottom: 12px; border-bottom: 1px solid var(--p-line); }
+.tp-big-fig { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.tp-big-fig .fig { font-size: clamp(40px, 6vw, 56px); font-weight: 750; line-height: 1; letter-spacing: -0.02em; color: var(--p-ink); }
+.tp-big-words { font-size: 17px; font-weight: 600; color: var(--p-ink); }
+.tp-meta { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: var(--p-ink-3); }
+.tp-was { color: var(--p-ink-3); }
+.tp-tiles { list-style: none; margin: 0; padding: 12px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 24px; }
+.tp-tile p { margin: 0; }
+.tp-fig { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.tp-fig .fig { font-size: 28px; font-weight: 720; line-height: 1.1; color: var(--p-ink); }
+.tp-word { font-size: 15px; font-weight: 600; color: var(--p-ink); }
+.tp-about { font-size: 13px; color: var(--p-ink-2); }
+.tp-changed { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--p-line); font-size: 15px; line-height: 1.5; color: var(--p-ink); }
+.tp-updating { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 15px; color: var(--p-ink-2); }
+.tp-updating .i { width: 18px; height: 18px; }
+
+/* the line beside "Waiting for you" */
+.sec-attention .sec-head { flex-wrap: wrap; }
+.wed-line { font-size: 13.5px; color: var(--p-ink-3); }
+
+/* ------------------------------------------------------------------ Home: last week */
+
+.week-did-h { margin: 0 0 6px; font-size: 13px; font-weight: 650; letter-spacing: 0.02em; color: var(--p-ink-3); }
+.week-did { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+.week-did li { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; line-height: 1.45; color: var(--p-ink); }
+.week-did .i { flex: none; width: 16px; height: 16px; margin-top: 3px; color: var(--p-success); }
+.week-win { margin: 0; padding: 10px 14px; border-radius: var(--p-r); background: var(--p-attn-bg); font-size: 15.5px; line-height: 1.45; color: var(--p-ink); }
+.week-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; }
+
+/* ------------------------------------------------------------------ the prospect's way in (demo only) */
+
+.prospect { margin-top: 28px; padding: 22px; display: grid; gap: 20px; }
+.pros-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pros-side { margin: 0; display: grid; gap: 10px; justify-items: center; text-align: center; }
+.pros-side figcaption { font-size: 14px; line-height: 1.4; color: var(--p-ink-2); max-width: 26ch; }
+.pros-side.is-dash figcaption { font-weight: 650; color: var(--p-ink); }
+.pdf-stack { position: relative; width: 120px; height: 120px; }
+.pdf-page { position: absolute; width: 78px; height: 100px; padding: 18px 10px 0; border: 1px solid var(--p-line-2); border-radius: 4px; background: var(--p-surface); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); display: grid; align-content: start; gap: 7px; }
+.pdf-page:nth-child(1) { left: 0; top: 14px; transform: rotate(-8deg); }
+.pdf-page:nth-child(2) { left: 20px; top: 6px; transform: rotate(-2deg); }
+.pdf-page:nth-child(3) { left: 40px; top: 0; transform: rotate(5deg); }
+.pdf-tag { position: absolute; top: 4px; left: 6px; padding: 0 4px; border-radius: 3px; background: #B3261E; color: #fff; font-size: 9px; font-weight: 700; line-height: 1.5; }
+.pdf-line { display: block; height: 5px; border-radius: 3px; background: var(--p-surface-3); }
+.pdf-line.is-short { width: 60%; }
+.mini-dash { width: 170px; min-height: 120px; padding: 14px; border: 1px solid var(--p-line); border-radius: 14px; background: var(--p-surface); box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.3); display: grid; align-content: space-between; gap: 10px; text-align: left; }
+.md-row { display: grid; gap: 2px; }
+.md-fig { font-size: 30px; font-weight: 750; line-height: 1; color: var(--p-ink); }
+.md-src { font-size: 11px; color: var(--p-ink-3); }
+.md-approve { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 10px; border-radius: 999px; background: var(--p-accent); color: var(--p-on-accent); font-size: 13px; font-weight: 650; }
+.md-approve .i { width: 14px; height: 14px; }
+.pros-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding-top: 16px; border-top: 1px solid var(--p-line); }
+.pros-h { margin: 0; font-size: 20px; line-height: 1.25; }
+.pros-why { margin: 4px 0 0; font-size: 14.5px; color: var(--p-ink-2); }
+.dlg-cta { margin: 0 0 18px; padding: 16px; border-radius: var(--p-r-lg); background: var(--p-attn-bg); }
+.dlg-cta .pros-cta { padding-top: 0; border-top: 0; }
+.dlg-cta .pros-h { font-size: 18px; }
+
+/* ------------------------------------------------------------------ the welcome on a first sign-in */
+
+.page-welcome { min-height: 60vh; display: grid; place-items: center; }
+.welcome-card { max-width: 560px; padding: 32px 28px; display: grid; gap: 14px; justify-items: start; }
+.welcome-card h1 { margin: 0; font-size: clamp(26px, 4vw, 34px); line-height: 1.15; }
+.welcome-card .lede { margin: 0; font-size: 17px; }
+
+/* ------------------------------------------------------------------ Work and Done */
+
+.usage-counts { margin: 0 0 6px; font-size: 14.5px; font-weight: 600; color: var(--p-ink); }
+.steps.is-done { margin-top: 6px; }
+.off-line { display: flex; gap: 8px; align-items: flex-start; margin: 16px 0 0; padding: 12px 16px; border: 1px solid var(--p-line); border-radius: var(--p-r); background: var(--p-glass-soft); font-size: 14.5px; line-height: 1.45; color: var(--p-ink-2); }
+.off-line .i { flex: none; width: 16px; height: 16px; margin-top: 2px; }
+.update-kicker { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--p-ink-3); }
+.update-title.is-result { margin-top: 2px; }
+
+/* ------------------------------------------------------------------ Results in about one screen */
+
+.results-head { margin-top: 18px; }
+.rtiles.is-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.results-head > .sample-chip { margin-top: 10px; }
+.missed-card { margin-top: 16px; padding: 14px 18px; display: grid; gap: 4px; }
+.missed-card p { margin: 0; }
+.missed-lost { font-size: 15.5px; color: var(--p-ink); }
+.missed-back { font-size: 15px; color: var(--p-ink-2); }
+.fold-detail { margin-top: 18px; }
+.fold-detail > summary { font-size: 16px; font-weight: 650; }
+.fold-detail .detail-body > * + * { margin-top: 18px; }
+.rtile.is-partial { opacity: 0.62; filter: grayscale(1); }
+.vbadge.is-paused { background: var(--p-neutral-bg); color: var(--p-neutral); }
+.delta .delta-pct { margin-left: 4px; font-size: 0.82em; font-weight: 500; opacity: 0.8; }
+
+/* ------------------------------------------------------------------ Help */
+
+.promise-card { padding: 18px 20px; margin-bottom: 20px; }
+.promise-card .sec-title { margin-top: 0; }
+.promise-card .promise-list { padding-bottom: 0; }
+.fold-faq { margin-top: 12px; }
+.fold-faq > summary { font-weight: 650; }
+
+/* ------------------------------------------------------------------ add to home screen (phones, live only) */
+
+.a2hs {
+  position: fixed; left: 12px; right: 12px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 60;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px;
+  border: 1px solid var(--p-line); border-radius: var(--p-r-lg); background: var(--p-glass-strong);
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.35); color: var(--p-ink);
+}
+.a2hs-text { flex: 1 1 200px; margin: 0; display: grid; gap: 2px; font-size: 14px; line-height: 1.4; }
+.a2hs-text span { color: var(--p-ink-2); }
+
+/* ------------------------------------------------------------------ phones: no sideways scroll, nothing under the tab bar */
+
+html, body { max-width: 100%; overflow-x: clip; }
+.main, .page { min-width: 0; max-width: 100%; }
+.page :is(.card, .sec, section, header, .page-head-text) { min-width: 0; }
+@media (max-width: 760px) {
+  .main { padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important; }
+  .today-panel { padding: 16px; }
+  .tp-head .sample-chip { margin-left: 0; }
+  .pros-compare { grid-template-columns: 1fr; }
+  .prospect { padding: 18px; }
+  .pros-cta .btn { width: 100%; justify-content: center; }
+  .rtiles.is-3 { grid-template-columns: 1fr; }
+}
+
+/* ------------------------------------------------------------------ Billing: the days left to change (item 17) */
+
+.po-when { grid-template-columns: auto minmax(0, 1fr); }
+.po-when .days-left { order: -1; min-width: 96px; padding: 4px 18px 4px 0; }
+@media (max-width: 760px) {
+  .po-when { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .po-when .days-left { justify-items: start; grid-auto-flow: column; align-items: baseline; gap: 8px; min-width: 0; padding: 0 0 10px; border-right: 0; border-bottom: 1px solid var(--p-line); text-align: left; }
+  .po-when .days-left span { margin-top: 0; }
+  /* the page's own pill on the tab bar: a rounded box, so its label never runs into the curve */
+  html.lg-heavy body .tabbar::before { border-radius: 18px; }
+  html.lg-heavy body .tab { border-radius: 18px; }
+}
+.md-spark { display: block; width: 100%; height: 34px; }
+.md-spark path { fill: none; stroke: var(--p-accent); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the change in words is longer than a percentage: it wraps inside its card */
+.delta { white-space: normal; max-width: 100%; text-align: left; }
+.rt-value .delta, .metric-value .delta { flex: 1 1 100%; }
+
 /* ================================================================ shared Liquid Glass layer */
 /*
  * Liquid Glass primitives shared by 16A to 16J. Each variant decides where to use them.
@@ -4597,7 +4779,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   </nav>
 </div>
 <div class="rail-tip" id="rail-tip" aria-hidden="true" hidden></div>
-<button class="preview-chip is-float" type="button" data-action="demo" data-preview hidden title="Sample restaurant. Nothing you click here is real."><svg class="i" aria-hidden="true" focusable="false"><use href="#i-eye"/></svg><span class="pc-text"><span class="pc-title">Preview mode</span><span class="pc-sub">Sample restaurant, nothing is real</span></span></button>
+<button class="preview-chip is-float" type="button" data-action="demo" data-preview hidden title="Demo account with sample figures. Nothing you click here is real."><svg class="i" aria-hidden="true" focusable="false"><use href="#i-eye"/></svg><span class="pc-text"><span class="pc-title">Preview mode</span><span class="pc-sub">Try other weeks, or get your own</span></span></button>
 <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
 <dialog class="dlg" id="dlg" aria-labelledby="dlg-title"><div class="dlg-inner" id="dlg-inner"></div></dialog>
 <noscript><p class="noscript">The Domin8te portal needs JavaScript switched on to load your account.</p></noscript>
@@ -5301,11 +5483,28 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     // Home's "This week" line: what staff recorded for the week, said plainly (sample data in the demo).
     weeklyExtras: [{ label: 'Specials posted', value: 'yes' }, { label: 'Posts this week', value: '3' }],
     insightMetric: 'bookings',
+    // "Today at Bayleaf Kitchen" (2026-10-21): the day's numbers, each against yesterday, and what changed. Sample figures. Live: the
+    // daily job writes these every morning (client_today_panel). The "what changed" line rotates by day so the demo never looks frozen.
+    today: {
+      tiles: [
+        { id: 'bookings', label: 'Bookings', value: 9, yesterday: 7, unit: 'customers', words: ['new customer booked from your website', 'new customers booked from your website'], source: 'your booking system' },
+        { id: 'leads', label: 'New leads', value: 6, yesterday: 4, unit: 'customers', words: ['new lead', 'new leads'], about: 'Calls, messages and form fills', source: 'Google calls, Facebook messages and your website form' },
+        { id: 'adSpend', label: 'Ad spend', value: 23, yesterday: 21, unit: 'dollars', words: ['ad spend', 'ad spend'], about: 'Your own spend, paid to Meta', source: 'your Meta ads account' }
+      ],
+      changed: ['New brunch post went live and new reviews got a reply.', 'Your Sunday roast ad is running as planned. A new review got a reply.', 'Quiet day. Your ads and posts are running as planned.', 'Your weekend specials post went live on Facebook.']
+    },
+    // Home's "Last week": the work done and the single biggest result (sample).
+    weekWin: { text: 'The Sunday roast ads brought 186 people to your booking page.' },
+    // Results: what was being lost first, then what came back (sample figures).
+    missed: { lost: 12, back: 9, period: 'last month', source: 'Google calls and Facebook messages' },
+    // The first sign-in shows this once (sample).
+    welcome: { title: 'Your first posts are ready', text: "We wrote next week's posts for Facebook and Instagram. Have a look and approve them in one tap.", href: '#/go/approval/apv_posts', button: 'See the posts' },
+    checkedBy: { name: 'Karan', at: '2026-09-24T09:30' },
     // Written by the Domin8te assistant from the figures above, then checked against them
     // (tests/data.test.js fails if a number here stops matching the series). It shows only once a person has checked it.
     summaries: [{
       days: 30, writtenAt: '2026-09-24T14:20', reviewedBy: 'Karan', reviewedAt: '2026-09-24T14:40', facts: { bookings: 212, extraBookings: 41 },
-      text: 'Your website brought in 212 bookings in the last 30 days, 41 more than the 30 days before, and the rise was biggest on Fridays and Saturdays. Instagram has been disconnected since 21 Sep, so Instagram figures after 20 Sep are missing.'
+      text: 'Your website brought in 212 bookings in the last 30 days, 41 more than the 30 days before. Instagram has been disconnected since 21 Sep, so Instagram figures after 20 Sep are missing.'
     }],
     campaigns: [
       { name: 'Summer terrace', from: '2026-07-03', to: '2026-07-16', status: 'complete', channel: 'Meta' },
@@ -5325,7 +5524,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       {
         id: 'act_posts', kind: 'approval', approvalId: 'apv_posts', severity: 'approval', service: 'social', icon: 'image',
         title: "Approve next week's social posts",
-        detail: '3 posts for Mon, Wed and Fri. Nothing is scheduled until you approve them.',
+        detail: "Next week's posts for Facebook and Instagram. Nothing is scheduled until you approve them.",
         deadline: { date: '2026-09-25', kind: 'due' },
         primary: { label: 'Review and approve', does: 'approval' },
         more: ['Mon 28 Sep: roast squash risotto. Wed 30 Sep: Sunday roast. Fri 2 Oct: weekend brunch.', 'The Instagram copies wait until Instagram is reconnected. The Facebook posts go out as planned.'],
@@ -5357,16 +5556,16 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         preview: {
           type: 'posts',
           items: [
-            { day: 'Mon 28 Sep', channels: 'Facebook and Instagram', image: 'Your photo: squash risotto', text: 'Autumn is on the menu. Roast squash risotto with sage butter, from Monday. Book a table on our website.' },
+            { day: 'Mon 28 Sep', channels: 'Facebook and Instagram', image: 'Your photo: squash risotto', text: 'Autumn is on the menu. Roast squash risotto with sage butter, from this week. Book a table on our website.' },
             { day: 'Wed 30 Sep', channels: 'Facebook and Instagram', image: 'Designed post: Sunday roast', text: 'Sunday roast is back every week from 12 until 4. Book ahead, it goes fast.' },
             { day: 'Fri 2 Oct', channels: 'Facebook and Instagram', image: 'Your photo: brunch table', text: 'Weekend brunch starts at 9. Shakshuka, pancakes and good coffee. See you Saturday.' }
           ]
         },
         trackDone: true,
-        approve: { label: 'Approve posts', done: "Approved. We'll schedule them for Mon, Wed and Fri." },
+        approve: { label: 'Approve posts', done: "Approved. We'll schedule them for the days shown." },
         change: { label: 'Request changes', done: "Thanks. We'll revise the posts and send them back to you." },
         effects: {
-          approved: [{ service: 'social', status: 'in_progress', now: 'Scheduling your 3 approved posts', next: { who: 'domin8te', text: 'Posts go out Mon, Wed and Fri' } }],
+          approved: [{ service: 'social', status: 'in_progress', now: 'Scheduling your approved posts', next: { who: 'domin8te', text: 'Posts go out on the days you approved' } }],
           changes: [{ service: 'social', status: 'in_progress', now: 'Revising the posts from your notes', next: { who: 'domin8te', text: 'Send the revised posts back to you' } }]
         }
       },
@@ -5417,7 +5616,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         status: 'waiting',
         objective: 'Three posts a week, so regulars and people nearby know what is on.',
         now: "Next week's 3 posts are drafted and ready for you",
-        expected: { date: '2026-09-28', text: 'Posts go out Mon, Wed and Fri' },
+        expected: { date: '2026-09-28', text: "Next week's posts go out" },
         next: { who: 'client', text: 'Approve the 3 posts', actionId: 'act_posts' },
         proof: { date: '2026-09-18', text: '4 posts published on Facebook and Instagram' },
         note: 'Instagram posts are paused until Instagram is reconnected. Facebook posts continue.',
@@ -5442,7 +5641,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         next: { who: 'domin8te', text: 'Final check of both ad versions' },
         proof: { date: '2026-09-21', text: 'Sunday roast ads finished: 186 clicks to your booking page' },
         milestones: [
-          { title: 'Ran the Sunday roast ads, 12 to 21 Sep', date: '2026-09-21', state: 'done' },
+          { title: 'Ran the Sunday roast ads', date: '2026-09-21', state: 'done' },
           { title: 'Two autumn ad versions ready', date: '2026-09-28', state: 'current' },
           { title: 'Ads start on Facebook and Instagram', date: '2026-10-02', state: 'next' },
           { title: 'Ads start on Google', date: '2026-10-09', state: 'next' }
@@ -5481,11 +5680,11 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         changed: 'Instagram disconnected on Mon 21 Sep, so Instagram posts are paused. Facebook posts continue as planned.',
         result: 'Posts with your own food photos drew the most comments this month.',
         why: 'Nothing goes out on social until you approve it.',
-        next: 'Your approval by Fri 25 Sep, then we schedule the posts for Mon, Wed and Fri.'
+        next: 'Your approval by Fri 25 Sep, then we schedule the posts for next week.'
       },
       {
         id: 'upd_0922', date: '2026-09-22', service: 'advertising', author: 'team', title: 'Sunday roast campaign results',
-        completed: 'The Sunday roast ads ran on Facebook and Instagram from Sat 12 to Mon 21 Sep.',
+        completed: 'The Sunday roast ads ran on Facebook and Instagram from Sat 12 Sep to Mon 21 Sep.',
         changed: 'Nothing changed during the campaign; it ran as planned.',
         result: 'The ads brought 186 clicks to your booking page.',
         why: 'It shows the kind of dish people click through for, which shapes the autumn ad.',
@@ -5525,7 +5724,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       },
       {
         id: 'upd_0717', date: '2026-07-17', service: 'advertising', author: 'team', title: 'Summer terrace campaign results',
-        completed: 'The summer terrace ads ran on Facebook and Instagram from Fri 3 to Thu 16 Jul.',
+        completed: 'The summer terrace ads ran on Facebook and Instagram from Fri 3 Jul to Thu 16 Jul.',
         result: 'The ads brought 140 clicks to your booking page.',
         next: 'Plan the autumn campaigns with you in September.'
       }
@@ -5588,6 +5787,15 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     ],
     strip: ['calls', 'directions', 'adClicks', 'orders'],
     weeklyExtras: [{ label: 'Reviews answered', value: '4' }],
+    // Today's panel (sample): no booking system or online orders connected, so leads come first and there is no bookings figure.
+    today: {
+      tiles: [
+        { id: 'leads', label: 'New leads', value: 4, yesterday: 3, unit: 'customers', words: ['new lead', 'new leads'], about: 'Calls from Google and website messages', source: 'your Google listing and your website form' },
+        { id: 'adSpend', label: 'Ad spend', value: 8, yesterday: 8, unit: 'dollars', words: ['ad spend', 'ad spend'], about: 'Your own spend, paid to Meta', source: 'your Meta ads account' }
+      ],
+      changed: ['Quiet day. Your ad and your Google profile are running as planned.', 'New photos went up on your Google profile.', 'A new review got a reply.']
+    },
+    checkedBy: { name: 'Karan', at: '2026-09-24T08:30' },
     insightMetric: 'calls',
     summaries: [{
       days: 30, writtenAt: '2026-09-24T07:55', reviewedBy: 'Karan', reviewedAt: '2026-09-24T08:30', facts: { calls: 41, extraCalls: 4, directionsBefore: 49, directions: 58 },
@@ -5678,10 +5886,24 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     // the written summary for the plan that includes Google: it mentions calls
     summaries: [{
       days: 30, writtenAt: '2026-09-24T14:20', reviewedBy: 'Karan', reviewedAt: '2026-09-24T14:40', facts: { bookings: 212, extraBookings: 41, calls: 148 },
-      text: 'Your website brought in 212 bookings in the last 30 days, 41 more than the 30 days before, and the rise was biggest on Fridays and Saturdays. Calls from Google rose to 148. Instagram has been disconnected since 21 Sep, so Instagram figures after 20 Sep are missing.'
+      text: 'Your website brought in 212 bookings in the last 30 days, 41 more than the 30 days before. Calls from Google rose to 148. Instagram has been disconnected since 21 Sep, so Instagram figures after 20 Sep are missing.'
     }]
   };
+  /** A good week (2026-10-21, the demo's default): nothing wrong with the payment, a paid month at the top of Billing. */
+  const GOOD_WEEK = {
+    actions: (/** @type {any[]} */ list) => list.filter((a) => a.id !== 'act_payment'),
+    billing: {
+      subscription: { status: 'active', nextBilling: '2026-10-22' },
+      paymentMethod: { brand: 'Visa', last4: '4412' },
+      invoices: [
+        { id: 'in_bay_0009', number: 'BAY-0009', issued: '2026-09-22', due: '2026-09-22', period: ['2026-09-22', '2026-10-21'], status: 'paid', paidOn: '2026-09-22' },
+        { id: 'in_bay_0008', number: 'BAY-0008', issued: '2026-08-22', due: '2026-08-22', period: ['2026-08-22', '2026-09-21'], status: 'paid', paidOn: '2026-08-22' },
+        { id: 'in_bay_0007', number: 'BAY-0007', issued: '2026-07-22', due: '2026-07-22', period: ['2026-07-22', '2026-08-21'], status: 'paid', paidOn: '2026-07-22' }
+      ]
+    }
+  };
   const PATCHES = {
+    good: GOOD_WEEK,
     // Domin8te: Ads plus three services (Social media, Website, SEO and Google Maps), the same busy week
     everything: EVERYTHING,
     // Growth with next month already chosen: SEO and Google Maps instead of Website (Ads and Social media stay), nothing else waiting
@@ -5705,25 +5927,83 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     if (p.plan) t.plan = p.plan();
     if (p.strip) t.strip = p.strip.slice();
     if (p.summaries) t.summaries = JSON.parse(JSON.stringify(p.summaries));
-    if (p.actions) t.actions = p.actions.slice();
+    if (p.actions) t.actions = typeof p.actions === 'function' ? p.actions(t.actions) : p.actions.slice();
     if (p.billing) t.billing = { ...t.billing, ...p.billing };
     return t;
   }
   const TENANTS = { tnt_demo_bayleaf: BAYLEAF, tnt_demo_cornerbean: CORNERBEAN };
 
+  /* ---- relative dates (2026-10-21) ----------------------------------------------------------------------------------
+     The fixtures are written as if today were Thu 24 Sep 2026 (ANCHOR). The demo moves every date by the same number of days,
+     so "today" is the visitor's today: last updated today, due tomorrow, the bill date ahead, and they always agree. Times on the
+     anchor day keep their order but fit between midnight and now, so nothing is ever in the future. Dates written in words
+     ("Tue 22 Sep", "21 Sep") move too, with their weekday worked out again. */
+  const ANCHOR = '2026-09-24';
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const isoOf = (/** @type {number} */ n) => new Date(n * DAY).toISOString().slice(0, 10);
+  const ordinal = (/** @type {number} */ n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
+  /**
+   * A copy of one record with every date moved so the anchor day is `nowMs`'s day. @param {any} rec
+   * @param {number} nowMs the visitor's wall clock, written as UTC (the portal's time convention)
+   */
+  function rebase(rec, nowMs) {
+    if (!rec) return rec;
+    const today = Math.floor(nowMs / DAY);
+    const shift = today - dayNum(ANCHOR);
+    const anchorAsOf = Date.parse(String(rec.asOf) + ':00Z');
+    const anchorStart = dayNum(ANCHOR) * DAY;
+    // the anchor day's times, squeezed into today so far (keeps their order, never later than now)
+    const squeeze = Math.max(0, Math.min(1, (nowMs - today * DAY) / Math.max(1, anchorAsOf - anchorStart)));
+    const moveIso = (/** @type {string} */ v) => {
+      const m = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}):(\d{2}))?$/.exec(v);
+      if (!m) return v;
+      const n = dayNum(m[1]) + shift;
+      if (!m[2]) return isoOf(n);
+      const mins = +m[2] * 60 + +m[3];
+      let ms = n * DAY + mins * 60e3;
+      if (n === today) ms = today * DAY + Math.round(mins * squeeze) * 60e3;
+      if (n <= today && ms > nowMs) ms = nowMs - 60e3; // past and today: never later than now (a future meeting stays as it is)
+      return new Date(ms).toISOString().slice(0, 16);
+    };
+    const anchorYear = +ANCHOR.slice(0, 4);
+    const words = (/** @type {string} */ v) => v.replace(/\b(?:(Mon|Tue|Wed|Thu|Fri|Sat|Sun) )?(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g, (all, wd, d, mon) => {
+      const n = Math.round(Date.UTC(anchorYear, MONTHS.indexOf(mon), +d) / DAY) + shift;
+      const x = new Date(n * DAY);
+      return `${wd ? WEEKDAYS[x.getUTCDay()] + ' ' : ''}${x.getUTCDate()} ${MONTHS[x.getUTCMonth()]}`;
+    });
+    /** @param {any} v @returns {any} */
+    const walk = (v) => {
+      if (typeof v === 'string') return words(moveIso(v));
+      if (Array.isArray(v)) return v.map(walk);
+      if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x)]));
+      return v;
+    };
+    const out = walk(rec);
+    out.asOf = new Date(nowMs).toISOString().slice(0, 16);
+    const bill = out.plan && out.plan.now && out.plan.now.start;
+    if (bill && out.package) out.package = { ...out.package, billing: `Billed monthly on the ${ordinal(+bill.slice(8, 10))}` };
+    return out;
+  }
+
   D8.demoFixtures = {
     // Demo scenarios exist for development only. Each one picks a tenant and, optionally,
     // simulates a failing source or a slow connection. They never mix tenants.
+    // The first one opens by default (2026-10-21: a good week). The Preview panel lists only the ones not marked dev; the dev ones
+    // still open from ?demo= for testing.
     scenarios: [
-      { id: 'bayleaf', tenantId: 'tnt_demo_bayleaf', label: 'Busy week', about: 'Growth plan (Ads, Social media and Website): four things to do, a disconnected account and a payment problem.' },
-      { id: 'cornerbean', tenantId: 'tnt_demo_cornerbean', label: 'All caught up', about: 'Starter plan (Ads and SEO and Google Maps): nothing to do, and online orders not connected yet.' },
-      { id: 'domin8te', tenantId: 'tnt_demo_bayleaf', label: 'Domin8te plan', about: 'Domin8te plan (Ads, Social media, Website and SEO and Google Maps): the same busy week.', patch: 'everything' },
-      { id: 'change', tenantId: 'tnt_demo_bayleaf', label: 'Plan change confirmed', about: 'Growth now, and next month already chosen: Ads, Social media and SEO and Google Maps. Nothing waiting.', patch: 'change' },
-      { id: 'google-down', tenantId: 'tnt_demo_bayleaf', label: 'Google figures failing', about: 'Google Business Profile does not load. Everything else still works.', fail: ['gbp'], patch: 'everything' },
-      { id: 'slow', tenantId: 'tnt_demo_bayleaf', label: 'Slow connection', about: 'Every section takes about two seconds, so you can see the loading states.', latency: 2000 }
+      { id: 'good', tenantId: 'tnt_demo_bayleaf', label: 'A good week', about: "Next week's posts are ready to approve, the numbers are in, and the month is paid.", patch: 'good' },
+      { id: 'bayleaf', tenantId: 'tnt_demo_bayleaf', label: 'Something went wrong (see how we handle it)', about: 'A card was declined and Instagram disconnected. See how the dashboard tells you and what keeps running.' },
+      { id: 'cornerbean', tenantId: 'tnt_demo_cornerbean', label: 'All caught up', about: 'A café with nothing waiting: the numbers and the work, nothing to do.' },
+      { id: 'domin8te', tenantId: 'tnt_demo_bayleaf', label: 'Domin8te plan', about: 'Domin8te plan (Ads, Social media, Website and SEO and Google Maps): the same busy week.', patch: 'everything', dev: true },
+      { id: 'change', tenantId: 'tnt_demo_bayleaf', label: 'Plan change confirmed', about: 'Growth now, and next month already chosen: Ads, Social media and SEO and Google Maps. Nothing waiting.', patch: 'change', dev: true },
+      { id: 'google-down', tenantId: 'tnt_demo_bayleaf', label: 'Google figures failing', about: 'Google Business Profile does not load. Everything else still works.', fail: ['gbp'], patch: 'everything', dev: true },
+      { id: 'slow', tenantId: 'tnt_demo_bayleaf', label: 'Slow connection', about: 'Every section takes about two seconds, so you can see the loading states.', latency: 2000, dev: true }
     ],
     tenants: TENANTS,
-    record
+    record,
+    rebase,
+    ANCHOR
   };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
@@ -6073,7 +6353,14 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       timezone: t.timezone || 'America/Winnipeg',
       plan: t.plan || null,
       homeSections: t.homeSections || [],
-      verifiedResults: t.verifiedResults || null
+      verifiedResults: t.verifiedResults || null,
+      // 2026-10-21: today's panel (live: the daily job's row), the first-visit welcome, missed leads, the next check-in and who checked
+      today: t.today || null,
+      welcome: t.welcome || null,
+      weekWin: t.weekWin || null,
+      missed: t.missed || null,
+      checkin: t.checkin || null,
+      checkedBy: t.checkedBy || null
     });
   }
   /**
@@ -6172,11 +6459,21 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     return st;
   }
 
+  /** The visitor's own wall clock, written the portal's way (local time in UTC fields). */
+  function wallClock() {
+    const d = new Date();
+    return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes());
+  }
+
   /** The demo: a fixture, and the client's actions kept in this browser. @param {any} session */
   function demoSource(session) {
     const sc = currentScenario();
     // Each demo situation can carry its own plan (the same restaurant on Starter, Growth or Domin8te)
-    const raw = fixtures().record ? fixtures().record(session.tenantId, sc) : fixtures().tenants[session.tenantId];
+    const fixed = fixtures().record ? fixtures().record(session.tenantId, sc) : fixtures().tenants[session.tenantId];
+    // Every demo date is relative to the visitor's today (2026-10-21): the fixtures are written for Thu 24 Sep 2026 and move by
+    // whole days, so "today" is always today and the deadlines agree. Tests keep the written dates (D8_DEMO_FIXED_DATE).
+    // ?dates=fixed does the same for the page checks (tools/smoke.js).
+    const raw = fixed && fixtures().rebase && !root.D8_DEMO_FIXED_DATE && query().get('dates') !== 'fixed' ? fixtures().rebase(fixed, wallClock()) : fixed;
     const key = NS + '.demo.' + session.tenantId;
     const state = () => {
       const s = readJSON(key) || {};
@@ -6563,7 +6860,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       const pct = Math.round(Math.abs(t.change.pct));
       return {
         state: 'ok', metric: id, label: m.label, unit: m.unit, value: t.value, previous: t.previous, pct, dir: t.change.dir,
-        headline: `${m.label} ${up ? 'rose' : 'fell'} ${pct}% compared with the previous 30 days: ${n2s(t.value)}, ${up ? 'up' : 'down'} from ${n2s(t.previous)}.`,
+        // counted in its own unit, never a percentage first (2026-10-21)
+        headline: `${m.label}: ${n2s(Math.abs(t.change.diff))} ${up ? 'more' : 'fewer'} than the previous 30 days (${n2s(t.value)}, ${up ? 'up' : 'down'} from ${n2s(t.previous)}).`,
         detail, weekdays: top.map((x) => x.dow), sources: srcs
       };
     }
@@ -6585,12 +6883,87 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         updatedAt: latest ? T.isoTime(latest) : null, openActions: attention().length,
         // What staff wrote for Home (running now, next month, nothing to do, a note); only the ones they made visible
         homeSections: clone(tenant.homeSections || []),
+        // Next check-in with Karan (every two weeks; live: the database's date, else the next meeting) and who last checked the numbers
+        checkin: checkinDay(), checkedBy: checkedBy(),
+        // the one-time welcome on a first sign-in (item 32), or null
+        welcome: welcome(),
         // The restaurant's own clock: every time on every page is in it
         timezone: tenant.timezone, zoneAbbr: F.zoneAbbr(tenant.timezone),
         // The look the client chose (theme, and the ground where the design has one), kept with the
         // account so it follows them to every device. Null until they first choose.
         appearance: clone(state().appearance || null)
       };
+    }
+
+    /** The next check-in with Karan: the day the database set, else the next confirmed meeting, never one in the past. */
+    function checkinDay() {
+      const today = T.dayNum(now());
+      const m = tenant.meeting;
+      const set = tenant.checkin ? String(tenant.checkin).slice(0, 10) : m && m.at && (!m.status || m.status === 'confirmed') ? String(m.at).slice(0, 10) : null;
+      return set && T.dayNum(set) >= today ? set : null;
+    }
+    /**
+     * Who last checked the numbers by hand, and when: the record's own line, else the newest checked summary, else the newest
+     * verified number. Null when nobody has, so nothing is claimed.
+     */
+    function checkedBy() {
+      if (tenant.checkedBy && tenant.checkedBy.at) return clone(tenant.checkedBy);
+      const s = reviewedSummary(null);
+      if (s) return { name: s.reviewedBy, at: s.reviewedAt };
+      const v = (tenant.verifiedResults || []).map((/** @type {any} */ r) => r.verifiedAt).filter(Boolean).sort().pop();
+      return v ? { name: 'Karan', at: v } : null;
+    }
+
+    /**
+     * "Today at <restaurant>" (2026-10-21): the day's numbers against yesterday's and what changed. Live: the row the daily job wrote
+     * for the restaurant's today, or "updating" (never an older day). Demo: the sample tiles with today's date and a "what changed"
+     * line that rotates by day. A number shows only when its source is connected; nothing is estimated and a missing one is not zero.
+     */
+    function today() {
+      const day = T.isoDay(T.dayNum(now()));
+      const p = tenant.today;
+      if (!p) return { day, state: 'none', tiles: [], changed: null };
+      if (MODE === 'live') {
+        if (p.state !== 'ready' || p.day !== day) return { day, state: 'updating', tiles: [], changed: null };
+        return { ...clone(p), day, tiles: (p.tiles || []).filter((/** @type {any} */ x) => hasValue(x.value)) };
+      }
+      const lines = p.changed || [];
+      const connected = (/** @type {string} */ id) => id !== 'adSpend' || inPackage('advertising');
+      return {
+        day, state: 'ready', builtAt: `${day}T06:00`,
+        tiles: (p.tiles || []).filter((/** @type {any} */ x) => connected(x.id)).map((/** @type {any} */ x) => ({ ...clone(x), sourceDay: day })),
+        changed: lines.length ? lines[T.dayNum(now()) % lines.length] : null
+      };
+    }
+    const hasValue = (/** @type {any} */ v) => v !== null && v !== undefined && v !== '' && !Number.isNaN(Number(v));
+
+    /** What was being lost (missed calls and unanswered messages) and what came back. Only when it is on record; never estimated. */
+    function missed() {
+      const m = tenant.missed;
+      return m && hasValue(m.lost) ? clone(m) : null;
+    }
+
+    /** Last week's single biggest result, in customers or dollars: what staff recorded, or none. */
+    function weekWin() {
+      return tenant.weekWin && tenant.weekWin.text ? clone(tenant.weekWin) : null;
+    }
+
+    /** The one-time welcome on a first sign-in: live from the server, the demo once per browser. */
+    function welcome() {
+      const w = tenant.welcome;
+      if (!w || !w.title) return null;
+      if (MODE === 'live') return w.show === false ? null : clone(w);
+      let stored = null;
+      try { stored = local ? local.getItem(NS + '.demo.welcome') : null; } catch (e) { stored = null; }
+      // ?welcome=off: the page checks open Home itself (tools/smoke.js)
+      return (stored || seenWelcome || query().get('welcome') === 'off') ? null : clone(w);
+    }
+    let seenWelcome = false;
+    function markWelcomeSeen() {
+      seenWelcome = true;
+      if (src.welcomeSeen) return src.welcomeSeen().catch(() => null);
+      try { if (local) local.setItem(NS + '.demo.welcome', '1'); } catch (e) { /* storage blocked: shown once this visit */ }
+      return Promise.resolve(null);
     }
 
     function results(days) {
@@ -6921,6 +7294,13 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       savePicks,
       getHighlights: () => call(highlights),
       getRecentDone: () => call(recentDone),
+      getToday: () => call(today, 0),
+      getMissed: () => call(missed, 0),
+      getWeekWin: () => call(weekWin, 0),
+      getWelcome: () => call(welcome, 0),
+      markWelcomeSeen,
+      // The client opened something waiting for them (an approval): the console's Wednesday check reads it. Live only, quiet.
+      markOpened: (/** @type {string} */ kind, /** @type {string} */ id) => (src.opened && !READ_ONLY && !VIEW_AS ? src.opened(kind, id).catch(() => null) : Promise.resolve(null)),
       // First week (2026-10-16): a client who has never answered anything gets one real first job on Home.
       getFirstWeek: () => call(() => ({ first: Object.keys(decisions()).length === 0 })),
       getUpcoming: () => call(upcoming),
@@ -6960,6 +7340,13 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     return makeClient(session, demoSource(session));
   }
 
+  /**
+   * The "Add Domin8te to your home screen" tip (2026-10-21, item 42): a phone, not already installed, the live portal (never the
+   * demo, never while staff view as a client), the second visit or later, and never shown before.
+   * @param {{live: boolean, viewAs: boolean, phone: boolean, standalone: boolean, visits: number, shown: boolean}} o
+   */
+  const homeTipDue = (o) => !!(o.live && !o.viewAs && o.phone && !o.standalone && o.visits >= 2 && !o.shown);
+
   D8.auth = auth;
   D8.integrations = integrations;
   D8.data = {
@@ -6967,6 +7354,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     connect, scenarios, currentScenario, switchScenario,
     // For live-data.js: build a client on another source, and the shared helpers it needs.
     makeClient, normalize, mergeProjections, apply, fail,
+    homeTipDue,
     /** Tests only: pick a scenario without a URL. */
     useScenario: (id) => { scenarioOverride = id; }
   };
@@ -7335,6 +7723,13 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       zone = 'America/Winnipeg';
       if (row.doc && typeof row.doc.timezone === 'string') { try { new Intl.DateTimeFormat('en-GB', { timeZone: row.doc.timezone }); zone = row.doc.timezone; } catch (e) { /* unknown zone: keep Winnipeg */ } }
       const none = { data: null, error: { code: 'PGRST202', message: 'no rpc' } };
+      // 2026-10-21: today's panel (the daily job's row; "updating" until today's is built) and the one-time welcome. Either may be
+      // missing before its migration, or fail: the rest of the account still loads, and the panel then says it is updating.
+      const rpc = (/** @type {string} */ name, /** @type {any} */ args) => (typeof sb.rpc === 'function' ? Promise.resolve(sb.rpc(name, args)).catch((e) => ({ data: null, error: e || { code: 'failed' } })) : Promise.resolve(none));
+      const extra = Promise.all([
+        VIEW ? rpc('client_today_panel', { p_tenant: row.id }) : rpc('client_today_panel', {}),
+        VIEW || PREVIEW ? Promise.resolve(none) : rpc('client_welcome', {})
+      ]);
       const [d, m, r, p, items, inv, cards, cyc, menu, usage, res, home, wk] = await Promise.all([
         sb.from('decisions').select('approval_id, decision, comment, by_name, at').eq('tenant_id', row.id),
         sb.from('messages').select('id, about, body, from_staff, by_name, at').eq('tenant_id', row.id).order('at'),
@@ -7414,7 +7809,19 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           .map((/** @type {any} */ n) => ({ id: String(n.id), now: Number(n.now), before: n.before === null || n.before === undefined || !Number.isFinite(Number(n.before)) ? null : Number(n.before) })),
         extras: (Array.isArray(w0.extras) ? w0.extras : []).filter((/** @type {any} */ x) => x && x.label).map((/** @type {any} */ x) => ({ label: String(x.label), value: String(x.value) }))
       } : null;
-      const merged = mergeProjections(normalize({ ...(row.doc || {}), plan: planRec, timezone: zone, homeSections: sections, verifiedResults: verified, weekly }, now), itemRows, invRows);
+      const [panelRes, welcomeRes] = await extra;
+      const pd = panelRes && !panelRes.error && panelRes.data && typeof panelRes.data === 'object' ? panelRes.data : null;
+      // A panel that could not be read is "updating", with today's date: never an older day's numbers.
+      const todayRec = pd ? {
+        day: String(pd.day || '').slice(0, 10), state: pd.state === 'ready' ? 'ready' : 'updating', builtAt: toWall(pd.builtAt) || null, changed: pd.changed ? String(pd.changed) : null,
+        tiles: (Array.isArray(pd.tiles) ? pd.tiles : []).filter((/** @type {any} */ x) => x && x.id && x.value !== null && x.value !== undefined && Number.isFinite(Number(x.value)))
+          .map((/** @type {any} */ x) => ({ id: String(x.id), label: String(x.label || ''), value: Number(x.value), yesterday: x.yesterday === null || x.yesterday === undefined || !Number.isFinite(Number(x.yesterday)) ? null : Number(x.yesterday), unit: /^(CAD|USD|dollars)$/i.test(String(x.unit || '')) ? 'dollars' : String(x.unit || ''), source: String(x.source || ''), sourceDay: String(x.sourceDay || '').slice(0, 10) || null, about: x.about ? String(x.about) : '' }))
+      } : { day: today, state: 'updating', tiles: [], changed: null };
+      const missedRec = pd && pd.missed && Number.isFinite(Number(pd.missed.customers)) ? { lost: Number(pd.missed.customers), back: Number.isFinite(Number(pd.missed.back)) ? Number(pd.missed.back) : null, period: String(pd.missed.period || 'last month'), source: String(pd.missed.source || '') } : null;
+      const wd = welcomeRes && !welcomeRes.error && welcomeRes.data && welcomeRes.data.show ? welcomeRes.data : null;
+      const welcomeRec = wd ? { show: true, title: String(wd.title || ''), text: String(wd.text || ''), href: /^#\//.test(String(wd.href || '')) ? String(wd.href) : '#/home', button: String(wd.button || 'See it') } : null;
+      const merged = mergeProjections(normalize({ ...(row.doc || {}), plan: planRec, timezone: zone, homeSections: sections, verifiedResults: verified, weekly,
+        today: todayRec, missed: missedRec, welcome: welcomeRec, checkin: pd && pd.checkin ? String(pd.checkin).slice(0, 10) : (row.doc && row.doc.checkin) || null }, now), itemRows, invRows);
       if (verified) { merged.metrics = {}; merged.strip = []; merged.pending = []; merged.insightMetric = ''; }
       tenant = { ...merged, tenantId: row.id, name: row.name };
       // The client opened their dashboard (2026-10-16): once per page load, quietly; the console's "Last visit" reads it.
@@ -7442,6 +7849,10 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       failing: new Set(),
       now,
       state: () => st,
+      /** The welcome was shown: never again for this person (live only). */
+      welcomeSeen: async () => { if (VIEW || PREVIEW) return null; const sb = await db(); return typeof sb.rpc === 'function' ? sb.rpc('client_welcome_seen') : null; },
+      /** The client opened something waiting for them (Karan's Wednesday check reads it). Quiet: a failure never troubles them. @param {string} kind @param {string} id */
+      opened: async (kind, id) => { if (VIEW || PREVIEW) return null; const sb = await db(); return typeof sb.rpc === 'function' ? sb.rpc('client_mark_opened', { p_kind: kind, p_id: id }) : null; },
       /** @param {string} kind @param {any} rec @returns {Promise<any>} */
       async put(kind, rec) {
         if (VIEW) throw viewRefusal(); // read only: never a write while viewing as a client
@@ -7726,13 +8137,18 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     return `<span class="src-line"><span class="src-from${src.state === 'fresh' ? '' : ' is-' + esc(src.state)}">${esc(fromSource(src))}</span>${h ? `<span class="src-health is-${esc(src.state)}">${esc(h)}</span>` : ''}${when ? `<span class="src-when" title="When this number last changed">${esc(when)}</span>` : ''}</span>`;
   }
 
-  /** Direction of change as an arrow and words, never colour alone. @param {any} m @param {number} [days] */
+  /**
+   * Direction of change as an arrow and words, never colour alone. Counted in the number's own unit ("41 more bookings"), never as a
+   * percentage first (2026-10-21): the percentage is small secondary text only. @param {any} m @param {number} [days]
+   */
   function Delta(m, days) {
     const why = `Compared with the ${days || 30} days before this.`;
     if (!m.change) return '';
     if (m.change.dir === 'flat') return `<span class="delta is-flat" title="${esc(why)}">${icon('minus')}About the same</span>`;
     const up = m.change.dir === 'up';
-    return `<span class="delta ${up ? 'is-up' : 'is-down'}" title="${esc(why)}">${icon(up ? 'up' : 'down')}${up ? 'Up' : 'Down'} ${Math.round(Math.abs(m.change.pct))}%</span>`;
+    const n = Math.round(Math.abs(m.change.diff !== undefined ? m.change.diff : 0));
+    const unit = String(m.unit || '');
+    return `<span class="delta ${up ? 'is-up' : 'is-down'}" title="${esc(why)}">${icon(up ? 'up' : 'down')}${esc(F.num(n))} ${up ? 'more' : 'fewer'}${unit ? ' ' + esc(unit) : ''} than the ${days || 30} days before <span class="delta-pct">${up ? 'up' : 'down'} ${Math.round(Math.abs(m.change.pct))}%</span></span>`;
   }
 
   /** A quiet pill where a metric has no change to show because there were no ads before. @param {any} m @param {number} days */
@@ -7793,18 +8209,17 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   /* ---- page structure --------------------------------------------------------------- */
 
   /**
-   * In the public demo every page says so, at the top: the names and numbers are made up (2026-10-13). Never in a real portal.
-   * @param {string} [name] the sample restaurant
+   * In the public demo, one label sits next to the numbers (2026-10-21: one label, not two pills): "Demo account with sample
+   * figures". Never in a real portal.
    */
-  function SampleChip(name) {
-    const who = name || (D8.account && D8.account.business ? D8.account.business.name : '');
-    return D8.data.MODE === 'demo' ? `<p class="sample-chip"><strong>Sample data</strong><span>${who ? esc(who) + ' is not a real restaurant' : 'names and numbers are examples'}</span></p>` : '';
+  function SampleChip() {
+    return D8.data.MODE === 'demo' ? '<p class="sample-chip"><span>Demo account with sample figures</span></p>' : '';
   }
 
   /** @param {{title: string, intro?: string, introHtml?: boolean, cls?: string, after?: string, aside?: string, sample?: string}} o */
   function PageHeader(o) {
-    const sample = SampleChip(o.sample);
-    const aside = (sample || o.aside) ? `<div class="page-aside">${o.aside || ''}${sample}</div>` : '';
+    // the sample label sits with the numbers on each page now, not in the header
+    const aside = o.aside ? `<div class="page-aside">${o.aside}</div>` : '';
     return `<header class="page-head${o.cls ? ' ' + o.cls : ''}"><div class="page-head-text"><h1 id="page-title" tabindex="-1">${esc(o.title)}</h1>${o.intro ? `<p class="lede">${o.introHtml ? o.intro : esc(o.intro)}</p>` : ''}${o.after || ''}</div>${aside}</header>`;
   }
 
@@ -7882,8 +8297,10 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     const delta = o.delta && m ? Delta(m, o.days || 30) + NewBadge(m, o.days || 30) : '';
     const note = o.delta && m ? ComparisonNote(m, o.days || 30) : '';
     const more = `${t.newer ? `<p class="rt-check">${icon('clock')}<span>We are checking a newer number before we show it. This is the last number we checked.</span></p>` : ''}${note ? `<p class="rt-note">${note}</p>` : ''}`;
-    return `<article class="card rtile${o.compact ? ' is-compact is-link' : ''}${t.badge ? ' is-' + t.badge : ''}">
-      <header class="rt-head"><p class="rt-label">${esc(label)}</p>${t.badge && t.badge !== 'verified' ? VerifyBadge(t.badge) : ''}</header>
+    // A source that stopped part way (Instagram disconnected): grey, and said plainly, never compared (2026-10-21)
+    const partial = !!(m && m.state === 'partial');
+    return `<article class="card rtile${o.compact ? ' is-compact is-link' : ''}${t.badge ? ' is-' + t.badge : ''}${partial ? ' is-partial' : ''}">
+      <header class="rt-head"><p class="rt-label">${esc(label)}</p>${partial ? '<span class="vbadge is-paused"><span class="vb-dot" aria-hidden="true"></span>Paused, partial numbers</span>' : t.badge && t.badge !== 'verified' ? VerifyBadge(t.badge) : ''}</header>
       <p class="rt-value"><span class="fig">${esc(value)}</span>${t.unit && !o.compact ? `<span class="rt-unit">${esc(t.unit)}</span>` : ''}${delta}</p>
       ${period ? `<p class="rt-period">${esc(period)}</p>` : ''}
       ${more ? `<div class="rt-more">${more}</div>` : ''}
@@ -7980,7 +8397,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   /* ---- needs your attention ------------------------------------------------------------ */
 
   /** The primary button's weight follows the severity: solid orange only for the urgent one. */
-  const PRIMARY_STYLE = { critical: 'btn btn-primary', approval: 'btn btn-tint', connection: 'btn btn-glass', scheduled: 'btn btn-glass' };
+  // Approve is the solid orange primary (2026-10-21): the one tap the page is for.
+  const PRIMARY_STYLE = { critical: 'btn btn-primary', approval: 'btn btn-primary', connection: 'btn btn-glass', scheduled: 'btn btn-glass' };
 
   /**
    * An approval answers on the card itself (2026-10-16, Karan: one tap to approve, one to ask for changes): Approve
@@ -8157,15 +8575,17 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
    * and a link to all updates.
    */
   function UpdateCard(u, o = {}) {
+    // On Done (2026-10-21) the result is the row's title, with what it was about above it; it is not repeated under See details.
+    const lead = o.resultTitle && u.result ? u.result : '';
     const main = o.compact ? [] : [['What we did', u.completed]];
-    const extra = (o.compact ? [['What we did', u.completed]] : []).concat([['Next', u.next], ['Anything different', u.changed], ['Result', u.result], ['Why it matters', u.why]]);
+    const extra = (o.compact ? [['What we did', u.completed]] : []).concat([['Next', u.next], ['Anything different', u.changed], ['Result', lead ? '' : u.result], ['Why it matters', u.why]]);
     const dl = (/** @type {any[]} */ rows) => `<dl class="facts facts-wide">${rows.filter((r) => r[1]).map((r) => `<div><dt>${r[0]}</dt><dd>${esc(r[1])}</dd></div>`).join('')}</dl>`;
     const more = extra.filter((r) => r[1]);
     const tag = o.headingLevel || 'h3';
     const foot = o.compact ? `<footer class="update-foot"><a class="link link-more" href="#/updates">See all updates${icon('arrow-right')}</a></footer>` : '';
     return `<article class="card update${o.compact ? ' is-compact' : ''}"${o.id ? ` id="${esc(o.id)}"` : ''}>${o.lead || ''}
       <header class="update-head"><p class="update-date"><time datetime="${esc(u.date)}">${esc(day(u.date))}</time></p>${ServiceTag(u.service)}${author(u)}</header>
-      <${tag} class="update-title">${esc(u.title)}</${tag}>
+      ${lead ? `<p class="update-kicker">${esc(u.title)}</p><${tag} class="update-title is-result">${esc(lead)}</${tag}>` : `<${tag} class="update-title">${esc(u.title)}</${tag}>`}
       ${main.some((r) => r[1]) ? dl(main) : ''}
       ${more.length ? `<details class="update-more"><summary>See details${icon('chevron-down')}</summary>${dl(more)}</details>` : ''}
       ${foot}
@@ -8319,8 +8739,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       text = `You chose ${m.changes.planChanged ? n.name : 'your new services'}${n.confirmedAt ? ` on ${day(n.confirmedAt)}` : ''}. Nothing to do. ${F.list(c.services.map((/** @type {any} */ s) => s.label))} keep running until then.`;
     } else {
       title = 'All running as normal';
-      const p = price(n || c);
-      text = `You're on ${c.name}. ${p ? `Next bill ${p} on ${day(m.bill)}.` : `Your next bill is on ${day(m.bill)}.`} Nothing to do.`;
+      // no amount on Home (2026-10-21): Billing has it
+      text = `You're on ${c.name}. Your next bill is on ${day(m.bill)}. Nothing to do.`;
     }
     const staff = o.staff && o.staff.content && (o.staff.content.title || o.staff.content.body) ? o.staff.content : null;
     return `<div class="card plan-banner${changing ? ' is-change' : ''}">
@@ -8441,8 +8861,11 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     if (!s.usage || !s.usage.length) return '';
     // D4.2: a bar only for a limit at 80 percent or more; otherwise one line
     const near = s.usage.filter((/** @type {any} */ l) => l.pct >= 80 || l.used > l.cap);
-    const bars = near.length ? near.map((/** @type {any} */ l) => UI.UsageBar(l, { chip: sample(), plain: true })).join('') : '<p class="usage-ok">Plenty left this month.</p>';
-    return `<div class="work-usage"><h3 class="sr-only">Used this month</h3>${bars}<p class="usage-reset">Resets ${esc(day(m.bill))}</p></div>`;
+    // Always the real counts in one line (2026-10-21): "Posts 9 of 12, Reels 1 of 2, Stories 3 of 8". A bar only near a limit.
+    const up1 = (/** @type {string} */ x) => x.charAt(0).toUpperCase() + x.slice(1);
+    const counts = s.usage.map((/** @type {any} */ l) => `${up1(String(l.label || l.name))} ${l.tail}`).join(', ');
+    const bars = near.map((/** @type {any} */ l) => UI.UsageBar(l, { chip: sample(), plain: true })).join('');
+    return `<div class="work-usage"><h3 class="sr-only">Used this month</h3><p class="usage-counts">${esc(counts)}</p>${bars}<p class="usage-reset">Resets ${esc(day(m.bill))}</p></div>`;
   }
   /**
    * A service that is not in this month's plan: one quiet card (its icon tile, its name, the word that says so, and the
@@ -8451,6 +8874,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
    */
   function offCards(off, m) {
     if (!off.length) return '';
+    // The demo says it in one short line (2026-10-21): fewer cards to read.
+    if (D8.data.MODE === 'demo') return `<p class="off-line">${icon('info')}<span>Not in this month's plan: ${esc(F.list(off.map((s) => s.label)))}. You can add them from <a class="link" href="#/billing">Billing</a>.</span></p>`;
     return off.map((s) => `<section class="card svc-off" aria-labelledby="off-${esc(s.id)}">
       ${ico(s.id)}
       <div class="off-body">
@@ -8524,7 +8949,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     const sub = o.billing && o.billing.subscription;
     const pastDue = !!sub && sub.status === 'past_due';
     const status = changing ? ''
-      : pastDue ? (sub.graceUntil ? `<span class="badge tone-warning">${icon('clock')}Active until ${esc(day(sub.graceUntil))}</span>` : '')
+      : pastDue ? (sub.graceUntil ? `<span class="badge tone-warning">${icon('clock')}Running normally. Card needs updating by ${esc(day(sub.graceUntil))}</span>` : '')
         : `<span class="badge tone-success">${icon('check')}No plan changes coming</span>`;
     const head = `<header class="po-head"><div><p class="eyebrow">${eyebrow}</p><h2 class="po-name" id="h-plan">${esc(c.name)}${perMonth(c) ? `<span class="po-price"> · ${esc(perMonth(c))}</span>` : ''}</h2>${chips(c.picks)}</div>${o.compact ? '' : status}</header>`;
     if (o.compact || changing) {
@@ -9238,6 +9663,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     let changed = false;
     open(head('Loading', '') + `<div class="dlg-body">${D8.ui.Skeleton('text', 3)}</div>`, trigger, () => { if (changed) ctx.afterChange(); });
     const my = gen;
+    // Opened counts for Karan's Wednesday check (live only; quiet if it fails)
+    if (ctx.client.markOpened) ctx.client.markOpened('approval', id);
     ctx.client.getApproval(id).then((a) => {
       if (my !== gen) return; // another dialog opened while this one loaded
       const now = ctx.client.now();
@@ -9263,7 +9690,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           ${demoLine()}
           <p class="form-error" role="alert" hidden></p>
           <div class="dlg-actions">
-            <button class="btn btn-tint" type="submit" value="approved">${esc(a.approve.label)}</button>
+            <button class="btn btn-primary" type="submit" value="approved">${esc(a.approve.label)}</button>
             <button class="btn btn-glass" type="submit" value="changes">${esc(a.change.label)}</button>
           </div>
         </form></div>`;
@@ -9601,10 +10028,16 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
    */
   function demo(trigger, ctx) {
     const cur = D8.data.currentScenario();
-    open(head('Preview mode', 'Demo data only. Not a client account.') + `<div class="dlg-body">
+    // A prospect's way in comes first (2026-10-21, item 1), then what we promise (item 20), then the situations to try.
+    const cta = D8.prospect ? `<div class="dlg-cta">${D8.prospect.ctaBlock('h-dlg-cta')}</div>` : '';
+    const promises = D8.promises ? `<h3 class="dlg-h3">What we promise</h3>${D8.promises.html()}` : '';
+    const list = D8.data.scenarios().filter((s) => !s.dev || s.id === cur.id);
+    open(head('Preview mode', 'Demo account with sample figures. Not a real restaurant.') + `<div class="dlg-body">
+      ${cta}
       <p class="dlg-intro">Everything here is made up. ${esc(ctx.account.business.name)} is not a real ${esc(ctx.account.business.kind.toLowerCase())}, and nothing is live. Stripe (our payment service), our sign-in service and the connected accounts are not hooked up, so their buttons tell you what would happen instead.</p>
+      ${promises}
       <h3 class="dlg-h3" id="scn-title">Try another situation</h3>
-      <ul class="scenarios" aria-labelledby="scn-title">${D8.data.scenarios().map((s) => `<li><button class="scenario${s.id === cur.id ? ' is-current' : ''}" type="button" data-scenario="${esc(s.id)}"${s.id === cur.id ? ' aria-current="true"' : ''}><strong>${esc(s.label)}${s.id === cur.id ? '<span class="scn-now">Showing now</span>' : ''}</strong><span>${esc(s.about)}</span></button></li>`).join('')}</ul>
+      <ul class="scenarios" aria-labelledby="scn-title">${list.map((s) => `<li><button class="scenario${s.id === cur.id ? ' is-current' : ''}" type="button" data-scenario="${esc(s.id)}"${s.id === cur.id ? ' aria-current="true"' : ''}><strong>${esc(s.label)}${s.id === cur.id ? '<span class="scn-now">Showing now</span>' : ''}</strong><span>${esc(s.about)}</span></button></li>`).join('')}</ul>
       <p class="meta">Tip: press Alt, Shift and P together to open this panel from any page.</p>
       <h3 class="dlg-h3">Start again</h3>
       <p>Clears the demo approvals, messages and settings.</p>
@@ -9809,27 +10242,94 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
      The biggest change moved into the Results summary, the latest update lives under Work > Done, the plan
      on Billing and the connected accounts in Settings. */
 
-  /** The grey line under the numbers: when they were last checked against their sources. */
-  function checkedText(a, now) {
-    return a.updatedAt ? `Checked ${esc(F.when(a.updatedAt, now))}.` : 'Not checked yet.';
-  }
-  /* (the same line on every page that says when it last looked: the restaurant's own clock) */
-  function checkedLine(a, now) {
-    return `<p class="meta home-checked"><span id="home-checked">${checkedText(a, now)}</span> <a class="link" href="#/results">See all results</a></p>`;
+  /**
+   * The line under the greeting (2026-10-21, items 23 and 30): when the page was last updated, that Karan checked it (a person,
+   * not a bot: the thing that sets Domin8te apart, so it is seen without scrolling) and the next check-in with him.
+   * @param {any} a the account @param {number} now
+   */
+  function trustLine(a, now) {
+    const upd = a.updatedAt ? `Last updated ${F.when(a.updatedAt, now)}.` : '';
+    const chk = a.checkedBy && a.checkedBy.at ? `<span class="checked-by">${icon('check')}Checked by ${esc(a.checkedBy.name || 'Karan')}, ${esc(day(a.checkedBy.at))}</span>` : '';
+    const meet = a.checkin ? `<span class="home-checkin">${icon('calendar')}Next check-in with Karan: ${esc(day(a.checkin))}</span>` : '';
+    return `<p class="home-trust" id="home-trust">${upd ? `<span>${esc(upd)}</span>` : ''}${chk}${meet}</p>`;
   }
 
-  /** Next meeting and Message us, in one quiet strip at the bottom of Home. */
-  function contactStrip(a, now) {
-    const m = a.meeting;
-    // A cancelled or past meeting is "none booked"; a date without a time shows no "at 00:00".
-    const live = m && m.at && (!m.status || m.status === 'confirmed') && D8.time.dayNum(m.at) >= D8.time.dayNum(now);
-    const timed = live && /[T ]\d\d:\d\d/.test(String(m.at));
-    const when = live ? `${day(m.at)}${timed ? ` at ${F.time(m.at)}` : ''}` : 'none booked';
-    return `<section class="card contact-strip" aria-label="Talk to us">
-      <p class="contact-meet">${icon('calendar')}<span>Next meeting: ${esc(when)}</span></p>
-      <a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a>
+  /** The words for a number in Today's panel, by what it counts: customers or dollars, never a percentage. */
+  const TODAY_WORDS = {
+    customers: ['new customer', 'new customers'],
+    bookings: ['new customer booked from your website', 'new customers booked from your website'], orders: ['order from your website', 'orders from your website'],
+    sales: ['in sales', 'in sales'], leads: ['new lead', 'new leads'], calls: ['call from Google', 'calls from Google'], adSpend: ['ad spend', 'ad spend']
+  };
+  /** @param {any} t a tile */
+  const todayFig = (t) => (t.unit === 'dollars' ? '$' + F.num(t.value) : F.num(t.value));
+  /** @param {any} t @param {number} v */
+  const todayWord = (t, v) => { const w = t.words || /** @type {any} */ (TODAY_WORDS)[t.id]; return w ? F.plural(v, w[0], w[1]) : String(t.label || '').toLowerCase(); };
+  /** "7 yesterday" (or "$21 yesterday"): small grey text, never counted as one of Home's numbers. @param {any} t */
+  const todayWas = (t) => (t.yesterday === null || t.yesterday === undefined ? '' : `${t.unit === 'dollars' ? '$' + F.num(t.yesterday) : F.num(t.yesterday)} yesterday`);
+  /** Where a number comes from, and its day. @param {any} t */
+  const todaySrc = (t) => `From ${t.source}${t.sourceDay ? `, ${day(t.sourceDay)}` : ''}`;
+
+  /**
+   * "Today at <restaurant>" (items 24 and 26), pinned under the greeting: the money number big, then new leads and ad spend, each
+   * against yesterday in small grey words, and one line on what changed. Only numbers whose source is connected; never an estimate,
+   * never a zero for missing data. Until today's numbers are built it says "Updating today's numbers" with today's date.
+   * @param {any} p from getToday() @param {string} name the restaurant
+   */
+  function todayPanel(p, name) {
+    const head = `<div class="tp-head"><h2 id="h-today">Today at ${esc(name)}</h2><p class="tp-date">${esc(F.date(p.day))}</p>${UI.SampleChip()}</div>`;
+    if (p.state === 'updating') return `${head}<p class="tp-updating">${icon('refresh')}<span>Updating today's numbers. They show here once they are checked.</span></p>`;
+    const [big, ...rest] = p.tiles || [];
+    const bigHtml = big ? `<div class="tp-big"><p class="tp-big-fig"><span class="fig">${esc(todayFig(big))}</span> <span class="tp-big-words">${esc(todayWord(big, big.value))}</span></p>
+      <p class="tp-meta">${todayWas(big) ? `<span class="tp-was">${esc(todayWas(big))}</span>` : ''}<span class="tp-src">${esc(todaySrc(big))}</span></p></div>` : '';
+    const tiles = rest.length ? `<ul class="tp-tiles">${rest.map((t) => `<li class="tp-tile">
+        <p class="tp-fig"><span class="fig">${esc(todayFig(t))}</span> <span class="tp-word">${esc(todayWord(t, t.value))}</span></p>
+        ${t.about ? `<p class="tp-about">${esc(t.about)}</p>` : ''}
+        <p class="tp-meta">${todayWas(t) ? `<span class="tp-was">${esc(todayWas(t))}</span>` : ''}<span class="tp-src">${esc(todaySrc(t))}</span></p>
+      </li>`).join('')}</ul>` : '';
+    const changed = p.changed ? `<p class="tp-changed"><strong>What changed:</strong> ${esc(p.changed)}</p>` : '';
+    return `${head}${bigHtml}${tiles}${changed}`;
+  }
+
+  /**
+   * The prospect's way in (items 1 and 29), at the bottom of the demo's Home only: what most agencies send against this, then
+   * one button to Karan. No price, ever. Never in a client's portal.
+   */
+  function prospectBlock() {
+    if (D8.data.MODE !== 'demo' || D8.data.viewAs) return '';
+    const page = '<span class="pdf-page"><span class="pdf-tag">PDF</span><span class="pdf-line"></span><span class="pdf-line is-short"></span><span class="pdf-line"></span><span class="pdf-line is-short"></span></span>';
+    return `<section class="card prospect" aria-labelledby="h-prospect">
+      <div class="pros-compare" aria-hidden="true">
+        <figure class="pros-side is-pdf"><div class="pdf-stack">${page}${page}${page}</div><figcaption>What most agencies send</figcaption></figure>
+        <figure class="pros-side is-dash"><div class="mini-dash"><span class="md-row"><svg class="md-spark" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M2,28 L18,24 L34,26 L50,17 L66,19 L82,11 L98,13 L118,5"/></svg><span class="md-src">From your booking system, today</span></span><span class="md-approve">${icon('check')}Approve</span></div><figcaption>What you get: approve in one tap, every number with its source.</figcaption></figure>
+      </div>
+      <p class="sr-only">Most agencies send a pile of PDF reports. Here you approve in one tap, and every number shows its source.</p>
+      ${ctaBlock('h-prospect')}
     </section>`;
   }
+  /** The one call to action for a prospect (demo only). Links to Karan's contact form on the website. @param {string} id heading id */
+  const CTA_HREF = '/#contact';
+  function ctaBlock(id) {
+    return `<div class="pros-cta"><div><h2 id="${esc(id)}" class="pros-h">Want this for your restaurant?</h2><p class="pros-why">I only take 3 restaurants at a time.</p></div>
+      <a class="btn btn-primary" href="${CTA_HREF}" target="_top">${icon('message')}Message Karan</a></div>`;
+  }
+  D8.prospect = { ctaBlock, CTA_HREF };
+
+  /**
+   * The one-time welcome on a client's first sign-in (item 32): their first finished piece of work and one button to see it.
+   * Shown once, then Home as usual. @param {any} w @param {any} a the account
+   */
+  function welcomeScreen(w, a) {
+    return `<div class="page page-welcome">
+      <section class="card welcome-card" aria-labelledby="page-title">
+        <p class="eyebrow">Welcome to your dashboard, ${esc(a.user.firstName)}</p>
+        <h1 id="page-title" tabindex="-1">${esc(w.title)}</h1>
+        <p class="lede">${esc(w.text)}</p>
+        <a class="btn btn-primary" href="${esc(w.href || '#/home')}" data-welcome-go>${esc(w.button || 'See it')}${icon('arrow-right')}</a>
+        ${D8.data.MODE === 'demo' ? `<p class="meta">${UI.SampleChip()}</p>` : ''}
+      </section>
+    </div>`;
+  }
+  let welcomeShown = false;
 
   /** "Next planned" and "Latest win", as a quiet line under the calm banner. @param {any} h */
   function calmFacts(h) {
@@ -9857,56 +10357,28 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   const hasNum = (/** @type {any} */ v) => v !== null && v !== undefined;
 
   /**
-   * "Last week" (the last full Monday to Sunday, or the last 7 days in the demo): one sentence, up to three numbers with
-   * the week before beside them, and what staff recorded. The lead moves only on a real change: the average change of the
-   * numbers that can be compared, 10 percent either way, so one call less never reads as a quiet week. @param {any} wk
+   * "Last week" (item 8, 2026-10-21): what we did, then the single biggest result, in customers or dollars, never a percentage.
+   * What we did comes from the updates of the last 7 days; the result is what staff recorded, else the number that grew the most.
+   * @param {any} wk the weekly numbers (or null) @param {any[]} ups the updates @param {any} win staff's biggest result (or null) @param {number} now
    */
-  function weekBlock(wk) {
-    if (!wk || !wk.numbers || !wk.numbers.length) {
-      return UI.EmptyState({ icon: 'results', title: 'No weekly numbers yet.', text: 'Calls, directions and bookings show here, next to the week before, once we have checked them.' });
+  function weekBlock(wk, ups, win, now) {
+    const today = D8.time.dayNum(now);
+    const did = (ups || []).filter((/** @type {any} */ u) => u.author !== 'automatic' && today - D8.time.dayNum(u.date) <= 7 && today >= D8.time.dayNum(u.date)).slice(0, 3);
+    /** @type {string} */ let result = '';
+    if (win && win.text) result = win.text;
+    else if (wk && wk.numbers && wk.numbers.length) {
+      const grown = wk.numbers.filter((/** @type {any} */ n) => hasNum(n.before) && n.now > n.before).sort((/** @type {any} */ a, /** @type {any} */ b) => (b.now - b.before) - (a.now - a.before))[0];
+      const top = grown || wk.numbers[0];
+      result = grown ? `${F.num(top.now - top.before)} more ${weekWord(top, top.now - top.before)} than the week before.` : `${F.num(top.now)} ${weekWord(top, top.now)} last week.`;
     }
-    const nums = wk.numbers;
-    const compared = nums.filter((/** @type {any} */ n) => hasNum(n.before));
-    const moves = compared.filter((/** @type {any} */ n) => n.before > 0).map((/** @type {any} */ n) => (n.now - n.before) / n.before);
-    const avg = moves.length ? moves.reduce((/** @type {number} */ a, /** @type {number} */ b) => a + b, 0) / moves.length : 0;
-    const lead = !compared.length ? 'Your first week of checked numbers.' : avg >= 0.1 ? 'Busier than the week before.' : avg <= -0.1 ? 'Quieter than the week before.' : 'About the same as the week before.';
-    const said = (/** @type {'now'|'before'} */ k) => nums.filter((/** @type {any} */ n) => hasNum(n[k])).map((/** @type {any} */ n) => `${F.num(n[k])} ${weekWord(n, n[k])}`).join(', ');
-    const extras = (wk.extras || []).filter((/** @type {any} */ x) => x && x.label).map((/** @type {any} */ x) => `${x.label}: ${x.value}.`).join(' ');
-    const line = `Last week: ${said('now')}.${compared.length ? ` The week before: ${said('before')}.` : ''}`;
-    const cells = nums.map((/** @type {any} */ n) => {
-      const had = hasNum(n.before);
-      const dir = !had ? '' : n.now > n.before ? 'up' : n.now < n.before ? 'down' : 'flat';
-      return `<li class="wn${dir ? ' is-' + dir : ''}"><span class="wn-val">${esc(F.num(n.now))}</span><span class="wn-word">${esc(weekWord(n, n.now))}</span>${had ? `<span class="wn-was">${esc(F.num(n.before))} the week before</span>` : ''}</li>`;
-    }).join('');
-    return `<div class="card week-card" data-week="${esc(wk.id || '')}">
-      <p class="week-lead">${esc(lead)}</p>
-      <p class="sr-only">${esc(line)}</p>
-      <ul class="week-nums" aria-hidden="true">${cells}</ul>
-      ${extras ? `<p class="week-extras">${esc(extras)}</p>` : ''}
-      <p class="meta week-meta">${wk.from && wk.to ? `${esc(F.range(wk.from, wk.to))}. ` : ''}<a class="link" href="#/results">See all results</a></p>
+    if (!did.length && !result) {
+      return UI.EmptyState({ icon: 'results', title: 'Nothing to report from last week yet.', text: 'What we did and the biggest result show here every week.' });
+    }
+    return `<div class="card week-card"${wk && wk.id ? ` data-week="${esc(wk.id)}"` : ''}>
+      ${did.length ? `<p class="week-did-h">What we did</p><ul class="week-did">${did.map((/** @type {any} */ u) => `<li>${icon('check')}<span>${esc(u.title)}</span></li>`).join('')}</ul>` : ''}
+      ${result ? `<p class="week-win"><strong>Biggest result:</strong> ${esc(result)}</p>` : ''}
+      <p class="meta week-meta">${UI.SampleChip()}<a class="link" href="#/results">See all results</a></p>
     </div>`;
-  }
-
-  /**
-   * One next step, picked by a fixed order: answer what is waiting, read our reply, the meeting this week, otherwise
-   * how to ask for something. Always one sentence and one button.
-   * A client who has never answered anything gets their first real job instead, while one waits: the first card.
-   * @param {number} waiting @param {number} unread @param {any} a the account @param {Date} now @param {boolean} [first]
-   */
-  function nextStep(waiting, unread, a, now, first) {
-    const m = a.meeting;
-    const gap = m && m.at ? D8.time.dayNum(m.at) - D8.time.dayNum(now) : -1;
-    const soon = m && m.at && (!m.status || m.status === 'confirmed') && gap >= 0 && gap <= 7;
-    const timed = soon && /[T ]\d\d:\d\d/.test(String(m.at));
-    /** @type {string[]} icon, words, button */
-    let s;
-    if (first && waiting > 0) s = ['check', 'Your first job here: the card at the top. One tap to approve, or tell us what to change. That is how all the work comes to you from now on.', '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Go to the first card</button>'];
-    else if (waiting > 0) s = ['check', waiting === 1 ? 'Answer the one thing above and you are done for now.' : `Answer the ${waiting} things above. It takes about a minute.`, '<button class="btn btn-tint btn-sm" type="button" data-action="go-first">Go to the first card</button>'];
-    else if (unread > 0) s = ['message', unread === 1 ? 'We replied to your message.' : `We sent you ${unread} replies.`, `<a class="btn btn-tint btn-sm" href="#/messages">Read ${unread === 1 ? 'it' : 'them'}</a>`];
-    else if (soon) s = ['calendar', `Our next meeting is ${day(m.at)}${timed ? ` at ${F.time(m.at)}` : ''}. Anything to add first?`, '<a class="btn btn-glass btn-sm" href="#/messages">Message us</a>'];
-    // the request form itself (new hours go in as an urgent fix that never counts toward the plan)
-    else s = ['message', 'Nothing needed from you. New hours, a special or a change? Tell us here and we do it.', '<button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="request">Ask for something</button>'];
-    return `<div class="card next-card"><span class="next-icon">${icon(s[0])}</span><p class="next-text">${esc(s[1])}</p>${s[2]}</div>`;
   }
 
   /** "Approved lately": what they approved and where it stands, for a week. @param {any[]} list @param {Date} now */
@@ -9923,16 +10395,20 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
 
   const home = {
     title: () => 'Home',
-    /** #/home?more=open opens "More about your plan" (a link from an email or another page can land there). */
+    /* Home, shrunk (2026-10-21, Karan: "a client feels the value in under 10 seconds"): the greeting and one line that says it was
+       checked by Karan, Today's numbers pinned at the top, what is waiting (Approve first, solid orange), last week, and in the
+       demo only the way to get one. No more than five numbers on the page. #/home?approval=<id> opens that approval (email links). */
     render(ctx, r) {
       const now = ctx.client.now();
       const a = ctx.account;
+      if (a.welcome && !welcomeShown && !D8.data.viewAs) return welcomeScreen(a.welcome, a);
       return `<div class="page page-home is-narrow">
-        ${UI.PageHeader({ cls: 'is-home', title: `${F.greeting(now)}, ${a.user.firstName}.`, intro: '<span id="home-summary">Checking your account.</span>', introHtml: true, sample: a.business.name })}
-        ${UI.PageFresh({ updatedAt: a.updatedAt || D8.time.isoTime(now), source: 'Domin8te team', zone: a.zoneAbbr, status: 'ok' })}
+        <header class="page-head is-home"><div class="page-head-text"><h1 id="page-title" tabindex="-1">${esc(F.greeting(now))}, ${esc(a.user.firstName)}.</h1>${trustLine(a, now)}</div></header>
+        <p class="sr-only" id="home-summary" role="status">Checking your account.</p>
+        <section class="card today-panel" id="home-today" aria-labelledby="h-today">${UI.Skeleton('card', 1)}</section>
         <p class="sr-only" id="home-live" role="status" aria-live="polite"></p>
         <section class="sec sec-attention" aria-labelledby="h-attention">
-          ${UI.SectionHead('h-attention', 'Waiting for you')}
+          ${UI.SectionHead('h-attention', 'Waiting for you', '<p class="sec-meta wed-line">If something waits past Wednesday, Karan will check in.</p>')}
           <div id="home-attention">${UI.Skeleton('row', 2)}</div>
         </section>
         <section class="sec sec-done" aria-labelledby="h-done" hidden>
@@ -9943,95 +10419,66 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           ${UI.SectionHead('h-week', 'Last week')}
           <div id="home-week">${UI.Skeleton('card', 1)}</div>
         </section>
-        <section class="sec sec-next" aria-labelledby="h-next">
-          ${UI.SectionHead('h-next', 'Your next step')}
-          <div id="home-next">${UI.Skeleton('row', 1)}</div>
-        </section>
-        <details class="home-more" id="home-more"${r && r.params && r.params.more === 'open' ? ' open' : ''}>
-          <summary class="home-more-sum"><span class="hm-title">Your plan, last 30 days and next meeting</span><span class="hm-sub">This month, the last 30 days and your next meeting</span>${icon('chevron-down', 'hm-chev')}</summary>
-          <div class="home-more-body">
-            <div class="sec home-plan" id="home-plan">${UI.Skeleton('card', 2)}</div>
-            <section class="sec sec-strip" aria-labelledby="h-strip">
-              ${UI.SectionHead('h-strip', 'Last 30 days')}
-              <div id="home-strip">${UI.Skeleton('strip', 3)}</div>
-              ${checkedLine(a, now)}
-            </section>
-            ${contactStrip(a, now)}
-          </div>
-        </details>
+        ${prospectBlock()}
       </div>`;
     },
     mount(ctx, r, el) {
       const now = () => ctx.client.now();
+      // The welcome (item 32): shown once, then never again. Its button leads to the work itself.
+      if (el.querySelector('.page-welcome')) {
+        welcomeShown = true;
+        ctx.client.markWelcomeSeen();
+        return {};
+      }
       /** @type {number|null} */ let count = null;
       /** What staff wrote for one part of Home, when they made it visible. @param {string} k */
       const staffSection = (k) => (ctx.account.homeSections || []).find((/** @type {any} */ s) => s.section === k) || null;
-      /** First week: the header says what this page is for, once, until their first answer. */
-      let firstTime = false;
       /** What still waits: an answer in its Undo window no longer counts. */
       const waitingNow = () => Math.max((count || 0) - held.size, 0);
+      // Said to screen readers only: the cards themselves show what waits, and Home keeps to five numbers.
       const summary = () => {
         if (count === null) return;
         const n = waitingNow();
-        const said = count < 0 ? 'We could not check what is waiting for you just now.' : n ? `${n} ${F.plural(n, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.';
-        setText(el, '#home-summary', firstTime && n > 0 ? `Welcome to your dashboard. Approvals, updates and your numbers all come here. ${said}` : said);
+        setText(el, '#home-summary', count < 0 ? 'We could not check what is waiting for you just now.' : n ? `${n} ${F.plural(n, 'thing needs', 'things need')} you.` : 'Nothing needs you right now.');
       };
       const live = (/** @type {string} */ t) => setText(el, '#home-live', t);
-      const setFirst = (/** @type {boolean} */ f) => { if (f !== firstTime) { firstTime = f; summary(); } };
-      const more = /** @type {HTMLDetailsElement|null} */ (el.querySelector('#home-more'));
-      const moreOpen = () => !!(more && more.open);
+      /** An email's link to one approval (#/home?approval=<id>) opens it once the cards are there. */
+      let wantApproval = r && r.params && r.params.approval ? String(r.params.approval) : '';
       /** @type {Record<string, () => any>} */
       const loaders = {
+        today: () => section(el, '#home-today', () => ctx.client.getToday(), (p) => {
+          const box = /** @type {HTMLElement|null} */ (el.querySelector('#home-today'));
+          if (box) box.hidden = !p || p.state === 'none';
+          return p && p.state !== 'none' ? todayPanel(p, ctx.account.business.name) : '';
+        }, () => ({ title: "We couldn't load today's numbers.", text: 'The rest of this page works.', retry: 'today' })),
         attention: () => section(el, '#home-attention', () => Promise.all([ctx.client.getAttention(), ctx.client.getPlan().catch(() => null)])
           .then(([items, plan]) => (items.length ? { items, plan, highlights: null } : ctx.client.getHighlights().catch(() => null).then((h) => ({ items, plan, highlights: h })))), (d) => {
           count = d.items.length;
           summary();
           ctx.setBadges(d.items);
-          loaders.next();
           const ok = d.plan && d.plan.state === 'ok';
           const sec = el.querySelector('.sec-attention');
           if (sec) sec.classList.toggle('is-calm', !count && !!ok);
+          if (wantApproval && d.items.some((/** @type {any} */ x) => x.approvalId === wantApproval)) {
+            const id = wantApproval;
+            wantApproval = '';
+            setTimeout(() => { if (el.isConnected) D8.dialogs.approval(id, null, ctx, {}); }, 0);
+          }
           if (count) return UI.ActionNeededList(d.items, now());
           return ok ? D8.plan.banner(d.plan, { staff: staffSection('nothing_to_do'), facts: calmFacts(d.highlights) }) : UI.CaughtUp(d.highlights);
-        }, () => { count = -1; summary(); loaders.next(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
-        // Shown is seen: the first time a summary is drawn, the server learns the client opened it (live only).
+        }, () => { count = -1; summary(); return { title: "We couldn't load what is waiting for you.", text: 'Nothing is lost. The rest of this page works.', retry: 'attention' }; }),
         // Shown only when something was approved or finished this week; otherwise the section stays hidden.
         done: () => section(el, '#home-done', () => ctx.client.getRecentDone(), (list) => {
           const sec = /** @type {HTMLElement|null} */ (el.querySelector('.sec-done'));
           if (sec) sec.hidden = !list || !list.length;
           return doneBlock(list, now());
         }, () => { const sec = /** @type {HTMLElement|null} */ (el.querySelector('.sec-done')); if (sec) sec.hidden = true; return { title: '', text: '' }; }),
-        week: () => section(el, '#home-week', () => ctx.client.getWeekly(), (wk) => {
+        // Shown is seen: the first time a summary is drawn, the server learns the client opened it (live only).
+        week: () => section(el, '#home-week', () => Promise.all([ctx.client.getWeekly(), ctx.client.getUpdates().catch(() => []), ctx.client.getWeekWin().catch(() => null)]), ([wk, ups, win]) => {
           if (wk && wk.id) setTimeout(() => watchSeen(wk.id), 0);
-          return weekBlock(wk);
+          return weekBlock(wk, ups, win, now());
         },
-          () => ({ title: "We couldn't load this week's numbers.", text: 'The rest of this page works.', retry: 'week' })),
-        // Waits for the attention count; the unread replies are a best effort (no reply count is not an error).
-        next: () => {
-          if (count === null) return Promise.resolve(null);
-          return section(el, '#home-next', () => Promise.all([ctx.client.getUnreadReplies().catch(() => 0), ctx.client.getFirstWeek().catch(() => ({ first: false }))]),
-            ([n, fw]) => {
-              const first = !!(fw && fw.first);
-              setFirst(first);
-              return nextStep(waitingNow(), Number(n) || 0, ctx.account, now(), first);
-            },
-            () => ({ title: "We couldn't work out your next step.", text: 'The rest of this page works.', retry: 'next' }));
-        },
-        strip: () => (moreOpen() ? section(el, '#home-strip', () => ctx.client.getStrip(30), (d) => {
-          const verified = d.mode === 'verified';
-          const head = el.querySelector('#h-strip');
-          if (head) head.textContent = verified ? 'Latest checked numbers' : 'Last 30 days';
-          const list = d.items.filter((/** @type {any} */ x) => x.state !== 'pending' || !verified).slice(0, 3);
-          if (!list.length) return UI.EmptyState({ icon: 'results', title: 'No checked numbers yet.', text: 'They show here once we have checked them against your accounts.' });
-          return `<div class="strip is-3">${list.map((/** @type {any} */ t) => UI.ResultTile(t, now(), { compact: true, delta: !verified, days: 30 })).join('')}</div>`;
-        }, () => ({ title: "We couldn't load your numbers.", text: 'The rest of this page works.', retry: 'strip' })) : Promise.resolve(null)),
-        // The plan this month, what is used, and what comes next.
-        plan: () => (moreOpen() ? section(el, '#home-plan', () => Promise.all([ctx.client.getPlan(), ctx.client.getWorkSummary(), ctx.client.getAttention().catch(() => [])]), ([m, list, acts]) => {
-          if (m.state !== 'ok') return D8.plan.notSetUp(m);
-          const changing = m.confirmed && m.changes.differs;
-          const note = staffSection('note');
-          return `<div class="home-cols">${D8.plan.runningNow(m, { summary: list, actions: acts, staff: staffSection('running_now') })}${changing ? D8.plan.whatChanges(m, staffSection('next_month')) : D8.plan.comingUp(m, staffSection('next_month'), ctx.account.user.email)}</div>${note && D8.plan.staffNote(note) ? `<section class="card home-note" aria-label="A note from Domin8te">${D8.plan.staffNote(note)}</section>` : ''}`;
-        }, () => ({ title: "We couldn't load your plan.", text: 'The rest of this page works.', retry: 'plan' })) : Promise.resolve(null))
+          () => ({ title: "We couldn't load last week.", text: 'The rest of this page works.', retry: 'week' }))
       };
       /**
        * Opened means read: the summary counts as opened once at least half of it has been on screen for a second
@@ -10052,10 +10499,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         }, { threshold: [0, 0.5, 1] });
         seenWatch.observe(card);
       };
-      // The folded part loads the first time it opens, and again on every refresh while it is open.
-      let moreLoaded = moreOpen();
-      if (moreLoaded) { loaders.plan(); loaders.strip(); }
-      if (more) more.addEventListener('toggle', () => { if (more.open && !moreLoaded) { moreLoaded = true; loaders.plan(); loaders.strip(); } });
+      loaders.today();
       loaders.attention();
       loaders.done();
       loaders.week();
@@ -10093,7 +10537,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           cardState(h.li, `${h.title}: approved.`, "Thanks. We'll take it from here.", '');
           focusCard(h.li);
           live(`${h.title}: approved and saved.`);
-          if (count !== null && count > 0) { count -= 1; summary(); loaders.next(); }
+          if (count !== null && count > 0) { count -= 1; summary(); }
           ctx.client.getAttention().then((/** @type {any[]} */ items) => ctx.setBadges(items)).catch(() => {});
           // a moment later the card leaves Waiting for you and shows under Approved lately, with what happens next
           setTimeout(() => { if (el.isConnected && !held.size) { loaders.attention(); loaders.done(); } }, 2500);
@@ -10117,33 +10561,28 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
 
       return {
         refresh() {
-          const c = el.querySelector('#home-checked');
-          if (c) c.innerHTML = checkedText(ctx.account, now());
+          const c = el.querySelector('#home-trust');
+          if (c) c.outerHTML = trustLine(ctx.account, now());
           // an answer still in its Undo window is saved first, and the page reads again only after it is saved
           flush().then(() => {
             if (!el.isConnected) return;
+            loaders.today();
             loaders.attention();
             loaders.done();
             loaders.week();
-            if (moreLoaded) { loaders.plan(); loaders.strip(); }
           });
         },
         /** @param {string} which */
         retry(which) {
           const f = loaders[which];
           if (!f) return;
-          const box = /** @type {HTMLElement|null} */ (el.querySelector(/** @type {any} */ ({ strip: '#home-strip', attention: '#home-attention', plan: '#home-plan', week: '#home-week', next: '#home-next' })[which] || ''));
+          const box = /** @type {HTMLElement|null} */ (el.querySelector(/** @type {any} */ ({ today: '#home-today', attention: '#home-attention', week: '#home-week' })[which] || ''));
           // A section that never loaded goes back to its placeholder; one with content keeps it, dimmed.
-          if (box && !box.hasAttribute('data-loaded')) box.innerHTML = UI.Skeleton(/** @type {any} */ ({ strip: 'strip', attention: 'row', plan: 'card', week: 'card', next: 'row' })[which] || 'block', which === 'strip' ? 3 : which === 'plan' ? 2 : 1);
+          if (box && !box.hasAttribute('data-loaded')) box.innerHTML = UI.Skeleton(/** @type {any} */ ({ today: 'card', attention: 'row', week: 'card' })[which] || 'block', 1);
           f();
         },
         /** @param {string} act @param {HTMLElement} t */
         action(act, t) {
-          if (act === 'go-first') {
-            const b = /** @type {HTMLElement|null} */ (el.querySelector('#home-attention .act-card .act-do .btn'));
-            if (b) { b.scrollIntoView({ block: 'center', behavior: 'smooth' }); b.focus({ preventScroll: true }); }
-            return;
-          }
           const id = t.dataset.id || '';
           if (act === 'undo-approve') {
             const h0 = held.get(id);
@@ -10152,7 +10591,6 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
             const h = restore(id);
             if (!h) return;
             summary();
-            loaders.next();
             focusCard(h.li);
             live(`${h.title}: not approved yet.`);
             return;
@@ -10170,7 +10608,6 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
           focusCard(li);
           live(`${title}: approved. Saving in ${HOLD_MS / 1000} seconds. The Undo button is on the card.`);
           summary();
-          loaders.next();
         },
         /** Leaving Home saves any answer still in its Undo window. */
         leave() { flush(); root.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', onHidden); if (seenWatch) seenWatch.disconnect(); }
@@ -10217,7 +10654,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     const done = out.filter((x) => x.kind === 'done').sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
     return { open, done };
   }
-  /** The steps: "N of M done", what is left, and the done ones behind "Show N done steps". One colour per row: the icon's. @param {any} s */
+  /** The steps: "N of M done", what is left, the last 3 done ones, and older ones behind "Show N more". One colour per row: the icon's. @param {any} s */
   function stepList(s) {
     const { open, done } = steps(s);
     const all = open.length + done.length;
@@ -10230,7 +10667,21 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     };
     return `<div class="steps-head"><h3>Steps</h3><p class="meta">${done.length} of ${all} done</p></div>
       ${open.length ? `<ol class="steps">${open.map(row).join('')}</ol>` : ''}
-      ${done.length ? `<details class="steps-earlier"><summary class="btn-text">Show ${done.length} done ${F.plural(done.length, 'step', 'steps')}${icon('chevron-down')}</summary><ol class="steps">${done.map(row).join('')}</ol></details>` : ''}`;
+      ${done.length ? `<ol class="steps is-done">${done.slice(0, 3).map(row).join('')}</ol>` : ''}
+      ${done.length > 3 ? `<details class="steps-earlier"><summary class="btn-text">Show ${done.length - 3} more done ${F.plural(done.length - 3, 'step', 'steps')}${icon('chevron-down')}</summary><ol class="steps">${done.slice(3).map(row).join('')}</ol></details>` : ''}`;
+  }
+
+  /**
+   * "Right now" says what the status beside it is about (2026-10-21): a service waiting for the client names the thing that waits,
+   * not the team's other work. @param {any} s @param {any[]} needs what waits for the client on this service
+   */
+  function nowLine(s, needs) {
+    if (s.status === 'waiting') {
+      const mine = s.next && s.next.who === 'client' && s.next.text ? s.next.text : '';
+      const what = needs[0] ? needs[0].title : mine || ((s.cards || []).find((/** @type {any} */ c) => c.status === 'in_review') || {}).title;
+      if (what) return `Waiting for you: ${F.lcFirst(String(what))}`;
+    }
+    return s.now || 'Getting started';
   }
 
   /** @param {any} s @param {any[]} actions @param {any} [m] the plan model */
@@ -10247,7 +10698,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       <header class="svc-head">
         <h2 id="h-svc-${esc(s.id)}">${icon(svc.icon)}${esc(svc.label)}</h2>${UI.StatusBadge(s.status)}
       </header>
-      <p class="svc-now"><span class="svc-now-label">Right now:</span> ${esc(s.now || 'Getting started')}</p>
+      <p class="svc-now"><span class="svc-now-label">Right now:</span> ${esc(nowLine(s, needs))}</p>
       ${m && m.state === 'ok' ? D8.plan.workUsage(s, m) : ''}
       ${note}
       ${stepList(s)}
@@ -10258,7 +10709,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   function workHead(cur) {
     const ask = `<button class="btn btn-glass btn-sm" type="button" data-action="compose" data-mode="request" title="Opens a message to us. Tell us anything you want different. We usually reply within one working day.">${icon('edit')}Ask for a change</button>`;
     const tab = (/** @type {string} */ id, /** @type {string} */ href, /** @type {string} */ text) => `<a class="work-tab" href="${href}"${cur === id ? ' aria-current="page"' : ''}>${text}</a>`;
-    return `${UI.PageHeader({ title: cur === 'done' ? 'Finished work' : 'Work', intro: cur === 'done' ? 'Everything we finished for you, newest first.' : "What we are doing for you now, and how much of this month's plan is used.", aside: ask })}
+    return `${UI.PageHeader({ title: cur === 'done' ? 'Done' : 'Work', intro: cur === 'done' ? 'Everything we finished for you, newest first.' : "What we are doing for you now, and how much of this month's plan is used.", aside: ask })}
       <nav class="work-tabs" aria-label="Work">${tab('now', '#/work', 'Now')}${tab('done', '#/updates', 'Done')}</nav>`;
   }
 
@@ -10282,7 +10733,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         const body = w.services.length
           ? w.services.map((s) => serviceSection(s, w.actions, m)).join('')
           : UI.EmptyState({ icon: 'work', title: 'No work started yet.', text: 'Your services show here once we start.' });
-        return fresh + body + D8.plan.offCards(w.off, m);
+        return fresh + UI.SampleChip() + body + D8.plan.offCards(w.off, m);
       },
       () => ({ title: "We couldn't load your work.", text: 'Your other pages still work. Try again soon.', retry: 'work' }))
         .then(() => {
@@ -10379,6 +10830,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     return `<section class="group" aria-labelledby="h-g-${esc(g.id)}">${head(groupSources(g, now))}<div class="rtiles">${tiles}</div>${notes}${chart}${g.campaigns.length ? campaigns(g.campaigns) : ''}</section>`;
   }
 
+  /** The one attribution line, the same everywhere (item 16). */
+  const WRITTEN_BY = 'Written by our assistant, checked by Karan.';
   /** The summary at the top: the assistant's few lines, only once a person has checked them, and who. */
   function summaryCard(res, ins) {
     const big = ins && ins.state !== 'error' && ins.state !== 'none' && ins.headline ? ins : null;
@@ -10386,9 +10839,30 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     if (!s && !big) return '';
     return `<section class="card ai-summary" aria-labelledby="h-summary">
         <div class="sec-head"><h2 id="h-summary">Summary</h2>${s ? `<span class="checked-chip">${icon('check')}Checked by ${esc(s.reviewedBy)}, ${esc(day(s.reviewedAt))}</span>` : ''}</div>
-        ${s ? `<p class="ai-text">${esc(s.text)}</p><p class="ai-label">${icon('spark')}Checked by ${esc(s.reviewedBy)}.</p>` : ''}
-        ${big ? `<p class="ai-big"><strong>Biggest change this month:</strong> ${esc(big.headline)} ${esc(big.detail || '')}</p>` : ''}
+        ${s ? `<p class="ai-text">${esc(s.text)}</p><p class="ai-label">${icon('spark')}${esc(WRITTEN_BY)}</p>` : ''}
+        ${big ? `<p class="ai-big"><strong>Biggest change this month:</strong> ${esc(big.headline)}</p>` : ''}
       </section>`;
+  }
+
+  /** The order Results' three headline numbers are picked in: customers first, then the ways people found you (item 14). */
+  const HEADLINE = ['bookings', 'orders', 'calls', 'leads', 'adClicks', 'directions', 'visits', 'profileViews', 'facebookViews', 'instagramViews'];
+  /** @param {any[]} items */
+  function headlineTiles(items) {
+    const ok = items.filter((/** @type {any} */ t) => t.state === 'ok' && !(t.metric && t.metric.state === 'partial'));
+    const rank = (/** @type {any} */ t) => { const i = HEADLINE.indexOf(t.id); return i < 0 ? 99 : i; };
+    return ok.slice().sort((a, b) => rank(a) - rank(b)).slice(0, 3);
+  }
+  /**
+   * What was being lost, said first, then what came back (item 27): only when it is on record, never estimated.
+   * @param {any} m from getMissed()
+   */
+  function missedLine(m) {
+    if (!m) return '';
+    return `<section class="card missed-card" aria-label="Missed customers">
+      <p class="missed-lost"><strong>Missed calls and unanswered messages ${esc(/^\d{4}-\d{2}$/.test(String(m.period)) ? 'in ' + F.monthYear(m.period + '-01') : m.period || 'last month')}:</strong> about ${esc(F.num(m.lost))} ${esc(F.plural(m.lost, 'customer', 'customers'))}.</p>
+      ${m.back !== null && m.back !== undefined ? `<p class="missed-back">Since we started answering them, ${esc(F.num(m.back))} came back.</p>` : ''}
+      ${m.source ? `<p class="meta">From ${esc(m.source)}.</p>` : ''}
+    </section>`;
   }
 
   /** The freshness line for Results: the newest read, every source named, and whether anything is still being checked. @param {any} res @param {any} ctx */
@@ -10404,10 +10878,18 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     };
   }
 
-  /** @param {any} res @param {any} ins @param {number} now @param {any} ctx */
-  function resultsBody(res, ins, now, ctx) {
-    const out = [UI.PageFresh(resultsFresh(res, ctx))];
-    out.push(summaryCard(res, res.mode === 'series' && res.window && res.window.days === 30 ? ins : null));
+  /**
+   * Results, about one screen (item 14): the summary, three headline numbers and the missed customers above the fold; the groups,
+   * charts, daily tables and where the numbers come from behind one "See the detail".
+   * @param {any} res @param {any} ins @param {number} now @param {any} ctx @param {any} [missed]
+   */
+  function resultsBody(res, ins, now, ctx, missed) {
+    const top = [UI.PageFresh(resultsFresh(res, ctx))];
+    top.push(summaryCard(res, res.mode === 'series' && res.window && res.window.days === 30 ? ins : null));
+    const heads = headlineTiles(res.items || []);
+    if (heads.length) top.push(`<section class="sec results-head" aria-label="Headline numbers"><div class="rtiles is-3">${heads.map((t) => UI.ResultTile(t, now, { delta: res.mode === 'series', days: t.days || (res.window && res.window.days) || 30 })).join('')}</div>${UI.SampleChip()}</section>`);
+    top.push(missedLine(missed));
+    const out = [];
     if (res.mode === 'verified') {
       if (!res.groups.length) out.push(UI.EmptyState({ icon: 'results', title: 'No checked results yet.', text: 'Numbers show here once we have checked them against your accounts. Nothing unchecked is ever shown.' }));
       for (const g of res.groups) {
@@ -10419,8 +10901,9 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       for (const g of res.groups) out.push(group(g, res.window, now, seen));
     }
     const where = UI.SourcesTable(res.items);
-    if (where) out.push(`<details class="fold fold-where"><summary>Where these numbers come from${icon('chevron-down')}</summary>${where}</details>`);
-    return out.join('');
+    if (where) out.push(where);
+    const detail = out.join('');
+    return top.join('') + (detail ? `<details class="fold fold-detail" id="results-detail"><summary>See the detail${icon('chevron-down')}</summary><div class="detail-body">${detail}</div></details>` : '');
   }
 
   const results = {
@@ -10442,19 +10925,24 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         // Changing the range keeps the current figures on screen, dimmed, until the new ones arrive.
         if (!body.hasAttribute('data-loaded')) body.innerHTML = UI.Skeleton('block', 3);
         // The biggest change is extra: if it fails, the results still show.
-        return section(el, '#results-body', () => Promise.all([ctx.client.getResults(days), ctx.client.getInsight().catch(() => null)]), ([res, ins]) => {
+        const wasOpen = !!el.querySelector('#results-detail[open]');
+        return section(el, '#results-body', () => Promise.all([ctx.client.getResults(days), ctx.client.getInsight().catch(() => null), ctx.client.getMissed().catch(() => null)]), ([res, ins, missed]) => {
           const bar = el.querySelector('.range-bar');
           if (bar) bar.classList.toggle('is-verified', res.mode === 'verified');
           if (res.mode === 'series') { const w = res.window; setText(el, '#range-text', `${F.range(w.from, w.to)} vs the ${w.days} days before`); } else setText(el, '#range-text', '');
-          return resultsBody(res, ins, ctx.client.now(), ctx);
+          return resultsBody(res, ins, ctx.client.now(), ctx, missed);
         }, () => ({ title: "We couldn't load your results.", text: 'Your other pages still work. Try again soon.', retry: 'results' }))
-          .then(() => D8.charts.mountAll(el));
+          .then(() => {
+            const d = /** @type {HTMLDetailsElement|null} */ (el.querySelector('#results-detail'));
+            if (d && wasOpen) d.open = true;
+            D8.charts.mountAll(el);
+          });
       };
       // A folded chart is drawn when it opens, at its real width. (The page element, not main, which outlives it.)
       const page = el.querySelector('.page-results');
       if (page) page.addEventListener('toggle', (e) => {
         const d = /** @type {HTMLElement} */ (e.target);
-        if (d && d.classList && d.classList.contains('fold-chart') && /** @type {HTMLDetailsElement} */ (d).open) D8.charts.mountAll(d);
+        if (d && d.classList && (d.classList.contains('fold-chart') || d.classList.contains('fold-detail')) && /** @type {HTMLDetailsElement} */ (d).open) D8.charts.mountAll(d);
       }, true);
       load();
       return {
@@ -10487,7 +10975,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       if (!m) { m = { k, items: [] }; months.push(m); }
       m.items.push(u);
     }
-    return months.map((m) => `<section class="feed-month" aria-labelledby="m-${esc(m.k)}"><h2 id="m-${esc(m.k)}">${esc(F.monthYear(m.k + '-01'))}</h2><div class="feed">${m.items.map((u) => UI.UpdateCard(u, { id: 'u-' + u.id })).join('')}</div></section>`).join('');
+    return months.map((m) => `<section class="feed-month" aria-labelledby="m-${esc(m.k)}"><h2 id="m-${esc(m.k)}">${esc(F.monthYear(m.k + '-01'))}</h2><div class="feed">${m.items.map((u) => UI.UpdateCard(u, { id: 'u-' + u.id, resultTitle: true })).join('')}</div></section>`).join('');
   }
 
   /* The updates are the Done tab of Work (2026-10-09). #/updates still opens them, with ?service= kept. */
@@ -10513,10 +11001,18 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         const label = filter === 'all' ? '' : F.lcFirst(SVC()[filter].label) + ' ';
         setText(el, '#updates-status', `${list.length} ${label}${F.plural(list.length, 'update', 'updates')}`);
         const fresh = UI.PageFresh({ updatedAt: all && all[0] ? all[0].date : null, source: 'Domin8te team', status: 'ok' });
-        return fresh + (list.length ? feed(list) : UI.EmptyState({ icon: 'updates', title: `No ${label}updates yet.`, text: 'They show here when we finish something.' }));
+        return fresh + UI.SampleChip() + (list.length ? feed(list) : UI.EmptyState({ icon: 'updates', title: `No ${label}updates yet.`, text: 'They show here when we finish something.' }));
       };
+      let landed = false;
       const load = () => section(el, '#updates-body', () => ctx.client.getUpdates(), (list) => { all = list; return draw(); },
-        () => ({ title: "We couldn't load your updates.", text: 'Your other pages still work. Try again soon.', retry: 'updates' }));
+        () => ({ title: "We couldn't load your updates.", text: 'Your other pages still work. Try again soon.', retry: 'updates' }))
+        .then(() => {
+          // #/updates?u=<id> (an email's link): glide to that update once
+          if (landed || !r.params.u) return;
+          landed = true;
+          const t = /** @type {HTMLElement|null} */ (document.getElementById('u-' + r.params.u));
+          if (t && el.contains(t)) { t.setAttribute('tabindex', '-1'); ring(t); }
+        });
       load();
       return {
         retry: load,
@@ -10552,11 +11048,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
 
   /** The freshness line for Billing: when a person last checked a bill, and a note while a payment needs a look. @param {any} b @param {any} ctx */
   function billFresh(b, ctx) {
-    const problem = !!b.subscription && b.subscription.status === 'past_due';
-    return UI.PageFresh({
-      updatedAt: b.checkedAt || null, zone: ctx.account.zoneAbbr, source: 'Stripe, our payment service',
-      status: problem ? 'delayed' : 'ok', label: 'Payment needs a look'
-    });
+    // the payment itself is said once, in the banner and on the plan card; this line is only about how fresh the page is
+    return UI.PageFresh({ updatedAt: b.checkedAt || null, zone: ctx.account.zoneAbbr, source: 'Stripe, our payment service', status: 'ok' });
   }
 
   /** @param {any} b the billing record, with the plan model as b.plan @param {any} ctx */
@@ -10567,7 +11060,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     // A new client has no month of a plan yet: say so, never a "could not load". Any bills they do have still show.
     if (m.state !== 'ok') return `${fresh}${D8.plan.notSetUp(m)}${b.invoices.length ? D8.plan.bills(b.invoices, m) : ''}${help}`;
     const changing = m.confirmed && m.changes.differs;
-    return `${fresh}
+    return `${fresh}${UI.SampleChip()}
       ${b.subscription && b.subscription.status === 'past_due' ? payBanner(b) : ''}
       ${changing ? D8.plan.confirmed(m, ctx.account.user.email) : ''}
       ${D8.plan.overview(m, { billing: b })}
@@ -10579,7 +11072,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   function changeFrame(ctx) {
     return `<div class="page page-billing page-change">
       <p class="crumb"><a class="link" href="#/billing">${icon('chevron-left')}Back to billing</a></p>
-      ${UI.PageHeader({ title: 'Change your plan or services', intro: 'Choose what you want from your next bill. Nothing changes until you confirm.', sample: ctx.account.business.name })}
+      ${UI.PageHeader({ title: 'Change your plan or services', intro: 'Choose what you want from your next bill. Nothing changes until you confirm.' })}
       <div id="change-body">${UI.Skeleton('block', 2)}</div>
     </div>`;
   }
@@ -10589,18 +11082,18 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     const fresh = UI.PageFresh({ updatedAt: D8.time.isoTime(ctx.client.now()), zone: ctx.account.zoneAbbr, source: 'Domin8te team', status: 'ok' });
     if (m.state !== 'ok') return fresh + D8.plan.notSetUp(m);
     if (!m.open) {
-      return `${fresh}<section class="card plan-locked" aria-labelledby="h-locked">
+      return `${fresh}${UI.SampleChip()}<section class="card plan-locked" aria-labelledby="h-locked">
         <div class="empty">${icon('lock', 'empty-icon')}<div><h2 id="h-locked" class="empty-title">Next month is set.</h2><p class="empty-text">The last day to change it, ${esc(day(m.lastDay))}, has passed. Message us if something is wrong.</p><a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a></div></div>
       </section>`;
     }
-    return fresh + D8.plan.deadline(m) + D8.plan.overview(m, { compact: true }) + D8.plan.picker(m);
+    return fresh + UI.SampleChip() + D8.plan.deadline(m) + D8.plan.overview(m, { compact: true }) + D8.plan.picker(m);
   }
 
   const billing = {
     title: (ctx, r) => (r && r.sub === 'change' ? 'Change your plan' : 'Billing'),
     render(ctx, r) {
       if (r && r.sub === 'change') return changeFrame(ctx);
-      return `<div class="page page-billing">${UI.PageHeader({ title: 'Billing', intro: 'Your plan, payments and bills.', sample: ctx.account.business.name })}<div id="billing-body">${UI.Skeleton('block', 2)}</div></div>`;
+      return `<div class="page page-billing">${UI.PageHeader({ title: 'Billing', intro: 'Your plan, payments and bills.' })}<div id="billing-body">${UI.Skeleton('block', 2)}</div></div>`;
     },
     mount(ctx, r, el) {
       if (r && r.sub === 'change') {
@@ -10627,8 +11120,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   /* ================================================================ SETTINGS */
 
   /* Settings, simplified (2026-10-09): Connected accounts (a count, only the ones with a problem, the rest folded),
-     Who can sign in (sign-in and asking for a login, merged), Emails (the optional ones folded) and How it looks
-     (folded). */
+     Who can sign in (sign-in and asking for a login, merged) and Emails (the optional ones folded). How it looks was taken
+     out on 2026-10-21 (not needed): the portal is light. */
   function sourceRow(src, now) {
     const when = src.pending ? `You told us you ${src.pending.kind === 'disconnect' ? 'removed our access' : 'connected it'}${src.pending.at ? ` on ${day(src.pending.at)}` : ''}. We confirm it, usually within one working day.`
       : src.state === 'missing' ? 'Not connected yet. Press Connect to let us in.'
@@ -10648,7 +11141,6 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   }
 
   function settingsBody(s, ctx) {
-    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
     const now = ctx.client.now();
     const optional = s.categories.filter((c) => !c.required);
     const rows = optional.map((c) => `<div class="toggle-row">
@@ -10662,7 +11154,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     // The emails that cannot be switched off (the bill reminders, the confirmation of a change of picks, payment problems) show as rows, always on.
     const always = [...(s.always || []), ...s.categories.filter((c) => c.required)].map((c) => `<li>${icon('check')}<span><strong>${esc(c.label)}</strong>. ${esc(c.text)}</span></li>`).join('');
     const fresh = UI.PageFresh({ updatedAt: s.savedAt || null, source: 'Your account', zone: ctx.account.zoneAbbr, status: 'ok' });
-    return `${fresh}<section class="card set-card" id="sources" tabindex="-1" aria-labelledby="h-sources">
+    return `${fresh}${UI.SampleChip()}<section class="card set-card" id="sources" tabindex="-1" aria-labelledby="h-sources">
         <div class="sec-head"><h2 id="h-sources">Connected accounts</h2><p class="sec-meta set-count">${esc(count)}</p></div>
         ${problems.length ? `<ul class="sources">${problems.map((src) => sourceRow(src, now)).join('')}</ul>` : ''}
         ${fine.length ? `<details class="fold fold-sources"${problems.length ? '' : ' open'}><summary>See all connections${icon('chevron-down')}</summary><p class="meta">You connect and disconnect on the app's own page. We never see your password.</p><ul class="sources">${fine.map((src) => sourceRow(src, now)).join('')}</ul></details>` : ''}
@@ -10698,15 +11190,6 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
             <p class="form-error" role="alert" hidden></p>
             <div class="form-foot"><button class="btn btn-solid" type="submit" disabled>Save changes</button><p class="meta" id="notify-status" aria-live="polite">${s.savedAt ? `Saved ${esc(F.when(s.savedAt, now))}.` : 'No changes yet.'}</p></div>
           </form>
-        </details>
-      </section>
-      <section class="card set-card" aria-labelledby="h-look">
-        <details class="fold fold-look">
-          <summary><h2 id="h-look">How it looks</h2>${icon('chevron-down')}</summary>
-          <fieldset class="theme-pick"><legend class="pick-legend">Colours</legend>
-            <label class="theme-opt"><input type="radio" name="theme" value="light" data-change="theme"${theme === 'light' ? ' checked' : ''}><span class="theme-swatch is-light" aria-hidden="true"></span><span><strong>Light</strong><span class="meta">The usual look</span></span></label>
-            <label class="theme-opt"><input type="radio" name="theme" value="dark" data-change="theme"${theme === 'dark' ? ' checked' : ''}><span class="theme-swatch is-dark" aria-hidden="true"></span><span><strong>Dark</strong><span class="meta">Easier on the eyes at night</span></span></label>
-          </fieldset>
         </details>
       </section>`;
   }
@@ -10837,7 +11320,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   const settings = {
     title: () => 'Settings',
     render(ctx) {
-      return `<div class="page page-settings">${UI.PageHeader({ title: 'Settings', intro: 'Your connected accounts, who can sign in, your emails and how the portal looks.', sample: ctx.account.business.name })}<div id="settings-body" class="settings-stack">${UI.Skeleton('block', 2)}</div></div>`;
+      return `<div class="page page-settings">${UI.PageHeader({ title: 'Settings', intro: 'Your connected accounts, who can sign in and your emails.' })}<div id="settings-body" class="settings-stack">${UI.Skeleton('block', 2)}</div></div>`;
     },
     mount(ctx, r, el) {
       const load = () => section(el, '#settings-body', () => ctx.client.getSettings(), (s) => settingsBody(s, ctx),
@@ -10857,39 +11340,43 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   /* ================================================================ HELP */
 
   /* Help (2026-10-09): the common questions, and a card that leads to Messages, where the conversation lives.
-     2026-10-13: the answers cover plans, picks, limits and where the numbers come from. Change HELP_UPDATED with the words. */
-  const HELP_UPDATED = '2026-10-14';
+     2026-10-21: what we promise first (the closest thing to a guarantee), five questions, the rest behind "More questions", and one
+     way to message us. */
   const PROMISES = [
     'We only publish posts, pages and ads you have approved.',
     'We never change your ad budget without asking you first.',
     'Every number shows its period, where it came from and whether we checked it.',
-    'Summaries written by our assistant are labelled, and checked by a person against the numbers.',
+    'Every summary says who wrote it: Written by our assistant, checked by Karan.',
     'Only people you invite can see your account.'
   ];
+  const promiseList = () => `<ul class="promise-list">${PROMISES.map((p) => `<li>${icon('check')}<span>${esc(p)}</span></li>`).join('')}</ul>`;
   const FAQ = [
     ['What does my plan include?', 'Every plan includes Ads. Starter adds one service you choose, Growth adds two, and Domin8te adds three. You choose from Social media, Website, SEO and Google Maps, and Email.'],
+    ['How do approvals work?', 'When we need your OK, it shows under Waiting for you on your Home page, with a date. Approve it, or ask for changes with a short note. Nothing goes out until you approve it.'],
+    ['How fast do you make changes?', 'Small changes, like new opening hours or a menu price, usually go live within one working day. Bigger jobs, like a new page or an ad campaign, follow the dates on your Work page.'],
+    ['Where do the numbers come from?', 'Each number on Results names its source, its dates, and whether we checked it. If an account disconnects, we tell you instead of guessing.'],
+    ['Who can see my account?', 'You, the people at your restaurant we have given a login (ask for one in Settings), and the Domin8te team working for you. Other clients never see your numbers.']
+  ];
+  const MORE_FAQ = [
     ['How do I change my plan or my services?', 'Go to Billing and choose your services for next month. Your choice starts on your next bill date. This month stays as it is.'],
     ['When can I change my services?', 'Any time up to the last day shown in Billing, which is the day before your next bill. We email you 7 days and 3 days before, so you never miss it. Change them as often as you like until then.'],
     ['What happens to a service I stop?', 'We keep your work saved. You can add the service back for a later month.'],
     ['Is ad spend part of my plan?', `${D8.plan.AD_SPEND} We never change your ad budget without asking you first.`],
     ['What if I need more posts or changes this month?', 'Ask from Work. If it goes over your plan, Karan replies with options first. Nothing extra is charged without your OK.'],
     ['Do urgent fixes count?', 'No. Hours, closures, phone numbers and sold-out items are always fixed and never counted.'],
-    ['Where do the numbers come from?', 'Each number on Results names its source, its dates, and whether we checked it. If an account disconnects, we tell you instead of guessing.'],
-    ['How do approvals work?', 'When we need your OK, it shows under Waiting for you on your Home page, with a date. Approve it, or ask for changes with a short note. Nothing goes out until you approve it.'],
-    ['How fast do you make changes?', 'Small changes, like new opening hours or a menu price, usually go live within one working day. Bigger jobs, like a new page or an ad campaign, follow the dates on your Work page.'],
-    ['How do I change my card?', 'Change your payment details on Stripe (our payment service), from your Billing page.'],
-    ['Who can see my account?', 'You, the people at your restaurant we have given a login (ask for one in Settings), and the Domin8te team working for you. Other clients never see your numbers.'],
-    ['What we promise', `<ul class="promise-list">${PROMISES.map((p) => `<li>${icon('check')}<span>${esc(p)}</span></li>`).join('')}</ul>`]
+    ['How do I change my card?', 'Change your payment details on Stripe (our payment service), from your Billing page.']
   ];
+  const faqRows = (/** @type {string[][]} */ list) => list.map(([q, a]) => `<details><summary>${esc(q)}${icon('chevron-down')}</summary><p>${esc(a)}</p></details>`).join('');
 
   const help = {
     title: () => 'Help',
     render(ctx) {
       return `<div class="page page-help">
-        ${UI.PageHeader({ title: 'Help', intro: 'How to reach us, and answers to common questions.', sample: ctx.account.business.name, aside: `<a class="btn btn-glass btn-sm" href="#/messages">${icon('message')}Message us</a>` })}
-        ${UI.PageFresh({ updatedAt: HELP_UPDATED, source: 'Domin8te team', status: 'ok' })}
+        ${UI.PageHeader({ title: 'Help', intro: 'What we promise, answers to common questions, and how to reach us.' })}
+        <section class="card promise-card" aria-labelledby="h-promise"><h2 id="h-promise" class="sec-title">What we promise</h2>${promiseList()}</section>
         <section class="sec" aria-labelledby="h-faq"><h2 id="h-faq" class="sec-title">Common questions</h2>
-          <div class="card faq">${FAQ.map(([q, a]) => `<details><summary>${esc(q)}${icon('chevron-down')}</summary>${a.startsWith('<') ? a : `<p>${esc(a)}</p>`}</details>`).join('')}</div>
+          <div class="card faq">${faqRows(FAQ)}</div>
+          <details class="fold fold-faq"><summary>More questions${icon('chevron-down')}</summary><div class="card faq">${faqRows(MORE_FAQ)}</div></details>
         </section>
         <section class="card help-contact" aria-labelledby="h-contact">
           <div class="help-contact-row">
@@ -10901,6 +11388,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     },
     mount() { return {}; }
   };
+  D8.promises = { list: PROMISES, html: promiseList };
 
   /* ================================================================ MESSAGES */
 
@@ -10962,7 +11450,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       // The demo is view-only (2026-10-13): the conversation can be read, nothing can be sent.
       const ro = D8.data.READ_ONLY;
       return `<div class="page page-messages">
-        ${UI.PageHeader({ title: 'Messages', intro: `Talk to your Domin8te team. ${reply}`, aside: `<button class="btn btn-glass btn-sm" type="button" data-msg-reload title="Checks for new messages now. The page also checks by itself every 10 seconds.">${icon('refresh')}Reload conversation</button>`, sample: ctx.account.business.name })}
+        ${UI.PageHeader({ title: 'Messages', intro: `Talk to your Domin8te team. ${reply}${ctx.account.checkin ? ` Next check-in with Karan: ${day(ctx.account.checkin)}.` : ''}`, aside: `<button class="btn btn-glass btn-sm" type="button" data-msg-reload title="Checks for new messages now. The page also checks by itself every 10 seconds.">${icon('refresh')}Reload conversation</button>` })}
         <div id="msg-fresh">${UI.PageFresh({ source: 'Domin8te team', zone: ctx.account.zoneAbbr, status: 'ok' })}</div>
         <section class="card msg-card${ro ? ' is-view-only' : ''}" aria-labelledby="h-thread">
           <h2 id="h-thread" class="sr-only">Your conversation with Domin8te</h2>
@@ -11136,7 +11624,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         </form>
         <div id="signin-sent" hidden></div>
         <p class="meta signin-foot">${icon('lock')}<span>Only invited people can sign in. Our sign-in service handles this, and we never email passwords.</span></p>
-        ${isLive() && demoUrl() ? `<p class="signin-demo">Not a client yet? <a href="${esc(demoUrl())}">See a demo of the portal</a></p>` : ''}
+        ${isLive() && demoUrl() ? `<p class="signin-demo">Not a client yet? <a href="${esc(demoUrl())}">See what owners see every Monday.</a></p>` : ''}
       </div></div>`;
     },
     mount(ctx, r, el) {
@@ -11536,6 +12024,36 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   /** The current hash, decoded: some mail clients and tools encode the slash as %2F. */
   const currentHash = () => { try { return decodeURIComponent(root.location.hash || ''); } catch (e) { return root.location.hash || ''; } };
 
+  /**
+   * Links from emails (2026-10-21): #/go/<kind>/<id> becomes that thing's own address. approval opens the card on Home, message
+   * the conversation, update that update on Done, work that service. Nothing in a link signs anyone in: no password, no token.
+   * @param {string} h
+   */
+  function resolveGo(h) {
+    const m = /^#\/go\/([a-z]+)(?:\/([^?/#]+))?/.exec(h);
+    if (!m) return h;
+    const id = m[2] ? encodeURIComponent(m[2]) : '';
+    if (m[1] === 'approval') return id ? '#/home?approval=' + id : '#/home';
+    if (m[1] === 'message') return '#/messages';
+    if (m[1] === 'update') return id ? '#/updates?u=' + id : '#/updates';
+    if (m[1] === 'work') return id ? '#/work/' + id : '#/work';
+    return ['results', 'billing', 'settings', 'help', 'home'].includes(m[1]) ? '#/' + m[1] : '#/home';
+  }
+  /**
+   * Where to go once signed in: the page a link asked for survives the 6-digit sign-in (kept for this tab only), so an email's
+   * link lands on that exact item, not Home.
+   */
+  const NEXT_KEY = NS + '.next';
+  function rememberNext(/** @type {string} */ h) {
+    if (!h.startsWith('#/') || h.startsWith('#/sign-in')) return;
+    try { root.sessionStorage.setItem(NEXT_KEY, h); } catch (e) { /* blocked: Home after sign-in */ }
+  }
+  function takeNext() {
+    let h = null;
+    try { h = root.sessionStorage.getItem(NEXT_KEY); root.sessionStorage.removeItem(NEXT_KEY); } catch (e) { h = null; }
+    return h && h.startsWith('#/') ? h : null;
+  }
+
   function parse() {
     const raw = currentHash();
     const h = raw.startsWith('#/') ? raw : '#/home';
@@ -11552,8 +12070,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       setBadges,
       setMessagesBadge,
       switchScenario,
-      /** Live sign-in finished: open the portal. */
-      signedIn: () => start('#/home'),
+      /** Live sign-in finished: open the page a link asked for, or Home. */
+      signedIn: () => start(takeNext() || '#/home'),
       /** After an approval, message or reset: reload the page's data in place and move focus sensibly. */
       afterChange() {
         if (!app.client) return;
@@ -11587,6 +12105,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
   /** @param {boolean} first */
   function render(first) {
     if (!app.ready) return;
+    if (currentHash().startsWith('#/go/')) D8.ui.replaceHash(resolveGo(currentHash()));
     const r = parse();
     if (menuOpen()) toggleMenu(false);
     hideTip();
@@ -11734,7 +12253,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
     else if (act === 'demo') { if (menuOpen()) toggleMenu(false); if (app.account) D8.dialogs.demo(t, ctx); }
     else if (act === 'sign-out') signOut(t);
     else if (act === 'retry-start') start(app.lastRoute);
-    else if (act === 'demo-sign-in') D8.auth.demoSignIn().then(() => start('#/home'));
+    else if (act === 'demo-sign-in') D8.auth.demoSignIn().then(() => start(takeNext() || '#/home'));
     else if (act === 'rerender') render(false);
   }
 
@@ -11764,6 +12283,38 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       const dlg = /** @type {HTMLDialogElement} */ ($('#dlg'));
       if (!dlg.open) D8.dialogs.demo(/** @type {HTMLElement} */ (document.activeElement), context());
     }
+  }
+
+  /* ---- add to home screen (2026-10-21, item 42) ----------------------------------------------------------------------
+     On a phone, from the client's second visit, once: "Add Domin8te to your home screen". The browser's own install prompt where
+     it offers one, otherwise a short how-to. Never in the demo or while staff view as a client. */
+  /** @type {any} */ let installAsk = null;
+  root.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installAsk = e; });
+  function homeScreenTip() {
+    const VISITS = NS + '.visits';
+    const SHOWN = NS + '.a2hs';
+    let visits = Number(pref(VISITS)) || 0;
+    // a visit is a browser session: count each one once
+    try { if (!root.sessionStorage.getItem(VISITS)) { root.sessionStorage.setItem(VISITS, '1'); visits += 1; pref(VISITS, String(visits)); } } catch (e) { /* storage blocked: no tip */ return; }
+    const mq = (/** @type {string} */ q) => !!(root.matchMedia && root.matchMedia(q).matches);
+    const ok = D8.data.homeTipDue({ live: D8.data.MODE === 'live', viewAs: !!D8.data.viewAs, phone: mq('(max-width: 760px)'), standalone: mq('(display-mode: standalone)') || !!(/** @type {any} */ (root.navigator).standalone), visits, shown: pref(SHOWN) === '1' });
+    if (!ok || $('#a2hs')) return;
+    pref(SHOWN, '1');
+    const ios = /iphone|ipad|ipod/i.test(String(root.navigator.userAgent));
+    const how = installAsk ? 'One tap and it opens like an app.' : ios ? 'Tap the Share button, then Add to Home Screen.' : 'Open your browser menu, then Add to Home screen.';
+    const bar = document.createElement('div');
+    bar.id = 'a2hs';
+    bar.className = 'a2hs';
+    bar.setAttribute('role', 'region');
+    bar.setAttribute('aria-label', 'Add Domin8te to your home screen');
+    bar.innerHTML = `<p class="a2hs-text"><strong>Add Domin8te to your home screen</strong><span>${F.esc(how)}</span></p>${installAsk ? '<button class="btn btn-primary btn-sm" type="button" data-a2hs="add">Add</button>' : ''}<button class="btn btn-glass btn-sm" type="button" data-a2hs="close">Not now</button>`;
+    document.body.appendChild(bar);
+    bar.addEventListener('click', (e) => {
+      const b = /** @type {HTMLElement} */ (e.target).closest('[data-a2hs]');
+      if (!b) return;
+      if (b.getAttribute('data-a2hs') === 'add' && installAsk) { installAsk.prompt(); installAsk = null; }
+      bar.remove();
+    });
   }
 
   /* ---- start -------------------------------------------------------------------------------- */
@@ -11797,6 +12348,8 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
       if (!s) {
         app.client = null;
         app.account = null;
+        // a link to one thing (an email's) is kept through the sign-in
+        rememberNext(resolveGo(app.wanted || currentHash()));
         if (!(root.location.hash || '').startsWith('#/sign-in')) D8.ui.replaceHash('#/sign-in');
         app.wanted = null;
         app.ready = true;
@@ -11827,6 +12380,7 @@ html.has-lens.lg-heavy .nav-list::before { backdrop-filter: none; -webkit-backdr
         app.ready = true;
         render(!next);
         if (D8.data.viewAs && !lastRouteSent) { lastRouteSent = currentHash() || '#/home'; toParent({ type: 'd8:ready', route: lastRouteSent }); }
+        homeScreenTip();
       }).catch(fatal);
     }).catch(fatal);
   }

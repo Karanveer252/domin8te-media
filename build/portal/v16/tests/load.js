@@ -34,6 +34,8 @@ function load(scenario, opts) {
     sessionStorage: memoryStorage()
   };
   if (!(opts && opts.readOnly)) ctx.D8_DEMO_WRITABLE = true;
+  // the fixtures' own dates (Thu 24 Sep 2026), not today's: the tests check exact days
+  ctx.D8_DEMO_FIXED_DATE = true;
   if (opts && opts.live) ctx.D8CONFIG = { mode: 'live' };
   ctx.globalThis = ctx;
   vm.createContext(ctx);
