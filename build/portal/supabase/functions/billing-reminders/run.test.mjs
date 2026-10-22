@@ -160,3 +160,12 @@ test("every 'in your dashboard' links the word dashboard to the Messages page; t
   // the hidden inbox preview line is plain text by design; everything shown in the body is linked
   assert.ok(!/in your dashboard/.test(running.html.replace(/<span style="display:none[^>]*>[^<]*<\/span>/, "")));
 });
+
+test("a running-month copy has one dashboard prompt: the top line, linked", () => {
+  const r = { ...ROW, kind: "picks_confirmed", bill_date: "2026-10-21", change_by: "2026-10-20" };
+  const m = renderReminder(r, false, "2026-10-22");
+  const body = m.html.replace(/<span style="display:none[^>]*>[^<]*<\/span>/, "");
+  assert.equal((body.match(/>dashboard<\/a>/g) || []).length, 1);
+  assert.match(body, /Want to change something\? Send us a message in your <a [^>]*>dashboard<\/a>\./);
+  assert.match(m.text, /Please don't reply to this email\. We don't read replies here\./);
+});
