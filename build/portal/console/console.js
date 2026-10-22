@@ -2028,7 +2028,7 @@
           <div class="field"><label for="o-name">Restaurant name</label><input id="o-name" name="name" type="text" value="${esc(current.name)}" maxlength="200"></div>
           <div class="field"><label for="o-kind">Kind of place</label><input id="o-kind" name="kind" type="text" value="${esc(d.business.kind)}" maxlength="60" placeholder="Restaurant, cafe, bar"></div>
           <div class="field"><label for="o-status">Status</label>${me.role === 'super_admin'
-            ? `<select id="o-status" name="status">${[['active', 'Active'], ['paused', 'Paused'], ['archived', 'Archived (hidden from them)']].map(([v, l]) => `<option value="${v}"${current.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select><p class="hint">${PAUSED_HINT}${DEMO_SITE ? '' : ' To remove a client for good, archive them first; Delete then shows at the foot of Setup.'}</p>`
+            ? `<select id="o-status" name="status">${[['active', 'Active'], ['paused', 'Paused'], ['archived', 'Archived (hidden from them)']].map(([v, l]) => `<option value="${v}"${current.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select><p class="hint">${PAUSED_HINT}${DEMO_SITE ? '' : ' To delete a client for good, use Delete this client at the foot of Setup.'}</p>`
             : current.status === 'archived'
               ? `<select id="o-status" name="status" disabled><option value="archived" selected>Archived (hidden from them)</option></select><p class="hint">Only an owner can bring a client back.</p>`
               : `<select id="o-status" name="status">${[['active', 'Active'], ['paused', 'Paused']].map(([v, l]) => `<option value="${v}"${current.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select><p class="hint">${PAUSED_HINT} Only an owner can archive a client.</p>`}</div>
@@ -2063,7 +2063,15 @@
         ${accountsSection(d)}
         <div class="actions"><button class="btn" type="submit">Save billing, meeting and accounts</button></div>
         </form>`)}
-      ${me.role === 'super_admin' && current.status === 'archived' && !DEMO_SITE ? fold('sec-delete', 'delete-h', 'Delete this client', 'For good, once they have left', part === 'delete', `
+      ${me.role === 'super_admin' && !DEMO_SITE ? fold('sec-delete', 'delete-h', 'Delete this client', current.status === 'archived' ? 'Archived: ready to delete for good' : 'For good, once they have left', part === 'delete', current.status !== 'archived' ? `
+        <div class="del-client">
+        <p>Deleting ${esc(current.name)} removes them and everything that belongs to them, for good. It takes two steps so it never happens by accident.</p>
+        <ol class="del-steps">
+          <li><strong>Archive them.</strong> They disappear from your lists and can no longer use their dashboard. You can still bring them back.</li>
+          <li><strong>Delete for good.</strong> Type their name to confirm. This cannot be undone.</li>
+        </ol>
+        <div class="actions"><button class="btn btn-quiet" type="button" data-del-archive>Archive ${esc(current.name)} first</button></div>
+        </div>` : `
         <div class="del-client">
         <p>This removes ${esc(current.name)} and everything that belongs to them: requests, messages, approvals, their dashboard, plan, usage, emails, bot drafts and Ask bots threads. It cannot be undone.</p>
         <ul class="del-keep">
@@ -2078,6 +2086,18 @@
     for (const b of $$('[data-svc-change]', box)) b.addEventListener('click', () => changeServices());
     stripeRowWire(box);
     for (const a of $$('[data-jump-access]', box)) a.addEventListener('click', () => { jumpAfter = 'sec-access'; });
+    const delArchive = /** @type {HTMLButtonElement|null} */ ($('[data-del-archive]', box));
+    if (delArchive) delArchive.addEventListener('click', async () => {
+      const who = current;
+      const done = busy(delArchive, 'Archiving');
+      try {
+        await save({ status: 'archived' });
+        done();
+        toast(`${who.name} is archived. Now type their name below to delete them for good.`);
+        const to = `#/client/${who.id}/setup/delete`;
+        if (location.hash === to) route(); else location.hash = to;
+      } catch (x) { done(); toast(failMessage(x, 'Not archived'), true); }
+    });
     const delForm = /** @type {HTMLFormElement|null} */ ($('#del-form', box));
     if (delForm) {
       const who = current;
