@@ -143,6 +143,7 @@ test("a copy for a month that already started says so: no 'next month', no chang
   const r = { ...ROW, kind: "picks_confirmed", bill_date: "2026-10-21", change_by: "2026-10-20" };
   const m = renderReminder(r, false, "2026-10-22");
   assert.ok(!/next month/i.test(m.text), m.text);
+  assert.ok(!/next month/i.test(m.html.replace(/<span style="display:none[^>]*>[^<]*<\/span>/, "")), "html says next month");
   assert.ok(!/until Tue 20 Oct/.test(m.text + m.html));
   assert.match(m.text, /This is what you have from Wed 21 Oct/);
   const future = renderReminder({ ...r, bill_date: "2026-11-21", change_by: "2026-11-20" }, false, "2026-10-22");

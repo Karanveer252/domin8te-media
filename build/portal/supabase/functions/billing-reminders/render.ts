@@ -125,7 +125,7 @@ ${rows.map(([k, v], i) => `<tr><td style="padding:10px 18px;${i ? `border-top:1p
 <p style="margin:0 0 18px;font-size:14px;color:${soft}">Opens your Billing page. Takes about 2 minutes.</p>
 <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#3A342E">${sign ? `${dashLink(esc(sign))}<br>` : ""}Karan, Domin8te Media</p>
 </td></tr>
-<tr><td style="padding:16px 28px 22px;border-top:1px solid ${line};font-size:12px;line-height:1.5;color:${soft}">${noReply ? `<strong style="color:#3A342E">${dashLink(esc(noReply))}</strong><br><br>` : ""}You are getting this because ${esc(r.restaurant)} has a plan with Domin8te Media. ${r.kind === "picks_confirmed" ? "We send this when your services for next month are confirmed." : "We send these reminders 7 days and 3 days before each bill."}</td></tr>
+<tr><td style="padding:16px 28px 22px;border-top:1px solid ${line};font-size:12px;line-height:1.5;color:${soft}">${noReply ? `<strong style="color:#3A342E">${dashLink(esc(noReply))}</strong><br><br>` : ""}You are getting this because ${esc(r.restaurant)} has a plan with Domin8te Media. ${r.kind === "picks_confirmed" ? (started ? "We send this when your services are confirmed." : "We send this when your services for next month are confirmed.") : "We send these reminders 7 days and 3 days before each bill."}</td></tr>
 </table></td></tr></table></body></html>`;
   const text = [
     `${r.restaurant} | ${eyebrow}`, "", title, "", intro.replace(/<[^>]+>/g, ""), "", note.replace(/<[^>]+>/g, ""), "",
