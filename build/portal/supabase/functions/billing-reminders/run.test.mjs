@@ -148,3 +148,15 @@ test("a copy for a month that already started says so: no 'next month', no chang
   const future = renderReminder({ ...r, bill_date: "2026-11-21", change_by: "2026-11-20" }, false, "2026-10-22");
   assert.match(future.text, /next month/);
 });
+
+test("every 'in your dashboard' links the word dashboard to the Messages page; the text email gives the address", () => {
+  for (const kind of ["d7", "d3", "picks_confirmed"]) {
+    const m = renderReminder({ ...ROW, kind });
+    assert.ok(!/in your dashboard/.test(m.html), kind + ": an unlinked 'in your dashboard' in the html");
+    assert.match(m.html, /in your <a href="https:\/\/domin8temedia\.com\/dashboard\/#\/messages"[^>]*>dashboard<\/a>/);
+    assert.match(m.text, /in your dashboard \(https:\/\/domin8temedia\.com\/dashboard\/#\/messages\)/);
+  }
+  const running = renderReminder({ ...ROW, kind: "picks_confirmed", bill_date: "2026-10-21", change_by: "2026-10-20" }, false, "2026-10-22");
+  // the hidden inbox preview line is plain text by design; everything shown in the body is linked
+  assert.ok(!/in your dashboard/.test(running.html.replace(/<span style="display:none[^>]*>[^<]*<\/span>/, "")));
+});

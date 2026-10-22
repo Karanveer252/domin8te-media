@@ -10,6 +10,7 @@ export type ReminderRow = {
 };
 
 export const BILLING_URL = "https://domin8temedia.com/dashboard/#/billing";
+export const MESSAGES_URL = "https://domin8temedia.com/dashboard/#/messages";
 const LABEL: Record<string, string> = { advertising: "Ads", social: "Social media", website: "Website", local: "SEO and Google Maps", email: "Email" };
 const ORDER = ["advertising", "social", "website", "local", "email"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -100,6 +101,8 @@ export function renderReminder(r: ReminderRow, canReply = false, today = new Dat
   const box = r.kind === "picks_confirmed" ? (started ? "Your services" : "Next month") : "Your plan now";
 
   const ink = "#1D1A16", soft = "#5E574F", accent = "#AE3A0B", line = "#ECE6DD";
+  // "in your dashboard": the word dashboard links to the Messages page (Karan, 2026-10-22); the plain-text email gives the address.
+  const dashLink = (h: string) => h.replace(/in your dashboard/g, `in your <a href="${MESSAGES_URL}" style="color:${accent};font-weight:700;text-decoration:underline">dashboard</a>`);
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(subject)}</title></head>
 <body style="margin:0;padding:0;background:#F4F1EC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:${ink}">
@@ -112,7 +115,7 @@ export function renderReminder(r: ReminderRow, canReply = false, today = new Dat
 <p style="margin:0 0 6px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${accent}">${esc(r.restaurant)} &middot; ${esc(eyebrow)}</p>
 <h1 style="margin:0 0 10px;font-size:28px;line-height:1.15">${esc(title)}</h1>
 <p style="margin:0 0 18px;font-size:16px;line-height:1.5;color:#3A342E">${intro}</p>
-<p style="margin:0 0 18px;padding:14px 16px;border-radius:14px;background:#FFF0E6;color:#7A2A07;font-weight:700;font-size:15px;line-height:1.45">${note}</p>
+<p style="margin:0 0 18px;padding:14px 16px;border-radius:14px;background:#FFF0E6;color:#7A2A07;font-weight:700;font-size:15px;line-height:1.45">${dashLink(note)}</p>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#FFFFFF;border-radius:16px;margin:0 0 18px">
 <tr><td style="padding:16px 18px 6px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${soft}">${esc(box)}</td></tr>
 ${rows.map(([k, v], i) => `<tr><td style="padding:10px 18px;${i ? `border-top:1px solid ${line};` : ""}font-size:15px"><span style="float:left;color:#3A342E">${esc(k)}</span><span style="float:right;font-weight:700;text-align:right">${esc(v)}</span></td></tr>`).join("\n")}
@@ -120,14 +123,14 @@ ${rows.map(([k, v], i) => `<tr><td style="padding:10px 18px;${i ? `border-top:1p
 <p style="margin:0 0 20px;font-size:16px;line-height:1.5;color:#3A342E">${after}</p>
 <p style="margin:0 0 8px"><a href="${BILLING_URL}" style="display:inline-block;padding:13px 26px;border-radius:999px;background:#D9480F;color:#FFFFFF;font-weight:700;font-size:16px;text-decoration:none">${esc(button)}</a></p>
 <p style="margin:0 0 18px;font-size:14px;color:${soft}">Opens your Billing page. Takes about 2 minutes.</p>
-<p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#3A342E">${esc(sign)}<br>Karan, Domin8te Media</p>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#3A342E">${dashLink(esc(sign))}<br>Karan, Domin8te Media</p>
 </td></tr>
-<tr><td style="padding:16px 28px 22px;border-top:1px solid ${line};font-size:12px;line-height:1.5;color:${soft}">${noReply ? `<strong style="color:#3A342E">${esc(noReply)}</strong><br><br>` : ""}You are getting this because ${esc(r.restaurant)} has a plan with Domin8te Media. ${r.kind === "picks_confirmed" ? "We send this when your services for next month are confirmed." : "We send these reminders 7 days and 3 days before each bill."}</td></tr>
+<tr><td style="padding:16px 28px 22px;border-top:1px solid ${line};font-size:12px;line-height:1.5;color:${soft}">${noReply ? `<strong style="color:#3A342E">${dashLink(esc(noReply))}</strong><br><br>` : ""}You are getting this because ${esc(r.restaurant)} has a plan with Domin8te Media. ${r.kind === "picks_confirmed" ? "We send this when your services for next month are confirmed." : "We send these reminders 7 days and 3 days before each bill."}</td></tr>
 </table></td></tr></table></body></html>`;
   const text = [
     `${r.restaurant} | ${eyebrow}`, "", title, "", intro.replace(/<[^>]+>/g, ""), "", note.replace(/<[^>]+>/g, ""), "",
     `${box}:`, ...rows.map(([k, v]) => `  ${k}: ${v}`), "", after.replace(/<[^>]+>/g, ""), "",
     `${button}: ${BILLING_URL}`, "", sign, "Karan, Domin8te Media", ...(noReply ? ["", noReply] : []),
-  ].join("\n").replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  ].join("\n").replace(/in your dashboard/g, `in your dashboard (${MESSAGES_URL})`).replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">");
   return { subject, preview, html, text };
 }
