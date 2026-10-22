@@ -2199,6 +2199,29 @@
 })();
 </script>
 <script>
+/* stub/86-tenant-delete.js */
+// LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). Delete a client for good (2026-10-22): the same refusals as
+// portal/supabase/migrations/20261022020000_tenant_delete.sql (archive first, the name typed, no running subscription), then the client
+// and its rows go from the in-memory database. Nothing is saved or sent.
+(function () {
+  'use strict';
+  const S = /** @type {any} */ (window).D8STUB;
+  if (!S) return;
+  const norm = (/** @type {string} */ x) => String(x || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  S.rpcs.tenant_delete = (/** @type {any} */ a) => {
+    const t = (S.db.tenants || []).find((/** @type {any} */ x) => x.id === a.p_id);
+    if (!t) throw { code: 'P0002', message: 'not-found' };
+    if (t.status !== 'archived') throw { code: '22023', message: 'archive-first' };
+    if (!norm(a.p_confirm) || norm(a.p_confirm) !== norm(t.name)) throw { code: '22023', message: 'name-mismatch' };
+    const bill = (S.db.tenant_billing || []).find((/** @type {any} */ b) => b.tenant_id === t.id);
+    if (bill && ['active', 'trialing', 'past_due', 'unpaid', 'incomplete'].includes(bill.status)) throw { code: '22023', message: 'billing-active' };
+    for (const k of Object.keys(S.db)) if (Array.isArray(S.db[k]) && k !== 'tenants') S.db[k] = S.db[k].filter((/** @type {any} */ r) => !r || r.tenant_id !== t.id);
+    S.db.tenants = S.db.tenants.filter((/** @type {any} */ x) => x.id !== t.id);
+    return t.name;
+  };
+})();
+</script>
+<script>
 /* stub/87-live-count.js */
 // LOCAL PREVIEW ONLY (build-console.js adds stub/*.js only with --preview). Stand-in for 20261014140000_set_live_count.sql
 // (2026-10-14): "Set live count" writes one snapshot row for a live-at-once limit through the usage guard (stub/86-atomic.js: over the
@@ -7171,6 +7194,18 @@ html[data-theme="dark"] .rv-exp-opt:hover { background: rgba(255, 255, 255, 0.1)
   .boot .d8-load .is-dim { opacity: 1; filter: none; }
 }
 html[data-theme="dark"] .boot .d8-load .is-dim { opacity: .4; }
+
+/* css/67-delete-client.css */
+/* Delete this client (2026-10-22, Karan: "a feature to delete a client if they are now no longer with me"): the last fold on an archived
+ * client's Setup tab, the owner only. A quiet warning panel in the console's own words and tokens; the button stays off until the
+ * restaurant's name is typed. */
+#sec-delete > .fold-sum h2 { color: var(--bad); }
+.del-client { display: grid; gap: 12px; max-width: 720px; }
+.del-client > p { margin: 0; color: var(--ink-2); }
+.del-keep { margin: 0; padding: 12px 16px 12px 34px; border-radius: var(--r-lg); background: var(--bad-bg); color: var(--ink-2); display: grid; gap: 6px; }
+.del-client .field { max-width: 420px; }
+.del-client .actions { margin-top: 4px; }
+.del-client .btn-danger[disabled] { opacity: 0.45; cursor: not-allowed; }
 
 /* css/70-touch.css */
 /*
@@ -24847,7 +24882,7 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'service' : 'services'}
           <div class="field"><label for="o-name">Restaurant name</label><input id="o-name" name="name" type="text" value="${esc(current.name)}" maxlength="200"></div>
           <div class="field"><label for="o-kind">Kind of place</label><input id="o-kind" name="kind" type="text" value="${esc(d.business.kind)}" maxlength="60" placeholder="Restaurant, cafe, bar"></div>
           <div class="field"><label for="o-status">Status</label>${me.role === 'super_admin'
-            ? `<select id="o-status" name="status">${[['active', 'Active'], ['paused', 'Paused'], ['archived', 'Archived (hidden from them)']].map(([v, l]) => `<option value="${v}"${current.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select><p class="hint">${PAUSED_HINT}</p>`
+            ? `<select id="o-status" name="status">${[['active', 'Active'], ['paused', 'Paused'], ['archived', 'Archived (hidden from them)']].map(([v, l]) => `<option value="${v}"${current.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select><p class="hint">${PAUSED_HINT}${DEMO_SITE ? '' : ' To remove a client for good, archive them first; Delete then shows at the foot of Setup.'}</p>`
             : current.status === 'archived'
               ? `<select id="o-status" name="status" disabled><option value="archived" selected>Archived (hidden from them)</option></select><p class="hint">Only an owner can bring a client back.</p>`
               : `<select id="o-status" name="status">${[['active', 'Active'], ['paused', 'Paused']].map(([v, l]) => `<option value="${v}"${current.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select><p class="hint">${PAUSED_HINT} Only an owner can archive a client.</p>`}</div>
@@ -24881,12 +24916,55 @@ Your ${planNm} plan is Ads plus ${slots} ${slots === 1 ? 'service' : 'services'}
         </div>
         ${accountsSection(d)}
         <div class="actions"><button class="btn" type="submit">Save billing, meeting and accounts</button></div>
-        </form>`)}`;
+        </form>`)}
+      ${me.role === 'super_admin' && current.status === 'archived' && !DEMO_SITE ? fold('sec-delete', 'delete-h', 'Delete this client', 'For good, once they have left', part === 'delete', `
+        <div class="del-client">
+        <p>This removes ${esc(current.name)} and everything that belongs to them: requests, messages, approvals, their dashboard, plan, usage, emails, bot drafts and Ask bots threads. It cannot be undone.</p>
+        <ul class="del-keep">
+          <li><strong>Kept:</strong> money in your revenue books, one-off charges, the Stripe event log and the audit log (with a line saying you deleted them).</li>
+          <li><strong>Not touched:</strong> their logins in Clerk and their records in Stripe. Cancel a running subscription in Stripe first; Delete refuses while one is running.</li>
+        </ul>
+        <form id="del-form" novalidate>
+          <div class="field"><label for="o-delname">Type <strong>${esc(current.name)}</strong> to confirm</label><input id="o-delname" name="delname" type="text" autocomplete="off" spellcheck="false" maxlength="200"></div>
+          <div class="actions"><button class="btn btn-danger" type="submit" disabled>Delete ${esc(current.name)} for good</button></div>
+        </form>
+        </div>`) : ''}`;
     for (const b of $$('[data-svc-change]', box)) b.addEventListener('click', () => changeServices());
     stripeRowWire(box);
     for (const a of $$('[data-jump-access]', box)) a.addEventListener('click', () => { jumpAfter = 'sec-access'; });
+    const delForm = /** @type {HTMLFormElement|null} */ ($('#del-form', box));
+    if (delForm) {
+      const who = current;
+      const norm = (/** @type {string} */ x) => String(x || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      const inp = /** @type {HTMLInputElement} */ ($('#o-delname', delForm));
+      const btn = /** @type {HTMLButtonElement} */ ($('button[type=submit]', delForm));
+      inp.addEventListener('input', () => { btn.disabled = norm(inp.value) !== norm(who.name); });
+      delForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (norm(inp.value) !== norm(who.name)) return;
+        const done = busy(btn, 'Deleting');
+        try {
+          const r = await (await db()).rpc('tenant_delete', { p_id: who.id, p_confirm: inp.value });
+          if (r.error) throw r.error;
+          done();
+          if (all) all.tenants = all.tenants.filter((/** @type {any} */ t) => t.id !== who.id);
+          current = null;
+          toast(`Deleted ${who.name}. Their logins in Clerk are still there; remove the organisation in Clerk if you want those gone too.`);
+          location.hash = '#/clients';
+          loadAll().then(() => redraw()).catch(() => {});
+        } catch (x) {
+          done();
+          const m = String((x && /** @type {any} */ (x).message) || '');
+          toast(/billing-active/.test(m) ? 'They still have a running subscription. Cancel it in Stripe first, then delete.'
+            : /archive-first/.test(m) ? 'Archive them first, then delete.'
+            : /name-mismatch/.test(m) ? 'The name does not match. Type it exactly as shown.'
+            : /function .*tenant_delete|PGRST202|could not find the function/i.test(m) ? 'Delete is not set up on the server yet.'
+            : failMessage(x, 'Not deleted'), true);
+        }
+      });
+    }
     // #/client/<id>/setup/<section> opens that fold and scrolls to it (login, plan, details, billing, meeting, accounts).
-    const to = ({ billing: 'billing', meeting: 'sec-meeting', login: 'sec-login', plan: 'sec-plan', accounts: 'sec-accounts', details: 'sec-details', more: 'sec-more' })[/** @type {'billing'} */ (part)];
+    const to = ({ billing: 'billing', meeting: 'sec-meeting', login: 'sec-login', plan: 'sec-plan', accounts: 'sec-accounts', details: 'sec-details', more: 'sec-more', delete: 'sec-delete' })[/** @type {'billing'} */ (part)];
     if (to) setTimeout(() => { const el = document.getElementById(to); if (el) el.scrollIntoView({ block: 'start' }); }, 0);
     const pfm = /** @type {HTMLFormElement} */ ($('#profile-form', box));
     track(pfm, 'How often we ask them first');

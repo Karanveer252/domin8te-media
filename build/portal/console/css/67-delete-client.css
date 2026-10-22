@@ -1,0 +1,10 @@
+/* Delete this client (2026-10-22, Karan: "a feature to delete a client if they are now no longer with me"): the last fold on an archived
+ * client's Setup tab, the owner only. A quiet warning panel in the console's own words and tokens; the button stays off until the
+ * restaurant's name is typed. */
+#sec-delete > .fold-sum h2 { color: var(--bad); }
+.del-client { display: grid; gap: 12px; max-width: 720px; }
+.del-client > p { margin: 0; color: var(--ink-2); }
+.del-keep { margin: 0; padding: 12px 16px 12px 34px; border-radius: var(--r-lg); background: var(--bad-bg); color: var(--ink-2); display: grid; gap: 6px; }
+.del-client .field { max-width: 420px; }
+.del-client .actions { margin-top: 4px; }
+.del-client .btn-danger[disabled] { opacity: 0.45; cursor: not-allowed; }
