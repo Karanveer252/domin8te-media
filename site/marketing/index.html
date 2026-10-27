@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Restaurant Marketing Agency, Reimagined | Domin8te Media</title>
-<meta name="description" content="We run the website, Google listing, social posts and ads for independent restaurants and cafés. Get a free online checkup, with plain-English notes back within one business day.">
-<!-- a landing page for ads and links, not for Google -->
+<title>Restaurant Marketing Agency, Reimagined. Get a Free Ad | Domin8te Media</title>
+<meta name="description" content="We run the website, Google listing, social posts and ads for independent restaurants and cafés. Get one free ad, built and ready to run on your own ad account.">
+<!-- a page for ads and links, not for Google -->
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#ECE6DD">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Domin8te Media">
 <meta property="og:title" content="Restaurant marketing agency, reimagined.">
-<meta property="og:description" content="We run your website, Google listing, social posts and ads. Get a free online checkup within one business day.">
+<meta property="og:description" content="We run your website, Google listing, social posts and ads. Get one free ad for your restaurant, ready to run. We reply within one business day.">
 <meta property="og:url" content="https://domin8temedia.com/marketing/">
 <meta property="og:image" content="https://domin8temedia.com/assets/vsl/vsl-founder-16x9.webp?v=976f11b022">
 <meta property="og:locale" content="en_CA">
@@ -21,10 +21,163 @@
 <link rel="preload" href="/assets/fonts/bvp-200.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/marketing.lean.css?v=eedaa30f4c">
 <link rel="preload" as="image" href="/assets/vsl/vsl-founder-16x9.webp?v=976f11b022" imagesrcset="/assets/vsl/vsl-founder-16x9-480.webp?v=258599f8c5 480w, /assets/vsl/vsl-founder-16x9-800.webp?v=9500164a95 800w, /assets/vsl/vsl-founder-16x9.webp?v=976f11b022 1280w" imagesizes="(max-width: 760px) calc(100vw - 40px), 880px" fetchpriority="high">
+<style>
+/* the founder film sits in its own section after Kitchens: the hero look without the hero's top room */
+.vsl-hero--film{padding-top:clamp(40px,7vh,80px)}
+html.mkt[data-v="editorial"] .vsl-hero--film{padding-top:clamp(40px,7vh,80px)}
+@media (max-width:760px){.vsl-hero.vsl-hero--film{padding-top:40px}}
+/* once the hero stacks, its strip under the form already says this: drop the repeat under the film */
+@media (max-width:900px){.vsl-hero--film .promise{display:none}}
+/* the trust badge right above the form */
+.trust-pill{display:inline-flex;align-items:center;gap:10px;margin:18px 0 0;padding:8px 16px 8px 12px;border:1px solid #F15C22;border-radius:999px;background:#FAF6F0;color:#1F2128;font-size:14px;font-weight:600;line-height:1.3;letter-spacing:.01em}
+html #hero .hero__form .trust-pill{box-sizing:border-box;width:auto;max-width:100%;min-width:0;margin:10px 0 0;padding:7px 14px 7px 12px;white-space:normal}
+.trust-pill::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:#F15C22}
+.optin{margin:12px 0 0}
+.optin label{display:flex;align-items:flex-start;gap:10px;padding:10px 0;font:500 15px/1.4 inherit;font-family:inherit;letter-spacing:0;text-transform:none;color:#1F2128;cursor:pointer}
+.optin input{flex:none;width:20px;height:20px;margin:1px 0 0;accent-color:#F15C22}
+
+/* the hero: heading and first paragraph left, the one form right (id contact, so every #contact link lands here) */
+html.mkt[data-v="editorial"] #hero{padding-top:calc(var(--hdr-h) + 16px);text-align:left}
+#hero .wrap > *{min-width:0}
+#hero .vsl-eyebrow{justify-self:start;margin:0 0 18px}
+html.mkt[data-v="editorial"] #hero .hl{margin:0;font-size:clamp(36px,3.6vw,56px);line-height:1}
+#hero .hl .ln{white-space:normal}
+#hero .hl .vsl-hi,#hero .hl .rot{white-space:nowrap}
+#hero .rot{--rot-x:0;--rot-tx:0}
+html.mkt[data-v="editorial"] #hero .lede{margin:18px 0 0;max-width:52ch}
+#hero .hero__more .vsl-ctas{justify-content:flex-start;margin:24px 0 0}
+#hero .hero__more .vsl-small,#hero .hero__more .vsl-clients{margin-left:0;margin-right:0;text-align:left}
+#hero .hero__more .promise{flex-direction:column;justify-content:flex-start;gap:8px;margin:18px 0 0}
+#contact{scroll-margin-top:calc(var(--hdr-h) + 16px)}
+html.mkt[data-v="editorial"] #hero .hero__form .hl--sec{font-size:clamp(26px,2vw,30px);line-height:1}
+html.mkt[data-v="editorial"] #hero .hero__form .lede{margin:8px 0 0;max-width:none;font-size:15px;line-height:1.5}
+#hero .hero__form .sent-note{margin:12px 0 0}
+html.mkt[data-v="editorial"] #hero .form{gap:10px;margin:14px 0 0;max-width:none}
+html.mkt[data-v="editorial"] #hero .form__row{gap:10px 12px}
+html.mkt[data-v="editorial"] #hero .form input[type=text],
+html.mkt[data-v="editorial"] #hero .form textarea{min-height:44px;padding:9px 12px;font-size:16px;line-height:1.35}
+html.mkt[data-v="editorial"] #hero .form textarea{min-height:88px}
+html.mkt[data-v="editorial"] #hero .more__sum{min-height:44px}
+html.mkt[data-v="editorial"] #hero .more__in{gap:10px;padding:4px 0 12px}
+html.mkt[data-v="editorial"] #hero .optin{margin:0}
+html.mkt[data-v="editorial"] #hero .optin label{padding:4px 0;font-size:14px}
+html.mkt[data-v="editorial"] #hero .optin input{min-height:0;padding:0;border:0}
+html.mkt[data-v="editorial"] #hero .form__foot{gap:8px 16px;margin-top:2px}
+html.mkt[data-v="editorial"] #hero .form__foot .btn--lg{min-height:50px}
+html.mkt[data-v="editorial"] #hero .form__note{font-size:14px}
+#hero .formstatus:empty{min-height:0}
+@media (min-width:901px){
+  #hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,clamp(400px,42vw,600px));grid-template-rows:auto auto auto 1fr;column-gap:clamp(32px,4vw,64px);align-items:start}
+  #hero .wrap > .vsl-eyebrow,#hero .wrap > .hl,#hero .wrap > .lede,#hero .wrap > .hero__more{grid-column:1}
+  #hero .wrap > .hero__form{grid-column:2;grid-row:1 / span 4}
+  #hero .wrap > .hero__more{grid-row:4}
+}
+@media (max-width:900px){
+  html.mkt[data-v="editorial"] #hero{padding-top:calc(var(--hdr-h) + 6px)}
+  #hero .vsl-eyebrow{margin-bottom:10px}
+  html.mkt[data-v="editorial"] #hero .hl{font-size:clamp(32px,8.6vw,35px);line-height:1.04}
+  html.mkt[data-v="editorial"] #hero .lede{margin-top:10px;font-size:16px}
+  #hero .hero__form{margin-top:16px}
+  #hero .hero__more{margin-top:8px}
+  /* phones: the form heading, its line, the badge and the first fields sit closer so they fit the first screen */
+  html.mkt[data-v="editorial"] #hero .hero__form .lede{margin-top:6px}
+  html #hero .hero__form .trust-pill{margin-top:8px}
+  html.mkt[data-v="editorial"] #hero .form{gap:10px;margin-top:10px}
+  html.mkt[data-v="editorial"] #hero .form__row{gap:10px}
+  html.mkt[data-v="editorial"] #hero .field{gap:3px}
+  html.mkt[data-v="editorial"] #hero .form input[type=text]{min-height:44px;padding-top:8px;padding-bottom:8px}
+}
+
+/* pick your free service: four cards, two by two, one column on narrow phones */
+html.mkt[data-v="editorial"] .form .pick{min-width:0;margin:0;padding:0;border:0}
+.pick legend{padding:0;margin:0 0 6px;font:600 12px/1.3 var(--f-text);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.pick__opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pick__opt{display:flex;align-items:flex-start;gap:10px;min-height:44px;padding:8px 12px;border:1px solid rgba(14,20,32,.2);border-radius:12px;background:#fff;font-size:13px;line-height:1.35;color:#1F2128;cursor:pointer}
+.pick__opt b{display:block;margin:0 0 2px;font-size:15px;line-height:1.25;color:#1F2128}
+.pick__opt:has(input:checked){border-color:#F15C22;box-shadow:inset 0 0 0 1px #F15C22;background:#FAF6F0}
+.pick__opt:has(input:focus-visible){outline:2px solid #1F2128;outline-offset:2px}
+html.mkt[data-v="editorial"] .pick input[type=radio]{flex:none;width:18px;height:18px;min-height:0;margin:1px 0 0;padding:0;border:0;box-shadow:none;accent-color:#F15C22}
+html.mkt[data-v="editorial"] .pick input[type=radio]:focus-visible{outline:2px solid #1F2128;outline-offset:2px}
+@media (max-width:480px){.pick__opts{grid-template-columns:1fr}.pick__opt{align-items:center}}
+/* the picker is required: its error line reads like the other field errors, and the cards turn the error colour */
+#pick #e-need{display:block;margin:6px 0 0;font-size:14px;line-height:1.35;color:var(--bad)}
+#pick #e-need:empty{display:none}
+html.mkt[data-v="editorial"] #pick[aria-invalid="true"] .pick__opt{border-color:var(--bad)}
+/* how it works: three short steps, title only, so the title sits centred on its number */
+.vsl-steps li b{margin:4px 0}
+html.mkt[data-v="editorial"] .vsl-steps li::before{background:#F15C22}
+/* laptop screens (1280x720, 1366x768): tighter spacing so the heading, first paragraph and the whole form fit the first screen */
+@media (min-width:901px) and (max-height:800px){
+  html.mkt[data-v="editorial"] #hero{padding-top:calc(var(--hdr-h) + 5px)}
+  html.mkt[data-v="editorial"] #hero .hero__form .lede{margin-top:6px}
+  html #hero .hero__form .trust-pill{margin-top:8px;padding-top:5px;padding-bottom:5px}
+  html.mkt[data-v="editorial"] #hero .form{gap:8px;margin-top:10px}
+  html.mkt[data-v="editorial"] #hero .form__row{gap:8px 12px}
+  html.mkt[data-v="editorial"] #hero .field{gap:2px}
+  html.mkt[data-v="editorial"] #hero .form input[type=text]{min-height:40px;padding-top:8px;padding-bottom:8px}
+  html.mkt[data-v="editorial"] #hero .more__sum{min-height:40px}
+  html.mkt[data-v="editorial"] #hero .pick legend{margin-bottom:4px}
+  html.mkt[data-v="editorial"] #hero .pick__opts{gap:6px}
+  html.mkt[data-v="editorial"] #hero .pick__opt{padding-top:6px;padding-bottom:6px}
+  html.mkt[data-v="editorial"] #hero .optin label{padding:2px 0}
+  html.mkt[data-v="editorial"] #hero .form__foot{row-gap:4px;margin-top:0}
+}
+@media (min-width:901px) and (max-height:740px){
+  html.mkt[data-v="editorial"] #hero .hero__form .lede{margin-top:4px}
+  html #hero .hero__form .trust-pill{margin-top:6px}
+  html.mkt[data-v="editorial"] #hero .form{gap:6px;margin-top:8px}
+  html.mkt[data-v="editorial"] #hero .pick legend{margin-bottom:2px}
+  html.mkt[data-v="editorial"] #hero .pick__opts{gap:4px}
+  html.mkt[data-v="editorial"] #hero .pick__opt{padding-top:5px;padding-bottom:5px}
+  html.mkt[data-v="editorial"] #hero .optin label{padding:0}
+  html.mkt[data-v="editorial"] #hero .form__foot{row-gap:2px}
+  /* 1280x720: pull the line under the form above the fold, spacing only */
+  html.mkt[data-v="editorial"] #hero .hero__form .lede{margin-top:2px}
+  html #hero .hero__form .trust-pill{margin-top:4px;padding-top:3px;padding-bottom:3px}
+  html.mkt[data-v="editorial"] #hero .form{gap:4px;margin-top:6px}
+  html.mkt[data-v="editorial"] #hero .pick__opt{min-height:40px;padding-top:4px;padding-bottom:4px}
+  html.mkt[data-v="editorial"] #hero .pick__opt b{margin-bottom:0}
+  html.mkt[data-v="editorial"] #hero .form__foot{row-gap:0;margin-top:0}
+  html.mkt[data-v="editorial"] #hero .form__use{margin-top:0}
+  html.mkt[data-v="editorial"] #hero #formstatus:empty{min-height:0}
+}
+/* palette: no retired orange or off palette dark on this page, at rest or on hover and focus */
+.promise,.promise li{color:#1F2128}
+html.mkt[data-v="editorial"] .vid__btn{background:#D4450A}
+html.mkt[data-v="editorial"] .vid__play:hover .vid__btn{background:#B5470E}
+html.mkt[data-v="editorial"] .ctabar,html.mkt[data-v="editorial"] .skip{background:#D4450A}
+html.mkt[data-v="editorial"] .ctabar,html.mkt[data-v="editorial"] .skip{color:#fff}
+html.mkt[data-v="editorial"] .ctabar:hover,html.mkt[data-v="editorial"] .skip:hover,html.mkt[data-v="editorial"] .skip:focus,html.mkt[data-v="editorial"] .skip:focus-visible{background:#B5470E}
+html.mkt[data-v="editorial"] .formstatus.ok{border-left-color:#F15C22}
+html.mkt[data-v="editorial"]{--acc:#F15C22;--acc-hover:#D4450A}
+/* R10 palette: button, card and accent oranges on house tokens only */
+html.mkt[data-v="editorial"][data-theme="light"]{--btn-bg:#D4450A;--btn-bg-hover:#B5470E;--v3-cta:#D4450A;--v3-cta-hover:#B5470E;--acc-ink:#B5470E;--acc-display:#B5470E;--bad:#B3261E}
+html.mkt[data-v="editorial"] .faq summary::after{color:#D4450A}
+html.mkt[data-v="editorial"] .cl__tags li{background:rgba(212,69,10,.09)}
+html.mkt[data-v="editorial"] .live__go{box-shadow:0 8px 24px -8px rgba(181,71,14,.6)}
+html.mkt[data-v="editorial"] .vsl-hint{color:#B5470E}
+/* R10b stray orange and brown: nearest house token */
+html.mkt[data-v="editorial"] .form input[type=text]:focus,html.mkt[data-v="editorial"] .form select:focus,html.mkt[data-v="editorial"] .form textarea:focus{border-color:#D4450A;outline:2px solid rgba(212,69,10,.25);outline-offset:1px}
+html.mkt[data-v="editorial"] .live__go::before{border-color:rgba(212,69,10,.45)}
+@media (max-width:760px){html.mkt[data-v="editorial"][data-theme="light"] .ctabar{box-shadow:0 14px 30px -14px rgba(212,69,10,.75)}}
+html.mkt[data-v="editorial"] .vsl-eyebrow{box-shadow:0 1px 2px rgba(31,33,40,.08),0 6px 18px -8px rgba(31,33,40,.18)}
+html.mkt[data-v="editorial"] .vid__box{box-shadow:0 1px 2px rgba(31,33,40,.08),0 22px 48px -24px rgba(31,33,40,.32)}
+html.mkt[data-v="editorial"] .vsl-case{border-color:rgba(31,33,40,.08)}
+html.mkt[data-v="editorial"] svg path[fill="#FF5A3C" i]{fill:#F15C22}
+/* R11 R10-1: data-URI image colours on house tokens (hero highlight #F15C22, rotating-word arrow #B5470E) */
+html.mkt[data-v="editorial"] .vsl-hero .hl .vsl-hi{background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20300%2040%27%20preserveAspectRatio%3D%27none%27%3E%3Cpath%20d%3D%27M4%2010%20C80%204%20200%206%20296%208%20L294%2034%20C200%2037%2090%2036%206%2032%20Z%27%20fill%3D%27%23F15C22%27%20fill-opacity%3D%27.3%27%2F%3E%3C%2Fsvg%3E") 0 86%/100% .46em no-repeat}
+html.mkt[data-v="editorial"] .rot .dec::after{background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20120%2080%27%20fill%3D%27none%27%20stroke%3D%27%23B5470E%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M110%208%20C100%2040%2070%2062%2022%2064%27%2F%3E%3Cpath%20d%3D%27M34%2052%20L20%2064%20L35%2074%27%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+/* R11 R10-2: brown shadows, borders and scrollbar to ink rgba(31,33,40,A) */
+html.mkt[data-v="editorial"][data-theme="light"]{--line:rgba(31,33,40,.22);--line-2:rgba(31,33,40,.34);--card-shadow:0 1px 2px rgba(31,33,40,.07),0 14px 34px -18px rgba(31,33,40,.32);--dx-shadow:0 2px 4px rgba(31,33,40,.06),0 30px 70px -34px rgba(31,33,40,.42);scrollbar-color:rgba(31,33,40,.28) transparent}
+html.mkt[data-v="editorial"][data-theme="light"] ::-webkit-scrollbar-thumb{background:rgba(31,33,40,.28)}
+html.mkt[data-v="editorial"][data-theme="light"] input:hover,html.mkt[data-v="editorial"][data-theme="light"] select:hover,html.mkt[data-v="editorial"][data-theme="light"] textarea:hover{border-color:rgba(31,33,40,.55)}
+html.mkt[data-v="editorial"] .cl--next{border-color:rgba(31,33,40,.34)}
+html.mkt[data-v="editorial"] .formstatus.ok{box-shadow:0 1px 2px rgba(31,33,40,.07),0 14px 34px -18px rgba(31,33,40,.32)}
+</style>
 <link rel="preconnect" href="https://connect.facebook.net" crossorigin>
 <link rel="preconnect" href="https://www.facebook.com">
 <!-- Meta Pixel Code (Meta's snippet as given, plus autoConfig off. Fetched at once again, not after load: on a slow
-     phone the first paint is the same, and PageView, which Meta counts as a landing page view, goes out ~2 s sooner.) -->
+     phone the first paint is the same, and PageView, which Meta counts as a page view, goes out ~2 s sooner.) -->
 <script>
 !function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -54,109 +207,76 @@ src="https://www.facebook.com/tr?id=1300852505438917&amp;ev=PageView&amp;noscrip
       <span class="brand__word">Domin<span class="eight">8</span>te <span class="brand__sub">Media</span></span>
     </span>
     <nav class="nav" aria-label="Main">
-      <a class="btn btn--primary btn--sm nav__cta" href="#contact">Free checkup</a>
+      <a class="btn btn--primary btn--sm nav__cta" href="#contact">Claim my free service</a>
     </nav>
   </div>
 </header>
 
 <main id="main" tabindex="-1">
 
-<!-- ============ 1. HERO (U01): eyebrow, rotating headline, CTAs, the video frame, the promise strip ============ -->
+<!-- ============ 1. HERO (U01): eyebrow, rotating headline and first paragraph left, the free ad form right (id contact), then CTAs, the clients line and the promise strip ============ -->
 <section class="vsl-hero" id="hero" aria-labelledby="vsl-h">
   <div class="wrap">
     <p class="vsl-eyebrow"><img class="vsl-eyebrow__mark" src="/assets/mark-120.webp" alt="" width="28" height="16"><span>Just taking about 3 new restaurants at a time</span></p>
-    <h1 id="vsl-h" class="hl"><span class="ln"><span class="vsl-hi">Restaurant</span> marketing agency,</span> <span class="ln ln--acc"><em class="rot" data-rotate="reimagined.|done for you.|made simple." data-fx="slide" data-hold="3000" data-pad="1.45"><span class="rot__txt dec">reimagined.</span></em></span></h1>
+    <h1 id="vsl-h" class="hl"><span class="ln"><span class="vsl-hi">Restaurant</span> marketing agency,</span> <span class="ln ln--acc"><em class="rot" data-rotate="reimagined.|made simple.|made easy." data-fx="slide" data-hold="3000" data-pad="1.45"><span class="rot__txt dec">reimagined.</span></em></span></h1>
     <p class="lede">We run your website, Google listing, social posts and ads. You approve what goes out and get back to the kitchen.</p>
-    <div class="vsl-ctas">
-      <a class="btn btn--primary btn--lg" href="#contact">Get my free online checkup</a>
-      <a class="btn btn--ghost btn--lg" href="#bookCal">Book a discovery call</a>
-    </div>
-    <p class="vsl-small">Free. No call needed. We reply within one business day.</p>
-    <p class="vsl-clients">Clients: Freddy’s Fanpage · Le Cookie</p>
 
-    <!-- the founder film: click to play with sound, nothing loads before the tap (assets/marketing.js) -->
-    <figure class="vid vid--hero" id="vsl" data-vid="/assets/vsl/vsl-founder-16x9.mp4?v=49c8940846" data-vid-name="founder">
-      <div class="vid__box">
-        <img class="vid__poster" src="/assets/vsl/vsl-founder-16x9.webp?v=976f11b022" srcset="/assets/vsl/vsl-founder-16x9-480.webp?v=258599f8c5 480w, /assets/vsl/vsl-founder-16x9-800.webp?v=9500164a95 800w, /assets/vsl/vsl-founder-16x9.webp?v=976f11b022 1280w" sizes="(max-width: 760px) calc(100vw - 40px), 880px" width="1280" height="720" alt="" fetchpriority="high" decoding="async">
-        <button class="vid__play" type="button" aria-label="29 sec: who’s behind Domin8te. Play the video with sound and captions">
-          <span class="vid__btn" aria-hidden="true"><svg viewBox="0 0 16 16" width="30" height="30" focusable="false"><path d="M4 2.2v11.6L13.6 8z"/></svg></span>
-          <span class="vid__promise" aria-hidden="true">29 sec: who’s behind Domin8te</span>
-        </button>
-        <video playsinline preload="none" aria-label="Karan, founder of Domin8te Media, on how he started and how you work with him. 29 seconds, captions on screen."></video>
-        <div class="vid__end" hidden><a class="btn btn--primary" href="#bookCal">Book a discovery call</a><button class="btn btn--ghost vid__again" type="button">Watch again</button></div>
-      </div>
-    </figure>
+    <!-- THE FREE AD (the main offer): the one form on the page -->
+    <div class="hero__form" id="contact" role="region" aria-labelledby="contact-h">
+      <h2 id="contact-h" class="hl hl--sec"><span class="ln">Get one free ad</span> <span class="ln ln--2">for your restaurant.</span></h2>
+      <p class="lede">We build one ad, ready to run on your own ad account. It’s yours to keep. Nothing to pay, nothing to sign.</p>
+      <p class="trust-pill">Independent restaurants and cafés only. We reply within 1 business day.</p>
 
-    <ul class="promise" aria-label="How we work">
-      <li>We reply within one business day</li>
-      <li>Month to month. No minimum term.</li>
-    </ul>
-  </div>
-</section>
+      <p class="sent-note" id="sent" tabindex="-1">Thanks. We’ll reply within 1 business day about your free service.</p>
+      <p class="sent-note sent-note--bad" id="notsent" tabindex="-1">That didn’t go through. Try again, or email karanhelps@domin8temedia.com and we’ll take it from there.</p>
 
-<!-- ============ 2. HOW IT WORKS ============ -->
-<section class="vsl-how" aria-labelledby="how-h">
-  <div class="wrap">
-    <header class="sec-head rv">
-      <h2 id="how-h" class="hl hl--sec"><span class="ln">How it works.</span> <span class="ln ln--2">Three steps. No call needed.</span></h2>
-    </header>
-    <ol class="vsl-steps rv">
-      <li><b>Send the short form</b>Your name, your restaurant and how to reach you.</li>
-      <li><b>We take a look</b>Your website, Google listing, reviews, menu and photos.</li>
-      <li><b>You get your notes</b>Plain-English notes on what to fix first. You decide if you want us to do it.</li>
-    </ol>
-  </div>
-</section>
-
-<!-- ============ 3. THE FREE ONLINE CHECKUP (the main offer) ============ -->
-<section class="contact" id="contact" aria-labelledby="contact-h">
-  <div class="wrap contact__in">
-    <header class="sec-head rv">
-      <h2 id="contact-h" class="hl hl--sec"><span class="ln">Get a free online checkup</span> <span class="ln ln--2">of your restaurant.</span></h2>
-      <p class="lede">Plain-English notes on what to fix first, within one business day.</p>
-    </header>
-
-    <p class="sent-note" id="sent" tabindex="-1">Got it. Karan will send your checkup within one business day.</p>
-    <p class="sent-note sent-note--bad" id="notsent" tabindex="-1">That didn’t go through. Try again, or email karanhelps@domin8temedia.com and we’ll take it from there.</p>
-
-    <form class="form rv" id="leadform" action="/send.php" method="post" novalidate data-msg-name="Add your name so we know who we’re replying to." data-msg-business="Add the name of your restaurant or cafe." data-msg-contact-missing="Add an email or phone number so we can reply." data-msg-contact-bad="That email or number looks incomplete. Please check it." data-msg-sending="Sending…" data-msg-success="Got it. Karan will send your checkup within one business day." data-msg-fail="That didn’t go through. Try again, or email karanhelps@domin8temedia.com and we’ll take it from there.">
-      <input type="hidden" name="source" value="marketing-checkup">
-      <div class="form__row">
-        <p class="field"><label for="f-name">Your name</label><input id="f-name" name="name" type="text" autocomplete="name" required maxlength="120" aria-describedby="e-name"><span class="field__err" id="e-name"></span></p>
-        <p class="field"><label for="f-biz">Restaurant or cafe</label><input id="f-biz" name="business" type="text" autocomplete="organization" required maxlength="160" aria-describedby="e-biz"><span class="field__err" id="e-biz"></span></p>
-      </div>
-      <p class="field"><label for="f-contact">Email or phone</label><input id="f-contact" name="contact" type="text" autocomplete="email" inputmode="text" required maxlength="190" aria-describedby="e-contact"><span class="field__err" id="e-contact"></span></p>
-
-      <details class="more">
-        <summary class="more__sum">Add a few details <span class="more__opt">(optional)</span></summary>
-        <div class="more__in">
-          <p class="field"><label for="f-web">Your website or Google listing link (optional)</label><input id="f-web" name="website" type="text" inputmode="url" autocomplete="url" placeholder="yourplace.com" maxlength="300"></p>
-          <p class="field"><label for="f-need">What needs fixing first?</label>
-            <select id="f-need" name="need">
-              <option value="">Pick one</option>
-              <option>The website</option>
-              <option>Showing up on Google</option>
-              <option>Social media</option>
-              <option>The ads</option>
-              <option>All of it</option>
-              <option>Something else</option>
-            </select>
-          </p>
-          <p class="field"><label for="f-msg">What’s the biggest headache?</label><textarea id="f-msg" name="challenge" rows="4" maxlength="4000" placeholder="Google says we close at 9. We’re open till 11."></textarea></p>
+      <form class="form" id="leadform" action="/send.php" method="post" novalidate data-msg-name="Add your name so we know who we’re replying to." data-msg-business="Add the name of your restaurant or cafe." data-msg-contact-missing="Add an email or phone number so we can reply." data-msg-contact-bad="That email or number looks incomplete. Please check it." data-msg-sending="Sending…" data-msg-success="Thanks. We’ll reply within 1 business day about your free service." data-msg-fail="That didn’t go through. Try again, or email karanhelps@domin8temedia.com and we’ll take it from there.">
+        <input type="hidden" name="source" value="marketing-free-ad">
+        <div class="form__row">
+          <p class="field"><label for="f-name">Your name</label><input id="f-name" name="name" type="text" autocomplete="name" required maxlength="120" aria-describedby="e-name"><span class="field__err" id="e-name"></span></p>
+          <p class="field"><label for="f-biz">Restaurant or cafe</label><input id="f-biz" name="business" type="text" autocomplete="organization" required maxlength="160" aria-describedby="e-biz"><span class="field__err" id="e-biz"></span></p>
         </div>
-      </details>
+        <p class="field"><label for="f-contact">Email or phone</label><input id="f-contact" name="contact" type="text" autocomplete="email" inputmode="text" required maxlength="190" aria-describedby="e-contact"><span class="field__err" id="e-contact"></span></p>
 
-      <p class="hp" aria-hidden="true"><label for="f-hp">Field 9</label><input id="f-hp" name="d8x" type="text" tabindex="-1" autocomplete="off"></p>
+        <fieldset class="pick" id="pick" aria-required="true" role="radiogroup" aria-describedby="e-need">
+          <legend>Pick your free service</legend>
+          <div class="pick__opts">
+            <label class="pick__opt"><input type="radio" name="need" value="Website" required><span><b>Website</b>One free landing page.</span></label>
+            <label class="pick__opt"><input type="radio" name="need" value="Social media" required><span><b>Social media</b>One or two posts based on your posts.</span></label>
+            <label class="pick__opt"><input type="radio" name="need" value="SEO" required><span><b>SEO</b>A PDF of competitor SEO and improvements.</span></label>
+            <label class="pick__opt"><input type="radio" name="need" value="Ads" required><span><b>Ads</b>One ad, built and ready to run on your own ad account. Yours to keep, nothing to pay or sign.</span></label>
+          </div>
+          <span class="field__err" id="e-need" role="alert"></span>
+        </fieldset>
 
-      <div class="form__foot">
-        <button class="btn btn--primary btn--lg" type="submit" id="submitbtn">Get my free checkup</button>
-        <p class="form__note">Three fields. Takes about 30 seconds. Or email <a href="mailto:karanhelps@domin8temedia.com">karanhelps@domin8temedia.com</a></p>
+        <details class="more">
+          <summary class="more__sum">Add a few details <span class="more__opt">(optional)</span></summary>
+          <div class="more__in">
+            <p class="field"><label for="f-web">Your website or Google listing link (optional)</label><input id="f-web" name="website" type="text" inputmode="url" autocomplete="url" placeholder="yourplace.com" maxlength="300"></p>
+            <p class="field"><label for="f-msg">What’s the biggest headache?</label><textarea id="f-msg" name="challenge" rows="4" maxlength="4000" placeholder="e.g. Google shows the wrong hours."></textarea></p>
+          </div>
+        </details>
+
+        <p class="hp" aria-hidden="true"><label for="f-hp">Leave this empty</label><input id="f-hp" name="d8x" type="text" tabindex="-1" autocomplete="off"></p>
+        <p class="optin"><label for="f-optin"><input id="f-optin" name="marketing_optin" type="checkbox" value="yes"> Yes, Domin8te Media can email me restaurant marketing tips. Unsubscribe anytime.</label></p>
+
+        <div class="form__foot">
+          <button class="btn btn--primary btn--lg" type="submit" id="submitbtn">Claim my free service</button>
+          <p class="form__note">A short form. Or email <a href="mailto:karanhelps@domin8temedia.com">karanhelps@domin8temedia.com</a></p>
+        </div>
+        <p class="form__note form__use">We use your details to reply about your free service, and only send tips if you tick the box above.</p>
+        <p class="formstatus" id="formstatus" role="status"></p>
+      </form>
+    </div>
+
+    <div class="hero__more">
+      <div class="vsl-ctas">
+        <a class="btn btn--primary btn--lg" href="#contact">Claim my free service</a>
+        <a class="btn btn--ghost btn--lg" href="#bookCal">Book a discovery call</a>
       </div>
-      <p class="formstatus" id="formstatus" role="status"></p>
-    </form>
-
-    <div class="contact__side">
-      <ul class="promise rv" aria-label="What to expect">
+      <p class="vsl-small">Free. No call needed. We reply within one business day.</p>
+      <p class="vsl-clients">Sites we’ve built: Freddy’s Fanpage · Le Cookie</p>
+      <ul class="promise" aria-label="What to expect">
         <li>We reply within one business day</li>
         <li>Month to month. No minimum term.</li>
         <li>We take on about 3 new restaurants at a time</li>
@@ -165,7 +285,7 @@ src="https://www.facebook.com/tr?id=1300852505438917&amp;ev=PageView&amp;noscrip
   </div>
 </section>
 
-<!-- ============ 4. CLIENTS (the /work/ cards; the live sites collapsed under them) ============ -->
+<!-- ============ 2. CLIENTS: "Kitchens we’re cooking alongside" (the /work/ cards) ============ -->
 <section class="wk-list vsl-proof" aria-labelledby="proof-h">
   <div class="wrap">
     <header class="sec-head rv">
@@ -177,7 +297,7 @@ src="https://www.facebook.com/tr?id=1300852505438917&amp;ev=PageView&amp;noscrip
         <div class="cl__body">
           <p class="cl__kind">Client · Fan community, Winnipeg</p>
           <h3 class="cl__name cl__name--freddys">Freddy’s <span>Fanpage</span></h3>
-          <p class="cl__line">Built for the regulars at Canada’s first Freddy’s: food photos, menu votes and a weekly free meal challenge, with every photo approved by the store.</p>
+          <p class="cl__line">An independent fan site for Freddy’s regulars in Winnipeg, with food photos and menu votes.</p>
           <div class="cl__foot">
             <ul class="cl__tags" aria-label="What we did"><li>Website</li><li>Community</li><li>Social</li></ul>
             <a class="cl__go" href="/work/freddys/" target="_blank" rel="noopener">Read the story</a>
@@ -201,11 +321,51 @@ src="https://www.facebook.com/tr?id=1300852505438917&amp;ev=PageView&amp;noscrip
       <aside class="cl cl--next rv" aria-labelledby="proof-next-h">
         <img class="cl__mark" src="/assets/mark-720.webp" width="720" height="397" alt="" loading="lazy" decoding="async">
         <h3 id="proof-next-h" class="cl__next"><span>Your place,</span> <em>next.</em></h3>
-        <p class="cl__line">Tell us your restaurant’s name. You’ll get plain-English notes on what to fix first within one business day.</p>
-        <a class="btn btn--primary cl__cta" href="#contact">Get my free checkup</a>
+        <p class="cl__line">Get one free ad, built and ready to run on your own ad account. We reply within one business day.</p>
+        <a class="btn btn--primary cl__cta" href="#contact">Claim my free service</a>
       </aside>
     </div>
+  </div>
+</section>
 
+<!-- ============ 3. THE FOUNDER FILM, then the promise strip ============ -->
+<section class="vsl-hero vsl-hero--film" aria-label="Who’s behind Domin8te">
+  <div class="wrap">
+    <!-- the founder film: click to play with sound, nothing loads before the tap (assets/marketing.js) -->
+    <figure class="vid vid--hero" id="vsl" data-vid="/assets/vsl/vsl-founder-16x9.mp4?v=49c8940846" data-vid-name="founder">
+      <div class="vid__box">
+        <img class="vid__poster" src="/assets/vsl/vsl-founder-16x9.webp?v=976f11b022" srcset="/assets/vsl/vsl-founder-16x9-480.webp?v=258599f8c5 480w, /assets/vsl/vsl-founder-16x9-800.webp?v=9500164a95 800w, /assets/vsl/vsl-founder-16x9.webp?v=976f11b022 1280w" sizes="(max-width: 760px) calc(100vw - 40px), 880px" width="1280" height="720" alt="" fetchpriority="high" decoding="async">
+        <button class="vid__play" type="button" aria-label="29 sec: who’s behind Domin8te. Play the video with sound and captions">
+          <span class="vid__btn" aria-hidden="true"><svg viewBox="0 0 16 16" width="30" height="30" focusable="false"><path d="M4 2.2v11.6L13.6 8z"/></svg></span>
+          <span class="vid__promise" aria-hidden="true">29 sec: who’s behind Domin8te</span>
+        </button>
+        <video playsinline preload="none" aria-label="Karan, founder of Domin8te Media, on how he started and how you work with him. 29 seconds, captions on screen."></video>
+        <div class="vid__end" hidden><a class="btn btn--primary" href="#bookCal">Book a discovery call</a><button class="btn btn--ghost vid__again" type="button">Watch again</button></div>
+      </div>
+    </figure>
+
+    <ul class="promise" aria-label="How we work">
+      <li>We reply within one business day</li>
+      <li>Month to month. No minimum term.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 4. HOW IT WORKS ============ -->
+<section class="vsl-how" aria-labelledby="how-h">
+  <div class="wrap">
+    <header class="sec-head rv">
+      <h2 id="how-h" class="hl hl--sec"><span class="ln">How it works.</span> <span class="ln ln--2">Three steps. No call needed.</span></h2>
+    </header>
+    <ol class="vsl-steps rv">
+      <li><b>Send the form</b></li>
+      <li><b>Pick your free service</b></li>
+      <li><b>See the work</b></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ 5. TRY THE SITES WE BUILT (the live sites) ============ -->
 <section class="vsl-live" aria-labelledby="live-h">
   <div class="wrap">
     <header class="sec-head rv">
@@ -214,29 +374,6 @@ src="https://www.facebook.com/tr?id=1300852505438917&amp;ev=PageView&amp;noscrip
         <svg class="vsl-hint__arrow" viewBox="0 0 120 110" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M96 6C104 46 82 82 26 96"/><path d="M42 82 24 97l21 8"/></svg>
       </p>
     </header>
-    <div class="vsl-case">
-    <figure class="live rv" data-src="https://steakburger-winnipeg.vercel.app/" data-mode="desktop" data-title="Freddy’s Fanpage, a prototype on sample data">
-      <div class="live__bar">
-        <i></i><i></i><i></i>
-        <span class="live__url"><b>Freddy’s Fanpage</b> <span class="live__tag">Prototype</span></span>
-        <div class="live__tools">
-          <div class="live__modes" role="group" aria-label="Screen size">
-            <button class="live__mode" type="button" data-mode="desktop" aria-pressed="true">Desktop</button>
-            <button class="live__mode" type="button" data-mode="phone" aria-pressed="false">Phone</button>
-          </div>
-          <button class="live__btn live__close" type="button">Close <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
-        </div>
-      </div>
-      <div class="live__screen">
-        <img class="live__still" src="/assets/cl-freddys.webp" srcset="/assets/cl-freddys-s.webp 520w, /assets/cl-freddys.webp 900w" sizes="100vw" width="900" height="618" alt="A steakburger and fries on a plate" loading="lazy" decoding="async">
-        <i class="live__shade"></i>
-        <button class="live__go" type="button"><i><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></i>Try the live site</button>
-        <div class="live__view"><span class="live__wait">Loading the site</span></div>
-      </div>
-    </figure>
-    <p class="live__cta"><a class="btn btn--ghost" href="#contact">Get my free checkup</a></p>
-    </div>
-
     <div class="vsl-case">
       <!-- the Le Cookie build film: right above the Le Cookie website and its cookie picker -->
     <div class="vid-row" id="lecookie-film">
@@ -254,7 +391,7 @@ src="https://www.facebook.com/tr?id=1300852505438917&amp;ev=PageView&amp;noscrip
       <div class="vid-copy">
         <h3 class="vid-copy__h">A website built the way they sell.</h3>
         <p>Le Cookie bakes every set to order, so ordering online should feel like ordering at the counter. Visitors design their cookie first, then watch it get baked, iced, signed and boxed.</p>
-        <a class="btn btn--ghost" href="#contact">Get my free checkup</a>
+        <a class="btn btn--ghost" href="#contact">Claim my free service</a>
       </div>
     </div>
 
@@ -278,8 +415,6 @@ src="https://www.facebook.com/tr?id=1300852505438917&amp;ev=PageView&amp;noscrip
       </div>
     </figure>
     </div>
-  </div>
-</section>
   </div>
 </section>
 
@@ -315,12 +450,13 @@ src="https://www.facebook.com/tr?id=1300852505438917&amp;ev=PageView&amp;noscrip
 <section class="faq" id="faq" aria-labelledby="faq-h">
   <div class="wrap">
     <h2 id="faq-h" class="hl hl--sec rv">Questions owners ask</h2>
-    <details><summary>Is the online checkup really free?</summary><p>Yes. Tell us your restaurant’s name and how to reach you. We check your website, Google listing, reviews, menu and photos and send back what we’d fix first, within one business day. Nothing to sign.</p></details>
-    <details><summary>Is it done by AI or a person?</summary><p>Both. AI tools do the legwork of checking your listings and site. Karan reads every report before it goes out, and a real person does the work if you hire us.</p></details>
-    <details><summary>I’m not good with tech. Is that a problem?</summary><p>No. We do the work. You reply to messages and tap approve on posts when you want to. Everything is in plain English.</p></details>
-    <details><summary>How much does it cost?</summary><p>Plans are monthly and depend on how much you need. After the checkup we’ll give you a clear number before you agree to anything. Ad spend is separate: you pay it straight to Meta and Google.</p></details>
-    <details><summary>Is there a contract?</summary><p>No minimum term. Plans are month to month.</p></details>
-    <details><summary>Can you promise more customers?</summary><p>No one can honestly promise that. We’ll tell you what we’d change and why, and your dashboard shows what we did and what came of it every month.</p></details>
+    <details><summary>Is the free ad really free?</summary><p>Yes. There’s nothing to pay and nothing to sign, and you keep what we build.</p></details>
+    <details><summary>What do I get?</summary><p>One ad, built and ready to run on your own ad account. It’s yours to keep. There’s nothing to pay and nothing to sign.</p></details>
+    <details><summary>Do I need an ad account? Who pays for the ads?</summary><p>Yes. You run the ad on your own Meta ad account, and you pay the ad spend straight to Meta.</p></details>
+    <details><summary>Who makes it?</summary><p>Karan makes it, with help from AI tools. A real person checks every ad before it reaches you.</p></details>
+    <details><summary>What happens after I send the form?</summary><p>We reply within one business day. There’s no obligation. If you want more, we talk about a plan, and you get a clear number before you agree to anything.</p></details>
+    <details><summary>Is there a contract?</summary><p>No. Plans are month to month, with no minimum term.</p></details>
+    <details><summary>Can you promise more customers?</summary><p>No one can honestly promise that. We’ll tell you what we’d change and why, and you decide.</p></details>
   </div>
 </section>
 
@@ -350,11 +486,11 @@ src="https://www.facebook.com/tr?id=1300852505438917&amp;ev=PageView&amp;noscrip
   </div>
 </footer>
 
-<aside aria-label="Get my free checkup"><a class="ctabar" id="vslBar" href="#contact">Get my free checkup</a></aside>
+<aside aria-label="Claim my free service"><a class="ctabar" id="vslBar" href="#contact">Claim my free service</a></aside>
 
 <script>
 /* where the visitor came from (ad UTMs, Facebook and Google click ids, the ad name in "v"): kept for the visit,
-   sent with the checkup form, and passed to the Calendly booking */
+   sent with the free ad form, and passed to the Calendly booking */
 (function(){
 var KEYS=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid','gclid','gbraid','wbraid','v'];
 var p=new URLSearchParams(location.search), a={};
@@ -380,7 +516,7 @@ if(src){var q=['utm_source','utm_medium','utm_campaign','utm_content','utm_term'
 </script>
 <script src="/assets/site.js?v=7430d5f89e" defer></script>
 <script src="/assets/work.js?v=45ab9605c2" defer></script>
-<script src="/assets/marketing.js?v=9fe5fb2b38" defer></script>
+<script src="/assets/marketing.js?v=affc29053e" defer></script>
 <script>/* the growth cursor only where there is a mouse */
 if (matchMedia('(pointer: fine)').matches) { var c = document.createElement('script'); c.src = '/assets/v3-cursor.js?v=136c753635'; c.defer = true; document.body.appendChild(c) }</script>
 </body>

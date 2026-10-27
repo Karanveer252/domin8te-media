@@ -119,7 +119,7 @@ if ('IntersectionObserver' in window) {
 })();
 
 /* the phone's sticky bar (the homepage's .ctabar look): on once the hero is behind the reader,
-   off while the checkup form or the booking calendar is on screen, since the button would only cover them */
+   off while the free ad form or the booking calendar is on screen, since the button would only cover them */
 (function () {
 'use strict';
 var bar = document.getElementById('vslBar');
@@ -183,7 +183,7 @@ function init(root){
 document.querySelectorAll('.rot[data-rotate]').forEach(init);
 })();
 
-/* The checkup form's Pixel "Lead" and thank-you panel. The form itself is assets/site.js (shared with the
+/* The free ad form's Pixel "Lead" and thank-you panel. The form itself is assets/site.js (shared with the
    homepage); this page adds, without touching it: an event_id on every send (set in the capture phase, so it
    is in the form before site.js reads it), and "Lead" fired ONLY when site.js shows the button as "Sent",
    which it does only after send.php answered ok:true (never on click, a failed send or the "rate" resend). */
@@ -191,22 +191,44 @@ document.querySelectorAll('.rot[data-rotate]').forEach(init);
 'use strict';
 var form = document.getElementById('leadform'), btn = document.getElementById('submitbtn'), status = document.getElementById('formstatus');
 if (!form || !btn) return;
-var eventId = '', first = '', fired = '';
+var eventId = '', fired = '';
 var idInput = document.createElement('input'); idInput.type = 'hidden'; idInput.name = 'event_id'; form.appendChild(idInput);
+var pick = document.getElementById('pick'), needErr = document.getElementById('e-need');
+function needOk() {                                 /* clears the picker error */
+  if (needErr) needErr.textContent = '';
+  if (pick) pick.removeAttribute('aria-invalid');
+}
+function filled(el) { return !!(el && (el.value || '').trim()); }
+/* The pick-one service check runs here, before site.js's own submit listener on the form. With no service
+   picked but name, business and contact filled, the send is stopped (site.js never runs, so no "Sent" and no
+   Lead). With any of those three empty, site.js still runs to show its own errors, and the picker error stays. */
 document.addEventListener('submit', function (e) {
   if (e.target !== form) return;
+  var radios = form.querySelectorAll('input[name="need"]');
+  if (radios.length && !form.querySelector('input[name="need"]:checked')) {
+    if (needErr) needErr.textContent = form.dataset.msgNeed || 'Pick your free service.';
+    if (pick) pick.setAttribute('aria-invalid', 'true');
+    radios[0].focus();
+    if (filled(form.elements.name) && filled(form.elements.business) && filled(form.elements.contact)) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      eventId = ''; idInput.value = '';
+      return;
+    }
+  } else needOk();
   eventId = 'lead-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
   idInput.value = eventId;
-  first = ((form.elements.name && form.elements.name.value) || '').trim().split(/\s+/)[0].slice(0, 40);
 }, true);
+form.addEventListener('change', function (e) {
+  if (e.target && e.target.name === 'need') needOk();
+});
 new MutationObserver(function () {
   if (btn.textContent.trim() !== 'Sent' || !eventId || fired === eventId) return;
   fired = eventId;
-  if (status) status.textContent = (first ? 'Thanks, ' + first + '. ' : 'Thanks. ') + 'Karan will send your checkup within one business day.';
+  if (status) status.textContent = 'Thanks. We’ll reply within 1 business day about your free service.';
   if (typeof window.fbq === 'function') {
     fbq('track', 'Lead', {
       content_name: (form.elements.source && form.elements.source.value) || 'site',
-      content_category: 'free_online_checkup'
+      content_category: 'free_ad'
     }, { eventID: eventId });
   }
 }).observe(btn, { childList: true, characterData: true, subtree: true });
